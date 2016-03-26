@@ -1,0 +1,27 @@
+
+
+Unless  otherwise stated, the  source code distributed  with this book
+can   be  redistributed in source    or  binary form   so  long  as an
+acknowledgment  appears in derived source   files. The citation should
+list that the code comes from BOOK  by AUTHOR, published by O'Reilly &
+Associates.  This  code is under copyright and  cannot be  included in
+any other book, publication, or educational product without permission
+from O'Reilly &  Associates. No warranty  is attached; we  cannot take
+responsibility for errors or fitness for use.
+
+
+There are a few exception to this licence, however: a few sources
+herein are distributed according to the GNU General Public License,
+version 2. You'll find a copy of the license in
+/usr/src/linux/COPYING, and in other places in your filesystem. The
+affected source files are:
+
+	pci/pci_skel.c
+	tty/tiny_serial.c
+	tty/tiny_tty.c
+	usb/usb-skeleton.c
+
+The files in ./pci ./tty and ./usb inherit the GPL from the kernel
+sources, as most of their code comes straight from the kernel
+(usb-skeleton.c being part of the kernel source tree directly.)
+
