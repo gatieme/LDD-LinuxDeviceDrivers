@@ -1,0 +1,35 @@
+#!/bin/bash
+#
+# gdbline <module name> <path to image>
+#
+# Outputs an add-symbol-file line suitable for pasting into gdb to examine
+# a loaded module.
+#
+
+if [ "$#" -ne 2 ]; then
+    echo "Usage: gdbline <module name> <path to image>"
+    exit 1
+fi
+
+sections_path=/sys/module/$1/sections
+
+if [ ! -d "$sections_path" ]; then
+    echo "Unknown module name $1. Is it loaded?"
+    exit 1
+fi
+
+if [ ! -f "$2" ]; then
+    echo "Can't find image at $2."
+    exit 1
+fi
+
+cd $sections_path
+echo -n add-symbol-file $2 `/bin/cat .text`
+
+for section in .[a-z]* *; do
+    if [ $section != ".text" ]; then
+	    echo  " \\"
+	    echo -n "       -s" $section `/bin/cat $section`
+    fi
+done
+echo

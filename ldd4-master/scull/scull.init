@@ -1,0 +1,142 @@
+#!/bin/bash
+# Sample init script for the scull driver module.
+
+DEVICE="scull"
+SECTION="misc"
+
+# The list of filenames and minor numbers: $PREFIX is prefixed to all names
+PREFIX="scull"
+FILES="     0 0         1 1         2 2        3 3    priv 16 
+        pipe0 32    pipe1 33    pipe2 34   pipe3 35
+       single 48      uid 64     wuid 80"
+
+INSMOD=/sbin/insmod; # use /sbin/modprobe if you prefer
+
+function device_specific_post_load () {
+    true; # fill at will
+}
+function device_specific_pre_unload () {
+    true; # fill at will
+}
+
+# Everything below this line should work unchanged for any char device. Options
+# cannot be specified via the command line. Instead, define them in in
+# /etc/${DEVICE}.conf or (if modprobe is used) /etc/modules.conf.
+
+# Optional configuration file: format is
+#    owner  <ownername>
+#    group  <groupname>
+#    mode   <modename>
+#    options <insmod options>
+CFG=/etc/${DEVICE}.conf
+
+# The kernel version, used to look for modules.
+KERNEL=`uname -r`
+
+MODDIR="/lib/modules/${KERNEL}/kernel/drivers/${SECTION}"
+if [ ! -d $MODDIR ]; then
+    MODDIR="/lib/modules/${KERNEL}/${SECTION}"
+fi
+
+if [ "$(id -u)" != "0" ]; then
+  echo "You must be root to load or unload kernel modules"
+  exit 1
+fi
+
+# Read options out of the configuration file.
+if [ -r $CFG ]; then
+    OWNER=`awk "\\$1==\"owner\" {print \\$2}" $CFG`
+    GROUP=`awk "\\$1==\"group\" {print \\$2}" $CFG`
+    MODE=`awk "\\$1==\"mode\" {print \\$2}" $CFG`
+    # The options string may include extra blanks or only blanks.
+    OPTIONS=`sed -n '/^options / s/options //p' $CFG`
+fi
+
+
+# Create device files.
+function create_files () {
+    cd /dev
+    local devlist=""
+    local file
+    while true; do
+	if [ $# -lt 2 ]; then break; fi
+	file="${DEVICE}$1"
+	mknod $file c $MAJOR $2
+	devlist="$devlist $file"
+	shift 2
+    done
+    if [ -n "$OWNER" ]; then chown $OWNER $devlist; fi
+    if [ -n "$GROUP" ]; then chgrp $GROUP $devlist; fi
+    if [ -n "$MODE"  ]; then chmod $MODE  $devlist; fi
+}
+
+# Remove device files.
+function remove_files () {
+    cd /dev
+    local devlist=""
+    local file
+    while true; do
+	if [ $# -lt 2 ]; then
+	    break
+	fi
+	file="${DEVICE}$1"
+	devlist="$devlist $file"
+	shift 2
+    done
+    rm -f $devlist
+}
+
+# Load and create files.
+function load_device () {
+    if [ -f $MODDIR/$DEVICE.ko ]; then
+	devpath=$MODDIR/$DEVICE.ko
+    elif [ -f ./$DEVICE.ko ]; then
+	devpath=./$DEVICE.ko
+    else
+	devpath=$DEVICE # Let insmod/modprobe guess.
+    fi
+    if [ "$devpath" != "$DEVICE" ]; then
+	echo -n " (loading file $devpath)"
+    fi
+
+    if $INSMOD $devpath $OPTIONS; then
+	MAJOR=`awk "\\$2==\"$DEVICE\" {print \\$1}" /proc/devices`
+	remove_files $FILES
+	create_files $FILES
+	device_specific_post_load
+    else
+	echo " FAILED!"
+    fi
+}
+
+# Unload and remove files.
+function unload_device () {
+    device_specific_pre_unload 
+    /sbin/rmmod $DEVICE
+    remove_files $FILES
+}
+
+
+case "$1" in
+  start)
+     echo -n "Loading $DEVICE"
+     load_device
+     echo "."
+     ;;
+  stop)
+     echo -n "Unloading $DEVICE"
+     unload_device
+     echo "."
+     ;;
+  force-reload|restart)
+     echo -n "Reloading $DEVICE"
+     unload_device
+     load_device
+     echo "."
+     ;;
+  *)
+     echo "Usage: $0 {start|stop|restart|force-reload}"
+     exit 1
+esac
+
+exit 0

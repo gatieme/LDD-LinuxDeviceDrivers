@@ -1,0 +1,31 @@
+#!/bin/sh
+module="shortprint"
+device="shortprint"
+mode="666"
+
+# Group: since distributions do it differently, look for wheel or use staff
+if grep '^staff:' /etc/group > /dev/null; then
+    group="staff"
+else
+    group="wheel"
+fi
+
+
+# invoke insmod with all arguments we got
+# and use a pathname, as newer modutils don't look in . by default
+/sbin/insmod -f ./$module.ko $* || exit 1
+
+major=`cat /proc/devices | awk "\\$2==\"$module\" {print \\$1}"`
+
+# Create 8 entry points, as SHORT_NR_PORTS is 8 by default
+rm -f /dev/${device}
+mknod /dev/${device} c $major 0
+
+chgrp $group /dev/${device}
+chmod $mode  /dev/${device}
+
+
+
+
+
+

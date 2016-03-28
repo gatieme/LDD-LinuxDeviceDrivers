@@ -1,0 +1,61 @@
+#!/bin/sh
+module="short"
+device="short"
+mode="664"
+
+# Group: since distributions do it differently, look for wheel or use staff
+if grep '^staff:' /etc/group > /dev/null; then
+    group="staff"
+else
+    group="wheel"
+fi
+
+
+# invoke insmod with all arguments we got
+# and use a pathname, as newer modutils don't look in . by default
+/sbin/insmod ./$module.ko $* || exit 1
+
+major=`cat /proc/devices | awk "\\$2==\"$module\" {print \\$1}"`
+
+# Create 8 entry points, as SHORT_NR_PORTS is 8 by default
+rm -f /dev/${device}[0-7]
+mknod /dev/${device}0 c $major 0
+mknod /dev/${device}1 c $major 1
+mknod /dev/${device}2 c $major 2
+mknod /dev/${device}3 c $major 3
+mknod /dev/${device}4 c $major 4
+mknod /dev/${device}5 c $major 5
+mknod /dev/${device}6 c $major 6
+mknod /dev/${device}7 c $major 7
+
+rm -f /dev/${device}[0-3][ps]
+mknod /dev/${device}0p c $major 16
+mknod /dev/${device}1p c $major 17
+mknod /dev/${device}2p c $major 18
+mknod /dev/${device}3p c $major 19
+mknod /dev/${device}4p c $major 20
+mknod /dev/${device}5p c $major 21
+mknod /dev/${device}6p c $major 22
+mknod /dev/${device}7p c $major 23
+
+mknod /dev/${device}0s c $major 32
+mknod /dev/${device}1s c $major 33
+mknod /dev/${device}2s c $major 34
+mknod /dev/${device}3s c $major 35
+mknod /dev/${device}4s c $major 36
+mknod /dev/${device}5s c $major 37
+mknod /dev/${device}6s c $major 38
+mknod /dev/${device}7s c $major 39
+
+rm -f /dev/${device}int /dev/${device}print
+mknod /dev/${device}int  c $major 128
+mknod /dev/${device}print  c $major 129
+
+chgrp $group /dev/${device}[0-7] /dev/${device}[0-7][ps] /dev/${device}int
+chmod $mode  /dev/${device}[0-7] /dev/${device}[0-7][ps] /dev/${device}int
+
+
+
+
+
+
