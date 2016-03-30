@@ -1,0 +1,32 @@
+Serial Port Help for Linux
+
+This document attempts to solve some of the most common problems with using serial ports under Linux.  Every Linux distribution is different, and for distro-specific questions you will need to talk to the distributor, or your system's administrator.
+
+
+*******************************************************
+Q: How do I know what serial ports my computer has?
+A: In Linux, serial ports are referenced by "device files".  To know how to access the serial port, you must know which device file is in charge of that port.  To see a listing of available serial ports on your system, enter
+	dmesg | grep tty
+   at the command line.  The output will look something like the following.
+	ttyS00 at 0x03f8 (irq = 4) is a 16550A
+	ttyS01 at 0x02f8 (irq = 3) is a 16550A
+   This indicates that the system has two serial ports, numbered 0 and 1.  The device file for each one looks like
+	/dev/ttySn
+   where "n" is the number of the serial port.  So, in the above example, the serial ports would be called "/dev/ttyS0" and "/dev/ttyS1".  Note that the leading 0 is not used.
+*******************************************************
+
+*******************************************************
+Q: How do I know which serial port my iPort is connected to?
+A: Just like in Windows, there's no way to tell which port is connected to your iPort, except by guessing and trial and error.  Most modern systems only have one standard serial port, which Linux usually names /dev/ttyS0.  Other serial ports, such as unconventional ones on modems and such, are numbered /dev/ttyS1 and higher.  Usually you would start with /dev/ttyS0, and if it doesn't seem to work, try one of the other serial ports on your system.
+*******************************************************
+
+*******************************************************
+Q: When I attempt to use the sample software, I get errors relating to "write" permissions.  What is this?
+A: Under Linux, you must have "permission" to access the serial ports.  The following two commands will tell you if you have the correct permissions.  Again, replace "n" with the desired serial port number.
+	cat /dev/ttySn (press Control-C after a second or two, if nothing happens)
+	echo 1234 /dev/ttySn
+   If either of those commands reply with errors about "permissions", then you are not authorized to use the serial ports in their entirety.  There are three ways to fix this.
+	1.  Run the software as the "root" user.  This is not recommended, as one wrong command as "root" can destroy a system.
+	2.  Ask your administrator to make you a member of the group that is allowed to access the serial port.  Usually this group is called "dialout".  If you choose this option, note that you will need to log out and back in (or restart the computer) for the changes to take affect.
+	3.  Ask your administrator to make the serial port readable and writable by all users.  This can be done with the command "chmod a+rw /dev/ttySn".
+*******************************************************
