@@ -1,7 +1,7 @@
 /*======================================================================
-    A globalfifo driver as an example of char device drivers  
+    A globalfifo driver as an example of char device drivers
     This example is to introduce poll,blocking and non-blocking access
-      
+
     The initial developer of the original code is Baohua Song
     <author@linuxdriver.cn>. All Rights Reserved.
 ======================================================================*/
@@ -18,51 +18,58 @@
 #include <asm/uaccess.h>
 #include <linux/poll.h>
 
-#define GLOBALFIFO_SIZE	0x1000	/*全局fifo最大4K字节*/
-#define FIFO_CLEAR 0x1  /*清0全局内存的长度*/
-#define GLOBALFIFO_MAJOR 253    /*预设的globalfifo的主设备号*/
+#define GLOBALFIFO_SIZE	0x1000	/*  全局fifo最大4K字节          */
+#define FIFO_CLEAR 0x1          /*  清0全局内存的长度           */
+#define GLOBALFIFO_MAJOR 253    /*  预设的globalfifo的主设备号  */
 
 static int globalfifo_major = GLOBALFIFO_MAJOR;
-/*globalfifo设备结构体*/
-struct globalfifo_dev                                     
-{                                                        
-  struct cdev cdev; /*cdev结构体*/                       
-  unsigned int current_len;    /*fifo有效数据长度*/
-  unsigned char mem[GLOBALFIFO_SIZE]; /*全局内存*/        
-  struct semaphore sem; /*并发控制用的信号量*/           
-  wait_queue_head_t r_wait; /*阻塞读用的等待队列头*/     
-  wait_queue_head_t w_wait; /*阻塞写用的等待队列头*/     
+
+/*  globalfifo设备结构体    */
+struct globalfifo_dev
+{
+  struct cdev           cdev;                       /*  cdev结构体              */
+  unsigned int          current_len;                /*  fifo有效数据长度        */
+  unsigned char         mem[GLOBALFIFO_SIZE];       /*  全局内存                */
+  struct semaphore      sem;                        /*  并发控制用的信号量      */
+  wait_queue_head_t     r_wait;                     /*  阻塞读用的等待队列头    */
+  wait_queue_head_t     w_wait;                     /*  阻塞写用的等待队列头    */
 };
 
-struct globalfifo_dev *globalfifo_devp; /*设备结构体指针*/
-/*文件打开函数*/
+struct globalfifo_dev *globalfifo_devp;             /*  设备结构体指针          */
+
+/*  文件打开函数    */
 int globalfifo_open(struct inode *inode, struct file *filp)
 {
-  /*将设备结构体指针赋值给文件私有数据指针*/
-  filp->private_data = globalfifo_devp;
-  return 0;
+    /*将设备结构体指针赋值给文件私有数据指针*/
+    filp->private_data = globalfifo_devp;
+
+    return 0;
 }
+
 /*文件释放函数*/
 int globalfifo_release(struct inode *inode, struct file *filp)
 {
-  return 0;
+    return 0;
 }
 
 /* ioctl设备控制函数 */
-static int globalfifo_ioctl(struct inode *inodep, struct file *filp, unsigned
-  int cmd, unsigned long arg)
+static int globalfifo_ioctl(
+        struct inode *inodep,
+        struct file *filp,
+        unsigned int cmd,
+        unsigned long arg)
 {
-  struct globalfifo_dev *dev = filp->private_data;/*获得设备结构体指针*/
+  struct globalfifo_dev *dev = filp->private_data;  /*获得设备结构体指针*/
 
   switch (cmd)
   {
     case FIFO_CLEAR:
-    	down(&dev->sem); //获得信号量    	
+    	down(&dev->sem); //获得信号量
       dev->current_len = 0;
       memset(dev->mem,0,GLOBALFIFO_SIZE);
       up(&dev->sem); //释放信号量
-         
-      printk(KERN_INFO "globalfifo is set to zero\n");      
+
+      printk(KERN_INFO "globalfifo is set to zero\n");
       break;
 
     default:
@@ -75,11 +82,11 @@ static unsigned int globalfifo_poll(struct file *filp, poll_table *wait)
 {
   unsigned int mask = 0;
   struct globalfifo_dev *dev = filp->private_data; /*获得设备结构体指针*/
-  
+
   down(&dev->sem);
-  
+
   poll_wait(filp, &dev->r_wait, wait);
-  poll_wait(filp, &dev->w_wait, wait);  
+  poll_wait(filp, &dev->w_wait, wait);
   /*fifo非空*/
   if (dev->current_len != 0)
   {
@@ -90,68 +97,84 @@ static unsigned int globalfifo_poll(struct file *filp, poll_table *wait)
   {
     mask |= POLLOUT | POLLWRNORM; /*标示数据可写入*/
   }
-     
+
   up(&dev->sem);
   return mask;
 }
 
 
 /*globalfifo读函数*/
-static ssize_t globalfifo_read(struct file *filp, char __user *buf, size_t count,
-  loff_t *ppos)
+static ssize_t globalfifo_read(
+        struct file *filp,
+        char __user *buf,
+        size_t      count,
+        loff_t      *ppos)
 {
-  int ret;
-  struct globalfifo_dev *dev = filp->private_data; //获得设备结构体指针
-  DECLARE_WAITQUEUE(wait, current); //定义等待队列
+    int                     ret;
+    struct  globalfifo_dev  *dev = filp->private_data; //获得设备结构体指针
 
-  down(&dev->sem); //获得信号量
-  add_wait_queue(&dev->r_wait, &wait); //进入读等待队列头
+    DECLARE_WAITQUEUE(wait, current);       //  定义等待队列
 
-  /* 等待FIFO非空 */
-  if (dev->current_len == 0)
-  {
-    if (filp->f_flags &O_NONBLOCK)
+
+    down(&dev->sem);                        //  获得信号量
+    add_wait_queue(&dev->r_wait, &wait);    //  进入读等待队列头
+
+    /* 等待FIFO非空 */
+    if (dev->current_len == 0)
     {
-      ret =  - EAGAIN;
-      goto out;
-    } 
-    __set_current_state(TASK_INTERRUPTIBLE); //改变进程状态为睡眠
-    up(&dev->sem);
+        if (filp->f_flags &O_NONBLOCK)
+        {
+        ret =  - EAGAIN;
+        goto out;
+        }
 
-    schedule(); //调度其他进程执行
-    if (signal_pending(current))
-    //如果是因为信号唤醒
-    {
-      ret =  - ERESTARTSYS;
-      goto out2;
+        __set_current_state(TASK_INTERRUPTIBLE);    //改变进程状态为睡眠
+
+        up(&dev->sem);
+
+
+        schedule(); //调度其他进程执行
+
+        if (signal_pending(current))
+        //如果是因为信号唤醒
+        {
+            ret =  - ERESTARTSYS;
+            goto out2;
+        }
+
+        down(&dev->sem);
     }
 
-    down(&dev->sem);
+    /* 拷贝到用户空间 */
+    if (count > dev->current_len)
+    {
+        count = dev->current_len;
+    }
+
+    if (copy_to_user(buf, dev->mem, count))
+    {
+        ret =  - EFAULT;
+        goto out;
+    }
+    else
+    {
+        memcpy(dev->mem, dev->mem + count, dev->current_len - count); //fifo数据前移
+        dev->current_len -= count; //有效数据长度减少
+        printk(KERN_INFO "read %d bytes(s),current_len:%d\n", count, dev->current_len);
+
+        wake_up_interruptible(&dev->w_wait); //唤醒写等待队列
+
+        ret = count;
   }
 
-  /* 拷贝到用户空间 */
-  if (count > dev->current_len)
-    count = dev->current_len;
 
-  if (copy_to_user(buf, dev->mem, count))
-  {
-    ret =  - EFAULT;
-    goto out;
-  }
-  else
-  {
-    memcpy(dev->mem, dev->mem + count, dev->current_len - count); //fifo数据前移
-    dev->current_len -= count; //有效数据长度减少
-    printk(KERN_INFO "read %d bytes(s),current_len:%d\n", count, dev->current_len);
-     
-    wake_up_interruptible(&dev->w_wait); //唤醒写等待队列
-    
-    ret = count;
-  }
-  out: up(&dev->sem); //释放信号量
-  out2:remove_wait_queue(&dev->w_wait, &wait); //从附属的等待队列头移除
-  set_current_state(TASK_RUNNING);
-  return ret;
+out     :
+    up(&dev->sem); //释放信号量
+out2    :
+    remove_wait_queue(&dev->w_wait, &wait); //从附属的等待队列头移除
+    set_current_state(TASK_RUNNING);
+
+    return ret;
 }
 
 
@@ -174,7 +197,7 @@ static ssize_t globalfifo_write(struct file *filp, const char __user *buf,
     {
       ret =  - EAGAIN;
       goto out;
-    } 
+    }
     __set_current_state(TASK_INTERRUPTIBLE); //改变进程状态为睡眠
     up(&dev->sem);
 
@@ -205,7 +228,7 @@ static ssize_t globalfifo_write(struct file *filp, const char __user *buf,
       ->current_len);
 
     wake_up_interruptible(&dev->r_wait); //唤醒读等待队列
-    
+
     ret = count;
   }
 
