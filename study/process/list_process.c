@@ -8,7 +8,6 @@
 
 
 #include <linux/init.h>
-
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 
@@ -18,7 +17,7 @@
 
 //#define METHOD 2
 static unsigned int METHOD = 1;
-moudle_param(METHOD, uint,0400);
+module_param(METHOD, uint,0400);
 
 static int list_process_init(void)
 {
@@ -60,33 +59,31 @@ static int list_process_init(void)
 
     printk( "The method is %s\n", method );
 
-#if METHOD == 1
-
-    list_for_each( pos, &task->tasks )
+    switch(METHOD)
     {
-        p = list_entry( pos, struct task_struct, tasks );
-        count++;
-        printk( KERN_ALERT "%d\t%s\n", p->pid, p->comm );
+        case 1 :
+            list_for_each( pos, &task->tasks )
+            {
+                p = list_entry( pos, struct task_struct, tasks );
+                count++;
+                printk( KERN_ALERT "%d\t%s\n", p->pid, p->comm );
+            }
+            break;
+        case 2 :
+            for_each_process(task)
+            {
+                count++;
+                printk( KERN_ALERT "%d\t%s\n", task->pid, task->comm );
+            }
+            break;
+        case 3 :
 
+        list_for_each_entry( p, &task->tasks, tasks )
+        {
+            count++;
+            printk( KERN_ALERT "%d\t%s\n", p->pid, p->comm );
+        }
     }
-
-#elif METHOD == 2
-
-    for_each_process(task)
-    {
-        count++;
-        printk( KERN_ALERT "%d\t%s\n", task->pid, task->comm );
-    }
-
-#elif METHOD == 3
-
-    list_for_each_entry( p, &task->tasks, tasks )
-    {
-        count++;
-        printk( KERN_ALERT "%d\t%s\n", p->pid, p->comm );
-    }
-
-#endif
 
     printk("there are %d process in your system now...", count);
 
