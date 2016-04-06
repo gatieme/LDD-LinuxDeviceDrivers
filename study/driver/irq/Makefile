@@ -24,7 +24,7 @@ DRIVER_DESC    := "Linux input module for Elo MultiTouch(MT) devices"
 DRIVER_LICENSE := "Dual BSD/GPL"
 
 
-MODULE_NAME := hello
+MODULE_NAME := tiger
 
 ifneq ($(KERNELRELEASE),)
 
