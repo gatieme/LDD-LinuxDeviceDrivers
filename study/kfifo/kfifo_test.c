@@ -6,13 +6,14 @@
 
 #include <linux/init.h>
 #include <linux/module.h>
-
+#include <linux/kfifo.h>
+#include <linux/kernel.h>
 
 static int kfifo_init()
 {
     unsigned int i;
     unsigned int val;
-    ret =
+    ret = 1;
     /*  */
     for(i = 0; i < 32; i++)
     {

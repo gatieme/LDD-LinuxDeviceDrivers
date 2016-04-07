@@ -1,6 +1,6 @@
 
 
-obj-m := kfifo-test.o
+obj-m := test.o
 
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 
