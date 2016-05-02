@@ -27,7 +27,6 @@ long writePhysicsAddress(unsigned long pa, unsigned long data, int *pStatus);
 
 static int mem_dev_init(void)
 {
-
     readPhysicsAddress(0x12345, NULL);
     return 0;
 }
@@ -46,7 +45,6 @@ static void mem_dev_exit(void)
 long readPhysicsAddress(unsigned long pa, int *pStatus)
 {
     long data = -1;
-    //long *point = (long *)pa;
     data = *(long *)pa;
     printk(KERN_INFO "physics address : 0x%lx, data : 0x%lx", pa, data);
 
