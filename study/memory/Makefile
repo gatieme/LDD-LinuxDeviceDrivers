@@ -1,6 +1,6 @@
-ROOT=$(shell pwd)
+ROOT=../
 
-DIRS=param process memory 
+DIRS=mem mmap v2p
 
 
 
