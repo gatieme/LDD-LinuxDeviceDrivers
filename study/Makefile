@@ -1,7 +1,16 @@
 ROOT=$(shell pwd)
+PLATFORM=$(shell $(ROOT)/systype.sh)
+include $(ROOT)/Make.defines.$(PLATFORM)
 
-DIRS=list find
 
+
+DIRS=injector engine tools
+
+
+BIN=$(ROOT)/../workspace
+ENGINE=$(ROOT)/engine
+INJECTOR=$(ROOT)/injector
+TOOLS=$(ROOT)/tools
 
 all:
 	for i in $(DIRS); do \

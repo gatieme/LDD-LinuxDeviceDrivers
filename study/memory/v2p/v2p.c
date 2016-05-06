@@ -43,43 +43,54 @@ static int find_pgd_init(void)
 
         printk(KERN_INFO"PAGE_MASK = 0x%lx\n",PAGE_MASK);
 
-        if(!(pcb_tmp = find_task_by_pid(pid))) {
+        if(!(pcb_tmp = find_task_by_pid(pid)))
+        {
                 printk(KERN_INFO"Can't find the task %d .\n",pid);
                 return 0;
         }
         printk(KERN_INFO"pgd = 0x%p\n",pcb_tmp->mm->pgd);
-                /* 判断给出的地址va是否合法(va&lt;vm_end)*/
-        if(!find_vma(pcb_tmp->mm,va)){
+
+        /* 判断给出的地址va是否合法(va&lt;vm_end)*/
+        if(!find_vma(pcb_tmp->mm,va))
+        {
                 printk(KERN_INFO"virt_addr 0x%lx not available.\n",va);
                 return 0;
         }
+
         pgd_tmp = pgd_offset(pcb_tmp->mm,va);
         printk(KERN_INFO"pgd_tmp = 0x%p\n",pgd_tmp);
         printk(KERN_INFO"pgd_val(*pgd_tmp) = 0x%lx\n",pgd_val(*pgd_tmp));
-        if(pgd_none(*pgd_tmp)){
+        if(pgd_none(*pgd_tmp))
+        {
                 printk(KERN_INFO"Not mapped in pgd.\n");
                 return 0;
         }
+
         pud_tmp = pud_offset(pgd_tmp,va);
         printk(KERN_INFO"pud_tmp = 0x%p\n",pud_tmp);
         printk(KERN_INFO"pud_val(*pud_tmp) = 0x%lx\n",pud_val(*pud_tmp));
-        if(pud_none(*pud_tmp)){
+        if(pud_none(*pud_tmp))
+        {
                 printk(KERN_INFO"Not mapped in pud.\n");
                 return 0;
         }
+
         pmd_tmp = pmd_offset(pud_tmp,va);
         printk(KERN_INFO"pmd_tmp = 0x%p\n",pmd_tmp);
         printk(KERN_INFO"pmd_val(*pmd_tmp) = 0x%lx\n",pmd_val(*pmd_tmp));
-        if(pmd_none(*pmd_tmp)){
+        if(pmd_none(*pmd_tmp))
+        {
                 printk(KERN_INFO"Not mapped in pmd.\n");
                 return 0;
         }
+
         /*在这里，把原来的pte_offset_map()改成了pte_offset_kernel*/
         pte_tmp = pte_offset_kernel(pmd_tmp,va);
 
         printk(KERN_INFO"pte_tmp = 0x%p\n",pte_tmp);
         printk(KERN_INFO"pte_val(*pte_tmp) = 0x%lx\n",pte_val(*pte_tmp));
-        if(pte_none(*pte_tmp)){
+        if(pte_none(*pte_tmp))
+        {
                 printk(KERN_INFO"Not mapped in pte.\n");
                 return 0;
         }
@@ -87,10 +98,10 @@ static int find_pgd_init(void)
                 printk(KERN_INFO"pte not in RAM.\n");
                 return 0;
         }
-        pa = (pte_val(*pte_tmp) & PAGE_MASK) |(va & ~PAGE_MASK);
+
+        pa = (pte_val(*pte_tmp) & PAGE_MASK) | (va & ~PAGE_MASK);
         printk(KERN_INFO"virt_addr 0x%lx in RAM is 0x%lx t .\n",va,pa);
-        printk(KERN_INFO"contect in 0x%lx is 0x%lx\n",pa,
-                *(unsigned long *)((char *)pa + PAGE_OFFSET));
+        printk(KERN_INFO"contect in 0x%lx is 0x%lx\n", pa, *(unsigned long *)((char *)pa + PAGE_OFFSET));
 
         return 0;
 

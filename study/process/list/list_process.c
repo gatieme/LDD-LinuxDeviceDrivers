@@ -34,34 +34,11 @@ static int list_process_init(void)
 
     printk(KERN_ALERT"PID\tCOMM\n");
 
-    switch(METHOD)
-    {
-
-        case 1:
-
-            method = "list_for_each";
-
-            break;
-
-        case 2:
-
-            method = "for_each_process";
-
-            break;
-
-        case 3:
-
-            method = "list_for_each_entry";
-
-            break;
-
-    }
-
-    printk( "The method is %s\n", method );
 
     switch(METHOD)
     {
         case 1 :
+            method = "list_for_each";
             list_for_each( pos, &task->tasks )
             {
                 p = list_entry( pos, struct task_struct, tasks );
@@ -70,6 +47,7 @@ static int list_process_init(void)
             }
             break;
         case 2 :
+            method = "for_each_process";
             for_each_process(task)
             {
                 count++;
@@ -78,13 +56,15 @@ static int list_process_init(void)
             break;
         case 3 :
 
-        list_for_each_entry( p, &task->tasks, tasks )
-        {
-            count++;
-            printk( KERN_ALERT "%d\t%s\n", p->pid, p->comm );
-        }
+            method = "list_for_each_entry";
+            list_for_each_entry( p, &task->tasks, tasks )
+            {
+                count++;
+                printk( KERN_ALERT "%d\t%s\n", p->pid, p->comm );
+            }
     }
 
+    printk( "The method is %s\n", method );
     printk("there are %d process in your system now...", count);
 
     return 0;
