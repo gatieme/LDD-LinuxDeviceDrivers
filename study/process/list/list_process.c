@@ -12,15 +12,20 @@
 #include <linux/moduleparam.h>
 
 #include <linux/sched.h>
-//#include <asm/current.h>
 
 
 
-//#define METHOD 2
+/*
+ *  you can use METHOD to select the function you want to list the process
+ *  METHOD  =   1   "list_for_each"
+ *  METHOD  =   2   "for_each_process"
+ *  METHOD  =   3   "list_for_each_entry"
+ */
 static unsigned int METHOD = 1;
-module_param(METHOD, uint,0400);
+module_param(METHOD, uint, 0400);
 
-static int list_process_init(void)
+
+void do_list_process(void)
 {
     struct task_struct *task = NULL, *pTask = NULL;
     struct list_head *pos = 0;
@@ -80,15 +85,24 @@ static int list_process_init(void)
     return 0;
 }
 
-static void list_process_exit(void)
+
+
+static int init_list_process(void)
+{
+    // list all the process of you system
+    do_list_process( );
+}
+
+static void exit_list_process(void)
 {
     printk(KERN_ALERT "GOOD BYE--list process!!\n");
 }
 
 
 
-module_init(list_process_init);
-module_exit(list_process_exit);
+module_init(init_list_process);
+module_exit(exit_list_process);
+
 
 MODULE_AUTHOR("gatieme");
 MODULE_LICENSE("GPL");
