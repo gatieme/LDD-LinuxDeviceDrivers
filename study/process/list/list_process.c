@@ -21,17 +21,14 @@ module_param(METHOD, uint,0400);
 
 static int list_process_init(void)
 {
-    struct task_struct *task, *p;
-    struct list_head *pos;
-    int count;
-    char *method;
-    count = 0; /*下面这些初始化完全是为了消除编译时的警告信息*/
-    p = 0;
-    task = 0;
-    pos = 0;
-    method = 0;
-    task = &init_task;
+    struct task_struct *task = NULL, *pTask = NULL;
+    struct list_head *pos = 0;
+    int count = 0;
+    char *method = NULL;
 
+
+    count = 0;
+    task = &init_task;
     printk(KERN_ALERT"PID\tCOMM\n");
 
 
@@ -39,11 +36,11 @@ static int list_process_init(void)
     {
         case 1 :
             method = "list_for_each";
-            list_for_each( pos, &task->tasks )
+            list_for_each(pos, &task->tasks)
             {
-                p = list_entry( pos, struct task_struct, tasks );
+                pTask = list_entry(pos, struct task_struct, tasks);
                 count++;
-                printk( KERN_ALERT "%d\t%s\n", p->pid, p->comm );
+                printk(KERN_ALERT "%d\t%s\n", pTask->pid, pTask->comm);
             }
             break;
         case 2 :
@@ -51,28 +48,29 @@ static int list_process_init(void)
             for_each_process(task)
             {
                 count++;
-                printk( KERN_ALERT "%d\t%s\n", task->pid, task->comm );
+                printk(KERN_ALERT "%d\t%s\n", task->pid, task->comm);
             }
             break;
         case 3 :
 
             method = "list_for_each_entry";
-            list_for_each_entry( p, &task->tasks, tasks )
+            list_for_each_entry(pTask, &task->tasks, tasks)
             {
                 count++;
-                printk( KERN_ALERT "%d\t%s\n", p->pid, p->comm );
+                printk(KERN_ALERT "%d\t%s\n", pTask->pid, pTask->comm);
             }
+            break;
     }
 
-    printk( "The method is %s\n", method );
-    printk("there are %d process in your system now...", count);
+    printk(KERN_ALERT "The method is %s\n", method);
+    printk(KERN_ALERT "there are %d process in your system now...\n", count);
 
     return 0;
 }
 
 static void list_process_exit(void)
 {
-    printk( KERN_ALERT "GOOD BYE!!\n");
+    printk(KERN_ALERT "GOOD BYE!!\n");
 }
 
 
