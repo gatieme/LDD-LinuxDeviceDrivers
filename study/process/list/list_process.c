@@ -42,6 +42,14 @@ static int list_process_init(void)
                 count++;
                 printk(KERN_ALERT "%d\t%s\n", pTask->pid, pTask->comm);
             }
+
+            //  because the list of process is an double-linked circular list
+            //  we can also list all the process from the current process
+            list_for_each(pos, &current->children)
+            {
+                pTask = list_entry(pos, struct task_struct, sibling);
+                printk(KERN_ALERT "%d\t%s\n", pTask->pid, pTask->comm);
+            }
             break;
         case 2 :
             method = "for_each_process";

@@ -40,7 +40,7 @@ static unsigned int PID = 1;
 module_param(PID, uint,0400);
 static int find_task_init(void)
 {
-    struct task_struct *task = NULL;
+    struct task_struct *task = NULL, *pTask = NULL;
     struct list_head *pos = NULL;
     char *method = NULL;
 
@@ -54,15 +54,16 @@ static int find_task_init(void)
     {
         case 1 :
             method = "list_for_each";
-            list_for_each(pos, &task->tasks )
+            list_for_each(pos, &task->tasks)
             {
-                task = list_entry(pos, struct task_struct, tasks );
-                if(task->pid == (pid_t)PID)
+                pTask = list_entry(pos, struct task_struct, tasks );
+                if(pTask->pid == (pid_t)PID)
                 {
-                    printk(KERN_ALERT "%d\t%s\t%p\n", task->pid, task->comm, task);
+                    printk(KERN_ALERT "%d\t%s\t%p\n", pTask->pid, pTask->comm, pTask);
                     break;
                 }
             }
+
             break;
         case 2 :
             method = "for_each_process";
@@ -77,11 +78,11 @@ static int find_task_init(void)
             break;
         case 3 :
             method = "list_for_each_entry";
-            list_for_each_entry(task, &task->tasks, tasks )
+            list_for_each_entry(pTask, &task->tasks, tasks)
             {
-                if(task->pid == PID)
+                if(pTask->pid == PID)
                 {
-                    printk(KERN_ALERT "%d\t%s\t%p\n", task->pid, task->comm, task);
+                    printk(KERN_ALERT "%d\t%s\t%p\n", pTask->pid, pTask->comm, pTask);
                 }
             }
     }
