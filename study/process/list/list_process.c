@@ -14,7 +14,6 @@
 #include <linux/sched.h>
 
 
-
 /*
  *  you can use METHOD to select the function you want to list the process
  *  METHOD  =   1   "list_for_each"
