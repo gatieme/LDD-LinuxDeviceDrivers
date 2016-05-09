@@ -30,6 +30,7 @@ struct task_struct * findTaskByPid(pid_t pid)
  */
 void getTaskinfo(struct task_struct *task)
 {
+
 }
 
 //#define METHOD 2
@@ -47,7 +48,6 @@ static int find_task_init(void)
     task = &init_task;
 
     printk(KERN_ALERT"PID\tCOMM\tADDR\n");
-
 
 
     switch(METHOD)
