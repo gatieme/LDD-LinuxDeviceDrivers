@@ -12,6 +12,7 @@
 #include <linux/moduleparam.h>
 
 #include <linux/sched.h>
+//#include <asm/current.h>
 
 
 
@@ -53,10 +54,10 @@ static int list_process_init(void)
             break;
         case 2 :
             method = "for_each_process";
-            for_each_process(task)
+            for_each_process(pTask)
             {
                 count++;
-                printk(KERN_ALERT "%d\t%s\n", task->pid, task->comm);
+                printk(KERN_ALERT "%d\t%s\n", pTask->pid, pTask->comm);
             }
             break;
         case 3 :
@@ -72,7 +73,7 @@ static int list_process_init(void)
 
     printk(KERN_ALERT "The method is %s\n", method);
     printk(KERN_ALERT "there are %d process in your system now...\n", count);
-
+    printk(KERN_ALERT "current : %d\t%s\n", current->pid, current->comm);
     return 0;
 }
 
