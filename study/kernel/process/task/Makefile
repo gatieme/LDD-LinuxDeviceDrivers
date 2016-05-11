@@ -1,6 +1,6 @@
 ROOT=$(shell pwd)
 
-DIRS=list find
+DIRS=list_process find_task
 
 
 all:

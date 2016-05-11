@@ -84,12 +84,12 @@ void findTaskByPid(int pid)
             }
     }
     printk("the method is %s", method);
-    return 0;
 }
 
 static int init_find_task(void)
 {
-
+    findTaskByPid(PID);
+    return 0;
 }
 
 static void exit_find_task(void)
@@ -99,7 +99,7 @@ static void exit_find_task(void)
 
 
 
-module_init(init_find_taskt);
+module_init(init_find_task);
 module_exit(exit_find_task);
 
 MODULE_AUTHOR("gatieme");
