@@ -30,49 +30,52 @@ int kthread_function(void *argc)
     return 0;
 }
 
-void do_print_pid()
+void print_kernel_thread_pid(void)
 {
-    pid_t res;
+    pid_t               res = -1;
+    struct pid          *ktpid = NULL;
+    struct task_struct  *task = NULL;
 
     //  create a kernel thread
     res = kernel_thread(kthread_function, NULL, CLONE_KERNEL);
 
     //  get the pid of the kernel thread you create
-    struct pid* ktpid = find_get_pid(res);
+    ktpid = find_get_pid(res);
 
     //  get the task info of the kernel thread
-    struct task_struct* task = pid_task(kpid, PIDTYPE_PID);
+    task = pid_task(ktpid, PIDTYPE_PID);
 
-    printk(KERN_ALERT "the state of the task is:%d\n", task->state);      //显示任务当前所处的状态
+    printk(KERN_ALERT "the state of the task is : %ld\n", task->state);      //显示任务当前所处的状态
 
     //  get the real PID of the kernel thread
-    printk(KERN_ALERT "the pid of the task is:%d\n", task->pid);        //显示任务的进程号
+    printk(KERN_ALERT "the pid of the task is  :%d\n", task->pid);        //显示任务的进程号
 
     //  get the thread id of the kernel thread
-    printk(KERN_ALERT "the tgid of the task is:%d\n", task->tgid);
+    printk(KERN_ALERT "the tgid of the task is : %d\n", task->tgid);
 
     //  显示函数kernel_thread( )函数执行结果
-    printk(KERN_ALERT "the kernel_thread result is:%d\n", res);
+    printk(KERN_ALERT "the kernel_thread result is : %d\n", res);
     printk(KERN_ALERT "out pid_task_init.\n");
+
+}
+
+
+static int init_kernel_thread(void)
+{
+    print_kernel_thread_pid( );
 
     return 0;
 }
 
-
-static int init_print_pid(void)
+static void exit_kernel_thread(void)
 {
-
-}
-
-static void exit_print_pid(void)
-{
-    printk(KERN_ALERT "GOOD BYE:print_pid!!\n");
+    printk(KERN_ALERT "GOOD BYE:kernel_thread!!\n");
 }
 
 
 
-module_init(init_print_pidt);
-module_exit(exit_print_pid);
+module_init(init_kernel_thread);
+module_exit(exit_kernel_thread);
 
 MODULE_AUTHOR("gatieme");
 MODULE_LICENSE("GPL");

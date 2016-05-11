@@ -1,6 +1,6 @@
 
 
-obj-m := get_pid.o
+obj-m := kernel_thread.o
 
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 
