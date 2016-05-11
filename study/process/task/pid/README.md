@@ -63,7 +63,7 @@ pid是 Linux 中在其命名空间中唯一标识进程而分配给它的一个�
 
 命名空间有的还有层次关系，如PID命名空间
 
-![命名空间的层次关系图](./namespace-level.jpg)
+![命名空间的层次关系图](./images/namespace-level.jpg)
 
 
 
@@ -159,7 +159,7 @@ struct pid_namespace
 | level | 代表当前命名空间的等级，初始命名空间的level为0，它的子命名空间level为1，依次递增，而且子命名空间对父命名空间是可见的。从给定的level设置，内核即可推断进程会关联到多少个ID。|
 | parent | 指向父命名空间的指针 |
 
-![PID命名空间.png](./pid-namespace.png)
+![PID命名空间.png](./images/pid-namespace.png)
 
 
 实际上PID分配器也需要依靠该结构的某些部分来连续生成唯一ID，但我们目前对此无需关注。我们上述代码中给出的下列成员更感兴趣。
@@ -305,7 +305,7 @@ struct task_struct
 
 那么最终，linux下进程命名空间和进程的关系结构如下：
 
-![进程命名空间和进程的关系结构](./pidnamespace-and-process.png)
+![进程命名空间和进程的关系结构](./images/pidnamespace-and-process.png)
 
 可以看到，多个task_struct指向一个PID，同时PID的hash数组里安装不同的类型对task进行散列，并且一个PID会属于多个命名空间。
 
@@ -356,7 +356,7 @@ struct pid
 
 结构示意图如图
 
-![一个task_struct对应一个PID](./per-task_struct-per-pid.png)
+![一个task_struct对应一个PID](./images/per-task_struct-per-pid.png)
 
 
 #如何快速地根据局部ID、命名空间、ID类型找到对应进程的 task_struct
@@ -435,7 +435,7 @@ struct pid
 
 假如现在有三个进程A、B、C为同一个进程组，进程组长为A，这样的结构示意图如图
 
-![增加ID类型的结构](./task_struct-with-pidtype.png)
+![增加ID类型的结构](./images/task_struct-with-pidtype.png)
 
 
 
@@ -477,7 +477,7 @@ struct upid
 举例来说，在level 2 的某个命名空间上新建了一个进程，分配给它的 pid 为45，映射到 level 1 的命名空间，分配给它的 pid 为 134；再映射到 level 0 的命名空间，分配给它的 pid 为289，对于这样的例子，如图4所示为其表示：
 
 
-![增加PID命名空间之后的结构图](./task_struct-with-namespace.png)
+![增加PID命名空间之后的结构图](./images/task_struct-with-namespace.png)
 
 
 图中关于如果分配唯一的 PID 没有画出，但也是比较简单，与前面两种情形不同的是，这里分配唯一的 PID 是有命名空间的容器的，在PID命名空间内必须唯一，但各个命名空间之间不需要唯一。
