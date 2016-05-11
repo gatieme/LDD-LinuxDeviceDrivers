@@ -1,3 +1,0 @@
-# these rules generate rules for the /dev/{cdrom,dvd,...} symlinks
-
-ACTION=="add", SUBSYSTEM=="block", ENV{ID_CDROM}=="?*", ENV{GENERATED}!="?*", PROGRAM="write_cd_rules", SYMLINK+="%c"
