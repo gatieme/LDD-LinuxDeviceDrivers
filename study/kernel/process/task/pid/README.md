@@ -1,3 +1,8 @@
+| 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
+| ------------- |:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
+| 2016-05-12 | [Linux-4.5](http://lxr.free-electrons.com/source/?v=4.5) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux-进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
+
+
 Linux 内核使用 task_struct 数据结构来关联所有与进程有关的数据和结构，Linux 内核所有涉及到进程和程序的所有算法都是围绕该数据结构建立的，是内核中最重要的数据结构之一。
 
 该数据结构在内核文件[include/linux/sched.h](http://lxr.free-electrons.com/source/include/linux/sched.h#L1389)中定义，在目前最新的Linux-4.5（截至目前的日期为2016-05-11）的内核中，该数据结构足足有 380 行之多，在这里我不可能逐项去描述其表示的含义，本篇文章只关注该数据结构如何来组织和管理进程ID的。
