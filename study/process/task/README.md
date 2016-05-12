@@ -1,8 +1,6 @@
-http://blog.csdn.net/npy_lp/article/category/1209083
-
-| 日期 | 内核版本|  架构 | 作者 | GitHub|
-| ------------- |:-------------:| -----:|
-| 2016-05-11 | [linux-4.5](http://lxr.free-electrons.com/source/?v=4.5) | x86 & arm | [gatieme](http://blog.csdn.net/gatieme)| [LDD-LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study)|
+| 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
+| ------------- |:-------------:|
+| 2016-05-12 | [Linux-4.5](http://lxr.free-electrons.com/source/?v=4.5) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | Linux-进程管理与调度 |
 
 
 进程是处于执行期的程序以及它所管理的资源（如打开的文件、挂起的信号、进程状态、地址空间等等）的总称。注意，程序并不是进程，实际上两个或多个进程不仅有可能执行同一程序，而且还有可能共享地址空间等资源。
