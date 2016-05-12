@@ -1029,19 +1029,11 @@ u64 acct_vm_mem1;   /* accumulated virtual memory usage */
 cputime_t acct_timexpd; /* stime + utime since last update */  
 endif  
 ```
-    在Ubuntu 11.04上，执行cat获得进程1的I/O计数如下： 
+在Ubuntu 11.04上，执行cat获得进程1的I/O计数如下： 
 
-```c
-$ sudo cat /proc/1/io  
-```c
-rchar: 164258906  
-wchar: 455212837  
-syscr: 388847  
-syscw: 92563  
-read_bytes: 439251968  
-write_bytes: 14143488  
-cancelled_write_bytes: 2134016  
-    输出的数据项刚好是task_io_accounting结构体的所有成员。
+![获得进程1的I/O计数](./images/cat_proc_io.png)
+
+输出的数据项刚好是task_io_accounting结构体的所有成员。
 
     （36）、CPUSET功能 
 
