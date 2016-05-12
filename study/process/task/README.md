@@ -260,7 +260,7 @@ union thread_union
 我们在下面对比了，获取正在运行的进程的thread_info的实现方式
 
 | 架构 | 版本 | 定义链接 | 实现方式 | 思路解析 |
-| ------------- |:-------------:|
+| ------------- |:-------------:|:-------------:|:-------------:|:-------------:|
 | x86 | [3.14](http://lxr.free-electrons.com/ident?v=3.14;i=current_thread_info)   | [current_thread_info(void)](http://lxr.free-electrons.com/source/arch/x86/include/asm/thread_info.h#L164) |return (struct thread_info *)(sp & ~(THREAD_SIZE - 1)); | 屏蔽了esp的低十三位，最终得到的是thread_info的地址 |
 | x86 | [3.15](http://lxr.free-electrons.com/ident?v=3.15;i=current_thread_info) | [current_thread_info(void)](http://lxr.free-electrons.com/source/arch/x86/include/asm/thread_info.h?v=3.15#L163) | ti = (void *)(this_cpu_read_stable(kernel_stack) + KERNEL_STACK_OFFSET - THREAD_SIZE); |
 | x86 | [4.1](http://lxr.free-electrons.com/ident?v=4.1&i=current_thread_info) | [current_thread_info(void)](http://lxr.free-electrons.com/source/arch/x86/include/asm/thread_info.h?v=4.1#L182) |  (struct thread_info *)(current_top_of_stack() - THREAD_SIZE);
