@@ -9,12 +9,16 @@
 #include <linux/moduleparam.h>
 
 #include <linux/sched.h>
+#include <linux/list.h>
+#include <linux/mm.h>
+#include <linux/mm_types.h>
+
 
 void print_vm_list(struct task_struct *task)
 {
     struct vm_area_struct *tmp = task->mm->mmap;
 
-    printk("process:%s,pid:%d\n", p->comm, p->pid);
+    printk("process:%s,pid:%d\n", task->comm, task->pid);
 
     while (tmp != NULL)
     {
