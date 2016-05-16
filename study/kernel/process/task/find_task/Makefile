@@ -1,22 +1,4 @@
-ifeq ($(KERNELRELEASE),)
-
-KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-PWD := $(shell pwd)
-
-
-modules:
-	make -C $(KERNELDIR) M=$(PWD) modules
-
-modules_install:
-	make -C $(KERNELDIR) M=$(PWD) modules_install
-
-clean:
-	make -C $(KERNELDIR) M=$(PWD) clean
-
-.PHNOY:
-	modules modules_install clean
-
-else
+ifneq ($(KERNELRELEASE),)
 
 CFG_FLAGS += -O2  -I./
 EXTRA_CFLAGS  += $(C_FLAGS) $(CFG_INC) $(CFG_INC)  
@@ -33,6 +15,27 @@ $(MODULE_NAME)-objs := $(RESMAIN_GLUE_OBJS) $(RESMAIN_CORE_OBJS)
 
 #最终由xxx-objs链接生成find-task.o，再生成find-task.ko  
 obj-m := find-task.o   #最终由xxx-objs链接生成find-task.o，再生成find-task.ko  
+
+else
+
+#最终由xxx-objs链接生成find-task.o，再生成find-task.ko  
+KERNELDIR ?= /lib/modules/$(shell uname -r)/build
+PWD := $(shell pwd)
+
+all:
+	@echo "module name : " $(MODULE_NAME)
+	@echo "module objs : " $($(MODULE_NAME)-objs)
+	make -C $(KERNELDIR) M=$(PWD) modules
+
+modules_install:
+	make -C $(KERNELDIR) M=$(PWD) modules_install
+
+clean:
+	make -C $(KERNELDIR) M=$(PWD) clean
+
+.PHNOY:
+	modules modules_install clean
+
 
 
 endif  
