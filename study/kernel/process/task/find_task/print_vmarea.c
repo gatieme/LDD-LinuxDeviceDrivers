@@ -17,7 +17,7 @@
         (type *)( (char *)__mptr - offsetof(type,member) );})
 #endif
 
-static void print_vm_area(struct vm_area_struct)
+static void print_vmarea(struct vm_area_struct)
 {
     ((tmp->vm_flags & VM_READ)   == 1) ? printk("r") : printk("-");
     ((tmp->vm_flags & VM_WRITE)  == 1) ? printk("w") : printk("-");
@@ -27,7 +27,7 @@ static void print_vm_area(struct vm_area_struct)
     printk("\n");
 }
 
-static void print_vm_area_by_list(struct task_struct *task)
+static void print_vmarea_by_list(struct task_struct *task)
 {
 	struct vm_area_struct *tmp = task->mm->mmap;
 
@@ -62,7 +62,7 @@ static void preorder_rbtree(struct rb_node *root)
 	}
 }
 
-static void print_vm_area_by_rbtree(struct task_struct *task)
+static void print_vmarea_by_rbtree(struct task_struct *task)
 {
    struct task_struct *p;
 	struct pid *k;
@@ -75,5 +75,9 @@ static void print_vm_area_by_rbtree(struct task_struct *task)
 
 static void print_stack_vmarea(struct task_struct *task)
 {
-    print_
+    printk(KERN_ALERT "print vmarea_list");
+    print_vmarea_list(task);
+    printk(KERN_ALERT "print vmarea_rbtree");
+    print_vmarea_rbtree(task);
+
 }
