@@ -14,7 +14,7 @@ RESMAIN_GLUE_OBJS := get_task.o		#依赖文件
 $(MODULE_NAME)-objs := $(RESMAIN_GLUE_OBJS) $(RESMAIN_CORE_OBJS)   
 
 #最终由xxx-objs链接生成find-task.o，再生成find-task.ko  
-obj-m := find-task.o   #最终由xxx-objs链接生成find-task.o，再生成find-task.ko  
+obj-m := $(MODULE_NAME).o   #最终由xxx-objs链接生成find-task.o，再生成find-task.ko  
 
 else
 
