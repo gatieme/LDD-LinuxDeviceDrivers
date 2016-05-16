@@ -12,6 +12,8 @@
 
 #include <linux/sched.h>
 
+#include "get_task.h"
+
 /*
  *  macro for find_task_by_pid in the process list
  *  LIST_FOR_EACH       to traversing the process linked list by `list_for_each`
@@ -35,11 +37,11 @@ module_param(PID, uint, 0400);
 
 
 
+void print_vm_list(struct task_struct *task);
 
 
 void getTaskinfo(struct task_struct *task)
 {
-
 
 }
 
@@ -61,6 +63,8 @@ struct task_struct* find_task_by_pid_in_ns(int pid)
     {
         printk(KERN_ALERT "%d\t%s\t%p\n", pTask->pid, pTask->comm, (void *)pTask);
     }
+
+    return pTask;
 }
 
 
@@ -152,7 +156,7 @@ static int init_find_task(void)
             break;
         }
     }
-
+    print_vm_list(pTask);
     return 0;
 }
 
