@@ -1,6 +1,6 @@
 ifneq ($(KERNELRELEASE),)
 
-obj-m := list_process.o
+obj-m := print_vmarea.o
 
 else
 

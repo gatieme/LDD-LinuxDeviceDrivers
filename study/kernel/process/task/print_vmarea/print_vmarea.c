@@ -1,0 +1,128 @@
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+#include <linux/moduleparam.h>
+#include <linux/sched.h>
+#include <linux/list.h>
+#include <linux/mm.h>
+#include <linux/mm_types.h>
+
+#ifndef offsetof 
+#define offsetof(type, field)   ((long) &((type *)0)->field) 
+#endif   /* offsetof */ 
+ 
+#ifndef container_of 
+#define container_of(ptr, type, member) ({                      \
+        const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
+        (type *)( (char *)__mptr - offsetof(type,member) );})
+#endif 
+
+
+static int pid = 1;
+
+module_param(pid,int,0644);
+
+static void printvm_list(void)
+{
+	struct task_struct *p;
+	struct pid *k;
+	struct vm_area_struct *tmp;
+	
+	k = find_vpid(pid);
+	p = pid_task(k,PIDTYPE_PID);
+	tmp = p->mm->mmap;
+	
+	printk("process:%s,pid:%d\n",p->comm,p->pid);
+
+	while (tmp != NULL) {
+		printk("0x%lx - 0x%lx\t",tmp->vm_start,tmp->vm_end);
+		if (tmp->vm_flags & VM_READ)
+			printk("r");
+		else
+			printk("-");
+
+		if (tmp->vm_flags & VM_WRITE)
+			printk("w");
+		else 
+			printk("-");
+	
+		if (tmp->vm_flags & VM_EXEC)
+			printk("x");
+		else
+			printk("-");
+		
+		if (tmp->vm_flags & VM_SHARED)
+			printk("s\n");
+		else
+			printk("p\n");
+
+		tmp = tmp->vm_next;	
+	}
+}
+
+
+
+static void visit(struct rb_node *root)
+{
+	struct vm_area_struct *tmp;
+	tmp =  container_of(root,struct vm_area_struct,vm_rb);
+	printk("0x%lx - 0x%lx\t",tmp->vm_start,tmp->vm_end);
+	if (tmp->vm_flags & VM_READ)
+		printk("r");
+	else
+		printk("-");
+
+	if (tmp->vm_flags & VM_WRITE)
+		printk("w");
+	else 
+		printk("-");
+	
+	if (tmp->vm_flags & VM_EXEC)
+		printk("x");
+	else
+		printk("-");
+		
+	if (tmp->vm_flags & VM_SHARED)
+		printk("s\n");
+	else
+		printk("p\n");
+}
+
+static void print_rb_tree(struct rb_node *root)
+{
+	if (root != NULL) {
+		visit(root);
+		print_rb_tree(root->rb_left);
+		print_rb_tree(root->rb_right);
+	}
+}
+
+static void printvm_tree(void)
+{
+      	struct task_struct *p;
+	struct pid *k;
+	struct rb_node *root = NULL;
+
+	k = find_vpid(pid);
+	p = pid_task(k,PIDTYPE_PID);
+	root = p->mm->mm_rb.rb_node;
+	print_rb_tree(root);
+	return ;      
+}
+
+static int __init printvm_init(void)
+{
+	printvm_list();
+	printk("------------------------\n");
+	printvm_tree();		
+	return 0;
+}
+
+static void __exit printvm_exit(void)
+{
+   printk("<1>exit ---------------------!\n");
+}
+
+module_init(printvm_init);
+module_exit(printvm_exit);
+MODULE_LICENSE("GPL");

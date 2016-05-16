@@ -81,7 +81,6 @@ void do_list_process(void)
     printk(KERN_ALERT "The method is %s\n", method);
     printk(KERN_ALERT "there are %d process in your system now...\n", count);
     printk(KERN_ALERT "current : %d\t%s\n", current->pid, current->comm);
-    return 0;
 }
 
 
@@ -90,6 +89,8 @@ static int init_list_process(void)
 {
     // list all the process of you system
     do_list_process( );
+
+    return 0;
 }
 
 static void exit_list_process(void)
