@@ -488,10 +488,79 @@ struct upid
 图中关于如果分配唯一的 PID 没有画出，但也是比较简单，与前面两种情形不同的是，这里分配唯一的 PID 是有命名空间的容器的，在PID命名空间内必须唯一，但各个命名空间之间不需要唯一。
 至此，已经与 Linux 内核中数据结构相差不多了。
 
+
 #进程ID管理函数
 -------
 
 有了上面的复杂的数据结构，再加上散列表等数据结构的操作，就可以写出我们前面所提到的三个问题的函数了：
+
+##pid号到struct pid实体
+-------
+
+很多时候在写内核模块的时候，需要通过进程的pid找到对应进程的task_struct，其中首先就需要通过进程的pid找到进程的struct pid，
+然后再通过struct pid找到进程的task_struct
+
+我知道的实现函数有三个。
+
+```c
+struct pid *find_pid_ns(int nr, struct pid_namespace *ns)
+struct pid *find_vpid(int nr)
+struct pid *find_get_pid(pid_t nr)
+```
+
+
+
+find_pid_ns获得 pid 实体的实现原理，主要使用哈希查找。内核使用哈希表组织struct pid，每创建一个新进程，给进程的struct pid都会插入到哈希表中，这时候就需要使用进程
+的进程pid和命名ns在哈希表中将相对应的struct pid索引出来，现在可以看下find_pid_ns的传入参数，也是通过nr和ns找到struct pid。
+
+根据局部PID以及命名空间计算在 pid_hash 数组中的索引，然后遍历散列表找到所要的 upid， 再根据内核的 container_of 机制找到 pid 实例。
+
+代码如下：
+
+```c
+struct pid *find_pid_ns(int nr, struct pid_namespace *ns)
+{
+        struct hlist_node *elem;
+        struct upid *pnr; 
+
+        hlist_for_each_entry_rcu(pnr, elem,
+                        &pid_hash[pid_hashfn(nr, ns)], pid_chain)
+                if (pnr->nr == nr && pnr->ns == ns)
+                        return container_of(pnr, struct pid,
+                                        numbers[ns->level]);
+
+        return NULL;
+}
+```
+
+而另外两个函数则是对其进行进一步的封装，如下
+
+```c
+struct pid *find_vpid(int nr)
+{
+        return find_pid_ns(nr, current->nsproxy->pid_ns);
+}
+struct pid *find_get_pid(pid_t nr)
+{ 
+        struct pid *pid; 
+
+        rcu_read_lock();
+        pid = get_pid(find_vpid(nr)); 
+        rcu_read_unlock();
+
+        return pid; 
+}
+```
+
+三者之间的调用关系如下
+
+![调用关系](./images/pid-to-struct_pid.png)
+
+由图可以看出，find_pid_ns是最终的实现，find_vpid是使用find_pid_ns
+实现的，find_get_pid又是由find_vpid实现的。
+
+由原代码可以看出find_vpid和find_pid_ns是一样的，而find_get_pid和find_vpid有一点差异，就是使用find_get_pid将返回的struct pid中的字段count加1，而find_vpid没有加1。
+
 
 ##获得局部ID
 -------
@@ -508,7 +577,7 @@ static inline struct pid *task_pid(struct task_struct *task)
 ```
 
 获取线程组的ID，前面也说过，TGID不过是线程组组长的PID而已，所以：
-```
+```c
 static inline struct pid *task_tgid(struct task_struct *task)
 {
 	return task->group_leader->pids[PIDTYPE_PID].pid;
@@ -546,10 +615,12 @@ pid_t pid_nr_ns(struct pid *pid, struct pid_namespace *ns)
 	return nr;
 }
 ```
+
 这里值得注意的是，由于PID命名空间的层次性，父命名空间能看到子命名空间的内容，反之则不能，因此，函数中需要确保当前命名空间的level 小于等于产生局部PID的命名空间的level。
 
 除了这个函数之外，内核还封装了其他函数用来从 pid 实例获得 PID 值，如 pid_nr、pid_vnr 等。在此不介绍了。
 结合这两步，内核提供了更进一步的封装，提供以下函数：
+
 ```c
 pid_t task_pid_nr_ns(struct task_struct *tsk, struct pid_namespace *ns);
 pid_t task_tgid_nr_ns(struct task_struct *tsk, struct pid_namespace *ns);
@@ -558,30 +629,19 @@ pid_t task_session_nr_ns(struct task_struct *tsk, struct pid_namespace *ns);
 ```
 从函数名上就能推断函数的功能，其实不外于封装了上面的两步。
 
-##查找进程task_struct
+##根据PID查找进程task_struct
 -------
 
-根据局部ID、以及命名空间，怎样获得进程的task_struct结构体呢？也是分两步：
-获得 pid 实体。根据局部PID以及命名空间计算在 pid_hash 数组中的索引，然后遍历散列表找到所要的 upid， 再根据内核的 container_of 机制找到 pid 实例。代码如下：
-```
-struct pid *find_pid_ns(int nr, struct pid_namespace *ns)
-{
-	struct hlist_node *elem;
-	struct upid *pnr;
-	//遍历散列表
-	hlist_for_each_entry_rcu(pnr, elem,
-				&pid_hash[pid_hashfn(nr, ns)], pid_chain) //pid_hashfn() 获得hash的索引
-	if (pnr->nr == nr && pnr->ns == ns) //比较 nr 与 ns 是否都相同
-		return container_of(pnr, struct pid, //根据container_of机制取得pid 实体
-	
-    numbers[ns->level]);
-	return NULL;
-}
-```
+*	根据PID号（nr值）取得task_struct 结构体
 
-##根据ID类型取得task_struct 结构体
--------
-```
+*	根据PID以及其类型（即为局部ID和命名空间）获取task_struct结构体
+
+如果根据的是进程的ID号，我们可以先通过ID号（nr值）获取到进程struct pid实体（局部ID），然后根据局部ID、以及命名空间，获得进程的task_struct结构体
+
+
+可以使用pid_task根据pid和pid_type获取到进程的task 
+
+```c
 struct task_struct *pid_task(struct pid *pid, enum pid_type type)
 {
 	struct task_struct *result = NULL;
@@ -597,14 +657,23 @@ struct task_struct *pid_task(struct pid *pid, enum pid_type type)
 }
 ```
 
+那么我们根据pid号查找进程task的过程就成为
+```c
+pTask = pid_task(find_vpid(pid), PIDTYPE_PID);  
+```
+
 内核还提供其它函数用来实现上面两步：
+
 ```c
 struct task_struct *find_task_by_pid_ns(pid_t nr, struct pid_namespace *ns);
 struct task_struct *find_task_by_vpid(pid_t vnr);
 struct task_struct *find_task_by_pid(pid_t vnr);
 ```
 
-具体函数实现的功能也比较简单。
+
+>由于linux进程是组织在双向链表和红黑树中的，因此我们通过遍历链表或者树也可以找到当前进程，但是这个并不是我们今天的重点
+
+
 
 ##生成唯一的PID
 -------
