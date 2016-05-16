@@ -17,11 +17,6 @@
         (type *)( (char *)__mptr - offsetof(type,member) );})
 #endif
 
-
-static int pid = 1;
-
-module_param(pid,int,0644);
-
 static void print_vm_area(struct vm_area_struct)
 {
     ((tmp->vm_flags & VM_READ)   == 1) ? printk("r") : printk("-");
@@ -76,4 +71,9 @@ static void print_vm_area_by_rbtree(struct task_struct *task)
 	root = task->mm->mm_rb.rb_node;
 	print_rb_tree(root);
 
+}
+
+static void print_stack_vmarea(struct task_struct *task)
+{
+    print_
 }
