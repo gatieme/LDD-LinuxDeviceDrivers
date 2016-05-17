@@ -13,14 +13,15 @@
 #include <linux/mm.h>
 #include <linux/mm_types.h>
 
+#include "print_vmarea.h"
+
 
 void print_task(struct task_struct *task)
 {
-	struct vm_area_struct *tmp = task->mm->mmap;
 
 	printk("process : %s, pid : %d\n", task->comm, task->pid);
 
-    printf_task_vmarea(task->mm->mmap);
+    print_task_vmarea(task);
 }
 
 

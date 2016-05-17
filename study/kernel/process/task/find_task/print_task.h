@@ -1,8 +1,22 @@
-#ifndef __GET_TASK_H_INCLUDE__
-#define __GET_TASK_H_INCLUDE__
+#ifndef __PRINT_TASK_H_INCLUDE__
+#define __PRINT_TASK_H_INCLUDE__
 
 
-void print_vm_list(struct task_struct *task);
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/moduleparam.h>
+
+#include <linux/sched.h>
+#include <linux/list.h>
+#include <linux/mm.h>
+#include <linux/mm_types.h>
+
+#include "print_vmarea.h"
 
 
-#endif
+void print_task(struct task_struct *task);
+
+
+
+
+#endif      //  #define __PRINT_TASK_H_INCLUDE__

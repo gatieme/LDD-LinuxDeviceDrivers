@@ -31,53 +31,52 @@ static void print_vmarea(struct vm_area_struct *vmarea)
 
 static void print_vmarea_by_list(struct task_struct *task)
 {
-	struct vm_area_struct *tmp = task->mm->mmap;
+	struct vm_area_struct *vmarea = task->mm->mmap;
 
 	printk("process : %s, pid : %d\n", task->comm, task->pid);
 
-	while (tmp != NULL)
+	while (vmarea != NULL)
     {
-        print_vm_area(tmp);
-		tmp = tmp->vm_next;
+        print_vmarea(vmarea);
+		vmarea = vmarea->vm_next;
 	}
 }
 
 
 static void visit_rbtree_node(struct rb_node *root)
 {
-	struct vm_area_struct *vmarea NULL;
+	struct vm_area_struct *vmarea = NULL;
 
     vmarea = container_of(root,struct vm_area_struct,vm_rb);
 
-    print_vm_area(tmp);
+    print_vmarea(vmarea);
 }
 
 static void preorder_rbtree(struct rb_node *root)
 {
 	if (root != NULL)
     {
-		visit(root);
-		print_rb_tree(root->rb_left);
-		print_rb_tree(root->rb_right);
+		visit_rbtree_node(root);
+		preorder_rbtree(root->rb_left);
+		preorder_rbtree(root->rb_right);
 	}
 }
 
 static void print_vmarea_by_rbtree(struct task_struct *task)
 {
-    struct task_struct *p;
-	struct pid *k;
 	struct rb_node *root = NULL;
 
 	root = task->mm->mm_rb.rb_node;
-	print_rb_tree(root);
+
+    preorder_rbtree(root);
 
 }
 
-static void print_stack_vmarea(struct task_struct *task)
+void print_task_vmarea(struct task_struct *task)
 {
     printk(KERN_ALERT "print vmarea_list");
-    print_vmarea_list(task);
+    print_vmarea_by_list(task);
     printk(KERN_ALERT "print vmarea_rbtree");
-    print_vmarea_rbtree(task);
+    print_vmarea_by_rbtree(task);
 
 }

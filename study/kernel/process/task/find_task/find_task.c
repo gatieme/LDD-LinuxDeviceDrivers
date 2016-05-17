@@ -12,7 +12,8 @@
 
 #include <linux/sched.h>
 
-#include "get_task.h"
+
+#include "print_task.h"
 
 /*
  *  macro for find_task_by_pid in the process list
@@ -37,7 +38,6 @@ module_param(PID, uint, 0400);
 
 
 
-void print_vm_list(struct task_struct *task);
 
 
 void getTaskinfo(struct task_struct *task)
@@ -156,7 +156,7 @@ static int init_find_task(void)
             break;
         }
     }
-    print_vm_list(pTask);
+    print_task(pTask);
     return 0;
 }
 

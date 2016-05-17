@@ -7,7 +7,7 @@ ifneq ($(KERNELRELEASE),)
 MODULE_NAME := find-task 
 
 RESMAIN_CORE_OBJS := find_task.o 
-RESMAIN_GLUE_OBJS := get_task.o 
+RESMAIN_GLUE_OBJS := print_task.o  print_vmarea.o
 
 
 
