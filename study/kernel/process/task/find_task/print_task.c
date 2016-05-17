@@ -16,7 +16,11 @@
 
 void print_task(struct task_struct *task)
 {
-    printf_task_vmarea(task)
+	struct vm_area_struct *tmp = task->mm->mmap;
+
+	printk("process : %s, pid : %d\n", task->comm, task->pid);
+
+    printf_task_vmarea(task->mm->mmap);
 }
 
 
