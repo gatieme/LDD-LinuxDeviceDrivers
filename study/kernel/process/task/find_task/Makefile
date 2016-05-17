@@ -5,15 +5,14 @@ ifneq ($(KERNELRELEASE),)
 
 
 MODULE_NAME := find-task 
+
 RESMAIN_CORE_OBJS := find_task.o 
 RESMAIN_GLUE_OBJS := get_task.o 
 
 
+
 find-task-objs := $(RESMAIN_GLUE_OBJS) $(RESMAIN_CORE_OBJS)   
 obj-m += find-task.o
-
-#$(MODULE_NAME)-objs := $(RESMAIN_GLUE_OBJS) $(RESMAIN_CORE_OBJS)   
-#obj-m := $(MODULE_NAME).o
 
 else
 
