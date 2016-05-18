@@ -7,15 +7,15 @@
 #include <linux/mm.h>
 #include <linux/mm_types.h>
 
-#ifndef offsetof 
-#define offsetof(type, field)   ((long) &((type *)0)->field) 
-#endif   /* offsetof */ 
- 
-#ifndef container_of 
+#ifndef offsetof
+#define offsetof(type, field)   ((long) &((type *)0)->field)
+#endif   /* offsetof */
+
+#ifndef container_of
 #define container_of(ptr, type, member) ({                      \
         const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
         (type *)( (char *)__mptr - offsetof(type,member) );})
-#endif 
+#endif
 
 
 static int pid = 1;
@@ -27,11 +27,11 @@ static void printvm_list(void)
 	struct task_struct *p;
 	struct pid *k;
 	struct vm_area_struct *tmp;
-	
+
 	k = find_vpid(pid);
 	p = pid_task(k,PIDTYPE_PID);
 	tmp = p->mm->mmap;
-	
+
 	printk("process:%s,pid:%d\n",p->comm,p->pid);
 
 	while (tmp != NULL) {
@@ -43,20 +43,20 @@ static void printvm_list(void)
 
 		if (tmp->vm_flags & VM_WRITE)
 			printk("w");
-		else 
+		else
 			printk("-");
-	
+
 		if (tmp->vm_flags & VM_EXEC)
 			printk("x");
 		else
 			printk("-");
-		
+
 		if (tmp->vm_flags & VM_SHARED)
 			printk("s\n");
 		else
 			printk("p\n");
 
-		tmp = tmp->vm_next;	
+		tmp = tmp->vm_next;
 	}
 }
 
@@ -74,14 +74,14 @@ static void visit(struct rb_node *root)
 
 	if (tmp->vm_flags & VM_WRITE)
 		printk("w");
-	else 
+	else
 		printk("-");
-	
+
 	if (tmp->vm_flags & VM_EXEC)
 		printk("x");
 	else
 		printk("-");
-		
+
 	if (tmp->vm_flags & VM_SHARED)
 		printk("s\n");
 	else
@@ -107,14 +107,14 @@ static void printvm_tree(void)
 	p = pid_task(k,PIDTYPE_PID);
 	root = p->mm->mm_rb.rb_node;
 	print_rb_tree(root);
-	return ;      
+	return ;
 }
 
 static int __init printvm_init(void)
 {
 	printvm_list();
 	printk("------------------------\n");
-	printvm_tree();		
+	printvm_tree();
 	return 0;
 }
 
