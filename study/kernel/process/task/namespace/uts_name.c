@@ -88,14 +88,20 @@ static void print_uts_namespace(struct uts_namespace *utsns)
 
 static int __init init_uts_name(void)
 {
+    printk("=====================\n");
     print_uts_namespace(utsns);
+    printk("=====================\n");
 
     return 0;
 }
 
 static void __exit exit_uts_name(void)
 {
-   printk(KERN_ALERT "Good Bye!!--uts_name");
+
+    printk("=====================\n");
+    printk(KERN_ALERT "Good Bye!!--uts_name\n");
+    printk("=====================\n");
+
 }
 
 module_init(init_uts_name);
