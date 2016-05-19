@@ -1,30 +1,39 @@
-Linux下0号进程idel
+Linux下0号进程idle
 =======
 
 
 | 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
 | ------------- |:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
 | 2016-05-12 | [Linux-4.5](http://lxr.free-electrons.com/source/?v=4.5) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux-进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
+\
 
 
-
-#0号进程idel
--------
-
-
-<font color=0x009966>Linux下有两个特殊的进程，idel进程($PID = 0$)和init进程($PID = 1$)
+<font color=0x009966>Linux下有3个特殊的进程，idle进程($PID = 0$), init进程($PID = 1$)和kthreadd($PID = 2$)
 
 <font color=#A52A2A>
-*	idel进程由系统自动创建, 运行在内核态
+*	idle进程由系统自动创建, 运行在内核态
 </font>
-	idle进程其pid=0，其前身是系统创建的第一个进程，也是唯一一个没有通过fork()产生的进程。完成加载系统后，演变为进程调度、交换
+	idle进程其pid=0，其前身是系统创建的第一个进程，也是唯一一个没有通过fork或者kernel_thread产生的进程。完成加载系统后，演变为进程调度、交换
 
 <font color=#A52A2A>
-*	init进程由idel创建,
+*	init进程由idle通过kernel_thread创建，在内核空间完成初始化后, 加载init程序, 并最终用户空间
 </font>
 	由0进程创建，完成系统的初始化. 是系统中所有其它用户进程的祖先进程
 	Linux中的所有进程都是有init进程创建并运行的。首先Linux内核启动，然后在用户空间中启动init进程，再启动其他系统进程。在系统启动完成完成后，init将变为守护进程监视系统其他进程。
+
+
+<font color=#A52A2A>
+*	kthreadd进程由idle通过kernel_thread创建，并始终运行在内核空间, 负责所有内核线程的调度和管理
 </font>
+
+    它的任务就是管理和调度其他内核线程kernel_thread, 会循环执行一个kthread的函数，该函数的作用就是运行kthread_create_list全局链表中维护的kthread, 当我们调用kernel_thread创建的内核线程会被加入到此链表中，因此所有的内核线程都是直接或者间接的以kthreadd为父进程
+
+</font>
+
+
+
+
+
 
 
 
@@ -34,7 +43,7 @@ Linux下0号进程idel
 
 
 
-#idel的创建
+#idle的创建
 -------
 
 在smp系统中，每个处理器单元有独立的一个运行队列，而每个运行队列上又有一个idle进程，即有多少处理器单元，就有多少idle进程。
@@ -44,7 +53,9 @@ Linux下0号进程idel
 
 我们知道系统是从BIOS加电自检，载入MBR中的引导程序(LILO/GRUB),再加载linux内核开始运行的，一直到指定shell开始运行告一段落，这时用户开始操作Linux。
 
-#0号进程上下文信息--init_task描述符
+
+
+##0号进程上下文信息--init_task描述符
 -------
 
 
@@ -52,16 +63,23 @@ Linux下0号进程idel
 
 *	**内核init线程**，最终执行/sbin/init进程，变为所有用户态程序的根进程（pstree命令显示）,即用户空间的init进程
 
+    开始的init是有kthread_thread创建的内核线程, 他在完成初始化工作后, 转向用户空间, 并且生成所有用户进程的祖先
+
 *	**内核kthreadd内核线程**，变为所有内核态其他守护线程的父线程。
 
-所以<font color=0x009966>**init_task决定了系统所有进程、线程的基因, 它完成初始化后, 最终演变为0号进程idel, 并且运行在内核态**</font>
+    它的任务就是管理和调度其他内核线程kernel_thread, 会循环执行一个kthread的函数，该函数的作用就是运行kthread_create_list全局链表中维护的kthread, 当我们调用kernel_thread创建的内核线程会被加入到此链表中，因此所有的内核线程都是直接或者间接的以kthreadd为父进程
+
+
+![pa-aux](./images/ps-aux.jpg)
+
+
+所以<font color=0x009966>**init_task决定了系统所有进程、线程的基因, 它完成初始化后, 最终演变为0号进程idle, 并且运行在内核态**</font>
 
 内核在初始化过程中，当创建完init和kthreadd内核线程后，内核会发生调度执行，此时内核将使用该init_task作为其task_struct结构体描述符，当系统无事可做时，会调度其执行， 此时该内核会变为idle进程，让出CPU，自己进入睡眠，不停的循环，查看init_task结构体，其comm字段为swapper，作为idle进程的描述符。
 
->0号线程idel的优先级为120，从#define INIT_TASK(tsk)中可以看出。
+>idle的运行时机
 >
->这也就决定了，其优先级足够低, 以保证其他用户进程或者系统线程会被优先调度
-
+>idle 进程优先级为MAX_PRIO-20。早先版本中，idle是参与调度的，所以将其优先级设低点，当没有其他进程可以运行时，才会调度执行 idle。而目前的版本中idle并不在运行队列中参与调度，而是在运行队列结构中含idle指针，指向idle进程，在调度器发现运行队列为空的时候运行，调入运行
 
 简言之, **内核中init_task变量就是是进程0使用的进程描述符**，也是Linux系统中第一个进程描述符，init_task并不是系统通过kernel_thread的方式（当然更不可能是fork）创建的, 而是由内核黑客静态创建的.
 
@@ -85,7 +103,7 @@ init_task是Linux内核中的第一个线程，它贯穿于整个Linux系统的�
 >备注：core0上的idle进程由init_task进程退化而来，而AP的idle进程则是BSP在后面调用fork()函数逐个创建的
 
 
-##进程堆栈init_thread_union
+###进程堆栈init_thread_union
 -------
 
 init_task进程使用init_thread_union数据结构描述的内存区域作为该进程的堆栈空间，并且和自身的thread_info参数公用这一内存空间空间，
@@ -145,9 +163,23 @@ cat System.map-3.1.6 | grep init_thread_union
 
 ![init_thread_union](./images/init_thread_union.png)
 
-#进程内存空间
+###进程内存空间
 -------
+init_task的虚拟地址空间，也采用同样的方法被定义
+
+由于init_task是一个运行在内核空间的内核线程, 因此其虚地址段mm为NULL, 但是必要时他还是需要使用虚拟地址的，因此avtive_mm被设置为init_mm
+
+> 参见
+>
+> http://lxr.free-electrons.com/source/include/linux/init_task.h?v=4.5#L202
+
+```c
+.mm             = NULL,                                         \
+  .active_mm      = &init_mm,                                     \
 ```
+其中init_mm被定义为init-mm.c中，参见 http://lxr.free-electrons.com/source/mm/init-mm.c?v=4.5#L16
+
+```c
 struct mm_struct init_mm = {
     .mm_rb          = RB_ROOT,
     .pgd            = swapper_pg_dir,
@@ -160,8 +192,10 @@ struct mm_struct init_mm = {
 };
 ```
 
+#0号进程的演化
+-------
 
-#rest_init
+##rest_init创建init进程(PID =1)和kthread进程(PID=2)
 -------
 
 Linux在无进程概念的情况下将一直从初始化部分的代码执行到start_kernel，然后再到其最后一个函数调用rest_init
@@ -220,7 +254,7 @@ static noinline void __init_refok rest_init(void)
 
 5.	调用cpu_idle()，0号线程进入idle函数的循环，在该循环中会周期性地检查。
 
-##创建kernel_init
+###创建kernel_init
 -------
 
 在rest_init函数中，内核将通过下面的代码产生第一个真正的进程(pid=1):
@@ -239,7 +273,7 @@ kernel_thread(kernel_init, NULL, CLONE_FS);
 
 关于init其他的信息我们这次先不研究，因为我们这篇旨在探究0号进程的详细过程，
 
-##创建kthreadd
+###创建kthreadd
 -------
 在rest_init函数中，内核将通过下面的代码产生第一个kthreadd(pid=2)
 
@@ -247,8 +281,10 @@ kernel_thread(kernel_init, NULL, CLONE_FS);
 pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
 ```
 
+它的任务就是管理和调度其他内核线程kernel_thread, 会循环执行一个kthread的函数，该函数的作用就是运行kthread_create_list全局链表中维护的kthread, 当我们调用kernel_thread创建的内核线程会被加入到此链表中，因此所有的内核线程都是直接或者间接的以kthreadd为父进程
 
-##0号进程演变为idel
+
+##0号进程演变为idle
 -------
 
 ```c
@@ -321,30 +357,120 @@ cpu_startup_entry定义在[kernel/sched/idle.c](http://lxr.free-electrons.com/so
 }
 ```
 
-其中cpu_idel_loop就是idel进程的事件循环，定义在[kernel/sched/idle.c](http://lxr.free-electrons.com/source/kernel/sched/idle.c?v=4.5#L203)
+其中cpu_idle_loop就是idle进程的事件循环，定义在[kernel/sched/idle.c](http://lxr.free-electrons.com/source/kernel/sched/idle.c?v=4.5#L203)
+
+
 
 
 整个过程简单的说就是，原始进程(pid=0)创建init进程(pid=1),然后演化成idle进程(pid=0)。init进程为每个从处理器(运行队列)创建出一个idle进程(pid=0)，然后演化成/sbin/init。
 
-　　3. idle的运行时机
 
-　　idle 进程优先级为MAX_PRIO，即最低优先级。早先版本中，idle是参与调度的，所以将其优先级设为最低，当没有其他进程可以运行时，才会调度执行 idle。而目前的版本中idle并不在运行队列中参与调度，而是在运行队列结构中含idle指针，指向idle进程，在调度器发现运行队列为空的时候运行，调入运行。
+#idle的运行与调度
+-------
 
-　　4. idle的workload
 
-　　从上面的分析我们可以看出，idle在系统没有其他就绪的进程可执行的时候才会被调度。不管是主处理器，还是从处理器，最后都是执行的cpu_idle()函数。所以我们来看看cpu_idle做了什么事情。
+##idle的workload--cpu_idle_loop
+-------
 
-　　因为idle进程中并不执行什么有意义的任务，所以通常考虑的是两点：1.节能，2.低退出延迟。
+从上面的分析我们知道，idle在系统没有其他就绪的进程可执行的时候才会被调度。不管是主处理器，还是从处理器，最后都是执行的cpu_idle_loop()函数
 
-　　其核心代码如下：
+其中cpu_idle_loop就是idle进程的事件循环，定义在[kernel/sched/idle.c](http://lxr.free-electrons.com/source/kernel/sched/idle.c?v=4.5#L203)，早期的版本中提供的是[cpu_idle](http://lxr.free-electrons.com/ident?v=3.9;i=cpu_idle)，但是这个函数是完全依赖于体系结构的，不利用架构的分层，因此在新的内核中更新为更加通用的cpu_idle_loop，由他来调用体系结构相关的代码
 
-　　void cpu_idle(void)  {   int cpu = smp_processor_id();    current_thread_info()->status |= TS_POLLING;    /* endless idle loop with no priority at all */   while (1) {     tick_nohz_stop_sched_tick(1);     while (!need_resched()) {       check_pgt_cache();      rmb();       if (rcu_pending(cpu))       rcu_check_callbacks(cpu, 0);       if (cpu_is_offline(cpu))       play_dead();       local_irq_disable();      __get_cpu_var(irq_stat).idle_timestamp = jiffies;      /* Don't trace irqs off for idle */      stop_critical_timings();      pm_idle();      start_critical_timings();     }     tick_nohz_restart_sched_tick();     preempt_enable_no_resched();     schedule();     preempt_disable();   }  }
+所以我们来看看cpu_idle_loop做了什么事情。
 
-　　循环判断need_resched以降低退出延迟，用idle()来节能。
+因为idle进程中并不执行什么有意义的任务，所以通常考虑的是两点
 
-　　默认的idle实现是hlt指令，hlt指令使CPU处于暂停状态，等待硬件中断发生的时候恢复，从而达到节能的目的。即从处理器C0态变到 C1态(见 ACPI标准)。这也是早些年windows平台上各种"处理器降温"工具的主要手段。当然idle也可以是在别的ACPI或者APM模块中定义的，甚至是自定义的一个idle(比如说nop)。
+1.	节能
 
-　　小结:
+2.	低退出延迟。
+
+其代码如下
+
+```c
+/*
+ * Generic idle loop implementation
+ *
+ * Called with polling cleared.
+ */
+static void cpu_idle_loop(void)
+{
+        while (1) {
+                /*
+                 * If the arch has a polling bit, we maintain an invariant:
+                 *
+                 * Our polling bit is clear if we're not scheduled (i.e. if
+                 * rq->curr != rq->idle).  This means that, if rq->idle has
+                 * the polling bit set, then setting need_resched is
+                 * guaranteed to cause the cpu to reschedule.
+                 */
+
+                __current_set_polling();
+                quiet_vmstat();
+                tick_nohz_idle_enter();
+
+                while (!need_resched()) {
+                        check_pgt_cache();
+                        rmb();
+
+                        if (cpu_is_offline(smp_processor_id())) {
+                                rcu_cpu_notify(NULL, CPU_DYING_IDLE,
+                                               (void *)(long)smp_processor_id());
+                                smp_mb(); /* all activity before dead. */
+                                this_cpu_write(cpu_dead_idle, true);
+                                arch_cpu_idle_dead();
+                        }
+
+                        local_irq_disable();
+                        arch_cpu_idle_enter();
+
+                        /*
+                         * In poll mode we reenable interrupts and spin.
+                         *
+                         * Also if we detected in the wakeup from idle
+                         * path that the tick broadcast device expired
+                         * for us, we don't want to go deep idle as we
+                         * know that the IPI is going to arrive right
+                         * away
+                         */
+                        if (cpu_idle_force_poll || tick_check_broadcast_expired())
+                                cpu_idle_poll();
+                        else
+                                cpuidle_idle_call();
+
+                        arch_cpu_idle_exit();
+                }
+
+                /*
+                 * Since we fell out of the loop above, we know
+                 * TIF_NEED_RESCHED must be set, propagate it into
+                 * PREEMPT_NEED_RESCHED.
+                 *
+                 * This is required because for polling idle loops we will
+                 * not have had an IPI to fold the state for us.
+                 */
+                preempt_set_need_resched();
+                tick_nohz_idle_exit();
+                __current_clr_polling();
+
+                /*
+                 * We promise to call sched_ttwu_pending and reschedule
+                 * if need_resched is set while polling is set.  That
+                 * means that clearing polling needs to be visible
+                 * before doing these things.
+                 */
+                smp_mb__after_atomic();
+
+                sched_ttwu_pending();
+                schedule_preempt_disabled();
+        }
+}
+```
+
+循环判断need_resched以降低退出延迟，用idle()来节能。
+
+默认的idle实现是hlt指令，hlt指令使CPU处于暂停状态，等待硬件中断发生的时候恢复，从而达到节能的目的。即从处理器C0态变到 C1态(见 ACPI标准)。这也是早些年windows平台上各种"处理器降温"工具的主要手段。当然idle也可以是在别的ACPI或者APM模块中定义的，甚至是自定义的一个idle(比如说nop)。
+
+
 
 　　1.idle是一个进程，其pid为0。
 
@@ -355,4 +481,43 @@ cpu_startup_entry定义在[kernel/sched/idle.c](http://lxr.free-electrons.com/so
 　　4.Idle循环等待need_resched置位。默认使用hlt节能。
 
 　　希望通过本文你能全面了解linux内核中idle知识。
+
+##idle的调度和运行时机
+-------
+
+我们知道, linux进程的调度顺序是按照 rt实时进程(rt调度器), normal普通进程(cfs调度器)，和idel的顺序来调度的
+
+那么可以试想如果rt和cfs都没有可以运行的任务，那么idle才可以被调度，那么他是通过怎样的方式实现的呢？
+
+
+由于我们还没有讲解调度器的知识, 所有我们只是简单讲解一下
+
+在normal的调度类,cfs公平调度器[sched_fair.c](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.5#L8408)中, 我们可以看到
+
+```c
+static const struct sched_class fair_sched_class = {
+.next = &idle_sched_class,
+```
+也就是说，如果系统中没有普通进程，那么会选择下个调度类优先级的进程，即使用idle_sched_class调度类进行调度的进程
+
+当系统空闲的时候，最后就是调用idle的pick_next_task函数，被定义在/kernel/sched/idle_task.c中
+
+>参见
+>
+>http://lxr.free-electrons.com/source/kernel/sched/idle_task.c?v=4.5#L27
+
+```c
+static struct task_struct *pick_next_task_idle(struct rq *rq)
+{
+        schedstat_inc(rq, sched_goidle);
+        calc_load_account_idle(rq);
+        return rq->idle;    //可以看到就是返回rq中idle进程。
+}
+```
+
+这idle进程在启动start_kernel函数的时候调用init_idle函数的时候，把当前进程（0号进程）置为每个rq运行队列的的idle上。
+```
+rq->curr = rq->idle = idle;
+```
+这里idle就是调用start_kernel函数的进程，就是0号进程。
 
