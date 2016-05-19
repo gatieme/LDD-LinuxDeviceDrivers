@@ -1,13 +1,27 @@
 Linux内核线程、轻量级进程和用户进程以及其创建方式
 =======
 
-
-
-
+**本文声明**
 
 | 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
 | ------------- |:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
 | 2016-05-12 | [Linux-4.5](http://lxr.free-electrons.com/source/?v=4.5) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度-之-进程的创建](http://blog.csdn.net/gatieme/article/category/6225543) |
+
+
+**本章链接**
+
+|链接地址 | 上一节 | 本章目录 | 下一节 |
+| ------------- |:-------------:|:-------------:|:-------------:|
+| CSDN   | 已是第一篇  | 无 | [Linux下0号进程的前世(init_task进程)今生(idle进程)]()|
+| GitHub | 已是第一篇  | [进程的创建](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/process/create) | [Linux下0号进程的前世(init_task进程)今生(idle进程)](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/process/create/02-idel)|
+
+**章节链接**
+
+|链接地址 | 上一章 | 总目录 | 下一章 |
+| ------------- |:-------------:|:-------------:|:-------------:|
+| CSDN   | 已是第一章  | [目录]() | []()|
+| GitHub | 已是第一章  | [目录](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/process) | [Linux下0号进程的前世(init_task进程)今生(idle进程)](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/process/create/02-idel)|
+
 
 #Linux进程类别
 -------
