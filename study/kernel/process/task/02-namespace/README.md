@@ -4,7 +4,7 @@ Linux的命名空间详解--Linux进程的管理与调度（二）
 
 | 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
 | ------------- |:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
-| 2016-05-12 | [Linux-4.5](http://lxr.free-electrons.com/source/?v=4.5) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux-进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
+| 2016-05-12 | [Linux-4.5](http://lxr.free-electrons.com/source/?v=4.5) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度-之-进程的描述](http://blog.csdn.net/gatieme/article/category/6225543) |
 
 >Linux Namespaces机制提供一种资源隔离方案。
 

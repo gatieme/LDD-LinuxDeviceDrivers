@@ -1,12 +1,13 @@
-Linux下0号进程idle
+Linux下0号进程的前世(init_task进程)今生(idle进程)
 =======
 
 
 | 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
 | ------------- |:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
-| 2016-05-12 | [Linux-4.5](http://lxr.free-electrons.com/source/?v=4.5) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux-进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
-\
+| 2016-05-12 | [Linux-4.5](http://lxr.free-electrons.com/source/?v=4.5) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度-之-进程的创建](http://blog.csdn.net/gatieme/article/category/6225543) |
 
+#前言
+-------
 
 <font color=0x009966>Linux下有3个特殊的进程，idle进程($PID = 0$), init进程($PID = 1$)和kthreadd($PID = 2$)
 
@@ -25,23 +26,30 @@ Linux下0号进程idle
 <font color=#A52A2A>
 *	kthreadd进程由idle通过kernel_thread创建，并始终运行在内核空间, 负责所有内核线程的调度和管理
 </font>
-
-    它的任务就是管理和调度其他内核线程kernel_thread, 会循环执行一个kthread的函数，该函数的作用就是运行kthread_create_list全局链表中维护的kthread, 当我们调用kernel_thread创建的内核线程会被加入到此链表中，因此所有的内核线程都是直接或者间接的以kthreadd为父进程
+   它的任务就是管理和调度其他内核线程kernel_thread, 会循环执行一个kthread的函数，该函数的作用就是运行kthread_create_list全局链表中维护的kthread, 当我们调用kernel_thread创建的内核线程会被加入到此链表中，因此所有的内核线程都是直接或者间接的以kthreadd为父进程
 
 </font>
 
 
 
 
-
-
+#idle进程总结
+-------
 
 
 系统允许一个进程创建新进程，新进程即为子进程，子进程还可以创建新的子进程，形成进程树结构模型。整个linux系统的所有进程也是一个树形结构。**树根是系统自动构造的(或者说是由内核黑客手动创建的)**，即在内核态下执行的0号进程，它是所有进程的远古先祖。
 
-在smp系统中，每个处理器单元有独立的一个运行队列，而每个运行队列上又有一个idle进程，即有多少处理器单元，就有多少idle进程。
+>在smp系统中，每个处理器单元有独立的一个运行队列，而每个运行队列上又有一个idle进程，即有多少处理器单元，就有多少idle进程。
 
+<font color=#A52A2A>
+1.	idle进程其pid=0，其前身是系统创建的第一个进程(我们称之为init_task)，也是唯一一个没有通过fork或者kernel_thread产生的进程。
 
+2.	**init_task**是内核中所有进程、线程的task_struct雏形，它是在内核初始化过程中，通过静态定义构造出了一个task_struct接口，取名为init_task，然后在内核初始化的后期，在rest_init()函数中通过kernel_thread创建了两个内核线程**内核init线程，kthreadd内核线程**, 前者后来通过演变，进入用户空间，成为所有用户进程的先祖,  而后者则成为所有内核态其他守护线程的父线程, 负责接手内核线程的创建工作
+
+3.	然后init_task通过变更调度类为sched_idle等操作演变成为**idle进程**, 此时系统中只有0(idle), 1(init), 2(kthreadd)3个进程, 然后执行一次进程调度, 必然切换当前进程到到init
+</font>
+
+我们下面就详解分析0号进程的前世(init_task)今生(idle)
 
 #idle的创建
 -------
