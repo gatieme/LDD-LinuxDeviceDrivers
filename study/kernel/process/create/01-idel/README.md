@@ -1,4 +1,4 @@
-Linux下进程的创建过程
+Linux下0号进程idel
 =======
 
 
@@ -7,18 +7,9 @@ Linux下进程的创建过程
 | 2016-05-12 | [Linux-4.5](http://lxr.free-electrons.com/source/?v=4.5) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux-进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
 
 
-http://www.linuxidc.com/Linux/2013-07/87011.htm
-http://www.linuxeye.com/Linux/1827.html
-http://bbs.csdn.net/topics/390872515
-http://blog.csdn.net/yjzl1911/article/details/5613569
-http://blog.csdn.net/dagouaofei/article/details/5644119
-http://blog.chinaunix.net/uid-23769728-id-3129443.html
-http://baike.baidu.com/link?url=sCsQDvMUaAikV5W_eKrEL3RVijNHJtOJk8nsCnjlxtnU7yoJ9svp6cwaerQ6Dqc0I-kdoAYrOtMcocCUnzyggK
-http://blog.chinaunix.net/uid-21718047-id-3070635.html
-http://blog.163.com/boneshunter_1234/blog/static/340762320084472122207/
-http://blog.sina.com.cn/s/blog_626aed8b0100hws6.html
 
-
+#0号进程idel
+-------
 
 
 <font color=0x009966>Linux下有两个特殊的进程，idel进程($PID = 0$)和init进程($PID = 1$)
@@ -39,30 +30,301 @@ http://blog.sina.com.cn/s/blog_626aed8b0100hws6.html
 
 系统允许一个进程创建新进程，新进程即为子进程，子进程还可以创建新的子进程，形成进程树结构模型。整个linux系统的所有进程也是一个树形结构。**树根是系统自动构造的(或者说是由内核黑客手动创建的)**，即在内核态下执行的0号进程，它是所有进程的远古先祖。
 
+在smp系统中，每个处理器单元有独立的一个运行队列，而每个运行队列上又有一个idle进程，即有多少处理器单元，就有多少idle进程。
+
 
 
 #idel的创建
 -------
 
+在smp系统中，每个处理器单元有独立的一个运行队列，而每个运行队列上又有一个idle进程，即有多少处理器单元，就有多少idle进程。
+
 >idle进程其pid=0，其前身是系统创建的第一个进程，也是唯一一个没有通过fork()产生的进程。在smp系统中，每个处理器单元有独立的一个运行队列，而每个运行队列上又有一个idle进程，即有多少处理器单元，就有多少idle进程。系统的空闲时间，其实就是指idle进程的"运行时间"。既然是idle是进程，那我们来看看idle是如何被创建，又具体做了哪些事情？
 
-　　我们知道系统是从BIOS加电自检，载入MBR中的引导程序(LILO/GRUB),再加载linux内核开始运行的，一直到指定shell开始运行告一段落，这时用户开始操作Linux。而大致是在vmlinux的入口startup_32(head.S)中为pid号为0的原始进程设置了执行环境，然后原是进程开始执行start_kernel()完成Linux内核的初始化工作。包括初始化页表，初始化中断向量表，初始化系统时间等。继而调用 fork(),创建第一个用户进程:
 
-　　kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND);
+我们知道系统是从BIOS加电自检，载入MBR中的引导程序(LILO/GRUB),再加载linux内核开始运行的，一直到指定shell开始运行告一段落，这时用户开始操作Linux。
 
-　　这个进程就是着名的pid为1的init进程，它会继续完成剩下的初始化工作，然后execve(/sbin/init), 成为系统中的其他所有进程的祖先。关于init我们这次先不研究，回过头来看pid=0的进程，在创建了init进程后，pid=0的进程调用 cpu_idle()演变成了idle进程。
+#0号进程上下文信息--init_task描述符
+-------
 
-　　current_thread_info()->status |= TS_POLLING;
 
-　　在 smp系统中，除了上面刚才我们讲的主处理器(执行初始化工作的处理器)上idle进程的创建，还有从处理器(被主处理器activate的处理器)上的 idle进程，他们又是怎么创建的呢？接着看init进程，init在演变成/sbin/init之前，会执行一部分初始化工作，其中一个就是 smp_prepare_cpus()，初始化SMP处理器，在这过程中会在处理每个从处理器时调用
+**init_task**是内核中所有进程、线程的task_struct雏形，在内核初始化过程中，通过静态定义构造出了一个task_struct接口，取名为init_task，然后在内核初始化的后期，通过rest_init（）函数新建了**内核init线程，kthreadd内核线程**
 
-　　task = copy_process(CLONE_VM, 0, idle_regs(&regs), 0, NULL, NULL, 0);
+*	**内核init线程**，最终执行/sbin/init进程，变为所有用户态程序的根进程（pstree命令显示）,即用户空间的init进程
 
-　　init_idle(task, cpu);
+*	**内核kthreadd内核线程**，变为所有内核态其他守护线程的父线程。
 
-　　即从init中复制出一个进程，并把它初始化为idle进程(pid仍然为0)。从处理器上的idle进程会进行一些Activate工作，然后执行cpu_idle()。
+所以<font color=0x009966>**init_task决定了系统所有进程、线程的基因, 它完成初始化后, 最终演变为0号进程idel, 并且运行在内核态**</font>
 
-　　整个过程简单的说就是，原始进程(pid=0)创建init进程(pid=1),然后演化成idle进程(pid=0)。init进程为每个从处理器(运行队列)创建出一个idle进程(pid=0)，然后演化成/sbin/init。
+内核在初始化过程中，当创建完init和kthreadd内核线程后，内核会发生调度执行，此时内核将使用该init_task作为其task_struct结构体描述符，当系统无事可做时，会调度其执行， 此时该内核会变为idle进程，让出CPU，自己进入睡眠，不停的循环，查看init_task结构体，其comm字段为swapper，作为idle进程的描述符。
+
+>0号线程idel的优先级为120，从#define INIT_TASK(tsk)中可以看出。
+>
+>这也就决定了，其优先级足够低, 以保证其他用户进程或者系统线程会被优先调度
+
+
+简言之, **内核中init_task变量就是是进程0使用的进程描述符**，也是Linux系统中第一个进程描述符，init_task并不是系统通过kernel_thread的方式（当然更不可能是fork）创建的, 而是由内核黑客静态创建的.
+
+
+该进程的描述符在[init/init_task](http://lxr.free-electrons.com/source/init/init_task.c?v=4.5#L17
+)中定义，代码片段如下
+
+
+```c
+/* Initial task structure */
+struct task_struct init_task = INIT_TASK(init_task);
+EXPORT_SYMBOL(init_task);
+```
+
+init_task描述符使用宏INIT_TASK对init_task的进程描述符进行初始化，宏INIT_TASK在[include/linux/init_task.h](http://lxr.free-electrons.com/source/include/linux/init_task.h?v=4.5#L186)文件中
+
+init_task是Linux内核中的第一个线程，它贯穿于整个Linux系统的初始化过程中，该进程也是Linux系统中唯一一个没有用kernel_thread()函数创建的内核态进程(内核线程)
+
+在init_task进程执行后期，它会调用kernel_thread()函数创建第一个核心进程kernel_init，同时init_task进程继续对Linux系统初始化。在完成初始化后，init_task会退化为cpu_idle进程，当Core 0的就绪队列中没有其它进程时，该进程将会获得CPU运行。新创建的1号进程kernel_init将会逐个启动次CPU,并最终创建用户进程！
+
+>备注：core0上的idle进程由init_task进程退化而来，而AP的idle进程则是BSP在后面调用fork()函数逐个创建的
+
+
+##进程堆栈init_thread_union
+-------
+
+init_task进程使用init_thread_union数据结构描述的内存区域作为该进程的堆栈空间，并且和自身的thread_info参数公用这一内存空间空间，
+
+>请参见 http://lxr.free-electrons.com/source/include/linux/init_task.h?v=4.5#L193
+>
+>         .stack          = &init_thread_info,
+
+
+而init_thread_info则是一段体系结构相关的定义，被定义在[/arch/对应体系/include/asm/thread_info.h]中，但是他们大多数为如下定义
+
+```c
+#define init_thread_info        (init_thread_union.thread_info)
+#define init_stack              (init_thread_union.stack)
+```
+
+其中init_thread_union被定义在[init/init_task.c](http://lxr.free-electrons.com/source/init/init_task.c?v=4.5#L21), 紧跟着前面[init_task](http://lxr.free-electrons.com/source/init/init_task.c?v=4.5#L17)的定义
+
+```c
+/*
+ * Initial thread structure. Alignment of this is handled by a special
+ * linker map entry.
+ */
+union thread_union init_thread_union __init_task_data =
+        { INIT_THREAD_INFO(init_task) };
+```
+
+我们可以发现init_task是用INIT_THREAD_INFO宏进行初始化的, 这个才是我们真正体系结构相关的部分, 他与init_thread_info定义在一起，被定义在[/arch/对应体系/include/asm/thread_info.h](http://lxr.free-electrons.com/ident?v=4.5;i=INIT_THREAD_INFO)中，以下为[x86架构的定义](http://lxr.free-electrons.com/source/arch/x86/include/asm/thread_info.h?v=4.5#L65)
+
+> 参见 
+> 
+> http://lxr.free-electrons.com/source/arch/x86/include/asm/thread_info.h?v=4.5#L65
+
+```c
+#define INIT_THREAD_INFO(tsk)                   \
+{                                               \
+    .task           = &tsk,                 \
+    .flags          = 0,                    \
+    .cpu            = 0,                    \
+    .addr_limit     = KERNEL_DS,            \
+}
+```
+
+>其他体系结构的定义请参见
+>
+>[/arch/对应体系/include/asm/thread_info.h](http://lxr.free-electrons.com/ident?v=4.5;i=INIT_THREAD_INFO)中
+
+| 架构 | 定义 |
+| ------------- |:-------------:|
+| x86 | [arch/x86/include/asm/thread_info.h](http://lxr.free-electrons.com/source/arch/x86/include/asm/thread_info.h?v=4.5#L65) |
+| arm64 | [arch/arm64/include/asm/thread_info.h](http://lxr.free-electrons.com/source/arch/arm64/include/asm/thread_info.h?v=4.5#L55) |
+
+init_thread_info定义中的__init_task_data表明该内核栈所在的区域位于内核映像的init data区，我们可以通过编译完内核后所产生的System.map来看到该变量及其对应的逻辑地址
+```
+cat System.map-3.1.6 | grep init_thread_union
+```
+
+![init_thread_union](./images/init_thread_union.png)
+
+#进程内存空间
+-------
+```
+struct mm_struct init_mm = {
+    .mm_rb          = RB_ROOT,
+    .pgd            = swapper_pg_dir,
+    .mm_users       = ATOMIC_INIT(2),
+    .mm_count       = ATOMIC_INIT(1),
+    .mmap_sem       = __RWSEM_INITIALIZER(init_mm.mmap_sem),
+    .page_table_lock =  __SPIN_LOCK_UNLOCKED(init_mm.page_table_lock),
+    .mmlist         = LIST_HEAD_INIT(init_mm.mmlist),
+    INIT_MM_CONTEXT(init_mm)
+};
+```
+
+
+#rest_init
+-------
+
+Linux在无进程概念的情况下将一直从初始化部分的代码执行到start_kernel，然后再到其最后一个函数调用rest_init
+
+>大致是在vmlinux的入口startup_32(head.S)中为pid号为0的原始进程设置了执行环境，然后原是进程开始执行start_kernel()完成Linux内核的初始化工作。包括初始化页表，初始化中断向量表，初始化系统时间等。
+
+从rest_init开始，Linux开始产生进程，因为init_task是静态制造出来的，pid=0，它试图将从最早的汇编代码一直到start_kernel的执行都纳入到init_task进程上下文中。
+
+这个函数其实是由0号进程执行的, 他就是在这个函数中, 创建了init进程和kthreadd进程
+
+这部分代码如下：
+
+>参见	
+>
+>http://lxr.free-electrons.com/source/init/main.c?v=4.5#L386
+
+```c
+static noinline void __init_refok rest_init(void)
+{
+	int pid;
+
+	rcu_scheduler_starting();
+	smpboot_thread_init();
+
+    /*
+ 	* We need to spawn init first so that it obtains pid 1, however
+ 	* the init task will end up wanting to create kthreads, which, if
+ 	* we schedule it before we create kthreadd, will OOPS.
+ 	*/
+	kernel_thread(kernel_init, NULL, CLONE_FS);
+	numa_default_policy();
+	pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
+	rcu_read_lock();
+	kthreadd_task = find_task_by_pid_ns(pid, &init_pid_ns);
+	rcu_read_unlock();
+	complete(&kthreadd_done);
+
+	/*
+ 	* The boot idle thread must execute schedule()
+ 	* at least once to get things moving:
+ 	*/
+	init_idle_bootup_task(current);
+	schedule_preempt_disabled();
+	/* Call into cpu_idle with preempt disabled */
+	cpu_startup_entry(CPUHP_ONLINE);
+}
+```
+
+1.	调用kernel_thread()创建1号内核线程, 该线程随后转向用户空间, 演变为init进程
+
+2.	调用kernel_thread()创建kthreadd内核线程。
+
+3.	init_idle_bootup_task()：当前0号进程init_task最终会退化成idle进程，所以这里调用init_idle_bootup_task()函数，让init_task进程隶属到idle调度类中。即选择idle的调度相关函数。
+
+4.	调用schedule()函数切换当前进程，在调用该函数之前，Linux系统中只有两个进程，即0号进程init_task和1号进程kernel_init，其中kernel_init进程也是刚刚被创建的。调用该函数后，1号进程kernel_init将会运行！
+
+5.	调用cpu_idle()，0号线程进入idle函数的循环，在该循环中会周期性地检查。
+
+##创建kernel_init
+-------
+
+在rest_init函数中，内核将通过下面的代码产生第一个真正的进程(pid=1):
+
+```c
+kernel_thread(kernel_init, NULL, CLONE_FS);
+```
+
+这个进程就是着名的pid为1的init进程，它会继续完成剩下的初始化工作，然后execve(/sbin/init), 成为系统中的其他所有进程的祖先。
+
+>但是这里我们发现一个问题, init进程应该是一个用户空间的进程, 但是这里却是通过kernel_thread的方式创建的, 哪岂不是式一个永远运行在内核态的内核线程么, 它是怎么演变为真正意义上用户空间的init进程的？
+>
+>1号kernel_init进程完成linux的各项配置(包括启动AP)后，就会在/sbin,/etc,/bin寻找init程序来运行。该init程序会替换kernel_init进程（注意：并不是创建一个新的进程来运行init程序，而是一次变身，使用sys_execve函数改变核心进程的正文段，将核心进程kernel_init转换成用户进程init），此时处于内核态的1号kernel_init进程将会转换为用户空间内的1号进程init。户进程init将根据/etc/inittab中提供的信息完成应用程序的初始化调用。然后init进程会执行/bin/sh产生shell界面提供给用户来与Linux系统进行交互。
+>
+>调用init_post()创建用户模式1号进程。
+
+关于init其他的信息我们这次先不研究，因为我们这篇旨在探究0号进程的详细过程，
+
+##创建kthreadd
+-------
+在rest_init函数中，内核将通过下面的代码产生第一个kthreadd(pid=2)
+
+```c
+pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
+```
+
+
+##0号进程演变为idel
+-------
+
+```c
+	/*
+ 	* The boot idle thread must execute schedule()
+ 	* at least once to get things moving:
+ 	*/
+	init_idle_bootup_task(current);
+	schedule_preempt_disabled();
+	/* Call into cpu_idle with preempt disabled */
+	cpu_startup_entry(CPUHP_ONLINE);
+```
+
+因此我们回过头来看pid=0的进程，在创建了init进程后，pid=0的进程调用 cpu_idle()演变成了idle进程。
+
+0号进程首先执行init_idle_bootup_task, **让init_task进程隶属到idle调度类中**。即选择idle的调度相关函数。
+
+这个函数被定义在[kernel/sched/core.c](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.5#L5075)中，如下
+
+```c
+void init_idle_bootup_task(struct task_struct *idle)
+{
+	idle->sched_class = &idle_sched_class;
+}
+```
+
+接着通过schedule_preempt_disabled来**执行调用schedule()函数切换当前进程**，在调用该函数之前，Linux系统中只有两个进程，即0号进程init_task和1号进程kernel_init，其中kernel_init进程也是刚刚被创建的。调用该函数后，1号进程kernel_init将会运行
+
+这个函数被定义在[kernel/sched/core.c](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.5#L3342)中，如下
+
+```c
+/**
+* schedule_preempt_disabled - called with preemption disabled
+*
+* Returns with preemption disabled. Note: preempt_count must be 1
+*/
+void __sched schedule_preempt_disabled(void)
+{
+	sched_preempt_enable_no_resched();
+	schedule();
+	preempt_disable();
+}
+```
+
+
+最后cpu_startup_entry**调用cpu_idle_loop()，0号线程进入idle函数的循环，在该循环中会周期性地检查**
+
+cpu_startup_entry定义在[kernel/sched/idle.c](http://lxr.free-electrons.com/source/kernel/sched/idle.c?v=4.5#L276)
+
+```c
+ void cpu_startup_entry(enum cpuhp_state state)
+{
+	/*
+	* This #ifdef needs to die, but it's too late in the cycle to
+	* make this generic (arm and sh have never invoked the canary
+	* init for the non boot cpus!). Will be fixed in 3.11
+	*/
+#ifdef CONFIG_X86
+    /*
+    * If we're the non-boot CPU, nothing set the stack canary up
+    * for us. The boot CPU already has it initialized but no harm
+    * in doing it again. This is a good place for updating it, as
+    * we wont ever return from this function (so the invalid
+    * canaries already on the stack wont ever trigger).
+    */
+    boot_init_stack_canary();
+#endif
+    arch_cpu_idle_prepare();
+    cpu_idle_loop();
+}
+```
+
+其中cpu_idel_loop就是idel进程的事件循环，定义在[kernel/sched/idle.c](http://lxr.free-electrons.com/source/kernel/sched/idle.c?v=4.5#L203)
+
+
+整个过程简单的说就是，原始进程(pid=0)创建init进程(pid=1),然后演化成idle进程(pid=0)。init进程为每个从处理器(运行队列)创建出一个idle进程(pid=0)，然后演化成/sbin/init。
 
 　　3. idle的运行时机
 
