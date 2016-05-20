@@ -1,6 +1,6 @@
 
 
-obj-m := kernel_thread.o
+obj-m := test_kthread_run.o
 
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 

@@ -7,28 +7,22 @@
 
 
 
-#include <linux/init.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
+#include <linux/init.h>
 
 #include <linux/sched.h>
 #include <linux/pid.h>
 
 
 
-//#define METHOD 2
-static unsigned int METHOD = 1;
-module_param(METHOD, uint,0400);
-
-static unsigned int PID = 1;
-module_param(PID, uint,0400);
-
-
+/*===================================================*/
 int kthread_function(void *argc)
 {
     printk(KERN_ALERT "in the kernel thread function!\n");
     return 0;
 }
+
 
 void print_kernel_thread_pid(void)
 {
@@ -37,7 +31,7 @@ void print_kernel_thread_pid(void)
     struct task_struct  *task = NULL;
 
     //  create a kernel thread
-    res = kernel_thread(kthread_function, NULL, CLONE_KERNEL);
+    res = kernel_thread(kthread_function, NULL, /* CLONE_KERNEL | */ SIGCHLD);
 
     //  get the pid of the kernel thread you create
     ktpid = find_get_pid(res);
@@ -60,9 +54,28 @@ void print_kernel_thread_pid(void)
 }
 
 
+/*===================================================*/
+static int noop(void *dummy)
+{
+    int i = 0;
+    //daemonize("mythread");
+
+    while(i++ < 5)
+    {
+        printk("current->mm = %p/n", current->mm);
+        printk("current->active_mm = %p/n", current->active_mm);
+        set_current_state(TASK_INTERRUPTIBLE);
+        schedule_timeout(10 * HZ);
+    }
+
+    return 0;
+}
+
 static int init_kernel_thread(void)
 {
     print_kernel_thread_pid( );
+
+    kernel_thread(noop, NULL, /*CLONE_KERNEL| */SIGCHLD);
 
     return 0;
 }
@@ -70,6 +83,7 @@ static int init_kernel_thread(void)
 static void exit_kernel_thread(void)
 {
     printk(KERN_ALERT "GOOD BYE:kernel_thread!!\n");
+    do_exit(0);
 }
 
 
