@@ -23,6 +23,15 @@ Linux内核线程、轻量级进程和用户进程以及其创建方式
 | GitHub | [进程的描述](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/process/task)  | [目录](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/process) | [进程的调度]()|
 
 
+**本文声明**
+
+| 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
+| ------------- |:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
+| 2016-05-12 | [Linux-4.5](http://lxr.free-electrons.com/source/?v=4.5) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度-之-进程的创建](http://blog.csdn.net/gatieme/article/details/51456569) |
+
+> 本文中出现的，内核线程，轻量级进程，用户进程，用户线程等概念，如果不太熟悉, 可以参见
+> 
+> [内核线程、轻量级进程、用户线程三种线程概念解惑（线程≠轻量级进程）](http://blog.csdn.net/gatieme/article/details/51481863)
 
 
 #Linux进程类别
@@ -47,60 +56,52 @@ Linux内核线程、轻量级进程和用户进程以及其创建方式
 >In computer operating systems, a light-weight process (LWP) is a means of achieving multitasking. In the traditional meaning of the term, as used in Unix System V and Solaris, a LWP runs in user space on top of a single kernel thread and shares its address space and system resources with other LWPs within the same process. Multiple user level threads, managed by a thread library, can be placed on top of one or many LWPs - allowing multitasking to be done at the user level, which can have some performance benefits.[1]
 >
 >In some operating systems there is no separate LWP layer between kernel threads and user threads. This means that user threads are implemented directly on top of kernel threads. In those contexts, the term "light-weight process" typically refers to kernel threads and the term "threads" can refer to user threads.[2] On Linux, user threads are implemented by allowing certain processes to share resources, which sometimes leads to these processes to be called "light weight processes".[3][4] Similarly, in SunOS version 4 onwards (prior to Solaris) "light weight process" referred to user threads.
->
 
-
-#linux进程
+##进程与线程
 -------
 
-##Linux下进程和线程的区别
+进程是一个具有独立功能的程序关于某个数据集合的一次运行活动。它可以申请和拥有系统资源，是一个动态的概念，是一个活动的实体。它不只是程序的代码，还包括当前的活动，通过程序计数器的值和处理寄存器的内容来表示。进程是一个“执行中的程序”。程序是一个没有生命的实体，只有处理器赋予程序生命时，它才能成为一个活动的实体，我们称其为进程。
+
+通常在一个进程中可以包含若干个线程，它们可以利用进程所拥有的资源。在引入线程的操作系统中，通常都是把进程作为分配资源的基本单位，而把线程作为独立运行和独立调度的基本单位。由于线程比进程更小，基本上不拥有系统资源，故对它的调度所付出的开销就会小得多，能更高效的提高系统内多个程序间并发执行的程度。
+
+线程和进程的区别在于，子进程和父进程有不同的代码和数据空间，而多个线程则共享数据空间，每个线程有自己的执行堆栈和程序计数器为其执行上下文。多线程主要是为了节约CPU时间，发挥利用，根据具体情况而定。线程的运行中需要使用计算机的内存资源和CPU。
+
+进程是具有一定独立功能的程序关于某个数据集合上的一次运行活动,进程是系统进行资源分配和调度的一个独立单位。线程是进程的一个实体,是CPU调度和分派的基本单位,它是比进程更小的能独立运行的基本单位。线程自己基本上不拥有系统资源,只拥有一点在运行中必不可少的资源(如程序计数器,一组寄存器和栈),但是它可与同属一个进程的其他的线程共享进程所拥有的全部资源。
+
+线程与进程的区别归纳：
+
+*	地址空间和其它资源：进程间相互独立，同一进程的各线程间共享。某进程内的线程在其它进程不可见。
+
+*	通信：进程间通信IPC，线程间可以直接读写进程数据段（如全局变量）来进行通信——需要进程同步和互斥手段的辅助，以保证数据的一致性。
+
+*	调度和切换：线程上下文切换比进程上下文切换要快得多。
+
+*	在多线程OS中，进程不是一个可执行的实体。
+
+
+##内核线程
+-------
+
+内核线程就是内核的分身，一个分身可以处理一件特定事情。这在处理异步事件如异步IO时特别有用。内核线程的使用是廉价的，唯一使用的资源就是内核栈和上下文切换时保存寄存器的空间。支持多线程的内核叫做多线程内核(Multi-Threads kernel )。
+
+*	内核线程只运行在内核态，不受用户态上下文的拖累。
+
+*	处理器竞争：可以在全系统范围内竞争处理器资源；
+
+*	使用资源：唯一使用的资源是内核栈和上下文切换时保持寄存器的空间
+
+*	调度：调度的开销可能和进程自身差不多昂贵
+
+*	同步效率：资源的同步和数据共享比整个进程的数据同步和共享要低一些。
+
+
+
+
+#linux进程的创建流程
+-------
 
 线程机制式现代编程技术中常用的一种抽象概念。该机制提供了同一个程序内共享内存地址空间，打开文件和资源的一组线程。
 
-###专门线程支持的系统-LWP机制
--------
-
-线程更好的支持了并发程序设计技术, 在多处理器系统上, 他能保证真正的并行处理。Microsoft Windows或是Sun Solaris等操作系统都对线程进行了支持。
-
-这些系统中都在内核中提供了专门支持线程的机制, Unix System V和Sun Solaris将线程称作为轻量级进程(LWP-Light-weight process),在这些系统中, 相比较重量级进程, 线程被抽象成一种耗费较少资源, 运行迅速的执行单元。
-
-
-
-###Linux下线程的实现机制
--------
-
-但是Linux实现线程的机制非常独特。从内核的角度来说, 他并没有线程这个概念。Linux把所有的进程都当做进程来实现。内核中并没有准备特别的调度算法或者定义特别的数据结构来表示线程。相反, 线程仅仅被视为一个与其他进程共享某些资源的进程。每个线程都拥有唯一隶属于自己的task_struct, 所以在内核看来, 它看起来就像式一个普通的进程(只是线程和同组的其他进程共享某些资源)
-
-在之前[Linux进程描述符task_struct结构体详解–Linux进程的管理与调度（一）](http://blog.csdn.net/gatieme/article/details/51383272)和[Linux进程ID号–Linux进程的管理与调度（三）](http://blog.csdn.net/gatieme/article/details/51383377)中讲解进程的pid号的时候我们就提到了, 进程task_struct中**pid存储的是内核对该进程的唯一标示**, 即对进程则标示进程号, 对线程来说就是其线程号, 那么**对于线程来说一个线程组所有线程与领头线程具有相同的进程号，存入tgid字段**
-
-因此**getpid()返回当前进程的进程号，返回的应该是tgid值而不是pid的值, 对于用户空间来说同组的线程拥有相同进程号即tpid, 而对于内核来说, 某种成都上来说不存在线程的概念, 那么pid就是内核唯一区分每个进程的标示。 **
-
-> 正是linux下组管理, 写时复制等这些巧妙的实现方式
->
->*	linux下进程或者线程的创建开销很小
->
->*	既然不管是线程或者进程内核都是不加区分的，一组共享地址空间或者资源的线程可以组成一个线程组, 那么其他进程即使不共享资源也可以组成进程组, 甚至来说一组进程组也可以组成会话组, 进程组可以简化向所有组内进程发送信号的操作, 一组会话也更能适应多道程序环境
-
-###区别
--------
-
-
-总而言之, <font color=#A52A2A>Linux中线程与专门线程支持系统是完全不同的</font>
-
-Unix System V和Sun Solaris将用户线程称作为轻量级进程(LWP-Light-weight process), 相比较重量级进程, 线程被抽象成一种耗费较少资源, 运行迅速的执行单元。
-
-而对于linux来说, 用户线程只是一种进程间共享资源的手段, 相比较其他系统的进程来说, linux系统的进程本身已经很轻量级了
-
-举个例子来说, 假如我们有一个包括了四个线程的进程,
-
-在提供专门线程支持的系统中, 通常会有一个包含只想四个不同线程的指针的进程描述符。该描述符复制描述像地址空间, 打开的文件这样的共享资源。线程本身再去描述它独占的资源。
-
-相反, Linux仅仅创建了四个进程, 并分配四个普通的task_struct结构, 然后建立这四个进程时制定他们共享某些资源。
-
-
-
-##Linux下进程的创建流程
--------
 
 ##进程的复制fork和加载execve
 -------
@@ -121,7 +122,7 @@ Unix System V和Sun Solaris将用户线程称作为轻量级进程(LWP-Light-wei
 
 *	execve从一个可执行的二进制程序镜像加载应用程序, 来代替当前运行的进程
 
->	>	换句话说, 加载了一个新的应用程序。因此execv并不是创建新进程
+>	换句话说, 加载了一个新的应用程序。因此execv并不是创建新进程
 
 所以<font color = 0x00ffff>我们在linux要创建一个应用程序的时候，其实执行的操作就是
 
@@ -168,6 +169,51 @@ do_wp_page()会对这块导致写入异常中断的物理页面进行取消共�
 >关于进程创建的
 >
 >参见 [Linux中fork，vfork和clone详解（区别与联系）](http://blog.csdn.net/gatieme/article/details/51417488)
+
+
+
+#不同操作系统线程的实现机制
+-------
+
+##专门线程支持的系统-LWP机制
+-------
+
+线程更好的支持了并发程序设计技术, 在多处理器系统上, 他能保证真正的并行处理。Microsoft Windows或是Sun Solaris等操作系统都对线程进行了支持。
+
+这些系统中都在内核中提供了专门支持线程的机制, Unix System V和Sun Solaris将线程称作为轻量级进程(LWP-Light-weight process),在这些系统中, 相比较重量级进程, 线程被抽象成一种耗费较少资源, 运行迅速的执行单元。
+
+
+##Linux下线程的实现机制
+-------
+
+但是Linux实现线程的机制非常独特。从内核的角度来说, 他并没有线程这个概念。Linux把所有的进程都当做进程来实现。内核中并没有准备特别的调度算法或者定义特别的数据结构来表示线程。相反, 线程仅仅被视为一个与其他进程共享某些资源的进程。每个线程都拥有唯一隶属于自己的task_struct, 所以在内核看来, 它看起来就像式一个普通的进程(只是线程和同组的其他进程共享某些资源)
+
+在之前[Linux进程描述符task_struct结构体详解–Linux进程的管理与调度（一）](http://blog.csdn.net/gatieme/article/details/51383272)和[Linux进程ID号–Linux进程的管理与调度（三）](http://blog.csdn.net/gatieme/article/details/51383377)中讲解进程的pid号的时候我们就提到了, 进程task_struct中**pid存储的是内核对该进程的唯一标示**, 即对进程则标示进程号, 对线程来说就是其线程号, 那么**对于线程来说一个线程组所有线程与领头线程具有相同的进程号，存入tgid字段**
+
+因此**getpid()返回当前进程的进程号，返回的应该是tgid值而不是pid的值, 对于用户空间来说同组的线程拥有相同进程号即tpid, 而对于内核来说, 某种成都上来说不存在线程的概念, 那么pid就是内核唯一区分每个进程的标示。 **
+
+> 正是linux下组管理, 写时复制等这些巧妙的实现方式
+>
+>*	linux下进程或者线程的创建开销很小
+>
+>*	既然不管是线程或者进程内核都是不加区分的，一组共享地址空间或者资源的线程可以组成一个线程组, 那么其他进程即使不共享资源也可以组成进程组, 甚至来说一组进程组也可以组成会话组, 进程组可以简化向所有组内进程发送信号的操作, 一组会话也更能适应多道程序环境
+
+##实现机制的区别
+-------
+
+
+总而言之, <font color=#A52A2A>Linux中线程与专门线程支持系统是完全不同的</font>
+
+Unix System V和Sun Solaris将用户线程称作为轻量级进程(LWP-Light-weight process), 相比较重量级进程, 线程被抽象成一种耗费较少资源, 运行迅速的执行单元。
+
+而对于linux来说, 用户线程只是一种进程间共享资源的手段, 相比较其他系统的进程来说, linux系统的进程本身已经很轻量级了
+
+举个例子来说, 假如我们有一个包括了四个线程的进程,
+
+在提供专门线程支持的系统中, 通常会有一个包含只想四个不同线程的指针的进程描述符。该描述符复制描述像地址空间, 打开的文件这样的共享资源。线程本身再去描述它独占的资源。
+
+相反, Linux仅仅创建了四个进程, 并分配四个普通的task_struct结构, 然后建立这四个进程时制定他们共享某些资源。
+
 
 #内核线程
 -------
@@ -224,8 +270,6 @@ int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
             // fn为线程函数，arg为线程函数参数，flags为标记
 void daemonize(const char * name,...); // name为内核线程的名称
 ```
-      /* Clone io context */
-```
 
 ###kthread_create
 -------
@@ -250,8 +294,9 @@ struct task_struct *kthread_run(int (*threadfn)(void *data),
 ```
 
 线程一旦启动起来后，会一直运行，除非该线程主动调用do_exit函数，或者其他的进程调用kthread_stop函数，结束线程的运行。
-
+```c
 int kthread_stop(struct task_struct *thread);
+
 kthread_stop() 通过发送信号给线程。
 如果线程函数正在处理一个非常重要的任务，它不会被中断的。当然如果线程函数永远不返回并且不检查信号，它将永远都不会停止。
 
@@ -261,24 +306,22 @@ struct task_struct *kthread_run(int (*threadfn)(void *data),void *data,
                                 const char namefmt[], ...);//是以上两个函数的功能的总和
 ```
 
-注：因为线程也是进程，所以其结构体也是使用进程的结构体"struct task_struct"。
+>因为线程也是进程，所以其结构体也是使用进程的结构体"struct task_struct"。
+>
+>**内核线程的退出**
+>
+>当线程执行到函数末尾时会自动调用内核中do_exit()函数来退出或其他线程调用kthread_stop()来指定线程退出。
 
-
-
-##内核线程的退出
--------
-
- 当线程执行到函数末尾时会自动调用内核中do_exit()函数来退出或其他线程调用kthread_stop()来指定线程退出。
 
 
 #总结
 -------
 
-Linux使用task_struct来描述进程
+Linux使用task_struct来描述进程和线程
 
-1.  一个进程由于其运行空间的不同, 从而有**内核线程**和**用户进程**的区分, 内核线程运行在内核空间, 之所以称之为线程是因为它没有虚拟地址空间, 只能访问内核的代码和数据, 而用户进程则运行在用户空间, 不能直接访问内核的数据但是可以通过中断, 系统调用等方式从用户态陷入内核态，但是内核态只是进程的一种状态, 与内核线程有本质区别
+1.	一个进程由于其运行空间的不同, 从而有**内核线程**和**用户进程**的区分, 内核线程运行在内核空间, 之所以称之为线程是因为它没有虚拟地址空间, 只能访问内核的代码和数据, 而用户进程则运行在用户空间, 不能直接访问内核的数据但是可以通过中断, 系统调用等方式从用户态陷入内核态，但是内核态只是进程的一种状态, 与内核线程有本质区别
 
-2.  用户进程运行在用户空间上, 而一些通过共享资源实现的一组进程我们称之为线程组, Linux下内核其实本质上没有线程的概念, Linux下线程其实上是与其他进程共享某些资源的进程而已。但是我们习惯上还是称他们为**线程**或者**轻量级进程**
+2.	用户进程运行在用户空间上, 而一些通过共享资源实现的一组进程我们称之为线程组, Linux下内核其实本质上没有线程的概念, Linux下线程其实上是与其他进程共享某些资源的进程而已。但是我们习惯上还是称他们为**线程**或者**轻量级进程**
 
 因此, Linux上进程分3种，内核线程（或者叫核心进程）、用户进程、用户线程, 当然如果更严谨的，你也可以认为用户进程和用户线程都是用户进程。
 
