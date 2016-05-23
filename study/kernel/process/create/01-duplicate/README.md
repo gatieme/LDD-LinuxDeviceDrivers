@@ -19,8 +19,9 @@ Linux内核线程、轻量级进程和用户进程以及其创建方式
 
 |链接地址 | 上一章 | 总目录 | 下一章 |
 | ------------- |:-------------:|:-------------:|:-------------:|
-| CSDN   | 已是第一章  | [目录](http://blog.csdn.net/gatieme/article/details/51456569) | []()|
-| GitHub | 已是第一章  | [目录](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/process) | [Linux下0号进程的前世(init_task进程)今生(idle进程)](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/process/create/02-idel)|
+| CSDN   | [进程的描述](http://blog.csdn.net/gatieme/article/details/51383377)  | [目录](http://blog.csdn.net/gatieme/article/details/51456569) |[进程的调度]() |
+| GitHub | [进程的描述](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/process/task)  | [目录](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/process) | [进程的调度]()|
+
 
 
 
@@ -41,10 +42,12 @@ Linux内核线程、轻量级进程和用户进程以及其创建方式
 >
 >详细信息参见 [维基百科-LWP轻量级进程](https://en.wikipedia.org/wiki/Light-weight_process#See_also)
 >
+>或者本人的另外一篇博客[内核线程、轻量级进程、用户线程三种线程概念解惑（线程≠轻量级进程）](http://blog.csdn.net/gatieme/article/details/51481863)
 >
 >In computer operating systems, a light-weight process (LWP) is a means of achieving multitasking. In the traditional meaning of the term, as used in Unix System V and Solaris, a LWP runs in user space on top of a single kernel thread and shares its address space and system resources with other LWPs within the same process. Multiple user level threads, managed by a thread library, can be placed on top of one or many LWPs - allowing multitasking to be done at the user level, which can have some performance benefits.[1]
 >
->In some operating systems there is no separate LWP layer between kernel threads and user threads. This means that user threads are implemented directly on top of kernel threads. In those contexts, the term "light-weight process" typically refers to kernel threads and the term "threads" can refer to user threads.[2] On Linux, user threads are implemented by allowing certain processes to share resources, which sometimes leads to these processes to be called "light weight processes".[3][4] Similarly, in SunOS version 4 onwards (prior to Solaris) "light weight process" referred to user threads.[1]
+>In some operating systems there is no separate LWP layer between kernel threads and user threads. This means that user threads are implemented directly on top of kernel threads. In those contexts, the term "light-weight process" typically refers to kernel threads and the term "threads" can refer to user threads.[2] On Linux, user threads are implemented by allowing certain processes to share resources, which sometimes leads to these processes to be called "light weight processes".[3][4] Similarly, in SunOS version 4 onwards (prior to Solaris) "light weight process" referred to user threads.
+>
 
 
 #linux进程
@@ -221,33 +224,7 @@ int kernel_thread(int (*fn)(void *), void *arg, unsigned long flags);
             // fn为线程函数，arg为线程函数参数，flags为标记
 void daemonize(const char * name,...); // name为内核线程的名称
 ```
-其中flag的标示如下
-
-```c
-CSIGNAL       /* signal mask to be sent at exit */
-CLONE_VM      /* set if VM shared between processes */
-CLONE_FS      /* set if fs info shared between processes */
-CLONE_FILES   /* set if open files shared between processes */
-CLONE_SIGHAND /* set if signal handlers and blocked signals shared */
-CLONE_PTRACE  /* set if we want to let tracing continue on the child too */
-CLONE_VFORK   /* set if the parent wants the child to wake it up on mm_release */
-CLONE_PARENT  /* set if we want to have the same parent as the cloner */
-CLONE_THREAD  /* Same thread group? */
-CLONE_NEWNS   /* New namespace group? */
-CLONE_SYSVSEM /* share system V SEM_UNDO semantics */
-CLONE_SETTLS  /* create a new TLS for the child */
-CLONE_PARENT_SETTID   /* set the TID in the parent */
-CLONE_CHILD_CLEARTID  /* clear the TID in the child */
-CLONE_DETACHED        /* Unused, ignored */
-CLONE_UNTRACED        /* set if the tracing process can't force CLONE_PTRACE 
-                         on this clone */
-CLONE_CHILD_SETTID    /* set the TID in the child */
-CLONE_NEWUTS          /* New utsname group? */
-CLONE_NEWIPC          /* New ipcs */
-CLONE_NEWUSER         /* New user namespace */
-CLONE_NEWPID          /* New pid namespace */
-CLONE_NEWNET          /* New network namespace */
-CLONE_IO              /* Clone io context */
+      /* Clone io context */
 ```
 
 ###kthread_create
@@ -294,27 +271,21 @@ struct task_struct *kthread_run(int (*threadfn)(void *data),void *data,
  当线程执行到函数末尾时会自动调用内核中do_exit()函数来退出或其他线程调用kthread_stop()来指定线程退出。
 
 
+#总结
+-------
+
+Linux使用task_struct来描述进程
+
+1.  一个进程由于其运行空间的不同, 从而有**内核线程**和**用户进程**的区分, 内核线程运行在内核空间, 之所以称之为线程是因为它没有虚拟地址空间, 只能访问内核的代码和数据, 而用户进程则运行在用户空间, 不能直接访问内核的数据但是可以通过中断, 系统调用等方式从用户态陷入内核态，但是内核态只是进程的一种状态, 与内核线程有本质区别
+
+2.  用户进程运行在用户空间上, 而一些通过共享资源实现的一组进程我们称之为线程组, Linux下内核其实本质上没有线程的概念, Linux下线程其实上是与其他进程共享某些资源的进程而已。但是我们习惯上还是称他们为**线程**或者**轻量级进程**
+
+因此, Linux上进程分3种，内核线程（或者叫核心进程）、用户进程、用户线程, 当然如果更严谨的，你也可以认为用户进程和用户线程都是用户进程。
+
 **内核线程拥有 进程描述符、PID、进程正文段、核心堆栈**
 
 **用户进程拥有 进程描述符、PID、进程正文段、核心堆栈 、用户空间的数据段和堆栈**
 
 **用户线程拥有 进程描述符、PID、进程正文段、核心堆栈，同父进程共享用户空间的数据段和堆栈**
 
-用户线程也可以通过exec函数族拥有自己的用户空间的数据段和堆栈，成为用户进程。
-
-
-[fork, vfork, clone,pthread_create,kernel_thread](http://blog.sina.com.cn/s/blog_6abf2c040101fpcb.html)
-
-https://en.wikipedia.org/wiki/Light-weight_process#See_also
-[Linux内核本身和进程的区别 内核线程、用户进程、用户](http://blog.sina.com.cn/s/blog_6237dcca0100i9jk.html)
-http://blog.csdn.net/ylyuanlu/article/details/9115073
-http://www.cnitblog.com/tarius.wu/articles/2277.html
-http://www.360doc.com/content/12/0313/13/1317564_193982752.shtml
-http://blog.sina.com.cn/s/blog_6abf2c040101fpcb.html
-
-
-
-
-http://blog.csdn.net/babyfans/article/details/5875737
-http://www.cnblogs.com/king-77024128/articles/2275588.html
-http://www.wang1314.com/doc/topic-642-1.html
+>用户线程也可以通过exec函数族拥有自己的用户空间的数据段和堆栈，成为用户进程。
