@@ -4,8 +4,7 @@
 #include <linux/sched.h>
 #include <asm/uaccess.h>
 
-#define STRINGLEN 1024
-
+#define STRINGLEN 81
 char global_buffer[STRINGLEN];
 
 struct proc_dir_entry *example_dir, *proc_hello_file;

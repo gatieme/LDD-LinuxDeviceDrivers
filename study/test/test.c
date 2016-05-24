@@ -31,7 +31,7 @@ int main( )
     sprintf(buff, "echo \"hello\" > %s", PROC_FILE);
     printf("%s\n", buff);
 	system(buff);
-
+    printf("write success...\n");
     //wait for ack signal
 	procFile = open(PROC_FILE, O_RDONLY);
 	if(procFile == -1)
