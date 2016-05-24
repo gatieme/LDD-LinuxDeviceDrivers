@@ -10,6 +10,8 @@ char global_buffer[STRINGLEN];
 
 struct proc_dir_entry *example_dir, *proc_hello_file;
 
+
+
 int proc_read_hello(char *page, char **start, off_t off, int count, int *eof,
         void *data)
 {
