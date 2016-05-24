@@ -15,7 +15,7 @@ int proc_read_hello(char *page, char **start, off_t off, int count, int *eof,
 {
     int len;
     len = sprintf(page, global_buffer); //把global_buffer的内容显示给访问者
-    printk("len = %d, buff = %s\n", len, global_buffer);
+    printk("read success : len = %d, buff = %s\n", len, global_buffer);
     return len;
 }
 
@@ -35,6 +35,7 @@ int proc_write_hello(struct file *file, const char *buffer, unsigned long count,
 
     copy_from_user(global_buffer, buffer, len);
     global_buffer[len] = '\0';
+    printk("write success : len = %d, buff = %s\n", len, global_buffer);
     return len;
 }
 
