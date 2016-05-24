@@ -23,11 +23,17 @@
 int main( )
 {
 	int             ret;
+	int             count;
 	int             procFile;
 	char            buff[MAX_LINE];
 
+    bzero(buff, sizeof(buff));
+    sprintf(buff, "echo \"hello\" > %s", PROC_FILE);
+    printf("%s\n", buff);
+	system(buff);
+    printf("write success...\n");
     //wait for ack signal
-	procFile = open(PROC_FILE, O_RDWR);
+	procFile = open(PROC_FILE, O_RDONLY);
 	if(procFile == -1)
 	{
 		perror("Fail to open "PROC_FILE);
@@ -35,20 +41,12 @@ int main( )
 	}
     else
     {
-        printf("Open success...\n");
+        printf("Open success...");
     }
 
-    if((ret = write(procFile, "hello", strlen("hello"))) == -1)
-    {
-        perror("Fail to read "PROC_FILE);
-    }
-    else
-    {
-        printf("wriet success\n");
-    }
-
-    bzero(buff, sizeof(buff));
-    if((ret = read(procFile, buff, MAX_LINE)) == -1)
+	bzero(buff, sizeof(buff));
+    ret = read(procFile, buff, MAX_LINE);
+    if(ret == -1)
     {
         perror("Fail to read "PROC_FILE);
     }
