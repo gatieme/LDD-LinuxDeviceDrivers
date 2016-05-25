@@ -1,6 +1,6 @@
 ifneq ($(KERNELRELEASE),)
 
-obj-m := hello_proc.o
+obj-m := jif.o
 
 else
 

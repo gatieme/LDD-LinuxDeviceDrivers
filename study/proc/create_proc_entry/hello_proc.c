@@ -9,6 +9,10 @@ char global_buffer[STRINGLEN];
 
 struct proc_dir_entry *example_dir, *proc_hello_file;
 
+int proc_read_hello(char *page, char **start, off_t off, int count, int *eof, void *data);
+int proc_write_hello(struct file *file, const char *buffer, unsigned long count, void *data);
+
+
 
 
 int proc_read_hello(char *page, char **start, off_t off, int count, int *eof,
@@ -19,6 +23,7 @@ int proc_read_hello(char *page, char **start, off_t off, int count, int *eof,
     printk("read success : len = %d, buff = %s\n", len, global_buffer);
     return len;
 }
+int proc_read_hello(struct file *file, char __user *buff, size_t size, loff_t *ppos)
 
 int proc_write_hello(struct file *file, const char *buffer, unsigned long count,
         void *data)
@@ -43,18 +48,18 @@ int proc_write_hello(struct file *file, const char *buffer, unsigned long count,
 static int __init proc_test_init(void)
 {
     example_dir = proc_mkdir("proc_test", NULL);
-
+    printk("Create /proc/proc_test success...\n");
     //hello_file = create_proc_entry("hello", S_IRUGO, example_dir);
     //strcpy(global_buffer, "hello");
     //hello_file->read_proc = proc_read_hello;
     //hello_file->write_proc = proc_write_hello;
+
     static const struct file_operations pid_fops =
     {
         .owner = THIS_MODULE,
         .read = proc_read_hello,
         .write = proc_write_hello,
     };
-
     proc_hello_file = proc_create("hello", 0666, example_dir, &pid_fops);
 
     if(proc_hello_file == NULL)
@@ -62,7 +67,7 @@ static int __init proc_test_init(void)
 		printk("Can't create /proc/proc_test/hello\n");
         remove_proc_entry("proc_test", NULL);
 	}
-
+    printk("Create /proc/proc_test/hello success...\n");
     return 0;
 }
 
