@@ -110,12 +110,14 @@ init进程是linux内核启动的第一个用户级进程。init有许多很重�
 | systemd | Systemd 是 Linux 系统中最新的初始化系统（init），它主要的设计目标是克服 sysvinit 固有的缺点，提高系统的启动速度 | [浅析 Linux 初始化 init 系统（3） Systemd](http://blog.jobbole.com/85070/)
 
 Ubuntu等使用deb包的系统可以通过dpkg -S查看程序所在的包
-![早期centos](./images/dpkg-upstart.jpg)
+
+![Ubuntu](./images/dpkg-upstart.jpg)
+
 CentOS等使用rpm包的系统可以通过rpm -qf查看系统程序所在的包
 
-![新版centos](./images/sysvinit.jpg)
+![早期centos](./images/sysvinit.jpg)
 
-![](./images/upstart.jpg)
+![新版centos](./images/upstart.jpg)
 
 >参见
 >
@@ -211,7 +213,7 @@ static noinline void __init kernel_init_freeable(void)
 | integrity_load_keys | 至此我们初始化工作完成, 文件系统也已经准备好了，那么接下来加载 load integrity keys hook |
 | load_default_modules | 加载基本的模块 |
 
-#kernel_init分析
+##kernel_init分析
 -------
 ```c
 static int __ref kernel_init(void *unused)
