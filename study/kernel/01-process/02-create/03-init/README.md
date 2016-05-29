@@ -1,14 +1,4 @@
-http://www.linuxeye.com/Linux/1827.html
-http://bbs.csdn.net/topics/390872515
-http://blog.csdn.net/yjzl1911/article/details/5613569
-http://blog.csdn.net/dagouaofei/article/details/5644119
-http://blog.chinaunix.net/uid-23769728-id-3129443.html
-http://baike.baidu.com/link?url=sCsQDvMUaAikV5W_eKrEL3RVijNHJtOJk8nsCnjlxtnU7yoJ9svp6cwaerQ6Dqc0I-kdoAYrOtMcocCUnzyggK
-http://blog.chinaunix.net/uid-21718047-id-3070635.html
-http://blog.163.com/boneshunter_1234/blog/static/340762320084472122207/
-http://blog.sina.com.cn/s/blog_626aed8b0100hws6.html
-
-Linux下1号进程的前世(init_task进程)今生(idle进程)
+Linux下1号进程的前世(kernel_init)今生(init进程)
 =======
 
 
