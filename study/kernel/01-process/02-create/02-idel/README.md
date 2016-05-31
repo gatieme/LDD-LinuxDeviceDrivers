@@ -527,3 +527,20 @@ rq->curr = rq->idle = idle;
 
 3.	然后init_task通过变更调度类为sched_idle等操作演变成为**idle进程**, 此时系统中只有0(idle), 1(init), 2(kthreadd)3个进程, 然后执行一次进程调度, 必然切换当前进程到到init
 </font>
+
+
+#附录--rest_init的执行解析
+-------
+
+| rest_init 流程 | 说明 |
+| ------------- |:-------------:|
+| rcu_scheduler_starting	| 启动Read-Copy Update,会调用num_online_cpus确认目前只有bootstrap处理器在运作,以及调用nr_context_switches确认在启动RCU前,没有进行过Contex-Switch,最后就是设定rcu_scheduler_active=1启动RCU机制. RCU在多核心架构下,不同的行程要读取同一笔资料内容/结构,可以提供高效率的同步与正确性. 在这之后就可以使用 rcu_read_lock/rcu_read_unlock了 |
+| 产生Kernel Thread kernel_init | Kernel Thread函式 kernel_init实例在init/main.c中, init Task PID=1,是内核第一个产生的Task. 产生后,会阻塞在wait_for_completion处,等待kthreadd_done Signal,以便往后继续执行下去. |
+|产生Kernel Thread kthreadd | Kernel Thread函式 kthreadd实例在kernel/kthread.c中, kthreadd Task PID=2,是内核第二个产生的Task. |
+| find_task_by_pid_ns	| 实例在kernel/pid.c中, 调用函数find_task_by_pid_ns,并传入参数kthreadd的PID 2与PID NameSpace (struct pid_namespace init_pid_ns)取回PID 2的Task Struct. |
+| complete	| 实例在kernel/sched.c中, 会发送kthreadd_done Signal,让 kernel_init(也就是 init task)可以往后继续执行. |
+| init_idle_bootup_task	| 实例在kernel/sched.c中, 设定目前启动的Task为IDLE Task. (idle->sched_class = &idle_sched_class), 而struct sched_class idle_sched_class的定义在kernel/sched_idletask.c中. 在Linux下IDLE Task并不占用PID(也可以把它当作是PID 0),每个处理器都会有这洋的IDLE Task,用来在没有行程排成时,让处理器掉入执行的.而最基础的省电机制,也可透过IDLE Task来进行. (包括让系统可以关闭必要的周边电源与Clock Gating). |
+| schedule_preempt_disabled(); | 启动一次Linux Kernel Process的排成Context-Switch调度机制, 从而使得kernel_init即1号进程获得处理机 |
+| cpu_startup_entry | 完成工作后, 调用cpu_idle_loop()使得idle进程进入自己的事件处理循环 |
+
+

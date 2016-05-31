@@ -1,19 +1,20 @@
 ifneq ($(KERNELRELEASE),)
 
-obj-m := hello.o
+obj-m := mmap_test.o
 
 else
 
 #KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-KERNELDIR ?= /usr/src/linux-headers-3.14.0
-
+KERNELDIR ?= /home/gatieme/Work/Kernel/linux-headers-3.14-desktop/
 PWD := $(shell pwd)
 
 all:
 	make -C $(KERNELDIR) M=$(PWD) modules
+	gcc test.c -o test
 
 clean:
 	make -C $(KERNELDIR) M=$(PWD) clean
+	rm ./test
 
 
 endif

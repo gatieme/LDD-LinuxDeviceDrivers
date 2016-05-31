@@ -1,11 +1,10 @@
 ifneq ($(KERNELRELEASE),)
 
-obj-m := hello.o
+obj-m := print_vmarea.o
 
 else
 
-#KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-KERNELDIR ?= /usr/src/linux-headers-3.14.0
+KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 
 PWD := $(shell pwd)
 
