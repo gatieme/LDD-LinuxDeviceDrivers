@@ -1,6 +1,6 @@
 ifneq ($(KERNELRELEASE),)
 
-obj-m := print_vmarea.o
+obj-m := print_thread_info.o
 
 else
 
@@ -13,6 +13,16 @@ all:
 
 clean:
 	make -C $(KERNELDIR) M=$(PWD) clean
+
+insmod:
+	sudo insmod ./print_thread_info.ko
+
+rmmod:
+	sudo rmmod print_thread_info
+
+reinsmod:
+	make rmmod
+	make insmod
 
 
 endif
