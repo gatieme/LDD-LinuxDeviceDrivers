@@ -1,12 +1,13 @@
 #include <linux/module.h>
-
+#include <linux/init.h>
 
 MODULE_LICENSE("Dual BSD/GPL");
 
-
-static int hello_init(void)
+/*
+ * print the module information
+ */
+static void print_module(void)
 {
-    unsigned int cpu = get_cpu();
     struct module *mod;
 
     printk(KERN_ALERT "this module: %p==%p\n", &__this_module, THIS_MODULE);
@@ -15,14 +16,26 @@ static int hello_init(void)
 
     list_for_each_entry(mod, *(&THIS_MODULE->list.prev), list);
     printk(KERN_ALERT "module name: %s\n", mod->name);
+    printk(KERN_ALERT "module state: %d\n", THIS_MODULE->state);
+}
+
+
+static int hello_init(void)
+{
+    print_module( );
+
+    printk(KERN_ALERT "run in cpu %d\n", get_cpu());
+
+    printk(KERN_ALERT "PAGE_OFFSET : 0x%lx, TASK_SIZE : 0x%lx", PAGE_OFFSET, TASK_SIZE);
+
 
     return 0;
 }
 
 
+
 static void hello_exit(void)
 {
-    printk(KERN_ALERT "module state: %d\n", THIS_MODULE->state);
 }
 
 
