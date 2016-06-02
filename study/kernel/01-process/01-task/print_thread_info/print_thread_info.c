@@ -61,7 +61,7 @@ unsigned long show_kstack(union thread_union *thread_union)
     unsigned long kstack_end = kstack + length;
     printk(KERN_INFO "sizeof(struct thread_info) : %d\n", sizeof(struct thread_info));
     printk(KERN_INFO "kstack start   : %p\n", kstack + sizeof(struct thread_info));
-    printk(KERN_INFO "kstack end : %p\n", kstack + length);
+    printk(KERN_INFO "kstack end : %p\n", kstack + THREAD_SIZE);
 
 
 }
