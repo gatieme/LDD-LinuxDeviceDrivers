@@ -22,16 +22,20 @@ register unsigned long my_current_stack_pointer asm("esp") __used;
 
 static int __init lkp_init(void)
 {
-   printk("pid = %d\n",current->pid);
-   printk("name = %s\n",current->comm);
-   printk("pid = %d\n",my_current->pid);
-   printk("name = %s\n",my_current->comm);
-   return 0;
+    printk("pid  = %d\n", current->pid);
+    printk("name = %s\n", current->comm);
+    printk("pid  = %d\n", my_current->pid);
+    printk("name = %s\n", my_current->comm);
+    printk("esp   stack : %p\n", my_current_stack_pointer);
+    printk("thread_info : %p\n", my_current_thread_info);
+    printk("stack       : %p\n", my_current->stack);
+
+    return 0;
 }
 
 static void __exit lkp_cleanup(void)
 {
-   printk("<1>bye!\n");
+    printk("<1>bye!\n");
 }
 
 module_init(lkp_init);
