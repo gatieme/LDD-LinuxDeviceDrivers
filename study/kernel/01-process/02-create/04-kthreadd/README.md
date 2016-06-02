@@ -1,6 +1,6 @@
-Linux下1号进程的前世(kernel_init)今生(init进程)
+Linux下2号进程的kthreadd
 =======
-http://zhidao.baidu.com/link?url=S5YkWyeZt4EtesIashfhTP27QbzVgm844EtNNWYGIDtbbWwRwTC7kdoh_bXrUPV4XhRlkxfp3WVjfExP_LZD_K
+
 
 | 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
 | ------------- |:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|
