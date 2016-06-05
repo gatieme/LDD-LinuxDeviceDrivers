@@ -109,8 +109,6 @@ struct task_struct
 
 	使用kthread_run，与kthread_create不同的是，其创建新线程后立即唤醒它，其本质就是先用kthread_create创建一个内核线程，然后通过wake_up_process唤醒它
 
-内核线程会出现在系统进程列表中, 但是在ps的输出中进程名command由方括号包围, 以便与普通进程区分。
-
 
 ##2号进程kthreadd的诞生
 -------
@@ -143,6 +141,17 @@ Linux中的workqueue机制就是为了简化内核线程的创建。通过kthrea
 
 于是linux-2.6.22引入了kthreadd进程, 并随后演变为2号进程, 它在系统初始化时同1号进程一起被创建(当然肯定是通过kernel_thread), [参见rest_init函数](http://lxr.linux.no/linux+v2.6.22/init/main.c#L426), 并随后演变为创建内核线程的真正建造师, [参见kthreadd](http://lxr.linux.no/linux+v2.6.22/+search=kthreadd)和[kthreadd函数](http://lxr.linux.no/linux+v2.6.22/kernel/kthread.c#L230), 它会循环的是查询工作链表[static LIST_HEAD(kthread_create_list);](http://lxr.linux.no/linux+v2.6.22/kernel/kthread.c#L19)中是否有需要被创建的内核线程, 而我们的通过kthread_create执行的操作, 只是在内核线程任务队列kthread_create_list中增加了一个create任务, 然后会唤醒kthreadd进程来执行真正的创建操作
 </font>
+
+
+
+内核线程会出现在系统进程列表中, 但是在ps的输出中进程名command由方括号包围, 以便与普通进程区分。
+
+如下图所示, 我们可以看到系统中, 所有内核线程都用[]标识, 而且这些进程父进程id均是2, 而2号进程kthreadd的父进程是0号进程
+
+>使用ps -eo pid,ppid,command
+
+![ps查看内核线程](./images/ps-eo.jpg)
+
 
 
 ##kernel_thread
@@ -208,11 +217,21 @@ extern void daemonize(void);
 <font color=0x00ffff>
 延后内核的创建工作, 将内核线程的创建工作交给一个内核线程来做, 即kthreadd 2号进程
 
-但是在kthreadd还没创建之前, 我们只能通过kernel_thread这种方式去创建, 
+但是在kthreadd还没创建之前, 我们只能通过kernel_thread这种方式去创建
 </font>
 
+同时kernel_thread的实现也改为由_do_fork(早期内核中是do_fork)来实现, 参见[kernel/fork.c](http://lxr.free-electrons.com/source/kernel/fork.c?v=4.5#L1779)
+`
+``c
+pid_t kernel_thread(int (*fn)(void *), void *arg, unsigned long flags)
+{
+    return _do_fork(flags|CLONE_VM|CLONE_UNTRACED, (unsigned long)fn,
+            (unsigned long)arg, NULL, NULL, 0);
+}
+```
 ##kthread_create
 -------
+
 
 ```c
 struct task_struct *kthread_create_on_node(int (*threadfn)(void *data),
@@ -252,4 +271,40 @@ struct task_struct *kthread_create_on_node(int (*threadfn)(void *data),
 ```
 
 使用kthread_run，与kthread_create不同的是，其创建新线程后立即唤醒它，其本质就是先用kthread_create创建一个内核线程，然后通过wake_up_process唤醒它
+
+
+#内核线程的退出
+-------
+
+线程一旦启动起来后，会一直运行，除非该线程主动调用do_exit函数，或者其他的进程调用kthread_stop函数，结束线程的运行。
+
+```c
+    int kthread_stop(struct task_struct *thread);
+```
+
+kthread_stop() 通过发送信号给线程。
+
+如果线程函数正在处理一个非常重要的任务，它不会被中断的。当然如果线程函数永远不返回并且不检查信号，它将永远都不会停止。
+
+在执行kthread_stop的时候，目标线程必须没有退出，否则会Oops。原因很容易理解，当目标线程退出的时候，其对应的task结构也变得无效，kthread_stop引用该无效task结构就会出错。
+
+为了避免这种情况，需要确保线程没有退出，其方法如代码中所示：
+```c
+thread_func()
+{
+    // do your work here
+    // wait to exit
+    while(!thread_could_stop())
+    {
+           wait();
+    }
+}
+
+exit_code()
+{
+     kthread_stop(_task);   //发信号给task，通知其可以退出了
+}
+```
+
+这种退出机制很温和，一切尽在thread_func()的掌控之中，线程在退出时可以从容地释放资源，而不是莫名其妙地被人“暗杀”。
 
