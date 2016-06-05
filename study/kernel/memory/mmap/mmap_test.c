@@ -42,10 +42,7 @@ static int my_map(struct file *filp, struct vm_area_struct *vma)
     unsigned char i;
 
     unsigned long start = (unsigned long)vma->vm_start;
-
-
-    //unsigned long end =  (unsigned long)vma->vm_end;
-
+    unsigned long end =  (unsigned long)vma->vm_end;
     unsigned long size = (unsigned long)(vma->vm_end - vma->vm_start);
 
 
@@ -60,7 +57,6 @@ static int my_map(struct file *filp, struct vm_area_struct *vma)
 
 
     //往该内存写10字节数据
-
     for(i=0;i<10;i++)
     {
         buffer[i] = array[i];
@@ -102,6 +98,8 @@ static ssize_t hwrng_attr_current_show(struct device *dev,
 static DEVICE_ATTR(rng_current, S_IRUGO | S_IWUSR,
                    hwrng_attr_current_show,
                               NULL);
+
+
 static int __init dev_init(void)
 {
     int ret;
