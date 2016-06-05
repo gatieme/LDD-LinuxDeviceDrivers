@@ -223,6 +223,7 @@ struct task_struct *kthread_create_on_node(int (*threadfn)(void *data),
 #define kthread_create(threadfn, data, namefmt, arg...) \
        kthread_create_on_node(threadfn, data, NUMA_NO_NODE, namefmt, ##arg)
 ```
+
 创建内核更常用的方法是辅助函数kthread_create，该函数创建一个新的内核线程。最初线程是停止的，需要使用wake_up_process启动它。
 
 
@@ -251,3 +252,4 @@ struct task_struct *kthread_create_on_node(int (*threadfn)(void *data),
 ```
 
 使用kthread_run，与kthread_create不同的是，其创建新线程后立即唤醒它，其本质就是先用kthread_create创建一个内核线程，然后通过wake_up_process唤醒它
+
