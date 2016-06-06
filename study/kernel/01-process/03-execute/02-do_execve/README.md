@@ -1,4 +1,4 @@
-Linux进程启动过程do_execve详解
+Linux进程启动过程分析do_execve(可执行程序的加载和运行)
 =======
 
 
@@ -38,10 +38,20 @@ int execvp(const char *file, char *const argv[]);
 #ELF文件格式以及可执行程序的表示
 -------
 
-##struct linux_bin_rpm结构描述一个可执行程序
+##ELF可执行文件格式
 -------
 
-linux_binprm是定义在[include/linux/binfmts.h](http://lxr.free-electrons.com/source/include/linux/binfmts.h#L14)中, 用来保存要要执行的文件相关的信息
+Linux下标准的可执行文件格式是ELF.ELF(Executable and Linking Format)是一种对象文件的格式，用于定义不同类型的对象文件(Object files)中都放了什么东西、以及都以什么样的格式去放这些东西。它自最早在 System V 系统上出现后，被 xNIX 世界所广泛接受，作为缺省的二进制文件格式来使用。
+
+但是linux也支持其他不同的可执行程序格式, 各个可执行程序的执行方式不尽相同, 因此linux内核每种被注册的可执行程序格式都用linux_bin_fmt来存储, 其中记录了可执行程序的加载和执行函数
+
+同时我们需要一种方法来保存可执行程序的信息, 比如可执行文件的路径, 运行的参数和环境变量等信息，即linux_bin_prm结构
+
+##struct linux_bin_prm结构描述一个可执行程序
+-------
+
+linux_binprm是定义在[include/linux/binfmts.h](http://lxr.free-electrons.com/source/include/linux/binfmts.h#L14)中, 用来保存要要执行的文件相关的信息, 包括可执行程序的路径, 参数和环境变量的信息
+
 
 ```c
 /*
@@ -85,6 +95,10 @@ struct linux_binprm {
 
 ##struct linux_binfmt可执行程序的结构
 -------
+
+
+linux支持其他不同格式的可执行程序, 在这种方式下, linux能运行其他操作系统所编译的程序, 如MS-DOS程序, 活BSD Unix的COFF可执行格式, 因此linux内核用struct linux_binfmt来描述各种可执行程序。
+
 linux内核对所支持的每种可执行的程序类型都有个struct linux_binfmt的数据结构，定义如下
 
 >linux_binfmt定义在[include/linux/binfmts.h](http://lxr.free-electrons.com/source/include/linux/binfmts.h#L74)中
@@ -103,10 +117,24 @@ struct linux_binfmt {
     unsigned long min_coredump;     /* minimal dump size */
  };
 ```
-这里的linux_binfmt对象包含了一个单链表，这个单链表中的第一个元素的地址存储在formats这个变量中list_for_each_entry依次应用load_binary的方法，同时我们可以看到这里会有递归调用，bprm会记录递归调用的深度。
 
-装载ELF可执行程序的load_binary的方法叫做load_elf_binary方法，下面会进行具体分析
+其提供了3种方法来加载和执行可执行程序
 
+*	load_binary
+
+    通过读存放在可执行文件中的信息为当前进程建立一个新的执行环境
+
+*	load_shlib
+
+	用于动态的把一个共享库捆绑到一个已经在运行的进程, 这是由uselib()系统调用激活的
+
+*	core_dump
+
+	在名为core的文件中, 存放当前进程的执行上下文. 这个文件通常是在进程接收到一个缺省操作为"dump"的信号时被创建的, 其格式取决于被执行程序的可执行类型
+
+所有的linux_binfmt对象都处于一个链表中, 第一个元素的地址存放在formats变量中, 可以通过调用register_binfmt()和unregister_binfmt()函数在链表中插入和删除元素, 在系统启动期间, 为每个编译进内核的可执行格式都执行registre_fmt()函数. 当实现了一个新的可执行格式的模块正被装载时, 也执行这个函数, 当模块被卸载时, 执行unregister_binfmt()函数.
+
+>当我们执行一个可执行程序的时候, 内核会list_for_each_entry遍历所有注册的linux_binfmt对象, 对其调用load_binrary方法来尝试加载, 直到加载成功为止.
 
 
 #execve加载可执行程序的过程
@@ -180,34 +208,31 @@ sys_execve接受参数：1.可执行文件的路径  2.命令行参数字符串 
 sys_execve是调用do_execve实现的。do_execve则是调用do_execveat_common实现的，依次执行以下操作：
 
 
+1.	调用unshare_files()为进程复制一份文件表
 
+2.	调用kzalloc()分配一份structlinux_binprm结构体
 
-1、调用unshare_files()为进程复制一份文件表；
+3.	调用open_exec()查找并打开二进制文件
 
-2、调用kzalloc()分配一份structlinux_binprm结构体；
+4.	调用sched_exec()找到最小负载的CPU，用来执行该二进制文件
 
-3、调用open_exec()查找并打开二进制文件；
+5.	根据获取的信息，填充structlinux_binprm结构体中的file、filename、interp成员
 
-4、调用sched_exec()找到最小负载的CPU，用来执行该二进制文件；
+6.	调用bprm_mm_init()创建进程的内存地址空间，为新程序初始化内存管理.并调用init_new_context()检查当前进程是否使用自定义的局部描述符表；如果是，那么分配和准备一个新的LDT
 
-5、根据获取的信息，填充structlinux_binprm结构体中的file、filename、interp成员；
+7.	填充structlinux_binprm结构体中的argc、envc成员
 
-6、调用bprm_mm_init()创建进程的内存地址空间，为新程序初始化内存管理.并调用init_new_context()检查当前进程是否使用自定义的局部描述符表；如果是，那么分配和准备一个新的LDT；
+8.	调用prepare_binprm()检查该二进制文件的可执行权限；最后，kernel_read()读取二进制文件的头128字节（这些字节用于识别二进制文件的格式及其他信息，后续会使用到）
 
-7、填充structlinux_binprm结构体中的argc、envc成员；
+9.	调用copy_strings_kernel()从内核空间获取二进制文件的路径名称
 
-8、调用prepare_binprm()检查该二进制文件的可执行权限；最后，kernel_read()读取二进制文件的头128字节（这些字节用于识别二进制文件的格式及其他信息，后续会使用到）；
-
-9、调用copy_strings_kernel()从内核空间获取二进制文件的路径名称；
-
-10、调用copy_string()从用户空间拷贝环境变量和命令行参数；
+10.	调用copy_string()从用户空间拷贝环境变量和命令行参数
 
 11.	 至此，二进制文件已经被打开，struct linux_binprm结构体中也记录了重要信息, 内核开始调用exec_binprm执行可执行程序
 
+12.	释放linux_binprm数据结构，返回从该文件可执行格式的load_binary中获得的代码
 
-12. 释放linux_binprm数据结构，返回从该文件可执行格式的load_binary中获得的代码
-
-定义在[fs/exec.c](http://lxr.free-electrons.com/source/fs/exec.c#L1580)
+定义在[fs/exec.c](http://lxr.free-electrons.com/source/fs/exec.c#L1481)
 
 ```c
 /*
@@ -373,12 +398,7 @@ out_ret:
     putname(filename);
     return retval;
 }
-http://blog.chinaunix.net/uid-23769728-id-3129443.html
-http://blog.csdn.net/titer1/article/details/45008793
 ```
-
-
-
 
 ##exec_binprm识别并加载二进程程序
 -------
@@ -387,9 +407,9 @@ http://blog.csdn.net/titer1/article/details/45008793
 
 内核使用链表组织这些structlinux_binfmt结构体，链表头是formats。
 
-接着do_execve_common()继续往下看：
+接着do_execveat_common()继续往下看：
 
-1. 调用search_binary_handler()函数对linux_binprm的formats链表进行扫描，并尝试每个load_binary函数，如果成功加载了文件的执行格式，对formats的扫描终止。
+调用search_binary_handler()函数对linux_binprm的formats链表进行扫描，并尝试每个load_binary函数，如果成功加载了文件的执行格式，对formats的扫描终止。
 
 
 ```c
@@ -420,7 +440,6 @@ static int exec_binprm(struct linux_binprm *bprm)
 -------
 
 这里需要说明的是，这里的fmt变量的类型是struct linux_binfmt *, 但是这一个类型与之前在do_execveat_common()中的bprm是不一样的，
-
 
 >定义在[fs/exec.c](http://lxr.free-electrons.com/source/fs/exec.c#L1502)
 
@@ -483,7 +502,29 @@ int search_binary_handler(struct linux_binprm *bprm)
     return retval;
 }
 
+##load_binary加载可执行程序
+-------
+
+我们前面提到了,linux内核支持多种可执行程序格式, 每种格式都被注册为一个linux_binfmt结构, 其中存储了对应可执行程序格式加载函数等
 
 
 
 
+| 格式 | linux_binfmt定义 | load_binary  | load_shlib | core_dump  |
+| ------------- |:-------------:|:-------------:|
+| a.out | [aout_format](http://lxr.free-electrons.com/source/fs/binfmt_aout.c#L116) | [load_aout_binary](http://lxr.free-electrons.com/source/fs/binfmt_aout.c#L197)|  [load_aout_library](http://lxr.free-electrons.com/source/fs/binfmt_aout.c#L197) | [aout_core_dump](http://lxr.free-electrons.com/source/fs/binfmt_aout.c#L36) |
+| flat style executables | [flat_format](http://lxr.free-electrons.com/source/fs/binfmt_flat.c#L94)  |[load_flat_binary](http://lxr.free-electrons.com/source/fs/binfmt_flat.c#L855) |  [load_flat_shared_library](http://lxr.free-electrons.com/source/fs/binfmt_flat.c#L801) | [flat_core_dump](http://lxr.free-electrons.com/source/fs/binfmt_flat.c#L107) |
+| script脚本 | [script_format](http://lxr.free-electrons.com/source/fs/binfmt_script.c#L111) | [load_script](http://lxr.free-electrons.com/source/fs/binfmt_script.c#L116) | 无 | 无 |
+|misc_format | [misc_format](http://lxr.free-electrons.com/source/fs/binfmt_misc.c#L806) | [load_misc_binary](http://lxr.free-electrons.com/source/fs/binfmt_misc.c#L123) | 无 | 无 |
+| em86 | [em86_format](http://lxr.free-electrons.com/source/fs/binfmt_em86.c#L99) | [load_format](http://lxr.free-electrons.com/source/fs/binfmt_em86.c#L25) | 无 | 无 |
+| elf_fdpic | [elf_fdpic_format](http://lxr.free-electrons.com/source/fs/binfmt_elf_fdpic.c#L84) | [load_elf_fdpic_binary](http://lxr.free-electrons.com/source/fs/binfmt_elf_fdpic.c#L181) | 无 | [elf_fdpic_core_dump](http://lxr.free-electrons.com/source/fs/binfmt_elf_fdpic.c#L1564) |
+| elf | [elf_format](http://lxr.free-electrons.com/source/fs/binfmt_elf.c#L84) | [load_elf_binary](http://lxr.free-electrons.com/source/fs/binfmt_elf.c#L667) | [load_elf_binary](http://lxr.free-electrons.com/source/fs/binfmt_elf.c#L667) | [elf_core_dump](http://lxr.free-electrons.com/source/fs/binfmt_elf.c#L2121)
+
+
+>参考
+>
+>[linux可执行文件的加载和运行(转) ](http://blog.chinaunix.net/uid-12127321-id-2957869.html)
+>
+>[linux上应用程序的执行机制](http://www.cnblogs.com/li-hao/archive/2011/09/24/2189504.html)
+>
+>[linux 可执行文件创建 学习笔记](http://blog.csdn.net/titer1/article/details/45008793)
