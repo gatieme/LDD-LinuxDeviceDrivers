@@ -266,151 +266,259 @@ ELF文件由各个部分组成。
 
 	包含了与各段相关的附加信息。
 
-##ELF的数据类型定义
+##ELF基本数据类型定义
 -------
 
 在具体介绍ELF的格式之前，我们先来了解在ELF文件中都有哪些数据类型的定义：
 
-ELF数据编码顺序与机器相关，为了使数据结构更加通用, linux内核自定义了几种通用的数据, 使得数据的表示与具体体系结构分离, 数据类型有六种
+ELF数据编码顺序与机器相关，为了使数据结构更加通用, linux内核自定义了几种通用的数据, 使得数据的表示与具体体系结构分离
+
+但是由于32位程序和64位程序所使用的数据宽度不同, 同时64位机必须兼容的执行32位程序, 因此我们所有的数据都被定义为32bit和64bit两个不同类型的数据
+
+常规定义在[include/uapi/linux](http://lxr.free-electrons.com/source/include/uapi/linux/elf.h?v=4.5#L7)中，　各个结构也可以按照需求重新定义
+
+**32位机器上的定义**
+
+| 名称 | 常规定义 |大小 | 对齐 | 目的 |
+| ------------- |:-------------:|:-------------:|:-------------:|:-------------:|
+| Elf32_Addr | __u32 | 4 | 4 | 无符号程序地址 |
+| Elf32_Half | __u16 | 2 | 2 | 无符号中等整数 |
+| Elf32_Off | __u32 | 4 | 4 | 无符号文件偏移 |
+| Elf32_SWord | __u32 | 4 | 4 | 有符号大整数 |
+| Elf32_Word | __u32 | 4 | 4 | 无符号大整数 |
+| unsigned char | 无 | 1 | 1 | 无符号小整数 |
+
+*64位机器上的定义**
+
+| 名称 | 常规定义 |大小 | 对齐 | 目的 |
+| ------------- |:-------------:|:-------------:|:-------------:|:-------------:|
+| Elf64_Addr | __u64 | 8 | 8 | 无符号程序地址 |
+| Elf64_Half | __u16 | 2 | 2 | 无符号小整数 |
+| Elf64_SHalf | __s16 | 2 | 2 | 无符号小整数
+| Elf64_Off | __u64 | 8 | 8 | 无符号文件偏移 |
+| Elf64_Sword | __s32 | 4 |4 | 有符号中等整数 |
+| Elf64_Word | __u32 | 4 | 4 | 无符号中等整数 |
+| Elf64_Xword | __u64 | 8 | 8 | 无符号大整数 |
+| Elf64_Sxword | __s64 | 8 | 8 | 有符号大整数 |
+| unsigned char | 无 | 1 | 1 | 无符号小整数 |
+
+#ELF头部Elfxx_Ehdr
+-------
+
+elf头部用Elfxx_Ehdr结构(被定义在[linux/uapi/linux/elf.h](http://lxr.free-electrons.com/source/include/uapi/linux/elf.h?v=4.5#L200)来表示, [Elf32_Ehdr(32bit)](http://lxr.free-electrons.com/source/include/uapi/linux/elf.h?v=4.5#L203)和[Elf64_Ehdr(64bit)](http://lxr.free-electrons.com/source/include/uapi/linux/elf.h?v=4.5#L220)
+
+##数据成员
+-------
+
+内部成员, 如下
+
+| 成员 | 类型 | 描述 |
+| ------------- |:-------------:|:-------------:|
+| e_ident[EI_NIDENT] | unsigned char |目标文件标识信息, 即"魔数", EI_NIDENT=16, 因此共占用128位 |
+| e_type | Elf32_Half/Elf64_Half | 目标文件类型 |
+| e_machine | Elf32_Half/Elf64_Half | 目标体系结构类型 |
+| e_version | Elf32_Word/Elf64_Word | 目标文件版本 |
+| e_entry | Elf32_Addr/Elf64_Addr | 程序入口的虚拟地址,若没有，可为0 |
+| e_phoff | Elf32_Off/Elf64_Off | 程序头部表格（Program Header Table）的偏移量（按字节计算）,若没有，可为0 |
+| e_shoff | Elf32_Off/Elf64_Off | 节区头部表格（Section Header Table）的偏移量（按字节计算）,若没有，可为0 |
+| e_flags | Elf32_Word/Elf64_Word | 保存与文件相关的，特定于处理器的标志。标志名称采用 EF_machine_flag的格式 |
+| e_ehsize | Elf32_Half/Elf64_Half | ELF 头部的大小（以字节计算） |
+| e_phentsize | Elf32_Half/Elf64_Half | 程序头部表格的表项大小（按字节计算） |
+| e_phnum | Elf32_Half/Elf64_Half | 程序头部表格的表项数目。可以为 0 |
+| e_shentsize | Elf32_Half/Elf64_Half | 节区头部表格的表项大小（按字节计算） |
+| e_shnum | Elf32_Half/Elf64_Half | 节区头部表格的表项数目。可以为 0 |
+| e_shstrndx | Elf32_Half/Elf64_Half | 节区头部表格中与节区名称字符串表相关的表项的索引。如果文件没有节区名称字符串表，此参数可以为 SHN_UNDEF |
 
 
-| 名称 | 大小 | 对齐 | 目的 |
+
+##魔数e_ident
+-------
+
+其中需要注意地是e_ident是一个16字节的数组，这个数组按位置从左到右都是有特定含义，每个数组元素的下标在标准中还存在别称，如byte0的下标0别名为EI_MAG0，具体如下:
+
+
+
+| 名称 | 元素下标值 | 含义 |
+| ------------- |:-------------:|:-------------:|
+| EI_MAG0 | 0 | 文件标识 |
+| EI_MAG1 | 1 | 文件标识 |
+| EI_MAG2 | 2 | 文件标识 |
+| EI_MAG3 | 3 | 文件标识 |
+| EI_CLASS | 4 | 文件类 |
+| EI_DATA | 5 | 数据编码 |
+| EI_VERSION | 6 | 文件版本 |
+| EI_PAD | 7 | 补齐字节开始处 |
+| EI_NIDENT | 16 | e_ident[]大小 |
+
+
+e_ident[EI_MAG0]~e_ident[EI_MAG3]即e_ident[0]~e_ident[3]被称为魔数（Magic Number）,其值一般为0x7f,'E','L','F'
+
+e_ident[EI_CLASS]（即e_ident[4]）识别目标文件运行在目标机器的类别，取值可为三种值：ELFCLASSNONE（0）非法类别；ELFCLASS32（1）32位目标；ELFCLASS64（2）64位目标。
+
+e_ident[EI_DATA]（即e_ident[5]）：给出处理器特定数据的数据编码方式。即大端还是小端方式。取值可为3种：ELFDATANONE（0）非法数据编码；ELFDATA2LSB（1）高位在前；ELFDATA2MSB（2）低位在前
+
+
+##目标文件类型e_type
+-------
+
+e_type表示elf文件的类型，如下定义:
+
+| 名称 | 取值 | 含义 |
+| ------------- |:-------------:|:-------------:|
+| ET_NONE | 0 | 未知目标文件格式 |
+| ET_REL | 1 | 可重定位文件 | |
+| ET_EXEC | 2 | 可执行文件 |
+| ET_DYN | 3 | 共享目标文件 |
+| ET_CORE | 4 | Core 文件（转储格式） |
+| ET_LOPROC | 0xff00 | 特定处理器文件 |
+| ET_HIPROC | 0xffff | 特定处理器文件 |
+| ET_LOPROC~ET_HIPROC | 0xff00~0xffff | 特定处理器文件 |
+
+##目标体系结构类型e_machine
+-------
+e_machine表示目标体系结构类型：
+
+| 名称 | 取值 | 含义 |
+| ------------- |:-------------:|:-------------:|
+| EM_NONE | 0 | 未指定 |
+| EM_M32 | 1 | AT&T WE 32100 |
+| EM_SPARC | 2 | SPARC |
+| EM_386 | 3 | Intel 80386 |
+| EM_68K | 4 | Motorola 68000 |
+| EM_88K | 5 | Motorola 88000
+| EM_860 | 7 | Intel 80860 |
+| EM_MIPS | 8 | MIPS RS3000 |
+| others | 9~ | 预留 |
+
+
+
+
+#节区（Sections）
+-------
+
+节区中包含目标文件中的所有信息，除了：ELF 头部、程序头部表格、节区头部表格。节区满足以下条件：
+
+1.	目标文件中的每个节区都有对应的节区头部描述它，反过来，有节区头部不意味着有节区。
+
+2.	每个节区占用文件中一个连续字节区域（这个区域可能长度为 0）。
+
+3.	文件中的节区不能重叠，不允许一个字节存在于两个节区中的情况发生。
+
+4.	目标文件中可能包含非活动空间（INACTIVE SPACE）。这些区域不属于任何头部和节区，其内容未指定。
+
+##节区头部表格
+-------
+
+ELF 头部中，
+
+e_shoff 成员给出从文件头到节区头部表格的偏移字节数；
+
+e_shnum给出表格中条目数目；
+
+e_shentsize 给出每个项目的字节数。
+
+从这些信息中可以确切地定位节区的具体位置、长度。
+
+从之前的描述中可知，每一项节区在节区头部表格中都存在着一项元素与它对应，因此可知，这个节区头部表格为一连续的空间，每一项元素为一结构体
+
+那么这个节区头部由elfxx_shdr（定义在[include/uapi/linux/elf.h](http://lxr.free-electrons.com/source/include/uapi/linux/elf.h?v=4.5#L8)）, 32位elf32_shdr， 64位elf64_shdr
+
+结构体的成员如下
+
+| 成员 | 类型 | 描述 |
+| ------------- |:-------------:|:-------------:|
+| sh_name | Elf32_Word/Elf64_Word | 节区名，是节区头部字符串表节区（Section Header String Table Section）的索引。名字是一个 NULL 结尾的字符串 |
+| sh_type | Elf32_Word/Elf64_Word | 节区类型 |
+| sh_flags |  Elf32_Word/Elf64_Word | 节区标志 |
+| sh_addr | Elf32_Addr/Elf64_Addr | 如果节区将出现在进程的内存映像中，此成员给出节区的第一个字节应处的位置。否则，此字段为 0 |
+| sh_offset | Elf32_Off/Elf64_Off | 此成员的取值给出节区的第一个字节与文件头之间的偏移 |
+| sh_size | Elf32_Word/Elf64_Word | 此成员给出节区的长度（字节数） |
+| sh_link | Elf32_Word/Elf64_Word | 此成员给出节区头部表索引链接。其具体的解释依赖于节区类型 |
+| sh_info | Elf32_Word/Elf64_Word | 此成员给出附加信息，其解释依赖于节区类型 |
+| sh_addralign | Elf32_Word/Elf64_Word | 某些节区带有地址对齐约束 |
+| sh_entsize | Elf32_Word/Elf64_Word | 某些节区中包含固定大小的项目，如符号表。对于这类节区，此成员给出每个表项的长度字节数 |
+
+
+###节区类型sh_type
+-------
+
+sh_type的取值如下:
+
+| 名称 | 取值 | 说明 |
+| ------------- |:-------------:|:-------------:|
+| SHT_NULL | 0 | 此值标志节区头部是非活动的，没有对应的节区。此节区头部中的其他成员取值无意义 |
+| SHT_PROGBITS | 1 | 此节区包含程序定义的信息，其格式和含义都由程序来解释 |
+| SHT_SYMTAB | 2 | 此节区包含一个符号表。目前目标文件对每种类型的节区都只能包含一个，不过这个限制将来可能发生变化<br>一般，SHT_SYMTAB 节区提供用于链接编辑（指 ld 而言）的符号，尽管也可用来实现动态链接 |
+| SHT_STRTAB | 3 | 此节区包含字符串表。目标文件可能包含多个字符串表节区 |
+| SHT_RELA | 4 | 此节区包含重定位表项，其中可能会有补齐内容（addend），例如 32 位目标文件中的 Elf32_Rela 类型。目标文件可能拥有多个重定位节区 |
+| SHT_HASH | 5 | 此节区包含符号哈希表。所有参与动态链接的目标都必须包含一个符号哈希表。目前，一个目标文件只能包含一个哈希表，不过此限制将来可能会解除 |
+| SHT_DYNAMIC | 6 | 此节区包含动态链接的信息。目前一个目标文件中只能包含一个动态节区，将来可能会取消这一限制 |
+| SHT_NOTE | 7 | 此节区包含以某种方式来标记文件的信息 |
+| SHT_NOBITS | 8 | 这种类型的节区不占用文件中的空间 ， 其他方面和SHT_PROGBITS相似。尽管此节区不包含任何字节，成员sh_offset 中还是会包含概念性的文件偏移 |
+| SHT_REL | 9 | 此节区包含重定位表项，其中没有补齐（addends），例如 32 位目标文件中的 Elf32_rel 类型。目标文件中可以拥有多个重定位节区 |
+| SHT_SHLIB | 10 | 此节区被保留，不过其语义是未规定的。包含此类型节区的程序与 ABI 不兼容 |
+| SHT_DYNSYM | 11 | 作为一个完整的符号表，它可能包含很多对动态链接而言不必要的符号。因此，目标文件也可以包含一个 SHT_DYNSYM 节区，其中保存动态链接符号的一个最小集合，以节省空间 |
+| SHT_LOPROC | X70000000 | 这一段（包括两个边界），是保留给处理器专用语义的 |
+| SHT_HIPROC | OX7FFFFFFF | 这一段（包括两个边界），是保留给处理器专用语义的 |
+| SHT_LOUSER | 0X80000000 | 此值给出保留给应用程序的索引下界 |
+| SHT_HIUSER | 0X8FFFFFFF | 此值给出保留给应用程序的索引上界 |
+
+###节区标志sh_flags
+-------
+
+sh_flag标志着此节区是否可以修改，是否可以执行，如下定义：
+
+| 名称 | 取值 | 含义 |
+| ------------- |:-------------:|:-------------:|
+| SHF_WRITE | 0x1 | 节区包含进程执行过程中将可写的数据 |
+| SHF_ALLOC | 0x2|  此节区在进程执行过程中占用内存。某些控制节区并不出现于目标文件的内存映像中，对于那些节区，此位应设置为 0 |
+| SHF_EXECINSTR | 0x4 | 节区包含可执行的机器指令 |
+| SHF_MASKPROC | 0xF0000000 | 所有包含于此掩码中的四位都用于处理器专用的语义 |
+
+###sh_link 和 sh_info 字段
+-------
+
+sh_link和sh_info字段的具体含义依赖于sh_type的值
+
+| sh_type | sh_link | sh_info |
+| ------------- |:-------------:|:-------------:|
+| SHT_DYNAMIC | 此节区中条目所用到的字符串表格的节区头部索引 | 0 |
+| SHT_HASH | 此哈希表所适用的符号表的节区头部索引 | 0 |
+| SHT_REL<br>SHT_RELA | 相关符号表的节区头部索引 | 重定位所适用的节区的节区头部索引 |
+| SHT_SYMTAB<br>SHT_DYNSYM | 相关联的字符串表的节区头部索引 | 最后一个局部符号（绑定 STB_LOCAL）的符号表索引值加一 |
+| 其它 | SHN_UNDEF | 0 |
+
+##特殊节区
+-------
+
+有些节区是系统预订的，一般以点开头号，因此，我们有必要了解一些常用到的系统节区。
+
+| 名称 | 类型 | 属性 | 含义 |
 | ------------- |:-------------:|:-------------:|:-------------:|
-| Elf32_Addr | 4 | 4 | 无符号程序地址 |
-| Elf32_Half | 2 | 2 | 无符号中等整数 |
-| Elf32_Off | 4 | 4 | 无符号文件偏移 |
-| Elf32_SWord | 4 | 4 | 有符号大整数 |
-| Elf32_Word | 4 | 4 | 无符号大整数 |
-| unsigned char | 1 | 1 | 无符号小整数 |
-
-http://lxr.free-electrons.com/source/include/uapi/linux/elf.h?v=4.5#L218
-##ELF头部
--------
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#execve系统调用
--------
-
-##execve系统调用
--------
-
-我们前面提到了, fork, vfork等复制出来的进程是父进程的一个副本, 那么如何我们想加载新的程序, 可以通过execve来加载和启动新的程序。
-
->x86架构下, 其实还实现了一个新的exec的系统调用叫做execveat(自linux-3.19后进入内核)
->
->[syscalls,x86: Add execveat() system call](http://lwn.net/Articles/600344)
-
-##exec()函数族
--------
-
-exec函数一共有六个，其中execve为内核级系统调用，其他（execl，execle，execlp，execv，execvp）都是调用execve的库函数。
-
-
-```c
-int execl(const char *path, const char *arg, ...);
-int execlp(const char *file, const char *arg, ...);
-int execle(const char *path, const char *arg,
-                  ..., char * const envp[]);
-int execv(const char *path, char *const argv[]);
-int execvp(const char *file, char *const argv[]);
-```
-
-#ELF文件格式以及可执行程序的表示
--------
-
-##struct linux_bin_rpm结构描述一个可执行程序
--------
-
-linux_binprm是定义在[include/linux/binfmts.h](http://lxr.free-electrons.com/source/include/linux/binfmts.h#L14)中, 用来保存要要执行的文件相关的信息
-
-```c
-/*
-* This structure is used to hold the arguments that are used when loading binaries.
-*/
-struct linux_binprm {
-    char buf[BINPRM_BUF_SIZE];	// 保存可执行文件的头128字节
-#ifdef CONFIG_MMU
-    struct vm_area_struct *vma;
-    unsigned long vma_pages;
-#else
-# define MAX_ARG_PAGES  32
-    struct page *page[MAX_ARG_PAGES];
-#endif
-    struct mm_struct *mm;
-    unsigned long p; /* current top of mem , 当前内存页最高地址*/
-    unsigned int
-            cred_prepared:1,/* true if creds already prepared (multiple
-                             * preps happen for interpreters) */
-            cap_effective:1;/* true if has elevated effective capabilities,
-                             * false if not; except for init which inherits
-                             * its parent's caps anyway */
-#ifdef __alpha__
-    unsigned int taso:1;
-#endif
-    unsigned int recursion_depth; /* only for search_binary_handler() */
-    struct file * file;			/*  要执行的文件  */
-    struct cred *cred;      /* new credentials */
-    int unsafe;             /* how unsafe this exec is (mask of LSM_UNSAFE_*) */
-    unsigned int per_clear; /* bits to clear in current->personality */
-    int argc, envc;		/*  命令行参数和环境变量数目  */
-    const char * filename;  /* Name of binary as seen by procps, 要执行的文件的名称  */
-    const char * interp;    /* Name of the binary really executed. Most
-                               of the time same as filename, but could be
-                               different for binfmt_{misc,script} 要执行的文件的真实名称，通常和filename相同  */
-    unsigned interp_flags;
-    unsigned interp_data;
-    unsigned long loader, exec;
-};
-```
-
-##struct linux_binfmt可执行程序的结构
--------
-linux内核对所支持的每种可执行的程序类型都有个struct linux_binfmt的数据结构，定义如下
-
->linux_binfmt定义在[include/linux/binfmts.h](http://lxr.free-electrons.com/source/include/linux/binfmts.h#L74)中
-
-```c
-/*
-  * This structure defines the functions that are used to load the binary formats that
-  * linux accepts.
-  */
-struct linux_binfmt {
-    struct list_head lh;
-    struct module *module;
-    int (*load_binary)(struct linux_binprm *);
-    int (*load_shlib)(struct file *);
-    int (*core_dump)(struct coredump_params *cprm);
-    unsigned long min_coredump;     /* minimal dump size */
- };
-```
-这里的linux_binfmt对象包含了一个单链表，这个单链表中的第一个元素的地址存储在formats这个变量中list_for_each_entry依次应用load_binary的方法，同时我们可以看到这里会有递归调用，bprm会记录递归调用的深度。
-
-装载ELF可执行程序的load_binary的方法叫做load_elf_binary方法，下面会进行具体分析
-
-
+|.bss | SHT_NOBITS | SHF_ALLOC +SHF_WRITE | 包含将出现在程序的内存映像中的为初始化数据。根据定义，当程序开始执行，系统将把这些数据初始化为 0。此节区不占用文件空间 |
+| .comment | SHT_PROGBITS | (无) | 包含版本控制信息 |
+| .data | SHT_PROGBITS | SHF_ALLOC + SHF_WRITE | 这些节区包含初始化了的数据，将出现在程序的内存映像中 |
+| .data1 | SHT_PROGBITS | SHF_ALLOC + SHF_WRITE | 这些节区包含初始化了的数据，将出现在程序的内存映像中 |
+| .debug | SHT_PROGBITS | (无) | 此节区包含用于符号调试的信息 |
+| .dynamic | SHT_DYNAMIC | 此节区包含动态链接信息。节区的属性将包含 SHF_ALLOC 位。是否 SHF_WRITE 位被设置取决于处理器 |
+| .dynstr | SHT_STRTAB | SHF_ALLOC | 此节区包含用于动态链接的字符串，大多数情况下这些字符串代表了与符号表项相关的名称 |
+| .dynsym | SHT_DYNSYM | SHF_ALLOC | 此节区包含了动态链接符号表 |
+| .fini | SHT_PROGBITS | SHF_ALLOC + SHF_EXECINSTR | 此节区包含了可执行的指令，是进程终止代码的一部分。程序正常退出时，系统将安排执行这里的代码 |
+| .got | SHT_PROGBITS | 此节区包含全局偏移表 |
+| .hash | SHT_HASH | SHF_ALLOC | 此节区包含了一个符号哈希表 |
+| .init | SHT_PROGBITS | SHF_ALLOC +SHF_EXECINSTR | 此节区包含了可执行指令，是进程初始化代码的一部分。当程序开始执行时，系统要在开始调用主程序入口之前（通常指 C 语言的 main 函数）执行这些代码 |
+| .interp | SHT_PROGBITS | 此节区包含程序解释器的路径名。如果程序包含一个可加载的段，段中包含此节区，那么节区的属性将包含 SHF_ALLOC 位，否则该位为 0 |
+| .line | SHT_PROGBITS | (无) | 此节区包含符号调试的行号信息，其中描述了源程序与机器指令之间的对应关系。其内容是未定义的 |
+| .note | SHT_NOTE | (无) | 此节区中包含注释信息，有独立的格式。
+| .plt | SHT_PROGBITS | 此节区包含过程链接表（procedure linkage table）。
+| .relname
+| .relaname	SHT_REL
+SHT_RELA	 	这些节区中包含了重定位信息。如果文件中包含可加载的段，段中有重定位内容，节区的属性将包含 SHF_ALLOC 位，否则该位置 0。传统上 name 根据重定位所适用的节区给定。例如 .text 节区的重定位节区名字将是：.rel.text 或者 .rela.text。
+| .rodata
+| .rodata1	SHT_PROGBITS	SHF_ALLOC	这些节区包含只读数据，这些数据通常参与进程映像的不可写段。
+.shstrtab	SHT_STRTAB	 	此节区包含节区名称。
+.strtab	SHT_STRTAB	 	此节区包含字符串，通常是代表与符号表项相关的名称。如果文件拥有一个可加载的段，段中包含符号串表，节区的属性将包含SHF_ALLOC 位，否则该位为 0。
+.symtab	SHT_SYMTAB	 	此节区包含一个符号表。如果文件中包含一个可加载的段，并且该段中包含符号表，那么节区的属性中包含SHF_ALLOC 位，否则该位置为 0。
+.text	SHT_PROGBITS	SHF_ALLOC +
+SHF_EXECINSTR	此节区包含程序的可执行指令
 
