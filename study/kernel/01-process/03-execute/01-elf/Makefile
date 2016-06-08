@@ -18,21 +18,21 @@ clean :
 	rm -rf $(target)
 
 
-# Complie the execute 
+# Complie the execute
 testelf_normal:$(MAIN_OBJS) $(SUBS_OBJS)
 	gcc $^ -o $@
 
-testelf_dynamic:$(MAIN_OBJS) $(DYNA_FILE) 
+testelf_dynamic:$(MAIN_OBJS) $(DYNA_FILE)
 	gcc  $^ -o $@ -L./ -ltestelf
 
-testelf_static:$(MAIN_OBJS) $(STAT_FILE) 
+testelf_static:$(MAIN_OBJS) $(STAT_FILE)
 	gcc  testelf.o -o $@ -static -L./ -ltestelf
 
 
 
 # Complie the Dynamic Link Library libtestelf.so
 libtestelf.so:$(SUBS_OBJS)
-	gcc -fPCI -shared $^ -o $@
+	gcc -shared $^ -o $@
 
 # Complie the Static Link Library libtestelf.so
 libtestelf.a:$(SUBS_OBJS)
