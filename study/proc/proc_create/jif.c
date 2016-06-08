@@ -34,7 +34,7 @@ static ssize_t jif_write(struct file *file, const char __user *buffer, size_t co
 	char *tmp = kzalloc((count+1), GFP_KERNEL);
 	if (!tmp)
 		return -ENOMEM;
-
+    printk(KERN_DEBUG "user buffer : 0x%lx %s\n", buffer, buffer);
 	//将用户态write的字符串拷贝到内核空间
 	//copy_to|from_user(to,from,cnt)
 	if (copy_from_user(tmp, buffer, count)) {

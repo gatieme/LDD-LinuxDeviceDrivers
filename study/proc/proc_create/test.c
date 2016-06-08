@@ -24,7 +24,7 @@ int main( )
 {
 	int             ret;
 	int             procFile;
-	char            buff[MAX_LINE];
+	char            buff[MAX_LINE] = "hello";
 
     //wait for ack signal
 	procFile = open(PROC_FILE, O_RDWR);
@@ -37,8 +37,8 @@ int main( )
     {
         printf("Open success...\n");
     }
-
-    if((ret = write(procFile, "hello", strlen("hello"))) == -1)
+    printf("user buffer : %p\n", buff);
+    if((ret = write(procFile, buff, strlen(buff))) == -1)
     {
         perror("Fail to read "PROC_FILE);
     }
