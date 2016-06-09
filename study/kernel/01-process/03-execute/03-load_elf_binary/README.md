@@ -134,8 +134,48 @@ if (loc->elf_ex.e_type != ET_EXEC && loc->elf_ex.e_type != ET_DYN)
 	goto out;
 ```
  在load_elf_binary之前，内核已经使用映像文件的前128个字节对bprm->buf进行了填充，563行就是使用这此信息填充映像的文件头（具体数据结构定义见第一部分，ELF文件头节），然后567行就是比较文件头的前四个字节，查看是否是ELF文件类型定义的“\177ELF”。除这4个字符以外，还要看映像的类型是否ET_EXEC和ET_DYN之一；前者表示可执行映像，后者表示共享库。
- 
+
+
 ```c
+710         elf_phdata = load_elf_phdrs(&loc->elf_ex, bprm->file);
+711         if (!elf_phdata)
+712                 goto out;
+713
+714         elf_ppnt = elf_phdata;
+715         elf_bss = 0;
+716         elf_brk = 0;
+717 
+718         start_code = ~0UL;
+719         end_code = 0;
+720         start_data = 0;
+721         end_data = 0;
+722 
+723         for (i = 0; i < loc->elf_ex.e_phnum; i++) {
+724                 if (elf_ppnt->p_type == PT_INTERP) {
+725                         /* This is the program interpreter used for
+726                          * shared libraries - for now assume that this
+727                          * is an a.out format binary
+728                          */
+729                         retval = -ENOEXEC;
+730                         if (elf_ppnt->p_filesz > PATH_MAX || 
+731                             elf_ppnt->p_filesz < 2)
+732                                 goto out_free_ph;
+733 
+734                         retval = -ENOMEM;
+735                         elf_interpreter = kmalloc(elf_ppnt->p_filesz,
+736                                                   GFP_KERNEL);
+737                         if (!elf_interpreter)
+738                                 goto out_free_ph;
+739 
+740                         retval = kernel_read(bprm->file, elf_ppnt->p_offset,
+741                                              elf_interpreter,
+742                                              elf_ppnt->p_filesz);
+743                         if (retval != elf_ppnt->p_filesz) {
+744                                 if (retval >= 0)
+745                                         retval = -EIO;
+746                                 goto out_free_interp;
+747                         }
+
 577         /* Now read in all of the header information */  
 580         if (loc->elf_ex.e_phnum < 1 ||  
 581                 loc->elf_ex.e_phnum > 65536U / sizeof(struct elf_phdr))  
