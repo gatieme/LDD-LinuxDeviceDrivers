@@ -351,7 +351,11 @@ readelf -l test_static
             // ......
             ///////////
 
-         /*        5.3  确定了装入地址后，就通过elf_map()建立用户空间虚拟地址空间与目标映像文件中某个连续区间之间的映射，其返回值就是实际映射的起始地址 */
+         /*  5.3  虚拟地址空间与目标映像文件的映射
+         确定了装入地址后，
+         就通过elf_map()建立用户空间虚拟地址空间
+         与目标映像文件中某个连续区间之间的映射，
+         其返回值就是实际映射的起始地址 */
         error = elf_map(bprm->file, load_bias + vaddr, elf_ppnt,
                 elf_prot, elf_flags, total_size);
 
@@ -723,7 +727,12 @@ static int load_elf_binary(struct linux_binprm *bprm)
                 goto out_free_dentry;
             }
         }
-        /* 5.3  确定了装入地址后，就通过elf_map()建立用户空间虚拟地址空间与目标映像文件中某个连续区间之间的映射，其返回值就是实际映射的起始地址 */
+
+        /*  5.3  虚拟地址空间与目标映像文件的映射
+         确定了装入地址后，
+         就通过elf_map()建立用户空间虚拟地址空间
+         与目标映像文件中某个连续区间之间的映射，
+         其返回值就是实际映射的起始地址 */
         error = elf_map(bprm->file, load_bias + vaddr, elf_ppnt,
                 elf_prot, elf_flags, total_size);
         if (BAD_ADDR(error)) {
