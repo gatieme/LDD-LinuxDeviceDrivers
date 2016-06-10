@@ -39,6 +39,7 @@ Linux内核既支持静态链接的ELF映像，也支持动态链接的ELF映像
 >
 >内核对所支持的每种可执行的程序类型都有个struct linux_binfmt的数据结构，这个结构我们在前面的博文中我们已经提到, 但是没有详细讲. 其定义如下
 
+```c
 /*
   * This structure defines the functions that are used to load the binary formats that
   * linux accepts.
@@ -51,6 +52,7 @@ struct linux_binfmt {
     int (*core_dump)(struct coredump_params *cprm);
     unsigned long min_coredump;     /* minimal dump size */
  };
+```
 
 linux_binfmt定义在include/linux/binfmts.h中
 
@@ -94,17 +96,41 @@ int unregister_binfmt(struct linux_binfmt * fmt)
 
 **当需要运行一个程序时，则扫描这个队列，依次调用各个数据结构所提供的load处理程序来进行加载工作，ELF中加载程序即为`load_elf_binary`，内核中已经注册的可运行文件结构linux_binfmt会让其所属的加载程序load_binary逐一前来认领需要运行的程序binary，如果某个格式的处理程序发现相符后，便执行该格式映像的装入和启动**
 
-#ELF文件的加载load_elf_binary
+
+
+
+#内核空间的加载过程load_elf_binary
 -------
 
+##load_elf_binarty注释
+-------
+主要包括一下内容
 
-#内核空间的加载过程
+
+1.	填充并且检查目标程序ELF头部
+
+2.	 load_elf_phdrs加载目标程序的程序头表
+
+3.	 如果需要动态链接, 则寻找和处理解释器段
+
+4.	检查并读取解释器的程序表头
+
+5.	装入目标程序的段segment
+
+6.	填写程序的入口地址
+
+7.	create_elf_tables填写目标文件的参数环境变量等必要信息
+
+8.	start_kernel宏准备进入新的程序入口
+
+
+##填充并且检查目标程序ELF头部
 -------
 
 内核中实际执行execv()或execve()系统调用的程序是do_execve()，这个函数先打开目标映像文件，并从目标文件的头部（第一个字节开始）读入若干（当前Linux内核中是128）字节（实际上就是填充ELF文件头，下面的分析可以看到），然后调用另一个函数search_binary_handler()，在此函数里面，它会搜索我们上面提到的Linux支持的可执行文件类型队列，让各种可执行程序的处理程序前来认领和处理。如果类型匹配，则调用load_binary函数指针所指向的处理函数来处理目标映像文件。
 
 在ELF文件格式中，处理函数是load_elf_binary函数，下面主要就是分析load_elf_binary函数的执行过程（说明：因为内核中实际的加载需要涉及到很多东西，这里只关注跟ELF文件的处理相关的代码）：
- 
+
 ```c
 struct pt_regs *regs = current_pt_regs();
 struct {
@@ -133,218 +159,759 @@ if (memcmp(loc->elf_ex.e_ident, ELFMAG, SELFMAG) != 0)
 if (loc->elf_ex.e_type != ET_EXEC && loc->elf_ex.e_type != ET_DYN)
 	goto out;
 ```
+
  在load_elf_binary之前，内核已经使用映像文件的前128个字节对bprm->buf进行了填充，563行就是使用这此信息填充映像的文件头（具体数据结构定义见第一部分，ELF文件头节），然后567行就是比较文件头的前四个字节，查看是否是ELF文件类型定义的“\177ELF”。除这4个字符以外，还要看映像的类型是否ET_EXEC和ET_DYN之一；前者表示可执行映像，后者表示共享库。
+
+##load_elf_phdrs加载目标程序的程序头表
+-------
+
+```c
+    elf_phdata = load_elf_phdrs(&loc->elf_ex, bprm->file);
+    if (!elf_phdata)
+            goto out;
+```
+
+而这个load_elf_phdrs函数就是通过kernel_read读入整个program header table。从函数代码中可以看到，一个可执行程序必须至少有一个段（segment），而所有段的大小之和不能超过64K(65536u)
+
+```c
+/**
+ * load_elf_phdrs() - load ELF program headers
+ * @elf_ex:   ELF header of the binary whose program headers should be loaded
+ * @elf_file: the opened ELF binary file
+ *
+ * Loads ELF program headers from the binary file elf_file, which has the ELF
+ * header pointed to by elf_ex, into a newly allocated array. The caller is
+ * responsible for freeing the allocated data. Returns an ERR_PTR upon failure.
+ */
+static struct elf_phdr *load_elf_phdrs(struct elfhdr *elf_ex,
+                                   struct file *elf_file)
+{
+    struct elf_phdr *elf_phdata = NULL;
+    int retval, size, err = -1;
+
+    /*
+     * If the size of this structure has changed, then punt, since
+     * we will be doing the wrong thing.
+     */
+    if (elf_ex->e_phentsize != sizeof(struct elf_phdr))
+            goto out;
+
+    /* Sanity check the number of program headers... */
+    if (elf_ex->e_phnum < 1 ||
+            elf_ex->e_phnum > 65536U / sizeof(struct elf_phdr))
+            goto out;
+
+    /* ...and their total size. */
+    size = sizeof(struct elf_phdr) * elf_ex->e_phnum;
+    if (size > ELF_MIN_ALIGN)
+            goto out;
+
+    elf_phdata = kmalloc(size, GFP_KERNEL);
+    if (!elf_phdata)
+            goto out;
+
+    /* Read in the program headers */
+    retval = kernel_read(elf_file, elf_ex->e_phoff,
+                         (char *)elf_phdata, size);
+    if (retval != size) {
+            err = (retval < 0) ? retval : -EIO;
+            goto out;
+    }
+
+    /* Success! */
+    err = 0;
+out:
+    if (err) {
+            kfree(elf_phdata);
+            elf_phdata = NULL;
+    }
+    return elf_phdata;
+}
+```
+
+
+##如果需要动态链接, 则寻找和处理解释器段
+-------
+
+这个for循环的目的在于寻找和处理目标映像的"解释器"段。
+
+"解释器"段的类型为PT_INTERP，
+
+找到后就根据其位置的p_offset和大小p_filesz把整个"解释器"段的内容读入缓冲区。
+
+"解释器"段实际上只是一个字符串，
+
+即解释器的文件名，如"/lib/ld-linux.so.2", 或者64位机器上对应的叫做"/lib64/ld-linux-x86-64.so.2"
+
+有了解释器的文件名以后，就通过open_exec()打开这个文件，再通过kernel_read()读入其开关128个字节，即解释器映像的头部。*
+
+```c
+    for (i = 0; i < loc->elf_ex.e_phnum; i++) {
+    	/*  3.1  检查是否有需要加载的解释器  */
+        if (elf_ppnt->p_type == PT_INTERP) {
+            /* This is the program interpreter used for
+             * shared libraries - for now assume that this
+             * is an a.out format binary
+             */
+
+            /*  3.2 根据其位置的p_offset和大小p_filesz把整个"解释器"段的内容读入缓冲区  */
+            retval = kernel_read(bprm->file, elf_ppnt->p_offset,
+                         elf_interpreter,
+                         elf_ppnt->p_filesz);
+
+            if (elf_interpreter[elf_ppnt->p_filesz - 1] != '\0')
+                goto out_free_interp;
+            /*  3.3 通过open_exec()打开解释器文件 */
+            interpreter = open_exec(elf_interpreter);
+
+
+
+            /* Get the exec headers 
+               3.4  通过kernel_read()读入解释器的前128个字节，即解释器映像的头部。*/
+            retval = kernel_read(interpreter, 0,
+                         (void *)&loc->interp_elf_ex,
+                         sizeof(loc->interp_elf_ex));
+
+
+            break;
+        }
+        elf_ppnt++;
+    }
+```
+
+可以使用readelf -l查看program headers, 其中的INTERP段标识了我们程序所需要的解释器
+
+![](./images/elf_interpreter.jpg)
+
+##检查并读取解释器的程序表头
+-------
+
+如果需要加载解释器, 前面经过一趟for循环已经找到了需要的解释器信息elf_interpreter, 他也是当作一个ELF文件, 因此跟目标可执行程序一样, 我们需要load_elf_phdrs加载解释器的程序头表program header table
+```c
+    /*   4.    检查并读取解释器的程序表头 */
+
+    /* Some simple consistency checks for the interpreter 
+       4.1  检查解释器头的信息  */
+    if (elf_interpreter) {
+        retval = -ELIBBAD;
+        /* Not an ELF interpreter */
+
+        /* Load the interpreter program headers
+           4.2  读入解释器的程序头
+         */
+        interp_elf_phdata = load_elf_phdrs(&loc->interp_elf_ex,
+                           interpreter);
+        if (!interp_elf_phdata)
+            goto out_free_dentry;
+
+```
+
+
+至此我们已经把目标执行程序和其所需要的解释器都加载初始化, 并且完成检查工作, 也加载了程序头表program header table, 下面开始加载程序的段信息
+
+
+##装入目标程序的段segment
+-------
+
+ 这段代码从目标映像的程序头中搜索类型为PT_LOAD的段（Segment）。在二进制映像中，只有类型为PT_LOAD的段才是需要装入的。当然在装入之前，需要确定装入的地址，只要考虑的就是页面对齐，还有该段的p_vaddr域的值（上面省略这部分内容）。确定了装入地址后，就通过elf_map()建立用户空间虚拟地址空间与目标映像文件中某个连续区间之间的映射，其返回值就是实际映射的起始地址。
+
 
 
 ```c
-710         elf_phdata = load_elf_phdrs(&loc->elf_ex, bprm->file);
-711         if (!elf_phdata)
-712                 goto out;
-713
-714         elf_ppnt = elf_phdata;
-715         elf_bss = 0;
-716         elf_brk = 0;
-717 
-718         start_code = ~0UL;
-719         end_code = 0;
-720         start_data = 0;
-721         end_data = 0;
-722 
-723         for (i = 0; i < loc->elf_ex.e_phnum; i++) {
-724                 if (elf_ppnt->p_type == PT_INTERP) {
-725                         /* This is the program interpreter used for
-726                          * shared libraries - for now assume that this
-727                          * is an a.out format binary
-728                          */
-729                         retval = -ENOEXEC;
-730                         if (elf_ppnt->p_filesz > PATH_MAX || 
-731                             elf_ppnt->p_filesz < 2)
-732                                 goto out_free_ph;
-733 
-734                         retval = -ENOMEM;
-735                         elf_interpreter = kmalloc(elf_ppnt->p_filesz,
-736                                                   GFP_KERNEL);
-737                         if (!elf_interpreter)
-738                                 goto out_free_ph;
-739 
-740                         retval = kernel_read(bprm->file, elf_ppnt->p_offset,
-741                                              elf_interpreter,
-742                                              elf_ppnt->p_filesz);
-743                         if (retval != elf_ppnt->p_filesz) {
-744                                 if (retval >= 0)
-745                                         retval = -EIO;
-746                                 goto out_free_interp;
-747                         }
+    */
+    for(i = 0, elf_ppnt = elf_phdata;
+        i < loc->elf_ex.e_phnum; i++, elf_ppnt++) {
 
-577         /* Now read in all of the header information */  
-580         if (loc->elf_ex.e_phnum < 1 ||  
-581                 loc->elf_ex.e_phnum > 65536U / sizeof(struct elf_phdr))  
-582                 goto out;  
-583         size = loc->elf_ex.e_phnum * sizeof(struct elf_phdr);  
-               ……  
-585         elf_phdata = kmalloc(size, GFP_KERNEL);  
-               ……  
-589         retval = kernel_read(bprm->file, loc->elf_ex.e_phoff,  
-590                              (char *)elf_phdata, size);  
+		/*  5.1   搜索PT_LOAD的段, 这个是需要装入的 */
+        if (elf_ppnt->p_type != PT_LOAD)
+            continue;
+
+
+        	/* 5.2  检查地址和页面的信息  */
+			////////////
+            // ......
+            ///////////
+
+         /*        5.3  确定了装入地址后，就通过elf_map()建立用户空间虚拟地址空间与目标映像文件中某个连续区间之间的映射，其返回值就是实际映射的起始地址 */
+        error = elf_map(bprm->file, load_bias + vaddr, elf_ppnt,
+                elf_prot, elf_flags, total_size);
+
+        }
 ```
 
-这块就是通过kernel_read读入整个program header table。从代码中可以看到，一个可执行程序必须至少有一个段（segment），而所有段的大小之和不能超过64K。
- 
-```
-614 elf_ppnt = elf_phdata;  
-                ……  
-623 for (i = 0; i < loc->elf_ex.e_phnum; i++) {  
-624     if (elf_ppnt->p_type == PT_INTERP) {  
-            ……  
-635         elf_interpreter = kmalloc(elf_ppnt->p_filesz, GFP_KERNEL);  
-            ……  
-640         retval = kernel_read(bprm->file, elf_ppnt->p_offset,  
-641                          elf_interpreter,  
-642                          elf_ppnt->p_filesz);  
-            ……  
-682         interpreter = open_exec(elf_interpreter);  
-            ……  
-695         retval = kernel_read(interpreter, 0, bprm->buf,  
-696                          BINPRM_BUF_SIZE);  
-            ……  
-703         /* Get the exec headers */  
-            ……  
-705         loc->interp_elf_ex = *((struct elfhdr *)bprm->buf);  
-706             break;  
-707     }  
-708     elf_ppnt++;  
-709 }  
-```language
-```
- 这个for循环的目的在于寻找和处理目标映像的“解释器”段。“解释器”段的类型为PT_INTERP，找到后就根据其位置的p_offset和大小p_filesz把整个“解释器”段的内容读入缓冲区（640~640）。事个“解释器”段实际上只是一个字符串，即解释器的文件名，如“/lib/ld-linux.so.2”。有了解释器的文件名以后，就通过open_exec()打开这个文件，再通过kernel_read()读入其开关128个字节（695~696），即解释器映像的头部。我们以Hello World程序为例，看一下这段中具体的内容：
 
-其实从readelf程序的输出中，我们就可以看到需要解释器/lib/ld-linux.so.2，为了进一步的验证，我们用hd命令以16进制格式查看下类型为INTERP的段所在位置的内容，在上面的各个域可以看到，它位于偏移量为0x000114的位置，文件内占19个字节：
 
-从上面红色部分可以看到，这个段中实际保存的就是“/lib/ld-linux.so.2”这个字符串。
- 
-C代码  收藏代码
-814         for(i = 0, elf_ppnt = elf_phdata;  
-815             i < loc->elf_ex.e_phnum; i++, elf_ppnt++) {  
-                       ……   
-819                 if (elf_ppnt->p_type != PT_LOAD)  
-820                         continue;  
-                       ……   
-870                 error = elf_map(bprm->file, load_bias + vaddr, elf_ppnt,  
-871                                 elf_prot, elf_flags);  
-                       ……  
-920         }  
- 
- 这段代码从目标映像的程序头中搜索类型为PT_LOAD的段（Segment）。在二进制映像中，只有类型为PT_LOAD的段才是需要装入的。当然在装入之前，需要确定装入的地址，只要考虑的就是页面对齐，还有该段的p_vaddr域的值（上面省略这部分内容）。确定了装入地址后，就通过elf_map()建立用户空间虚拟地址空间与目标映像文件中某个连续区间之间的映射，其返回值就是实际映射的起始地址。
- 
-C代码  收藏代码
-946     if (elf_interpreter) {  
-                ……  
-951         elf_entry = load_elf_interp(&loc->interp_elf_ex,  
-952                                 interpreter,  
-953                                     &interp_load_addr);  
-                                ……  
-965     } else {  
-966         elf_entry = loc->elf_ex.e_entry;  
-                ……  
-972     }  
- 这段程序的逻辑非常简单：如果需要装入解释器，就通过load_elf_interp装入其映像（951~953），并把将来进入用户空间的入口地址设置成load_elf_interp()的返回值，即解释器映像的入口地址。而若不装入解释器，那么这个入口地址就是目标映像本身的入口地址。
- 
-C代码  收藏代码
-991        create_elf_tables(bprm, &loc->elf_ex,  
-992                           (interpreter_type == INTERPRETER_AOUT),  
-993                           load_addr, interp_load_addr);  
-               ……  
-1028       start_thread(regs, elf_entry, bprm->p);  
+##填写程序的入口地址
+-------
+
+完成了目标程序和解释器的加载, 同时目标程序的各个段也已经加载到内存了, 我们的目标程序已经准备好了要执行了, 但是还缺少一样东西, 就是我们程序的入口地址, 没有入口地址, 操作系统就不知道从哪里开始执行内存中加载好的可执行映像
+
+这段程序的逻辑非常简单：
+如果需要装入解释器，就通过load_elf_interp装入其映像, 并把将来进入用户空间的入口地址设置成load_elf_interp()的返回值，即解释器映像的入口地址。
+而若不装入解释器，那么这个入口地址就是目标映像本身的入口地址。
+
+     
+```c
+
+    if (elf_interpreter) {
+        unsigned long interp_map_addr = 0;
+
+        elf_entry = load_elf_interp(&loc->interp_elf_ex,
+                        interpreter,
+                        &interp_map_addr,
+                        load_bias, interp_elf_phdata);
+			/*  入口地址是解释器映像的入口地址  */
+    } else {
+    	/*  入口地址是目标程序的入口地址  */
+        elf_entry = loc->elf_ex.e_entry;
+        }
+    }
+```
+
+##create_elf_tables填写目标文件的参数环境变量等必要信息
+-------
+
+
  在完成装入，启动用户空间的映像运行之前，还需要为目标映像和解释器准备好一些有关的信息，这些信息包括常规的argc、envc等等，还有一些“辅助向量（Auxiliary Vector）”。这些信息需要复制到用户空间，使它们在CPU进入解释器或目标映像的程序入口时出现在用户空间堆栈上。这里的create_elf_tables()就起着这个作用。
- 
-       最后，start_thread()这个宏操作会将eip和esp改成新的地址，就使得CPU在返回用户空间时就进入新的程序入口。如果存在解释器映像，那么这就是解释器映像的程序入口，否则就是目标映像的程序入口。那么什么情况下有解释器映像存在，什么情况下没有呢？如果目标映像与各种库的链接是静态链接，因而无需依靠共享库、即动态链接库，那就不需要解释器映像；否则就一定要有解释器映像存在。
-       以我们的Hello World为例，gcc在编译时，除非显示的使用static标签，否则所有程序的链接都是动态链接的，也就是说需要解释器。由此可见，我们的Hello World程序在被内核加载到内存，内核跳到用户空间后并不是执行Hello World的，而是先把控制权交到用户空间的解释器，由解释器加载运行用户程序所需要的动态库（Hello World需要libc），然后控制权才会转移到用户程序。
- 
-ELF文件中符号的动态解析过程
- 
-       上面一节提到，控制权是先交到解释器，由解释器加载动态库，然后控制权才会到用户程序。因为时间原因，动态库的具体加载过程，并没有进行深入分析。大致的过程就是将每一个依赖的动态库都加载到内存，并形成一个链表，后面的符号解析过程主要就是在这个链表中搜索符号的定义。
-       我们后面主要就是以Hello World为例，分析程序是如何调用printf的：
-查看一下gcc编译生成的Hello World程序的汇编代码（main函数部分）：
- 
-C代码  收藏代码
-08048374 <main>:  
- 8048374:       8d 4c 24 04         lea     0x4(%esp),%ecx  
-                ……  
- 8048385:       c7 04 24 6c 84 04 08    movl    $0x804846c,(%esp)  
- 804838c:       e8 2b ff ff ff          call        80482bc <puts@plt>  
- 8048391:       b8 00 00 00 00          mov     $0x0,%eax  
- 从上面的代码可以看出，经过编译后，printf函数的调用已经换成了puts函数（原因读者可以想一下）。其中的call指令就是调用puts函数。但从上面的代码可以看出，它调用的是puts@plt这个标号，它代表什么意思呢？在进一步说明符号的动态解析过程以前，需要先了解两个概念，一个是global offset table，一个是procedure linkage table。
- 
- 
-       Global Offset Table（GOT）
-       在位置无关代码中，一般不能包含绝对虚拟地址（如共享库）。当在程序中引用某个共享库中的符号时，编译链接阶段并不知道这个符号的具体位置，只有等到动态链接器将所需要的共享库加载时进内存后，也就是在运行阶段，符号的地址才会最终确定。因此，需要有一个数据结构来保存符号的绝对地址，这就是GOT表的作用，GOT表中每项保存程序中引用其它符号的绝对地址。这样，程序就可以通过引用GOT表来获得某个符号的地址。
-       在x86结构中，GOT表的前三项保留，用于保存特殊的数据结构地址，其它的各项保存符号的绝对地址。对于符号的动态解析过程，我们只需要了解的就是第二项和第三项，即GOT[1]和GOT[2]：GOT[1]保存的是一个地址，指向已经加载的共享库的链表地址（前面提到加载的共享库会形成一个链表）；GOT[2]保存的是一个函数的地址，定义如下：GOT[2] = &_dl_runtime_resolve，这个函数的主要作用就是找到某个符号的地址，并把它写到与此符号相关的GOT项中，然后将控制转移到目标函数，后面我们会详细分析。
-       Procedure Linkage Table（PLT）
-       过程链接表（PLT）的作用就是将位置无关的函数调用转移到绝对地址。在编译链接时，链接器并不能控制执行从一个可执行文件或者共享文件中转移到另一个中（如前所说，这时候函数的地址还不能确定），因此，链接器将控制转移到PLT中的某一项。而PLT通过引用GOT表中的函数的绝对地址，来把控制转移到实际的函数。
-       在实际的可执行程序或者共享目标文件中，GOT表在名称为.got.plt的section中，PLT表在名称为.plt的section中。
-大致的了解了GOT和PLT的内容后，我们查看一下puts@plt中到底是什么内容：
- 
-C代码  收藏代码
-Disassembly of section .plt:  
-  
-0804828c <__gmon_start__@plt-0x10>:  
- 804828c:       ff 35 68 95 04 08       pushl   0x8049568  
- 8048292:       ff 25 6c 95 04 08       jmp     *0x804956c  
- 8048298:       00 00  
-        ......  
-0804829c <__gmon_start__@plt>:  
- 804829c:       ff 25 70 95 04 08       jmp     *0x8049570  
- 80482a2:       68 00 00 00 00          push        $0x0  
- 80482a7:       e9 e0 ff ff ff          jmp     804828c <_init+0x18>  
-  
-080482ac <__libc_start_main@plt>:  
- 80482ac:       ff 25 74 95 04 08       jmp     *0x8049574  
- 80482b2:       68 08 00 00 00          push        $0x8  
- 80482b7:       e9 d0 ff ff ff          jmp     804828c <_init+0x18>  
-080482bc <puts@plt>:  
- 80482bc:       ff 25 78 95 04 08       jmp     *0x8049578  
- 80482c2:       68 10 00 00 00          push    $0x10  
- 80482c7:       e9 c0 ff ff ff          jmp     804828c <_init+0x18>  
- 可以看到puts@plt包含三条指令，程序中所有对有puts函数的调用都要先来到这里（Hello World里只有一次）。可以看出，除PLT0以外（就是__gmon_start__@plt-0x10所标记的内容），其它的所有PLT项的形式都是一样的，而且最后的jmp指令都是0x804828c，即PLT0为目标的。所不同的只是第一条jmp指令的目标和push指令中的数据。PLT0则与之不同，但是包括PLT0在内的每个表项都占16个字节，所以整个PLT就像个数组（实际是代码段）。另外，每个PLT表项中的第一条jmp指令是间接寻址的。比如我们的puts函数是以地址0x8049578处的内容为目标地址进行中跳转的。
- 
-顺着这个地址，我们进一步查看此处的内容：
- 
-C代码  收藏代码
-(gdb) x/w  0x8049578  
-0x8049578 <_GLOBAL_OFFSET_TABLE_+20>:   0x080482c2  
- 从上面可以看出，这个地址就是GOT表中的一项。它里面的内容是0x80482c2，即puts@plt中的第二条指令。前面我们不是提到过，GOT中这里本应该是puts函数的地址才对，那为什么会这样呢？原来链接器在把所需要的共享库加载进内存后，并没有把共享库中的函数的地址写到GOT表项中，而是延迟到函数的第一次调用时，才会对函数的地址进行定位。
- 
-puts@plt的第二条指令是pushl $0x10，那这个0x10代表什么呢？
- 
-C代码  收藏代码
-Relocation section '.rel.plt' at offset 0x25c contains 3 entries:  
- Offset       Info       Type            Sym.Value  Sym. Name  
-08049570  00000107 R_386_JUMP_SLOT      00000000   __gmon_start__  
-08049574  00000207 R_386_JUMP_SLOT      00000000   __libc_start_main  
-08049578  00000307 R_386_JUMP_SLOT  00000000   puts  
- 其中的第三项就是puts函数的重定向信息，0x10即代表相对于.rel.plt这个section的偏移位置（每一项占8个字节）。其中的Offset这个域就代表的是puts函数地址在GOT表项中的位置，从上面puts@plt的第一条指令也可以验证这一点。向堆栈中压入这个偏移量的主要作用就是为了找到puts函数的符号名（即上面的Sym.Name域的“puts”这个字符串）以及puts函数地址在GOT表项中所占的位置，以便在函数定位完成后将函数的实际地址写到这个位置。
- 
-puts@plt的第三条指令就跳到了PLT0的位置。这条指令只是将0x8049568这个数值压入堆栈，它实际上是GOT表项的第二个元素，即GOT[1]（共享库链表的地址）。
-随即PLT0的第二条指令即跳到了GOT[2]中所保存的地址（间接寻址），即_dl_runtime_resolve这个函数的入口。
-_dl_runtime_resolve的定义如下：
- 
-C代码  收藏代码
-_dl_runtime_resolve:  
-    pushl %eax      # Preserve registers otherwise clobbered.  
-    pushl %ecx  
-    pushl %edx  
-    movl 16(%esp), %edx # Copy args pushed by PLT in register.  Note  
-    movl 12(%esp), %eax # that `fixup' takes its parameters in regs.  
-    call _dl_fixup      # Call resolver.  
-    popl %edx       # Get register content back.  
-    popl %ecx  
-    xchgl %eax, (%esp)  # Get %eax contents end store function address.  
-    ret $8          # Jump to function address.  
- 从调用puts函数到现在，总共有两次压栈操作，一次是压入puts函数的重定向信息的偏移量，一次是GOT[1]（共享库链表的地址）。上面的两次movl操作就是将这两个数据分别取到edx和eax，然后调用_dl_fixup（从寄存器取参数），此函数完成的功能就是找到puts函数的实际加载地址，并将它写到GOT中，然后通过eax将此值返回给_dl_runtime_resolve。xchagl这条指令，不仅将eax的值恢复，而且将puts函数的值压到栈顶，这样当执行ret指令后，控制就转移到puts函数内部。ret指令同时也完成了清栈动作，使栈顶为puts函数的返回地址（main函数中call指令的下一条指令），这样，当puts函数返回时，就返回到正确的位置。
- 
-       当然，如果是第二次调用puts函数，那么就不需要这么复杂的过程，而只要通过GOT表中已经确定的函数地址直接进行跳转即可。下图是前面过程的一个示意图，红色为第一次函数调用的顺序，蓝色为后续函数调用的顺序（第1步都要执行）。
-       
-http://jzhihui.iteye.com/blog/1447570
 
 
-#
+```c
+	install_exec_creds(bprm);
+    retval = create_elf_tables(bprm, &loc->elf_ex,
+              load_addr, interp_load_addr);
+    if (retval < 0)
+        goto out;
+    /* N.B. passed_fileno might not be initialized? */
+    current->mm->end_code = end_code;
+    current->mm->start_code = start_code;
+    current->mm->start_data = start_data;
+    current->mm->end_data = end_data;
+    current->mm->start_stack = bprm->p;
+```
+
+##start_thread宏准备进入新的程序入口
+-------
+
+最后，start_thread()这个宏操作会将eip和esp改成新的地址，就使得CPU在返回用户空间时就进入新的程序入口。如果存在解释器映像，那么这就是解释器映像的程序入口，否则就是目标映像的程序入口。那么什么情况下有解释器映像存在，什么情况下没有呢？如果目标映像与各种库的链接是静态链接，因而无需依靠共享库、即动态链接库，那就不需要解释器映像；否则就一定要有解释器映像存在。
+start_thread宏是一个体系结构相关的函数，请定义可以参照http://lxr.free-electrons.com/ident?v=4.6;i=start_thread
+
+
+##附录(load_elf_banray函数注释)
+-------
+
+```c
+static int load_elf_binary(struct linux_binprm *bprm)
+{   
+
+    struct file *interpreter = NULL; /* to shut gcc up */
+    unsigned long load_addr = 0, load_bias = 0;
+    int load_addr_set = 0;
+    char * elf_interpreter = NULL;
+    unsigned long error;
+    struct elf_phdr *elf_ppnt, *elf_phdata, *interp_elf_phdata = NULL;
+    unsigned long elf_bss, elf_brk;
+    int retval, i;
+    unsigned long elf_entry;
+    unsigned long interp_load_addr = 0;
+    unsigned long start_code, end_code, start_data, end_data;
+    unsigned long reloc_func_desc __maybe_unused = 0;
+    int executable_stack = EXSTACK_DEFAULT;
+
+    /*  从寄存器重获取参数信息  */
+    struct pt_regs *regs = current_pt_regs();
+    struct {
+        struct elfhdr elf_ex;
+        struct elfhdr interp_elf_ex;
+    } *loc;
+    struct arch_elf_state arch_state = INIT_ARCH_ELF_STATE;
+
+    loc = kmalloc(sizeof(*loc), GFP_KERNEL);
+    if (!loc) {
+        retval = -ENOMEM;
+        goto out_ret;
+    }
+    /*  1  填充并且检查ELF头部  */
+    /* Get the exec-header
+       1.1   填充ELF头信息
+       在load_elf_binary之前
+       内核已经使用映像文件的前128个字节对bprm->buf进行了填充, 
+       这里使用这此信息填充映像的文件头
+     */
+    loc->elf_ex = *((struct elfhdr *)bprm->buf);
+
+    retval = -ENOEXEC;
+    /* 
+        1.2 First of all, some simple consistency checks 
+       比较文件头的前四个字节，查看是否是ELF文件类型定义的"\177ELF"*/
+    if (memcmp(loc->elf_ex.e_ident, ELFMAG, SELFMAG) != 0)
+        goto out;
+    /*  
+        1.3 除前4个字符以外，还要看映像的类型是否ET_EXEC和ET_DYN之一；前者表示可执行映像，后者表示共享库
+    */
+    if (loc->elf_ex.e_type != ET_EXEC && loc->elf_ex.e_type != ET_DYN)
+        goto out;
+    
+    /*  1.4 检查特定的目标机器标识  */
+    if (!elf_check_arch(&loc->elf_ex))
+        goto out;
+    if (!bprm->file->f_op->mmap)
+        goto out;
+    
+    /* 
+        2.   load_elf_phdrs 加载程序头表
+        load_elf_phdrs函数就是通过kernel_read读入整个program header table。从函数代码中可以看到，一个可执行程序必须至少有一个段（segment），而所有段的大小之和不能超过64K。
+    */
+    elf_phdata = load_elf_phdrs(&loc->elf_ex, bprm->file);
+    if (!elf_phdata)
+        goto out;
+
+    elf_ppnt = elf_phdata;
+    elf_bss = 0;
+    elf_brk = 0;
+
+    start_code = ~0UL;
+    end_code = 0;
+    start_data = 0;
+    end_data = 0;
+    /*
+        3.   寻找和处理解释器段
+     这个for循环的目的在于寻找和处理目标映像的"解释器"段。
+     "解释器"段的类型为PT_INTERP，
+     找到后就根据其位置的p_offset和大小p_filesz把整个"解释器"段的内容读入缓冲区。
+     "解释器"段实际上只是一个字符串，
+     即解释器的文件名，如"/lib/ld-linux.so.2"。
+     有了解释器的文件名以后，就通过open_exec()打开这个文件，再通过kernel_read()读入其开关128个字节，即解释器映像的头部。*/
+    for (i = 0; i < loc->elf_ex.e_phnum; i++) {
+        if (elf_ppnt->p_type == PT_INTERP) {
+            /* This is the program interpreter used for
+             * shared libraries - for now assume that this
+             * is an a.out format binary
+             */
+            retval = -ENOEXEC;
+            if (elf_ppnt->p_filesz > PATH_MAX || 
+                elf_ppnt->p_filesz < 2)
+                goto out_free_ph;
+
+            retval = -ENOMEM;
+            elf_interpreter = kmalloc(elf_ppnt->p_filesz,
+                          GFP_KERNEL);
+            if (!elf_interpreter)
+                goto out_free_ph;
+
+            /*  3.1 根据其位置的p_offset和大小p_filesz把整个"解释器"段的内容读入缓冲区  */
+            retval = kernel_read(bprm->file, elf_ppnt->p_offset,
+                         elf_interpreter,
+                         elf_ppnt->p_filesz);
+            if (retval != elf_ppnt->p_filesz) {
+                if (retval >= 0)
+                    retval = -EIO;
+                goto out_free_interp;
+            }
+            /* make sure path is NULL terminated */
+            retval = -ENOEXEC;
+            if (elf_interpreter[elf_ppnt->p_filesz - 1] != '\0')
+                goto out_free_interp;
+            /*  3.2 通过open_exec()打开解释器文件 */
+            interpreter = open_exec(elf_interpreter);
+            retval = PTR_ERR(interpreter);
+            if (IS_ERR(interpreter))
+                goto out_free_interp;
+
+            /*
+             * If the binary is not readable then enforce
+             * mm->dumpable = 0 regardless of the interpreter's
+             * permissions.
+             */
+            would_dump(bprm, interpreter);
+
+            /* Get the exec headers 
+               3.3  通过kernel_read()读入解释器的前128个字节，即解释器映像的头部。*/
+            retval = kernel_read(interpreter, 0,
+                         (void *)&loc->interp_elf_ex,
+                         sizeof(loc->interp_elf_ex));
+            if (retval != sizeof(loc->interp_elf_ex)) {
+                if (retval >= 0)
+                    retval = -EIO;
+                goto out_free_dentry;
+            }
+
+            break;
+        }
+        elf_ppnt++;
+    }
+
+
+    elf_ppnt = elf_phdata;
+    for (i = 0; i < loc->elf_ex.e_phnum; i++, elf_ppnt++)
+        switch (elf_ppnt->p_type) {
+        case PT_GNU_STACK:
+            if (elf_ppnt->p_flags & PF_X)
+                executable_stack = EXSTACK_ENABLE_X;
+            else
+                executable_stack = EXSTACK_DISABLE_X;
+            break;
+
+        case PT_LOPROC ... PT_HIPROC:
+            retval = arch_elf_pt_proc(&loc->elf_ex, elf_ppnt,
+                          bprm->file, false,
+                          &arch_state);
+            if (retval)
+                goto out_free_dentry;
+            break;
+        }
+    
+    /*   4.    检查并读取解释器的程序表头 */
+
+    /* Some simple consistency checks for the interpreter 
+       4.1  检查解释器头的信息  */
+    if (elf_interpreter) {
+        retval = -ELIBBAD;
+        /* Not an ELF interpreter */
+        if (memcmp(loc->interp_elf_ex.e_ident, ELFMAG, SELFMAG) != 0)
+            goto out_free_dentry;
+        /* Verify the interpreter has a valid arch */
+        if (!elf_check_arch(&loc->interp_elf_ex))
+            goto out_free_dentry;
+
+        /* Load the interpreter program headers
+           4.2  读入解释器的程序头
+         */
+        interp_elf_phdata = load_elf_phdrs(&loc->interp_elf_ex,
+                           interpreter);
+        if (!interp_elf_phdata)
+            goto out_free_dentry;
+
+        /* Pass PT_LOPROC..PT_HIPROC headers to arch code */
+        elf_ppnt = interp_elf_phdata;
+        for (i = 0; i < loc->interp_elf_ex.e_phnum; i++, elf_ppnt++)
+            switch (elf_ppnt->p_type) {
+            case PT_LOPROC ... PT_HIPROC:
+                retval = arch_elf_pt_proc(&loc->interp_elf_ex,
+                              elf_ppnt, interpreter,
+                              true, &arch_state);
+                if (retval)
+                    goto out_free_dentry;
+                break;
+            }
+    }
+
+    /*
+     * Allow arch code to reject the ELF at this point, whilst it's
+     * still possible to return an error to the code that invoked
+     * the exec syscall.
+     */
+    retval = arch_check_elf(&loc->elf_ex,
+                !!interpreter, &loc->interp_elf_ex,
+                &arch_state);
+    if (retval)
+        goto out_free_dentry;
+
+    /* Flush all traces of the currently running executable */
+    retval = flush_old_exec(bprm);
+    if (retval)
+        goto out_free_dentry;
+
+    /* Do this immediately, since STACK_TOP as used in setup_arg_pages
+       may depend on the personality.  */
+    SET_PERSONALITY2(loc->elf_ex, &arch_state);
+    if (elf_read_implies_exec(loc->elf_ex, executable_stack))
+        current->personality |= READ_IMPLIES_EXEC;
+
+    if (!(current->personality & ADDR_NO_RANDOMIZE) && randomize_va_space)
+        current->flags |= PF_RANDOMIZE;
+
+    setup_new_exec(bprm);
+
+    /* Do this so that we can load the interpreter, if need be.  We will
+       change some of these later */
+    retval = setup_arg_pages(bprm, randomize_stack_top(STACK_TOP),
+                 executable_stack);
+    if (retval < 0)
+        goto out_free_dentry;
+
+    current->mm->start_stack = bprm->p;
+
+    /* Now we do a little grungy work by mmapping the ELF image into
+       the correct location in memory.
+       5  装入目标程序的段segment 
+       这段代码从目标映像的程序头中搜索类型为PT_LOAD的段（Segment）。在二进制映像中，只有类型为PT_LOAD的段才是需要装入的。
+
+       当然在装入之前，需要确定装入的地址，只要考虑的就是页面对齐，还有该段的p_vaddr域的值（上面省略这部分内容）。
+
+       确定了装入地址后，就通过elf_map()建立用户空间虚拟地址空间与目标映像文件中某个连续区间之间的映射，其返回值就是实际映射的起始地址。
+    */
+    for(i = 0, elf_ppnt = elf_phdata;
+        i < loc->elf_ex.e_phnum; i++, elf_ppnt++) {
+        int elf_prot = 0, elf_flags;
+        unsigned long k, vaddr;
+        unsigned long total_size = 0;
+        /*  5.1   搜索PT_LOAD的段, 这个是需要装入的 */
+        if (elf_ppnt->p_type != PT_LOAD)
+            continue;
+        
+        if (unlikely (elf_brk > elf_bss)) {
+            unsigned long nbyte;
+            /* 5.2  检查地址和页面的信息  */
+            /* There was a PT_LOAD segment with p_memsz > p_filesz
+               before this one. Map anonymous pages, if needed,
+               and clear the area.  */
+            retval = set_brk(elf_bss + load_bias,
+                     elf_brk + load_bias);
+            if (retval)
+                goto out_free_dentry;
+            nbyte = ELF_PAGEOFFSET(elf_bss);
+            if (nbyte) {
+                nbyte = ELF_MIN_ALIGN - nbyte;
+                if (nbyte > elf_brk - elf_bss)
+                    nbyte = elf_brk - elf_bss;
+                if (clear_user((void __user *)elf_bss +
+                            load_bias, nbyte)) {
+                    /*
+                     * This bss-zeroing can fail if the ELF
+                     * file specifies odd protections. So
+                     * we don't check the return value
+                     */
+                }
+            }
+        }
+
+        if (elf_ppnt->p_flags & PF_R)
+            elf_prot |= PROT_READ;
+        if (elf_ppnt->p_flags & PF_W)
+            elf_prot |= PROT_WRITE;
+        if (elf_ppnt->p_flags & PF_X)
+            elf_prot |= PROT_EXEC;
+
+        elf_flags = MAP_PRIVATE | MAP_DENYWRITE | MAP_EXECUTABLE;
+
+        vaddr = elf_ppnt->p_vaddr;
+        if (loc->elf_ex.e_type == ET_EXEC || load_addr_set) {
+            elf_flags |= MAP_FIXED;
+        } else if (loc->elf_ex.e_type == ET_DYN) {
+            /* Try and get dynamic programs out of the way of the
+             * default mmap base, as well as whatever program they
+             * might try to exec.  This is because the brk will
+             * follow the loader, and is not movable.  */
+            load_bias = ELF_ET_DYN_BASE - vaddr;
+            if (current->flags & PF_RANDOMIZE)
+                load_bias += arch_mmap_rnd();
+            load_bias = ELF_PAGESTART(load_bias);
+            total_size = total_mapping_size(elf_phdata,
+                            loc->elf_ex.e_phnum);
+            if (!total_size) {
+                retval = -EINVAL;
+                goto out_free_dentry;
+            }
+        }
+        /* 5.3  确定了装入地址后，就通过elf_map()建立用户空间虚拟地址空间与目标映像文件中某个连续区间之间的映射，其返回值就是实际映射的起始地址 */
+        error = elf_map(bprm->file, load_bias + vaddr, elf_ppnt,
+                elf_prot, elf_flags, total_size);
+        if (BAD_ADDR(error)) {
+            retval = IS_ERR((void *)error) ?
+                PTR_ERR((void*)error) : -EINVAL;
+            goto out_free_dentry;
+        }
+
+        if (!load_addr_set) {
+            load_addr_set = 1;
+            load_addr = (elf_ppnt->p_vaddr - elf_ppnt->p_offset);
+            if (loc->elf_ex.e_type == ET_DYN) {
+                load_bias += error -
+                         ELF_PAGESTART(load_bias + vaddr);
+                load_addr += load_bias;
+                reloc_func_desc = load_bias;
+            }
+        }
+        k = elf_ppnt->p_vaddr;
+        if (k < start_code)
+            start_code = k;
+        if (start_data < k)
+            start_data = k;
+
+        /*
+         * Check to see if the section's size will overflow the
+         * allowed task size. Note that p_filesz must always be
+         * <= p_memsz so it is only necessary to check p_memsz.
+         */
+        if (BAD_ADDR(k) || elf_ppnt->p_filesz > elf_ppnt->p_memsz ||
+            elf_ppnt->p_memsz > TASK_SIZE ||
+            TASK_SIZE - elf_ppnt->p_memsz < k) {
+            /* set_brk can never work. Avoid overflows. */
+            retval = -EINVAL;
+            goto out_free_dentry;
+        }
+
+        k = elf_ppnt->p_vaddr + elf_ppnt->p_filesz;
+
+        if (k > elf_bss)
+            elf_bss = k;
+        if ((elf_ppnt->p_flags & PF_X) && end_code < k)
+            end_code = k;
+        if (end_data < k)
+            end_data = k;
+        k = elf_ppnt->p_vaddr + elf_ppnt->p_memsz;
+        if (k > elf_brk)
+            elf_brk = k;
+    }
+
+    loc->elf_ex.e_entry += load_bias;
+    elf_bss += load_bias;
+    elf_brk += load_bias;
+    start_code += load_bias;
+    end_code += load_bias;
+    start_data += load_bias;
+    end_data += load_bias;
+
+    /* Calling set_brk effectively mmaps the pages that we need
+     * for the bss and break sections.  We must do this before
+     * mapping in the interpreter, to make sure it doesn't wind
+     * up getting placed where the bss needs to go.
+     */
+    retval = set_brk(elf_bss, elf_brk);
+    if (retval)
+        goto out_free_dentry;
+    if (likely(elf_bss != elf_brk) && unlikely(padzero(elf_bss))) {
+        retval = -EFAULT; /* Nobody gets to see this, but.. */
+        goto out_free_dentry;
+    }
+    /*
+     6  填写程序的入口地址
+     这段程序的逻辑非常简单：如果需要装入解释器，就通过load_elf_interp装入其映像, 并把将来进入用户空间的入口地址设置成load_elf_interp()的返回值，即解释器映像的入口地址。而若不装入解释器，那么这个入口地址就是目标映像本身的入口地址。
+     */
+    if (elf_interpreter) {
+        unsigned long interp_map_addr = 0;
+
+        elf_entry = load_elf_interp(&loc->interp_elf_ex,
+                        interpreter,
+                        &interp_map_addr,
+                        load_bias, interp_elf_phdata);
+        if (!IS_ERR((void *)elf_entry)) {
+            /*
+             * load_elf_interp() returns relocation
+             * adjustment
+             */
+            interp_load_addr = elf_entry;
+            elf_entry += loc->interp_elf_ex.e_entry;
+        }
+        if (BAD_ADDR(elf_entry)) {
+            retval = IS_ERR((void *)elf_entry) ?
+                    (int)elf_entry : -EINVAL;
+            goto out_free_dentry;
+        }
+        reloc_func_desc = interp_load_addr;
+
+        allow_write_access(interpreter);
+        fput(interpreter);
+        kfree(elf_interpreter);
+    } else {
+        elf_entry = loc->elf_ex.e_entry;
+        if (BAD_ADDR(elf_entry)) {
+            retval = -EINVAL;
+            goto out_free_dentry;
+        }
+    }
+
+    kfree(interp_elf_phdata);
+    kfree(elf_phdata);
+
+    set_binfmt(&elf_format);
+
+#ifdef ARCH_HAS_SETUP_ADDITIONAL_PAGES
+    retval = arch_setup_additional_pages(bprm, !!elf_interpreter);
+    if (retval < 0)
+        goto out;
+#endif /* ARCH_HAS_SETUP_ADDITIONAL_PAGES */
+
+    /*   7  create_elf_tables填写目标文件的参数环境变量等必要信息
+    在完成装入，启动用户空间的映像运行之前，还需要为目标映像和解释器准备好一些有关的信息，这些信息包括常规的argc、envc等等，还有一些"辅助向量（Auxiliary Vector）"。
+    这些信息需要复制到用户空间，使它们在CPU进入解释器或目标映像的程序入口时出现在用户空间堆栈上。这里的create_elf_tables()就起着这个作用。
+    */
+    install_exec_creds(bprm);
+    retval = create_elf_tables(bprm, &loc->elf_ex,
+              load_addr, interp_load_addr);
+    if (retval < 0)
+        goto out;
+    /* N.B. passed_fileno might not be initialized? */
+    current->mm->end_code = end_code;
+    current->mm->start_code = start_code;
+    current->mm->start_data = start_data;
+    current->mm->end_data = end_data;
+    current->mm->start_stack = bprm->p;
+
+    if ((current->flags & PF_RANDOMIZE) && (randomize_va_space > 1)) {
+        current->mm->brk = current->mm->start_brk =
+            arch_randomize_brk(current->mm);
+#ifdef compat_brk_randomized
+        current->brk_randomized = 1;
+#endif
+    }
+
+    if (current->personality & MMAP_PAGE_ZERO) {
+        /* Why this, you ask???  Well SVr4 maps page 0 as read-only,
+           and some applications "depend" upon this behavior.
+           Since we do not have the power to recompile these, we
+           emulate the SVr4 behavior. Sigh. */
+        error = vm_mmap(NULL, 0, PAGE_SIZE, PROT_READ | PROT_EXEC,
+                MAP_FIXED | MAP_PRIVATE, 0);
+    }
+
+#ifdef ELF_PLAT_INIT
+    /*
+     * The ABI may specify that certain registers be set up in special
+     * ways (on i386 %edx is the address of a DT_FINI function, for
+     * example.  In addition, it may also specify (eg, PowerPC64 ELF)
+     * that the e_entry field is the address of the function descriptor
+     * for the startup routine, rather than the address of the startup
+     * routine itself.  This macro performs whatever initialization to
+     * the regs structure is required as well as any relocations to the
+     * function descriptor entries when executing dynamically links apps.
+     */
+    ELF_PLAT_INIT(regs, reloc_func_desc);
+#endif
+    /*
+     8  最后，start_thread()这个宏操作会将eip和esp改成新的地址，就使得CPU在返回用户空间时就进入新的程序入口。如果存在解释器映像，那么这就是解释器映像的程序入口，否则就是目标映像的程序入口。那么什么情况下有解释器映像存在，什么情况下没有呢？如果目标映像与各种库的链接是静态链接，因而无需依靠共享库、即动态链接库，那就不需要解释器映像；否则就一定要有解释器映像存在。
+       对于一个目标程序, gcc在编译时，除非显示的使用static标签，否则所有程序的链接都是动态链接的，也就是说需要解释器。由此可见，我们的程序在被内核加载到内存，内核跳到用户空间后并不是执行我们程序的，而是先把控制权交到用户空间的解释器，由解释器加载运行用户程序所需要的动态库（比如libc等等），然后控制权才会转移到用户程序。
+       */
+    start_thread(regs, elf_entry, bprm->p);
+    retval = 0;
+out:
+    kfree(loc);
+out_ret:
+    return retval;
+
+    /* error cleanup */
+out_free_dentry:
+    kfree(interp_elf_phdata);
+    allow_write_access(interpreter);
+    if (interpreter)
+        fput(interpreter);
+out_free_interp:
+    kfree(elf_interpreter);
+out_free_ph:
+    kfree(elf_phdata);
+    goto out;
+}
+```
+
+##总结
+-------
+
+简单来说可以分成这几步
+
+1.	读取并检查目标可执行程序的头信息, 检查完成后加载目标程序的程序头表
+
+2.	如果需要解释器则读取并检查解释器的头信息, 检查完成后加载解释器的程序头表
+
+3.	装入目标程序的段segment, 这些才是目标程序二进制代码中的真正可执行映像
+
+4.	填写程序的入口地址(如果有解释器则填入解释器的入口地址, 否则直接填入可执行程序的入口地址)
+
+5.	create_elf_tables填写目标文件的参数环境变量等必要信息
+
+6.	start_kernel宏准备进入新的程序入口
+
+>gcc在编译时，除非显示的使用static标签，否则所有程序的链接都是动态链接的，也就是说需要解释器。由此可见，我们的程序在被内核加载到内存，内核跳到用户空间后并不是执行目标程序的，而是先把控制权交到用户空间的解释器，由解释器加载运行用户程序所需要的动态库（比如libc等等），然后控制权才会转移到用户程序。
+
+#ELF文件中符号的动态解析过程
+-------
+
