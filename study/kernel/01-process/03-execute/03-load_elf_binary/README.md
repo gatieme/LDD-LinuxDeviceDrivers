@@ -805,7 +805,14 @@ static int load_elf_binary(struct linux_binprm *bprm)
     }
     /*
      6  填写程序的入口地址
-     这段程序的逻辑非常简单：如果需要装入解释器，就通过load_elf_interp装入其映像, 并把将来进入用户空间的入口地址设置成load_elf_interp()的返回值，即解释器映像的入口地址。而若不装入解释器，那么这个入口地址就是目标映像本身的入口地址。
+
+     这段程序的逻辑非常简单：
+
+     如果需要装入解释器，就通过load_elf_interp装入其映像, 
+     并把将来进入用户空间的入口地址设置成load_elf_interp()的返回值，
+     即解释器映像的入口地址。
+
+     而若不装入解释器，那么这个入口地址就是目标映像本身的入口地址。
      */
     if (elf_interpreter) {
         unsigned long interp_map_addr = 0;
