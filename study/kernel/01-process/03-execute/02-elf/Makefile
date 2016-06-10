@@ -1,4 +1,3 @@
-
 target=testelf_normal testelf_dynamic testelf_static
 
 MAIN_OBJS=testelf.o
