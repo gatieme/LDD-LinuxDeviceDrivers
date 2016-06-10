@@ -102,10 +102,11 @@ int unregister_binfmt(struct linux_binfmt * fmt)
 #内核空间的加载过程load_elf_binary
 -------
 
-##load_elf_binarty注释
--------
-主要包括一下内容
+内核中实际执行execv()或execve()系统调用的程序是do_execve()，这个函数先打开目标映像文件，并从目标文件的头部（第一个字节开始）读入若干（当前Linux内核中是128）字节（实际上就是填充ELF文件头，下面的分析可以看到），然后调用另一个函数search_binary_handler()，在此函数里面，它会搜索我们上面提到的Linux支持的可执行文件类型队列，让各种可执行程序的处理程序前来认领和处理。如果类型匹配，则调用load_binary函数指针所指向的处理函数来处理目标映像文件。
 
+在ELF文件格式中，处理函数是load_elf_binary函数，下面主要就是分析load_elf_binary函数的执行过程（说明：因为内核中实际的加载需要涉及到很多东西，这里只关注跟ELF文件的处理相关的代码）
+
+其流程如下
 
 1.	填充并且检查目标程序ELF头部
 
@@ -127,9 +128,7 @@ int unregister_binfmt(struct linux_binfmt * fmt)
 ##填充并且检查目标程序ELF头部
 -------
 
-内核中实际执行execv()或execve()系统调用的程序是do_execve()，这个函数先打开目标映像文件，并从目标文件的头部（第一个字节开始）读入若干（当前Linux内核中是128）字节（实际上就是填充ELF文件头，下面的分析可以看到），然后调用另一个函数search_binary_handler()，在此函数里面，它会搜索我们上面提到的Linux支持的可执行文件类型队列，让各种可执行程序的处理程序前来认领和处理。如果类型匹配，则调用load_binary函数指针所指向的处理函数来处理目标映像文件。
 
-在ELF文件格式中，处理函数是load_elf_binary函数，下面主要就是分析load_elf_binary函数的执行过程（说明：因为内核中实际的加载需要涉及到很多东西，这里只关注跟ELF文件的处理相关的代码）：
 
 ```c
 struct pt_regs *regs = current_pt_regs();
@@ -502,6 +501,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
      即解释器的文件名，如"/lib/ld-linux.so.2"。
      有了解释器的文件名以后，就通过open_exec()打开这个文件，再通过kernel_read()读入其开关128个字节，即解释器映像的头部。*/
     for (i = 0; i < loc->elf_ex.e_phnum; i++) {
+    	/*  3.1	解释器"段的类型为PT_INTERP  */
         if (elf_ppnt->p_type == PT_INTERP) {
             /* This is the program interpreter used for
              * shared libraries - for now assume that this
@@ -518,7 +518,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
             if (!elf_interpreter)
                 goto out_free_ph;
 
-            /*  3.1 根据其位置的p_offset和大小p_filesz把整个"解释器"段的内容读入缓冲区  */
+            /*  3.2 根据其位置的p_offset和大小p_filesz把整个"解释器"段的内容读入缓冲区  */
             retval = kernel_read(bprm->file, elf_ppnt->p_offset,
                          elf_interpreter,
                          elf_ppnt->p_filesz);
@@ -531,7 +531,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
             retval = -ENOEXEC;
             if (elf_interpreter[elf_ppnt->p_filesz - 1] != '\0')
                 goto out_free_interp;
-            /*  3.2 通过open_exec()打开解释器文件 */
+            /*  3.3 通过open_exec()打开解释器文件 */
             interpreter = open_exec(elf_interpreter);
             retval = PTR_ERR(interpreter);
             if (IS_ERR(interpreter))
@@ -545,7 +545,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
             would_dump(bprm, interpreter);
 
             /* Get the exec headers 
-               3.3  通过kernel_read()读入解释器的前128个字节，即解释器映像的头部。*/
+               3.4  通过kernel_read()读入解释器的前128个字节，即解释器映像的头部。*/
             retval = kernel_read(interpreter, 0,
                          (void *)&loc->interp_elf_ex,
                          sizeof(loc->interp_elf_ex));
