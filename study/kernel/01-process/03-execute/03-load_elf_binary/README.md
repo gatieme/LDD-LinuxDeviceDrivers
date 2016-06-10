@@ -281,7 +281,27 @@ out:
 
 可以使用readelf -l查看program headers, 其中的INTERP段标识了我们程序所需要的解释器
 
-![](./images/elf_interpreter.jpg)
+```c
+readelf -l testelf_normal
+```
+
+![testelf_normal的解释器](./images/testelf_normal_interpreter.jpg)
+
+```c
+readelf -l testelf_dynamic
+```
+
+![testelf_normal的解释器](./images/testelf_dynamic_interpreter.jpg)
+
+```c
+readelf -l test_static
+```
+![testelf_normal的解释器](./images/testelf_static_interpreter.jpg)
+
+我们可以看到testelf_normal和testelf_dynamic都是动态链接的需要解释器
+
+而testelf_static则是静态链接的不需要解释器
+
 
 ##检查并读取解释器的程序表头
 -------
