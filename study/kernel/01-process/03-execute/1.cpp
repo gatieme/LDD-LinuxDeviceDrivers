@@ -44,24 +44,26 @@ static int load_elf_binary(struct linux_binprm *bprm)
 
     retval = -ENOEXEC;
     /* 
-        First of all, some simple consistency checks 
-       比较文件头的前四个字节，查看是否是ELF文件类型定义的“\177ELF”*/
+        1.2 First of all, some simple consistency checks 
+       比较文件头的前四个字节，查看是否是ELF文件类型定义的"\177ELF"*/
     if (memcmp(loc->elf_ex.e_ident, ELFMAG, SELFMAG) != 0)
         goto out;
     /*  
-        除前4个字符以外，还要看映像的类型是否ET_EXEC和ET_DYN之一；前者表示可执行映像，后者表示共享库
+        1.3 除前4个字符以外，还要看映像的类型是否ET_EXEC和ET_DYN之一；前者表示可执行映像，后者表示共享库
     */
     if (loc->elf_ex.e_type != ET_EXEC && loc->elf_ex.e_type != ET_DYN)
         goto out;
     
-    /*  检查特定的目标机器标识  */
+    /*  1.4 检查特定的目标机器标识  */
     if (!elf_check_arch(&loc->elf_ex))
         goto out;
     if (!bprm->file->f_op->mmap)
         goto out;
+    
     /* 
+        2.   load_elf_phdrs 加载程序头表
         load_elf_phdrs函数就是通过kernel_read读入整个program header table。从函数代码中可以看到，一个可执行程序必须至少有一个段（segment），而所有段的大小之和不能超过64K。
-*/
+    */
     elf_phdata = load_elf_phdrs(&loc->elf_ex, bprm->file);
     if (!elf_phdata)
         goto out;
@@ -75,8 +77,13 @@ static int load_elf_binary(struct linux_binprm *bprm)
     start_data = 0;
     end_data = 0;
     /*
-    
-     这个for循环的目的在于寻找和处理目标映像的“解释器”段。“解释器”段的类型为PT_INTERP，找到后就根据其位置的p_offset和大小p_filesz把整个“解释器”段的内容读入缓冲区。“解释器”段实际上只是一个字符串，即解释器的文件名，如“/lib/ld-linux.so.2”。有了解释器的文件名以后，就通过open_exec()打开这个文件，再通过kernel_read()读入其开关128个字节，即解释器映像的头部。*/
+        3.   寻找和处理解释器段
+     这个for循环的目的在于寻找和处理目标映像的"解释器"段。
+     "解释器"段的类型为PT_INTERP，
+     找到后就根据其位置的p_offset和大小p_filesz把整个"解释器"段的内容读入缓冲区。
+     "解释器"段实际上只是一个字符串，
+     即解释器的文件名，如"/lib/ld-linux.so.2"。
+     有了解释器的文件名以后，就通过open_exec()打开这个文件，再通过kernel_read()读入其开关128个字节，即解释器映像的头部。*/
     for (i = 0; i < loc->elf_ex.e_phnum; i++) {
         if (elf_ppnt->p_type == PT_INTERP) {
             /* This is the program interpreter used for
@@ -94,7 +101,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
             if (!elf_interpreter)
                 goto out_free_ph;
 
-            /*  根据其位置的p_offset和大小p_filesz把整个“解释器”段的内容读入缓冲区  */
+            /*  3.1 根据其位置的p_offset和大小p_filesz把整个"解释器"段的内容读入缓冲区  */
             retval = kernel_read(bprm->file, elf_ppnt->p_offset,
                          elf_interpreter,
                          elf_ppnt->p_filesz);
@@ -107,7 +114,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
             retval = -ENOEXEC;
             if (elf_interpreter[elf_ppnt->p_filesz - 1] != '\0')
                 goto out_free_interp;
-            /*  通过open_exec()打开解释器文件 */
+            /*  3.2 通过open_exec()打开解释器文件 */
             interpreter = open_exec(elf_interpreter);
             retval = PTR_ERR(interpreter);
             if (IS_ERR(interpreter))
@@ -121,7 +128,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
             would_dump(bprm, interpreter);
 
             /* Get the exec headers 
-               通过kernel_read()读入解释器的前128个字节，即解释器映像的头部。我们以Hello World程序为例，看一下这段中具体的内容：*/
+               3.3  通过kernel_read()读入解释器的前128个字节，即解释器映像的头部。*/
             retval = kernel_read(interpreter, 0,
                          (void *)&loc->interp_elf_ex,
                          sizeof(loc->interp_elf_ex));
@@ -136,7 +143,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
         elf_ppnt++;
     }
 
-     /*    */
+     /*   4.    检查并读取解释器的程序表头 */
 
     elf_ppnt = elf_phdata;
     for (i = 0; i < loc->elf_ex.e_phnum; i++, elf_ppnt++)
@@ -157,7 +164,8 @@ static int load_elf_binary(struct linux_binprm *bprm)
             break;
         }
 
-    /* Some simple consistency checks for the interpreter */
+    /* Some simple consistency checks for the interpreter 
+       4.1  检查解释器头的信息  */
     if (elf_interpreter) {
         retval = -ELIBBAD;
         /* Not an ELF interpreter */
@@ -168,7 +176,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
             goto out_free_dentry;
 
         /* Load the interpreter program headers
-           读入解释器的程序头
+           4.2  读入解释器的程序头
          */
         interp_elf_phdata = load_elf_phdrs(&loc->interp_elf_ex,
                            interpreter);
@@ -414,7 +422,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
         goto out;
 #endif /* ARCH_HAS_SETUP_ADDITIONAL_PAGES */
 
-    /*   在完成装入，启动用户空间的映像运行之前，还需要为目标映像和解释器准备好一些有关的信息，这些信息包括常规的argc、envc等等，还有一些“辅助向量（Auxiliary Vector）”。这些信息需要复制到用户空间，使它们在CPU进入解释器或目标映像的程序入口时出现在用户空间堆栈上。这里的create_elf_tables()就起着这个作用。
+    /*   在完成装入，启动用户空间的映像运行之前，还需要为目标映像和解释器准备好一些有关的信息，这些信息包括常规的argc、envc等等，还有一些"辅助向量（Auxiliary Vector）"。这些信息需要复制到用户空间，使它们在CPU进入解释器或目标映像的程序入口时出现在用户空间堆栈上。这里的create_elf_tables()就起着这个作用。
     */
     install_exec_creds(bprm);
     retval = create_elf_tables(bprm, &loc->elf_ex,
