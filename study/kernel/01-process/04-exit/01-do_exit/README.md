@@ -51,6 +51,10 @@ _Exit是c语言的库函数，自c99后加入，等价于_exit，即可以认为
 #进程退出的系统调用
 -------
 
+##_exit和exit_group系统调用
+-------
+
+
 **_exit系统调用**
 
 进程退出由exit系统调用来完成, 这使得内核有机会将该进程所使用的资源释放回系统中
@@ -89,10 +93,11 @@ _exit和exit_group这两个系统调用在Linux内核中的入口点函数分别
 
 
 
-##_exit和exit_group系统调用
 
-###系统调用声明
+
+##系统调用声明
 -------
+
 
 声明见[include/linux/syscalls.h, line 326](http://lxr.free-electrons.com/source/include/linux/syscalls.h#L326)
 ```c
@@ -108,8 +113,9 @@ asmlinkage long sys_waitpid(pid_t pid, int __user *stat_addr, int options);
 ```
 
 
-###系统调用号
+##系统调用号
 -------
+
 
 其系统调用号是一个体系结构相关的定义, 但是多数体系结构的定义如下, 在[include/uapi/asm-generic/unistd.h, line 294](http://lxr.free-electrons.com/source/include/uapi/asm-generic/unistd.h?v=4.6#L294)文件中
 ```c
@@ -131,7 +137,7 @@ __SC_COMP(__NR_waitid, sys_waitid, compat_sys_waitid)
 | 通用 | [include/uapi/asm-generic/unistd.h, line 294](http://lxr.free-electrons.com/source/include/uapi/asm-generic/unistd.h?v=4.6#L294) |
 
 
-###系统调用实现
+##系统调用实现
 -------
 
 然后系统调用的实现在[kernel/exit.c](http://lxr.free-electrons.com/source/kernel/exit.c?v=4.6) 中
@@ -155,7 +161,8 @@ SYSCALL_DEFINE1(exit_group, int, error_code)
         return 0;
 }
 ```
-##do_exit_group流程
+
+#do_exit_group流程
 -------
 
 
@@ -209,14 +216,14 @@ do_group_exit(int exit_code)
 }
 ```
 
-##do_exit流程
+#do_exit流程
 -------
 
 进程终止所要完成的任务都是由do_exit函数来处理。
 
 该函数定义在[kernel/exit.c](http://lxr.free-electrons.com/source/kernel/exit.c#L652)中
 
-###触发task_exit_nb通知链实例的处理函数
+##触发task_exit_nb通知链实例的处理函数
 
 ```c
 profile_task_exit(tsk);
@@ -256,7 +263,7 @@ static BLOCKING_NOTIFIER_HEAD(task_exit_notifier);
 
 ```
 
-###检查进程的blk_plug是否为空
+##检查进程的blk_plug是否为空
 
 保证task_struct中的plug字段是空的，或者plug字段指向的队列是空的。plug字段的意义是stack plugging
 
@@ -278,7 +285,7 @@ static inline bool blk_needs_flush_plug(struct task_struct *tsk)
 }
 ```
 
-###OOPS消息
+##OOPS消息
 -------
 
 中断上下文不能执行do_exit函数, 也不能终止PID为0的进程。
@@ -290,7 +297,7 @@ if (unlikely(!tsk->pid))
 	panic("Attempted to kill the idle task!");
 ```
 
-###设定进程可以使用的虚拟地址的上限（用户空间）
+##设定进程可以使用的虚拟地址的上限（用户空间）
 -------
 
 ```c
@@ -337,7 +344,7 @@ static inline void set_fs(mm_segment_t fs)
 }
 ```
 
-###检查进病设置进程程PF_EXITING
+##检查进病设置进程程PF_EXITING
 -------
 
 
@@ -379,7 +386,7 @@ static inline void set_fs(mm_segment_t fs)
 ```
 
 
-###内存屏障
+##内存屏障
 -------
 
 ```c
@@ -393,14 +400,14 @@ static inline void set_fs(mm_segment_t fs)
     raw_spin_unlock_wait(&tsk->pi_lock);
 ```
 
-###同步进程的mm的rss_stat
+##同步进程的mm的rss_stat
 ```c
     /* sync mm's RSS info before statistics gathering */
     if (tsk->mm)
         sync_mm_rss(tsk->mm);
 ```
 
-###获取current->mm->rss_stat.count[member]计数 
+##获取current->mm->rss_stat.count[member]计数 
 -------
 
 ```c
@@ -461,8 +468,11 @@ static void __acct_update_integrals(struct task_struct *tsk,
     tsk->acct_vm_mem1 += delta * tsk->mm->total_vm >> 10;
 }
 ```
-###清除定时器
+
+
+##清除定时器
 -------
+
 
 ```c
     group_dead = atomic_dec_and_test(&tsk->signal->live);
@@ -475,15 +485,17 @@ static void __acct_update_integrals(struct task_struct *tsk,
 ```
 
 
-###收集进程会计信息
+##收集进程会计信息
 -------
+
 
 ```c
     acct_collect(code, group_dead);
 ```
 
-###审计
+##审计
 -------
+
 
 ```c
     if (group_dead)
@@ -492,7 +504,7 @@ static void __acct_update_integrals(struct task_struct *tsk,
 ```
 
 
-###释放进程占用的资源
+##释放进程占用的资源
 -------
 
 **释放线性区描述符和页表**
