@@ -10,7 +10,7 @@ void do_exit(long code)
     profile_task_exit(tsk);
 
     /*
-        http://lxr.free-electrons.com/source/kernel/kcov.c?v=4.6;#L104  
+        http://lxr.free-electrons.com/source/kernel/kcov.c?v=4.6;#L104
         https://lwn.net/Articles/671640
     */
     kcov_task_exit(tsk);
@@ -18,7 +18,7 @@ void do_exit(long code)
     /*  http://lxr.free-electrons.com/source/include/linux/blkdev.h?v=4.6;#L1095  */
     WARN_ON(blk_needs_flush_plug(tsk));
 
-    /*  oops消息  
+    /*  oops消息
         中断上下文不能执行do_exit函数
         也不能终止PID为0的进程。
     */
@@ -33,28 +33,30 @@ void do_exit(long code)
      * continuing. Amongst other possible reasons, this is to prevent
      * mm_release()->clear_child_tid() from writing to a user-controlled
      * kernel address.
-     * 
-     * 设定进程可以使用的虚拟地址的上限（用户空间） 
+     *
+     * 设定进程可以使用的虚拟地址的上限（用户空间）
      * http://lxr.free-electrons.com/ident?v=4.6;i=set_fs
      */
     set_fs(USER_DS);
-    /*  
+    /*
         possibly stop for a ptrace event notification
         由于进程如果是在ptrace调试事件中终止的
         因此需要将信息发送给ptrace的进程
         函数定义在 http://lxr.free-electrons.com/source/include/linux/ptrace.h?v=4.6#L133  */
     ptrace_event(PTRACE_EVENT_EXIT, code);
-    
+
     /*
         heck creds for do_exit()
-        http://lxr.free-electrons.com/source/kernel/cred.c?v=4.6#L805  
+        http://lxr.free-electrons.com/source/kernel/cred.c?v=4.6#L805
     */
     validate_creds_for_do_exit(tsk);
     /*
      * We're taking recursive faults here in do_exit. Safest is to just
      * leave this task alone and wait for reboot.
      */
-    if (unlikely(tsk->flags & PF_EXITING)) {
+
+    /*current->flags的PF_EXITING标志表示进程正在被删除  */
+    if (unlikely(tsk->flags & PF_EXITING)) {  /*  检查PF_EXITING标志是否未被设置  */
         pr_alert("Fixing recursive fault but reboot is needed!\n");
         /*
          * We can do this unlocked here. The futex code uses
@@ -67,19 +69,23 @@ void do_exit(long code)
          */
         /*  设置进程标识为PF_EXITPIDONE*/
         tsk->flags |= PF_EXITPIDONE;
+        /*  设置进程状态为不可中断的等待状态 */
         set_current_state(TASK_UNINTERRUPTIBLE);
+        /*  调度其它进程  */
         schedule();
     }
     /*
         tsk->flags |= PF_EXITING;
         http://lxr.free-electrons.com/source/kernel/signal.c#L2383
     */
-    exit_signals(tsk);  /* sets tsk->flags PF_EXITING */
+    exit_signals(tsk);  /* sets tsk->flags PF_EXITING  设置PF_EXITING标志  */
     /*
      * tsk->flags are checked in the futex code to protect against
      * an exiting task cleaning up the robust pi futexes.
      */
+    /*  内存屏障，用于确保在它之后的操作开始执行之前，它之前的操作已经完成  */
     smp_mb();
+    /*  一直等待，直到获得current->pi_lock自旋锁  */
     raw_spin_unlock_wait(&tsk->pi_lock);
 
     if (unlikely(in_atomic())) {
@@ -95,7 +101,7 @@ void do_exit(long code)
 
     /*
         cct_update_integrals - update mm integral fields in task_struct
-        更新进程的运行时间
+        更新进程的运行时间, 获取current->mm->rss_stat.count[member]计数
         http://lxr.free-electrons.com/source/kernel/tsacct.c?v=4.6#L152
     */
     acct_update_integrals(tsk);
@@ -114,11 +120,11 @@ void do_exit(long code)
     tsk->exit_code = code;
     taskstats_exit(tsk, group_dead);
 
-    /*  释放存储空间 
-    放弃进程占用的mm,如果没有其他进程使用该mm，则释放它。  
+    /*  释放存储空间
+    放弃进程占用的mm,如果没有其他进程使用该mm，则释放它。
      */
     exit_mm(tsk);
-
+    /*  输出进程会计信息  */
     if (group_dead)
         acct_process();
     trace_sched_process_exit(tsk);
@@ -139,9 +145,9 @@ void do_exit(long code)
      *
      * because of cgroup mode, must be called before cgroup_exit()
      */
-    /*  When a child task exits, feed back event values to parent events.  
-    http://lxr.free-electrons.com/source/kernel/events/core.c#L8987  
-    */ 
+    /*  When a child task exits, feed back event values to parent events.
+    http://lxr.free-electrons.com/source/kernel/events/core.c#L8987
+    */
     perf_event_exit_task(tsk);
 
     cgroup_exit(tsk);
