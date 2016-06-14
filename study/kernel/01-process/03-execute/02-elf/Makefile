@@ -1,3 +1,14 @@
+ifeq ($(DEBUG), y)
+
+	DEFFLAGS=-DDEBUG -DLINUX
+	CFLAGS= -g3 -Wall
+else
+
+	DEFFLAGS=-DRELEASE -DLINUX
+
+endif
+
+
 target=testelf_normal testelf_dynamic testelf_static
 
 MAIN_OBJS=testelf.o
@@ -9,7 +20,7 @@ STAT_FILE=libtestelf.a
 all:$(target)
 
 %.o : %.c
-	$(CC) -c $^ -o $@
+	$(CC) $(CFLAGS) -c $^ -o $@
 
 clean :
 	rm -rf $(MAIN_OBJS) $(SUBS_OBJS)
@@ -36,3 +47,13 @@ libtestelf.so:$(SUBS_OBJS)
 # Complie the Static Link Library libtestelf.so
 libtestelf.a:$(SUBS_OBJS)
 	ar -r $@ $^
+
+#=======
+#ERROR
+#=======
+#
+#/usr/bin/ld: cannot find -lc
+#collect2: error: ld returned 1 exit status
+#	make: *** [testelf_static] Error 1
+#
+#yum install glibc-static

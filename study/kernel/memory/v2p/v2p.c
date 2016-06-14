@@ -21,6 +21,28 @@ static unsigned long va;
 module_param(pid,int,0644);
 module_param(va,ulong,0644);
 
+
+/*
+*	find_task_by_pid maybe not supported
+*	O(n) is fine :)
+*/
+struct task_struct * findTaskByPid(pid_t pid)
+{
+	struct task_struct *task = NULL;
+
+    //  Traversing the process in the system to find the PID
+    //  add by gatieme @2016-03-20
+    for_each_process(task)
+	{
+		if(task->pid == pid)
+        {
+            printk("find task by pid = %d\n", pid);
+			return task;
+	    }
+    }
+	return NULL;
+}
+
 static int find_pgd_init(void)
 {
         unsigned long pa = 0;
@@ -43,7 +65,8 @@ static int find_pgd_init(void)
 
         printk(KERN_INFO"PAGE_MASK = 0x%lx\n",PAGE_MASK);
 
-        if(!(pcb_tmp = find_task_by_pid(pid)))
+        //if(!(pcb_tmp = find_task_by_pid(pid)))
+        if(!(pcb_tmp = findTaskByPid(pid)))
         {
                 printk(KERN_INFO"Can't find the task %d .\n",pid);
                 return 0;
