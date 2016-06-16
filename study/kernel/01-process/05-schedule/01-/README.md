@@ -273,38 +273,6 @@ linux2.6内核将任务优先级进行了一个划分, 实时优先级范围是0
 | 0——99 | 实时进程 |
 | 100——139 | 非实时进程 |
 
-
-###调度策略相关字段
--------
-
-```c
-/*  http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.5#L1426  */
-unsigned int policy;
-
-/*  http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.5#L1409  */
-
-const struct sched_class *sched_class;
-struct sched_entity se;
-struct sched_rt_entity rt;
-
-
-cpumask_t cpus_allowed;
-```
-
-| 字段 | 描述 |
-| ------------- |:-------------:|
-| sched_class | 调度类 |
-| se | 普通进程的调用实体，每个进程都有其中之一的实体 |
-| rt | 实时进程的调用实体，每个进程都有其中之一的实体 |
-| cpus_allowed | 用于控制进程可以在哪里处理器上运行 |
-
-
-调度器不限于调度进程, 还可以调度更大的实体, 比如实现组调度: 可用的CPUI时间首先在一半的进程组(比如, 所有进程按照所有者分组)之间分配, 接下来分配的时间再在组内进行二次分配
-
-cpus_allows是一个位域, 在多处理器系统上使用, 用来限制进程可以在哪些CPU上运行。
-
-
-
 ###调度策略
 -------
 
@@ -358,10 +326,41 @@ SCHED_RR和SCHED_FIFO用于实现软实时进程. SCHED_RR实现了轮流调度�
 
 
 
+###调度策略相关字段
+-------
+
+```c
+/*  http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.5#L1426  */
+unsigned int policy;
+
+/*  http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.5#L1409  */
+
+const struct sched_class *sched_class;
+struct sched_entity se;
+struct sched_rt_entity rt;
+struct sched_dl_entity dl;
+
+cpumask_t cpus_allowed;
+```
+
+| 字段 | 描述 |
+| ------------- |:-------------:|
+| sched_class | 调度类 |
+| se | 普通进程的调用实体, 每个进程都有其中之一的实体 |
+| rt | 实时进程的调用实体, 每个进程都有其中之一的实体 |
+| dl | deadline的调度实体 |
+| cpus_allowed | 用于控制进程可以在哪里处理器上运行 |
+
+
+调度器不限于调度进程, 还可以调度更大的实体, 比如实现组调度: 可用的CPUI时间首先在一半的进程组(比如, 所有进程按照所有者分组)之间分配, 接下来分配的时间再在组内进行二次分配
+
+cpus_allows是一个位域, 在多处理器系统上使用, 用来限制进程可以在哪些CPU上运行
+
+
 ##调度类
 -------
 
-sched_class结构体表示调度类，目前内核中有实现以下四种： 
+sched_class结构体表示调度类, 目前内核中有实现以下四种:
 
 ```c
 extern const struct sched_class stop_sched_class;
