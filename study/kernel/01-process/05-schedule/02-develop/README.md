@@ -6,7 +6,7 @@ Linux进程调度的演变
 | ------- |:-------:|:-------:|:-------:|:-------:|:-------:|
 | 2016-06-14 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
 
-#前沿
+#前言
 -------
 
 ##进程调度
@@ -120,7 +120,7 @@ Linux2.4调度器是如何提高交互式进程的优先级的呢？如前所述
 为了解决这些问题，Ingo Molnar开发了新的$O(1)调度器，在CFS和RSDL之前，这个调度器不仅被Linux2.6采用，还被backport到Linux2.4中，很多商业的发行版本都采用了这个调度器
 
 
-#$O(1)的调度算法
+#$O(1)$的调度算法
 -------
 
 ##概述
