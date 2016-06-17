@@ -308,7 +308,7 @@ policy保存了进程的调度策略，目前主要有以下五种：
 | SCHED_IDLE | 优先级最低，在系统空闲时才跑这类进程(如利用闲散计算机资源跑地外文明搜索，蛋白质结构分析等任务，是此调度策略的适用者）| CFS |
 | SCHED_FIFO | 先入先出调度算法（实时调度策略），相同优先级的任务先到先服务，高优先级的任务可以抢占低优先级的任务 | RT |
 | SCHED_RR | 轮流调度算法（实时调度策略），后 者提供 Roound-Robin 语义，采用时间片，相同优先级的任务当用完时间片会被放到队列尾部，以保证公平性，同样，高优先级的任务可以抢占低优先级的任务。不同要求的实时任务可以根据需要用sched_setscheduler()API 设置策略 | RT |
-| SCHED_DEADLINE | 新支持的实时进程调度策略，针对突发型计算，且对延迟和完成时间高度敏感的任务适用。基于Earliest Deadline First (EDF) 调度算法|
+| SCHED_DEADLINE | 新支持的实时进程调度策略，针对突发型计算，且对延迟和完成时间高度敏感的任务适用。基于Earliest Deadline First (EDF) 调度算法 |
 
 >CHED_BATCH用于非交互的处理器消耗型进程
 >
@@ -345,7 +345,7 @@ cpumask_t cpus_allowed;
 
 | 字段 | 描述 |
 | ------------- |:-------------:|
-| sched_class | 调度类 |
+| sched_class | 调度类, 调度类，调度处理函数类 |
 | se | 普通进程的调用实体, 每个进程都有其中之一的实体 |
 | rt | 实时进程的调用实体, 每个进程都有其中之一的实体 |
 | dl | deadline的调度实体 |
@@ -357,12 +357,108 @@ cpumask_t cpus_allowed;
 cpus_allows是一个位域, 在多处理器系统上使用, 用来限制进程可以在哪些CPU上运行
 
 
-##调度类
+#调度类
 -------
 
-sched_class结构体表示调度类, 目前内核中有实现以下四种:
+sched_class结构体表示调度类, 类提供了通用调度器和各个调度器之间的关联, 调度器类和特定数据结构中汇集地几个函数指针表示, 全局调度器请求的各个操作都可以用一个指针表示, 这使得无需了解调度器类的内部工作原理即可创建通用调度器, 定义在[kernel/sched/sched.h](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L1184)
 
 ```c
+struct sched_class {
+	/*	系统中多个调度类, 按照其调度的优先级排成一个链表
+    下一优先级的调度类
+     * 调度类优先级顺序: stop_sched_class -> dl_sched_class -> rt_sched_class -> fair_sched_class -> idle_sched_class
+     */
+    const struct sched_class *next;
+	
+    /*  将进程加入到运行队列中，即将调度实体（进程）放入红黑树中，并对 nr_running 变量加1   */
+    void (*enqueue_task) (struct rq *rq, struct task_struct *p, int flags);
+    /*  从运行队列中删除进程，并对 nr_running 变量中减1  */
+    void (*dequeue_task) (struct rq *rq, struct task_struct *p, int flags);
+    /*  放弃CPU，在 compat_yield sysctl 关闭的情况下，该函数实际上执行先出队后入队；在这种情况下，它将调度实体放在红黑树的最右端  */
+    void (*yield_task) (struct rq *rq);
+    bool (*yield_to_task) (struct rq *rq, struct task_struct *p, bool preempt);
+	/*   检查当前进程是否可被新进程抢占 */
+    void (*check_preempt_curr) (struct rq *rq, struct task_struct *p, int flags);
+
+    /*
+     * It is the responsibility of the pick_next_task() method that will
+     * return the next task to call put_prev_task() on the @prev task or
+     * something equivalent.
+     *
+     * May return RETRY_TASK when it finds a higher prio class has runnable
+     * tasks.
+     */
+     /*  选择下一个应该要运行的进程运行  */
+    struct task_struct * (*pick_next_task) (struct rq *rq,
+                        struct task_struct *prev);
+	/* 将进程放回运行队列 */
+    void (*put_prev_task) (struct rq *rq, struct task_struct *p);
+
+#ifdef CONFIG_SMP
+	/* 为进程选择一个合适的CPU */
+    int  (*select_task_rq)(struct task_struct *p, int task_cpu, int sd_flag, int flags);
+	/* 迁移任务到另一个CPU */
+	void (*migrate_task_rq)(struct task_struct *p);
+	/* 用于进程唤醒 */
+    void (*task_waking) (struct task_struct *task);
+    void (*task_woken) (struct rq *this_rq, struct task_struct *task);
+	/* 修改进程的CPU亲和力(affinity) */
+    void (*set_cpus_allowed)(struct task_struct *p,
+                 const struct cpumask *newmask);
+	/* 启动运行队列 */
+    void (*rq_online)(struct rq *rq);
+     /* 禁止运行队列 */
+    void (*rq_offline)(struct rq *rq);
+#endif
+	/* 当进程改变它的调度类或进程组时被调用 */
+    void (*set_curr_task) (struct rq *rq);
+	/* 该函数通常调用自 time tick 函数；它可能引起进程切换。这将驱动运行时（running）抢占 */
+    void (*task_tick) (struct rq *rq, struct task_struct *p, int queued);
+	/* 在进程创建时调用，不同调度策略的进程初始化不一样 */
+    void (*task_fork) (struct task_struct *p);
+	/* 在进程退出时会使用 */
+    void (*task_dead) (struct task_struct *p);
+
+    /*
+     * The switched_from() call is allowed to drop rq->lock, therefore we
+     * cannot assume the switched_from/switched_to pair is serliazed by
+     * rq->lock. They are however serialized by p->pi_lock.
+     */
+	/* 用于进程切换 */
+    void (*switched_from) (struct rq *this_rq, struct task_struct *task);
+    void (*switched_to) (struct rq *this_rq, struct task_struct *task);
+	/* 改变优先级 */
+    void (*prio_changed) (struct rq *this_rq, struct task_struct *task,
+                 int oldprio);
+
+    unsigned int (*get_rr_interval) (struct rq *rq,
+                     struct task_struct *task);
+
+    void (*update_curr) (struct rq *rq);
+
+#ifdef CONFIG_FAIR_GROUP_SCHED
+    void (*task_move_group) (struct task_struct *p);
+#endif
+};
+```
+| 成员 | 描述 |
+| ------------- |:-------------:|
+| enqueue_task | 向就绪队列中添加一个进程, 某个任务进入可运行状态时，该函数将得到调用。它将调度实体（进程）放入红黑树中，并对 nr_running 变量加 1 |
+| dequeue_task | 将一个进程从就就绪队列中删除, 当某个任务退出可运行状态时调用该函数，它将从红黑树中去掉对应的调度实体，并从 nr_running 变量中减 1 |
+| yield_task | 在进程想要资源放弃对处理器的控制权的时, 可使用在sched_yield系统调用, 会调用内核API yield_task完成此工作. compat_yield sysctl 关闭的情况下，该函数实际上执行先出队后入队；在这种情况下，它将调度实体放在红黑树的最右端 |
+| check_preempt_curr | 该函数将检查当前运行的任务是否被抢占。在实际抢占正在运行的任务之前，CFS 调度程序模块将执行公平性测试。这将驱动唤醒式（wakeup）抢占 |
+| pick_next_task | 该函数选择接下来要运行的最合适的进程 |
+| put_prev_task | 用另一个进程代替当前运行的进程 |
+| set_curr_task | 当任务修改其调度类或修改其任务组时，将调用这个函数 |
+| task_tick | 在每次激活周期调度器时, 由周期性调度器调用, 该函数通常调用自 time tick 函数；它可能引起进程切换。这将驱动运行时（running）抢占 |
+| task_new | 内核调度程序为调度模块提供了管理新任务启动的机会, 用于建立fork系统调用和调度器之间的关联, 每次新进程建立后, 则用new_task通知调度器, CFS 调度模块使用它进行组调度，而用于实时任务的调度模块则不会使用这个函数 |
+
+
+对于各个调度器类, 都必须提供struct sched_class的一个实例, 目前内核中有实现以下五种:
+
+
+```c
+// http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L1254
 extern const struct sched_class stop_sched_class;
 extern const struct sched_class dl_sched_class;
 extern const struct sched_class rt_sched_class;
@@ -371,16 +467,42 @@ extern const struct sched_class idle_sched_class;
 ```
 
 
-| 调度器类 | 描述 |
-| ------------- |:-------------:|
-| idle_sched_class | 每个cup的第一个pid=0线程：swapper，是一个静态线程。调度类属于：idel_sched_class，所以在ps里面是看不到的。一般运行在开机过程和cpu异常的时候做dump |
-| stop_sched_class | 优先级最高的线程，会中断所有其他线程，且不会被其他任务打断。作用：1.发生在cpu_stop_cpu_callback 进行cpu之间任务migration；2.HOTPLUG_CPU的情况下关闭任务。|
-| rt_sched_class | RT，作用：实时线程 |
-| fair_sched_class | CFS（公平），作用：一般常规线程 |
+| 调度器类 | 定义| 描述 |
+| ------------- |:-------------:|-------------:|
+| stop_sched_class | [kernel/sched/stop_task.c, line 112](http://lxr.free-electrons.com/source/kernel/sched/stop_task.c?v=4.6#L109) | 优先级最高的线程，会中断所有其他线程，且不会被其他任务打断。作用：<br>1.发生在cpu_stop_cpu_callback 进行cpu之间任务migration；<br>2.HOTPLUG_CPU的情况下关闭任务。|
+| dl_sched_class | [kernel/sched/deadline.c, line 1774](http://lxr.free-electrons.com/source/kernel/sched/deadline.c?v=4.6#L1774) |
+| rt_sched_class | [kernel/sched/rt.c, line 2326](http://lxr.free-electrons.com/source/kernel/sched/rt.c?v=4.6#L2326) | RT，作用：实时线程 |
+| idle_sched_class | [kernel/sched/idle_task.c, line 81](http://lxr.free-electrons.com/source/kernel/sched/idle_task.c?v=4.6#L81) |每个cup的第一个pid=0线程：swapper，是一个静态线程。调度类属于：idel_sched_class，所以在ps里面是看不到的。一般运行在开机过程和cpu异常的时候做dump |
+| fair_sched_class | [kernel/sched/fair.c, line 8521](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L8521) |CFS（公平调度器），作用：一般常规线程 |
 
-目前系統中,Scheduling Class的优先级顺序为StopTask > RealTime > Fair > IdleTask
-
+目前系統中,Scheduling Class的优先级顺序为
+```c
+stop_sched_class -> dl_sched_class -> rt_sched_class -> fair_sched_class -> idle_sched_class
+```
 开发者可以根据己的设计需求,來把所属的Task配置到不同的Scheduling Class中.
+用户层应用程序无法直接与调度类交互, 他们只知道上下文定义的常量SCHED_XXX(用task_struct->policy表示), 这些常量提供了调度类之间的映射。
+
+SCHED_NORMAL, SCHED_BATCH, SCHED_IDLE被映射到fair_sched_class
+
+SCHED_RR和SCHED_FIFO则与rt_schedule_class相关联
 
 
+##就绪队列
+-------
+
+就绪队列是核心调度器用于管理活动进程的主要数据结构。
+
+各个·CPU都有自身的就绪队列，各个活动进程只出现在一个就绪队列中, 在多个CPU上同时运行一个进程是不可能的.
+
+>早期的内核中就绪队列是全局的, 即即有全局唯一的rq, 但是 在Linux-2.6内核时代，为了更好的支持多核，Linux调度器普遍采用了per-cpu的run queue，从而克服了多CPU系统中，全局唯一的run queue由于资源的竞争而成为了系统瓶颈的问题，因为在同一时刻，一个CPU访问run queue时，其他的CPU即使空闲也必须等待，大大降低了整体的CPU利用率和系统性能。当使用per-CPU的run queue之后，每个CPU不再使用大内核锁，从而大大提高了并行处理的调度能力。
+>
+> 参照[CFS调度的总结 - （单rq vs 多rq）](http://blog.csdn.net/ustc_dylan/article/details/7303851)
+
+
+就绪队列用struct rq来表示, 其定义在[kernel/sched/sched.h, line 566](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L566)
+
+就绪队列是全局调度器许多操作的起点, 但是进程并不是由就绪队列直接管理的, 调度管理是各个调度器的职责, 因此在各个就绪队列中嵌入了特定调度类的子就绪队列(cfs的顶级调度就队列 [struct cfs_rq](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L359), 实时调度类的就绪队列[struct rt_rq](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L449)和deadline调度类的就绪队列[struct dl_rq](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L490)
+
+
+##
 http://eaglet.rain.com/rick/linux/schedstat/
