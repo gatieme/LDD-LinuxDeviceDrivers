@@ -6,8 +6,30 @@ Linux nice系统调用的实现
 | ------- |:-------:|:-------:|:-------:|:-------:|:-------:|
 | 2016-06-14 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
 
+
+
+linux优先级操作的系统调用有nice和getpriority, setpriority
+提供的命令有nice和renice
+
+| 函数 | 描述 |
+| ------- |:-------:|
+| nice | 调整进程的优先级 |
+| getpriority | 可用来取得进程、进程组和用户的进程执行优先权 |
+| setpriority |  可用来设置进程、进程组和用户的进程执行优先权 |
+
+
+| 函数 | 描述 |
+| ------- |:-------:|
+| nice | 可以改变程序执行的优先权等级 |
+| renice | 可以改变程序执行的优先权等级, 亦可以指定程序群组或用户名称调整优先权等级，并修改所有隶属于该程序群组或用户的程序的优先权 |
+
+
+
+
+
 #前言回顾
 -------
+
 
 ##优先级的内核表示
 -------
@@ -31,12 +53,18 @@ Linux nice系统调用的实现
 
 ![内核的优先级标度](./images/priority.jpg)
 
-优先级数值通过宏来定义, 如下所示, 其中MAX_RT_PRIO指定了实时进程的最大优先级, 而MAX_PRIO则是普通进程的最大优先级数值
+
+优先级数值通过宏来定义, 如下所示,
+
+其中MAX_NICE和MIN_NICE定义了nice的最大最小值
+
+而MAX_RT_PRIO指定了实时进程的最大优先级, 而MAX_PRIO则是普通进程的最大优先级数值
 
 ```c
-/*  http://lxr.free-electrons.com/source/include/linux/sched/prio.h?v=4.6#L21  */
-#define MAX_USER_RT_PRIO    100
-#define MAX_RT_PRIO     MAX_USER_RT_PRIO
+/*  http://lxr.free-electrons.com/source/include/linux/sched/prio.h?v=4.6#L4 */
+#define MAX_NICE        19
+#define MIN_NICE        -20
+#define NICE_WIDTH      (MAX_NICE - MIN_NICE + 1)
 
 /* http://lxr.free-electrons.com/source/include/linux/sched/prio.h?v=4.6#L24  */
 #define MAX_PRIO        (MAX_RT_PRIO + 40)
@@ -154,16 +182,155 @@ EPERM：调用者试着提高其优先级，但权能不足。
 | EPERM | 调用进程试图通过提供一个负值, 增加其优先但没有足够特权。Linux下的 cap_sys_nice 能力。可以通过setrlimit的rlimit_nice查看限制 |
 
 
-另请参阅
-nice (1)
+#nice系统调用的实现
+-------
 
-fork (2)
+##系统调用号和入口函数
+-------
 
-getpriority (2)
+| 系统调用号 | 入口函数声明 | 具体实现 |
+| ------- |:-------:|
+| [34](http://lxr.free-electrons.com/source/arch/arm64/include/asm/unistd32.h?v=4.6#L93) | [sys_nice](http://lxr.free-electrons.com/source/include/linux/syscalls.h?v=4.6#L287) | [SYSCALL_DEFINE1(nice, int, increment)](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3560)
 
-setpriority (2)
+**nice系统调用号**
 
-renice (8)
+```c
+//  http://lxr.free-electrons.com/source/arch/arm64/include/asm/unistd32.h?v=4.6#L93
+#define __NR_nice 34
+__SYSCALL(__NR_nice, sys_nice)
+```
+
+**nice系统调用入口函数sys_nice**
+
+```c
+//  http://lxr.free-electrons.com/source/include/linux/syscalls.h?v=4.6#L287
+asmlinkage long sys_nice(int increment);
+```
+
+**nice系统调用的实现**
+
+其具体实现在[kernel/sched/core.c](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3560)中
+
+##sys_nice实现
+-------
+
+```c
+/*
+ * sys_nice - change the priority of the current process.
+ * @increment: priority increment
+ *
+ * sys_setpriority is a more generic, but much slower function that
+ * does similar things.
+ */
+SYSCALL_DEFINE1(nice, int, increment)
+{
+    long nice, retval;
+
+    /*
+     * Setpriority might change our priority at the same moment.
+     * We don't have to worry. Conceptually one call occurs first
+     * and we have a single winner.
+     */
+    increment = clamp(increment, -NICE_WIDTH, NICE_WIDTH);
+    nice = task_nice(current) + increment;
+
+    nice = clamp_val(nice, MIN_NICE, MAX_NICE);
+    if (increment < 0 && !can_nice(current, nice))
+            return -EPERM;
+
+    retval = security_task_setnice(current, nice);
+    if (retval)
+            return retval;
+
+    set_user_nice(current, nice);
+    return 0;
+}
+```
+
+##clamp
+------
+
+
+clamp宏定义在[include/linux/kernel.h, L757](http://lxr.free-electrons.com/source/include/linux/kernel.h?v=4.6#L757), 其定义如下
+
+```c
+/**
+* clamp - return a value clamped to a given range with strict typechecking
+* @val: current value
+* @lo: lowest allowable value
+* @hi: highest allowable value
+*
+* This macro does strict typechecking of lo/hi to make sure they are of the
+* same type as val.  See the unnecessary pointer comparisons.
+
+    先求val和lo的最大值, 再求与hi的最小值
+    首先这里的参数要求lo < hi
+    *   如果val在[low,high]范围内, 即lo < val < hi, 则返回val
+    *   如果val小于lo, 即val < lo < hi, 则返回lo
+    *   如果val大于hi, 即val > hi > lo, 则返回hi
+*/
+#define clamp(val, lo, hi) min((typeof(val))max(val, lo), hi)
+```
+
+其中min和max是linux内核自己实现的函数宏, linux内核不能依赖于任何库, 因此必须实现一些基本的函数, 其中就包括最小值最大值以及字符串处理的一些函数.
+
+其中min和max函数定义在[linux-4.6/include/linux/kernel.h, L727](http://lxr.free-electrons.com/source/include/linux/kernel.h?v=4.6#L727)
+
+```c
+/*
+ * min()/max()/clamp() macros that also do
+ * strict type-checking.. See the
+ * "unnecessary" pointer comparison.
+ */
+#define min(x, y) ({                            \
+    typeof(x) _min1 = (x);                  \
+    typeof(y) _min2 = (y);                  \
+    (void) (&_min1 == &_min2);              \
+    _min1 < _min2 ? _min1 : _min2; })
+
+#define max(x, y) ({                            \
+    typeof(x) _max1 = (x);                  \
+    typeof(y) _max2 = (y);                  \
+    (void) (&_max1 == &_max2);              \
+    _max1 > _max2 ? _max1 : _max2; })
+```
+
+其中typeof关键字是C语言中的一个新扩展, 用于获取变量或者表达式的类型, 这个特性在linux内核中应用非常广泛. typeof的参数可以是两种形式：表达式或类型
+
+因此min和max这两个函数就通过简单的转换实现了求最小最大值的函数
+
+我们回过去看clamp(val, lo, hi). 这个函数会检查val是不是在[lo, hi]的范围内, 参数要求lo < hi, 这个函数会先求val和lo的最大值, 再求与hi的最小值
+
+*	如果val在[low,high]范围内, 即lo < val < hi, 则返回val
+
+*   如果val小于lo, 即val < lo < hi, 则返回lo
+
+*   如果val大于hi, 即val > hi > lo, 则返回hi
+
+##task_nice
+-------
+
+
+##clamp_val
+-------
+
+
+##can_nice
+-------
+
+##security_task_setnice
+-------
+
+##set_user_nice
+-------
+
+
+
+```c
+//  http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3497
+```
+
+
 
 http://blog.sina.com.cn/s/blog_9ca3f6e70102wkwp.html
 http://lxr.free-electrons.com/source/kernel/sched/core.c#L3527

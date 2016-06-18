@@ -147,9 +147,18 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 ![内核的优先级标度](./images/priority.jpg)
 
 
-优先级数值通过宏来定义, 如下所示, 其中MAX_RT_PRIO指定了实时进程的最大优先级, 而MAX_PRIO则是普通进程的最大优先级数值
+优先级数值通过宏来定义, 如下所示,
+
+其中MAX_NICE和MIN_NICE定义了nice的最大最小值
+
+而MAX_RT_PRIO指定了实时进程的最大优先级, 而MAX_PRIO则是普通进程的最大优先级数值
 
 ```c
+/*  http://lxr.free-electrons.com/source/include/linux/sched/prio.h?v=4.6#L4 */
+#define MAX_NICE        19
+#define MIN_NICE        -20
+#define NICE_WIDTH      (MAX_NICE - MIN_NICE + 1)
+
 /*  http://lxr.free-electrons.com/source/include/linux/sched/prio.h?v=4.6#L21  */
 #define MAX_USER_RT_PRIO    100
 #define MAX_RT_PRIO     MAX_USER_RT_PRIO
