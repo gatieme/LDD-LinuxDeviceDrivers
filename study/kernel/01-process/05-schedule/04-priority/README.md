@@ -192,7 +192,7 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 #define MAX_USER_PRIO           (USER_PRIO(MAX_PRIO))
 ```
 
-此外 
+此外也提供了一些EDF调度算法的函数, 如下所示
 
 ```c
 /* 判断一个优先级数值是不是EDF调度算法的优先级  */
@@ -375,7 +375,7 @@ prio才是调度所用的最终优先级数值，这个值越小，优先级越�
 
 而rt_priority 被称作实时进程优先级，他要经过转化——prio=MAX_RT_PRIO - 1- p->rt_priority; 
 
-MAX_RT_PRIO = 99;这样意味着rt_priority值越大，优先级越高；
+MAX_RT_PRIO = 100, ;这样意味着rt_priority值越大，优先级越高；
 
 而内核提供的修改优先级的函数，是修改rt_priority的值，所以越大，优先级越高。
 
@@ -392,7 +392,7 @@ MAX_RT_PRIO = 99;这样意味着rt_priority值越大，优先级越高；
 可以通过函数effective_prio用静态优先级static_prio计算动态优先级, 即·
 
 ```c
-/*p->prio = */effective_prio(p);
+p->prio = effective_prio(p);
 ```
 
 该函数定义在[kernel/sched/core.c, line 861](http://lxr.free-electrons.com/source/kernel/sched/core.c#L861)
@@ -418,5 +418,96 @@ static int effective_prio(struct task_struct *p)
     return p->prio;
 }
 ```
-我们会发现函数首先effective_prio设置了普通优先级, 显然我们用effective_prio同时设置了两个优先级(普通优先级normal_prio和动态优先级prio), 另外一个函数rt_prio会检测普通优先级是否在实时范围内, 即是否小于MAX_RT_PRIO, 
 
+我们会发现函数首先effective_prio设置了普通优先级, 显然我们用effective_prio同时设置了两个优先级(普通优先级normal_prio和动态优先级prio)
+
+因此计算动态优先级的流程如下
+
+*	设置进程的普通优先级(实时进程99-rt_priority, 普通进程为static_priority)
+
+*	计算进程的动态优先级(实时进程则维持动态优先级的prio不变, 普通进程普通优先级即为动态优先级)
+
+最后, 我们综述一下在针对不同类型进程的计算结果
+
+| 进程类型  | 实时优先级rt_priority | 静态优先级static_prio | 普通优先级normal_prio | 动态优先级prio |
+| ------- |:-------:|:-------:|:-------:|
+| EDF调度的实时进程 | rt_priority | 不使用 | MAX_DL_PRIO-1 | 维持原prio不变 |
+| RT算法调度的实时进程 | rt_priority | 不使用 | MAX_RT_PRIO-1-rt_priority | 维持原prio不变 |
+| 普通进程 | 不使用 | static_prio | static_prio | static_prio |
+| 优先级提高的普通进程 | 不使用 | static_prio(改变) | static_prio | 维持原prio不变 |
+
+###为什么effective_prio使用优先级数值检测实时进程
+-------
+
+t_prio会检测普通优先级是否在实时范围内, 即是否小于MAX_RT_PRIO.参见[include/linux/sched/rt.h#L6](http://lxr.free-electrons.com/source/include/linux/sched/rt.h#L6)
+
+```c
+static inline int rt_prio(int prio)
+{
+	if (unlikely(prio < MAX_RT_PRIO))
+    	return 1;
+	return 0;
+}
+```
+而前面我们在normal_prio的时候, 则通过task_has_rt_policy来判断其policy属性来确定
+```
+policy == SCHED_FIFO || policy == SCHED_RR;
+```
+那么为什么effective_prio重检测实时进程是rt_prio基于优先级数值, 而非task_has_rt_policy或者rt_policy?
+
+对于临时提高至实时优先级的非实时进程来说, 这个是必要的, 这种情况可能发生在是哦那个实时互斥量(RT-Mutex)时.
+
+##设置prio的时机
+-------
+
+
+在新进程用wake_up_new_task唤醒时, 或者使用nice系统调用改变其静态优先级时, 则会通过effective_prio的方法设置p->prio
+
+
+
+>wake_up_new_task(), 计算此进程的优先级和其他调度参数，将新的进程加入到进程调度队列并设此进程为可被调度的，以后这个进程可以被进程调度模块调度执行。
+
+
+##fork时优先级的继承
+-------
+
+在进程分叉处子进程时, 子进程的静态优先级继承自父进程. 子进程的动态优先级p->prio则被设置为父进程的普通优先级, 这确保了实时互斥量引起的优先级提高不会传递到子进程.
+
+可以参照sched_fork函数, 在进程复制的过程中copy_process通过调用sched_fork来设置子进程优先级, 参见[sched_fork函数](http://lxr.free-electrons.com/source/kernel/sched/core.c#L2236)
+
+```c
+/*
+ * fork()/clone()-time setup:
+ */
+int sched_fork(unsigned long clone_flags, struct task_struct *p)
+{
+    /*
+     * Make sure we do not leak PI boosting priority to the child.
+     */
+    p->prio = current->normal_prio;  /*  子进程的动态优先级被设置为父普通优先级  */
+
+    /*
+     * Revert to default priority/policy on fork if requested.
+     */
+    if (unlikely(p->sched_reset_on_fork)) {
+        if (task_has_dl_policy(p) || task_has_rt_policy(p)) {
+            p->policy = SCHED_NORMAL;
+            p->static_prio = NICE_TO_PRIO(0);
+            p->rt_priority = 0;
+        } else if (PRIO_TO_NICE(p->static_prio) < 0)
+            p->static_prio = NICE_TO_PRIO(0);
+
+        p->prio = p->normal_prio = __normal_prio(p);
+        set_load_weight(p);
+
+        /*
+         * We don't need the reset flag anymore after the fork. It has
+         * fulfilled its duty:
+         */
+        p->sched_reset_on_fork = 0;
+    }
+}`
+``
+
+http://blog.sina.com.cn/s/blog_9ca3f6e70102wkwp.html
+http://lxr.free-electrons.com/source/kernel/sched/core.c#L3527
