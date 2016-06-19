@@ -34,6 +34,9 @@ linux优先级操作的系统调用有nice和getpriority, setpriority
 ##优先级的内核表示
 -------
 
+
+**linux优先级概述**
+
 >在用户空间通过nice命令设置进程的静态优先级, 这在内部会调用nice系统调用, 进程的nice值在-20~+19之间. 值越低优先级越高.
 >
 >setpriority系统调用也可以用来设置进程的优先级. 它不仅能够修改单个线程的优先级, 还能修改进程组中所有进程的优先级, 或者通过制定UID来修改特定用户的所有进程的优先级
@@ -54,6 +57,10 @@ linux优先级操作的系统调用有nice和getpriority, setpriority
 ![内核的优先级标度](./images/priority.jpg)
 
 
+**内核的优先级表示**
+
+内核表示优先级的所有信息基本都放在[include/linux/sched/prio.h](http://lxr.free-electrons.com/source/include/linux/sched/prio.h?v=4.6)中, 其中定义了一些表示优先级的宏和函数, 
+
 优先级数值通过宏来定义, 如下所示,
 
 其中MAX_NICE和MIN_NICE定义了nice的最大最小值
@@ -71,11 +78,6 @@ linux优先级操作的系统调用有nice和getpriority, setpriority
 #define DEFAULT_PRIO        (MAX_RT_PRIO + 20)
 ```
 
-此外新版本的内核还引入了EDF实时调度算法, 它的优先级比RT进程和NORMAL/BATCH进程的优先级都要高, 因此内核将MAX_DL_PRIO设置为0, 可以参见内核文件[include/linux/sched/deadline.h](http://lxr.free-electrons.com/source/include/linux/sched/deadline.h)
-
-```c
-#define MAX_DL_PRIO             0
-````
 
 | 宏 | 值 | 描述 |
 | ------------- |:-------------:|:-------------:|
@@ -88,6 +90,7 @@ linux优先级操作的系统调用有nice和getpriority, setpriority
 | MAX_DL_PRIO | 0 | 使用EDF最早截止时间优先调度算法的实时进程最大的优先级 |
 
 而内核提供了一组宏将优先级在各种不同的表示形之间转移
+
 
 ```c
 //  http://lxr.free-electrons.com/source/include/linux/sched/prio.h?v=4.6#L27
@@ -109,8 +112,58 @@ linux优先级操作的系统调用有nice和getpriority, setpriority
 #define MAX_USER_PRIO           (USER_PRIO(MAX_PRIO))
 ```
 
-此外也提供了一些EDF调度算法的函数, 如下所示, 可以参见内核文件[include/linux/sched/deadline.h](http://lxr.free-electrons.com/source/include/linux/sched/deadline.h)
+还有一些nice值和rlimit值之间相互转换的函数nice_to_rlimit和rlimit_to_nice, 这在nice系统调用进行检查的时候很有用, 他们定义在[include/linux/sched/prio.h, L47](http://lxr.free-electrons.com/source/include/linux/sched/prio.h#L47)中, 如下所示
 
+
+```c
+/*
+ * Convert nice value [19,-20] to rlimit style value [1,40].
+ */
+static inline long nice_to_rlimit(long nice)
+{
+    return (MAX_NICE - nice + 1);
+}
+
+/*
+ * Convert rlimit style value [1,40] to nice value [-20, 19].
+ */
+static inline long rlimit_to_nice(long prio)
+{
+    return (MAX_NICE - prio + 1);
+}
+```
+
+**DEF最早截至时间优先实时调度算法的优先级描述**
+
+此外新版本的内核还引入了EDF实时调度算法, 它的优先级比RT进程和NORMAL/BATCH进程的优先级都要高, 关于EDF的优先级的设置信息都早内核头文件[include/linux/sched/deadline.h](http://lxr.free-electrons.com/source/include/linux/sched/deadline.h?v=4.6#L10)
+
+
+因此内核将MAX_DL_PRIO设置为0, 可以参见内核文件[include/linux/sched/deadline.h](http://lxr.free-electrons.com/source/include/linux/sched/deadline.h?v=4.6#L10)
+
+```c
+#define MAX_DL_PRIO             0
+```
+
+此外也提供了一些EDF优先级处理所需的函数, 如下所示, 可以参见内核文件[include/linux/sched/deadline.h](http://lxr.free-electrons.com/source/include/linux/sched/deadline.h?v=4.6#L12)
+
+```c
+static inline int dl_prio(int prio)
+{
+    if (unlikely(prio < MAX_DL_PRIO))
+            return 1;
+    return 0;
+}
+
+static inline int dl_task(struct task_struct *p)
+{
+    return dl_prio(p->prio);
+}
+
+static inline bool dl_time_before(u64 a, u64 b)
+{
+    return (s64)(a - b) < 0;
+}
+````
 
 ##进程的优先级表示
 -------
@@ -383,6 +436,24 @@ clamp_val宏定义在[include/linux/kernel.h, L757](http://lxr.free-electrons.co
 
 ##can_nice
 -------
+
+can_nice可检查有没有nice的权限, 该函数定义在[kernel/sched/core.c, #L3544](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3544)中, 如下所示
+
+```c
+/*
+ * can_nice - check if a task can reduce its nice value
+ * @p: task
+ * @nice: nice value
+ */
+int can_nice(const struct task_struct *p, const int nice)
+{
+    /* convert nice value [19,-20] to rlimit style value [1,40] */
+    int nice_rlim = nice_to_rlimit(nice);
+
+    return (nice_rlim <= task_rlimit(p, RLIMIT_NICE) ||
+            capable(CAP_SYS_NICE));
+}
+```
 
 ##security_task_setnice
 -------
