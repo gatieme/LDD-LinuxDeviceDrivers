@@ -114,6 +114,9 @@ linux优先级操作的系统调用有nice和getpriority, setpriority
 
 还有一些nice值和rlimit值之间相互转换的函数nice_to_rlimit和rlimit_to_nice, 这在nice系统调用进行检查的时候很有用, 他们定义在[include/linux/sched/prio.h, L47](http://lxr.free-electrons.com/source/include/linux/sched/prio.h#L47)中, 如下所示
 
+nice值是[-20, 19], 对应rlimit的[1, 40]
+
+rlimit中存储了系统中的资源限制, 之前的[linux下进程的进程最大数、最大线程数、进程打开的文件数和ulimit命令修改硬件资源限制](http://blog.csdn.net/gatieme/article/details/51058797)中提到过这个限制, 系统调用getrlimit获取系统资源上限和setrlimit设置系统资源上限其实就是在操作这些限制数据, 针对nice系统调用设置的进程优先级则就是
 
 ```c
 /*
@@ -230,7 +233,7 @@ nice的取值范围可参考getpriority的描述
 -------
 
 成功执行时，返回新的nice值。失败返回-1，errno被设为以下值
-EPERM：调用者试着提高其优先级，但权能不足。
+EPERM：调用者试着提高其优先级，但权能不足
 
 
 | 字段 | 描述 |
@@ -363,6 +366,7 @@ clamp宏定义在[include/linux/kernel.h, L757](http://lxr.free-electrons.com/so
 
 *   如果val大于hi, 即val > hi > lo, 则返回hi
 
+ 即如果val在[lo, hi]范围内, 则返回val, 否则返回距离val最近的那个边界
 
 ##task_nice
 -------
@@ -439,7 +443,9 @@ clamp_val宏定义在[include/linux/kernel.h, L757](http://lxr.free-electrons.co
 
 can_nice可检查有没有nice的权限, 该函数定义在[kernel/sched/core.c, #L3544](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3544)中, 如下所示
 
+
 ```c
+//  http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3544
 /*
  * can_nice - check if a task can reduce its nice value
  * @p: task
@@ -453,18 +459,117 @@ int can_nice(const struct task_struct *p, const int nice)
     return (nice_rlim <= task_rlimit(p, RLIMIT_NICE) ||
             capable(CAP_SYS_NICE));
 }
+
+//  http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L3215
+static inline unsigned long task_rlimit(const struct task_struct *tsk,
+            unsigned int limit)
+{
+	/*  rlimit中存储了系统中的资源限制, 之前的[linux下进程的进程最大数、最大线程数、进程打开的文件数和ulimit命令修改硬件资源限制](http://blog.csdn.net/gatieme/article/details/51058797)中提到过这个限制, 系统调用getrlimit获取系统资源上限和setrlimit设置系统资源上限其实就是在操作这些限制数据, 针对nice系统调用设置的进程优先级则就是
+    */
+    return READ_ONCE(tsk->signal->rlim[limit].rlim_cur);
+}
+
+//  http://lxr.free-electrons.com/source/kernel/capability.c?v=4.6#L391
+/**
+ * capable - Determine if the current task has a superior capability in effect
+ * @cap: The capability to be tested for
+ *
+ * Return true if the current task has the given superior capability currently
+ * available for use, false if not.
+ *
+ * This sets PF_SUPERPRIV on the task if the capability is available on the
+ * assumption that it's about to be used.
+ */
+bool capable(int cap)
+{
+    return ns_capable(&init_user_ns, cap);
+}
+
+//  http://lxr.free-electrons.com/source/include/uapi/asm-generic/resource.h?v=4.6#L44
+/* max nice prio allowed to raise to 0-39 for nice level 19 .. -20 */
+#define RLIMIT_NICE             13
 ```
 
 ##security_task_setnice
 -------
 
+```c
+//  http://lxr.free-electrons.com/source/security/security.c?v=4.6#L943
+int security_task_setnice(struct task_struct *p, int nice)
+{
+	return call_int_hook(task_setnice, 0, p, nice);
+}
+
+//  http://lxr.free-electrons.com/source/security/security.c?v=4.6#L117
+#define call_int_hook(FUNC, IRC, ...) ({            \
+    int RC = IRC;                       \
+    do {                            \
+        struct security_hook_list *P;           \
+                                \
+        list_for_each_entry(P, &security_hook_heads.FUNC, list) { \
+            RC = P->hook.FUNC(__VA_ARGS__);     \
+            if (RC != 0)                \
+                break;              \
+        }                           \
+    } while (0);                        \
+    RC;                             \
+})
+```
+
 ##set_user_nice
 -------
 
+set_user_nice完成了设置进程优先级的所有工作, 该函数定义在[kernel/sched/core.c, L3497](http://lxr.free-electrons.com/source/kernel/sched/core.c#L3497), 如下所示
 
 
 ```c
 //  http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3497
+void set_user_nice(struct task_struct *p, long nice)
+{
+    int old_prio, delta, queued;
+    unsigned long flags;
+    struct rq *rq;
+
+    if (task_nice(p) == nice || nice < MIN_NICE || nice > MAX_NICE)
+        return;
+    /*
+     * We have to be careful, if called from sys_setpriority(),
+     * the task might be in the middle of scheduling on another CPU.
+     */
+    rq = task_rq_lock(p, &flags);
+    /*
+     * The RT priorities are set via sched_setscheduler(), but we still
+     * allow the 'normal' nice value to be set - but as expected
+     * it wont have any effect on scheduling until the task is
+     * SCHED_DEADLINE, SCHED_FIFO or SCHED_RR:
+     */
+    if (task_has_dl_policy(p) || task_has_rt_policy(p)) {
+        p->static_prio = NICE_TO_PRIO(nice);
+        goto out_unlock;
+    }
+    queued = task_on_rq_queued(p);
+    if (queued)
+        dequeue_task(rq, p, DEQUEUE_SAVE);
+
+    p->static_prio = NICE_TO_PRIO(nice);
+    set_load_weight(p);
+    old_prio = p->prio;
+    p->prio = effective_prio(p);
+    delta = p->prio - old_prio;
+
+    if (queued) {
+        enqueue_task(rq, p, ENQUEUE_RESTORE);
+        /*
+         * If the task increased its priority or is running and
+         * lowered its priority, then reschedule its CPU:
+         */
+        if (delta < 0 || (delta > 0 && task_running(rq, p)))
+            resched_curr(rq);
+    }
+out_unlock:
+    task_rq_unlock(rq, p, &flags);
+}
+EXPORT_SYMBOL(set_user_nice);
 ```
 
 
