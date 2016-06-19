@@ -78,7 +78,10 @@ linux优先级操作的系统调用有nice和getpriority, setpriority
 ````
 
 | 宏 | 值 | 描述 |
-| ------------- |:-------------:|
+| ------------- |:-------------:|:-------------:|
+| MIN_NICE | -20 | 对应于优先级100, 可以使用NICE_TO_PRIO和PRIO_TO_NICE转换 |
+| MAX_NICE |  19 | 对应于优先级139, 可以使用NICE_TO_PRIO和PRIO_TO_NICE转换 |
+| NICE_WIDTH | 40 | nice值得范围宽度, 即[-20, 19]共40个数字的宽度 |
 | MAX_RT_PRIO, MAX_USER_RT_PRIO | 100 | 实时进程的最大优先级 |
 | MAX_PRIO | 140 | 普通进程的最大优先级 |
 | DEFAULT_PRIO | 120 | 进程的默认优先级, 对应于nice=0 |
@@ -307,13 +310,76 @@ clamp宏定义在[include/linux/kernel.h, L757](http://lxr.free-electrons.com/so
 
 *   如果val大于hi, 即val > hi > lo, 则返回hi
 
+
 ##task_nice
 -------
+
+[task_nice](http://lxr.free-electrons.com/source/include/linux/sched.h?=4.6#L2409)定义在[include/linux/sched.h, L2409](http://lxr.free-electrons.com/source/include/linux/sched.h?=4.6#L2409), 如下所示
+
+其实就是将进程的静态优先级static_prio通过PRIO_TO_NICE转换成nice值
+
+```c
+/**
+ * task_nice - return the nice value of a given task.
+ * @p: the task in question.
+ *
+ * Return: The nice value [ -20 ... 0 ... 19 ].
+ */
+static inline int task_nice(const struct task_struct *p)
+{
+    return PRIO_TO_NICE((p)->static_prio);
+}
+```
 
 
 ##clamp_val
 -------
 
+clamp_val宏定义在[include/linux/kernel.h, L757](http://lxr.free-electrons.com/source/include/linux/kernel.h?v=4.6#L768), 其定义如下
+
+
+```c
+/*
+ * ..and if you can't take the strict
+ * types, you can specify one yourself.
+ *
+ * Or not use min/max/clamp at all, of course.
+ */
+#define min_t(type, x, y) ({                    \
+    type __min1 = (x);                      \
+    type __min2 = (y);                      \
+    __min1 < __min2 ? __min1: __min2; })
+
+#define max_t(type, x, y) ({                    \
+    type __max1 = (x);                      \
+    type __max2 = (y);                      \
+    __max1 > __max2 ? __max1: __max2; })
+
+/**
+ * clamp_t - return a value clamped to a given range using a given type
+ * @type: the type of variable to use
+ * @val: current value
+ * @lo: minimum allowable value
+ * @hi: maximum allowable value
+ *
+ * This macro does no typechecking and uses temporary variables of type
+ * 'type' to make all the comparisons.
+ */
+#define clamp_t(type, val, lo, hi) min_t(type, max_t(type, val, lo), hi)
+
+/**
+ * clamp_val - return a value clamped to a given range using val's type
+ * @val: current value
+ * @lo: minimum allowable value
+ * @hi: maximum allowable value
+ *
+ * This macro does no typechecking and uses temporary variables of whatever
+ * type the input argument 'val' is.  This is useful when val is an unsigned
+ * type and min and max are literals that will otherwise be assigned a signed
+ * integer type.
+ */
+#define clamp_val(val, lo, hi) clamp_t(typeof(val), val, lo, hi)
+```
 
 ##can_nice
 -------
