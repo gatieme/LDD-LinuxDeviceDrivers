@@ -248,54 +248,8 @@ const int sched_prio_to_weight[40] = {
 /*  10 */       110,        87,        70,        56,        45,
 /*  15 */        36,        29,        23,        18,        15,
 };
-```
-
-对内核使用的范围[0, 39]中的每个nice级别, 该数组都有一个对应项.
 
 
-##linux-4.4之前的prio_to_weight
--------
-
->关于优先级->权重转换表sched_prio_to_weight
->
->在linux-4.4之前的内核中, 优先级->权重转换表用prio_to_weight表示, 定义在[kernel/sched/sched.h, line 1116](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.4#L1116), 与它一同定义的还有prio_to_wmult, 在[kernel/sched/sched.h, line 1139](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.4#L1139)
->均被定义为static const
->
->但是其实这种能够方式不太符合规范的编码风格, 因此常规来说, 我们的头文件中不应该存储结构的定义, 即为了是程序的模块结构更加清晰, 头文件中尽量只包含宏或者声明, 而将具体的定义， 需要分配存储空间的代码放在源文件中
->
->否则如果在头文件中定义全局变量，并且将此全局变量赋初值，那么在多个引用此头文件的C文件中同样存在相同变量名的拷贝，关键是此变量被赋了初值，所以编译器就会将此变量放入DATA段，最终在连接阶段，会在DATA段中存在多个相同的变量，它无法将这些变量统一成一个变量，也就是仅为此变量分配一个空间，而不是多份空间，假定这个变量在头文件没有赋初值，编译器就会将之放入BSS段，连接器会对BSS段的多个同名变量仅分配一个存储空间
->
->因此在新的内核中, 内核黑客们将这两个变量存放在了[kernel/sched/core.c](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L8472), 并加上了sched_前缀, 以表明这些变量是在进程调度的过程中使用的, 而在[kernel/sched/sched.h, line 1144](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L1144)中则只包含了他们的声明.
-
-
-下面我们列出其对比项
-
-| 内核版本 | 实现 | 地址 |
-| ------------- |:-------------:|
-| <= linux-4.4 | static const int prio_to_weight[40] |  [kernel/sched/sched.h, line 1116](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.4#L1116) |
-| >=linux-4.5 | const int sched_prio_to_weight[40] | 声明在[kernel/sched/sched.h, line 1144](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L1144), 定义在[kernel/sched/core.c](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L8472)
-
-其定义并没有发生变化, 依然是一个一对一NICE to WEIGHT的转换表
-
-##1.25的乘积因子
--------
-
-各数组之间的乘积因子是1.25. 要知道为何使用该因子, 可考虑下面的例子
-
-两个进程A和B在nice级别0, 即静态优先级120运行, 因此两个进程的CPU份额相同, 都是50%, nice级别为0的进程, 查其权重表可知是1024. 每个进程的份额是1024/(1024+1024)=0.5, 即50%
-
-如果进程B的优先级+1(优先级降低), 成为nice=1, 那么其CPU份额应该减少10%, 换句话说进程A得到的总的CPU应该是55%, 而进程B应该是45%. 优先级增加1导致权重减少, 即1024/1.25=820, 而进程A仍旧是1024, 则进程A现在将得到的CPU份额是1024/(1024+820=0.55, 而进程B的CPU份额则是820/(1024+820)=0.45. 这样就正好产生了10%的差值.
-
-
-
-#进程负荷权重的计算
--------
-
-set_load_weight负责根据进程类型极其静态优先级计算符合权重
-
-执行转换的代码也需要实时进程. 实时进程的权重是普通进程的两倍, 另一方面, SCHED_IDLE进程的权值总是非常小
-
-```c
 /*
 * Inverse (2^32/x) values of the sched_prio_to_weight[] array, precalculated.
 *
@@ -313,6 +267,67 @@ const u32 sched_prio_to_wmult[40] = {
 /*  10 */  39045157,  49367440,  61356676,  76695844,  95443717,
 /*  15 */ 119304647, 148102320, 186737708, 238609294, 286331153,
 };
+```
+
+对内核使用的范围[-20, 19]中的每个nice级别, sched_prio_to_weight数组都有一个对应项
+
+nice [-20, 19] -=> 下标 [0, 39]
+
+而由于权重`weight` 用`unsigned long` 表示, 因此内核无法直接存储1/weight, 而必须借助于乘法和位移来执行除法的技术.
+值, sched_prio_to_wmult数组就存储了这些值, 即sched_prio_to_wmult每个元素的值是$2^{32}/prio_to_weight$每个元素的值.
+
+可以验证$sched_prio_to_wmult[i] = \frac{{2 >> 32}{sched_prio_to_weight[i]}}$
+
+
+##linux-4.4之前的shced_prio_to_weight和sched_prio_to_wmult
+-------
+
+>关于优先级->权重转换表sched_prio_to_weight
+>
+>在linux-4.4之前的内核中, 优先级->权重转换表用prio_to_weight表示, 定义在[kernel/sched/sched.h, line 1116](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.4#L1116), 与它一同定义的还有prio_to_wmult, 在[kernel/sched/sched.h, line 1139](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.4#L1139)
+>均被定义为static const
+>
+>但是其实这种能够方式不太符合规范的编码风格, 因此常规来说, 我们的头文件中不应该存储结构的定义, 即为了是程序的模块结构更加清晰, 头文件中尽量只包含宏或者声明, 而将具体的定义， 需要分配存储空间的代码放在源文件中
+>
+>否则如果在头文件中定义全局变量，并且将此全局变量赋初值，那么在多个引用此头文件的C文件中同样存在相同变量名的拷贝，关键是此变量被赋了初值，所以编译器就会将此变量放入DATA段，最终在连接阶段，会在DATA段中存在多个相同的变量，它无法将这些变量统一成一个变量，也就是仅为此变量分配一个空间，而不是多份空间，假定这个变量在头文件没有赋初值，编译器就会将之放入BSS段，连接器会对BSS段的多个同名变量仅分配一个存储空间
+>
+>因此在新的内核中, 内核黑客们将这两个变量存放在了[kernel/sched/core.c](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L8472), 并加上了sched_前缀, 以表明这些变量是在进程调度的过程中使用的, 而在[kernel/sched/sched.h, line 1144](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L1144)中则只包含了他们的声明.
+
+
+下面我们列出其对比项
+
+| 内核版本 | 实现 | 地址 |
+| ------------- |:-------------:|:-------------:|
+| <= linux-4.4 | static const int prio_to_weight[40] |  [kernel/sched/sched.h, line 1116](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.4#L1116) |
+| >=linux-4.5 | const int sched_prio_to_weight[40] | 声明在[kernel/sched/sched.h, line 1144](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L1144), 定义在[kernel/sched/core.c](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L8472)
+
+其定义并没有发生变化, 依然是一个一对一NICE to WEIGHT的转换表
+
+##1.25的乘积因子
+-------
+
+各数组之间的乘积因子是1.25. 要知道为何使用该因子, 可考虑下面的例子
+
+两个进程A和B在nice级别0, 即静态优先级120运行, 因此两个进程的CPU份额相同, 都是50%, nice级别为0的进程, 查其权重表可知是1024. 每个进程的份额是1024/(1024+1024)=0.5, 即50%
+
+如果进程B的优先级+1(优先级降低), 成为nice=1, 那么其CPU份额应该减少10%, 换句话说进程A得到的总的CPU应该是55%, 而进程B应该是45%. 优先级增加1导致权重减少, 即1024/1.25=820, 而进程A仍旧是1024, 则进程A现在将得到的CPU份额是1024/(1024+820=0.55, 而进程B的CPU份额则是820/(1024+820)=0.45. 这样就正好产生了10%的差值.
+
+#
+
+由于权重`weight` 用`unsigned long` 表示, 因此内核无法直接存储1/weight, 而必须借助于乘法和位移来执行除法的技术.
+
+内核用sched_prio_to_wmult存储了用于除法的值.
+
+
+#进程负荷权重的计算
+-------
+
+set_load_weight负责根据进程类型极其静态优先级计算符合权重
+
+执行转换的代码也需要实时进程. 实时进程的权重是普通进程的两倍, 另一方面, SCHED_IDLE进程的权值总是非常小
+
+```c
+
 ```
 
 
