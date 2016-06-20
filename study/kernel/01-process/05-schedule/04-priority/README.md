@@ -587,8 +587,24 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 }
 ```
 
-http://blog.sina.com.cn/s/blog_9ca3f6e70102wkwp.html
-http://lxr.free-electrons.com/source/kernel/sched/core.c#L3527
-http://blog.chinaunix.net/uid-20671208-id-4909620.html
-http://blog.chinaunix.net/uid-20671208-id-4909623.html
-http://www.linuxidc.com/Linux/2016-05/131244.htm
+
+#总结
+-------
+
+
+| 字段 | 描述 |
+| ------------- |:-------------:|
+| static_prio | 用于保存静态优先级, 是进程启动时分配的优先级, ，可以通过nice和sched_setscheduler系统调用来进行修改, 否则在进程运行期间会一直保持恒定 |
+| prio | 进程的动态优先级, 这个有显示才是调度器重点考虑的进程优先级 |
+| normal_prio | 普通进程的静态优先级static_prio和调度策略计算出的优先级. 因此即使普通进程和实时进程具有相同的静态优先级, 其普通优先级也是不同的, 进程分叉(fork)时, 子进程会继承父进程的普通优先级, 可以通过normal_prio来计算(非实时进程用static_prIo计算, 实时进程用rt_priority计算) |
+| rt_priority | 实时进程的静态优先级  |
+
+
+
+>参考
+>
+>[进程调度之sys_nice()系统调用](http://blog.sina.com.cn/s/blog_9ca3f6e70102wkwp.html)
+>
+>[linux调度器源码研究 - 概述（一）](http://blog.chinaunix.net/uid-20671208-id-4909623.html)
+>
+>[深入 Linux 的进程优先级](http://www.linuxidc.com/Linux/2016-05/131244.htm)
