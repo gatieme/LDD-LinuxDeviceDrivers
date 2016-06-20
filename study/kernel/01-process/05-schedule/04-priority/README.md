@@ -124,6 +124,9 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 	这需要与CPU的紧密交互. 每个进程刚好属于某一调度类, 各个调度类负责管理所属的进程. 通用调度器自身不涉及进程管理, 其工作都委托给调度器类.
 
 
+#linux优先级的表示
+-------
+
 ##优先级的内核表示
 -------
 
@@ -256,10 +259,10 @@ static inline bool dl_time_before(u64 a, u64 b)
 {
     return (s64)(a - b) < 0;
 }
-````
+```
 
 
-#进程的优先级表示
+##进程的优先级表示
 -------
 
 
@@ -300,8 +303,10 @@ struct task_struct
 实时进程的优先级用实时优先级rt_priority来表示
 
 
+
 #进程优先级的计算
 -------
+
 
 前面说了task_struct中的几个优先级的字段
 
@@ -368,6 +373,7 @@ static inline int normal_prio(struct task_struct *p)
 定义在[kernel/sched/sched.h#L117](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L117) 中
 
 其本质其实就是传入task->policy调度策略字段看其值等于SCHED_NORMAL, SCHED_BATCH, SCHED_IDLE, SCHED_FIFO, SCHED_RR, SCHED_DEADLINE中的哪个, 从而确定其所属的调度类, 进一步就确定了其进程类型
+
 ```c
 static inline int idle_policy(int policy)
 {
@@ -432,7 +438,7 @@ MAX_RT_PRIO = 100, ;这样意味着rt_priority值越大，优先级越高；
 ##effective_prio设置动态优先级prio
 -------
 
-可以通过函数effective_prio用静态优先级static_prio计算动态优先级, 即·
+可以通过函数effective_prio用静态优先级static_prio计算动态优先级prio, 即·
 
 ```c
 p->prio = effective_prio(p);
@@ -591,6 +597,10 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 #总结
 -------
 
+task_struct采用了四个成员表示进程的优先级:prio和normal_prio表示动态优先级, static_prio表示进程的静态优先级. 同时还用了rt_priority表示实时进程的优先级
+
+
+
 
 | 字段 | 描述 |
 | ------------- |:-------------:|
@@ -600,6 +610,11 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 | rt_priority | 实时进程的静态优先级  |
 
 
+调度器会考虑的优先级则保存在prio. 由于在某些情况下内核需要暂时提高进程的优先级, 因此需要用prio表示. 由于这些改变不是持久的, 因此静态优先级static_prio和普通优先级normal_prio不受影响.
+此外还用了一个字段rt_priority保存了实时进程的优先级静态优先级static_prio(普通进程)和实时优先级rt_priority(实时进程)是计算的起点, 通过他们计算进程的普通优先级normal_prio和动态优先级prio.
+
+内核通过normal_prIo函数计算普通优先级normal_prio
+通过effective_prio函数计算动态优先级prio
 
 >参考
 >
