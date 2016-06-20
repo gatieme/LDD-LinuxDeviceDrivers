@@ -7,6 +7,11 @@ Linux进程负荷权重
 | 2016-06-14 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
 
 
+
+前面我们纤细的了解了linux下进程优先级的表示以及其计算的方法, 我们了解到linux针对普通进程和实时进程分别使用静态优先级static_prio和实时优先级rt_priority来指定其默认的优先级别, 然后通过normal_prio函数将他们分别转换为普通优先级normal_prio, 最终换算出动态优先级prio, 动态优先级prio才是内核调度时候有限考虑的优先级字段
+
+但是进程的重要性不仅是由优先级指定的, 而且还需要考虑保存在task_struct->se.load的负荷权重, 
+
 #前景回顾
 -------
 
@@ -138,6 +143,56 @@ struct task_struct
 
 
 实时进程的优先级用实时优先级rt_priority来表示
+
+
+
+#负荷权重
+-------
+
+
+##符合权重结构struct load_weight
+-------
+
+负荷权重用struct load_weight数据结构来表示, 保存着进程权重值weight。其定义在[/include/linux/sched.h, v=4.6, L1195](http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L1195), 如下所示
+
+```c
+struct load_weight {
+	unsigned long weight;
+	u32 inv_weight;
+};
+```
+
+##调度实体的负荷权重load
+-------
+
+既然struct load_weight保存着进程的权重信息, 那么作为进程调度的实体, 必须将这个权重值与特定的进程task_struct, 更一般的与通用的调度实体sched_entity相关联
+
+struct sched_entity作为进程调度的实体信息, 其内置了load_weight结构用于保存当前调度实体的权重, 参照http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L1195
+
+```c
+struct sched_entity {
+	struct load_weight      load;           /* for load-balancing */
+	/*  ......  */
+};
+```
+
+##进程的符合权重
+
+而进程可以被作为一个调度的实时, 其内部通过存储struct sched_entity se而间接存储了其load_weight信息, 参照http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L1415
+
+```c
+struct task_struct
+{
+	/*  ......  */
+	struct sched_entity se;
+    /*  ......  */
+}
+```
+
+因此我们就可以通过task_statuct->se.load获取负荷权重的信息, 而set_load_weight负责根据进程类型及其静态优先级计算符合权重.
+
+
+内核不仅维护了负荷权重自身, 还保存另外一个数值, 用于击碎安被负荷权重重除的结果.
 
 
 
