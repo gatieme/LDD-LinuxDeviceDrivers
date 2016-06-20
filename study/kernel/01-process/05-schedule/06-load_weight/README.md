@@ -8,9 +8,9 @@ Linux进程负荷权重
 
 
 
-前面我们纤细的了解了linux下进程优先级的表示以及其计算的方法, 我们了解到linux针对普通进程和实时进程分别使用静态优先级static_prio和实时优先级rt_priority来指定其默认的优先级别, 然后通过normal_prio函数将他们分别转换为普通优先级normal_prio, 最终换算出动态优先级prio, 动态优先级prio才是内核调度时候有限考虑的优先级字段
+前面我们详细的了解了linux下进程优先级的表示以及其计算的方法, 我们了解到linux针对普通进程和实时进程分别使用静态优先级static_prio和实时优先级rt_priority来指定其默认的优先级别, 然后通过normal_prio函数将他们分别转换为普通优先级normal_prio, 最终换算出动态优先级prio, 动态优先级prio才是内核调度时候有限考虑的优先级字段
 
-但是进程的重要性不仅是由优先级指定的, 而且还需要考虑保存在task_struct->se.load的负荷权重.
+但是CFS完全公平调度器在调度进程的时候, 进程的重要性不仅是由优先级指定的, 而且还需要考虑保存在task_struct->se.load的负荷权重.
 
 
 
@@ -336,7 +336,7 @@ $$\frac{2^{32}}{WEIGHT_IDLEPRIO} = WMULT_IDLEPRIO$$
 
 set_load_weight负责根据进程类型极其静态优先级计算符合权重
 
-执行转换的代码也需要实时进程. 实时进程的权重是普通进程的两倍, 另一方面, SCHED_IDLE进程的权值总是非常小
+>执行转换的代码也需要实时进程. 实时进程的权重是普通进程的两倍, 另一方面, SCHED_IDLE进程的权值总是非常小
 
 
 ##set_load_weight依据静态优先级设置进程的负荷权重
@@ -492,4 +492,57 @@ static inline void update_load_set(struct load_weight *lw, unsigned long w)
 
 
 >其中sched_slice函数计算当前进程在调度延迟内期望的运行时间, 它根据cfs就绪队列中进程数确定一个最长时间间隔，然后看在该时间间隔内当前进程按照权重比例执行
+
+
+#总结
+-------
+
+
+**负荷权重load_weight**
+CFS完全公平调度器在调度非实时进程的时候, 进程的重要性不仅是由优先级指定的, 还需要考虑保存在task_struct->se.load的负荷权重.
+
+
+**转换表prio_to_weight和重除表ched_prio_to_wmult**
+这个负荷权重用struct load_weight, 其包含了名为weight的负荷权重信息, 为了方便快速的将静态优先级转换成权重值, 内核提供了一个长为40的prio_to_weight数组方便转换, 静态优先级[100~139], 对应nice值[-20, 19], 对应数组中的下标[0, 39]
+
+由于权重`weight` 用`unsigned long` 表示, 因此内核无法直接存储1/weight, 而必须借助于乘法和位移来执行除法的技术. sched_prio_to_wmult数组就存储了这些值, 即sched_prio_to_wmult每个元素的值是2^32/prio_to_weight$每个元素的值.
+
+
+对于SCHED_IDLE进程其优先级最低, 因此其负荷权重也要尽可能的小, 因此内核用WEIGHT_IDLEPRIO( = 3)和WMULT_IDLEPRIO分别表示了SCHED_IDLE进程的负荷权重和重除值.
+
+
+**调度实体负荷权重的计算**
+
+>既然CFS把负荷权重作为进程调度的一个重要依据, 那么我们就需要了解调度器是如何计算进程或者调度实体的负荷权重的.
+
+
+有了prio_to_weight和ched_prio_to_wmult这两个转换表, 我们就可以很方便的将非实时进程的静态优先级转换成负荷权重, 这个其实就是一个很简单的查表得过程, 内核用set_load_weight完成这个工作, 同时也保证了SCHED_LDLE进程的负荷权重最小
+
+
+*	将进程的静态优先级[100, 139]转换成数组下标[0, 39]
+
+*	如果进程是SCHED_IDLE调度, 则负荷权重直赋值为WEIGHT_IDLEPRIO( = 3)和WMULT_IDLEPRIO
+
+*	对于普通进程, 从prio_to_weight和sched_prio_to_wmult中查找出对应优先级的负荷权重值和重除值
+
+
+现在的内核中是实时进程是不依靠负荷权重的, 因此也就不需要计算实时进程的负荷权重, 但是早期的内核中实时进程的负荷权重设置为普通进程的两倍, 以保证权重比非实时进程大
+
+**调度实体的负荷权重**
+
+既然load_weight保存着进程的权重信息, 那么作为进程调度的实体, 必须将这个权重值与特定的进程task_struct, 更一般的与通用的调度实体sched_entity相关联
+
+sched_entity作为进程调度的实体信息, 其内置了load_weight结构用于保存当前调度实体的权重, [参照](http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L1195)
+
+
+同时进程作为调度实体的最一般单位, 其load_weight就存储在其struct sched_entity *se成员中, 可以通过task_struct->se.load访问进程的负荷权重.
+
+
+**就绪队列的负荷权重**
+
+然后内核也在全局cpu就绪队列rq中cfs的就绪队列cfs_rq中保存了load_weight, 这就可以很方便的统计出整个就绪队列的负荷权重总和, 为进程调度提供参考, 因此在每次进程入队或者出队的时候就需要通过修改就绪队列的负荷权重, 内核为我们提供了增加/减少/重置就绪队列负荷权重的的函数, 分别是update_load_add, update_load_sub, update_load_set, 而由于就绪队列的负荷权重只关心权重值, 因此其重除字段inv_weight恒为0
+
+同时需要**注意**的是, 由于实时进程不依赖于负荷权重的, 因此实时进程的就绪队列rt_qt和dl_rq中不需要存储load_weight.
+
+
 
