@@ -274,7 +274,7 @@ const u32 sched_prio_to_wmult[40] = {
 nice [-20, 19] -=> 下标 [0, 39]
 
 而由于权重`weight` 用`unsigned long` 表示, 因此内核无法直接存储1/weight, 而必须借助于乘法和位移来执行除法的技术.
-值, sched_prio_to_wmult数组就存储了这些值, 即sched_prio_to_wmult每个元素的值是$2^{32}/prio_to_weight$每个元素的值.
+值, sched_prio_to_wmult数组就存储了这些值, 即sched_prio_to_wmult每个元素的值是2^32/prio_to_weight$每个元素的值.
 
 可以验证$sched\_prio\_to\_wmult[i] = \frac{2^{32}}{sched\_prio\_to\_weight[i]}$
 
@@ -317,6 +317,8 @@ nice [-20, 19] -=> 下标 [0, 39]
 
 由于权重`weight` 用`unsigned long` 表示, 因此内核无法直接存储1/weight, 而必须借助于乘法和位移来执行除法的技术.
 
+
+
 内核用sched_prio_to_wmult存储了用于除法的值.
 
 
@@ -328,9 +330,50 @@ set_load_weight负责根据进程类型极其静态优先级计算符合权重
 执行转换的代码也需要实时进程. 实时进程的权重是普通进程的两倍, 另一方面, SCHED_IDLE进程的权值总是非常小
 
 ```c
+static void set_load_weight(struct task_struct *p)
+{
+    int prio = p->static_prio - MAX_RT_PRIO;
+    struct load_weight *load = &p->se.load;
 
+    /*
+     * SCHED_IDLE tasks get minimal weight:
+     */
+    if (p->policy == SCHED_IDLE) {
+        load->weight = scale_load(WEIGHT_IDLEPRIO);
+        load->inv_weight = WMULT_IDLEPRIO;
+        return;
+    }
+
+    load->weight = scale_load(prio_to_weight[prio]);
+    load->inv_weight = prio_to_wmult[prio];
+}
 ```
 
+其中scale_load是一个宏, 定义在[include/linux/sched.h, line 785](http://lxr.free-electrons.com/source/include/linux/sched.h?v=3.9?v=4.6#L785)
+
+```c
+/*
+ * Increase resolution of nice-level calculations for 64-bit architectures.
+ * The extra resolution improves shares distribution and load balancing of
+ * low-weight task groups (eg. nice +19 on an autogroup), deeper taskgroup
+ * hierarchies, especially on larger systems. This is not a user-visible change
+ * and does not change the user-interface for setting shares/weights.
+ *
+ * We increase resolution only if we have enough bits to allow this increased
+ * resolution (i.e. BITS_PER_LONG > 32). The costs for increasing resolution
+ * when BITS_PER_LONG <= 32 are pretty high and the returns do not justify the
+ * increased costs.
+ */
+#if 0 /* BITS_PER_LONG > 32 -- currently broken: it increases power usage under light load  */
+# define SCHED_LOAD_RESOLUTION  10
+# define scale_load(w)          ((w) << SCHED_LOAD_RESOLUTION)
+# define scale_load_down(w)     ((w) >> SCHED_LOAD_RESOLUTION)
+#else
+# define SCHED_LOAD_RESOLUTION  0
+# define scale_load(w)          (w)
+# define scale_load_down(w)     (w)
+#endif
+```
 
 
 http://blog.chinaunix.net/uid-20671208-id-4909620.html
