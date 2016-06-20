@@ -276,7 +276,8 @@ nice [-20, 19] -=> 下标 [0, 39]
 而由于权重`weight` 用`unsigned long` 表示, 因此内核无法直接存储1/weight, 而必须借助于乘法和位移来执行除法的技术.
 值, sched_prio_to_wmult数组就存储了这些值, 即sched_prio_to_wmult每个元素的值是$2^{32}/prio_to_weight$每个元素的值.
 
-可以验证$sched_prio_to_wmult[i] = \frac{{2 >> 32}{sched_prio_to_weight[i]}}$
+可以验证$sched\_prio\_to\_wmult[i] = \frac{2^{32}}{sched\_prio\_to\_weight[i]}$
+
 
 
 ##linux-4.4之前的shced_prio_to_weight和sched_prio_to_wmult
