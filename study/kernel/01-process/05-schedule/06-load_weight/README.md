@@ -192,12 +192,131 @@ struct task_struct
 因此我们就可以通过task_statuct->se.load获取负荷权重的信息, 而set_load_weight负责根据进程类型及其静态优先级计算符合权重.
 
 
+#优先级和权重转换表
+-------
+
+
+##优先级->权重转换表
+-------
+
+
 内核不仅维护了负荷权重自身, 还保存另外一个数值, 用于击碎安被负荷权重重除的结果.
 
+一般这个概念是这样的, 进程每降低一个nice值(优先级提升), 则多获得10%的CPU时间, 没升高一个nice值(优先级降低), 则放弃10%的CPU时间.
+
+为执行该策略, 内核需要将优先级转换为权重值, 并提供了一张优先级->权重转换表sched_prio_to_weight
+
+```c
+//   http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L1132
+/*
+ * To aid in avoiding the subversion of "niceness" due to uneven distribution
+ * of tasks with abnormal "nice" values across CPUs the contribution that
+ * each task makes to its run queue's load is weighted according to its
+ * scheduling class and "nice" value. For SCHED_NORMAL tasks this is just a
+ * scaled version of the new time slice allocation that they receive on time
+ * slice expiry etc.
+ */
+
+#define WEIGHT_IDLEPRIO                3
+#define WMULT_IDLEPRIO         1431655765
 
 
-http://blog.sina.com.cn/s/blog_9ca3f6e70102wkwp.html
-http://lxr.free-electrons.com/source/kernel/sched/core.c#L3527
+extern const int sched_prio_to_weight[40];
+extern const u32 sched_prio_to_wmult[40];
+
+
+// http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L8484
+/*
+* Nice levels are multiplicative, with a gentle 10% change for every
+* nice level changed. I.e. when a CPU-bound task goes from nice 0 to
+* nice 1, it will get ~10% less CPU time than another CPU-bound task
+* that remained on nice 0.
+*
+* The "10% effect" is relative and cumulative: from _any_ nice level,
+* if you go up 1 level, it's -10% CPU usage, if you go down 1 level
+* it's +10% CPU usage. (to achieve that we use a multiplier of 1.25.
+* If a task goes up by ~10% and another task goes down by ~10% then
+* the relative distance between them is ~25%.)
+*/
+const int sched_prio_to_weight[40] = {
+/* -20 */     88761,     71755,     56483,     46273,     36291,
+/* -15 */     29154,     23254,     18705,     14949,     11916,
+/* -10 */      9548,      7620,      6100,      4904,      3906,
+/*  -5 */      3121,      2501,      1991,      1586,      1277,
+/*   0 */      1024,       820,       655,       526,       423,
+/*   5 */       335,       272,       215,       172,       137,
+/*  10 */       110,        87,        70,        56,        45,
+/*  15 */        36,        29,        23,        18,        15,
+};
+```
+
+对内核使用的范围[0, 39]中的每个nice级别, 该数组都有一个对应项.
+
+
+##linux-4.4之前的prio_to_weight
+-------
+
+>关于优先级->权重转换表sched_prio_to_weight
+>
+>在linux-4.4之前的内核中, 优先级->权重转换表用prio_to_weight表示, 定义在[kernel/sched/sched.h, line 1116](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.4#L1116), 与它一同定义的还有prio_to_wmult, 在[kernel/sched/sched.h, line 1139](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.4#L1139)
+>均被定义为static const
+>
+>但是其实这种能够方式不太符合规范的编码风格, 因此常规来说, 我们的头文件中不应该存储结构的定义, 即为了是程序的模块结构更加清晰, 头文件中尽量只包含宏或者声明, 而将具体的定义， 需要分配存储空间的代码放在源文件中
+>
+>否则如果在头文件中定义全局变量，并且将此全局变量赋初值，那么在多个引用此头文件的C文件中同样存在相同变量名的拷贝，关键是此变量被赋了初值，所以编译器就会将此变量放入DATA段，最终在连接阶段，会在DATA段中存在多个相同的变量，它无法将这些变量统一成一个变量，也就是仅为此变量分配一个空间，而不是多份空间，假定这个变量在头文件没有赋初值，编译器就会将之放入BSS段，连接器会对BSS段的多个同名变量仅分配一个存储空间
+>
+>因此在新的内核中, 内核黑客们将这两个变量存放在了[kernel/sched/core.c](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L8472), 并加上了sched_前缀, 以表明这些变量是在进程调度的过程中使用的, 而在[kernel/sched/sched.h, line 1144](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L1144)中则只包含了他们的声明.
+
+
+下面我们列出其对比项
+
+| 内核版本 | 实现 | 地址 |
+| ------------- |:-------------:|
+| <= linux-4.4 | static const int prio_to_weight[40] |  [kernel/sched/sched.h, line 1116](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.4#L1116) |
+| >=linux-4.5 | const int sched_prio_to_weight[40] | 声明在[kernel/sched/sched.h, line 1144](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L1144), 定义在[kernel/sched/core.c](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L8472)
+
+其定义并没有发生变化, 依然是一个一对一NICE to WEIGHT的转换表
+
+##1.25的乘积因子
+-------
+
+各数组之间的乘积因子是1.25. 要知道为何使用该因子, 可考虑下面的例子
+
+两个进程A和B在nice级别0, 即静态优先级120运行, 因此两个进程的CPU份额相同, 都是50%, nice级别为0的进程, 查其权重表可知是1024. 每个进程的份额是1024/(1024+1024)=0.5, 即50%
+
+如果进程B的优先级+1(优先级降低), 成为nice=1, 那么其CPU份额应该减少10%, 换句话说进程A得到的总的CPU应该是55%, 而进程B应该是45%. 优先级增加1导致权重减少, 即1024/1.25=820, 而进程A仍旧是1024, 则进程A现在将得到的CPU份额是1024/(1024+820=0.55, 而进程B的CPU份额则是820/(1024+820)=0.45. 这样就正好产生了10%的差值.
+
+
+
+#进程负荷权重的计算
+-------
+
+set_load_weight负责根据进程类型极其静态优先级计算符合权重
+
+执行转换的代码也需要实时进程. 实时进程的权重是普通进程的两倍, 另一方面, SCHED_IDLE进程的权值总是非常小
+
+```c
+/*
+* Inverse (2^32/x) values of the sched_prio_to_weight[] array, precalculated.
+*
+* In cases where the weight does not change often, we can use the
+* precalculated inverse to speed up arithmetics by turning divisions
+* into multiplications:
+*/
+const u32 sched_prio_to_wmult[40] = {
+/* -20 */     48388,     59856,     76040,     92818,    118348,
+/* -15 */    147320,    184698,    229616,    287308,    360437,
+/* -10 */    449829,    563644,    704093,    875809,   1099582,
+/*  -5 */   1376151,   1717300,   2157191,   2708050,   3363326,
+/*   0 */   4194304,   5237765,   6557202,   8165337,  10153587,
+/*   5 */  12820798,  15790321,  19976592,  24970740,  31350126,
+/*  10 */  39045157,  49367440,  61356676,  76695844,  95443717,
+/*  15 */ 119304647, 148102320, 186737708, 238609294, 286331153,
+};
+```
+
+
+
 http://blog.chinaunix.net/uid-20671208-id-4909620.html
 http://blog.chinaunix.net/uid-20671208-id-4909623.html
 http://www.linuxidc.com/Linux/2016-05/131244.htm
