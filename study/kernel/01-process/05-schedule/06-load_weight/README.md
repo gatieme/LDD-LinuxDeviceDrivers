@@ -334,9 +334,15 @@ $$\frac{2^{32}}{WEIGHT_IDLEPRIO} = WMULT_IDLEPRIO$$
 -------
 
 
-set_load_weight负责根据进程类型极其静态优先级计算符合权重
+set_load_weight负责根据非实时进程类型极其静态优先级计算符合权重
+而实时进程不需要CFS调度, 因此无需计算其负荷权重值
 
->执行转换的代码也需要实时进程. 实时进程的权重是普通进程的两倍, 另一方面, SCHED_IDLE进程的权值总是非常小
+
+>早期的代码中实时进程也是计算其负荷权重的, 但是只是采用一些方法保持其权重值较大
+>
+>在早期有些版本中, set_load_weight中实时进程的权重是普通进程的两倍, 后来又设置成0, 直到后来linux-2.6.37开始不再设置实时进程的优先级, 因此这本身就是一个无用的工作
+>
+>而另一方面, SCHED_IDLE进程的权值总是非常小, 普通非实时进程则根据其静态优先级设置对应的负荷权重
 
 
 ##set_load_weight依据静态优先级设置进程的负荷权重
@@ -393,8 +399,17 @@ static void set_load_weight(struct task_struct *p)
 我们可以看到目前版本的scale_load其实什么也没做就是简单取了个值, 但是我们注意到负荷权重仍然保留了SCHED_LOAD_RESOLUTION不为0的情形, 只不过目前因为效率原因和功耗问题没有启用而已
 
 
+##set_load_weight的演变
+-------
 
+linux内核的调度器经过了不同阶段的发展, 但是即使是同一个调度器其算法也不是一成不变的, 也在不停的改进和优化
 
+| 内核版本 | 实现 | 地址 |
+| ------------- |:-------------:|:-------------:|
+| 2.6.18~2.6.22 | 实时进程的权重用RTPRIO_TO_LOAD_WEIGHT(p->rt_priority);转换 | [kernel/sched.c#L746](http://lxr.linux.no/linux+v2.6.18/kernel/sched.c#L746) |
+| 2.6.23~2.6.34 |  实时进程的权重为非实时权重的二倍 | [kernel/sched.c#L1836](http://lxr.linux.no/linux+v2.6.32/kernel/sched.c#1836) |
+| 2.6.35~2.6.36| 实时进程的权重设置为0, 重除值设置为WMULT_CONST | [kernel/sched.c, L1859](http://lxr.linux.no/linux+v2.6.36/kernel/sched.c#L1859) |
+| 2.6.37~至今4.6 | 实时进程不再设置权重 | 其中<= linux-3.2时, 代码在sched.c中<br>3.3~4.4之后, 增加了[sched/core.c](http://lxr.linux.no/linux+v4.4/kernel/sched/core.c#L812)文件调度的核心代码在此存放<br>4.5~至今, [修改prio_to_weight为sched_prio_to_weight](http://lxr.linux.no/linux+v4.5/kernel/sched/core.c#L813), 并将声明存放头文件中 |
 #就绪队列的负荷权重
 -------
 
