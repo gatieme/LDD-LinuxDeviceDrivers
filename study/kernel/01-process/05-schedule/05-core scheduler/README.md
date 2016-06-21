@@ -129,7 +129,7 @@ stop_sched_class -> dl_sched_class -> rt_sched_class -> fair_sched_class -> idle
 
 这种一般性要求调度器不直接操作进程, 而是处理可调度实体, 因此需要一个通用的数据结构描述这个调度实体,即seched_entity结构, 其实际上就代表了一个调度对象，可以为一个进程，也可以为一个进程组.
 
-linux中针对当前可调度的实时和非实时进程, 定义了3个调度实体
+linux中针对当前可调度的实时和非实时进程, 定义了类型为seched_entity的3个调度实体
 
 *	sched_dl_entity 采用EDF算法调度的实时调度实体
 
