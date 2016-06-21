@@ -139,7 +139,7 @@ linux进程的调度算法其实经过了很多次的演变, 但是其演变主�
 >另外内核文档sched-design-CFS.txt中也有介绍
 
 | 字段 | 版本 |
-| ------------- |:-------------:|:-------------:|
+| ------------- |:-------------:|
 | O(n)的始调度算法 | linux-0.11~2.4 |
 | O(1)调度器 | linux-2.5 |
 | CFS调度器 | linux-2.6~至今 |
@@ -162,31 +162,72 @@ linux进程的调度算法其实经过了很多次的演变, 但是其演变主�
 
 
 
-**3种5个调度器类**
-
-当前的内核支持2种调度器类（sched_setscheduler系统调用可修改进程的策略）：**CFS（公平调度器）**、**RT（实时调度器）**、以及内核新增的**DL(基于EDF最早截至时间优先的实时调度器)**
-
-
-而依据其调度策略的不同实现了5个调度器类, 其所属进程的优先级顺序为
-````c
-stop_sched_class -> dl_sched_class -> rt_sched_class -> fair_sched_class -> idle_sched_class
-```
-
-
 **6种调度策略**
+
+linux内核目前实现了6中调度策略(即调度算法), 用于对不同类型的进程进行调度, 或者支持某些特殊的功能
+
+比如SCHED_NORMAL和SCHED_BATCH调度普通的非实时进程, SCHED_FIFO和SCHED_RR和SCHED_DEADLINE则采用不同的调度策略调度实时进程, SCHED_IDLE则在系统空闲时调用idle进程.
+
+
+>idle的运行时机
+>
+>idle 进程优先级为MAX_PRIO，即最低优先级。
+>
+>早先版本中，idle是参与调度的，所以将其优先级设为最低，当没有其他进程可以运行时，才会调度执行 idle
+>
+>而目前的版本中idle并不在运行队列中参与调度，而是在cpu全局运行队列rq中含idle指针，指向idle进程, 在调度器发现运行队列为空的时候运行, 调入运行
+
 
 | 字段 | 描述 | 所在调度器类 |
 | ------------- |:-------------:|:-------------:|
 | SCHED_NORMAL | （也叫SCHED_OTHER）用于普通进程，通过CFS调度器实现。SCHED_BATCH用于非交互的处理器消耗型进程。SCHED_IDLE是在系统负载很低时使用 | CFS |
 | SCHED_BATCH |  SCHED_NORMAL普通进程策略的分化版本。采用分时策略，根据动态优先级(可用nice()API设置），分配CPU运算资源。注意：这类进程比上述两类实时进程优先级低，换言之，在有实时进程存在时，实时进程优先调度。但针对吞吐量优化, 除了不能抢占外与常规任务一样，允许任务运行更长时间，更好地使用高速缓存，适合于成批处理的工作 | CFS |
-| SCHED_IDLE | 优先级最低，在系统空闲时才跑这类进程(如利用闲散计算机资源跑地外文明搜索，蛋白质结构分析等任务，是此调度策略的适用者）| CFS |
+| SCHED_IDLE | 优先级最低，在系统空闲时才跑这类进程(如利用闲散计算机资源跑地外文明搜索，蛋白质结构分析等任务，是此调度策略的适用者）| CFS-IDLE |
 | SCHED_FIFO | 先入先出调度算法（实时调度策略），相同优先级的任务先到先服务，高优先级的任务可以抢占低优先级的任务 | RT |
-| SCHED_RR | 轮流调度算法（实时调度策略），后者提供 Roound-Robin 语义，采用时间片，相同优先级的任务当用完时间片会被放到队列尾部，以保证公平性，同样，高优先级的任务可以抢占低优先级的任务。不同要求的实时任务可以根据需要用sched_setscheduler()API 设置策略 | RT |
-| SCHED_DEADLINE | 新支持的实时进程调度策略，针对突发型计算，且对延迟和完成时间高度敏感的任务适用。基于Earliest Deadline First (EDF) 调度算法|
+| SCHED_RR | 轮流调度算法（实时调度策略），后者提供 Roound-Robin 语义，采用时间片，相同优先级的任务当用完时间片会被放到队列尾部，以保证公平性，同样，高优先级的任务可以抢占低优先级的任务。不同要求的实时任务可以根据需要用sched_setscheduler() API设置策略 | RT |
+| SCHED_DEADLINE | 新支持的实时进程调度策略，针对突发型计算，且对延迟和完成时间高度敏感的任务适用。基于Earliest Deadline First (EDF) 调度算法| DL |
 
-其中前面三种策略使用的是cfs调度器类，后面两种使用rt调度器类, 最后一个使用DL调度器类
+linux内核实现的6种调度策略, 前面三种策略使用的是cfs调度器类，后面两种使用rt调度器类, 最后一个使用DL调度器类
+
+
+**5个调度器类**
+
+而依据其调度策略的不同实现了5个调度器类, 一个调度器类可以用一种种或者多种调度策略调度某一类进程, 也可以用于特殊情况或者调度特殊功能的进程.
+
+
+| 调度器类 | 描述 | 对应调度策略 |
+| ------- |:-------:|:-------:|
+| stop_sched_class | 优先级最高的线程，会中断所有其他线程，且不会被其他任务打断<br>作用<br>1.发生在cpu_stop_cpu_callback 进行cpu之间任务migration<br>2.HOTPLUG_CPU的情况下关闭任务 | 无, 不需要调度普通进程 |
+| dl_sched_class | 采用EDF最早截至时间优先算法调度实时进程 | SCHED_DEADLINE |
+| rt_sched_class | 采用提供 Roound-Robin算法或者FIFO算法调度实时进程<br>具体调度策略由进程的task_struct->policy指定 | SCHED_FIFO, SCHED_RR |
+| fair_sched_clas  | 采用CFS算法调度普通的非实时进程 | SCHED_NORMAL, SCHED_BATCH |
+| idle_sched_class | 采用CFS算法调度idle进程, 每个cup的第一个pid=0线程：swapper，是一个静态线程。调度类属于：idel_sched_class，所以在ps里面是看不到的。一般运行在开机过程和cpu异常的时候做dump | SCHED_IDLE |
+
+其所属进程的优先级顺序为
+````c
+stop_sched_class -> dl_sched_class -> rt_sched_class -> fair_sched_class -> idle_sched_class
+```
+
+**3个调度实体**
+
+调度器不限于调度进程, 还可以调度更大的实体, 比如实现组调度: 可用的CPUI时间首先在一半的进程组(比如, 所有进程按照所有者分组)之间分配, 接下来分配的时间再在组内进行二次分配.
+
+这种一般性要求调度器不直接操作进程, 而是处理可调度实体, 因此需要一个通用的数据结构描述这个调度实体,即seched_entity结构, 其实际上就代表了一个调度对象，可以为一个进程，也可以为一个进程组.
+
+| 调度实体 | 名称 | 描述 | 对应调度器类 |
+| ------- |:-------:|:-------:|
+| sched_dl_entity | DEADLINE调度实体 | 采用EDF算法调度的实时调度实体 | dl_sched_class |
+| sched_rt_entity |  RT调度实体 | 采用Roound-Robin或者FIFO算法调度的实时调度实体 | rt_sched_class |
+| sched_entity | CFS调度实体 | 采用CFS算法调度的普通非实时进程的调度实体 | fair_sched_class |
+
+
+
+**调度器类的就绪队列**
 
 另外，对于调度框架及调度器类，它们都有自己管理的运行队列，调度框架只识别rq（其实它也不能算是运行队列），而对于cfs调度器类它的运行队列则是cfs_rq（内部使用红黑树组织调度实体），实时rt的运行队列则为rt_rq（内部使用优先级bitmap+双向链表组织调度实体）, 此外内核对新增的dl实时调度策略也提供了运行队列dl_rq
+
+
+**调度器整体框架**
 
 
 本质上, 通用调度器(核心调度器)是一个分配器,与其他两个组件交互.
@@ -195,14 +236,39 @@ stop_sched_class -> dl_sched_class -> rt_sched_class -> fair_sched_class -> idle
 	内核支持不同的调度策略(完全公平调度, 实时调度, 在无事可做的时候调度空闲进程,即0号进程也叫swapper进程,idle进程), 调度类使得能够以模块化的方法实现这些侧露额, 即一个类的代码不需要与其他类的代码交互
     当调度器被调用时, 他会查询调度器类, 得知接下来运行哪个进程
 
-*	在选中将要运行的进程之后, 必须执行底层的任务切换. 
+*	在选中将要运行的进程之后, 必须执行底层的任务切换.
 	这需要与CPU的紧密交互. 每个进程刚好属于某一调度类, 各个调度类负责管理所属的进程. 通用调度器自身不涉及进程管理, 其工作都委托给调度器类.
 
+每个进程都属于某个调度器类(由字段task_struct->sched_class标识), 由调度器类采用进程对应的调度策略调度(由task_struct->policy )进行调度, task_struct也存储了其对应的调度实体标识
+
+linux实现了6种调度策略, 依据其调度策略的不同实现了5个调度器类, 一个调度器类可以用一种或者多种调度策略调度某一类进程, 也可以用于特殊情况或者调度特殊功能的进程.
+
+
+| 调度器类 | 调度策略 |  调度策略对应的调度算法 | 调度实体 | 调度实体对应的调度对象 |
+| ------- |:-------:|:-------:|:-------:|
+| stop_sched_class | 无 | 无 | 无 | 特殊情况, 发生在cpu_stop_cpu_callback 进行cpu之间任务迁移migration或者HOTPLUG_CPU的情况下关闭任务 |
+| dl_sched_class | SCHED_DEADLINE | Earliest-Deadline-First最早截至时间有限算法 | sched_dl_entity | 采用DEF最早截至时间有限算法调度实时进程 |
+| rt_sched_class | SCHED_RR<br><br>SCHED_FIFO | Roound-Robin时间片轮转算法<br><br>FIFO先进先出算法 | sched_rt_entity | 采用Roound-Robin或者FIFO算法调度的实时调度实体 |
+| fair_sched_class | SCHED_NORMAL<br><br>SCHED_BATCH | CFS完全公平懂调度算法 |sched_entity | 采用CFS算法普通非实时进程 |
+| idle_sched_class | SCHED_IDLE | 无 | 特殊进程, 用于cpu空闲时调度空闲进程idle |
 
 它们的关系如下图
 
 ![调度器的组成](../images/level.jpg)
 
+
+**5种调度器类为什么只有3种调度实体**
+
+正常来说一个调度器类应该对应一类调度实体, 但是5种调度器类却只有了3种调度实体?
+
+这是因为调度实体本质是一个可以被调度的对象, 要么是一个进程(linux中线程本质上也是进程), 要么是一个进程组, 只有dl_sched_class, rt_sched_class调度的实时进程(组)以及fair_sched_class调度的非实时进程(组)是可以被调度的实体对象, 而stop_sched_class和idle_sched_class
+
+
+**为什么采用EDF实时调度需要单独的调度器类, 调度策略和调度实体**
+
+linux针对实时进程实现了Roound-Robin, FIFO和Earliest-Deadline-First(EDF)算法, 但是为什么SCHED_RR和SCHED_FIFO两种调度算法都用rt_sched_class调度类和sched_rt_entity调度实体描述, 而EDF算法却需要单独用rt_sched_class调度类和sched_dl_entity调度实体描述
+
+为什么采用EDF实时调度不用rt_sched_class调度类调度, 而是单独实现调度类和调度实体?
 
 #进程的调度
 -------
