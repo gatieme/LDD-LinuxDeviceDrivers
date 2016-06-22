@@ -222,7 +222,7 @@ linux中针对当前可调度的实时和非实时进程, 定义了类型为sech
 
 
 | 调度实体 | 名称 | 描述 | 对应调度器类 |
-| ------- |:-------:|:-------:|
+| ------- |:-------:|:-------:||:-------:|
 | sched_dl_entity | DEADLINE调度实体 | 采用EDF算法调度的实时调度实体 | dl_sched_class |
 | sched_rt_entity |  RT调度实体 | 采用Roound-Robin或者FIFO算法调度的实时调度实体 | rt_sched_class |
 | sched_entity | CFS调度实体 | 采用CFS算法调度的普通非实时进程的调度实体 | fair_sched_class |
@@ -252,12 +252,12 @@ linux实现了6种调度策略, 依据其调度策略的不同实现了5个调�
 
 
 | 调度器类 | 调度策略 |  调度策略对应的调度算法 | 调度实体 | 调度实体对应的调度对象 |
-| ------- |:-------:|:-------:|:-------:|
+| ------- |:-------:|:-------:|:-------:||:-------:|
 | stop_sched_class | 无 | 无 | 无 | 特殊情况, 发生在cpu_stop_cpu_callback 进行cpu之间任务迁移migration或者HOTPLUG_CPU的情况下关闭任务 |
 | dl_sched_class | SCHED_DEADLINE | Earliest-Deadline-First最早截至时间有限算法 | sched_dl_entity | 采用DEF最早截至时间有限算法调度实时进程 |
 | rt_sched_class | SCHED_RR<br><br>SCHED_FIFO | Roound-Robin时间片轮转算法<br><br>FIFO先进先出算法 | sched_rt_entity | 采用Roound-Robin或者FIFO算法调度的实时调度实体 |
 | fair_sched_class | SCHED_NORMAL<br><br>SCHED_BATCH | CFS完全公平懂调度算法 |sched_entity | 采用CFS算法普通非实时进程 |
-| idle_sched_class | SCHED_IDLE | 无 | 特殊进程, 用于cpu空闲时调度空闲进程idle |
+| idle_sched_class | SCHED_IDLE | 无 | 无 | 特殊进程, 用于cpu空闲时调度空闲进程idle |
 
 它们的关系如下图
 
