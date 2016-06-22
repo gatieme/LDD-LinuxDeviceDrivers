@@ -14,3 +14,4 @@ Linux进程退出详解
 6.	内核抢占
 
 http://blog.csdn.net/li4850729/article/details/28136643
+http://blog.csdn.net/xiaofei0859/article/details/8113211
