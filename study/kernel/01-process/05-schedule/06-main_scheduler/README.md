@@ -582,5 +582,7 @@ rev->sched_class == class && rq->nr_running == rq->cfs.h_nr_running
 ##context_switch进程上下文切换
 -------
 http://abcdxyzk.github.io/blog/2014/05/22/kernel-sched-tick/
+
+
 ##need_resched与TIF_NEED_RESCHED标识
 -------
