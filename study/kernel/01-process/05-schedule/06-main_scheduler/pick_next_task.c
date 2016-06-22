@@ -25,8 +25,8 @@ pick_next_task(struct rq *rq, struct task_struct *prev)
     {
         /*  调用cfs的选择函数pick_next_task找到最优的那个进程p*/
         p = fair_sched_class.pick_next_task(rq, prev);
-        /*  #define RETRY_TASK ((void *)-1UL)没有找到合适的进程  */
-        if (unlikely(p == RETRY_TASK))  
+        /*  #define RETRY_TASK ((void *)-1UL)有被其他调度气找到合适的进程  */
+        if (unlikely(p == RETRY_TASK))
             goto again; /*  则遍历所有的调度器类找到最优的进程 */
 
         /* assumes fair_sched_class->next == idle_sched_class */
