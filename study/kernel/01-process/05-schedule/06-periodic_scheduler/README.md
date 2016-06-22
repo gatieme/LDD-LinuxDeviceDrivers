@@ -266,9 +266,6 @@ void scheduler_tick(void)
 -------
 
 
-
-
-
 | 函数 | 描述 | 定义 |
 | ------------- |:-------------:||:-------------:|
 | update_rq_clock | 处理就绪队列时钟的更新, 本质上就是增加struct rq当前实例的时钟时间戳 | [sched/core.c, L98](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L98)
