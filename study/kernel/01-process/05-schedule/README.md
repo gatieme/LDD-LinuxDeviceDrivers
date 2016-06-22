@@ -12,3 +12,5 @@ Linux进程退出详解
 4.	O(1)调度器
 5.	CFS
 6.	内核抢占
+
+http://blog.csdn.net/li4850729/article/details/28136643
