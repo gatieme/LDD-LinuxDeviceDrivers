@@ -656,7 +656,7 @@ switch_mm主要完成了进程prev到next虚拟地址空间的映射, 由于内�
 ###switch_to切换进程堆栈和寄存器
 -------
 
-执行环境的切换是在switch_to()中完成的
+执行环境的切换是在switch_to()中完成的, switch_to完成最终的进程切换，它保存原进程的所有寄存器信息，恢复新进程的所有寄存器信息，并执行新的进程
 
 调度过程可能选择了一个新的进程, 而清理工作则是针对此前的活动进程, 请注意, 这不是发起上下文切换的那个进程, 而是系统中随机的某个其他进程, 内核必须想办法使得进程能够与context_switch例程通信, 这就可以通过switch_to宏实现. 因此switch_to函数通过3个参数提供2个变量, 
 
@@ -681,10 +681,65 @@ switch_mm主要完成了进程prev到next虚拟地址空间的映射, 由于内�
 
 1.	进程切换, 即esp的切换, 由于从esp可以找到进程的描述符
 
-2.	硬件上下文切换, 设置ip寄存器的值, 并jmp到__switch_to函数	
+2.	硬件上下文切换, 设置ip寄存器的值, 并jmp到__switch_to函数
 
-3.	堆栈的切换, 即ebp的切换, ebp是栈底指针，它确定了当前变量空间属于哪个进程
+3.	堆栈的切换, 即ebp的切换, ebp是栈底指针, 它确定了当前用户空间属于哪个进程
 
 
-##need_resched与TIF_NEED_RESCHED标识
+##need_resched, TIF_NEED_RESCHED标识与用户抢占
 -------
+
+###need_resched标识TIF_NEED_RESCHED
+-------
+
+
+内核在即将返回用户空间时检查进程是否需要重新调度，如果设置了，就会发生调度, 这被称为**用户抢占**, 因此**内核在thread_info的flag中设置了一个标识来标志进程是否需要重新调度, 即重新调度need_resched标识TIF_NEED_RESCHED**
+
+并提供了一些设置可检测的函数
+
+
+| 函数 | 描述 | 定义 |
+| ------- |:-------:|:-------:|
+| set_tsk_need_resched | 设置指定进程中的need_resched标志 | [include/linux/sched.h, L2920](http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L2920) |
+| clear_tsk_need_resched | 清除指定进程中的need_resched标志 | [include/linux/sched.h, L2926](http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L2931) |
+| test_tsk_need_resched | 检查指定进程need_resched标志 | [include/linux/sched.h, L2931](http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L2931) |
+
+而我们内核中调度时常用的need_resched()函数检查进程是否需要被重新调度其实就是通过test_tsk_need_resched实现的, 其定义如下所示
+
+```c
+// http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L3093
+static __always_inline bool need_resched(void)
+{
+	return unlikely(tif_need_resched());
+}
+
+// http://lxr.free-electrons.com/source/include/linux/thread_info.h?v=4.6#L106
+#define tif_need_resched() test_thread_flag(TIF_NEED_RESCHED)
+```
+
+###用户抢占和内核抢占
+-------
+
+当内核即将返回用户空间时, 内核会检查need_resched是否设置，如果设置，则调用schedule()，此时，发生用户抢占。
+
+一般来说，用户抢占发生几下情况
+
+1.	从系统调用返回用户空间
+
+2.	从中断(异常)处理程序返回用户空间
+
+当kerne(系统调用或者中断都在kernel中)l返回用户态时，系统可以安全的执行当前的任务，或者切换到另外一个任务.
+
+当中断处理例程或者系统调用完成后, kernel返回用户态时, need_resched标志的值会被检查, 假如它为1, 调度器会选择一个新的任务并执行. 中断和系统调用的返回路径(return path)的实现在entry.S中(entry.S不仅包括kernel entry code，也包括kernel exit code)。
+
+
+抢占时伴随着schedule()的执行, 因此内核提供了一个TIF_NEED_RESCHED标志来表明是否要用schedule()调度一次
+
+根据抢占发生的时机分为用户抢占和内核抢占。
+
+用户抢占发生在内核即将返回到用户空间的时候。内核抢占发生在返回内核空间的时候。
+
+| 抢占类型 | 描述 | 抢占发生时机 |
+| ------- |:-------:|:-------:|
+| 用户抢占 | 内核在即将返回用户空间时检查进程是否设置了TIF_NEED_RESCHED标志，如果设置了，就会发生用户抢占.  |  从系统调用或中断处理程序返回用户空间的时候 |
+| 内核抢占 | 在不支持内核抢占的内核中，内核进程如果自己不主动停止，就会一直的运行下去。无法响应实时进程. 抢占内核虽然牺牲了上下文切换的开销, 但获得 了更大的吞吐量和响应时间<br><br>2.6的内核添加了内核抢占，同时为了某些地方不被抢占，又添加了自旋锁. 在进程的thread_info结构中添加了preempt_count该数值为0，当进程使用一个自旋锁时就加1，释放一个自旋锁时就减1. 为0时表示内核可以抢占. | 1.	从中断处理程序返回内核空间时，内核会检查preempt_count和TIF_NEED_RESCHED标志，如果进程设置了 TIF_NEED_RESCHED标志,并且preempt_count为0，发生内核抢占<br><br>2.	当内核再次用于可抢占性的时候，当进程所有的自旋锁都释 放了，释放程序会检查TIF_NEED_RESCHED标志，如果设置了就会调用schedule<br><br>3.	显示调用schedule时<br><br>4.	内核中的进程被堵塞的时候 |
