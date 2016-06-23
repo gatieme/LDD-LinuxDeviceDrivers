@@ -21,7 +21,6 @@ Linux进程核心调度器之主调度器
 因而内核提供了两个调度器**主调度器**，**周期性调度器**，分别实现如上工作, 两者合在一起就组成了**核心调度器(core scheduler)**, 也叫**通用调度器(generic scheduler)**.
 
 
-
 他们都根据进程的优先级分配CPU时间, 因此这个过程就叫做优先调度, 我们将在本节主要讲解周期调度的设计和实现方式
 
 
@@ -53,17 +52,11 @@ linux把进程区分为**实时进程**和**非实时进程**, 其中非实时�
 
 对于实时进程，采用FIFO, Round Robin或者Earliest Deadline First (EDF)最早截止期限优先调度算法|的调度策略.
 
-但是普通进程的调度策略就比较麻烦了, 因为普通进程不能简单的只看优先级, 必须公平的占有CPU, 否则很容易出现进程饥饿, 这种情况下用户会感觉操作系统很卡, 响应总是很慢，因此在linux调度器的发展历程中经过了多次重大变动, linux总是希望寻找一个最接近于完美的调度策略来公平快速的调度进程.
 
 
 ##linux调度器的演变
 -------
 
-
-
-一开始的调度器是复杂度为**$O(n)$的始调度算法**(实际上每次会遍历所有任务，所以复杂度为O(n)), 这个算法的缺点是当内核中有很多任务时，调度器本身就会耗费不少时间，所以，从linux2.5开始引入赫赫有名的**$O(1)$调度器**
-
-然而，linux是集全球很多程序员的聪明才智而发展起来的超级内核，没有最好，只有更好，在$O(1)$调度器风光了没几天就又被另一个更优秀的调度器取代了，它就是**CFS调度器Completely Fair Scheduler**.
 
 | 字段 | 版本 |
 | ------------- |:-------------:|
@@ -128,30 +121,6 @@ linux中针对当前可调度的实时和非实时进程, 定义了类型为sech
 *	sched_entity 采用CFS算法调度的普通非实时进程的调度实体
 
 
-
-**调度器类的就绪队列**
-
-另外，对于调度框架及调度器类，它们都有自己管理的运行队列，调度框架只识别rq（其实它也不能算是运行队列），而对于cfs调度器类它的运行队列则是cfs_rq（内部使用红黑树组织调度实体），实时rt的运行队列则为rt_rq（内部使用优先级bitmap+双向链表组织调度实体）, 此外内核对新增的dl实时调度策略也提供了运行队列dl_rq
-
-
-**调度器整体框架**
-
-每个进程都属于某个调度器类(由字段task_struct->sched_class标识), 由调度器类采用进程对应的调度策略调度(由task_struct->policy )进行调度, task_struct也存储了其对应的调度实体标识
-
-linux实现了6种调度策略, 依据其调度策略的不同实现了5个调度器类, 一个调度器类可以用一种或者多种调度策略调度某一类进程, 也可以用于特殊情况或者调度特殊功能的进程.
-
-
-| 调度器类 | 调度策略 |  调度策略对应的调度算法 | 调度实体 | 调度实体对应的调度对象 |
-| ------- |:-------:|:-------:|:-------:||:-------:|
-| stop_sched_class | 无 | 无 | 无 | 特殊情况, 发生在cpu_stop_cpu_callback 进行cpu之间任务迁移migration或者HOTPLUG_CPU的情况下关闭任务 |
-| dl_sched_class | SCHED_DEADLINE | Earliest-Deadline-First最早截至时间有限算法 | sched_dl_entity | 采用DEF最早截至时间有限算法调度实时进程 |
-| rt_sched_class | SCHED_RR<br><br>SCHED_FIFO | Roound-Robin时间片轮转算法<br><br>FIFO先进先出算法 | sched_rt_entity | 采用Roound-Robin或者FIFO算法调度的实时调度实体 |
-| fair_sched_class | SCHED_NORMAL<br><br>SCHED_BATCH | CFS完全公平懂调度算法 |sched_entity | 采用CFS算法普通非实时进程 |
-| idle_sched_class | SCHED_IDLE | 无 | 无 |特殊进程, 用于cpu空闲时调度空闲进程idle |
-
-它们的关系如下图
-
-![调度器的组成](../images/level.jpg)
 
 
 #主调度器
@@ -587,6 +556,7 @@ rev->sched_class == class && rq->nr_running == rq->cfs.h_nr_running
 >
 >具体的内容请参照
 
+
 ###进程上下文切换
 -------
 
@@ -743,3 +713,60 @@ static __always_inline bool need_resched(void)
 | ------- |:-------:|:-------:|
 | 用户抢占 | 内核在即将返回用户空间时检查进程是否设置了TIF_NEED_RESCHED标志，如果设置了，就会发生用户抢占.  |  从系统调用或中断处理程序返回用户空间的时候 |
 | 内核抢占 | 在不支持内核抢占的内核中，内核进程如果自己不主动停止，就会一直的运行下去。无法响应实时进程. 抢占内核虽然牺牲了上下文切换的开销, 但获得 了更大的吞吐量和响应时间<br><br>2.6的内核添加了内核抢占，同时为了某些地方不被抢占，又添加了自旋锁. 在进程的thread_info结构中添加了preempt_count该数值为0，当进程使用一个自旋锁时就加1，释放一个自旋锁时就减1. 为0时表示内核可以抢占. | 1.	从中断处理程序返回内核空间时，内核会检查preempt_count和TIF_NEED_RESCHED标志，如果进程设置了 TIF_NEED_RESCHED标志,并且preempt_count为0，发生内核抢占<br><br>2.	当内核再次用于可抢占性的时候，当进程所有的自旋锁都释 放了，释放程序会检查TIF_NEED_RESCHED标志，如果设置了就会调用schedule<br><br>3.	显示调用schedule时<br><br>4.	内核中的进程被堵塞的时候 |
+
+
+
+
+#总结
+-------
+
+**schedule调度流程**
+
+schedule就是主调度器的函数, 在内核中的许多地方, 如果要将CPU分配给与当前活动进程不同的另一个进程, 都会直接调用主调度器函数schedule, 该函数定义在[kernel/sched/core.c, L3243](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3243), 如下所示
+
+该函数完成如下工作
+
+1.	确定当前就绪队列, 并在保存一个指向当前(仍然)活动进程的task_struct指针
+
+2.	检查死锁, 关闭内核抢占后调用__schedule完成内核调度
+
+3.	恢复内核抢占, 然后检查当前进程是否设置了重调度标志TLF_NEDD_RESCHED, 如果该进程被其他进程设置了TIF_NEED_RESCHED标志, 则函数重新执行进行调度
+
+```c
+    do {
+        preempt_disable();									/*  关闭内核抢占  */
+        __schedule(false);									/*  完成调度  */
+        sched_preempt_enable_no_resched();	                /*  开启内核抢占  */
+    } while (need_resched());	/*  如果该进程被其他进程设置了TIF_NEED_RESCHED标志，则函数重新执行进行调度    */
+```
+
+**__schedule如何完成内核抢占**
+
+1.	完成一些必要的检查, 并设置进程状态, 处理进程所在的就绪队列
+
+2.	调度全局的pick_next_task选择抢占的进程
+
+	*	如果当前cpu上所有的进程都是cfs调度的普通非实时进程, 则直接用cfs调度, 如果无程序可调度则调度idle进程
+
+	*	否则从优先级最高的调度器类sched_class_highest(目前是stop_sched_class)开始依次遍历所有调度器类的pick_next_task函数, 选择最优的那个进程执行
+
+3.	context_switch完成进程上下文切换
+	
+	*	调用switch_mm(), 把虚拟内存从一个进程映射切换到新进程中
+
+	*	调用switch_to(),从上一个进程的处理器状态切换到新进程的处理器状态。这包括保存、恢复栈信息和寄存器信息
+
+
+**调度的内核抢占和用户抢占**
+
+内核在完成调度的过程中总是先关闭内核抢占, 等待内核完成调度的工作后, 再把内核抢占开启, 如果在内核完成调度器过程中, 这时候如果发生了内核抢占, 我们的调度会被中断, 而调度却还没有完成, 这样会丢失我们调度的信息.
+
+而同样我们可以看到, 在调度完成后, 内核会去判断need_resched条件, 如果这个时候为真, 内核会重新进程一次调度, 此次调度由于发生在内核态因此仍然是一次内核抢占
+
+need_resched条件其实是判断**need_resched标识TIF_NEED_RESCHED**的值, 内核在thread_info的flag中设置了一个标识来标志进程是否需要重新调度, 即重新调度need_resched标识TIF_NEED_RESCHED, 内核在即将返回用户空间时会检查标识TIF_NEED_RESCHED标志进程是否需要重新调度，如果设置了，就会发生调度, 这被称为**用户抢占**,
+
+而内核抢占是通过**自旋锁preempt_count**实现的, 同样当内核可以进行内核抢占的时候(比如从中断处理程序返回内核空间或内核中的进程被堵塞的时候)，内核会检查preempt_count和TIF_NEED_RESCHED标志，如果进程设置了 TIF_NEED_RESCHED标志,并且preempt_count为0，发生**内核抢占**
+
+
+
+
