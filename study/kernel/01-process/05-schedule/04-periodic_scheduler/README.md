@@ -295,8 +295,14 @@ task_tick的实现方法取决于底层的调度器类, 例如完全公平调度
 
 目前我们的内核中的3个调度器类`struct sched_entity`,  `struct sched_rt_entity`, 和`struct sched_dl_entity` dl, 我们针对当前内核中实现的调度器类分别列出其周期性调度函数task_tick
 
-| 调度器类 | 描述 | 周期性调度函数 | 定义 |
-| ------------- |:-------------:||:-------------:|
+
+| 调度器类 | task_tick操作 | task_tick函数定义 |
+| ------- |:-------:|:-------:|
+| stop_sched_class | | [kernel/sched/stop_task.c, line 77, task_tick_stop](http://lxr.free-electrons.com/source/kernel/sched/stop_task.c?v=4.6#L77) |
+| dl_sched_class | | [kernel/sched/deadline.c, line 1192, task_tick_dl](http://lxr.free-electrons.com/source/kernel/sched/deadline.c?v=4.6#L1192)|
+| rt_sched_class | | [/kernel/sched/rt.c, line 2227, task_tick_rt](http://lxr.free-electrons.com/source/kernel/sched/rt.c?v=4.6#L2227)|
+| fail_sched_class | | [kernel/sched/fair.c, line 8116, task_tick_fail](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L8116) |
+| idle_sched_class | | [kernel/sched/idle_task.c, line 53, task_tick_idle](http://lxr.free-electrons.com/source/kernel/sched/idle_task.c?v=4.6#L53) |
 
 
 如果当前进程希望被重新调度, 那么调度类方法会在task_struct中设置TIF_NEED_RESCHED标志, 以表示该请求, 而内核将会在接下来的适当实际完成此请求.

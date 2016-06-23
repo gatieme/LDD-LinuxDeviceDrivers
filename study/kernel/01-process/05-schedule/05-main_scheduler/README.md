@@ -541,7 +541,7 @@ extern const struct sched_class idle_sched_class;
 ```
 
 
-除了全局的pick_next_task函数, 每个调度器类都提供了pick_next_task函数泳衣查找对应调度器下的最优进程, 请定义如下所示
+除了全局的pick_next_task函数, 每个调度器类都提供了pick_next_task函数用以查找对应调度器下的最优进程, 其定义如下所示
 
 | 调度器类 | pick_next策略 | pick_next_task_fair函数 |
 | ------- |:-------:|:-------:|
@@ -549,7 +549,7 @@ extern const struct sched_class idle_sched_class;
 | dl_sched_class | | [kernel/sched/deadline.c, line 1782, pick_next_task_dl](http://lxr.free-electrons.com/source/kernel/sched/deadline.c?v=4.6#L1128)|
 | rt_sched_class | 取出合适的进程后, dequeue_pushable_task从pushable队列里取出来 | [/kernel/sched/rt.c, line 1508, pick_next_task_rt](http://lxr.free-electrons.com/source/kernel/sched/rt.c?v=4.6#L1508)|
 | fail_sched_class | pick_next_task_fair,从红黑树里，选出vtime最小的那个进程，调用set_next_entity将其出队 | [kernel/sched/fair.c, line 5441, pick_next_task_fail](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L5441) |
-| idle_sched_class | 直接调度idle进程 | [kernel/sched/idle_task.c, line 26, pick_next_task_idle](http://lxr.free-electrons.com/source/kernel/sched/idle_task.c?v=4.6#L26)
+| idle_sched_class | 直接调度idle进程 | [kernel/sched/idle_task.c, line 26, pick_next_task_idle](http://lxr.free-electrons.com/source/kernel/sched/idle_task.c?v=4.6#L26) |
 
 >实际上，对于RT进程，put和pick并不操作运行队列
 >

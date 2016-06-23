@@ -9,10 +9,10 @@ Linux进程退出详解
 1.	调度器概述introduction
 2.	调度器演变develop
 3.	调度器的设计design
-4.	优先级priority
-5.	抢占-内核抢占和用户抢占以及抢占的时机preempt
-6.	周期性调度器periodic_scheduler
-7.	主调度器main_schedulrt
+4.	周期性调度器periodic_scheduler
+5.	主调度器main_schedulrt
+6.	优先级priority
+7.	抢占-内核抢占和用户抢占以及抢占的时机preempt
 8.	进程切换context_switch
 9.	完全公平调度器cfs-设计
 10.	cfs-负荷权重
