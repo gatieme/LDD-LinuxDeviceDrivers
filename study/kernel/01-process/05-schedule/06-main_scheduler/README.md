@@ -558,6 +558,7 @@ extern const struct sched_class idle_sched_class;
 
 **问题1 : 为什么要多次一举判断所有的进程是否全是cfs调度的普通非实时进程?**
 
+
 加快经常性事件, 是程序开发中一个优化的准则, 那么linux系统中最普遍的进程是什么呢? 肯定是非实时进程啊, 其调度器必然是cfs, 因此
 
 ```c
@@ -582,7 +583,12 @@ rev->sched_class == class && rq->nr_running == rq->cfs.h_nr_running
 ##context_switch进程上下文切换
 -------
 
-**进程上下文切换**
+>进程上下文的切换其实是一个很复杂的过程, 我们在这里不能详述, 但是我会尽可能说明白
+>
+>具体的内容请参照
+
+###进程上下文切换
+-------
 
 
 **上下文切换**(有时也称做**进程切换**或**任务切换**)是指CPU从一个进程或线程切换到另一个进程或线程
@@ -596,25 +602,88 @@ rev->sched_class == class && rq->nr_running == rq->cfs.h_nr_running
 3.	跳转到程序计数器所指向的位置（即跳转到进程被中断时的代码行），以恢复该进程
 
 
-上下文是指某一时间点CPU寄存器和程序计数器的内容, 广义上还包括内存中进程的弟子映射信息
+因此上下文是指某一时间点CPU寄存器和程序计数器的内容, 广义上还包括内存中进程的虚拟地址映射信息.
 
 上下文切换只能发生在内核态中, 上下文切换通常是计算密集型的。也就是说，它需要相当可观的处理器时间，在每秒几十上百次的切换中，每次切换都需要纳秒量级的时间。所以，上下文切换对系统来说意味着消耗大量的 CPU 时间，事实上，可能是操作系统中时间消耗最大的操作。
 Linux相比与其他操作系统（包括其他类 Unix 系统）有很多的优点，其中有一项就是，其上下文切换和模式切换的时间消耗非常少.
 
+###context_switch流程
+-------
+
 context_switch函数完成了进程上下文的切换, 其定义在[kernel/sched/core.c#L2715](http://lxr.free-electrons.com/source/kernel/sched/core.c#L2715),
 http://abcdxyzk.github.io/blog/2014/05/22/kernel-sched-tick/
-
-执行如下操作
-
-*	调用switch_mm(), 把虚拟内存从一个进程映射切换到新进程中
-
-*	调用switch_to(),从上一个进程的处理器状态切换到新进程的处理器状态。这包括保存、恢复栈信息和寄存器信息 
 
 context_switch( )函数建立next进程的地址空间。进程描述符的active_mm字段指向进程所使用的内存描述符，而mm字段指向进程所拥有的内存描述符。对于一般的进程，这两个字段有相同的地址，但是，内核线程没有它自己的地址空间而且它的 mm字段总是被设置为 NULL
 
 context_switch( )函数保证：如果next是一个内核线程, 它使用prev所使用的地址空间
 
-进程切换并不是我们今天的重点, 我们将在后面的章节中着重讲解
+它主要执行如下操作
+
+*	调用switch_mm(), 把虚拟内存从一个进程映射切换到新进程中
+
+*	调用switch_to(),从上一个进程的处理器状态切换到新进程的处理器状态。这包括保存、恢复栈信息和寄存器信息
+
+
+由于不同架构下地址映射的机制有所区别, 而寄存器等信息弊病也是依赖于架构的, 因此switch_mm和switch_to两个函数均是体系结构相关的
+
+
+###switch_mm切换进程虚拟地址空间
+-------
+
+switch_mm主要完成了进程prev到next虚拟地址空间的映射, 由于内核虚拟地址空间是不许呀切换的, 因此切换的主要是用户态的虚拟地址空间
+
+这个是一个体系结构相关的函数, 其实现在对应体系结构下的[arch/对应体系结构/include/asm/mmu_context.h](http://lxr.free-electrons.com/ident?v=4.6;i=switch_mm)文件中, 我们下面列出了几个常见体系结构的实现
+
+| 体系结构 | switch_mm实现 |
+| ------- |:-------:|
+| x86 | [arch/x86/include/asm/mmu_context.h, line 118](http://lxr.free-electrons.com/source/arch/x86/include/asm/mmu_context.h?v=4.6#L118) |
+| arm | [arch/arm/include/asm/mmu_context.h, line 126](http://lxr.free-electrons.com/source/arch/arm/include/asm/mmu_context.h?v=4.6#L126) |
+| arm64 | [arch/arm64/include/asm/mmu_context.h, line 183](http://lxr.free-electrons.com/source/arch/arm64/include/asm/mmu_context.h?v=4.6#L183)
+
+其主要工作就是切换了进程的CR3
+
+>控制寄存器（CR0～CR3）用于控制和确定处理器的操作模式以及当前执行任务的特性
+>
+>CR0中含有控制处理器操作模式和状态的系统控制标志；
+>
+>CR1保留不用；
+>
+>CR2含有导致页错误的线性地址；
+>
+>CR3中含有页目录表物理内存基地址，因此该寄存器也被称为页目录基地址寄存器PDBR（Page-Directory Base address Register）。
+
+
+###switch_to切换进程堆栈和寄存器
+-------
+
+执行环境的切换是在switch_to()中完成的
+
+调度过程可能选择了一个新的进程, 而清理工作则是针对此前的活动进程, 请注意, 这不是发起上下文切换的那个进程, 而是系统中随机的某个其他进程, 内核必须想办法使得进程能够与context_switch例程通信, 这就可以通过switch_to宏实现. 因此switch_to函数通过3个参数提供2个变量, 
+
+在新进程被选中时, 底层的进程切换冽程必须将此前执行的进程提供给context_switch, 由于控制流会回到陔函数的中间, 这无法用普通的函数返回值来做到, 因此提供了3个参数的宏
+
+```c
+/*
+ * Saving eflags is important. It switches not only IOPL between tasks,
+ * it also protects other tasks from NT leaking through sysenter etc.
+*/
+#define switch_to(prev, next, last)
+```
+
+
+| 体系结构 | switch_to实现 |
+| ------- |:-------:|
+| x86 | arch/x86/include/asm/switch_to.h中两种实现<br><br> [定义CONFIG_X86_32宏](http://lxr.free-electrons.com/source/arch/x86/include/asm/switch_to.h?v=4.6#L27)<br><br>[未定义CONFIG_X86_32宏](http://lxr.free-electrons.com/source/arch/x86/include/asm/switch_to.h?v=4.6#L103) |
+| arm | [arch/arm/include/asm/switch_to.h, line 25](http://lxr.free-electrons.com/source/arch/arm/include/asm/switch_to.h?v=4.6#L18) |
+| 通用 | [include/asm-generic/switch_to.h, line 25](http://lxr.free-electrons.com/source/include/asm-generic/switch_to.h?v=4.6#L25) |
+
+内核在switch_to中执行如下操作
+
+1.	进程切换, 即esp的切换, 由于从esp可以找到进程的描述符
+
+2.	硬件上下文切换, 设置ip寄存器的值, 并jmp到__switch_to函数	
+
+3.	堆栈的切换, 即ebp的切换, ebp是栈底指针，它确定了当前变量空间属于哪个进程
 
 
 ##need_resched与TIF_NEED_RESCHED标识
