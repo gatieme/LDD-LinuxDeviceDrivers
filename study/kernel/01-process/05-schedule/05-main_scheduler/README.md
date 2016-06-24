@@ -580,8 +580,8 @@ Linux相比与其他操作系统（包括其他类 Unix 系统）有很多的优
 ###context_switch流程
 -------
 
-context_switch函数完成了进程上下文的切换, 其定义在[kernel/sched/core.c#L2715](http://lxr.free-electrons.com/source/kernel/sched/core.c#L2715),
-http://abcdxyzk.github.io/blog/2014/05/22/kernel-sched-tick/
+context_switch函数完成了进程上下文的切换, 其定义在[kernel/sched/core.c#L2711](http://lxr.free-electrons.com/source/kernel/sched/core.c#L2711)
+
 
 context_switch( )函数建立next进程的地址空间。进程描述符的active_mm字段指向进程所使用的内存描述符，而mm字段指向进程所拥有的内存描述符。对于一般的进程，这两个字段有相同的地址，但是，内核线程没有它自己的地址空间而且它的 mm字段总是被设置为 NULL
 

@@ -26,8 +26,7 @@ Linux进程退出详解
 18.	SMP调度
 19.	调度域和控制组
 
-http://blog.csdn.net/li4850729/article/details/28136643
+http://blog.csdn.net/b02042236/article/details/6076473
+http://www.tuicool.com/articles/MjyANr
+http://iamzhongyong.iteye.com/blog/1895728
 http://blog.csdn.net/xiaofei0859/article/details/8113211
-http://blog.sina.com.cn/s/blog_502c8cc401012pxj.html
-http://www.cnblogs.com/hustcat/archive/2009/08/31/1557507.html
-http://carlsama.blog.163.com/blog/static/19491207420132199327108/

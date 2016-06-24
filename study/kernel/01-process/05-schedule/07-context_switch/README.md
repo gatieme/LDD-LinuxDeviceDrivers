@@ -82,475 +82,181 @@ linux中针对当前可调度的实时和非实时进程, 定义了类型为sech
 *	sched_entity 采用CFS算法调度的普通非实时进程的调度实体
 
 
-##1.2  主调度器与内核/用户抢占
+
+##1.2	调度工作
 -------
 
-###1.2.1  调度过程中关闭内核抢占
+周期性调度器通过调用各个调度器类的task_tick函数完成周期性调度工作
+
+*	如果当前进程是**完全公平队列**中的进程, 则首先根据当前就绪队列中的进程数算出一个延迟时间间隔，大概每个进程分配2ms时间，然后按照该进程在队列中的总权重中占得比例，算出它该执行的时间X，如果该进程执行物理时间超过了X，则激发延迟调度；如果没有超过X，但是红黑树就绪队列中下一个进程优先级更高，即curr->vruntime-leftmost->vruntime > X,也将延迟调度
+
+*	如果当前进程是实时调度类中的进程：则如果该进程是SCHED_RR，则递减时间片[为HZ/10]，到期，插入到队列尾部，并激发延迟调度，如果是SCHED_FIFO，则什么也不做，直到该进程执行完成
+
+延迟调度**的真正调度过程在：schedule中实现，会按照调度类顺序和优先级挑选出一个最高优先级的进程执行
+
+而对于主调度器则直接关闭内核抢占后, 通过调用schedule来完成进程的调度
+
+
+可见不管是周期性调度器还是主调度器, 内核中的许多地方, 如果要将CPU分配给与当前活动进程不同的另外一个进程(即抢占)，都会直接或者调用调度函数, 包括schedule或者其子函数__schedule, 其中schedule在关闭内核抢占后调用__schedule完成了抢占.
+
+而__schedule则执行了如下操作
+
+**__schedule如何完成内核抢占**
+
+1.	完成一些必要的检查, 并设置进程状态, 处理进程所在的就绪队列
+
+2.	调度全局的pick_next_task选择抢占的进程
+
+	*	如果当前cpu上所有的进程都是cfs调度的普通非实时进程, 则直接用cfs调度, 如果无程序可调度则调度idle进程
+
+	*	否则从优先级最高的调度器类sched_class_highest(目前是stop_sched_class)开始依次遍历所有调度器类的pick_next_task函数, 选择最优的那个进程执行
+
+3.	context_switch完成进程上下文切换
+
+即进程的抢占或者切换工作是由context_switch完成的
+
+那么我们今天就详细讲解一下context_switch完成进程上下文切换的原理
+
+
+#2	进程上下文
 -------
 
-我们在上一篇linux内核主调度器schedule(文章链接, [CSDN](未填写网址), [Github](未填写网址))中在分析主调度器的时候, 我们会发现内核在进行调度之前都会通过preempt_disable关闭内核抢占, 而在完成调度工作后, 又会重新开启**内核抢占**
-
-参见[主调度器函数schedule](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3243)
-```c
-    do {
-        preempt_disable();                                  /*  关闭内核抢占  */
-        __schedule(false);                                  /*  完成调度  */
-        sched_preempt_enable_no_resched();                  /*  开启内核抢占  */
-
-    } while (need_resched());   /*  如果该进程被其他进程设置了TIF_NEED_RESCHED标志，则函数重新执行进行调度    */
-```
-
-这个很容易理解, 我们在内核完成调度器过程中, 这时候如果发生了内核抢占, 我们的调度会被中断, 而调度却还没有完成, 这样会丢失我们调度的信息.
-
-###1.2.2  调度完成检查need_resched看是否需要重新调度
-
-而同样我们可以看到, 在调度完成后, 内核会去判断need_resched条件, 如果这个时候为真, 内核会重新进程一次调度.
-
-这个的原因, 我们在前一篇博客中, 也已经说的很明白了,
-
-内核在thread_info的flag中设置了一个标识来标志进程是否需要重新调度, 即重新调度need_resched标识TIF_NEED_RESCHED, 内核在即将返回用户空间时会检查标识TIF_NEED_RESCHED标志进程是否需要重新调度，如果设置了，就会发生调度, 这被称为**用户抢占**
-
-
-
-
-
-#2  非抢占式和可抢占式内核
+##2.1	进程上下文的概念
 -------
 
-为了简化问题，我使用嵌入式实时系统uC/OS作为例子
+操作系统管理很多进程的执行. 有些进程是来自各种程序、系统和应用程序的单独进程，而某些进程来自被分解为很多进程的应用或程序。当一个进程从内核中移出，另一个进程成为活动的, 这些进程之间便发生了上下文切换. 操作系统必须记录重启进程和启动新进程使之活动所需要的所有信息. 这些信息被称作**上下文, 它描述了进程的现有状态, 进程上下文是可执行程序代码是进程的重要组成部分, 实际上是进程执行活动全过程的静态描述, 可以看作是用户进程传递给内核的这些参数以及内核要保存的那一整套的变量和寄存器值和当时的环境等**
 
-首先要指出的是，uC/OS只有内核态，没有用户态，这和Linux不一样
+进程的上下文信息包括， 指向可执行文件的指针, 栈, 内存(数据段和堆), 进程状态, 优先级, 程序I/O的状态, 授予权限, 调度信息, 审计信息, 有关资源的信息(文件描述符和读/写指针), 关事件和信号的信息, 寄存器组(栈指针, 指令计数器)等等, 诸如此类.
 
-多任务系统中, 内核负责管理各个任务, 或者说为每个任务分配CPU时间, 并且负责任务之间的通讯.
 
-内核提供的基本服务是任务切换. 调度（Scheduler）,英文还有一词叫dispatcher, 也是调度的意思.
+处理器总处于以下三种状态之一
 
-这是内核的主要职责之一, 就是要决定该轮到哪个任务运行了. 多数实时内核是基于优先级调度法的, 每个任务根据其重要程度的不同被赋予一定的优先级. 基于优先级的调度法指，CPU总是让处在就绪态的优先级最高的任务先运行. 然而, 究竟何时让高优先级任务掌握CPU的使用权, 有两种不同的情况, 这要看用的是什么类型的内核, 是**不可剥夺型**的还是**可剥夺型内核**
+１.	内核态，运行于进程上下文，内核代表进程运行于内核空间；
 
-##2.1  非抢占式内核
+２.	内核态，运行于中断上下文，内核代表硬件运行于内核空间；
+
+３.	用户态，运行于用户空间。
+
+用户空间的应用程序，通过系统调用，进入内核空间。这个时候用户空间的进程要传递 很多变量、参数的值给内核，内核态运行的时候也要保存用户进程的一些寄存器值、变量等。所谓的"进程上下文"
+
+硬件通过触发信号，导致内核调用中断处理程序，进入内核空间。这个过程中，硬件的 一些变量和参数也要传递给内核，内核通过这些参数进行中断处理。所谓的"中断上下文"，其实也可以看作就是硬件传递过来的这些参数和内核需要保存的一些其他环境（主要是当前被打断执行的进程环境）。
+
+>LINUX完全注释中的一段话
+>
+>当一个进程在执行时,CPU的所有寄存器中的值、进程的状态以及堆栈中的内容被称 为该进程的上下文。当内核需要切换到另一个进程时，它需要保存当前进程的 所有状态，即保存当前进程的上下文，以便在再次执行该进程时，能够必得到切换时的状态执行下去。在LINUX中，当前进程上下文均保存在进程的任务数据结 构中。在发生中断时,内核就在被中断进程的上下文中，在内核态下执行中断服务例程。但同时会保留所有需要用到的资源，以便中继服务结束时能恢复被中断进程 的执行.
+
+##2.2	上下文切换
+
+进程被抢占CPU时候, 操作系统保存其上下文信息, 同时将新的活动进程的上下文信息加载进来, 这个过程其实就是**上下文切换**, 而当一个被抢占的进程再次成为活动的, 它可以恢复自己的上下文继续从被抢占的位置开始执行. 参见维基百科-[context](https://en.wikipedia.org/wiki/Context_(computing), [context switch](https://en.wikipedia.org/wiki/Context_switch)
+
+**上下文切换**(有时也称做**进程切换**或**任务切换**)是指CPU从一个进程或线程切换到另一个进程或线程
+
+稍微详细描述一下，上下文切换可以认为是内核（操作系统的核心）在 CPU 上对于进程（包括线程）进行以下的活动：
+
+1.	挂起一个进程，将这个进程在 CPU 中的状态（上下文）存储于内存中的某处，
+
+2.	在内存中检索下一个进程的上下文并将其在 CPU 的寄存器中恢复
+
+3.	跳转到程序计数器所指向的位置（即跳转到进程被中断时的代码行），以恢复该进程
+
+
+因此上下文是指某一时间点CPU寄存器和程序计数器的内容, 广义上还包括内存中进程的虚拟地址映射信息.
+
+上下文切换只能发生在内核态中, 上下文切换通常是计算密集型的。也就是说，它需要相当可观的处理器时间，在每秒几十上百次的切换中，每次切换都需要纳秒量级的时间。所以，上下文切换对系统来说意味着消耗大量的 CPU 时间，事实上，可能是操作系统中时间消耗最大的操作。
+Linux相比与其他操作系统（包括其他类 Unix 系统）有很多的优点，其中有一项就是，其上下文切换和模式切换的时间消耗非常少.
+
+
+
+
+#3	context_switch进程上下文切换
 -------
 
-**非抢占式内核**是由任务主动放弃CPU的使用权
+linux中进程调度时, 内核在选择新进程之后进行抢占时, 通过context_switch完成进程上下文切换.
 
-非抢占式调度法也称作合作型多任务, 各个任务彼此合作共享一个CPU. 异步事件还是由中断服务来处理. 中断服务可以使一个高优先级的任务由挂起状态变为就绪状态.
+>**注意**		进程调度与抢占的区别
+>
+>进程调度不一定发生抢占, 但是抢占时却一定发生了调度
+>
+>在进程发生调度时, 只有当前内核发生当前进程因为主动或者被动需要放弃CPU时, 内核才会选择一个与当前活动进程不同的进程来抢占CPU
 
-但中断服务以后控制权还是回到原来被中断了的那个任务, 直到该任务主动放弃CPU的使用权时，那个高优先级的任务才能获得CPU的使用权。非抢占式内核如下图所示.
+context_switch其实是一个分配器, 他会调用所需的特定体系结构的方法
 
-![非抢占式内核](./images/NonPreemptiveKernel.png)
+*	调用switch_mm(), 把虚拟内存从一个进程映射切换到新进程中
 
-非抢占式内核的优点有
+*	调用switch_to(),从上一个进程的处理器状态切换到新进程的处理器状态。这包括保存、恢复栈信息和寄存器信息
 
-*	中断响应快(与抢占式内核比较)；
+context_switch函数建立next进程的地址空间。进程描述符的active_mm字段指向进程所使用的内存描述符，而mm字段指向进程所拥有的内存描述符。对于一般的进程，这两个字段有相同的地址，但是，内核线程没有它自己的地址空间而且它的 mm字段总是被设置为 NULL
 
-*	允许使用不可重入函数；
+context_switch( )函数保证：如果next是一个内核线程, 它使用prev所使用的地址空间
 
-*	几乎不需要使用信号量保护共享数据, 运行的任务占有CPU，不必担心被别的任务抢占。这不是绝对的，在打印机的使用上，仍需要满足互斥条件。
+由于不同架构下地址映射的机制有所区别, 而寄存器等信息弊病也是依赖于架构的, 因此switch_mm和switch_to两个函数均是体系结构相关的
 
-非抢占式内核的缺点有
 
-*	任务响应时间慢。高优先级的任务已经进入就绪态，但还不能运行，要等到当前运行着的任务释放CPU。
-*	非抢占式内核的任务级响应时间是不确定的，不知道什么时候最高优先级的任务才能拿到CPU的控制权，完全取决于应用程序什么时候释放CPU。
-
-##2.2  抢占式内核
+##3.1	context_switch流程
 -------
 
-使用抢占式内核可以保证系统响应时间. 最高优先级的任务一旦就绪, 总能得到CPU的使用权。当一个运行着的任务使一个比它优先级高的任务进入了就绪态, 当前任务的CPU使用权就会被剥夺，或者说被挂起了，那个高优先级的任务立刻得到了CPU的控制权。如果是中断服务子程序使一个高优先级的任务进入就绪态，中断完成时，中断了的任务被挂起，优先级高的那个任务开始运行。
-
-抢占式内核如下图所示
-
-![抢占式内核](./images/PreemptiveKernel.png)
-
-抢占式内核的优点有
-
-*	使用抢占式内核，最高优先级的任务什么时候可以执行，可以得到CPU的使用权是可知的。使用抢占式内核使得任务级响应时间得以最优化。
-抢占式内核的缺点有：
-
-*	不能直接使用不可重入型函数。调用不可重入函数时，要满足互斥条件，这点可以使用互斥型信号量来实现。如果调用不可重入型函数时，低优先级的任务CPU的使用权被高优先级任务剥夺，不可重入型函数中的数据有可能被破坏。
-
-
-
-#3  linux用户抢占
--------
-
-#3.1  #linux用户抢占
--------
-
-当内核即将返回用户空间时, 内核会检查need_resched是否设置, 如果设置, 则调用schedule()，此时，发生用户抢占.
-
-
-##3.2  need_resched标识
--------
-
-内核如何检查一个进程是否需要被调度呢?
-
-内核在即将返回用户空间时检查进程是否需要重新调度，如果设置了，就会发生调度, 这被称为**用户抢占**, 因此**内核在thread_info的flag中设置了一个标识来标志进程是否需要重新调度, 即重新调度need_resched标识TIF_NEED_RESCHED**
-
-并提供了一些设置可检测的函数
-
-
-| 函数 | 描述 | 定义 |
-| ------- |:-------:|:-------:|
-| set_tsk_need_resched | 设置指定进程中的need_resched标志 | [include/linux/sched.h, L2920](http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L2920) |
-| clear_tsk_need_resched | 清除指定进程中的need_resched标志 | [include/linux/sched.h, L2926](http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L2931) |
-| test_tsk_need_resched | 检查指定进程need_resched标志 | [include/linux/sched.h, L2931](http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L2931) |
-
-而我们内核中调度时常用的need_resched()函数检查进程是否需要被重新调度其实就是通过test_tsk_need_resched实现的, 其定义如下所示
-
-```c
-// http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L3093
-static __always_inline bool need_resched(void)
-{
-	return unlikely(tif_need_resched());
-}
-
-// http://lxr.free-electrons.com/source/include/linux/thread_info.h?v=4.6#L106
-#define tif_need_resched() test_thread_flag(TIF_NEED_RESCHED)
-```
-
-##3.3  用户抢占的发生时机(什么时候需要重新调度need_resched)
-
-一般来说，用户抢占发生几下情况：
-
-*	从系统调用返回用户空间；
-
-*	从中断(异常)处理程序返回用户空间
-
-从这里我们可以看到, 用户抢占是发生在用户空间的抢占现象.
-
-更详细的触发条件如下所示, 其实不外乎就是前面所说的两种情况: 从系统调用或者中断返回用户空间
-
-1.	时钟中断处理例程检查当前任务的时间片，当任务的时间片消耗完时，scheduler_tick()函数就会设置need_resched标志；
-
-2.	信号量、等到队列、completion等机制唤醒时都是基于waitqueue的，而waitqueue的唤醒函数为default_wake_function，其调用try_to_wake_up将被唤醒的任务更改为就绪状态并设置need_resched标志。
-
-3.	设置用户进程的nice值时，可能会使高优先级的任务进入就绪状态；
-
-4.	改变任务的优先级时，可能会使高优先级的任务进入就绪状态；
-
-5.	新建一个任务时，可能会使高优先级的任务进入就绪状态；
-
-6.	对CPU(SMP)进行负载均衡时，当前任务可能需要放到另外一个CPU上运行
-
-
-#4  linux内核抢占
--------
-
-##4.1  内核抢占的概念
--------
-
-对比用户抢占, 顾名思义, 内核抢占就是指一个在内核态运行的进程, 可能在执行内核函数期间被另一个进程取代.
-
-
-##4.2  为什么linux需要内核抢占
--------
-
-linux系统中, 进程在系统调用后返回用户态之前, 或者是内核中某些特定的点上, 都会调用调度器. 这确保除了一些明确指定的情况之外, 内核是无法中断的, 这不同于用户进程. 
-
-如果内核处于相对耗时的操作中, 比如文件系统或者内存管理相关的任务, 这种行为可能会带来问题. 这种情况下, 内核代替特定的进程执行相当长的时间, 而其他进程无法执行, 无法调度, 这就造成了系统的延迟增加, 用户体验到"缓慢"的响应. 比如如果多媒体应用长时间无法得到CPU, 则可能发生视频和音频漏失现象.
-
-在编译内核时如果启用了对**内核抢占**的支持, 则可以解决这些问题. 如果高优先级进程有事情需要完成, 那么在启用了内核抢占的情况下, 不仅用户空间应用程序可以被中断, 内核也可以被中断,
-
-
-linux内核抢占是在Linux2.5.4版本发布时加入的, 尽管使内核可抢占需要的改动特别少, 但是该机制不像抢占用户空间进程那样容易实现. 如果内核无法一次性完成某些操作(例如, 对数据结构的操作), 那么可能出现静态条件而使得系统不一致.
-
-内核抢占和用户层进程被其他进程抢占是两个不同的概念, 内核抢占主要是从实时系统中引入的, 在非实时系统中的确也能提高系统的响应速度, 但也不是在所有情况下都是最优的，因为抢占也需要调度和同步开销，在某些情况下甚至要关闭内核抢占, 比如前面我们将主调度器的时候, linux内核在完成调度的过程中是关闭了内核抢占的.
-
-内核不能再任意点被中断, 幸运的是, 大多数不能中断的点已经被SMP实现标识出来了. 并且在实现内核抢占时可以重用这些信息. 如果内核可以被抢占, 那么单处理器系统也会像是一个SMP系统
-
-##4.3  内核抢占的发生时机
--------
-
-要满足什么条件，kernel才可以抢占一个任务的内核态呢?
-
-*	没持有锁。锁是用于保护临界区的，不能被抢占。
-
-*	Kernel code可重入(reentrant)。因为kernel是SMP-safe的，所以满足可重入性。
-
-内核抢占发生的时机，一般发生在：
-
-1.	当从中断处理程序正在执行，且返回内核空间之前。当一个中断处理例程退出，在返回到内核态时(kernel-space)。这是隐式的调用schedule()函数，当前任务没有主动放弃CPU使用权，而是被剥夺了CPU使用权。
-
-2.	当内核代码再一次具有可抢占性的时候，如解锁（spin_unlock_bh）及使能软中断(local_bh_enable)等, 此时当kernel code从不可抢占状态变为可抢占状态时(preemptible again)。也就是preempt_count从正整数变为0时。这也是隐式的调用schedule()函数
-
-3.	如果内核中的任务显式的调用schedule(), 任务主动放弃CPU使用权
-
-4.	如果内核中的任务阻塞(这同样也会导致调用schedule()), 导致需要调用schedule()函数。任务主动放弃CPU使用权
-
-内核抢占，并不是在任何一个地方都可以发生，以下情况不能发生
-
-1.	内核正进行中断处理。在Linux内核中进程不能抢占中断(中断只能被其他中断中止、抢占，进程不能中止、抢占中断)，在中断例程中不允许进行进程调度。进程调度函数schedule()会对此作出判断，如果是在中断中调用，会打印出错信息。
-
-2.	内核正在进行中断上下文的Bottom Half(中断下半部，即软中断)处理。硬件中断返回前会执行软中断，此时仍然处于中断上下文中。如果此时正在执行其它软中断，则不再执行该软中断。
-
-3.	内核的代码段正持有spinlock自旋锁、writelock/readlock读写锁等锁，处干这些锁的保护状态中。内核中的这些锁是为了在SMP系统中短时间内保证不同CPU上运行的进程并发执行的正确性。当持有这些锁时，内核不应该被抢占。
-
-4.	内核正在执行调度程序Scheduler。抢占的原因就是为了进行新的调度，没有理由将调度程序抢占掉再运行调度程序。
-
-5.	内核正在对每个CPU“私有”的数据结构操作(Per-CPU date structures)。在SMP中，对于per-CPU数据结构未用spinlocks保护，因为这些数据结构隐含地被保护了(不同的CPU有不一样的per-CPU数据，其他CPU上运行的进程不会用到另一个CPU的per-CPU数据)。但是如果允许抢占，但一个进程被抢占后重新调度，有可能调度到其他的CPU上去，这时定义的Per-CPU变量就会有问题，这时应禁抢占。
-
-
-
-
-#5  内核抢占的实现
--------
-
-##5.1  内核如何跟踪它能否被抢占?
--------
-
-
-
-前面我们提到了, 系统中每个进程都有一个特定于体系结构的struct thread_info结构, 用户层程序被调度的时候会检查struct thread_info中的need_resched标识TLF_NEED_RESCHED标识来检查自己是否需要被重新调度.
-
-自然内核抢占·也可以应用同样的方法被实现, linux内核在thread_info结构中添加了一个自旋锁标识preempt_count, 称为**抢占计数器(preemption counter)**.
+context_switch定义在[kernel/sched/core.c#L2711](http://lxr.free-electrons.com/source/kernel/sched/core.c#L2711), 如下所示
 
 ```c
-struct thread_info
-{
-	/*  ......  */
-	int preempt_count;	 /* 0 => preemptable, <0 => BUG */
-    /*  ......  */
-}
-```
 
+````
 
-| preempt_count值 | 描述 |
+###switch_mm切换进程虚拟地址空间
+-------
+
+switch_mm主要完成了进程prev到next虚拟地址空间的映射, 由于内核虚拟地址空间是不许呀切换的, 因此切换的主要是用户态的虚拟地址空间
+
+这个是一个体系结构相关的函数, 其实现在对应体系结构下的[arch/对应体系结构/include/asm/mmu_context.h](http://lxr.free-electrons.com/ident?v=4.6;i=switch_mm)文件中, 我们下面列出了几个常见体系结构的实现
+
+| 体系结构 | switch_mm实现 |
 | ------- |:-------:|
-| >0 | 禁止内核抢占, 其值标记了使用preempt_count的临界区的数目 |
-| 0 | 开启内核抢占 |
-| <0 | 锁为负值, 内核出现错误 |
+| x86 | [arch/x86/include/asm/mmu_context.h, line 118](http://lxr.free-electrons.com/source/arch/x86/include/asm/mmu_context.h?v=4.6#L118) |
+| arm | [arch/arm/include/asm/mmu_context.h, line 126](http://lxr.free-electrons.com/source/arch/arm/include/asm/mmu_context.h?v=4.6#L126) |
+| arm64 | [arch/arm64/include/asm/mmu_context.h, line 183](http://lxr.free-electrons.com/source/arch/arm64/include/asm/mmu_context.h?v=4.6#L183)
 
-内核自然也提供了一些函数或者宏, 用来开启, 关闭以及检测抢占计数器preempt_coun的值, 这些通用的函数定义在[include/asm-generic/preempt.h](http://lxr.free-electrons.com/source/include/asm-generic/preempt.h?v=4.6#L8), 而某些架构也定义了自己的接口， 比如x86架构[/arch/x86/include/asm/preempt.h](http://lxr.free-electrons.com/source/arch/x86/include/asm/preempt.h?v=4.6)
+其主要工作就是切换了进程的CR3
 
-| 函数 | 描述 | 定义 |
-| ------- |:-------:|:-------:|
-| preempt_count | 获取当前current进程抢占计数器的值 | [include/asm-generic/preempt.h, line 8](http://lxr.free-electrons.com/source/include/asm-generic/preempt.h?v=4.6#L8) |
-| preempt_count_ptr | 返回指向当前current进程的抢占计数器的指针 | [include/asm-generic/preempt.h, line 13](http://lxr.free-electrons.com/source/include/asm-generic/preempt.h?v=4.6#L13) |
-| preempt_count_set | 重设当前current进程的抢占计数器 | [include/asm-generic/preempt.h, line 18](http://lxr.free-electrons.com/source/include/asm-generic/preempt.h?v=4.6#L18) |
-| init_task_preempt_count | 初始化task的抢占计数器为FORK_PREEMPT_COUNT | [include/asm-generic/preempt.h, line 26](http://lxr.free-electrons.com/source/include/asm-generic/preempt.h?v=4.6#L26) |
-| init_idle_preempt_count | 初始化task的抢占计数器为PREEMPT_ENABLED | [include/asm-generic/preempt.h, line 30](http://lxr.free-electrons.com/source/include/asm-generic/preempt.h?v=4.6#L30) |
-|  preempt_count_add | 将增加current的抢占计数器增加val | [include/linux/preempt.h, line 132](http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L32) |
-| preempt_count_sub | 将增加current的抢占计数器减少val | [include/linux/preempt.h, line 133](http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L133) |
-| preempt_count_dec_and_test | 将current的抢占计数器减少1, 然后看是否可以进程内核抢占, 即检查抢占计数器是否为0(允许抢占), 同时检查tif_need_resched标识是否为真 | [include/linux/preempt.h, line 134, 61](http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L134) |
-| preempt_count_inc | current的抢占计数器增加1 |  [include/linux/preempt.h, line 140](http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L140) |
-| preempt_count_dec | current的抢占计数器减少1 |  [include/linux/preempt.h, line 141](http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L141) |
+>控制寄存器（CR0～CR3）用于控制和确定处理器的操作模式以及当前执行任务的特性
+>
+>CR0中含有控制处理器操作模式和状态的系统控制标志；
+>
+>CR1保留不用；
+>
+>CR2含有导致页错误的线性地址；
+>
+>CR3中含有页目录表物理内存基地址，因此该寄存器也被称为页目录基地址寄存器PDBR（Page-Directory Base address Register）。
 
 
-
-还有其他函数可用于开启和关闭内核抢占
-
-| 函数 | 描述 | 定义 |
-| ------- |:-------:|:-------:|
-| preempt_disable | 通过preempt_count_inc来停用内核抢占, 并且通过路障barrier同步来避免编译器的优化 | [include/linux/preempt.h, line 145](http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L145) |
-| preempt_enable | preempt_count_dec_and_test启用内核抢占, 然后通过__preempt_schedule检测是够有必要进行调度 | [include/linux/preempt.h, line 162](http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L162) |
-| preempt_enable_no_resched | 开启抢占, 但是不进行重调度 | [include/linuxc/preempt.h, line 151](http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L151) |
-| preempt_check_resched | 调用__preempt_schedule检测是够有必要进行调度 | [include/linux/preempt.h, line 176](http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L176) |
-| should_resched | 检查current的抢占计数器是否为参数preempt_offset的值, 同时检查 tif_need_resched是否为真 | [include/linux/preempt.h, line 74](http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L74) |
-| preemptible | 检查是否可以内核抢占, 检查抢占计数器是否为0, 以及是否停用了中断 | [/include/linux/preempt.h, line159](http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L159) |
-
-##5.2  内核如何知道是否需要抢占?
+###switch_to切换进程堆栈和寄存器
 -------
 
-首先必须设置了TLF_NEED_RESCHED标识来通知内核有进程在等待得到CPU时间, 然后会在判断抢占计数器preempt_count是否为0, 这个工作往往通过preempt_check_resched或者其相关来实现
+执行环境的切换是在switch_to()中完成的, switch_to完成最终的进程切换，它保存原进程的所有寄存器信息，恢复新进程的所有寄存器信息，并执行新的进程
 
+调度过程可能选择了一个新的进程, 而清理工作则是针对此前的活动进程, 请注意, 这不是发起上下文切换的那个进程, 而是系统中随机的某个其他进程, 内核必须想办法使得进程能够与context_switch例程通信, 这就可以通过switch_to宏实现. 因此switch_to函数通过3个参数提供2个变量, 
 
-###5.2.1  重新启用内核抢占时使用preempt_schedule检查抢占
--------
-
-在内核停用抢占后重新启用时, 检测是否有进程打算抢占当前执行的内核代码, 是一个比较好的时机, 如果是这样, 应该尽快完成, 则无需等待下一次对调度器的例行调用.
-
-
-
-抢占机制中主要的函数是preempt_schedule, 设置了TIF_NEED_RESCHED标志并不能保证可以抢占内核, 内核可能处于临界区, 不能被干扰
-
-```c
-//  http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3307
-
-/*
- * this is the entry point to schedule() from in-kernel preemption
- * off of preempt_enable. Kernel preemptions off return from interrupt
- * occur there and call schedule directly.
- */
-asmlinkage __visible void __sched notrace preempt_schedule(void)
-{
-    /*
-     * If there is a non-zero preempt_count or interrupts are disabled,
-     * we do not want to preempt the current task. Just return..
-     */
-     /* !preemptible() => preempt_count() != 0 || irqs_disabled()
-      *	如果抢占计数器大于0, 那么抢占被停用, 该函数立即返回
-      * 如果
-     */
-    if (likely(!preemptible())) 
-        return;
-
-    preempt_schedule_common();
-}
-NOKPROBE_SYMBOL(preempt_schedule);
-EXPORT_SYMBOL(preempt_schedule);
-
-// http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L159
- #define preemptible()   (preempt_count() == 0 && !irqs_disabled())
-```
-
-
->!preemptible => preempt_count() != 0 || irqs_disabled()表明
-
-*	如果抢占计数器大于0, 那么抢占仍然是被停用的, 因此内核不能被打断, 该函数立即结束.
-
-*	如果在某些重要的点上内核停用了硬件中断, 以保证一次性完成相关的处理, 那么抢占也是不可能的.irqs_disabled会检测是否停用了中断. 如果已经停用, 则内核不能被抢占
-
-接着如果可以被抢占, 则执行如下步骤
-
-```c
-
-static void __sched notrace preempt_schedule_common(void)
-{
-    do {
-    	/*
-        	preempt_disable_notrace定义在
-        	http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L198 			等待于__preempt_count_inc();
-        */
-        preempt_disable_notrace();
-        /*  完成一次调度  */
-        __schedule(true);
-
-        /*
-        	preempt_enable_no_resched_notrace
-       		http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.6#L204
-            等价于__preempt_count_dec
-        */
-        preempt_enable_no_resched_notrace();
-
-        /*
-         * Check again in case we missed a preemption opportunity
-         * between schedule and now.
-         * 再次检查, 以免在__scheudle和当前点之间错过了抢占的时机
-         */
-    } while (need_resched());
-}
-```
-
-我们可以看到, 内核在增加了抢占计数器的计数后, 用__schedule进行了一次调度, 参数传入preempt = true, 表明调度不是以普通的方式引发的, 而是由于内核抢占. 在内核重调度之后, 代码流程回到当前进程, 那么就井抢占计数器减少1.
-
-
-
-###5.2.2  中断之后返回内核态时通过preempt_schedule_irq触发
-
-上面preempt_schedule只是触发内核抢占的一种方法, 另一种激活抢占的方式是在处理了一个硬件中断请求之后. 如果处理器在处理中断请求后返回内核态(返回用户态则没有影响), 特定体系结构的汇编例程会检查抢占计数器是否为0, 即是否允许抢占, 以及是否设置了重调度标识, 类似于preempt_schedule的处理. 如果两个条件都满足则通过preempt_schedule_irq调用调度器, 此时表明抢占请求发自中断上下文
-
-
-该函数与preempt_schedule的本质区别在于: preempt_schedule_irq调用时停用了中断, 防止终端造成的递归调用, 其定义在[kernel/sched/core.c, line3360](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3360)
-
+在新进程被选中时, 底层的进程切换冽程必须将此前执行的进程提供给context_switch, 由于控制流会回到陔函数的中间, 这无法用普通的函数返回值来做到, 因此提供了3个参数的宏
 
 ```c
 /*
- * this is the entry point to schedule() from kernel preemption
- * off of irq context.
- * Note, that this is called and return with irqs disabled. This will
- * protect us against recursive calling from irq.
- */
-asmlinkage __visible void __sched preempt_schedule_irq(void)
-{
-    enum ctx_state prev_state;
-
-    /* Catch callers which need to be fixed */
-    BUG_ON(preempt_count() || !irqs_disabled());
-
-    prev_state = exception_enter();
-
-    do {
-        preempt_disable();
-        local_irq_enable();
-        __schedule(true);
-        local_irq_disable();
-        sched_preempt_enable_no_resched();
-    } while (need_resched());
-
-    exception_exit(prev_state);
-}
+ * Saving eflags is important. It switches not only IOPL between tasks,
+ * it also protects other tasks from NT leaking through sysenter etc.
+*/
+#define switch_to(prev, next, last)
 ```
 
 
-###5.2.3  PREEMPT_ACTIVE标识位和PREEMPT_DISABLE_OFFSET
--------
+| 体系结构 | switch_to实现 |
+| ------- |:-------:|
+| x86 | arch/x86/include/asm/switch_to.h中两种实现<br><br> [定义CONFIG_X86_32宏](http://lxr.free-electrons.com/source/arch/x86/include/asm/switch_to.h?v=4.6#L27)<br><br>[未定义CONFIG_X86_32宏](http://lxr.free-electrons.com/source/arch/x86/include/asm/switch_to.h?v=4.6#L103) |
+| arm | [arch/arm/include/asm/switch_to.h, line 25](http://lxr.free-electrons.com/source/arch/arm/include/asm/switch_to.h?v=4.6#L18) |
+| 通用 | [include/asm-generic/switch_to.h, line 25](http://lxr.free-electrons.com/source/include/asm-generic/switch_to.h?v=4.6#L25) |
 
-之前的内核版本中, 抢占计数器中于一个标识位PREEMPT_ACTIVE, 这个位设置后即标识了可以进行内核抢占, 使得preempt_count有一个很大的值, 这样就不受普通的抢占计数器加1操作的影响了
+内核在switch_to中执行如下操作
 
->PREEMPT_ACTIVE的引入, 参见[PREEMPT_ACTIVE: add default defines](https://lkml.org/lkml/2009/7/20/19)
+1.	进程切换, 即esp的切换, 由于从esp可以找到进程的描述符
 
-```c
-//  http://lxr.free-electrons.com/source/include/linux/preempt.h?v=4.3#L58
-#define PREEMPT_ACTIVE_BITS     1
-#define PREEMPT_ACTIVE_SHIFT    (NMI_SHIFT + NMI_BITS)
-#define PREEMPT_ACTIVE  (__IRQ_MASK(PREEMPT_ACTIVE_BITS) << PREEMPT_ACTIVE_SHIFT)
-```
+2.	硬件上下文切换, 设置ip寄存器的值, 并jmp到__switch_to函数
 
-然后也为其提供了一些置位的函数，其实就是将preempt_count加上/减去一个很大的数, 参见[preempt: Disable preemption from preempt_schedule*() callers](https://lkml.org/lkml/2015/5/11/519)
-
-但是在linux-4.4版本之后移除了这个标志, 取而代之的是在linux-4.2时引入的PREEMPT_DISABLE_OFFSET
-
->参见
->
->[Rename PREEMPT_CHECK_OFFSET to PREEMPT_DISABLE_OFFSET](https://lkml.org/lkml/2015/5/11/517)
->[ preempt: Rename PREEMPT_CHECK_OFFSET to PREEMPT_DISABLE_OFFSET](http://marc.info/?l=linux-kernel&m=143144178020323)
->
->[preempt: Remove PREEMPT_ACTIVE unmasking off in_atomic()](https://lkml.org/lkml/2015/5/11/521)
->
->[sched: Kill PREEMPT_ACTIVE](https://lkml.org/lkml/2015/9/30/108)
->
->[sched: Stop setting PREEMPT_ACTIVE](https://lkml.org/lkml/2015/9/29/224)
-
-
-
->参考
->
->[内核随记(二)——内核抢占与中断返回](http://www.cnblogs.com/hustcat/archive/2009/08/31/1557507.html)
->
->[PREEMPT_ACTIVE](http://www.cnblogs.com/openix/archive/2013/03/09/2952041.html)
-
-
-
-#6  总结
--------
-
-一般来说，CPU在任何时刻都处于以下三种情况之一：
-
-1.	运行于用户空间，执行用户进程
-
-2.	运行于内核空间，处于进程上下文
-
-3.	运行于内核空间，处于中断上下文
-
-
-##6.1  用户抢占
--------
-
-一般来说, 当进程从系统调用或者从中断(异常)处理程序返回用户空间时会触发主调度器进行用户抢占
-
-*	从系统调用返回用户空间
-
-*	从中断(异常)处理程序返回用户空间
-
-为了对一个进程需要被调度进行标记, 内核在thread_info的flag中设置了一个标识来标志进程是否需要重新调度, 即重新调度need_resched标识TIF_NEED_RESCHED, 内核在即将返回用户空间时会检查标识TIF_NEED_RESCHED标志进程是否需要重新调度，如果设置了，就会发生调度, 这被称为**用户抢占**
-
-
-##6.2  内核抢占
--------
-
-如果内核处于相对耗时的操作中, 比如文件系统或者内存管理相关的任务, 这种行为可能会带来问题. 这种情况下, 内核代替特定的进程执行相当长的时间, 而其他进程无法执行, 无法调度, 这就造成了系统的延迟增加, 用户体验到"缓慢"的响应. 因此linux内核引入了内核抢占.
-
- linux内核通过在thread_info结构中添加了一个自旋锁标识preempt_count, 称为**抢占计数器(preemption counter)**来作为内核抢占的标记,
-
-内核抢占的触发大致也是两类, 内核抢占关闭后重新开启时, 中断返回内核态时
-
-*	内核重新开启内核抢占时使用preempt_schedule检查内核抢占
-
-*	中断之后返回内核态时通过preempt_schedule_irq触发内核抢占
-
-
-而内核抢占时, 通过调用__schedule(true)传入的preempt=true来通知内核, 这是一个内核抢占
-
-
-
+3.	堆栈的切换, 即ebp的切换, ebp是栈底指针, 它确定了当前用户空间属于哪个进程
 
 
