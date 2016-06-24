@@ -183,7 +183,12 @@ context_switch其实是一个分配器, 他会调用所需的特定体系结构�
 
 *	调用switch_mm(), 把虚拟内存从一个进程映射切换到新进程中
 
+    switch_mm更换通过task_struct->mm描述的内存管理上下文, 该工作的细节取决于处理器, 主要包括加载页表, 刷出地址转换后备缓冲器(部分或者全部), 向内存管理单元(MMU)提供新的信息
+
 *	调用switch_to(),从上一个进程的处理器状态切换到新进程的处理器状态。这包括保存、恢复栈信息和寄存器信息
+
+	switch_to切换处理器寄存器的呢内容和内核栈(虚拟地址空间的用户部分已经通过switch_mm变更, 其中也包括了用户状态下的栈, 因此switch_to不需要变更用户栈, 只需变更内核栈), 此段代码严重依赖于体系结构, 且代码通常都是用汇编语言编写.
+
 
 context_switch函数建立next进程的地址空间。进程描述符的active_mm字段指向进程所使用的内存描述符，而mm字段指向进程所拥有的内存描述符。对于一般的进程，这两个字段有相同的地址，但是，内核线程没有它自己的地址空间而且它的 mm字段总是被设置为 NULL
 
@@ -192,16 +197,174 @@ context_switch( )函数保证：如果next是一个内核线程, 它使用prev�
 由于不同架构下地址映射的机制有所区别, 而寄存器等信息弊病也是依赖于架构的, 因此switch_mm和switch_to两个函数均是体系结构相关的
 
 
-##3.1	context_switch流程
+##3.1	context_switch完全注释
 -------
 
 context_switch定义在[kernel/sched/core.c#L2711](http://lxr.free-electrons.com/source/kernel/sched/core.c#L2711), 如下所示
 
 ```c
+/*
+ * context_switch - switch to the new MM and the new thread's register state.
+ */
+static __always_inline struct rq *
+context_switch(struct rq *rq, struct task_struct *prev,
+           struct task_struct *next)
+{
+    struct mm_struct *mm, *oldmm;
 
+    /*  完成进程切换的准备工作  */
+    prepare_task_switch(rq, prev, next);
+
+    mm = next->mm;
+    oldmm = prev->active_mm;
+    /*
+     * For paravirt, this is coupled with an exit in switch_to to
+     * combine the page table reload and the switch backend into
+     * one hypercall.
+     */
+    arch_start_context_switch(prev);
+
+    /*  如果next是内核线程，则线程使用prev所使用的地址空间
+     *  schedule( )函数把该线程设置为懒惰TLB模式
+     *  内核线程并不拥有自己的页表集(task_struct->mm = NULL)
+     *  它使用一个普通进程的页表集
+     *  不过，没有必要使一个用户态线性地址对应的TLB表项无效
+     *  因为内核线程不访问用户态地址空间。
+    */
+    if (!mm)        /*  内核线程无虚拟地址空间, mm = NULL*/
+    {
+        /*  内核线程的active_mm为上一个进程的mm
+         *  注意此时如果prev也是内核线程,
+         *  则oldmm为NULL, 即next->active_mm也为NULL  */
+        next->active_mm = oldmm;
+        /*  增加mm的引用计数  */
+        atomic_inc(&oldmm->mm_count);
+        /*  通知底层体系结构不需要切换虚拟地址空间的用户部分
+         *  这种加速上下文切换的技术称为惰性TBL  */
+        enter_lazy_tlb(oldmm, next);
+    }
+    else            /*  不是内核线程, 则需要切切换虚拟地址空间  */
+        switch_mm(oldmm, mm, next);
+
+    /*  如果prev是内核线程或正在退出的进程
+     *  就重新设置prev->active_mm
+     *  然后把指向prev内存描述符的指针保存到运行队列的prev_mm字段中
+     */
+    if (!prev->mm)
+    {
+        /*  将prev的active_mm赋值和为空  */
+        prev->active_mm = NULL;
+        /*  更新运行队列的prev_mm成员  */
+        rq->prev_mm = oldmm;
+    }
+    /*
+     * Since the runqueue lock will be released by the next
+     * task (which is an invalid locking op but in the case
+     * of the scheduler it's an obvious special-case), so we
+     * do an early lockdep release here:
+     */
+    lockdep_unpin_lock(&rq->lock);
+    spin_release(&rq->lock.dep_map, 1, _THIS_IP_);
+
+    /* Here we just switch the register state and the stack. 
+     * 切换进程的执行环境, 包括堆栈和寄存器
+     * 同时返回上一个执行的程序
+     * 相当于prev = witch_to(prev, next)  */
+    switch_to(prev, next, prev);
+    
+    /*  switch_to之后的代码只有在
+     *  当前进程再次被选择运行(恢复执行)时才会运行
+     *  而此时当前进程恢复执行时的上一个进程可能跟参数传入时的prev不同
+     *  甚至可能是系统中任意一个随机的进程
+     *  因此switch_to通过第三个参数将此进程返回
+     */
+    
+
+    /*  路障同步, 一般用编译器指令实现
+     *  确保了switch_to和finish_task_switch的执行顺序
+     *  不会因为任何可能的优化而改变  */
+    barrier();  
+
+    /*  进程切换之后的处理工作  */
+    return finish_task_switch(prev);
+}
 ````
 
-###switch_mm切换进程虚拟地址空间
+##3.2	prepare_arch_switch切换前的准备工作
+-------
+
+在进程切换之前, 首先执行调用每个体系结构都必须定义的prepare_task_switch挂钩, 这使得内核执行特定于体系结构的代码, 为切换做事先准备. 大多数支持的体系结构都不需要该选项
+
+
+```c
+struct mm_struct *mm, *oldmm;
+
+prepare_task_switch(rq, prev, next);	/*  完成进程切换的准备工作  */
+```
+
+prepare_task_switch函数定义在[kernel/sched/core.c, line 2558](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L2558), 如下所示
+
+```c
+/**
+ * prepare_task_switch - prepare to switch tasks
+ * @rq: the runqueue preparing to switch
+ * @prev: the current task that is being switched out
+ * @next: the task we are going to switch to.
+ *
+ * This is called with the rq lock held and interrupts off. It must
+ * be paired with a subsequent finish_task_switch after the context
+ * switch.
+ *
+ * prepare_task_switch sets up locking and calls architecture specific
+ * hooks.
+ */
+static inline void
+prepare_task_switch(struct rq *rq, struct task_struct *prev,
+            struct task_struct *next)
+{
+    sched_info_switch(rq, prev, next);
+    perf_event_task_sched_out(prev, next);
+    fire_sched_out_preempt_notifiers(prev, next);
+    prepare_lock_switch(rq, next);
+    prepare_arch_switch(next);
+}
+````
+
+##3.3	next是内核线程时的处理
+-------
+
+由于用户空间进程的寄存器内容在进入核心态时保存在内核栈中, 在上下文切换期间无需显式操作. 而因为每个进程首先都是从核心态开始执行(在调度期间控制权传递给新进程), 在返回用户空间时, 会使用内核栈上保存的值自动恢复寄存器数据.
+
+
+另外需要注意, 内核线程没有自身的用户空间上下文, 其task_struct->mm为NULL, 参见[Linux内核线程kernel thread详解--Linux进程的管理与调度（十）](http://blog.csdn.net/gatieme/article/details/51589205#t3), 从当前进程"借来"的地址空间记录在active_mm中
+
+```c
+/*  如果next是内核线程，则线程使用prev所使用的地址空间
+ *  schedule( )函数把该线程设置为懒惰TLB模式
+ *  内核线程并不拥有自己的页表集(task_struct->mm = NULL)
+ *  它使用一个普通进程的页表集
+ *  不过，没有必要使一个用户态线性地址对应的TLB表项无效
+ *  因为内核线程不访问用户态地址空间。
+*/
+if (!mm)        /*  内核线程无虚拟地址空间, mm = NULL*/
+{
+    /*  内核线程的active_mm为上一个进程的mm
+     *  注意此时如果prev也是内核线程,
+     *  则oldmm为NULL, 即next->active_mm也为NULL  */
+    next->active_mm = oldmm;
+    /*  增加mm的引用计数  */
+    atomic_inc(&oldmm->mm_count);
+    /*  通知底层体系结构不需要切换虚拟地址空间的用户部分
+     *  这种加速上下文切换的技术称为惰性TBL  */
+    enter_lazy_tlb(oldmm, next);
+}
+else            /*  不是内核线程, 则需要切切换虚拟地址空间  */
+    switch_mm(oldmm, mm, next);
+````
+
+qizhongenter_lazy_tlb通知底层体系结构不需要切换虚拟地址空间的用户空间部分, 这种加速上下文切换的技术称之为惰性TLB
+
+##3.4	switch_mm切换进程虚拟地址空间
 -------
 
 switch_mm主要完成了进程prev到next虚拟地址空间的映射, 由于内核虚拟地址空间是不许呀切换的, 因此切换的主要是用户态的虚拟地址空间
@@ -227,8 +390,33 @@ switch_mm主要完成了进程prev到next虚拟地址空间的映射, 由于内�
 >CR3中含有页目录表物理内存基地址，因此该寄存器也被称为页目录基地址寄存器PDBR（Page-Directory Base address Register）。
 
 
-###switch_to切换进程堆栈和寄存器
+##3.5	prev是内核线程时的处理
 -------
+
+如果前一个进程prev四内核线程(即prev->mm为NULL), 则其active_mm指针必须重置为NULL, 已断开其于之前借用的地址空间的联系, 而当prev重新被调度的时候, 此时它成为next会在前面[next是内核线程时的处理](未填写网址)处重新用`next->active_mm = oldmm;`赋值, 这个我们刚讲过
+
+
+```c
+/*  如果prev是内核线程或正在退出的进程
+ *  就重新设置prev->active_mm
+ *  然后把指向prev内存描述符的指针保存到运行队列的prev_mm字段中
+ */
+if (!prev->mm)
+{
+    /*  将prev的active_mm赋值和为空  */
+    prev->active_mm = NULL;
+    /*  更新运行队列的prev_mm成员  */
+    rq->prev_mm = oldmm;
+}
+```
+
+
+
+##3.6	switch_to完成进程切换
+-------
+
+
+最后用switch_to完成了进程的切换, 该函数切换了寄存器状态和栈, 新进程在该调用后开始执行, 而switch_to之后的代码只有在当前进程下一次被选择运行时才会执行
 
 执行环境的切换是在switch_to()中完成的, switch_to完成最终的进程切换，它保存原进程的所有寄存器信息，恢复新进程的所有寄存器信息，并执行新的进程
 
@@ -260,3 +448,59 @@ switch_mm主要完成了进程prev到next虚拟地址空间的映射, 由于内�
 3.	堆栈的切换, 即ebp的切换, ebp是栈底指针, 它确定了当前用户空间属于哪个进程
 
 
+
+##3.7	finish_task_switch完成清理工作
+-------
+witch_to完成了进程的切换, 新进程在该调用后开始执行, 而switch_to之后的代码只有在当前进程下一次被选择运行时才会执行.
+
+```c
+/*  switch_to之后的代码只有在
+ *  当前进程再次被选择运行(恢复执行)时才会运行
+ *  而此时当前进程恢复执行时的上一个进程可能跟参数传入时的prev不同
+ *  甚至可能是系统中任意一个随机的进程
+ *  因此switch_to通过第三个参数将此进程返回
+*/
+
+
+/*  路障同步, 一般用编译器指令实现
+ *  确保了switch_to和finish_task_switch的执行顺序
+ *  不会因为任何可能的优化而改变  */
+barrier();
+
+/*  进程切换之后的处理工作  */
+return finish_task_switch(prev);
+```
+
+
+而为了程序编译后指令的执行顺序不会因为编译器的优化而改变, 因此内核提供了路障同步barrier来保证程序的执行顺序.
+
+
+barrier往往通过编译器指令来实现, 内核中多处都实现了barrier, 形式如下
+
+```c
+// http://lxr.free-electrons.com/source/include/linux/compiler-gcc.h?v=4.6#L15
+/* Copied from linux/compiler-gcc.h since we can't include it directly 
+ * 采用内敛汇编实现
+ *  __asm__用于指示编译器在此插入汇编语句
+ *  __volatile__用于告诉编译器，严禁将此处的汇编语句与其它的语句重组合优化。
+ *  即：原原本本按原来的样子处理这这里的汇编。
+ *  memory强制gcc编译器假设RAM所有内存单元均被汇编指令修改，这样cpu中的registers和cache中已缓存的内存单元中的数据将作废。cpu将不得不在需要的时候重新读取内存中的数据。这就阻止了cpu又将registers，cache中的数据用于去优化指令，而避免去访问内存。
+ *  "":::表示这是个空指令。barrier()不用在此插入一条串行化汇编指令。在后文将讨论什么叫串行化指令。
+*/
+#define barrier() __asm__ __volatile__("": : :"memory")
+```
+
+
+关于内存屏障的详细信息, 可以参见 [Linux内核同步机制之（三）：memory barrier](http://www.wowotech.net/kernel_synchronization/memory-barrier.html)
+
+
+finish_task_switch完成一些清理工作, 使得能够正确的释放锁, 但我们不会详细讨论这些. 他会向各个体系结构提供了另一个挂钩上下切换过程的可能性, 当然这只在少数计算机上需要.
+
+
+
+#4	switch_mm切换虚拟地址空间详细分析
+-------
+
+
+##5	switch_to切换寄存器状态和内核栈详细分析
+-------
