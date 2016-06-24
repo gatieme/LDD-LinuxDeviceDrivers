@@ -3,11 +3,9 @@ Linux进程核心调度器之周期性调度器
 
 
 
-
-
 | 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
 | ------- |:-------:|:-------:|:-------:|:-------:|:-------:|
-| 2016-06-14 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
+| 2016-06-24 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
 
 
 
@@ -27,13 +25,14 @@ Linux进程核心调度器之周期性调度器
 
 而我们的周期性调度器以固定的频率激活负责当前进程调度类的周期性调度方法, 以保证系统的并发性
 
-首先还是让我们简单回顾一下子之前的的内容
 
 
 
-#前景回顾
+
+#1	前景回顾
 -------
 
+首先还是让我们简单回顾一下子之前的的内容
 
 ##进程调度
 -------
@@ -52,7 +51,7 @@ Linux进程核心调度器之周期性调度器
 
 
 
-##进程的分类
+##1.1	进程的分类
 -------
 
 linux把进程区分为**实时进程**和**非实时进程**, 其中非实时进程进一步划分为交互式进程和批处理进程
@@ -61,17 +60,11 @@ linux把进程区分为**实时进程**和**非实时进程**, 其中非实时�
 
 对于实时进程，采用FIFO, Round Robin或者Earliest Deadline First (EDF)最早截止期限优先调度算法|的调度策略.
 
-但是普通进程的调度策略就比较麻烦了, 因为普通进程不能简单的只看优先级, 必须公平的占有CPU, 否则很容易出现进程饥饿, 这种情况下用户会感觉操作系统很卡, 响应总是很慢，因此在linux调度器的发展历程中经过了多次重大变动, linux总是希望寻找一个最接近于完美的调度策略来公平快速的调度进程.
+对于普通进程则采用CFS完全公平调度器进行调度
 
 
-##linux调度器的演变
+##1.2	linux调度器的演变
 -------
-
-
-
-一开始的调度器是复杂度为**$O(n)$的始调度算法**(实际上每次会遍历所有任务，所以复杂度为O(n)), 这个算法的缺点是当内核中有很多任务时，调度器本身就会耗费不少时间，所以，从linux2.5开始引入赫赫有名的**$O(1)$调度器**
-
-然而，linux是集全球很多程序员的聪明才智而发展起来的超级内核，没有最好，只有更好，在$O(1)$调度器风光了没几天就又被另一个更优秀的调度器取代了，它就是**CFS调度器Completely Fair Scheduler**.
 
 
 
@@ -82,7 +75,7 @@ linux把进程区分为**实时进程**和**非实时进程**, 其中非实时�
 | CFS调度器 | linux-2.6~至今 |
 
 
-##Linux的调度器组成
+##1.3	Linux的调度器组成
 -------
 
 
@@ -136,42 +129,20 @@ linux中针对当前可调度的实时和非实时进程, 定义了类型为sech
 
 *	sched_entity 采用CFS算法调度的普通非实时进程的调度实体
 
-
-
-**调度器类的就绪队列**
-
-另外，对于调度框架及调度器类，它们都有自己管理的运行队列，调度框架只识别rq（其实它也不能算是运行队列），而对于cfs调度器类它的运行队列则是cfs_rq（内部使用红黑树组织调度实体），实时rt的运行队列则为rt_rq（内部使用优先级bitmap+双向链表组织调度实体）, 此外内核对新增的dl实时调度策略也提供了运行队列dl_rq
-
-
-**调度器整体框架**
-
-每个进程都属于某个调度器类(由字段task_struct->sched_class标识), 由调度器类采用进程对应的调度策略调度(由task_struct->policy )进行调度, task_struct也存储了其对应的调度实体标识
-
-linux实现了6种调度策略, 依据其调度策略的不同实现了5个调度器类, 一个调度器类可以用一种或者多种调度策略调度某一类进程, 也可以用于特殊情况或者调度特殊功能的进程.
-
-
-| 调度器类 | 调度策略 |  调度策略对应的调度算法 | 调度实体 | 调度实体对应的调度对象 |
-| ------- |:-------:|:-------:|:-------:||:-------:|
-| stop_sched_class | 无 | 无 | 无 | 特殊情况, 发生在cpu_stop_cpu_callback 进行cpu之间任务迁移migration或者HOTPLUG_CPU的情况下关闭任务 |
-| dl_sched_class | SCHED_DEADLINE | Earliest-Deadline-First最早截至时间有限算法 | sched_dl_entity | 采用DEF最早截至时间有限算法调度实时进程 |
-| rt_sched_class | SCHED_RR<br><br>SCHED_FIFO | Roound-Robin时间片轮转算法<br><br>FIFO先进先出算法 | sched_rt_entity | 采用Roound-Robin或者FIFO算法调度的实时调度实体 |
-| fair_sched_class | SCHED_NORMAL<br><br>SCHED_BATCH | CFS完全公平懂调度算法 |sched_entity | 采用CFS算法普通非实时进程 |
-| idle_sched_class | SCHED_IDLE | 无 | 无 |特殊进程, 用于cpu空闲时调度空闲进程idle |
-
 它们的关系如下图
 
 ![调度器的组成](../images/level.jpg)
 
 
-#周期性调度器
+#2	周期性调度器
 -------
-
-
-
 
 
 周期性调度器在scheduler_tick中实现. 如果系统正在活动中, 内核会按照频率HZ自动调用该函数. 如果没有近曾在等待调度, 那么在计算机电力供应不足的情况下, 内核将关闭该调度器以减少能耗. 这对于我们的嵌入式设备或者手机终端设备的电源管理是很重要的.
 
+
+##2.1	周期性调度器主流程
+-------
 
 
 scheduler_tick函数定义在[kernel/sched/core.c, L2910](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L2910)中, 它有两个主要任务
@@ -188,10 +159,7 @@ scheduler_tick函数定义在[kernel/sched/core.c, L2910](http://lxr.free-electr
 
 
 
-
-
 ```c
-
 /*
  * This function gets called by the timer code, with HZ frequency.
  * We call it with interrupts disabled.
@@ -210,15 +178,9 @@ void scheduler_tick(void)
     /*  1.3 获取就绪队列上正在运行的进程curr  */
     struct task_struct *curr = rq->curr;
 
-
-
-
-
     sched_clock_tick();
 
-
-
-    /*  2 更新rq上的统计信息, 并执行进程对应调度类的周期性的调度  */
+	/*  2 更新rq上的统计信息, 并执行进程对应调度类的周期性的调度  */
 
     /*  加锁 */
     raw_spin_lock(&rq->lock);
@@ -262,7 +224,7 @@ void scheduler_tick(void)
 
 
 
-##更新统计量
+##2.2	更新统计量
 -------
 
 
@@ -273,7 +235,7 @@ void scheduler_tick(void)
 | calc_global_load_tick | 跟新cpu的活动计数, 主要是更新全局cpu就绪队列的calc_load_update |  [kernel/sched/loadavg.c, L382](http://lxr.free-electrons.com/source/kernel/sched/loadavg.c?v=4.6#L378) |
 
 
-##激活进程所属调度类的周期性调度器
+##2.3	激活进程所属调度类的周期性调度器
 -------
 
 
@@ -304,5 +266,107 @@ task_tick的实现方法取决于底层的调度器类, 例如完全公平调度
 | fail_sched_class | | [kernel/sched/fair.c, line 8116, task_tick_fail](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L8116) |
 | idle_sched_class | | [kernel/sched/idle_task.c, line 53, task_tick_idle](http://lxr.free-electrons.com/source/kernel/sched/idle_task.c?v=4.6#L53) |
 
+*	如果当前进程是**完全公平队列**中的进程, 则首先根据当前就绪队列中的进程数算出一个延迟时间间隔，大概每个进程分配2ms时间，然后按照该进程在队列中的总权重中占得比例，算出它该执行的时间X，如果该进程执行物理时间超过了X，则激发延迟调度；如果没有超过X，但是红黑树就绪队列中下一个进程优先级更高，即curr->vruntime-leftmost->vruntime > X,也将延迟调度
+
+
+>**延迟调度**的真正调度过程在：schedule中实现，会按照调度类顺序和优先级挑选出一个最高优先级的进程执行
+
+
+*	如果当前进程是实时调度类中的进程：则如果该进程是SCHED_RR，则递减时间片[为HZ/10]，到期，插入到队列尾部，并激发延迟调度，如果是SCHED_FIFO，则什么也不做，直到该进程执行完成
+
 
 如果当前进程希望被重新调度, 那么调度类方法会在task_struct中设置TIF_NEED_RESCHED标志, 以表示该请求, 而内核将会在接下来的适当实际完成此请求.
+
+
+#	3	周期性调度器的激活
+-------
+
+##	3.1	定时器周期性的激活调度器
+-------
+
+定时器是Linux提供的一种定时服务的机制. 它在某个特定的时间唤醒某个进程，来做一些工作.
+
+在低分辨率定时器的每次时钟中断完成全局统计量更新后, 每个cpu在软中断中执行一下操作
+
+*	更新该cpu上当前进程内核态、用户态使用时间xtime_update
+*	调用该cpu上的定时器函数
+*	启动周期性定时器（scheduler_tick）完成该cpu上任务的周期性调度工作；
+
+在支持动态定时器的系统中，可以关闭该调度器，从而进入深度睡眠过程；scheduler_tick查看当前进程是否运行太长时间，如果是，将进程的TIF_NEED_RESCHED置位，然后再中断返回时，调用schedule，进行进程切换操作
+
+
+```c
+//  http://lxr.free-electrons.com/source/arch/arm/kernel/time.c?v=4.6#L74
+/*
+* Kernel system timer support.
+*/
+void timer_tick(void)
+{
+    profile_tick(CPU_PROFILING);
+    xtime_update(1);
+#ifndef CONFIG_SMP
+    update_process_times(user_mode(get_irq_regs()));
+#endif
+}
+
+//  http://lxr.free-electrons.com/source/kernel/time/timer.c?v=4.6#L1409
+/*
+ * Called from the timer interrupt handler to charge one tick to the current
+ * process.  user_tick is 1 if the tick is user time, 0 for system.
+ */
+void update_process_times(int user_tick)
+{
+    struct task_struct *p = current;
+
+    /* Note: this timer irq context must be accounted for as well. */
+    account_process_tick(p, user_tick);
+    run_local_timers();
+    rcu_check_callbacks(user_tick);
+#ifdef CONFIG_IRQ_WORK
+    if (in_irq())
+        irq_work_tick();
+#endif
+    scheduler_tick();
+    run_posix_cpu_timers(p);
+}
+```
+
+##早期实现
+-------
+
+Linux初始化时, init_IRQ()函数设定8253的定时周期为10ms(一个tick值). 同样，在初始化时, time_init()用setup_irq()设置时间中断向量irq0, 中断服务程序为timer_interrupt.
+
+在2.4版内核及较早的版本当中, 定时器的中断处理采用底半机制, 底半处理函数的注册在start_kernel()函数中调用sechd_init(), 在这个函数中又调用init_bh(TIMER_BH, timer_bh)注册了定时器的底半处理函数. 然后系统才调用time_init( )来注册定时器的中断向量和中断处理函数.
+
+在中断处理函数timer_interrupt()中，主要是调用do_timer()函数完成工作。do_timer()函数的主要功能就是调用mark_bh()产生软中断，随后处理器会在合适的时候调用定时器底半处理函数timer_bh()。在timer_bh()中, 实现了更新定时器的功能. 2.4.23版的do_timer()函数代码如下（经过简略）：
+
+```c
+void do_timer(struct pt_regs *regs)
+{
+       (*(unsigned long *)&jiffies)++;
+       update_process_times(user_mode(regs));
+       mark_bh(TIMER_BH);
+}
+```
+
+而在内核2.6版本以后，定时器中断处理采用了软中断机制而不是底半机制。时钟中断处理函数仍然为timer_interrup()-> do_timer_interrupt()-> do_timer_interrupt_hook()-> do_timer()。不过do_timer()函数的实现有所不同
+```c
+void do_timer(struct pt_regs *regs)
+{
+       jiffies_64++;
+       update_process_times(user_mode(regs));
+       update_times();
+}
+```
+
+>更详细的实现linux-2.6
+>
+[Linux中断处理之时钟中断（一）](http://www.bianceng.cn/OS/Linux/201111/31272_4.htm)
+>
+>[（原创）linux内核进程调度以及定时器实现机制](http://blog.csdn.net/joshua_yu/article/details/591038)
+
+
+
+>参考	
+>
+>[进程管理与调度5 -- 进程调度、进程切换原理详解](http://wanderer-zjhit.blogbus.com/logs/156738683.html)
