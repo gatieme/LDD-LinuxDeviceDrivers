@@ -4,13 +4,16 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
 {
     unsigned cpu = smp_processor_id();
 
+
+    /*  确保prev和next不是同一进程  */
     if (likely(prev != next))
     {
 #ifdef CONFIG_SMP
+        /*  刷新cpu地址转换后备缓冲器TLB  */
         this_cpu_write(cpu_tlbstate.state, TLBSTATE_OK);
         this_cpu_write(cpu_tlbstate.active_mm, next);
 #endif
-        //  
+        /*  设置当前进程的mm->cpu_vm_mask表示其占用cpu  */
         cpumask_set_cpu(cpu, mm_cpumask(next));
 
         /*
@@ -39,16 +42,20 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
          * and neither LOCK nor MFENCE orders them.
          * Fortunately, load_cr3() is serializing and gives the
          * ordering guarantee we need.
-         *
+         * 
+         * 将新进程的pgd页目录表填写到cpu的cr3寄存器中
          */
         load_cr3(next->pgd);
 
         trace_tlb_flush(TLB_FLUSH_ON_TASK_SWITCH, TLB_FLUSH_ALL);
 
-        /* Stop flush ipis for the previous mm */
+        /* Stop flush ipis for the previous mm 
+         * 除prev的cpu_vm_mask，表示prev放弃使用cpu  */
         cpumask_clear_cpu(cpu, mm_cpumask(prev));
 
-        /* Load per-mm CR4 state */
+        /* Load per-mm CR4 state
+         * 加载
+         */
         load_mm_cr4(next);
 
 #ifdef CONFIG_MODIFY_LDT_SYSCALL
@@ -63,17 +70,21 @@ static inline void switch_mm(struct mm_struct *prev, struct mm_struct *next,
          * never set context.ldt to NULL while the mm still
          * exists.  That means that next->context.ldt !=
          * prev->context.ldt, because mms never share an LDT.
+         *
+         * 
          */
         if (unlikely(prev->context.ldt != next->context.ldt))
             load_mm_ldt(next);
 #endif
     }
 #ifdef CONFIG_SMP
-      else {
+    else
+    {
         this_cpu_write(cpu_tlbstate.state, TLBSTATE_OK);
         BUG_ON(this_cpu_read(cpu_tlbstate.active_mm) != next);
 
-        if (!cpumask_test_cpu(cpu, mm_cpumask(next))) {
+        if (!cpumask_test_cpu(cpu, mm_cpumask(next)))
+        {
             /*
              * On established mms, the mm_cpumask is only changed
              * from irq context, from ptep_clear_flush() while in

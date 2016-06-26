@@ -33,16 +33,16 @@ do {                                                                    \
          */                                                             \
         unsigned long ebx, ecx, edx, esi, edi;                          \
                                                                         \
-        asm volatile("pushfl\n\t"               /* save    flags */     \
+        asm volatile("pushfl\n\t" /* save flags 保存就的ebp、和flags寄存器到旧进程的内核栈中*/   \
                      "pushl %%ebp\n\t"          /* save    EBP   */     \
-                     "movl %%esp,%[prev_sp]\n\t"        /* save    ESP   */ \
-                     "movl %[next_sp],%%esp\n\t"        /* restore ESP   */ \
-                     "movl $1f,%[prev_ip]\n\t"  /* save    EIP   */     \
-                     "pushl %[next_ip]\n\t"     /* restore EIP   */     \
+                     "movl %%esp,%[prev_sp]\n\t"        /* save ESP  将旧进程esp保存到thread_info结构中 */ \
+                     "movl %[next_sp],%%esp\n\t"        /* restore ESP 用新进程esp填写esp寄存器，此时内核栈已切换  */ \
+                     "movl $1f,%[prev_ip]\n\t"  /* save EIP 将该进程恢复执行时的下条地址保存到旧进程的thread中*/     \
+                     "pushl %[next_ip]\n\t"     /* restore EIP 将新进程的ip值压入到新进程的内核栈中 */     \
                      __switch_canary                                    \
                      "jmp __switch_to\n"        /* regparm call  */     \
                      "1:\t"                                             \
-                     "popl %%ebp\n\t"           /* restore EBP   */     \
+                     "popl %%ebp\n\t"           /* restore EBP 该进程执行，恢复ebp寄存器*/     \
                      "popfl\n"                  /* restore flags */     \
                                                                         \
                      /* output parameters */                            \
