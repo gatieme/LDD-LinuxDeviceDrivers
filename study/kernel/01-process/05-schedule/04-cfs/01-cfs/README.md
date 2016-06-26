@@ -120,17 +120,182 @@ linux实现了6种调度策略, 依据其调度策略的不同实现了5个调�
 
 CFS完全公平调度器的调度器类叫fair_sched_class, 其定义在[kernel/sched/fair.c, line 8521](http://lxr.free-electrons.com/source/kernel/sched/fair.c#L8521), 它是我们熟知的是struct  sched_class调度器类类型, 将我们的CFS调度器与一些特定的函数关联起来
 
+```c
+/*
+ * All the scheduling class methods:
+ */
+const struct sched_class fair_sched_class = {
+        .next                   = &idle_sched_class,  /*  下个优先级的调度类, 所有的调度类通过next链接在一个链表中*/
+        .enqueue_task           = enqueue_task_fair,
+        .dequeue_task           = dequeue_task_fair,
+        .yield_task             = yield_task_fair,
+        .yield_to_task          = yield_to_task_fair,
 
+        .check_preempt_curr     = check_preempt_wakeup,
 
-| sched_class字段 |  fair_sched_class函数| 描述 |
+        .pick_next_task         = pick_next_task_fair,
+        .put_prev_task          = put_prev_task_fair,
+
+#ifdef CONFIG_SMP
+        .select_task_rq         = select_task_rq_fair,
+        .migrate_task_rq        = migrate_task_rq_fair,
+
+        .rq_online              = rq_online_fair,
+        .rq_offline             = rq_offline_fair,
+
+        .task_waking            = task_waking_fair,
+        .task_dead              = task_dead_fair,
+        .set_cpus_allowed       = set_cpus_allowed_common,
+#endif
+
+        .set_curr_task          = set_curr_task_fair,
+        .task_tick              = task_tick_fair,
+        .task_fork              = task_fork_fair,
+
+        .prio_changed           = prio_changed_fair,
+        .switched_from          = switched_from_fair,
+        .switched_to            = switched_to_fair,
+
+        .get_rr_interval        = get_rr_interval_fair,
+
+        .update_curr            = update_curr_fair,
+
+#ifdef CONFIG_FAIR_GROUP_SCHED
+        .task_move_group        = task_move_group_fair,
+#endif
+};
+```
+
+| 成员 | 描述 |
 | ------------- |:-------------:|
-| load | 指定了权重, 决定了各个实体占队列总负荷的比重, 计算负荷权重是调度器的一项重任, 因为CFS所需的虚拟时钟的速度最终依赖于负荷, 权重通过优先级转换而成，是vruntime计算的关键 |
-| run_node | 调度实体在红黑树对应的结点信息, 使得调度实体可以在红黑树上排序 |
-| sum_exec_runtime |  记录程序运行所消耗的CPU时间, 以用于完全公平调度器CFS |
-| on_rq | 调度实体是否在就绪队列上接受检查, 表明是否处于CFS红黑树运行队列中，需要明确一个观点就是，CFS运行队列里面包含有一个红黑树，但这个红黑树并不是CFS运行队列的全部，因为红黑树仅仅是用于选择出下一个调度程序的算法。很简单的一个例子，普通程序运行时，其并不在红黑树中，但是还是处于CFS运行队列中，其on_rq为真。只有准备退出、即将睡眠等待和转为实时进程的进程其CFS运行队列的on_rq为假 |
-| vruntime | 虚拟运行时间，调度的关键，其计算公式：一次调度间隔的虚拟运行时间 = 实际运行时间 * (NICE_0_LOAD / 权重)。可以看出跟实际运行时间和权重有关，红黑树就是以此作为排序的标准，优先级越高的进程在运行时其vruntime增长的越慢，其可运行时间相对就长，而且也越有可能处于红黑树的最左结点，调度器每次都选择最左边的结点为下一个调度进程。注意其值为单调递增，在每个调度器的时钟中断时当前进程的虚拟运行时间都会累加。单纯的说就是进程们都在比谁的vruntime最小，最小的将被调度 |
-| cfs_rq | 此调度实体所处于的CFS运行队列 |
-| my_q | 如果此调度实体代表的是一个进程组，那么此调度实体就包含有一个自己的CFS运行队列，其CFS运行队列中存放的是此进程组中的进程，这些进程就不会在其他CFS运行队列的红黑树中被包含(包括顶层红黑树也不会包含他们，他们只属于这个进程组的红黑树) |
+| enqueue_task | 向就绪队列中添加一个进程, 某个任务进入可运行状态时，该函数将得到调用。它将调度实体（进程）放入红黑树中，并对 nr_running 变量加 1 |
+| dequeue_task | 将一个进程从就就绪队列中删除, 当某个任务退出可运行状态时调用该函数，它将从红黑树中去掉对应的调度实体，并从 nr_running 变量中减 1 |
+| yield_task | 在进程想要资源放弃对处理器的控制权的时, 可使用在sched_yield系统调用, 会调用内核API yield_task完成此工作. compat_yield sysctl 关闭的情况下，该函数实际上执行先出队后入队；在这种情况下，它将调度实体放在红黑树的最右端 |
+| check_preempt_curr | 该函数将检查当前运行的任务是否被抢占。在实际抢占正在运行的任务之前，CFS 调度程序模块将执行公平性测试。这将驱动唤醒式（wakeup）抢占 |
+| pick_next_task | 该函数选择接下来要运行的最合适的进程 |
+| put_prev_task | 用另一个进程代替当前运行的进程 |
+| set_curr_task | 当任务修改其调度类或修改其任务组时，将调用这个函数 |
+| task_tick | 在每次激活周期调度器时, 由周期性调度器调用, 该函数通常调用自 time tick 函数；它可能引起进程切换。这将驱动运行时（running）抢占 |
+| task_new | 内核调度程序为调度模块提供了管理新任务启动的机会, 用于建立fork系统调用和调度器之间的关联, 每次新进程建立后, 则用new_task通知调度器, CFS 调度模块使用它进行组调度，而用于实时任务的调度模块则不会使用这个函数 |
 
 
+##cfs的就绪队列
+-------
+
+就绪队列是全局调度器许多操作的起点, 但是进程并不是由就绪队列直接管理的, 调度管理是各个调度器的职责, 因此在各个就绪队列中嵌入了特定调度类的子就绪队列(cfs的顶级调度就队列 [struct cfs_rq](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L359), 实时调度类的就绪队列[struct rt_rq](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L449)和deadline调度类的就绪队列[struct dl_rq](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L490)
+
+```c
+/* CFS-related fields in a runqueue */
+/* CFS调度的运行队列，每个CPU的rq会包含一个cfs_rq，而每个组调度的sched_entity也会有自己的一个cfs_rq队列 */
+struct cfs_rq {
+	/* CFS运行队列中所有进程的总负载 */
+    struct load_weight load;
+	/*
+     *  nr_running: cfs_rq中调度实体数量
+     *  h_nr_running: 只对进程组有效，其下所有进程组中cfs_rq的nr_running之和
+	*/
+    unsigned int nr_running, h_nr_running;
+
+    u64 exec_clock;
+    
+	/*
+     * 当前CFS队列上最小运行时间，单调递增
+     * 两种情况下更新该值: 
+     * 1、更新当前运行任务的累计运行时间时
+     * 2、当任务从队列删除去，如任务睡眠或退出，这时候会查看剩下的任务的vruntime是否大于min_vruntime，如果是则更新该值。
+     */
+
+    u64 min_vruntime;
+#ifndef CONFIG_64BIT
+    u64 min_vruntime_copy;
+#endif
+	/* 该红黑树的root */
+    struct rb_root tasks_timeline;
+     /* 下一个调度结点(红黑树最左边结点，最左边结点就是下个调度实体) */
+    struct rb_node *rb_leftmost;
+
+    /*
+     * 'curr' points to currently running entity on this cfs_rq.
+     * It is set to NULL otherwise (i.e when none are currently running).
+	 * curr: 当前正在运行的sched_entity（对于组虽然它不会在cpu上运行，但是当它的下层有一个task在cpu上运行，那么它所在的cfs_rq就把它当做是该cfs_rq上当前正在运行的sched_entity）
+     * next: 表示有些进程急需运行，即使不遵从CFS调度也必须运行它，调度时会检查是否next需要调度，有就调度next
+     *
+     * skip: 略过进程(不会选择skip指定的进程调度)
+     */
+    struct sched_entity *curr, *next, *last, *skip;
+
+#ifdef  CONFIG_SCHED_DEBUG
+    unsigned int nr_spread_over;
+#endif
+
+#ifdef CONFIG_SMP
+    /*
+     * CFS load tracking
+     */
+    struct sched_avg avg;
+    u64 runnable_load_sum;
+    unsigned long runnable_load_avg;
+#ifdef CONFIG_FAIR_GROUP_SCHED
+    unsigned long tg_load_avg_contrib;
+#endif
+    atomic_long_t removed_load_avg, removed_util_avg;
+#ifndef CONFIG_64BIT
+    u64 load_last_update_time_copy;
+#endif
+
+#ifdef CONFIG_FAIR_GROUP_SCHED
+    /*
+     *   h_load = weight * f(tg)
+     *
+     * Where f(tg) is the recursive weight fraction assigned to
+     * this group.
+     */
+    unsigned long h_load;
+    u64 last_h_load_update;
+    struct sched_entity *h_load_next;
+#endif /* CONFIG_FAIR_GROUP_SCHED */
+#endif /* CONFIG_SMP */
+
+#ifdef CONFIG_FAIR_GROUP_SCHED
+    /* 所属于的CPU rq */
+    struct rq *rq;  /* cpu runqueue to which this cfs_rq is attached */
+
+    /*
+     * leaf cfs_rqs are those that hold tasks (lowest schedulable entity in
+     * a hierarchy). Non-leaf lrqs hold other higher schedulable entities
+     * (like users, containers etc.)
+     *
+     * leaf_cfs_rq_list ties together list of leaf cfs_rq's in a cpu. This
+     * list is used during load balance.
+     */
+    int on_list;
+    struct list_head leaf_cfs_rq_list;
+    /* 拥有该CFS运行队列的进程组 */
+    struct task_group *tg;  /* group that "owns" this runqueue */
+
+#ifdef CONFIG_CFS_BANDWIDTH
+    int runtime_enabled;
+    u64 runtime_expires;
+    s64 runtime_remaining;
+
+    u64 throttled_clock, throttled_clock_task;
+    u64 throttled_clock_task_time;
+    int throttled, throttle_count;
+    struct list_head throttled_list;
+#endif /* CONFIG_CFS_BANDWIDTH */
+#endif /* CONFIG_FAIR_GROUP_SCHED */
+};
+```
+
+
+| 成员 | 描述 |
+| ------------- |:-------------:|
+| nr_running | 队列上可运行进程的数目
+| load | 就绪队列上可运行进程的累计负荷权重 |
+| min_vruntime | 跟踪记录队列上所有进程的最小虚拟运行时间. 这个值是实现与就绪队列相关的虚拟时钟的基础 |
+| tasks_timeline | 用于在按时间排序的红黑树中管理所有进程 |
+| rb_leftmost | 总是设置为指向红黑树最左边的节点, 即需要被调度的进程. 该值其实可以可以通过病例红黑树获得, 但是将这个值存储下来可以减少搜索红黑树花费的平均时间 |
+| curr | 当前正在运行的sched_entity（对于组虽然它不会在cpu上运行，但是当它的下层有一个task在cpu上运行，那么它所在的cfs_rq就把它当做是该cfs_rq上当前正在运行的sched_entity |
+| next | 表示有些进程急需运行，即使不遵从CFS调度也必须运行它，调度时会检查是否next需要调度，有就调度next |
+| skip | 略过进程(不会选择skip指定的进程调度) |
 
