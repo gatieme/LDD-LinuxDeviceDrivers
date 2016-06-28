@@ -82,6 +82,8 @@ cfs_rq就绪队列中存储了指向就绪队列的实例,参见[kernel/sched/sc
 
 ```c
     curr->vruntime += calc_delta_fair(delta_exec, curr);
+    update_min_vruntime(cfs_rq);
+
 ```
 
 其中calc_delta_fair函数是计算的关键
@@ -100,14 +102,113 @@ static inline u64 calc_delta_fair(u64 delta, struct sched_entity *se)
 }
 ```
 
-忽略舍入和溢出检查, calc_delta_fair所做的就是根据下列公式计算:
+忽略舍入和溢出检查, calc_delta_fair函数所做的就是根据下列公式计算:
 
-$$	delta\_exec\_weighted =delta\_exec \times \dfrac{NICE\_TO\_LOAD}{curr->se->load.weight} $$
+$$	delta =delta \times \dfrac{NICE\_TO\_LOAD}{curr->se->load.weight} $$
 
-$$curr->vruntime = $$
+那么`curr->vruntime += calc_delta_fair(delta_exec, curr);` 即相当于如下操作
+
+$$curr->vruntime = curr->vruntime +delta\_exec \times \dfrac{NICE\_TO\_LOAD}{curr->se->load.weight} $$
 
 
 在该计算中可以派上用场了, 回想一下子,　可知越重要的进程会有越高的优先级(即, 越低的nice值), 会得到更大的权重, 因此累加的虚拟运行时间会小一点, 
+
+根据公式可知, nice = 0的进程(优先级120), 则虚拟时间和物理时间是相等的, 即current->se->load.weight等于NICE_0_LAD的情况.
+
+##重新设置cfs_rq->min_vruntime
+
+接着内核需要重新设置`min_vruntime`. 必须小心保证该值是单调递增的, 通过update_min_vruntime函数来设置
+
+```c
+//  http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L457
+
+static void update_min_vruntime(struct cfs_rq *cfs_rq)
+{
+    /*  初始化vruntime的值, 相当于如下的代码
+    if (cfs_rq->curr != NULL)
+        vruntime = cfs_rq->curr->vruntime;
+    else
+        vruntime = cfs_rq->min_vruntime;
+    */
+    u64 vruntime = cfs_rq->min_vruntime;
+
+    if (cfs_rq->curr)
+        vruntime = cfs_rq->curr->vruntime;
+
+
+    /*  检测红黑树是都有最左的节点, 即是否有进程在树上等待调度
+     *  cfs_rq->rb_leftmost(struct rb_node *)存储了进程红黑树的最左节点
+     *  这个节点存储了即将要被调度的结点  
+     *  */
+    if (cfs_rq->rb_leftmost)
+    {
+        /*  获取最左结点的调度实体信息se, se中存储了其vruntime
+         *  rb_leftmost的vruntime即树中所有节点的vruntiem中最小的那个  */
+        struct sched_entity *se = rb_entry(cfs_rq->rb_leftmost,
+                           struct sched_entity,
+                           run_node);
+        /*  如果就绪队列上没有curr进程
+         *  则vruntime设置为树种最左结点的vruntime
+         *  否则设置vruntiem值为cfs_rq->curr->vruntime和se->vruntime的最小值
+         */
+        if (!cfs_rq->curr)  /*  此时vruntime的原值为cfs_rq->min_vruntime*/
+            vruntime = se->vruntime;
+        else                /* 此时vruntime的原值为cfs_rq->curr->vruntime*/
+            vruntime = min_vruntime(vruntime, se->vruntime);
+    }
+
+    /* ensure we never gain time by being placed backwards. 
+     * 为了保证min_vruntime单调不减
+     * 只有在vruntime超出的cfs_rq->min_vruntime的时候才更新
+     */
+    cfs_rq->min_vruntime = max_vruntime(cfs_rq->min_vruntime, vruntime);
+#ifndef CONFIG_64BIT
+    smp_wmb();
+    cfs_rq->min_vruntime_copy = cfs_rq->min_vruntime;
+#endif
+}
+```
+我们通过分析update_min_vruntime函数设置cfs_rq->min_vruntime的流程如下
+
+*	首先检测cfs就绪队列上是否有活动进程curr, 以此设置vruntime的值
+	如果cfs就绪队列上没有活动进程curr, 就设置vruntime为curr->vruntime;
+	否则又活动进程就设置为vruntime为cfs_rq的原min_vruntime;
+
+*	接着检测cfs的红黑树上是否有最左节点, 即等待被调度的节点, 重新设置vruntime的值为curr进程和最左进程rb_leftmost的vruntime较小者的值
+
+*	为了保证min_vruntime单调不减, 只有在vruntime超出的cfs_rq->min_vruntime的时候才更新
+
+update_min_vruntime依据当前进程和待调度的进程的vruntime值, 设置出一个可能的vruntime值, 但是只有在这个可能的vruntime值大于就绪队列原来的min_vruntime的时候, 才更新就绪队列的min_vruntime, 利用该策略, 内核确保min_vruntime只能增加, 不能减少.
+
+update_min_vruntime函数的流程等价于如下的代码
+
+```c
+//  依据curr进程和待调度进程rb_leftmost找到一个可能的最小vruntime值
+if (cfs_rq->curr != NULL cfs_rq->rb_leftmost == NULL)
+    vruntime = cfs_rq->curr->vruntime;
+else if(cfs_rq->curr == NULL && cfs_rq->rb_leftmost != NULL)
+        vruntime = cfs_rq->rb_leftmost->se->vruntime;
+else if (cfs_rq->curr != NULL cfs_rq->rb_leftmost != NULL)
+    vruntime = min(cfs_rq->curr->vruntime, cfs_rq->rb_leftmost->se->vruntime);
+else if(cfs_rq->curr == NULL cfs_rq->rb_leftmost == NULL)
+    vruntime = cfs_rq->min_vruntime;
+
+//  每个队列的min_vruntime只有被树上某个节点的vruntime((curr和程rb_leftmost两者vruntime的较小值)超出时才更新
+cfs_rq->min_vruntime = max_vruntime(cfs_rq->min_vruntime, vruntime);
+```
+
+其中寻找可能vruntime的策略我们采用表格的形式可能更加直接
+
+
+| 活动进程curr | 待调度进程rb_leftmost | 可能的vruntime值 | cfs_rq |
+| ------- |:-------:|:-------:|
+| NULL | NULL | cfs_rq->min_vruntime | 维持原值 |
+| NULL | 非NULL | rb_leftmost->se->vruntime | max(可能值vruntime, 原值) |
+| 非NULL | NULL | curr->vruntime | max(可能值vruntime, 原值) |
+| 非NULL | 非NULL | min(curr->vruntime, rb_leftmost->se->vruntime) | max(可能值vruntime, 原值) |
+
+##
+-------
 
 
 
