@@ -134,8 +134,9 @@ $$	delta =delta \times \dfrac{NICE\_0\_LOAD}{curr->se->load.weight}$$
 
 | 条件 | 公式 |
 |:-------:|:-------:|
-| curr.nice != NICE_0_LOAD | $curr->vruntime += delta\\_exec \times \dfrac{NICE\\_0\\_LOAD}{curr->se->load.weight}$ |
+| curr.nice != NICE_0_LOAD | $curr->vruntime += delta\_exec \times \dfrac{NICE\_0\_LOAD}{curr->se->load.weight}$|
 | curr.nice == NICE_0_LOAD | $ curr->vruntime += delta $ |
+
 
 在该计算中可以派上用场了, 回想一下子,　可知越重要的进程会有越高的优先级(即, 越低的nice值), 会得到更大的权重, 因此累加的虚拟运行时间会小一点, 
 
