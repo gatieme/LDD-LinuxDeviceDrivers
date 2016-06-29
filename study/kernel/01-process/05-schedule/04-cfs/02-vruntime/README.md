@@ -121,7 +121,8 @@ static inline u64 calc_delta_fair(u64 delta, struct sched_entity *se)
 
 忽略舍入和溢出检查, calc_delta_fair函数所做的就是根据下列公式计算:
 
-$\dfrac{a}{b}$
+$$x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$$
+\\(x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}\\)
 
 
 $$	delta =delta \times \dfrac{NICE\_0\_LOAD}{curr->se->load.weight}$$
