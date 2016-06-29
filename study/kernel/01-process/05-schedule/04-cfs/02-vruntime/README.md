@@ -129,6 +129,8 @@ $$	delta =delta \times \dfrac{NICE\_0\_LOAD}{curr->se->load.weight}   ;(if curr.
 
 那么`curr->vruntime += calc_delta_fair(delta_exec, curr);` 即相当于如下操作
 
+
+$\dfrac{a}{b}$
 | 条件 | 公式 |
 |:-------:|:-------:|
 | curr.nice != NICE_0_LOAD | $curr->vruntime += delta\_exec \times \dfrac{NICE\_0\_LOAD}{curr->se->load.weight}    (if )$ |
