@@ -125,6 +125,7 @@ $$	delta =delta \times \dfrac{NICE\_0\_LOAD}{curr->se->load.weight}$$
 
 
 
+
 每一个进程拥有一个vruntime, 每次需要调度的时候就选运行队列中拥有最小vruntime的那个进程来运行, vruntime在时钟中断里面被维护, 每次时钟中断都要更新当前进程的vruntime, 即vruntime以如下公式逐渐增长
 
 那么`curr->vruntime += calc_delta_fair(delta_exec, curr);` 即相当于如下操作
