@@ -28,7 +28,7 @@ CFS负责处理普通非实时进程, 这类进程是我们linux中最普遍的�
 
 
 
-#update_curr函数
+#update_curr函数计算进程虚拟时间
 -------
 
 所有与虚拟时钟有关的计算都在update_curr中执行, 该函数在系统中各个不同地方调用, 包括周期性调度器在内.
@@ -297,11 +297,75 @@ static inline int entity_before(struct sched_entity *a,
 }
 ```
 
-# 延迟跟踪
+# 延迟跟踪(调度延迟)与虚拟时间在调度实体内部的再分配
 -------
 
-内核有一个固定的概念, 称之为良好的**调度延迟**, 即保证每个可运行的进程都应该至少运行一次的某个时间间隔. 它在sysctl_sched_latency给出, 可通过/proc/sys/kernel/sched_latency_ns
+##  调度延迟与其控制字段
+-------
 
+内核有一个固定的概念, 称之为良好的**调度延迟**, 即保证每个可运行的进程都应该至少运行一次的某个时间间隔. 它在sysctl_sched_latency给出, 可通过/proc/sys/kernel/sched_latency_ns控制, 默认值为20000000纳秒, 即20毫秒.
+
+第二个控制参数sched_nr_latency, 控制在一个**延迟周期中处理的最大活动进程数目**. 如果挥动进程的数目超过该上限, 则延迟周期也成比例的线性扩展.sched_nr_latency可以通过sysctl_sched_min_granularity间接的控制, 后者可通过/procsys/kernel/sched_min_granularity_ns设置. 默认值是4000000纳秒, 即4毫秒, 每次sysctl_sched_latency/sysctl_sched_min_granularity之一改变时, 都会重新计算sched_nr_latency.
+
+__sched_period确定延**迟周期的长度**, 通常就是sysctl_sched_latency, 但如果有更多的进程在运行, 其值有可能按比例线性扩展. 在这种情况下, 周期长度是
+
+__sched_period = sysctl_sched_latency * nr_running / sched_nr_latency
+
+
+##  虚拟时间在调度实体内的分配
+
+调度实体是内核进行调度的基本实体单位, 其可能包含一个或者多个进程, 那么调度实体分配到的虚拟运行时间, 需要在内部对各个进程进行再次分配.
+
+通过考虑各个进程的相对权重, 将一个延迟周期的时间在活动进程之前进行分配. 对于由某个调度实体标识的给定进程, 分配到的时间通过sched_slice函数来分配, 其实现在[kernel/sched/fair.c, line 626](http://lxr.free-electrons.com/source/kernel/sched/fair.c#L626), 计算方式如下
+
+```c
+/*
+ * We calculate the wall-time slice from the period by taking a part
+ * proportional to the weight.
+ *
+ * s = p*P[w/rw]
+ */
+static u64 sched_slice(struct cfs_rq *cfs_rq, struct sched_entity *se)
+{
+        u64 slice = __sched_period(cfs_rq->nr_running + !se->on_rq);
+
+        for_each_sched_entity(se) {
+                struct load_weight *load;
+                struct load_weight lw;
+
+                cfs_rq = cfs_rq_of(se);
+                load = &cfs_rq->load;
+
+                if (unlikely(!se->on_rq)) {
+                        lw = cfs_rq->load;
+
+                        update_load_add(&lw, se->load.weight);
+                        load = &lw;
+                }
+                slice = __calc_delta(slice, se->load.weight, load);
+        }
+        return slice;
+}
+```
+回想一下子, 就绪队列的负荷权重是队列是那个所有活动进程负荷权重的总和, 结果时间段是按实际时间给出的, 但内核有时候也需要知道等价的虚拟时间, 该功能通过sched_vslice函数来实现, 其定义在[kernel/sched/fair.c, line 626](http://lxr.free-electrons.com/source/kernel/sched/fair.c#L626)
+
+```c
+/*
+ * We calculate the vruntime slice of a to-be-inserted task.
+ *
+ * vs = s/w
+ */
+static u64 sched_vslice(struct cfs_rq *cfs_rq, struct sched_entity *se)
+{
+        return calc_delta_fair(sched_slice(cfs_rq, se), se);
+}
+```
+
+相对于权重weight的进程来说, 其实际时间段time相对应的虚拟时间长度为
+
+time * NICE_0_LOAD / weight
+
+该公式通过calc_delta_fair函数计算, 在sched_vslice函数中也被用来转换分配到的延迟时间间隔.
 
 #总结
 -------
@@ -335,10 +399,12 @@ static inline int entity_before(struct sched_entity *a,
 
 | 条件 | 公式 |
 |:-------:|:-------:|
-| 进程数 > 5 | sum_runtime=sysctl_sched_min_granularity *nr_running |
-| 进程数 <=5 | sum_runtime=sysctl_sched_latency = 20ms |
+| 进程数 > sched_nr_latency | sum_runtime=sysctl_sched_min_granularity *nr_running |
+| 进程数 <=sched_nr_latency | sum_runtime=sysctl_sched_latency = 20ms |
 
 >注：sysctl_sched_min_granularity =4ms
+>
+>sched_nr_latency是内核在一个延迟周期中处理的最大活动进程数目
 
 linux内核代码中是通过一个叫vruntime的变量来实现上面的原理的，即：
 
