@@ -130,7 +130,7 @@ $$	delta =delta \times \dfrac{NICE\_0\_LOAD}{curr->se->load.weight}   ;(if curr.
 那么`curr->vruntime += calc_delta_fair(delta_exec, curr);` 即相当于如下操作
 
 
-$\frac{a}{b}$
+$a^2$
 
 
 | 条件 | 公式 |
