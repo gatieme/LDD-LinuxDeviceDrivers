@@ -121,7 +121,7 @@ static inline u64 calc_delta_fair(u64 delta, struct sched_entity *se)
 
 忽略舍入和溢出检查, calc_delta_fair函数所做的就是根据下列公式计算:
 
-$$	delta =delta \times \dfrac{NICE\\_0\\_LOAD}{curr->se->load.weight}   ;(if curr.nice!=NICE_0_LOAD)$$
+$$	delta =delta \times \dfrac{NICE_0_LOAD}{curr->se->load.weight}   ;(if curr.nice!=NICE_0_LOAD)$$
 
 
 
