@@ -299,3 +299,9 @@ struct cfs_rq {
 | next | 表示有些进程急需运行，即使不遵从CFS调度也必须运行它，调度时会检查是否next需要调度，有就调度next |
 | skip | 略过进程(不会选择skip指定的进程调度) |
 
+
+http://www.oenhan.com/task-group-sched
+http://blog.chinaunix.net/uid-24757773-id-3266304.html
+http://blog.csdn.net/melong100/article/details/6329201
+http://blog.csdn.net/wudongxu/article/details/8574737
+

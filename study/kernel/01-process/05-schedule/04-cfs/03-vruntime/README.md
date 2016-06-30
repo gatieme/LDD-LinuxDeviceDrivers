@@ -26,6 +26,64 @@ CFS负责处理普通非实时进程, 这类进程是我们linux中最普遍的�
 
 虚拟运行时间是通过进程的实际运行时间和进程的权重(weight)计算出来的。在CFS调度器中，将进程优先级这个概念弱化，而是强调进程的权重。一个进程的权重越大，则说明这个进程更需要运行，因此它的虚拟运行时间就越小，这样被调度的机会就越大。而，CFS调度器中的权重在内核是对用户态进程的优先级nice值, 通过prio_to_weight数组进行nice值和权重的转换而计算出来的
 
+#虚拟时钟相关的数据结构
+-------
+
+##  调度实体的虚拟时钟信息
+-------
+
+为了实现完全公平调度，内核引入了虚拟时钟（virtual clock）的概念，实际上我觉得这个虚拟时钟为什叫虚拟的，是因为这个时钟与具体的时钟晶振没有关系，他只不过是为了公平分配CPU时间而提出的一种时间量度，它与进程的权重有关，这里就知道权重的作用了，权重越高，说明进程的优先级比较高，进而该进程虚拟时钟增长的就慢
+
+既然虚拟时钟是用来衡量调度实体(一个或者多个进程)的一种时间度量, 因此必须在调度实体中存储其虚拟时钟的信息
+
+```c
+struct sched_entity
+{
+	struct load_weight      load;           /* for load-balancing负荷权重，这个决定了进程在CPU上的运行时间和被调度次数 */
+    struct rb_node          run_node;
+    unsigned int            on_rq;          /*  是否在就绪队列上  */
+
+    u64                     exec_start;			/*  上次启动的时间*/
+
+    u64                     sum_exec_runtime;
+    u64                     vruntime;
+    u64                     prev_sum_exec_runtime;
+    /* rq on which this entity is (to be) queued: */
+    struct cfs_rq           *cfs_rq;
+    ...
+};
+```
+
+
+**sum_exec_runtime**是用于记录该进程的CPU消耗时间，这个是真实的CPU消耗时间。在进程撤销时会将sum_exec_runtime保存到**prev_sum_exec_runtime**中
+
+**vruntime**是本进程生命周期中在CPU上运行的虚拟时钟。那么何时应该更新这些时间呢?这是通过调用**update_curr**实现的, 该函数在多处调用.
+
+
+##  就绪队列上的虚拟时钟信息
+-------
+
+完全公平调度器类sched_fair_class主要负责管理普通进程, 在全局的CPU就读队列上存储了在CFS的就绪队列struct cfs_rq cfs
+
+进程的就绪队列中就存储了CFS相关的虚拟运行时钟的信息, struct cfs_rq定义如下：
+
+```c
+struct cfs_rq
+{
+    struct load_weight load;   /*所有进程的累计负荷值*/
+    unsigned long nr_running;  /*当前就绪队列的进程数*/
+
+	// ========================
+    u64 min_vruntime;  //  队列的虚拟时钟, 
+	// =======================
+    struct rb_root tasks_timeline;  /*红黑树的头结点*/
+    struct rb_node *rb_leftmost;    /*红黑树的最左面节点*/
+
+    struct sched_entity *curr;      /*当前执行进程的可调度实体*/
+        ...
+};
+```
+
 
 
 #update_curr函数计算进程虚拟时间
@@ -125,8 +183,6 @@ static inline u64 calc_delta_fair(u64 delta, struct sched_entity *se)
 
 
 $$delta =delta \times \dfrac{NICE\_0\_LOAD}{curr->se->load.weight}$$
-
-
 
 
 每一个进程拥有一个vruntime, 每次需要调度的时候就选运行队列中拥有最小vruntime的那个进程来运行, vruntime在时钟中断里面被维护, 每次时钟中断都要更新当前进程的vruntime, 即vruntime以如下公式逐渐增长

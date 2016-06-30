@@ -494,6 +494,10 @@ static void __enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
 
     /*
      * Find the right place in the rbtree:
+     * 从红黑树中找到se所应该在的位置
+     * 同时leftmost标识其位置是不是最左结点
+     * 如果在查找结点的过程中向右走了, 则置leftmost为0
+     * 否则说明一直再相左走, 最终将走到最左节点, 此时leftmost恒为1
      */
     while (*link) {
         parent = *link;
@@ -501,6 +505,7 @@ static void __enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
         /*
          * We dont care about collisions. Nodes with
          * the same key stay together.
+         * 以se->vruntime值为键值进行红黑树结点的比较
          */
         if (entity_before(se, entry)) {
             link = &parent->rb_left;
@@ -509,15 +514,18 @@ static void __enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
             leftmost = 0;
         }
     }
-
     /*
      * Maintain a cache of leftmost tree entries (it is frequently
      * used):
+     * 如果leftmost为1, 说明se是红黑树当前的最左结点, 即vruntime最小
+     * 那么把这个节点保存在cfs就绪队列的rb_leftmost域中
      */
     if (leftmost)
         cfs_rq->rb_leftmost = &se->run_node;
 
+    /*  将新进程的节点加入到红黑树中  */
     rb_link_node(&se->run_node, parent, link);
+    /*  为新插入的结点进行着色  */
     rb_insert_color(&se->run_node, &cfs_rq->tasks_timeline);
 }
 
@@ -3201,6 +3209,7 @@ enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 
     /*
      * Update run-time statistics of the 'current'.
+     * 更新进程的统计量信息
      */
     update_curr(cfs_rq);
     enqueue_entity_load_avg(cfs_rq, se);
@@ -3221,6 +3230,8 @@ enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
         update_stats_enqueue(cfs_rq, se);
         check_spread(cfs_rq, se);
     }
+
+    /*  将进程插入到红黑树中  */
     if (se != cfs_rq->curr)
         __enqueue_entity(cfs_rq, se);
     se->on_rq = 1;
