@@ -3367,7 +3367,8 @@ static void
 set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
     /* 'current' is not kept within the tree. */
-    if (se->on_rq) {
+    if (se->on_rq)  /*  如果se尚在rq队列上  */
+    {
         /*
          * Any task has to be enqueued before it get to execute on
          * a CPU. So account for the time it spent waiting on the
@@ -3375,10 +3376,11 @@ set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
          */
         if (schedstat_enabled())
             update_stats_wait_end(cfs_rq, se);
+        /*  将se从rq队列中删除  */
         __dequeue_entity(cfs_rq, se);
         update_load_avg(se, 1);
     }
-
+    /*  新sched_entity中的exec_start字段为当前clock_task  */
     update_stats_curr_start(cfs_rq, se);
     cfs_rq->curr = se;
 #ifdef CONFIG_SCHEDSTATS
@@ -3392,6 +3394,7 @@ set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
             se->sum_exec_runtime - se->prev_sum_exec_runtime);
     }
 #endif
+    /*  //更新task上一次投入运行的从时间  */
     se->prev_sum_exec_runtime = se->sum_exec_runtime;
 }
 
@@ -3404,20 +3407,41 @@ wakeup_preempt_entity(struct sched_entity *curr, struct sched_entity *se);
  * 2) pick the "next" process, since someone really wants that to run
  * 3) pick the "last" process, for cache locality
  * 4) do not run the "skip" process, if something else is available
+ *
+ *  1. 首先要确保任务组之间的公平, 这也是设置组的原因之一
+ *  2. 其次, 挑选下一个合适的（优先级比较高的）进程
+ *     因为它确实需要马上运行 
+ *  3. 如果没有找到条件2中的进程
+ *     那么为了保持良好的局部性
+ *     则选中上一次执行的进程 
+ *  4. 只要有任务存在, 就不要让CPU空转, 也就是让CPU运行idle进程
  */
 static struct sched_entity *
 pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 {
+    /*  //摘取红黑树最左边的进程  */
     struct sched_entity *left = __pick_first_entity(cfs_rq);
     struct sched_entity *se;
 
     /*
      * If curr is set we have to see if its left of the leftmost entity
      * still in the tree, provided there was anything in the tree at all.
+     *
+     * 如果
+     * left == NULL  或者
+     * curr != NULL curr进程比left进程更优(即curr的虚拟运行时间更小) 
+     * 说明curr进程是自动放弃运行权利, 且其比最左进程更优
+     * 因此将left指向了curr, 即curr是最优的进程
      */
     if (!left || (curr && entity_before(curr, left)))
+    {
         left = curr;
+    }
 
+    /* se = left存储了cfs_rq队列中最优的那个进程  
+     * 如果进程curr是一个自愿放弃CPU的进程(其比最左进程更优), 则取se = curr
+     * 否则进程se就取红黑树中最左的进程left, 它必然是当前就绪队列上最优的
+     */
     se = left; /* ideally we run the leftmost entity */
 
     /*
@@ -3427,9 +3451,13 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
     if (cfs_rq->skip == se) {
         struct sched_entity *second;
 
-        if (se == curr) {
+        if (se == curr)
+        {
             second = __pick_first_entity(cfs_rq);
-        } else {
+        }
+        else
+        {
+            /*  摘取红黑树上第二左的进程节点  */
             second = __pick_next_entity(se);
             if (!second || (curr && entity_before(curr, second)))
                 second = curr;
@@ -4394,6 +4422,7 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 
     for_each_sched_entity(se) {
         cfs_rq = cfs_rq_of(se);
+        /*  */
         dequeue_entity(cfs_rq, se, flags);
 
         /*
@@ -5466,9 +5495,11 @@ pick_next_task_fair(struct rq *rq, struct task_struct *prev)
 
 again:
 #ifdef CONFIG_FAIR_GROUP_SCHED
+    /*  如果nr_running计数器为0, 即当前队列上没有可运行进程,
+     *  则需要调度idle进程 */
     if (!cfs_rq->nr_running)
         goto idle;
-
+    /*  如果当前运行进程prev不是被fair调度的普通非实时进程  */
     if (prev->sched_class != &fair_sched_class)
         goto simple;
 
@@ -5489,7 +5520,11 @@ again:
          * entity, update_curr() will update its vruntime, otherwise
          * forget we've ever seen it.
          */
-        if (curr) {
+        if (curr)
+        {
+            /*  如果当前进程curr在队列上, 
+             *  则需要更新起统计量和虚拟运行时间
+             *  否则设置curr为空  */
             if (curr->on_rq)
                 update_curr(cfs_rq);
             else
@@ -5504,11 +5539,11 @@ again:
             if (unlikely(check_cfs_rq_runtime(cfs_rq)))
                 goto simple;
         }
-
+        /*  选择一个最优的调度实体  */
         se = pick_next_entity(cfs_rq, curr);
         cfs_rq = group_cfs_rq(se);
-    } while (cfs_rq);
-
+    } while (cfs_rq);  /*  如果被调度的进程仍属于当前组，那么选取下一个可能被调度的任务，以保证组间调度的公平性  */
+    /*  获取调度实体se的进程实体信息  */
     p = task_of(se);
 
     /*
@@ -5516,18 +5551,22 @@ again:
      * is a different task than we started out with, try and touch the
      * least amount of cfs_rqs.
      */
-    if (prev != p) {
+    if (prev != p)
+    {
         struct sched_entity *pse = &prev->se;
 
-        while (!(cfs_rq = is_same_group(se, pse))) {
+        while (!(cfs_rq = is_same_group(se, pse)))
+        {
             int se_depth = se->depth;
             int pse_depth = pse->depth;
 
-            if (se_depth <= pse_depth) {
+            if (se_depth <= pse_depth)
+            {
                 put_prev_entity(cfs_rq_of(pse), pse);
                 pse = parent_entity(pse);
             }
-            if (se_depth >= pse_depth) {
+            if (se_depth >= pse_depth)
+            {
                 set_next_entity(cfs_rq_of(se), se);
                 se = parent_entity(se);
             }
@@ -5550,7 +5589,8 @@ simple:
 
     put_prev_task(rq, prev);
 
-    do {
+    do
+    {
         se = pick_next_entity(cfs_rq, NULL);
         set_next_entity(cfs_rq, se);
         cfs_rq = group_cfs_rq(se);
