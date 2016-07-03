@@ -469,7 +469,7 @@ linux内核代码中是通过一个叫vruntime的变量来实现上面的原理�
 
 | 条件 | 公式 |
 |:-------:|:-------:|
-| curr.nice!=NICE_0_LOAD | vruntime +=  delta* NICE_0_LOAD/se.weight; |
+| curr.nice!=NICE_0_LOAD | vruntime +=  delta * NICE_0_LOAD/se.weight; |
 | curr.nice=NICE_0_LOAD | vruntime += delta; |
 
 

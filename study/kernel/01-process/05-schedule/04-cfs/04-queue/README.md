@@ -280,7 +280,7 @@ place_entity函数定义在[kernel/sched/fair.c, line 3135](http://lxr.free-elec
 
 
 ```c
-http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L3134
+//  http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L3134
 static void
 place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
 {
@@ -291,6 +291,14 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
      * however the extra weight of the new task will slow them down a
      * little, place the new task so that it fits in the slot that
      * stays open at the end.
+     *
+     * 如果是新进程第一次要入队, 那么就要初始化它的vruntime
+     * 一般就把cfsq的vruntime给它就可以
+     * 但是如果当前运行的所有进程被承诺了一个运行周期
+     * 那么则将新进程的vruntime后推一个他自己的slice
+     * 实际上新进程入队时要重新计算运行队列的总权值
+     * 总权值显然是增加了，但是所有进程总的运行时期并不一定随之增加
+     * 则每个进程的承诺时间相当于减小了，就是减慢了进程们的虚拟时钟步伐。 
      */
     if (initial && sched_feat(START_DEBIT))
         vruntime += sched_vslice(cfs_rq, se);
@@ -309,7 +317,9 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
         vruntime -= thresh;
     }
 
-    /* ensure we never gain time by being placed backwards. */
+    /* ensure we never gain time by being placed backwards.
+     * 如果是唤醒已经存在的进程，则单调附值
+     */
     se->vruntime = max_vruntime(se->vruntime, vruntime);
 }
 ```

@@ -3151,6 +3151,14 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
      * however the extra weight of the new task will slow them down a
      * little, place the new task so that it fits in the slot that
      * stays open at the end.
+     *
+     * 如果是新进程第一次要入队, 那么就要初始化它的vruntime
+     * 一般就把cfsq的vruntime给它就可以
+     * 但是如果当前运行的所有进程被承诺了一个运行周期
+     * 那么则将新进程的vruntime后推一个他自己的slice
+     * 实际上新进程入队时要重新计算运行队列的总权值
+     * 总权值显然是增加了，但是所有进程总的运行时期并不一定随之增加
+     * 则每个进程的承诺时间相当于减小了，就是减慢了进程们的虚拟时钟步伐。 
      */
     if (initial && sched_feat(START_DEBIT))
         vruntime += sched_vslice(cfs_rq, se);
@@ -3169,7 +3177,9 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
         vruntime -= thresh;
     }
 
-    /* ensure we never gain time by being placed backwards. */
+    /* ensure we never gain time by being placed backwards.
+     * 如果是唤醒已经存在的进程，则单调附值
+     */
     se->vruntime = max_vruntime(se->vruntime, vruntime);
 }
 
@@ -3414,12 +3424,13 @@ wakeup_preempt_entity(struct sched_entity *curr, struct sched_entity *se);
  *  3. 如果没有找到条件2中的进程
  *     那么为了保持良好的局部性
  *     则选中上一次执行的进程 
- *  4. 只要有任务存在, 就不要让CPU空转, 也就是让CPU运行idle进程
+ *  4. 只要有任务存在, 就不要让CPU空转, 
+ *     只有在没有进程的情况下才会让CPU运行idle进程
  */
 static struct sched_entity *
 pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 {
-    /*  //摘取红黑树最左边的进程  */
+    /*  摘取红黑树最左边的进程  */
     struct sched_entity *left = __pick_first_entity(cfs_rq);
     struct sched_entity *se;
 
@@ -3447,28 +3458,45 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
     /*
      * Avoid running the skip buddy, if running something else can
      * be done without getting too unfair.
+     *
+     * cfs_rq->skip存储了需要调过不参与调度的进程调度实体
+     * 如果我们挑选出来的最优调度实体se正好是skip
+     * 那么我们需要选择次优的调度实体se来进行调度
+     * 由于之前的se = left = (curr before left) curr left
+     * 则如果 se == curr == skip, 则选择left = __pick_first_entity进行即可
+     * 否则则se == left == skip, 则选择次优的那个调度实体second
      */
-    if (cfs_rq->skip == se) {
+    if (cfs_rq->skip == se)
+    {
         struct sched_entity *second;
 
-        if (se == curr)
+        if (se == curr) /* se == curr == skip选择最左的那个调度实体left  */
         {
             second = __pick_first_entity(cfs_rq);
         }
-        else
+        else    /*  否则se == left == skip, 选择次优的调度实体second  */
         {
             /*  摘取红黑树上第二左的进程节点  */
             second = __pick_next_entity(se);
+            /*  同时与left进程一样, 
+             * 如果
+             * second == NULL 没有次优的进程  或者
+             * curr != NULL curr进程比left进程更优(即curr的虚拟运行时间更小) 
+             * 说明curr进程比最second进程更优
+             * 因此将second指向了curr, 即curr是最优的进程*/
             if (!second || (curr && entity_before(curr, second)))
                 second = curr;
         }
 
+        /*  判断left和second的vruntime的差距是否小于sysctl_sched_wakeup_granularity*/
         if (second && wakeup_preempt_entity(second, left) < 1)
             se = second;
     }
 
     /*
      * Prefer last buddy, try to return the CPU to a preempted task.
+     *
+     * 
      */
     if (cfs_rq->last && wakeup_preempt_entity(cfs_rq->last, left) < 1)
         se = cfs_rq->last;
@@ -3479,6 +3507,9 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
     if (cfs_rq->next && wakeup_preempt_entity(cfs_rq->next, left) < 1)
         se = cfs_rq->next;
 
+    /* 用过一次任何一个next或者last
+     * 都需要清除掉这个指针
+     * 以免影响到下次pick next sched_entity  */
     clear_buddies(cfs_rq, se);
 
     return se;
@@ -5328,6 +5359,7 @@ static void task_dead_fair(struct task_struct *p)
 static unsigned long
 wakeup_gran(struct sched_entity *curr, struct sched_entity *se)
 {
+    /*  NICE_0_LOAD的基准最小运行期限  */
     unsigned long gran = sysctl_sched_wakeup_granularity;
 
     /*
@@ -5342,6 +5374,8 @@ wakeup_gran(struct sched_entity *curr, struct sched_entity *se)
      *
      * This is especially important for buddies when the leftmost
      * task is higher priority than the buddy.
+     *
+     * 计算进程运行的期限，即抢占的粒度
      */
     return calc_delta_fair(gran, se);
 }
@@ -5363,12 +5397,19 @@ wakeup_gran(struct sched_entity *curr, struct sched_entity *se)
 static int
 wakeup_preempt_entity(struct sched_entity *curr, struct sched_entity *se)
 {
+    /*  vdiff为curr和se vruntime的差值*/
     s64 gran, vdiff = curr->vruntime - se->vruntime;
-
+    
+    /*  cfs_rq的vruntime是单调递增的，也就是一个基准
+     *  各个进程的vruntime追赶竞争cfsq的vruntime
+     *  如果curr的vruntime比较小, 说明curr更加需要补偿, 
+     *  即se无法抢占curr */
     if (vdiff <= 0)
         return -1;
 
+    /*  计算curr的最小抢占期限粒度   */
     gran = wakeup_gran(curr, se);
+    /*  当差值大于这个最小粒度的时候才抢占，这可以避免频繁抢占  */
     if (vdiff > gran)
         return 1;
 
@@ -5583,19 +5624,28 @@ again:
 simple:
     cfs_rq = &rq->cfs;
 #endif
-
+    /*  如果nr_running计数器为0,
+     *  当前队列上没有可运行进程,
+     *  则需要调度idle进程  */
     if (!cfs_rq->nr_running)
         goto idle;
-
+    /*  将当前进程放入运行队列的合适位置  */
     put_prev_task(rq, prev);
 
     do
     {
+        /*  选出下一个可执行调度实体(进程)  */
         se = pick_next_entity(cfs_rq, NULL);
+        /*  把选中的进程从红黑树移除，更新红黑树  
+         *  set_next_entity会调用__dequeue_entity完成此工作  */
         set_next_entity(cfs_rq, se);
+        /*  group_cfs_rq return NULL when !CONFIG_FAIR_GROUP_SCHED
+         *  在非组调度情况下, group_cfs_rq返回了NULL  */
         cfs_rq = group_cfs_rq(se);
-    } while (cfs_rq);
+    } while (cfs_rq);  /*  在没有配置组调度选项(CONFIG_FAIR_GROUP_SCHED)的情况下.group_cfs_rq()返回NULL.因此,上函数中的循环只会循环一次  */
 
+
+    /*  获取到调度实体指代的进程信息  */
     p = task_of(se);
 
     if (hrtick_enabled(rq))
