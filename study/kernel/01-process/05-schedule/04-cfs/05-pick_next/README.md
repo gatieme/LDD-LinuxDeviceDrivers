@@ -1,4 +1,4 @@
-Linux CFS调度器之队列操作
+Linux CFS调度器之pick_next_task_fair选择下一个被调度的进程
 =======
 
 
@@ -7,9 +7,7 @@ Linux CFS调度器之队列操作
 | 2016-06-29 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/details/51456569) |
 
 
-
 CFS负责处理普通非实时进程, 这类进程是我们linux中最普遍的进程
-
 
 
 #1	前景回顾
