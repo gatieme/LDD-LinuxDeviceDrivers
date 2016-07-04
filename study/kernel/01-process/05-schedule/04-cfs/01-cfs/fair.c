@@ -3392,6 +3392,7 @@ set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
     }
     /*  新sched_entity中的exec_start字段为当前clock_task  */
     update_stats_curr_start(cfs_rq, se);
+    /*  将se设置为curr进程  */
     cfs_rq->curr = se;
 #ifdef CONFIG_SCHEDSTATS
     /*

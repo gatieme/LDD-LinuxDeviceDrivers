@@ -498,9 +498,69 @@ wakeup_gran(struct sched_entity *curr, struct sched_entity *se)
 *	当进程yield操作的时候，进程主动放弃了调度机会，那么如果next，last指针指向了这个sched_entity，那么需要清除相应指针。
 
 
-**pick_next_entity流程总结**
 
-pick_next_entity函数选择出下一个最渴望被公平调度器调度的进程, 函数的执行流程其实很简单
+##  set_next_entity
+-------
+
+set_next_entity()函数会调用__dequeue_entity(cfs_rq, se)把选中的下一个进程移出红黑树
+
+
+```c
+static void
+set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
+{
+    /* 'current' is not kept within the tree. */
+    if (se->on_rq)  /*  如果se尚在rq队列上  */
+    {
+        /*
+         * Any task has to be enqueued before it get to execute on
+         * a CPU. So account for the time it spent waiting on the
+         * runqueue.
+         */
+        if (schedstat_enabled())
+            update_stats_wait_end(cfs_rq, se);
+        /*  将se从rq队列中删除  */
+        __dequeue_entity(cfs_rq, se);
+        update_load_avg(se, 1);
+    }
+    /*  新sched_entity中的exec_start字段为当前clock_task  */
+    update_stats_curr_start(cfs_rq, se);
+    /*  将se设置为curr进程  */
+    cfs_rq->curr = se;
+#ifdef CONFIG_SCHEDSTATS
+    /*
+     * Track our maximum slice length, if the CPU's load is at
+     * least twice that of our own weight (i.e. dont track it
+     * when there are only lesser-weight tasks around):
+     */
+    if (schedstat_enabled() && rq_of(cfs_rq)->load.weight >= 2*se->load.weight) {
+        se->statistics.slice_max = max(se->statistics.slice_max,
+            se->sum_exec_runtime - se->prev_sum_exec_runtime);
+    }
+#endif
+    /*  //更新task上一次投入运行的从时间  */
+    se->prev_sum_exec_runtime = se->sum_exec_runtime;
+}
+```
+
+
+##总结
+-------
+
+pick_next_task_fair的基本流程如下
+
+
+其基本流程如下
+
+| 流程 | 描述 |
+|:-------:|:-------:|
+| !cfs_rq->nr_running -=>  goto idle; | 如果nr_running计数器为0, 当前队列上没有可运行进程, 则需要调度idle进程 |
+| put_prev_task(rq, prev); | 将当前进程放入运行队列的合适位置, 每次当进程被调度后都会使用set_next_entity从红黑树中移除, 因此被抢占时需要重新加如红黑树中等待被调度 |
+| se = pick_next_entity(cfs_rq, NULL); | 选出下一个可执行调度实体 |
+| set_next_entity(cfs_rq, se); | set_next_entity会调用__dequeue_entity把选中的进程从红黑树移除，并更新红黑树 |
+
+
+其中最关键的pick_next_entity函数选择出下一个最渴望被公平调度器调度的进程, 函数的执行流程其实很简单
 
 1.	先从最左节点left和当前节点curr中选择出最渴望被调度(即虚拟运行vruntime最小)的那个调度实体色
 
@@ -529,8 +589,150 @@ pick_next_entity函数选择出下一个最渴望被公平调度器调度的进�
 
 以及cfs_rq的调度实体curr, last和next, curr是当前正在运行的进程, 它虽然已经运行, 但是可能仍然很饥渴, 那么我们应该继续补偿它, 而last表示最后一个执行wakeup的sched_entity, next表示最后一个被wakeup的sched_entity, 刚被唤醒的进程可能更希望得到CPU, 因此在pick新sched_entity的时候，会优先选择这些last或者next指针的sched_entity,有利于提高缓存的命中率
 
-##  set_next_entity
+
+#idle进程的调度
 -------
 
+```c
+    /*  如果nr_running计数器为0,
+     *  当前队列上没有可运行进程,
+     *  则需要调度idle进程  */
+    if (!cfs_rq->nr_running)
+        goto idle;
+```
 
-http://blog.csdn.net/sunnybeike/article/details/6918586
+如果系统中当前运行队列上没有可调度的进程, 那么会调到idle标签去调度idle进程.
+
+
+idle标签如下所示
+
+```c
+idle:
+    /*
+     * This is OK, because current is on_cpu, which avoids it being picked
+     * for load-balance and preemption/IRQs are still disabled avoiding
+     * further scheduler activity on it and we're being very careful to
+     * re-start the picking loop.
+     */
+    lockdep_unpin_lock(&rq->lock);
+    new_tasks = idle_balance(rq);
+    lockdep_pin_lock(&rq->lock);
+    /*
+     * Because idle_balance() releases (and re-acquires) rq->lock, it is
+     * possible for any higher priority task to appear. In that case we
+     * must re-start the pick_next_entity() loop.
+     */
+    if (new_tasks < 0)
+        return RETRY_TASK;
+
+    if (new_tasks > 0)
+        goto again;
+
+    return NULL;
+```
+
+其关键就是调用idle_balance进行任务的迁移
+
+ 每个cpu都有自己的运行队列, 如果当前cpu上运行的任务都已经dequeue出运行队列，而且idle_balance也没有移动到当前运行队列的任务，那么schedule函数中，按照stop > idle > rt  > cfs > idle这三种调度方式顺序，寻找各自的运行任务，那么如果rt和cfs都未找到运行任务，那么最后会调用idle schedule的idle进程，作为schedule函数调度的下一个任务
+
+如果某个cpu空闲, 而其他CPU不空闲, 即当前CPU运行队列为NULL, 而其他CPU运行队列有进程等待调度的时候,  则内核会对CPU尝试负载平衡, CPU负载均衡有两种方式: pull和push, 即空闲CPU从其他忙的CPU队列中pull拉一个进程复制到当前空闲CPU上, 或者忙的CPU队列将一个进程push推送到空闲的CPU队列中.
+
+idle_balance其实就是pull的工作.
+
+
+#组调度策略的支持
+-------
+
+组调度的情形下, 调度实体之间存在明显的层次关系, 因此在跟新子调度实体的时候, 需要更新父调度实体的信息, 同时我们为了保证同一组内的进程不能长时间占用处理机, 必须补偿其他组内的进程, 保证公平性
+
+
+```c
+#ifdef CONFIG_FAIR_GROUP_SCHED
+    /*  如果nr_running计数器为0, 即当前队列上没有可运行进程,
+     *  则需要调度idle进程 */
+    if (!cfs_rq->nr_running)
+        goto idle;
+    /*  如果当前运行进程prev不是被fair调度的普通非实时进程  */
+    if (prev->sched_class != &fair_sched_class)
+        goto simple;
+
+    /*
+     * Because of the set_next_buddy() in dequeue_task_fair() it is rather
+     * likely that a next task is from the same cgroup as the current.
+     *
+     * Therefore attempt to avoid putting and setting the entire cgroup
+     * hierarchy, only change the part that actually changes.
+     */
+
+    do {
+        struct sched_entity *curr = cfs_rq->curr;
+
+        /*
+         * Since we got here without doing put_prev_entity() we also
+         * have to consider cfs_rq->curr. If it is still a runnable
+         * entity, update_curr() will update its vruntime, otherwise
+         * forget we've ever seen it.
+         */
+        if (curr)
+        {
+            /*  如果当前进程curr在队列上, 
+             *  则需要更新起统计量和虚拟运行时间
+             *  否则设置curr为空  */
+            if (curr->on_rq)
+                update_curr(cfs_rq);
+            else
+                curr = NULL;
+
+            /*
+             * This call to check_cfs_rq_runtime() will do the
+             * throttle and dequeue its entity in the parent(s).
+             * Therefore the 'simple' nr_running test will indeed
+             * be correct.
+             */
+            if (unlikely(check_cfs_rq_runtime(cfs_rq)))
+                goto simple;
+        }
+        /*  选择一个最优的调度实体  */
+        se = pick_next_entity(cfs_rq, curr);
+        cfs_rq = group_cfs_rq(se);
+    } while (cfs_rq);  /*  如果被调度的进程仍属于当前组，那么选取下一个可能被调度的任务，以保证组间调度的公平性  */
+    /*  获取调度实体se的进程实体信息  */
+    p = task_of(se);
+
+    /*
+     * Since we haven't yet done put_prev_entity and if the selected task
+     * is a different task than we started out with, try and touch the
+     * least amount of cfs_rqs.
+     */
+    if (prev != p)
+    {
+        struct sched_entity *pse = &prev->se;
+
+        while (!(cfs_rq = is_same_group(se, pse)))
+        {
+            int se_depth = se->depth;
+            int pse_depth = pse->depth;
+
+            if (se_depth <= pse_depth)
+            {
+                put_prev_entity(cfs_rq_of(pse), pse);
+                pse = parent_entity(pse);
+            }
+            if (se_depth >= pse_depth)
+            {
+                set_next_entity(cfs_rq_of(se), se);
+                se = parent_entity(se);
+            }
+        }
+
+        put_prev_entity(cfs_rq, pse);
+        set_next_entity(cfs_rq, se);
+    }
+
+    if (hrtick_enabled(rq))
+        hrtick_start_fair(rq, p);
+
+    return p;
+```
+
+0 http://blog.csdn.net/sunnybeike/article/details/6918586
