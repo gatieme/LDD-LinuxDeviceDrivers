@@ -20,7 +20,7 @@ CFS负责处理普通非实时进程, 这类进程是我们linux中最普遍的�
 
 理想状态下每个进程都能获得相同的时间片，并且同时运行在CPU上，但实际上一个CPU同一时刻运行的进程只能有一个。也就是说，当一个进程占用CPU时，其他进程就必须等待。CFS为了实现公平，必须惩罚当前正在运行的进程，以使那些正在等待的进程下次被调度.
 
-##  负荷权重和虚拟时钟
+##1.2  负荷权重和虚拟时钟
 
 **虚拟时钟是红黑树排序的依据**
 
@@ -64,7 +64,7 @@ linux内核代码中是通过一个叫vruntime的变量来实现上面的原理�
 | curr.nice=NICE_0_LOAD | vruntime += delta; |
 
 
-##1.2	CFS进程入队和出队
+##1.3	CFS进程入队和出队
 -------
 
 enqueue_task_fair和dequeue_task_fair分别用来向CFS就绪队列中添加或者删除进程
@@ -105,7 +105,7 @@ enqueue_task_fair的执行流程如下
 	在enqueue_entity内部如果需要会调用__dequeue_entity将进程插入到CFS红黑树中合适的结点
 
 
-##1.2	今日看点(CFS如何选择最合适的进程)
+##1.4	今日看点(CFS如何选择最合适的进程)
 -------
 
 
@@ -499,7 +499,50 @@ wakeup_gran(struct sched_entity *curr, struct sched_entity *se)
 ##2.4  set_next_entity
 -------
 
-set_next_entity()函数会调用__dequeue_entity(cfs_rq, se)把选中的下一个进程移出红黑树
+
+现在我们已经通过pick_next_task_fair选择了进程, 但是还需要完成一些工作, 才能将其标记为运行进程. 这是通过set_next_entity来处理的. 该函数定义在[kernel/sched/fair.c, line 3348](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L3348)
+
+
+当前执行进程(我们选择出来的进程马上要抢占处理器开始执行)不应该再保存在就绪队列上, 因此set_next_entity()函数会调用__dequeue_entity(cfs_rq, se)把选中的下一个进程移出红黑树. 如果当前进程是最左节点, __dequeue_entity会将leftmost指针设置到次左进程
+
+```c
+    /* 'current' is not kept within the tree. */
+    if (se->on_rq)  /*  如果se尚在rq队列上  */
+    {
+        /*  ......  */
+        /*  将se从cfs_rq的红黑树中删除  */
+        __dequeue_entity(cfs_rq, se);
+		/*  ......  */
+    }
+```
+
+尽管该进程不再包含在红黑树中, 但是进程和就绪队列之间的关联并没有丢失, 因为curr标记了当前进程cfs_rq->curr = se;
+
+```c
+    cfs_rq->curr = se;
+```
+
+然后接下来是一些统计信息的处理, 如果内核开启了调度统计CONFIG_SCHEDSTATS标识, 则会完成调度统计的计算和更新
+
+
+
+```c
+#ifdef CONFIG_SCHEDSTATS
+    /*
+     * Track our maximum slice length, if the CPU's load is at
+     * least twice that of our own weight (i.e. dont track it
+     * when there are only lesser-weight tasks around):
+     */
+    if (schedstat_enabled() && rq_of(cfs_rq)->load.weight >= 2*se->load.weight) {
+        se->statistics.slice_max = max(se->statistics.slice_max,
+            se->sum_exec_runtime - se->prev_sum_exec_runtime);
+    }
+#endif
+```
+
+在set_next_entity的最后, 将选择出的调度实体se的sum_exec_runtime保存在了prev_sum_exec_runtime中, 因为该调度实体指向的进程, 马上将抢占处理器成为当前活动进程, 在CPU上花费的实际时间将记入sum_exec_runtime, 因此内核会在prev_sum_exec_runtime保存此前的设置. 要注意进程中的sum_exec_runtime没有重置. 因此差值sum_exec_runtime - prev_sum_runtime确实标识了在CPU上执行花费的实际时间.
+
+最后我们附上set_next_entity函数的完整注释信息
 
 
 ```c
@@ -516,7 +559,7 @@ set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
          */
         if (schedstat_enabled())
             update_stats_wait_end(cfs_rq, se);
-        /*  将se从rq队列中删除  */
+        /*  将se从cfs_rq的红黑树中删除  */
         __dequeue_entity(cfs_rq, se);
         update_load_avg(se, 1);
     }
@@ -535,7 +578,7 @@ set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
             se->sum_exec_runtime - se->prev_sum_exec_runtime);
     }
 #endif
-    /*  //更新task上一次投入运行的从时间  */
+    /*  更新task上一次投入运行的从时间  */
     se->prev_sum_exec_runtime = se->sum_exec_runtime;
 }
 ```
@@ -687,6 +730,41 @@ idle_balance其实就是pull的工作.
 
     return p;
 ```
+
+
+#与主调度器schedule进行通信
+-------
+
+我们在之前讲解主调度器的时候就提到过, 主调度器函数schedule会调用__schedule来完成抢占, 而主调度器的主要功能就是选择一个新的进程来抢占到当前的处理器. 因此其中必然不能缺少pick_next_task工作
+
+>参见主调度器schedule)中调用全局的pick_next_task选择抢占的进程一节的内容
+>
+>[CSDN地址]()
+>
+>[github地址](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/03-design/03-main_scheduler)
+
+
+__schedule调用全局的pick_next_task函数选择一个最优的进程, 内核代码参见[kernel/sched/core.c, line 3142](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3142)
+
+```c
+static void __sched notrace __schedule(bool preempt)
+{
+	/*  ......  */
+    next = pick_next_task(rq);
+	/*  ......  */
+}
+```
+
+全局的pick_next_task函数会从按照优先级遍历所有调度器类的pick_next_task函数, 去查找最优的那个进程, 当然因为大多数情况下, 系统中全是CFS调度的非实时进程, 因而linux内核也有一些优化的策略
+
+其执行流程如下
+
+*	如果当前cpu上所有的进程都是cfs调度的普通非实时进程, 则直接用cfs调度, 如果无程序可调度则调度idle进程
+
+*	否则从优先级最高的调度器类sched_class_highest(目前是stop_sched_class)开始依次遍历所有调度器类的pick_next_task函数, 选择最优的那个进程执行
+
+其定义在[kernel/sched/core.c, line 3068](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3064)
+
 
 #5	总结
 -------
