@@ -269,8 +269,6 @@ static void put_prev_task_fair(struct rq *rq, struct task_struct *prev)
 ##  pick_next_entity
 -------
 
-**pick_next_entity流程**
-
 **pick_next_entity函数完全注释**
 
 ```c
@@ -407,23 +405,6 @@ Linux CFS实现的判决条件是：
 
 2.	尽可能减少以上这种抢占带来的缓存刷新的影响
 
-到底能不能选择last和next两个进程, 则是wakeup_preempt_entity函数来决定的，代码太多无益，看下面的图解即可：
-
-![last进程next进程和left进程的比较](./images/last_next_left.png)
-
-*	如果S3是left，curr是next或者last，可以函数wakeup_preempt_entity肯定返回1，那么就说明next和last指针的vruntime和left差距过大，这个时候没有必要选择这个last或者next指针，
-
-*	如果next或者last是S2，S1，那么vruntime和left差距并不大，并没有超过sysctl_sched_wakeup_granularity ，那么这个next或者last就可以被优先选择，而代替了left
-
-而清除last和next这两个指针的时机有这么几个：
-
-*	sched_tick的时候, 如果一个进程的运行时间超过理论时间（这个时间是根据load和cfs_rq的load, 平均分割sysctl_sched_latency的时间）, 那么如果next或者last指针指向这个正在运行的进程, 需要清除这个指针, 使得pick sched_entity不会因为next或者last指针再次选择到这个sched_entity
-
-*	当一个sched_entity调度实体dequeue出运行队列，那么如果有next或者last指针指向这个sched_entity, 那么需要删除这个next或者last指针。
-
-*	刚才说的那种case，如果next，last指针在pick的时候被使用了一次，那么这次用完了指针，需要清除相应的指针，避免使用过的next，last指针影响到下次pick
-
-*	当进程yield操作的时候，进程主动放弃了调度机会，那么如果next，last指针指向了这个sched_entity，那么需要清除相应指针。
 
 **cfs_rq的last和next指针，last表示最后一个执行wakeup的sched_entity,next表示最后一个被wakeup的sched_entity。他们在进程wakeup的时候会赋值，在pick新sched_entity的时候，会优先选择这些last或者next指针的sched_entity,有利于提高缓存的命中率** **
 
@@ -431,8 +412,6 @@ Linux CFS实现的判决条件是：
 
 
 **wakeup_preempt_entity检查是否可以被抢占**
-
-
 
 
 ```c
@@ -456,7 +435,7 @@ wakeup_preempt_entity(struct sched_entity *curr, struct sched_entity *se)
 {
     /*  vdiff为curr和se vruntime的差值*/
     s64 gran, vdiff = curr->vruntime - se->vruntime;
-    
+
     /*  cfs_rq的vruntime是单调递增的，也就是一个基准
      *  各个进程的vruntime追赶竞争cfsq的vruntime
      *  如果curr的vruntime比较小, 说明curr更加需要补偿, 
@@ -500,6 +479,55 @@ wakeup_gran(struct sched_entity *curr, struct sched_entity *se)
 }
 ```
 
+到底能不能选择last和next两个进程, 则是wakeup_preempt_entity函数来决定的, 看下面的图解即可：
+
+![last进程next进程和left进程的比较](./images/last_next_left.png)
+
+*	如果S3是left，curr是next或者last，left的vruntime值小于curr和next, 函数wakeup_preempt_entity肯定返回1，那么就说明next和last指针的vruntime和left差距过大，这个时候没有必要选择这个last或者next指针，而是应该优先补偿left
+
+*	如果next或者last是S2，S1，那么vruntime和left差距并不大，并没有超过sysctl_sched_wakeup_granularity ，那么这个next或者last就可以被优先选择，而代替了left
+
+而清除last和next这两个指针的时机有这么几个：
+
+*	sched_tick的时候, 如果一个进程的运行时间超过理论时间（这个时间是根据load和cfs_rq的load, 平均分割sysctl_sched_latency的时间）, 那么如果next或者last指针指向这个正在运行的进程, 需要清除这个指针, 使得pick sched_entity不会因为next或者last指针再次选择到这个sched_entity
+
+*	当一个sched_entity调度实体dequeue出运行队列，那么如果有next或者last指针指向这个sched_entity, 那么需要删除这个next或者last指针。
+
+*	刚才说的那种case，如果next，last指针在pick的时候被使用了一次，那么这次用完了指针，需要清除相应的指针，避免使用过的next，last指针影响到下次pick
+
+*	当进程yield操作的时候，进程主动放弃了调度机会，那么如果next，last指针指向了这个sched_entity，那么需要清除相应指针。
+
+
+**pick_next_entity流程总结**
+
+pick_next_entity函数选择出下一个最渴望被公平调度器调度的进程, 函数的执行流程其实很简单
+
+1.	先从最左节点left和当前节点curr中选择出最渴望被调度(即虚拟运行vruntime最小)的那个调度实体色
+
+2.	判断第一步优选出的调度实体se是不是cfs_rq中被跳过调度的那个进程skip, 如果是则可能需要继续优选红黑树次左节点
+
+	*	如果se == curr == skip则需要跳过curr选择最左的那个调度实体second = left = __pick_first_entity(cfs_rq);
+
+    *	否则se == left == skip, 则从次优的调度实体second和curr中选择最优的那个进程
+
+3.	检查left是否可以抢占last和next调度实体, 此项有助于提高缓存的命中率
+
+*	cfs_rq的last和next指针, last表示最后一个执行wakeup的sched_entity, next表示最后一个被wakeup的sched_entity, 在pick新sched_entity的时候，会优先选择这些last或者next指针的sched_entity,有利于提高缓存的命中率
+
+
+
+于是我们会发现, 下一个将要被调度的调度实体或者进程, 总是下列几个调度实体之一
+
+| 调度实体 | 描述 |
+|:-------:|:-------:|
+| left = __pick_first_entity(cfs_rq) | **红黑树的最左节点**, 这个节点拥有当前队列中vruntime最小的特性, 即应该优先被调度 |
+| second = __pick_first_entity(left) | **红黑树的次左节点**, 为什么这个节点也可能呢, 因为内核支持skip跳过某个进程的抢占权力的, 如果left被标记为skip(由cfs_rq->skip域指定), 那么可能就需要找到次优的那个进程 |
+| cfs_rq的curr结点 | curr节点的vruntime可能比left和second更小, 但是由于它正在运行, 因此它不在红黑树中(进程抢占物理机的时候对应节点同时会从红黑树中删除), 但是如果其vruntime足够小, 意味着cfs调度器应该尽可能的补偿curr进程, 让它再次被调度, 同样这种优化也有助于提高缓存的命中率 |
+|cfs_rq的last或者next |  last表示最后一个执行wakeup的sched_entity, next表示最后一个被wakeup的sched_entity, 在pick新sched_entity的时候，会优先选择这些last或者next指针的sched_entity,有利于提高缓存的命中率 |
+
+即红黑树中的最左结点left和次左结点second(检查两个节点是因为cfs_rq的skip指针域标识了内核需要跳过不调度的实体信息, 如果left被跳过, 则需要检查second)
+
+以及cfs_rq的调度实体curr, last和next, curr是当前正在运行的进程, 它虽然已经运行, 但是可能仍然很饥渴, 那么我们应该继续补偿它, 而last表示最后一个执行wakeup的sched_entity, next表示最后一个被wakeup的sched_entity, 刚被唤醒的进程可能更希望得到CPU, 因此在pick新sched_entity的时候，会优先选择这些last或者next指针的sched_entity,有利于提高缓存的命中率
 
 ##  set_next_entity
 -------
