@@ -105,8 +105,9 @@ enqueue_task_fair的执行流程如下
 	在enqueue_entity内部如果需要会调用__dequeue_entity将进程插入到CFS红黑树中合适的结点
 
 
-#2	今日看点(CFS如何选择最合适的进程)
+##1.2	今日看点(CFS如何选择最合适的进程)
 -------
+
 
 每个调度器类sched_class都必须提供一个pick_next_task函数用以在就绪队列中选择一个最优的进程来等待调度, 而我们的CFS调度器类中, 选择下一个将要运行的进程由pick_next_task_fair函数来完成
 
@@ -116,12 +117,9 @@ enqueue_task_fair的执行流程如下
 今天就让我们窥探一下完全公平调度器类CFS的pick_next_task方法pick_next_fair
 
 
-# CFS如何选择一个进程
--------
 
 
-##  pick_next_task_fair
--------
+**pick_next_task_fair**
 
 选择下一个将要运行的进程pick_next_task_fair执行. 其代码执行流程如下
 
@@ -154,15 +152,14 @@ idle :
 
 *	CONFIG_FAIR_GROUP_SCHED宏指定了组调度情况下的pick_next操作, 如果不支持组调度, 则pick_next_task_fair将直接从simple开始执行
 
-如果nr_running计数器为0, 即当前队列上没有可运行进程, 则无事可做, 函数可以立即返回. 否则将具体工作委托给pick
 
 
-#simple无组调度最简单的pick_next_task_fair
+#2	simple无组调度最简单的pick_next_task_fair
 -------
 
 在不支持组调度情况下(选项CONFIG_FAIR_GROUP_SCHED), CFS的pick_next_task_fair函数会直接执行simple标签, 优选下一个函数, 这个流程清晰而且简单, 但是已经足够我们理解cfs的pick_next了
 
-##simple流程
+##2.1	simple的基本流程
 -------
 
 pick_next_task_fair函数的simple标签定义在[kernel/sched/fair.c, line 5526)](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L5526), 代码如下所示
@@ -212,11 +209,11 @@ simple:
 | set_next_entity(cfs_rq, se); | set_next_entity会调用__dequeue_entity把选中的进程从红黑树移除，并更新红黑树 |
 
 
-##  put_prev_task
+##2.2  put_prev_task
 -------
 
 
-**全局put_prev_task函数**
+##2.2.1	**全局put_prev_task函数**
 
 
 put_prev_task用来将前一个进程prev放回到就绪队列中, 这是一个全局的函数, 而每个调度器类也必须实现一个自己的put_prev_task函数(比如CFS的put_prev_task_fair), 
@@ -232,7 +229,7 @@ static inline void put_prev_task(struct rq *rq, struct task_struct *prev)
 }
 ```
 
-**CFS的put_prev_task_fair函数**
+##2.2.2	**CFS的put_prev_task_fair函数**
 
 
 然后我们来分析一下CFS的put_prev_task_fair函数, 其定义在[kernel/sched/fair.c, line 5572](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L5572)
@@ -260,16 +257,16 @@ static void put_prev_task_fair(struct rq *rq, struct task_struct *prev)
 而put_prev_task_fair函数最终会调用put_prev_entity函数将prev的调度时提se放回到就绪队列中等待下次调度
 
 
-**put_prev_entity函数**
+##2.2.3	**put_prev_entity函数**
 
 [put_prev_entity](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L3443)函数定义在[kernel/sched/fair.c, line 3443](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L3443), 他在更新了虚拟运行时间等信息后, 最终通过__enqueue_entity函数将prev进程(即current进程)放回就绪队列rq上
 
 
 
-##  pick_next_entity
+##2.3  pick_next_entity
 -------
 
-**pick_next_entity函数完全注释**
+###2.3.1	**pick_next_entity函数完全注释**
 
 ```c
 /*
@@ -378,7 +375,7 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 }
 ```
 
-**从left, second和curr进程中选择最优的进程**
+###2.3.2	**从left, second和curr进程中选择最优的进程**
 
 
 pick_next_entity则从CFS的红黑树中摘取一个最优的进程, 这个进程往往在红黑树的最左端, 即vruntime最小, 但是也有例外, 但是不外乎这几个进程
@@ -395,7 +392,7 @@ pick_next_entity则从CFS的红黑树中摘取一个最优的进程, 这个进�
 
 
 
-**cfs_rq的last和next指针域**
+###2.3.3	**cfs_rq的last和next指针域**
 
 在pick_next_entity的最后, 要把红黑树最左下角的进程和另外两个进程(即next和last)做比较, next是抢占失败的进程, 而last则是抢占成功后被抢占的进程, 这三个进程到底哪一个是最优的next进程呢?
 
@@ -411,7 +408,7 @@ Linux CFS实现的判决条件是：
 因此我们优选出来的进程必须同last和next指针域进行对比, 其实就是检查就绪队列中的最优进程, 即红黑树中最左节点last是否可以抢占last和next指针域, 检查是否可以抢占是通过wakeup_preempt_entity函数来完成的.
 
 
-**wakeup_preempt_entity检查是否可以被抢占**
+###2.3.4	**wakeup_preempt_entity检查是否可以被抢占**
 
 
 ```c
@@ -499,7 +496,7 @@ wakeup_gran(struct sched_entity *curr, struct sched_entity *se)
 
 
 
-##  set_next_entity
+##2.4  set_next_entity
 -------
 
 set_next_entity()函数会调用__dequeue_entity(cfs_rq, se)把选中的下一个进程移出红黑树
@@ -544,53 +541,9 @@ set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
 ```
 
 
-##总结
--------
-
-pick_next_task_fair的基本流程如下
 
 
-其基本流程如下
-
-| 流程 | 描述 |
-|:-------:|:-------:|
-| !cfs_rq->nr_running -=>  goto idle; | 如果nr_running计数器为0, 当前队列上没有可运行进程, 则需要调度idle进程 |
-| put_prev_task(rq, prev); | 将当前进程放入运行队列的合适位置, 每次当进程被调度后都会使用set_next_entity从红黑树中移除, 因此被抢占时需要重新加如红黑树中等待被调度 |
-| se = pick_next_entity(cfs_rq, NULL); | 选出下一个可执行调度实体 |
-| set_next_entity(cfs_rq, se); | set_next_entity会调用__dequeue_entity把选中的进程从红黑树移除，并更新红黑树 |
-
-
-其中最关键的pick_next_entity函数选择出下一个最渴望被公平调度器调度的进程, 函数的执行流程其实很简单
-
-1.	先从最左节点left和当前节点curr中选择出最渴望被调度(即虚拟运行vruntime最小)的那个调度实体色
-
-2.	判断第一步优选出的调度实体se是不是cfs_rq中被跳过调度的那个进程skip, 如果是则可能需要继续优选红黑树次左节点
-
-	*	如果se == curr == skip则需要跳过curr选择最左的那个调度实体second = left = __pick_first_entity(cfs_rq);
-
-    *	否则se == left == skip, 则从次优的调度实体second和curr中选择最优的那个进程
-
-3.	检查left是否可以抢占last和next调度实体, 此项有助于提高缓存的命中率
-
-*	cfs_rq的last和next指针, last表示最后一个执行wakeup的sched_entity, next表示最后一个被wakeup的sched_entity, 在pick新sched_entity的时候，会优先选择这些last或者next指针的sched_entity,有利于提高缓存的命中率
-
-
-
-于是我们会发现, 下一个将要被调度的调度实体或者进程, 总是下列几个调度实体之一
-
-| 调度实体 | 描述 |
-|:-------:|:-------:|
-| left = __pick_first_entity(cfs_rq) | **红黑树的最左节点**, 这个节点拥有当前队列中vruntime最小的特性, 即应该优先被调度 |
-| second = __pick_first_entity(left) | **红黑树的次左节点**, 为什么这个节点也可能呢, 因为内核支持skip跳过某个进程的抢占权力的, 如果left被标记为skip(由cfs_rq->skip域指定), 那么可能就需要找到次优的那个进程 |
-| cfs_rq的curr结点 | curr节点的vruntime可能比left和second更小, 但是由于它正在运行, 因此它不在红黑树中(进程抢占物理机的时候对应节点同时会从红黑树中删除), 但是如果其vruntime足够小, 意味着cfs调度器应该尽可能的补偿curr进程, 让它再次被调度, 同样这种优化也有助于提高缓存的命中率 |
-|cfs_rq的last或者next |  last表示最后一个执行wakeup的sched_entity, next表示最后一个被wakeup的sched_entity, 在pick新sched_entity的时候，会优先选择这些last或者next指针的sched_entity,有利于提高缓存的命中率 |
-
-即红黑树中的最左结点left和次左结点second(检查两个节点是因为cfs_rq的skip指针域标识了内核需要跳过不调度的实体信息, 如果left被跳过, 则需要检查second)
-
-以及cfs_rq的调度实体curr, last和next, curr是当前正在运行的进程, 它虽然已经运行, 但是可能仍然很饥渴, 那么我们应该继续补偿它, 而last表示最后一个执行wakeup的sched_entity, next表示最后一个被wakeup的sched_entity, 刚被唤醒的进程可能更希望得到CPU, 因此在pick新sched_entity的时候，会优先选择这些last或者next指针的sched_entity,有利于提高缓存的命中率
-
-
-#idle进程的调度
+#3	idle进程的调度
 -------
 
 ```c
@@ -640,7 +593,7 @@ idle:
 idle_balance其实就是pull的工作.
 
 
-#组调度策略的支持
+#4	组调度策略的支持
 -------
 
 组调度的情形下, 调度实体之间存在明显的层次关系, 因此在跟新子调度实体的时候, 需要更新父调度实体的信息, 同时我们为了保证同一组内的进程不能长时间占用处理机, 必须补偿其他组内的进程, 保证公平性
@@ -735,4 +688,58 @@ idle_balance其实就是pull的工作.
     return p;
 ```
 
-0 http://blog.csdn.net/sunnybeike/article/details/6918586
+#5	总结
+-------
+
+pick_next_task_fair用于完全公平调度器在CFS的运行队列中优选出一个最优的进程, 为了适应组调度策略和基本的策略, pick_next_task_fair使用的不同的代码标签
+
+*	simple标签是CFS中最基础的pick_next操作
+
+*	idle则使得在没有进程被调度时, 调度idle进程
+
+*	again标签用于循环的进行pick_next操作
+
+*	CONFIG_FAIR_GROUP_SCHED宏指定了组调度情况下的pick_next操作, 如果不支持组调度, 则pick_next_task_fair将直接从simple开始执行, 同样组调度情况下, 如果之前运行的进程不是CFS调度的进程, 我们也无需保存其组信息, 可以直接执行simple标签进行调度
+
+
+pick_next_task_fair的基本流程如下
+
+
+其基本流程如下
+
+| 流程 | 描述 |
+|:-------:|:-------:|
+| !cfs_rq->nr_running -=>  goto idle; | 如果nr_running计数器为0, 当前队列上没有可运行进程, 则需要调度idle进程 |
+| put_prev_task(rq, prev); | 将当前进程放入运行队列的合适位置, 每次当进程被调度后都会使用set_next_entity从红黑树中移除, 因此被抢占时需要重新加如红黑树中等待被调度 |
+| se = pick_next_entity(cfs_rq, NULL); | 选出下一个可执行调度实体 |
+| set_next_entity(cfs_rq, se); | set_next_entity会调用__dequeue_entity把选中的进程从红黑树移除，并更新红黑树 |
+
+
+其中最关键的pick_next_entity函数选择出下一个最渴望被公平调度器调度的进程, 函数的执行流程其实很简单
+
+1.	先从最左节点left和当前节点curr中选择出最渴望被调度(即虚拟运行vruntime最小)的那个调度实体色
+
+2.	判断第一步优选出的调度实体se是不是cfs_rq中被跳过调度的那个进程skip, 如果是则可能需要继续优选红黑树次左节点
+
+	*	如果se == curr == skip则需要跳过curr选择最左的那个调度实体second = left = __pick_first_entity(cfs_rq);
+
+    *	否则se == left == skip, 则从次优的调度实体second和curr中选择最优的那个进程
+
+3.	检查left是否可以抢占last和next调度实体, 此项有助于提高缓存的命中率
+
+*	cfs_rq的last和next指针, last表示最后一个执行wakeup的sched_entity, next表示最后一个被wakeup的sched_entity, 在pick新sched_entity的时候，会优先选择这些last或者next指针的sched_entity,有利于提高缓存的命中率
+
+
+
+于是我们会发现, 下一个将要被调度的调度实体或者进程, 总是下列几个调度实体之一
+
+| 调度实体 | 描述 |
+|:-------:|:-------:|
+| left = __pick_first_entity(cfs_rq) | **红黑树的最左节点**, 这个节点拥有当前队列中vruntime最小的特性, 即应该优先被调度 |
+| second = __pick_first_entity(left) | **红黑树的次左节点**, 为什么这个节点也可能呢, 因为内核支持skip跳过某个进程的抢占权力的, 如果left被标记为skip(由cfs_rq->skip域指定), 那么可能就需要找到次优的那个进程 |
+| cfs_rq的curr结点 | curr节点的vruntime可能比left和second更小, 但是由于它正在运行, 因此它不在红黑树中(进程抢占物理机的时候对应节点同时会从红黑树中删除), 但是如果其vruntime足够小, 意味着cfs调度器应该尽可能的补偿curr进程, 让它再次被调度, 同样这种优化也有助于提高缓存的命中率 |
+|cfs_rq的last或者next |  last表示最后一个执行wakeup的sched_entity, next表示最后一个被wakeup的sched_entity, 在pick新sched_entity的时候，会优先选择这些last或者next指针的sched_entity,有利于提高缓存的命中率 |
+
+即红黑树中的最左结点left和次左结点second(检查两个节点是因为cfs_rq的skip指针域标识了内核需要跳过不调度的实体信息, 如果left被跳过, 则需要检查second)
+
+以及cfs_rq的调度实体curr, last和next, curr是当前正在运行的进程, 它虽然已经运行, 但是可能仍然很饥渴, 那么我们应该继续补偿它, 而last表示最后一个执行wakeup的sched_entity, next表示最后一个被wakeup的sched_entity, 刚被唤醒的进程可能更希望得到CPU, 因此在pick新sched_entity的时候，会优先选择这些last或者next指针的sched_entity,有利于提高缓存的命中率
