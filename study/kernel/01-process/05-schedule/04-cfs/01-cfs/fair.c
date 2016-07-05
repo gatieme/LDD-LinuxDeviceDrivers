@@ -3343,13 +3343,25 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)
     struct sched_entity *se;
     s64 delta;
 
+    /*  计算curr的理论上应该运行的时间  */
     ideal_runtime = sched_slice(cfs_rq, curr);
+    
+    /*  计算curr的实际运行时间 
+     *  sum_exec_runtime: 进程执行的总时间 
+     *  prev_sum_exec_runtime:进程在切换进CPU时的sum_exec_runtime值*/
     delta_exec = curr->sum_exec_runtime - curr->prev_sum_exec_runtime;
-    if (delta_exec > ideal_runtime) {
+    
+    /*  如果实际运行时间比理论上应该运行的时间长  
+     *  说明curr进程已经运行了足够长的时间
+     *  应该调度新的进程抢占CPU了  */
+    if (delta_exec > ideal_runtime)
+    {
         resched_curr(rq_of(cfs_rq));
         /*
          * The current task ran long enough, ensure it doesn't get
          * re-elected due to buddy favours.
+         * 由于当前进程curr运行了足够时间
+         * 就取消它在buddy中的优先权
          */
         clear_buddies(cfs_rq, curr);
         return;
@@ -3359,6 +3371,11 @@ check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)
      * Ensure that a task that missed wakeup preemption by a
      * narrow margin doesn't have to wait for a full slice.
      * This also mitigates buddy induced latencies under load.
+     * 下面是这里是第二个抢占条件
+     * 红黑树中最做节点最小虚拟运行时间的进程和当前进程的虚拟运行时间进行比较， 
+     * 如果后者比前者大了ideal_runtime，就需要进行调度
+     * 此时说明curr进程已经领先其他进程
+     * 红黑树中的其他进程接近于饥饿状态, 应该立即补偿
      */
     if (delta_exec < sysctl_sched_min_granularity)
         return;
@@ -8228,10 +8245,18 @@ static void rq_offline_fair(struct rq *rq)
 static void task_tick_fair(struct rq *rq, struct task_struct *curr, int queued)
 {
     struct cfs_rq *cfs_rq;
+    /*  获取到当前进程curr所在的调度实体  */
     struct sched_entity *se = &curr->se;
 
-    for_each_sched_entity(se) {
+    /* for_each_sched_entity
+     * 在不支持组调度条件下, 只循环一次
+     * 在组调度的条件下, 调度实体存在层次关系, 
+     * 更新子调度实体的同时必须更新父调度实体  */
+    for_each_sched_entity(se)
+    {
+        /*  获取当当前运行的进程所在的CFS就绪队列  */
         cfs_rq = cfs_rq_of(se);
+        /*  完成周期性调度  */
         entity_tick(cfs_rq, se, queued);
     }
 
