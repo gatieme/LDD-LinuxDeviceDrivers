@@ -126,16 +126,62 @@ fork, vfork和clone的系统调用的入口地址分别是sys_fork, sys_vfork和
 如果entity_before(curr, se), 则父进程curr的虚拟运行时间vruntime小于子进程se的虚拟运行时间, 即在红黑树中父进程curr更靠左(前), 这就意味着父进程将在子进程之前被调度. 这种情况下如果设置了sysctl_sched_child_runs_first标识, 这时候我们必须采取策略保证子进程先运行, 可以通过交换curlr和se的vruntime值, 来保证se进程(子进程)的vruntime小于curr.
 
 
-##
+## 适应迁移的vruntime值
+-------
 
-在task_fork_fair函数的最后, To prevent boost or penalty in the new cfs_rq caused by delta min_vruntime between the two cfs_rqs, we skip vruntime adjustment.
 
-http://bbs.chinaunix.net/thread-3665947-1-1.html
-http://ju.outofmemory.cn/entry/105407
-http://bbs.chinaunix.net/forum.php?mod=viewthread&tid=3665947
+在task_fork_fair函数的最后, 使用了一个小技巧, 通过place_entity计算出的基准虚拟运行时间, 减去了运行队列的min_vruntime.
+
 
 ```c
     se->vruntime -= cfs_rq->min_vruntime;
-
-    raw_spin_unlock_irqrestore(&rq->lock, flags);
 ```
+
+我们前面讲解place_entity的时候说到, 新创建的进程和睡眠后苏醒的进程为了保证他们的vruntime与系统中进程的vruntime差距不会太大, 会使用place_entity来设置其虚拟运行时间vruntime, 在place_entity中重新设置vruntime值，以cfs_rq->min_vruntime值为基础，给予一定的补偿，但不能补偿太多.这样由于休眠进程在唤醒时或者新进程创建完成后会获得vruntime的补偿，所以它在醒来和创建后有能力抢占CPU是大概率事件，这也是CFS调度算法的本意，即保证交互式进程的响应速度，因为交互式进程等待用户输入会频繁休眠
+
+但是这样子也会有一个问题, 我们是以某个cfs就绪队列的min_vruntime值为基础来设定的, 在多CPU的系统上，不同的CPU的负载不一样，有的CPU更忙一些，而每个CPU都有自己的运行队列，每个队列中的进程的vruntime也走得有快有慢，比如我们对比每个运行队列的min_vruntime值，都会有不同, 如果一个进程从min_vruntime更小的CPU (A) 上迁移到min_vruntime更大的CPU (B) 上，可能就会占便宜了，因为CPU (B) 的运行队列中进程的vruntime普遍比较大，迁移过来的进程就会获得更多的CPU时间片。这显然不太公平
+
+同样的问题出现在刚创建的进程上, 还没有投入运行, 没有加入到某个就绪队列中, 它以某个就绪队列的min_vruntime为基准设置了虚拟运行时间, 但是进程不一定在当前CPU上运行, 即新创建的进程应该是可以被迁移的.
+
+
+
+CFS是这样做的：
+
+*	当进程从一个CPU的运行队列中出来 (dequeue_entity) 的时候，它的vruntime要减去队列的min_vruntime值
+
+*	而当进程加入另一个CPU的运行队列 ( enqueue_entiry) 时，它的vruntime要加上该队列的min_vruntime值
+
+*	当进程刚刚创建以某个cfs_rq的min_vruntime为基准设置其虚拟运行时间后，也要减去队列的min_vruntime值
+
+这样，进程从一个CPU迁移到另一个CPU之后，vruntime保持相对公平。
+
+> 参照[sched: Remove the cfs_rq dependency
+from set_task_cpu()](http://osdir.com/ml/linux-kernel/2009-12/msg07613.html)
+>
+>To prevent boost or penalty in the new cfs_rq caused by delta min_vruntime between the two cfs_rqs, we skip vruntime adjustment.
+
+减去min_vruntime的情况如下
+
+```c
+dequeue_entity()：
+
+	if (!(flags & DEQUEUE_SLEEP))
+		se->vruntime -= cfs_rq->min_vruntime;
+
+task_fork_fair():
+	se->vruntime -= cfs_rq->min_vruntime;
+
+switched_from_fair():
+    if (!se->on_rq && p->state != TASK_RUNNING) 
+    {
+    	/*
+         * Fix up our vruntime so that the current sleep doesn't
+         * cause 'unlimited' sleep bonus.
+         */
+		place_entity(cfs_rq, se, 0);
+        se->vruntime -= cfs_rq->min_vruntime;
+	}
+```
+
+
+加上min_vruntime的情形
