@@ -300,10 +300,16 @@ struct cfs_rq {
 | skip | 略过进程(不会选择skip指定的进程调度) |
 
 
-http://www.oenhan.com/task-group-sched
-http://blog.chinaunix.net/uid-24757773-id-3266304.html
-http://blog.csdn.net/melong100/article/details/6329201
-http://blog.csdn.net/wudongxu/article/details/8574737
+[Linux进程组调度机制分析](http://www.oenhan.com/task-group-sched)
 
-http://blog.csdn.net/arriod/article/details/7033895
+[ Linux内核学习笔记（一）CFS完全公平调度类 ](http://blog.chinaunix.net/uid-24757773-id-3266304.html)
 
+[CFS 调度器学习笔记](http://blog.csdn.net/melong100/article/details/6329201)
+
+
+[linux调度器（五）——进程管理与CFS](http://blog.csdn.net/wudongxu/article/details/8574737)
+
+[CFS进程调度](http://blog.csdn.net/arriod/article/details/7033895)
+
+
+http://www.360doc.com/content/15/1006/18/18252487_503643269.shtml

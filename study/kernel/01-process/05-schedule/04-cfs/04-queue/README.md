@@ -274,7 +274,11 @@ enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 ##2.5	place_entity处理睡眠进程
 -------
 
-如果进程此前在睡眠, 那么则调用place_entity处理
+如果进程此前在睡眠, 那么则调用place_entity处理其虚拟运行时间
+
+设想一下子如果休眠进程的vruntime保持不变, 而其他运行进程的 vruntime一直在推进, 那么等到休眠进程终于唤醒的时候, 它的vruntime比别人小很多, 会使它获得长时间抢占CPU的优势, 其他进程就要饿死了. 这显然是另一种形式的不公平，因此CFS是这样做的：在休眠进程被唤醒时重新设置vruntime值，以min_vruntime值为基础，给予一定的补偿，但不能补偿太多. 这个重新设置其虚拟运行时间的工作就是就是通过place_entity来完成的, 另外新进程创建完成后, 也是通过place_entity完成其虚拟运行时间vruntime的设置的. place_entity通过其第三个参数initial来标识新进程创建和休眠进程苏醒两种不同情形的.
+
+
 
 place_entity函数定义在[kernel/sched/fair.c, line 3135](http://lxr.free-electrons.com/source/kernel/sched/fair.c#L3135)中首先会调整进程的虚拟运行时间
 
@@ -300,19 +304,24 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
      * 总权值显然是增加了，但是所有进程总的运行时期并不一定随之增加
      * 则每个进程的承诺时间相当于减小了，就是减慢了进程们的虚拟时钟步伐。 
      */
+    /*  initial标识了该进程是新进程  */
     if (initial && sched_feat(START_DEBIT))
         vruntime += sched_vslice(cfs_rq, se);
 
-    /* sleeps up to a single latency don't count. */
-    if (!initial) {
+    /* sleeps up to a single latency don't count. 
+     * 休眠进程  */
+    if (!initial)
+    {
+        /*  一个调度周期  */
         unsigned long thresh = sysctl_sched_latency;
 
         /*
          * Halve their sleep time's effect, to allow
          * for a gentler effect of sleepers:
          */
+        /*  若设了GENTLE_FAIR_SLEEPERS  */
         if (sched_feat(GENTLE_FAIR_SLEEPERS))
-            thresh >>= 1;
+            thresh >>= 1;   /*  补偿减为调度周期的一半  */
 
         vruntime -= thresh;
     }
@@ -324,10 +333,19 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
 }
 ```
 
-新进程创建时initial为1，所以它会执行`vruntime += sched_vslice(cfs_rq, se);`这句，而这里的vruntime就是当前CFS就绪队列的min_vruntime，新加进程应该在最近很快被调度，这样减少系统的响应时间，我们已经知道当前进程的vruntime越小，它在红黑树中就会越靠左，就会被很快调度到处理器上执行。但是，Linux内核需要根据新加入的进程的权重决策一下应该何时调度该进程，而不能任意进程都来抢占当前队列中靠左的进程，因为必须保证就绪队列中的所有进程尽量得到他们应得的时间响应， sched_vslice函数就将其负荷权重转换为等价的虚拟时间, 其定义在[kernel/sched/fair.c, line 626](http://lxr.free-electrons.com/source/kernel/sched/fair.c#L626)
+我们可以看到enqueue_task_fair调用place_entity传递的initial参数为0
+
+```c
+place_entity(cfs_rq, se, 0);
+```
+
+所以会执行if (!initial)后的语句。因为进程睡眠后，vruntime就不会增加了，当它醒来后不知道过了多长时间，可能vruntime已经比 min_vruntime小了很多，如果只是简单的将其插入到就绪队列中，它将拼命追赶min_vruntime，因为它总是在红黑树的最左面。如果这 样，它将会占用大量的CPU时间，导致红黑树右边的进程被饿死。但是我们又必须及时响应醒来的进程，因为它们可能有一些工作需要立刻处理，所以系统采取了 一种折衷的办法，将当前cfs_rq->min_vruntime时间减去sysctl_sched_latency赋给vruntime，这时它 会被插入到就绪队列的最左边。这样刚唤醒的进程在当前执行进程时间耗尽时就会被调度上处理器执行。当然如果进程没有睡眠那么多时间，我们只需保留原来的时 间vruntime = max_vruntime(se->vruntime, vruntime)。这有什么好处的，我觉得它可以将所有唤醒的进程排个队，睡眠越久的越快得到响应。
 
 
-函数根据initial的值来区分两种情况, 一般来说只有在新进程被加到系统中时,才会首次设置该参数,  但是这里的情况并非如此:
+对于新进程创建时initial为1，所以它会执行`vruntime += sched_vslice(cfs_rq, se);`这句，而这里的vruntime就是当前CFS就绪队列的min_vruntime，新加进程应该在最近很快被调度，这样减少系统的响应时间，我们已经知道当前进程的vruntime越小，它在红黑树中就会越靠左，就会被很快调度到处理器上执行。但是，Linux内核需要根据新加入的进程的权重决策一下应该何时调度该进程，而不能任意进程都来抢占当前队列中靠左的进程，因为必须保证就绪队列中的所有进程尽量得到他们应得的时间响应， sched_vslice函数就将其负荷权重转换为等价的虚拟时间, 其定义在[kernel/sched/fair.c, line 626](http://lxr.free-electrons.com/source/kernel/sched/fair.c#L626)
+
+
+函数就是根据initial的值来区分两种情况, 一般来说只有在新进程被加到系统中时,才会首次设置该参数,  但是这里的情况并非如此:
 
 由于内核已经承诺在当前的延迟周期内使所有活动进程都至少运行一次, 队列的min_vruntime用作基准虚拟时间, 通过减去sysctl_sched_latency, 则可以确保新唤醒新唤醒的进程只有在当前延迟周期结束后才能运行.
 

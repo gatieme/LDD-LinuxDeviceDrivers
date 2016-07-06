@@ -57,7 +57,7 @@ fork, vfork和clone的系统调用的入口地址分别是sys_fork, sys_vfork和
 | 选择最优进程(主调度器) | pick_next_task_fair | 主调度器会按照如下顺序调度 schedule -> __schedule -> 全局pick_next_task<br><br>全局的pick_next_task函数会从按照优先级遍历所有调度器类的pick_next_task函数, 去查找最优的那个进程, 当然因为大多数情况下, 系统中全是CFS调度的非实时进程, 因而linux内核也有一些优化的策略<br><br>一般情况下选择红黑树中的最左进程left作为最优进程完成调度, 如果选出的进程正好是cfs_rq->skip需要跳过调度的那个进程, 则可能需要再检查红黑树的次左进程second, 同时由于curr进程不在红黑树中, 它可能比较饥渴, 将选择出进程的与curr进程进行择优选取, 同样last进程和next进程由于刚被唤醒, 可能比较饥饿, 优先调度他们能提高系统缓存的命中率 |
 | 周期性调度 | task_tick_fair |周期性调度器的工作由**scheduler_tick函数**完成, 在scheduler_tick中周期性调度器通过调用curr进程所属调度器类sched_class的task_tick函数完成周期性调度的工作<br><br>而entity_tick中则通过**check_preempt_tick**函数检查是否需要抢占当前进程curr, 如果发现curr进程已经运行了足够长的时间, 其他进程已经开始饥饿, 那么我们就需要通过**resched_curr**函数来设置重调度标识TIF_NEED_RESCHED, 此标志会提示系统在合适的时间进行调度 |
 
-下面我们到了最后一道工序, 完全公平调度器如何处理一个新创建的进程, 
+下面我们到了最后一道工序, 完全公平调度器如何处理一个新创建的进程, 该工作由task_fork_fair函数来完成
 
 
 
@@ -65,9 +65,77 @@ fork, vfork和clone的系统调用的入口地址分别是sys_fork, sys_vfork和
 -------
 
 
-我们对完全公平调度器需要考虑的最后一个操作, 创建新进程时的处理函数:task_new_fair.
+我们对完全公平调度器需要考虑的最后一个操作, 创建新进程时的处理函数:task_fork_fair(早期的内核中对应是task_new_fair, 参见[LKML-sched: Sanitize fork() handling](https://lkml.org/lkml/2009/12/9/138)
 
-该函数的行为可使用参数sysctl_sched_child_runs_first控制. 该参数用于判断新建子进程是否应该在父进程之前运行. 这通常是有益的, 特别在子进程随后会执行exec系统调用的情况下. 该参数的默认设置是1, 但可以通过/proc/sys/kernel/sched_child_first修改
+##place_entity设置新进程的虚拟运行时间
+-------
 
-该函数先用update_curr进行通常的统计量更新, 然后调用此前讨论过的place_entity.
+该函数先用update_curr进行通常的统计量更新, 然后调用此前讨论过的place_entity设置调度实体se的虚拟运行时间
 
+
+```c
+    /*  更新统计量  */
+    update_curr(cfs_rq);
+
+    if (curr)
+        se->vruntime = curr->vruntime;
+    /*  调整调度实体se的虚拟运行时间  */
+    place_entity(cfs_rq, se, 1);
+```
+
+我们可以看到, 此时调用place_entity时的initial参数设置为1, 以便用sched_vslice_add计算初始的虚拟运行时间vruntime, 内核以这种方式确定了进程在延迟周期中所占的时间份额, 并转换成虚拟运行时间. 这个是调度器最初向进程欠下的债务.
+
+>关于place_entity函数, 我们之前在讲解CFS队列操作的时候已经讲的很详细了
+>
+>
+>参见[linux进程管理与调度之CFS入队出队操作](未添加网址)
+>
+>设想一下子如果休眠进程的vruntime保持不变, 而其他运行进程的 vruntime一直在推进, 那么等到休眠进程终于唤醒的时候, 它的vruntime比别人小很多, 会使它获得长时间抢占CPU的优势, 其他进程就要饿死了. 这显然是另一种形式的不公平，因此CFS是这样做的：在休眠进程被唤醒时重新设置vruntime值，以min_vruntime值为基础，给予一定的补偿，但不能补偿太多. 这个重新设置其虚拟运行时间的工作就是就是通过place_entity来完成的, 另外新进程创建完成后, 也是通过place_entity完成其虚拟运行时间vruntime的设置的.
+
+>其中place_entity函数通过第三个参数initial参数来标识新进程创建和进程睡眠后苏醒两种情况的
+>
+>在进程入队时enqueue_entity设置的initial参数为0, 参见[kernel/sched/fair.c, line 3207](http://lxr.free-electrons.com/source/kernel/sched/fair.c#L3207)
+>
+>在task_fork_fair时设置的initial参数为1, 参见[kernel/sched/fair.c, line 8167](http://lxr.free-electrons.com/source/kernel/sched/fair.c#L8167)
+
+
+##sysctl_sched_child_runs_first控制子进程运行时机
+-------
+
+
+接下来可使用参数sysctl_sched_child_runs_first控制新建子进程是否应该在父进程之前运行. 这通常是有益的, 特别在子进程随后会执行exec系统调用的情况下. 该参数的默认设置是1, 但可以通过/proc/sys/kernel/sched_child_first修改, 代码如下所示
+
+```c
+    /*  如果设置了sysctl_sched_child_runs_first期望se进程先运行
+     *  但是se进行的虚拟运行时间却大于当前进程curr
+     *  此时我们需要保证se的entity_key小于curr, 才能保证se先运行
+     *  内核此处是通过swap(curr, se)的虚拟运行时间来完成的  */
+    if (sysctl_sched_child_runs_first && curr && entity_before(curr, se))
+    {
+        /*
+         * Upon rescheduling, sched_class::put_prev_task() will place
+         * 'current' within the tree based on its new key value.
+         */
+        /*  由于curr的vruntime较小, 为了使se先运行, 交换两者的vruntime  */
+        swap(curr->vruntime, se->vruntime);
+        /*  设置重调度标识, 通知内核在合适的时间进行进程调度  */
+        resched_curr(rq);
+    }
+```
+
+如果entity_before(curr, se), 则父进程curr的虚拟运行时间vruntime小于子进程se的虚拟运行时间, 即在红黑树中父进程curr更靠左(前), 这就意味着父进程将在子进程之前被调度. 这种情况下如果设置了sysctl_sched_child_runs_first标识, 这时候我们必须采取策略保证子进程先运行, 可以通过交换curlr和se的vruntime值, 来保证se进程(子进程)的vruntime小于curr.
+
+
+##
+
+在task_fork_fair函数的最后, To prevent boost or penalty in the new cfs_rq caused by delta min_vruntime between the two cfs_rqs, we skip vruntime adjustment.
+
+http://bbs.chinaunix.net/thread-3665947-1-1.html
+http://ju.outofmemory.cn/entry/105407
+http://bbs.chinaunix.net/forum.php?mod=viewthread&tid=3665947
+
+```c
+    se->vruntime -= cfs_rq->min_vruntime;
+
+    raw_spin_unlock_irqrestore(&rq->lock, flags);
+```

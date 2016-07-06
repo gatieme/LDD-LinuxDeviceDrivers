@@ -3160,19 +3160,24 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
      * 总权值显然是增加了，但是所有进程总的运行时期并不一定随之增加
      * 则每个进程的承诺时间相当于减小了，就是减慢了进程们的虚拟时钟步伐。 
      */
+    /*  initial标识了该进程是新进程  */
     if (initial && sched_feat(START_DEBIT))
         vruntime += sched_vslice(cfs_rq, se);
 
-    /* sleeps up to a single latency don't count. */
-    if (!initial) {
+    /* sleeps up to a single latency don't count. 
+     * 休眠进程  */
+    if (!initial)
+    {
+        /*  一个调度周期  */
         unsigned long thresh = sysctl_sched_latency;
 
         /*
          * Halve their sleep time's effect, to allow
          * for a gentler effect of sleepers:
          */
+        /*  若设了GENTLE_FAIR_SLEEPERS  */
         if (sched_feat(GENTLE_FAIR_SLEEPERS))
-            thresh >>= 1;
+            thresh >>= 1;   /*  补偿减为调度周期的一半  */
 
         vruntime -= thresh;
     }
