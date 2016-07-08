@@ -313,3 +313,5 @@ struct cfs_rq {
 
 
 http://www.360doc.com/content/15/1006/18/18252487_503643269.shtml
+
+http://linuxperf.com/?p=42

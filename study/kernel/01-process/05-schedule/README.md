@@ -31,3 +31,5 @@ http://blog.csdn.net/b02042236/article/details/6076473
 http://www.tuicool.com/articles/MjyANr
 http://iamzhongyong.iteye.com/blog/1895728
 http://blog.csdn.net/xiaofei0859/article/details/8113211
+
+http://blog.csdn.net/u201017971/article/details/50511511

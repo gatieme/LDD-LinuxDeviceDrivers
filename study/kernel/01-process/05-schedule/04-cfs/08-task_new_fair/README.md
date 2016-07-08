@@ -169,6 +169,7 @@ dequeue_entity()：
 		se->vruntime -= cfs_rq->min_vruntime;
 
 task_fork_fair():
+
 	se->vruntime -= cfs_rq->min_vruntime;
 
 switched_from_fair():
@@ -185,3 +186,16 @@ switched_from_fair():
 
 
 加上min_vruntime的情形
+```c
+enqueue_entity:
+// http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L3196
+
+	if (!(flags & ENQUEUE_WAKEUP) || (flags & ENQUEUE_WAKING))
+		se->vruntime += cfs_rq->min_vruntime;
+
+attach_task_cfs_rq:
+// http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L8267
+
+if (!vruntime_normalized(p))
+		se->vruntime += cfs_rq->min_vruntime;
+```
