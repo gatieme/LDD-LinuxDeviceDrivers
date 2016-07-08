@@ -32,4 +32,27 @@ http://www.tuicool.com/articles/MjyANr
 http://iamzhongyong.iteye.com/blog/1895728
 http://blog.csdn.net/xiaofei0859/article/details/8113211
 
+
+
+BFS
+https://en.wikipedia.org/wiki/Brain_Fuck_Scheduler
+
 http://blog.csdn.net/u201017971/article/details/50511511
+
+
+http://baike.baidu.com/link?url=qO-044OZarVCuMDuioyhbYLswbB7MkyVwW3vPbWzHGE6j2-2X3IKIiXCUecABqkg9KCXSPCQ3Kc6IP26uCT0JK
+
+Con Kolivas
+
+http://www.ibm.com/developerworks/cn/linux/l-cn-bfs/
+
+
+rifs进程调度比起bfs cfs好在哪差在哪
+
+交互性极佳，特别是在大负载，那种交互性差距很明显
+吞吐量比bfs和cfs低一半，但还是比windows高1/3
+
+要测试交互性的差距请用mplayer测，
+要体验交互性大可以开make -j512然后看网页，听音乐，移动窗口。
+
+
