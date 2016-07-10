@@ -135,7 +135,7 @@ linux内核实现的6种调度策略, 前面三种策略使用的是cfs调度器
 | idle_sched_class | 采用CFS算法调度idle进程, 每个cup的第一个pid=0线程：swapper，是一个静态线程。调度类属于：idel_sched_class，所以在ps里面是看不到的。一般运行在开机过程和cpu异常的时候做dump | SCHED_IDLE |
 
 其所属进程的优先级顺序为
-````c
+```c
 stop_sched_class -> dl_sched_class -> rt_sched_class -> fair_sched_class -> idle_sched_class
 ```
 
@@ -167,6 +167,7 @@ linux中针对当前可调度的实时和非实时进程, 定义了类型为sech
 -------
 
 
+
 本质上, 通用调度器(核心调度器)是一个分配器,与其他两个组件交互.
 
 *	调度器用于判断接下来运行哪个进程.
@@ -176,9 +177,12 @@ linux中针对当前可调度的实时和非实时进程, 定义了类型为sech
 *	在选中将要运行的进程之后, 必须执行底层的任务切换.
 	这需要与CPU的紧密交互. 每个进程刚好属于某一调度类, 各个调度类负责管理所属的进程. 通用调度器自身不涉及进程管理, 其工作都委托给调度器类.
 
+
+<font color=0x00ffff>
 每个进程都属于某个调度器类(由字段task_struct->sched_class标识), 由调度器类采用进程对应的调度策略调度(由task_struct->policy )进行调度, task_struct也存储了其对应的调度实体标识
 
 linux实现了6种调度策略, 依据其调度策略的不同实现了5个调度器类, 一个调度器类可以用一种或者多种调度策略调度某一类进程, 也可以用于特殊情况或者调度特殊功能的进程.
+</font>
 
 
 | 调度器类 | 调度策略 |  调度策略对应的调度算法 | 调度实体 | 调度实体对应的调度对象 |
@@ -1369,7 +1373,9 @@ struct task_group {
 
 **通过的调度策略对象--调度类**
 
+<font color=0x00ffff>
 linux下每个进程都由自身所属的调度类进行管理， sched_class结构体表示调度类, 调度类提供了通用调度器和各个调度器之间的关联, 调度器类和特定数据结构中汇集地几个函数指针表示, 全局调度器请求的各个操作都可以用一个指针表示, 这使得无需了解调度器类的内部工作原理即可创建通用调度器, 定义在[kernel/sched/sched.h](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L1184)
+</font>
 
 开发者可以根据己的设计需求,來把所属的Task配置到不同的Scheduling Class中.
 用户层应用程序无法直接与调度类交互, 他们只知道上下文定义的常量SCHED_XXX(用task_struct->policy表示), 这些常量提供了调度类之间的映射。
@@ -1382,7 +1388,10 @@ stop_sched_class -> dl_sched_class -> rt_sched_class -> fair_sched_class -> idle
 
 **被调度的实体--进程或者进程组**
 
+<font color=0x00ffff>
 linux下被调度的不只是进程, 还可以是进程组. 因此需要一种更加通用的形式组织被调度数据结构, 即调度实体, 同样不同的进程用不同的调度实体表示
+
+</font>
 
 | 普通进程 | 实时进程 |
 | ------------- |:-------------:|

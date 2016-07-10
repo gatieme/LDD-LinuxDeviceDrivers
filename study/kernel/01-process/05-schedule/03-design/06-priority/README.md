@@ -7,11 +7,11 @@ Linux进程优先级的处理
 | 2016-06-14 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
 
 
-#前景回顾
+#1	前景回顾
 -------
 
 
-##进程调度
+##1.1	进程调度
 -------
 
 内存中保存了对每个进程的唯一描述, 并通过若干结构与其他进程连接起来.
@@ -26,7 +26,7 @@ Linux进程优先级的处理
 调度器的一般原理是, 按所需分配的计算能力, 向系统中每个进程提供最大的公正性, 或者从另外一个角度上说, 他试图确保没有进程被亏待.
 
 
-##进程的分类
+##1.2	进程的分类
 -------
 
 
@@ -41,7 +41,7 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 在linux中, 调度算法可以明确的确认所有实时进程的身份, 但是没办法区分交互式程序和批处理程序, linux2.6的调度程序实现了基于进程过去行为的启发式算法, 以确定进程应该被当做交互式进程还是批处理进程. 当然与批处理进程相比, 调度程序有偏爱交互式进程的倾向
 
 
-##不同进程采用不同的调度策略
+##1.3	不同进程采用不同的调度策略
 -------
 
 根据进程的不同分类Linux采用不同的调度策略.
@@ -57,7 +57,7 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 但是普通进程的调度策略就比较麻烦了, 因为普通进程不能简单的只看优先级, 必须公平的占有CPU, 否则很容易出现进程饥饿, 这种情况下用户会感觉操作系统很卡, 响应总是很慢，因此在linux调度器的发展历程中经过了多次重大变动, linux总是希望寻找一个最接近于完美的调度策略来公平快速的调度进程.
 
 
-##linux调度器的演变
+##1.4	linux调度器的演变
 -------
 
 一开始的调度器是复杂度为**$O(n)$的始调度算法**(实际上每次会遍历所有任务，所以复杂度为O(n)), 这个算法的缺点是当内核中有很多任务时，调度器本身就会耗费不少时间，所以，从linux2.5开始引入赫赫有名的**$O(1)$调度器**
@@ -73,7 +73,7 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 | CFS调度器 | linux-2.6~至今 |
 
 
-##Linux的调度器组成
+##1.5	Linux的调度器组成
 -------
 
 
@@ -109,7 +109,7 @@ linux内核目前实现了6中调度策略(即调度算法), 用于对不同类�
 
 
 其所属进程的优先级顺序为
-````c
+```c
 stop_sched_class -> dl_sched_class -> rt_sched_class -> fair_sched_class -> idle_sched_class
 ```
 
@@ -146,15 +146,15 @@ linux实现了6种调度策略, 依据其调度策略的不同实现了5个调�
 
 它们的关系如下图
 
-![调度器的组成](../images/level.jpg)
+![调度器的组成](../../images/level.jpg)
 
 
 
 
-#linux优先级的表示
+#2	linux优先级的表示
 -------
 
-##优先级的内核表示
+##2.1	优先级的内核表示
 -------
 
 
@@ -178,7 +178,7 @@ linux实现了6种调度策略, 依据其调度策略的不同实现了5个调�
 | 0——99 | 实时进程 |
 | 100——139 | 非实时进程 |
 
-![内核的优先级标度](../images/priority.jpg)
+![内核的优先级标度](../../images/priority.jpg)
 
 
 **内核的优先级表示**
@@ -290,7 +290,7 @@ static inline bool dl_time_before(u64 a, u64 b)
 ```
 
 
-##进程的优先级表示
+##2.2	进程的优先级表示
 -------
 
 
@@ -332,7 +332,7 @@ struct task_struct
 
 
 
-#进程优先级的计算
+#3	进程优先级的计算
 -------
 
 
@@ -346,14 +346,17 @@ struct task_struct
 
 
 
-##normal_prio设置普通优先级normal_prio
+##3.1	normal_prio设置普通优先级normal_prio
 -------
 
+<font color=0x00ffff>
 静态优先级static_prio(普通进程)和实时优先级rt_priority(实时进程)是计算的起点
+</font>
 
-因此他们也是进程创建的时候设定好的, 我们通过nice修改的就是静态优先级static_prio
+因此他们也是进程创建的时候设定好的, 我们通过nice修改的就是普通进程的静态优先级static_prio
 
-首先通过静态优先级static_prio计算出普通优先级normal_prio, 改工作可以由nromal_prio来完成, 该函数定义在[kernel/sched/core.c#L861](http://lxr.free-electrons.com/source/kernel/sched/core.c#L861)
+
+首先通过静态优先级static_prio计算出普通优先级normal_prio, 该工作可以由nromal_prio来完成, 该函数定义在[kernel/sched/core.c#L861](http://lxr.free-electrons.com/source/kernel/sched/core.c#L861)
 
 ```c
 /*
@@ -395,7 +398,7 @@ static inline int normal_prio(struct task_struct *p)
 
 普通优先级normal_prio需要根据普通进程和实时进程进行不同的计算, 其中__normal_prio适用于普通进程, 直接将普通优先级normal_prio设置为静态优先级static_prio. 而实时进程的普通优先级计算依据其实时优先级rt_priority.
 
-###辅助函数task_has_dl_policy和task_has_rt_policy
+###3.1.1	辅助函数task_has_dl_policy和task_has_rt_policy
 -------
 
 定义在[kernel/sched/sched.h#L117](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L117) 中
@@ -439,7 +442,7 @@ static inline int task_has_dl_policy(struct task_struct *p)
 ```
 
 
-###关于rt_priority数值越大, 实时进程优先级越高的问题
+###3.1.2	关于rt_priority数值越大, 实时进程优先级越高的问题
 --------
 
 我们前面提到了数值越小, 优先级越高, 但是此处我们会发现rt_priority的值越大, 其普通优先级越小, 从而优先级越高.
@@ -458,15 +461,19 @@ MAX_RT_PRIO = 100, ;这样意味着rt_priority值越大，优先级越高；
 
  所以用户在使用实时进程或线程，在修改优先级时，就会有“优先级值越大，优先级越高的说法”，也是对的。
 
-###为什么需要__normal_prio函数
+###3.1.3	为什么需要__normal_prio函数
 -------
 
 我们肯定会奇怪, 为什么增加了一个__normal_prio函数做了这么简单的工作, 这个其实是有历史原因的: 在早期的$O(1)$调度器中, 普通优先级的计算涉及相当多技巧性地工作,  必须检测交互式进程并提高其优先级, 而必须"惩罚"非交互进程, 以便是得系统获得更好的交互体验. 这需要很多启发式的计算, 他们可能完成的很好, 也可能不工作
 
-##effective_prio设置动态优先级prio
+
+##3.2	effective_prio设置动态优先级prio
 -------
 
+
+<font color=0x00ffff>
 可以通过函数effective_prio用静态优先级static_prio计算动态优先级prio, 即·
+</font>
 
 ```c
 p->prio = effective_prio(p);
@@ -496,7 +503,10 @@ static int effective_prio(struct task_struct *p)
 }
 ```
 
+<fonr color=0x00ffff>
 我们会发现函数首先effective_prio设置了普通优先级, 显然我们用effective_prio同时设置了两个优先级(普通优先级normal_prio和动态优先级prio)
+</font>
+
 
 因此计算动态优先级的流程如下
 
@@ -513,7 +523,8 @@ static int effective_prio(struct task_struct *p)
 | 普通进程 | 不使用 | static_prio | static_prio | static_prio |
 | 优先级提高的普通进程 | 不使用 | static_prio(改变) | static_prio | 维持原prio不变 |
 
-###为什么effective_prio使用优先级数值检测实时进程
+
+###3.2.1	为什么effective_prio使用优先级数值检测实时进程
 -------
 
 t_prio会检测普通优先级是否在实时范围内, 即是否小于MAX_RT_PRIO.参见[include/linux/sched/rt.h#L6](http://lxr.free-electrons.com/source/include/linux/sched/rt.h#L6)
@@ -535,9 +546,8 @@ policy == SCHED_FIFO || policy == SCHED_RR;
 对于临时提高至实时优先级的非实时进程来说, 这个是必要的, 这种情况可能发生在是哦那个实时互斥量(RT-Mutex)时.
 
 
-##设置prio的时机
+##3.3	设置prio的时机
 -------
-
 
 *	在新进程用wake_up_new_task唤醒时, 或者使用nice系统调用改变其静态优先级时, 则会通过effective_prio的方法设置p->prio
 
@@ -545,7 +555,9 @@ policy == SCHED_FIFO || policy == SCHED_RR;
 
 *	进程创建时copy_process通过调用sched_fork来初始化和设置调度器的过程中会设置子进程的优先级
 
-##nice系统调用的实现
+
+
+##3.4	nice系统调用的实现
 -------
 
 nice系统调用是的内核实现是sys_nice, 其定义在[kernel/sched/core.c#L7498](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L7498)，
@@ -555,7 +567,7 @@ nice系统调用是的内核实现是sys_nice, 其定义在[kernel/sched/core.c#
 关于其具体实现我们会在另外一篇博客里面详细讲
 
 
-##fork时优先级的继承
+##3.5	fork时优先级的继承
 -------
 
 
@@ -622,12 +634,13 @@ int sched_fork(unsigned long clone_flags, struct task_struct *p)
 ```
 
 
-#总结
+
+#4	总结
 -------
 
+<font color=0x00ffff>
 task_struct采用了四个成员表示进程的优先级:prio和normal_prio表示动态优先级, static_prio表示进程的静态优先级. 同时还用了rt_priority表示实时进程的优先级
-
-
+</font>
 
 
 | 字段 | 描述 |
@@ -641,8 +654,12 @@ task_struct采用了四个成员表示进程的优先级:prio和normal_prio表�
 调度器会考虑的优先级则保存在prio. 由于在某些情况下内核需要暂时提高进程的优先级, 因此需要用prio表示. 由于这些改变不是持久的, 因此静态优先级static_prio和普通优先级normal_prio不受影响.
 此外还用了一个字段rt_priority保存了实时进程的优先级静态优先级static_prio(普通进程)和实时优先级rt_priority(实时进程)是计算的起点, 通过他们计算进程的普通优先级normal_prio和动态优先级prio.
 
+<font color=0x00ffff>
 内核通过normal_prIo函数计算普通优先级normal_prio
 通过effective_prio函数计算动态优先级prio
+</font>
+
+
 
 >参考
 >

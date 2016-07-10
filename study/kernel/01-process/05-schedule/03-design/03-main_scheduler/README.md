@@ -7,7 +7,7 @@ Linux进程核心调度器之主调度器
 
 | 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
 | ------- |:-------:|:-------:|:-------:|:-------:|:-------:|
-| 2016-06-14 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
+| 2016-06-30 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
 
 
 
@@ -27,11 +27,11 @@ Linux进程核心调度器之主调度器
 在内核中的许多地方, 如果要将CPU分配给与当前活动进程不同的另一个进程, 都会直接调用主调度器函数schedule, 从系统调用返回后, 内核也会检查当前进程是否设置了重调度标志TLF_NEDD_RESCHED
 
 
-#前景回顾
+#1	前景回顾
 -------
 
 
-##进程调度
+##1.1	进程调度
 -------
 
 
@@ -43,7 +43,7 @@ Linux进程核心调度器之主调度器
 
 
 
-##进程的分类
+##1.2	进程的分类
 -------
 
 linux把进程区分为**实时进程**和**非实时进程**, 其中非实时进程进一步划分为交互式进程和批处理进程
@@ -54,7 +54,7 @@ linux把进程区分为**实时进程**和**非实时进程**, 其中非实时�
 
 
 
-##linux调度器的演变
+##1.3	linux调度器的演变
 -------
 
 
@@ -65,7 +65,7 @@ linux把进程区分为**实时进程**和**非实时进程**, 其中非实时�
 | CFS调度器 | linux-2.6~至今 |
 
 
-##Linux的调度器组成
+##1.4	Linux的调度器组成
 -------
 
 
@@ -123,14 +123,14 @@ linux中针对当前可调度的实时和非实时进程, 定义了类型为sech
 
 
 
-#主调度器
+#2	主调度器
 -------
 
 在内核中的许多地方, 如果要将CPU分配给与当前活动进程不同的另一个进程, 都会直接调用主调度器函数schedule, 从系统调用返回后, 内核也会检查当前进程是否设置了重调度标志TLF_NEDD_RESCHED
 
 例如, 前述的周期性调度器的scheduler_tick就会设置该标志, 如果是这样则内核会调用schedule, 该函数假定当前活动进程一定会被另一个进程取代.
 
-##调度函数的__sched前缀
+##2.1	调度函数的__sched前缀
 
 在详细论述schedule之前, 需要说明一下__sched前缀, 该前缀可能用于调用schedule的函数, 包括schedule本身.
 
@@ -156,10 +156,10 @@ void __sched some_function(args, ...)
 }
 ```
 
-##schedule函数
+##2.2	schedule函数
 -------
 
-###schedule主框架
+###2.2.1	schedule主框架
 -------
 
 schedule就是主调度器的函数, 在内核中的许多地方, 如果要将CPU分配给与当前活动进程不同的另一个进程, 都会直接调用主调度器函数schedule.
@@ -192,7 +192,7 @@ asmlinkage __visible void __sched schedule(void)
 EXPORT_SYMBOL(schedule);
 ```
 
-###sched_submit_work避免死锁
+###2.2.2	sched_submit_work避免死锁
 -------
 
 
@@ -215,7 +215,7 @@ static inline void sched_submit_work(struct task_struct *tsk)
 }
 ```
 
-###preempt_disable和sched_preempt_enable_no_resched开关内核抢占
+###2.2.3	preempt_disable和sched_preempt_enable_no_resched开关内核抢占
 -------
 
 **内核抢占**
@@ -249,13 +249,13 @@ do { \
 } while (0)
 ```
 
-## __schedule开始进程调度
+##2.3	__schedule开始进程调度
 -------
 
 __schedule完成了真正的调度工作, 其定义在[kernel/sched/core.c, L3103](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3103), 如下所示
 
 
-###__schedule函数主框架
+###2.3.1	__schedule函数主框架
 -------
 
 
@@ -406,7 +406,7 @@ static void __sched notrace __schedule(bool preempt)
 STACK_FRAME_NON_STANDARD(__schedule); /* switch_to() */
 ```
 
-###pick_next_task选择抢占的进程
+###2.3.2	pick_next_task选择抢占的进程
 -------
 
 内核从cpu的就绪队列中选择一个最合适的进程来抢占CPU
@@ -525,7 +525,7 @@ extern const struct sched_class idle_sched_class;
 >对于FIFO和RR的区别，在scheduler_tick中通过curr->sched_class->task_tick进入到task_tick_rt的处理, 如果是非RR的进程则直接返回，否则递减时间片，如果时间片耗完，则需要将当前进程放到运行队列的末尾, 这个时候才操作运行队列（FIFO和RR进程，是否位于同一个plist队列？），时间片到点，会重新移动当前进程requeue_task_rt，进程会被加到队列尾，接下来set_tsk_need_resched触发调度，进程被抢占进入schedule
 
 
-**问题1 : 为什么要多次一举判断所有的进程是否全是cfs调度的普通非实时进程?**
+**问题1 : 为什么要多此一举判断所有的进程是否全是cfs调度的普通非实时进程?**
 
 
 加快经常性事件, 是程序开发中一个优化的准则, 那么linux系统中最普遍的进程是什么呢? 肯定是非实时进程啊, 其调度器必然是cfs, 因此
@@ -549,7 +549,7 @@ rev->sched_class == class && rq->nr_running == rq->cfs.h_nr_running
  #endif
 ```
 
-##context_switch进程上下文切换
+##2.4	context_switch进程上下文切换
 -------
 
 >进程上下文的切换其实是一个很复杂的过程, 我们在这里不能详述, 但是我会尽可能说明白
@@ -557,7 +557,7 @@ rev->sched_class == class && rq->nr_running == rq->cfs.h_nr_running
 >具体的内容请参照
 
 
-###进程上下文切换
+###2.4.1	进程上下文切换
 -------
 
 
@@ -577,7 +577,7 @@ rev->sched_class == class && rq->nr_running == rq->cfs.h_nr_running
 上下文切换只能发生在内核态中, 上下文切换通常是计算密集型的。也就是说，它需要相当可观的处理器时间，在每秒几十上百次的切换中，每次切换都需要纳秒量级的时间。所以，上下文切换对系统来说意味着消耗大量的 CPU 时间，事实上，可能是操作系统中时间消耗最大的操作。
 Linux相比与其他操作系统（包括其他类 Unix 系统）有很多的优点，其中有一项就是，其上下文切换和模式切换的时间消耗非常少.
 
-###context_switch流程
+###2.4.2	context_switch流程
 -------
 
 context_switch函数完成了进程上下文的切换, 其定义在[kernel/sched/core.c#L2711](http://lxr.free-electrons.com/source/kernel/sched/core.c#L2711)
@@ -597,7 +597,7 @@ context_switch( )函数保证：如果next是一个内核线程, 它使用prev�
 由于不同架构下地址映射的机制有所区别, 而寄存器等信息弊病也是依赖于架构的, 因此switch_mm和switch_to两个函数均是体系结构相关的
 
 
-###switch_mm切换进程虚拟地址空间
+###2.4.3	switch_mm切换进程虚拟地址空间
 -------
 
 switch_mm主要完成了进程prev到next虚拟地址空间的映射, 由于内核虚拟地址空间是不许呀切换的, 因此切换的主要是用户态的虚拟地址空间
@@ -623,7 +623,7 @@ switch_mm主要完成了进程prev到next虚拟地址空间的映射, 由于内�
 >CR3中含有页目录表物理内存基地址，因此该寄存器也被称为页目录基地址寄存器PDBR（Page-Directory Base address Register）。
 
 
-###switch_to切换进程堆栈和寄存器
+###2.4.4	switch_to切换进程堆栈和寄存器
 -------
 
 执行环境的切换是在switch_to()中完成的, switch_to完成最终的进程切换，它保存原进程的所有寄存器信息，恢复新进程的所有寄存器信息，并执行新的进程
@@ -656,10 +656,10 @@ switch_mm主要完成了进程prev到next虚拟地址空间的映射, 由于内�
 3.	堆栈的切换, 即ebp的切换, ebp是栈底指针, 它确定了当前用户空间属于哪个进程
 
 
-##need_resched, TIF_NEED_RESCHED标识与用户抢占
+##2.5	need_resched, TIF_NEED_RESCHED标识与用户抢占
 -------
 
-###need_resched标识TIF_NEED_RESCHED
+###2.5.1	need_resched标识TIF_NEED_RESCHED
 -------
 
 
@@ -687,7 +687,7 @@ static __always_inline bool need_resched(void)
 #define tif_need_resched() test_thread_flag(TIF_NEED_RESCHED)
 ```
 
-###用户抢占和内核抢占
+###2.5.2	用户抢占和内核抢占
 -------
 
 当内核即将返回用户空间时, 内核会检查need_resched是否设置，如果设置，则调用schedule()，此时，发生用户抢占。
@@ -717,10 +717,10 @@ static __always_inline bool need_resched(void)
 
 
 
-#总结
+#3	总结
 -------
 
-**schedule调度流程**
+##3.1	**schedule调度流程**
 
 schedule就是主调度器的函数, 在内核中的许多地方, 如果要将CPU分配给与当前活动进程不同的另一个进程, 都会直接调用主调度器函数schedule, 该函数定义在[kernel/sched/core.c, L3243](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3243), 如下所示
 
@@ -740,7 +740,7 @@ schedule就是主调度器的函数, 在内核中的许多地方, 如果要将CP
     } while (need_resched());	/*  如果该进程被其他进程设置了TIF_NEED_RESCHED标志，则函数重新执行进行调度    */
 ```
 
-**__schedule如何完成内核抢占**
+##3.2	**__schedule如何完成内核抢占**
 
 1.	完成一些必要的检查, 并设置进程状态, 处理进程所在的就绪队列
 
@@ -757,7 +757,7 @@ schedule就是主调度器的函数, 在内核中的许多地方, 如果要将CP
 	*	调用switch_to(),从上一个进程的处理器状态切换到新进程的处理器状态。这包括保存、恢复栈信息和寄存器信息
 
 
-**调度的内核抢占和用户抢占**
+##3.3	**调度的内核抢占和用户抢占**
 
 内核在完成调度的过程中总是先关闭内核抢占, 等待内核完成调度的工作后, 再把内核抢占开启, 如果在内核完成调度器过程中, 这时候如果发生了内核抢占, 我们的调度会被中断, 而调度却还没有完成, 这样会丢失我们调度的信息.
 
