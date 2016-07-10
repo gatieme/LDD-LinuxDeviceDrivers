@@ -7,11 +7,11 @@ Linux进程调度器的设计
 | 2016-06-14 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
 
 
-#前景回顾
+#1	前景回顾
 -------
 
 
-##进程调度
+##1.1	进程调度
 -------
 
 内存中保存了对每个进程的唯一描述, 并通过若干结构与其他进程连接起来.
@@ -26,7 +26,7 @@ Linux进程调度器的设计
 调度器的一般原理是, 按所需分配的计算能力, 向系统中每个进程提供最大的公正性, 或者从另外一个角度上说, 他试图确保没有进程被亏待.
 
 
-##进程的分类
+##1.2	进程的分类
 -------
 
 linux把进程区分为实时进程和非实时进程, 其中非实时进程进一步划分为交互式进程和批处理进程
@@ -40,7 +40,7 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 在linux中, 调度算法可以明确的确认所有实时进程的身份, 但是没办法区分交互式程序和批处理程序, linux2.6的调度程序实现了基于进程过去行为的启发式算法, 以确定进程应该被当做交互式进程还是批处理进程. 当然与批处理进程相比, 调度程序有偏爱交互式进程的倾向
 
 
-##不同进程采用不同的调度策略
+##1.3	不同进程采用不同的调度策略
 -------
 
 根据进程的不同分类Linux采用不同的调度策略.
@@ -55,7 +55,7 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 
 但是普通进程的调度策略就比较麻烦了, 因为普通进程不能简单的只看优先级, 必须公平的占有CPU, 否则很容易出现进程饥饿, 这种情况下用户会感觉操作系统很卡, 响应总是很慢，因此在linux调度器的发展历程中经过了多次重大变动, linux总是希望寻找一个最接近于完美的调度策略来公平快速的调度进程.
 
-##linux调度器的演变
+##1.4	linux调度器的演变
 -------
 
 一开始的调度器是复杂度为**$O(n)$的始调度算法**(实际上每次会遍历所有任务，所以复杂度为O(n)), 这个算法的缺点是当内核中有很多任务时，调度器本身就会耗费不少时间，所以，从linux2.5开始引入赫赫有名的**$O(1)$调度器**
@@ -71,11 +71,11 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 | CFS调度器 | linux-2.6~至今 |
 
 
-#Linux的调度器组成
+#2	Linux的调度器组成
 -------
 
 
-##2个调度器
+##2.1	2个调度器
 -------
 
 可以用两种方法来激活调度
@@ -90,7 +90,7 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 
 
 
-##6种调度策略
+##2.2	6种调度策略
 -------
 
 
@@ -120,7 +120,7 @@ linux内核目前实现了6中调度策略(即调度算法), 用于对不同类�
 linux内核实现的6种调度策略, 前面三种策略使用的是cfs调度器类，后面两种使用rt调度器类, 最后一个使用DL调度器类
 
 
-##5个调度器类
+##2.3	5个调度器类
 -------
 
 而依据其调度策略的不同实现了5个调度器类, 一个调度器类可以用一种种或者多种调度策略调度某一类进程, 也可以用于特殊情况或者调度特殊功能的进程.
@@ -139,7 +139,7 @@ linux内核实现的6种调度策略, 前面三种策略使用的是cfs调度器
 stop_sched_class -> dl_sched_class -> rt_sched_class -> fair_sched_class -> idle_sched_class
 ```
 
-##3个调度实体
+##2.4	3个调度实体
 -------
 
 调度器不限于调度进程, 还可以调度更大的实体, 比如实现组调度: 可用的CPUI时间首先在一半的进程组(比如, 所有进程按照所有者分组)之间分配, 接下来分配的时间再在组内进行二次分配.
@@ -156,14 +156,14 @@ linux中针对当前可调度的实时和非实时进程, 定义了类型为sech
 
 
 
-##调度器类的就绪队列
+##2.5	调度器类的就绪队列
 -------
 
 
 另外，对于调度框架及调度器类，它们都有自己管理的运行队列，调度框架只识别rq（其实它也不能算是运行队列），而对于cfs调度器类它的运行队列则是cfs_rq（内部使用红黑树组织调度实体），实时rt的运行队列则为rt_rq（内部使用优先级bitmap+双向链表组织调度实体）, 此外内核对新增的dl实时调度策略也提供了运行队列dl_rq
 
 
-##调度器整体框架
+##2.6	调度器整体框架
 -------
 
 
@@ -191,10 +191,10 @@ linux实现了6种调度策略, 依据其调度策略的不同实现了5个调�
 
 它们的关系如下图
 
-![调度器的组成](../images/level.jpg)
+![调度器的组成](../../images/level.jpg)
 
 
-##5种调度器类为什么只有3种调度实体?
+##2.7	5种调度器类为什么只有3种调度实体?
 -------
 
 正常来说一个调度器类应该对应一类调度实体, 但是5种调度器类却只有了3种调度实体?
@@ -202,7 +202,7 @@ linux实现了6种调度策略, 依据其调度策略的不同实现了5个调�
 这是因为调度实体本质是一个可以被调度的对象, 要么是一个进程(linux中线程本质上也是进程), 要么是一个进程组, 只有dl_sched_class, rt_sched_class调度的实时进程(组)以及fair_sched_class调度的非实时进程(组)是可以被调度的实体对象, 而stop_sched_class和idle_sched_class
 
 
-##为什么采用EDF实时调度需要单独的调度器类, 调度策略和调度实体
+##2.8	为什么采用EDF实时调度需要单独的调度器类, 调度策略和调度实体
 -------
 
 linux针对实时进程实现了Roound-Robin, FIFO和Earliest-Deadline-First(EDF)算法, 但是为什么SCHED_RR和SCHED_FIFO两种调度算法都用rt_sched_class调度类和sched_rt_entity调度实体描述, 而EDF算法却需要单独用rt_sched_class调度类和sched_dl_entity调度实体描述
@@ -213,12 +213,12 @@ linux针对实时进程实现了Roound-Robin, FIFO和Earliest-Deadline-First(EDF
 
 
 
-#进程调度的数据结构
+#3	进程调度的数据结构
 -------
 
 调度器使用一系列数据结构来排序和管理系统中的进程. 调度器的工作方式的这些结构的涉及密切相关, 几个组件在许多方面
 
-##[task_struct中调度相关的成员](http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L1410)
+##3.1	[task_struct中调度相关的成员](http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L1410)
 -------
 
 ```c
@@ -255,7 +255,7 @@ struct task_struct
 ```
 
 
-###优先级
+###3.1.1	优先级
 -------
 
 ```c
@@ -302,7 +302,7 @@ linux2.6内核将任务优先级进行了一个划分, 实时优先级范围是0
 | 0——99 | 实时进程 |
 | 100——139 | 非实时进程 |
 
-###调度策略
+###3.1.2	调度策略
 -------
 
 ```c
@@ -356,7 +356,7 @@ SCHED_RR和SCHED_FIFO用于实现软实时进程. SCHED_RR实现了轮流调度�
 
 
 
-###调度策略相关字段
+###3.1.3	调度策略相关字段
 -------
 
 ```c
@@ -387,7 +387,7 @@ cpumask_t cpus_allowed;
 cpus_allows是一个位域, 在多处理器系统上使用, 用来限制进程可以在哪些CPU上运行
 
 
-##调度类
+##3.2	调度类
 -------
 
 sched_class结构体表示调度类, 类提供了通用调度器和各个调度器之间的关联, 调度器类和特定数据结构中汇集地几个函数指针表示, 全局调度器请求的各个操作都可以用一个指针表示, 这使得无需了解调度器类的内部工作原理即可创建通用调度器, 定义在[kernel/sched/sched.h](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L1184)
@@ -519,7 +519,7 @@ SCHED_NORMAL, SCHED_BATCH, SCHED_IDLE被映射到fair_sched_class
 SCHED_RR和SCHED_FIFO则与rt_schedule_class相关联
 
 
-##就绪队列
+##3.3	就绪队列
 -------
 
 
@@ -540,7 +540,7 @@ SCHED_RR和SCHED_FIFO则与rt_schedule_class相关联
 
 
 
-###CPU就绪队列struct rq
+###3.3.1	CPU就绪队列struct rq
 -------
 
 就绪队列用struct rq来表示, 其定义在[kernel/sched/sched.h, line 566](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L566)
@@ -904,7 +904,7 @@ DECLARE_PER_CPU_SHARED_ALIGNED(struct rq, runqueues);
 #define raw_rq()                raw_cpu_ptr(&runqueues)
 ```
 
-###CFS公平调度器的就绪队列cfs_rq
+###3.3.2	CFS公平调度器的就绪队列cfs_rq
 -------
 
 在系统中至少有一个CFS运行队列，其就是根CFS运行队列，而其他的进程组和进程都包含在此运行队列中，不同的是进程组又有它自己的CFS运行队列，其运行队列中包含的是此进程组中的所有进程。当调度器从根CFS运行队列中选择了一个进程组进行调度时，进程组会从自己的CFS运行队列中选择一个调度实体进行调度(这个调度实体可能为进程，也可能又是一个子进程组)，就这样一直深入，直到最后选出一个进程进行运行为止
@@ -1017,7 +1017,7 @@ struct cfs_rq {
 };
 ```
 
-###实时进程就绪队列rt_rq
+###3.3.3	实时进程就绪队列rt_rq
 -------
 
 其定义在[kernel/sched/sched.h#L449](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L449)
@@ -1066,7 +1066,7 @@ struct rt_rq {
 };
 ```
 
-###deadline就绪队列dl_rq
+###3.3.4	deadline就绪队列dl_rq
 -------
 
 其定义在[kernel/sched/sched.h#L490](http://lxr.free-electrons.com/source/kernel/sched/sched.h?v=4.6#L490)
@@ -1109,7 +1109,7 @@ struct dl_rq {
 };
 ```
 
-##调度实体
+##3.4	调度实体
 -------
 
 
@@ -1119,7 +1119,7 @@ struct dl_rq {
 
 我们可以先看看sched_entity结构，其定义在[include/linux/sched.h](http://lxr.free-electrons.com/source/include/linux/sched.h#L1256), 如下：
 
-###sched_entity调度实体
+###3.4.1	sched_entity调度实体
 -------
 
 ```c
@@ -1206,7 +1206,7 @@ struct sched_entity {
 
 　　对于怎么理解一个进程组有它自己的CFS运行队列，其实很好理解，比如在根CFS运行队列的红黑树上有一个进程A一个进程组B，各占50%的CPU，对于根的红黑树而言，他们就是两个调度实体。调度器调度的不是进程A就是进程组B，而如果调度到进程组B，进程组B自己选择一个程序交给CPU运行就可以了，而进程组B怎么选择一个程序给CPU，就是通过自己的CFS运行队列的红黑树选择，如果进程组B还有个子进程组C，原理都一样，就是一个层次结构。
 
-###实时进程调度实体sched_rt_entity
+###3.4.2	实时进程调度实体sched_rt_entity
 -------
 
 
@@ -1232,7 +1232,7 @@ struct sched_rt_entity {
 };
 ```
 
-###EDF调度实体sched_dl_entity
+###3.4.3	EDF调度实体sched_dl_entity
 -------
 
 
@@ -1286,7 +1286,7 @@ struct sched_dl_entity {
 };
 ```
 
-##组调度(struct task_group)
+##3.5	组调度(struct task_group)
 -------
 
 
@@ -1352,7 +1352,7 @@ struct task_group {
 
 在多核多CPU的情况下，同一进程组的进程有可能在不同CPU上同时运行，所以每个进程组都必须对每个CPU分配它的调度实体(struct sched_entity 和 struct sched_rt_entity)和运行队列(struct cfs_rq 和 struct rt_rq)。
 
-#总结
+#4	总结
 -------
 
 进程调度器的框架如下图所示
@@ -1392,9 +1392,9 @@ linux下被调度的不只是进程, 还可以是进程组. 因此需要一种�
 
 所有的就绪进程(TASK_RUNNING)都被组织在就绪队列, 也叫运行队列中, 每个CPU对应包含一个运行队列结构(struct rq)，而每个运行队列又嵌入了有其自己的实时进程运行队列(struct rt_rq)、普通进程运行队列(struct cfs_rq)、和EDF实时调度的运行队列(struct dl_rq)，也就是说每个CPU都有他们自己的实时进程运行队列及普通进程运行队列
 
-| 普通进程 | 实时进程 |
+| 全局 | 普通进程 | 实时进程 |
 | ------------- |:-------------:|
-| rq | rt_rq, dl_rq |
+| rq |cfs_rq | rt_rq, dl_rq |
 
 
 

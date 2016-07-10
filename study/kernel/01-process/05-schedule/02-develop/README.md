@@ -6,10 +6,10 @@ Linux进程调度的演变
 | ------- |:-------:|:-------:|:-------:|:-------:|:-------:|
 | 2016-06-14 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
 
-#前言
+#1	前言
 -------
 
-##进程调度
+##1.1	进程调度
 -------
 
 
@@ -18,7 +18,7 @@ Linux进程调度的演变
 **调度器**面对的情形就是这样, 其任务是在程序之间共享CPU时间, 创造并行执行的错觉, 该任务分为两个不同的部分, 其中一个涉及**调度策略**, 另外一个涉及**上下文切换**.
 
 
-##进程的分类
+##1.2	进程的分类
 -------
 
 linux把进程区分为实时进程和非实时进程, 其中非实时进程进一步划分为交互式进程和批处理进程
@@ -32,7 +32,7 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 在linux中, 调度算法可以明确的确认所有实时进程的身份, 但是没办法区分交互式程序和批处理程序, linux2.6的调度程序实现了基于进程过去行为的启发式算法, 以确定进程应该被当做交互式进程还是批处理进程. 当然与批处理进程相比, 调度程序有偏爱交互式进程的倾向
 
 
-##不同进程采用不同的调度策略
+##1.3	不同进程采用不同的调度策略
 -------
 
 根据进程的不同分类Linux采用不同的调度策略.
@@ -48,7 +48,7 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 但是普通进程的调度策略就比较麻烦了, 因为普通进程不能简单的只看优先级, 必须公平的占有CPU, 否则很容易出现进程饥饿, 这种情况下用户会感觉操作系统很卡, 响应总是很慢，因此在linux调度器的发展历程中经过了多次重大变动, linux总是希望寻找一个最接近于完美的调度策略来公平快速的调度进程.
 
 
-##linux调度器的演变
+##1.4	linux调度器的演变
 -------
 
 
@@ -60,10 +60,10 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 所以完全有理由相信，后续如果再会出现一个更优秀的调度器，CFS也不会幸免。因为linux只要最好的那个。
 
 
-#$O(n)$的始调度算法
+#2	$O(n)$的始调度算法
 -------
 
-##Linux2.4之前的内核调度器
+##2.1	Linux2.4之前的内核调度器
 -------
 
 早期的Linux进程调度器使用了最低的设计，它显然不关注具有很多处理器的大型架构，更不用说是超线程了。
@@ -74,10 +74,10 @@ Linux调度器使用了环形队列用于可运行的任务管理, 使用循环�
 
 Linux版本2.2引入了调度类的概念，允许针对实时任务、非抢占式任务、非实时任务的调度策略。调度器还包括对称多处理 (SMP) 支持。
 
-##Linux2.4的调度器
+##2.2	Linux2.4的调度器
 -------
 
-###概述
+###2.2.1	概述
 -------
 
 在Linux2.4.18中(linux-2.5)之前的内核, 当很多任务都处于活动状态时, 调度器有很明显的限制. 这是由于调度器是使用一个复杂度为$O(n)$的算法实现的.
@@ -88,7 +88,7 @@ Linux版本2.2引入了调度类的概念，允许针对实时任务、非抢占
 
 在这种调度器中, 调度任务所花费的时间是一个系统中任务个数的函数. 换而言之, 活动的任务越多, 调度任务所花费的时间越长. 在任务负载非常重时, 处理器会因调度消耗掉大量的时间, 用于任务本身的时间就非常少了。因此，这个算法缺乏可伸缩性
 
-###详情
+###2.2.2	详情
 -------
 
 每个进程被创建时都被赋予一个时间片。时钟中断递减当前运行进程的时间片，当进程的时间片被用完时，它必须等待重新赋予时间片才能有机会运行。Linux2.4调度器保证只有当所有RUNNING进程的时间片都被用完之后，才对所有进程重新分配时间片。这段时间被称为一个epoch。这种设计保证了每个进程都有机会得到执行。每个epoch中，每个进程允许执行到其时间切片用完。如果某个进程没有使用其所有的时间切片，那么剩余时间切片的一半将被添加到新时间切片使其在下个epoch中可以执行更长时间。调度器只是迭代进程，应用goodness函数（指标）决定下面执行哪个进程。当然，各种进程对调度的需求并不相同，Linux 2.4调度器主要依靠改变进程的优先级，来满足不同进程的调度需求。事实上，所有后来的调度器都主要依赖修改进程优先级来满足不同的调度需求。
@@ -120,10 +120,10 @@ Linux2.4调度器是如何提高交互式进程的优先级的呢？如前所述
 为了解决这些问题，Ingo Molnar开发了新的$O(1)调度器，在CFS和RSDL之前，这个调度器不仅被Linux2.6采用，还被backport到Linux2.4中，很多商业的发行版本都采用了这个调度器
 
 
-#$O(1)$的调度算法
+#3	$O(1)$的调度算法
 -------
 
-##概述
+##3.1	概述
 -------
 
 由于进程优先级的最大值为139，因此MAX_PRIO的最大值取140(具体的是，普通进程使用100到139的优先级，实时进程使用0到99的优先级).
@@ -137,7 +137,7 @@ Linux2.4调度器是如何提高交互式进程的优先级的呢？如前所述
 
 最后，在早期的内核中，抢占是不可能的；这意味着如果有一个低优先级的任务在执行，高优先级的任务只能等待它完成。
 
-##详情
+##3.2	详情
 -------
 
 从名字就可以看出O(1)调度器主要解决了以前版本中的扩展性问题。
@@ -154,7 +154,7 @@ O(1)调度器在两个方面修改了Linux 2.4调度器，一是进程优先级�
 
 O(1)调度器跟踪运行队列中可运行的任务（实际上，每个优先级水平有两个运行队列，一个用于活动任务，一个用于过期任务）， 这意味着要确定接下来执行的任务，调度器只需按优先级将下一个任务从特定活动的运行队列中取出即可。
 
-###普通进程的优先级计算
+###3.2.1	普通进程的优先级计算
 -------
 
 不同类型的进程应该有不同的优先级。每个进程与生俱来（即从父进程那里继承而来）都有一个优先级，我们将其称为静态优先级。普通进程的静态优先级范围从100到139，100为最高优先级，139 为最低优先级，0－99保留给实时进程。当进程用完了时间片后，系统就会为该进程分配新的时间片（即基本时间片），静态优先级本质上决定了时间片分配的大小。
@@ -177,12 +177,12 @@ O(1)调度器跟踪运行队列中可运行的任务（实际上，每个优先�
 
 平均睡眠时间是进程处于等待睡眠状态下的时间，该值在进程进入睡眠状态时增加，而进入RUNNING状态后则减少。该值的更新时机分布在很多内核函数内：时钟中断scheduler_tick()；进程创建；进程从TASK_INTERRUPTIBLE状态唤醒；负载平衡等。
 
-###实时进程的优先级计算
+###3.2.2	实时进程的优先级计算
 -------
 
 实时进程的优先级由sys_sched_setschedule()设置。该值不会动态修改，而且总是比普通进程的优先级高。在进程描述符中用rt_priority域表示。
 
-###pick next算法
+###3.2.3	pick next算法
 -------
 
 普通进程的调度选择算法基于进程的优先级，拥有最高优先级的进程被调度器选中。
@@ -206,11 +206,11 @@ O(1)调度器区分交互式进程和批处理进程的算法与以前虽大有�
 为了解决O(1)调度器面临的问题以及应对其他外部压力, 需要改变某些东西。这种改变来自Con Kolivas的内核补丁staircase scheduler（楼梯调度算法），以及改进的RSDL（Rotating Staircase Deadline Scheduler）。它为调度器设计提供了一个新的思路。Ingo Molnar在RSDL之后开发了CFS，并最终被2.6.23内核采用。接下来我们开始介绍这些新一代调度器。
 
 
-#Linux 2.6的新一代调度器CFS
+#4	Linux 2.6的新一代调度器CFS
 -------
 
 
-##楼梯调度算法staircase scheduler
+##4.1	楼梯调度算法staircase scheduler
 -------
 
 楼梯算法(SD)在思路上和O(1)算法有很大不同，它抛弃了动态优先级的概念。而采用了一种完全公平的思路。前任算法的主要复杂性来自动态优先级的计算，调度器根据平均睡眠时间和一些很难理解的经验公式来修正进程的优先级以及区分交互式进程。这样的代码很难阅读和维护。楼梯算法思路简单，但是实验证明它对应交互式进程的响应比其前任更好，而且极大地简化了代码。
@@ -224,10 +224,10 @@ O(1)调度器区分交互式进程和批处理进程的算法与以前虽大有�
 楼梯算法的优点：从实现角度看，SD基本上还是沿用了O(1)的整体框架，只是删除了O(1)调度器中动态修改优先级的复杂代码；还淘汰了expire数组，从而简化了代码。它最重要的意义在于证明了完全公平这个思想的可行性。
 
 
-##RSDL(Rotating Staircase Deadline Scheduler)
+##4.2	RSDL(Rotating Staircase Deadline Scheduler)
 -------
 
-RSDL也是由Con Kolivas开发的，它是对SD算法的改进。核心的思想还是"完全公平"。没有复杂的动态优先级调整策略。RSDL重新引入了expire数组。它为每一个优先级都分配了一个 “组时间配额”，记为Tg；同一优先级的每个进程都拥有同样的"优先级时间配额"，用Tp表示。当进程用完了自身的Tp时，就下降到下一优先级进程组中。这个过程和SD相同，在RSDL中这个过程叫做minor rotation（次轮询）。请注意Tp不等于进程的时间片，而是小于进程的时间片。下图表示了minor rotation。进程从priority1的队列中一步一步下到priority140之后回到priority2的队列中，这个过程如下图左边所示，然后从priority 2开始再次一步一步下楼，到底后再次反弹到priority3队列中，如下图所示。
+RSDL也是由[Con Kolivas](https://en.wikipedia.org/wiki/Con_Kolivas)开发的，它是对SD算法的改进。核心的思想还是"完全公平"。没有复杂的动态优先级调整策略。RSDL重新引入了expire数组。它为每一个优先级都分配了一个 “组时间配额”，记为Tg；同一优先级的每个进程都拥有同样的"优先级时间配额"，用Tp表示。当进程用完了自身的Tp时，就下降到下一优先级进程组中。这个过程和SD相同，在RSDL中这个过程叫做minor rotation（次轮询）。请注意Tp不等于进程的时间片，而是小于进程的时间片。下图表示了minor rotation。进程从priority1的队列中一步一步下到priority140之后回到priority2的队列中，这个过程如下图左边所示，然后从priority 2开始再次一步一步下楼，到底后再次反弹到priority3队列中，如下图所示。
 
 ![RSDL的次轮询过程](./images/rsdl_minor_rotation.gif)
 
@@ -240,11 +240,11 @@ RSDL也是由Con Kolivas开发的，它是对SD算法的改进。核心的思想
 当active数组为空，或者所有的进程都降低到最低优先级时就会触发主轮询major rotation。Major rotation交换active数组和expire数组，所有进程都恢复到初始状态，再一次从新开始minor rotation的过程。
     RSDL对交互式进程的支持：和SD同样的道理，交互式进程在睡眠时间时，它所有的竞争者都因为minor rotation而降到了低优先级进程队列中。当它重新进入RUNNING状态时，就获得了相对较高的优先级，从而能被迅速响应。
 
-##完全公平的调度器CFS
+##4.3	完全公平的调度器CFS
 -------
 
 CFS是最终被内核采纳的调度器。它从RSDL/SD中吸取了完全公平的思想，不再跟踪进程的睡眠时间，也不再企图区分交互式进程。它将所有的进程都统一对待，这就是公平的含义。CFS的算法和实现都相当简单，众多的测试表明其性能也非常优越。
-按照作者Ingo Molnar的说法（参考Documentation/scheduler/sched-design-CFS.txt），
+按照作者[Ingo Molnar](https://en.wikipedia.org/wiki/Ingo_Moln%C3%A1r)的说法（参考Documentation/scheduler/sched-design-CFS.txt），
 
 CFS百分之八十的工作可以用一句话概括：CFS在真实的硬件上模拟了完全理想的多任务处理器。在真空的硬件上，同一时刻我们只能运行单个进程，因此当一个进程占用CPU时，其它进程就必须等待，这就产生了不公平。但是在“完全理想的多任务处理器 “下，每个进程都能同时获得CPU的执行时间，即并行地每个进程占1/nr_running的时间。例如当系统中有两个进程时，CPU的计算时间被分成两份，每个进程获得50%。假设runqueue中有n个进程，当前进程运行了10ms。在“完全理想的多任务处理器”中，10ms应该平分给n个进程(不考虑各个进程的nice值)，因此当前进程应得的时间是(10/n)ms，但是它却运行了10ms。所以CFS将惩罚当前进程，使其它进程能够在下次调度时尽可能取代当前进程。最终实现所有进程的公平调度。
 
@@ -261,7 +261,7 @@ CFS百分之八十的工作可以用一句话概括：CFS在真实的硬件上�
 
 要实现平衡，CFS使用"虚拟运行时"表示某个任务的时间量。任务的虚拟运行时越小，意味着任务被允许访问服务器的时间越短，其对处理器的需求越高。CFS还包含睡眠公平概念以便确保那些目前没有运行的任务（例如，等待 I/O）在其最终需要时获得相当份额的处理器。
 
-###CFS如何实现pick next
+###4.3.1	CFS如何实现pick next
 -------
 
 下图是一个红黑树的例子。
@@ -271,12 +271,12 @@ CFS百分之八十的工作可以用一句话概括：CFS在真实的硬件上�
 
 所有可运行的任务通过不断地插入操作最终都存储在以时间为顺序的红黑树中（由 sched_entity 对象表示），对处理器需求最多的任务（最低虚拟运行时）存储在树的左侧，处理器需求最少的任务（最高虚拟运行时）存储在树的右侧。 为了公平，CFS调度器会选择红黑树最左边的叶子节点作为下一个将获得cpu的任务。这样，树左侧的进程就被给予时间运行了。
 
-###tick中断
+###4.3.2	tick中断
 -------
 
 在CFS中，tick中断首先更新调度信息。然后调整当前进程在红黑树中的位置。调整完成后如果发现当前进程不再是最左边的叶子，就标记need_resched标志，中断返回时就会调用scheduler()完成进程切换。否则当前进程继续占用CPU。从这里可以看到 CFS抛弃了传统的时间片概念。Tick中断只需更新红黑树，以前的所有调度器都在tick中断中递减时间片，当时间片或者配额被用完时才触发优先级调整并重新调度。
 
-###红黑树键值计算
+###4.3.3	红黑树键值计算
 -------
 
 理解CFS的关键就是了解红黑树键值的计算方法。该键值由三个因子计算而得：一是进程已经占用的CPU时间；二是当前进程的nice值；三是当前的cpu负载。进程已经占用的CPU时间对键值的影响最大，其实很大程度上我们在理解CFS时可以简单地认为键值就等于进程已占用的 CPU时间。因此该值越大，键值越大，从而使得当前进程向红黑树的右侧移动。另外CFS规定，nice值为1的进程比nice值为0的进程多获得10%的 CPU时间。在计算键值时也考虑到这个因素，因此nice值越大，键值也越大。
@@ -285,12 +285,12 @@ CFS为每个进程都维护两个重要变量：fair_clock和wait_runtime。这�
 
 红黑树是平衡树，调度器每次总最左边读出一个叶子节点，该读取操作的时间复杂度是$O(LogN)$
 
-###调度器管理器
+###4.3.4	调度器管理器
 -------
 
 为了支持实时进程，CFS提供了调度器模块管理器。各种不同的调度器算法都可以作为一个模块注册到该管理器中。不同的进程可以选择使用不同的调度器模块。2.6.23中，CFS实现了两个调度算法，CFS算法模块和实时调度模块。对应实时进程，将使用实时调度模块。对应普通进程则使用CFS算法。CFS 调度模块（在 kernel/sched_fair.c 中实现）用于以下调度策略：SCHED_NORMAL、SCHED_BATCH 和 SCHED_IDLE。对于 SCHED_RR 和 SCHED_FIFO 策略，将使用实时调度模块（该模块在 kernel/sched_rt.c 中实现）。
 
-###CFS组调度
+###4.3.5	CFS组调度
 -------
 
 CFS组调度（在 2.6.24 内核中引入）是另一种为调度带来公平性的方式，尤其是在处理产生很多其他任务的任务时。 假设一个产生了很多任务的服务器要并行化进入的连接（HTTP 服务器的典型架构）。不是所有任务都会被统一公平对待， CFS 引入了组来处理这种行为。产生任务的服务器进程在整个组中（在一个层次结构中）共享它们的虚拟运行时，而单个任务维持其自己独立的虚拟运行时。这样单个任务会收到与组大致相同的调度时间。您会发现 /proc 接口用于管理进程层次结构，让您对组的形成方式有完全的控制。使用此配置，您可以跨用户、跨进程或其变体分配公平性。
@@ -302,3 +302,185 @@ CFS组调度（在 2.6.24 内核中引入）是另一种为调度带来公平性
 >http://www.ibm.com/developerworks/cn/linux/l-completely-fair-scheduler/index.html?ca=drs-cn-0125
 >
 >另外内核文档sched-design-CFS.txt中也有介绍。
+
+
+#5	返璞归真的Linux BFS调度器
+-------
+
+BFS 是一个进程调度器，可以解释为“脑残调度器”。这古怪的名字有多重含义，比较容易被接受的一个说法为：它如此简单，却如此出色，这会让人对自己的思维能力产生怀疑。
+BFS 不会被合并进入 Linus 维护的 Linux mainline，BFS 本身也不打算这么做。但 BFS 拥有众多的拥趸，这只有一个原因：BFS 非常出色，它让用户的桌面环境达到了前所未有的流畅。在硬件越来越先进，系统却依然常显得迟钝的时代，这实在让人兴奋。
+
+进入 2010 年，Android 开发一个分支使用 BFS 作为其操作系统的标准调度器，这也证明了 BFS 的价值。后来放弃。
+
+
+##5.1  BFS的引入
+-------
+
+前些天突然在网上看到了下面的图片
+
+![CFS的问题](./images/bfs_history.png)
+
+后来发现该图片是BFS调度器的引子, 太具有讽刺意义了。
+
+##5.2	可配置型调度器的需求
+-------
+
+为了避免小手段，那就要彻底抛弃“鱼与熊掌可兼得”的思想，采用“一种调度器只适用于一种场景”的新思路. 如此我们可以设计多种调度器, 在安装操作系统的时候可以由管理员进行配置, 比如我们将其用于桌面，那么就使用"交互调度器", 如果用于路由器, 那就使用"大吞吐调度器", ...消除了兼顾的要求，调度器设计起来就更佳简单和纯粹了.
+
+
+面对需要大吞吐量的网络操作系统, 我们有传统的UNIX调度器, 然而面对日益桌面化的操作系统比如Android手机, 我们是否能摒弃那种大而全的调度策略呢?
+
+Con Kolivas老大设计出的BFS调度器就是为桌面交互式应用量身打造的.
+
+##5.3	问题在哪?
+-------
+
+Linux 2.6内核实现了那么多的调度器，然而其效果总是有美中不足的地方，到底问题出在哪里？事实上，Linux 2.6的各种调度器的实现都不是完全按照理论完成的，其中都添加了一些小手段. 比如虽然CFS号称支持大于2048的CPU个数，然而实际应用中，效果未必好，因为CFS调度器继承了O(1)调度器的load_balance特性，因此在那么多处理器之间进行基于调度域的load_balance，锁定以及独占的代价将会十分大，从而抵消了每CPU队列带来的消除锁定的优势.
+
+总之，这些调度器太复杂了，而且越来越复杂，将80%的精力消耗在了20%的场景中. 实际上，做设计不要联想，完全依照我们目前所知道的和所遇到的来，在可用性和效率上被证明是明智的，当然不考虑太多的可扩展性。
+
+##5.4	回到O(n)调度器
+-------
+
+BFS调度器用一句话来总结就是"回到了O(n)调度器"，它在O(n)调度器的基础上进行了优化，而没有引入看起来很好的O(1)调度器, 这就是其实质.
+
+O(n)调度器有什么不好么?有的, 大不了就是遍历的时间太长，BFS根据实际的测试数据忽略之；每个处理器都要锁定整个队列，BFS改之，做到这些既可，这才叫基于O(n)调度器的优化而不是彻底颠覆O(n)调度器而引入O(1)调度器-当然前提是桌面环境。如果说能回到原始的O(n)调度器进行修改使之重新发挥其作用而不是彻底抛弃它，这才是最佳的做法，反之，如果我们把问题的解决方案搞的越来越复杂，最终就是陷入一个泥潭而不可自拔。要知道方案复杂性的积累是一个笛卡儿积式的积累，你必须考虑到每一种排列组合才能，当你做不到这一点的时候，你就需要返璞归真。
+
+
+##5.5	BFS调度器的原理
+-------
+
+BFS的原理十分简单，其实质正是使用了O(1)调度器中的位图的概念，所有进程被安排到103个queue中，各个进程不是按照优先级而是按照优先级区间被排列到各自所在的区间，每一个区间拥有一个queue，如下图所示：
+
+
+![BFS调度器的原理](./images/bfs_queue.png)
+
+内核在pick-next的时候，按照O(1)调度器的方式首先查找位图中不为0的那个queue，然后在该queue中执行O(n)查找，查找到virtual deadline(如下所述)最小的那个进程投入执行。过程很简单，就像流水一样。之所以规划103个队列而不是一个完全是为了进程按照其性质而分类，这个和每CPU没有任何关系，将进程按照其性质(RT?优先级?)分类而不是按照CPU分类是明智之举。内核中只有一个“103队列”，m个CPU和“103队列”完全是一个“消费者-生产者”的关系。O(1)调度器，内核中拥有m(CPU个数)个“消费者-生产者”的关系，每一个CPU附带一个“生产者(140队列组)”。
+        只有统一的，单一的“消费者-生产者”的关系才能做到调度的公平，避免了多个关系之间踢皮球现象，这是事实。在结构单一，功能确定且硬件简单的系统中，正确的调度器架构如下图所示：
+
+![BFS调度器的架构](./images/bfs_layout.png)
+
+
+在结构单一，功能确定且硬件简单的系统中，不正确的调度器架构如下图所示：
+
+
+![BFS调度器的架构](./images/bfs_design.png)
+
+**虚拟 Deadline ( Virtual Deadline )**
+
+当一个进程被创建时，它被赋予一个固定的时间片，和一个虚拟 Deadline。该虚拟 deadline 的计算公式非常简单：
+
+```c
+Virtual Deadline = jiffies + (user_priority * rr_interval)
+```
+
+其中 jiffies 是当前时间 , user_priority 是进程的优先级，rr_interval 代表 round-robin interval，近似于一个进程必须被调度的最后期限，所谓 Deadline 么。不过在这个 Deadline 之前还有一个形容词为 Virtual，因此这个 Deadline 只是表达一种愿望而已，并非很多领导们常说的那种 deadline。
+
+虚拟 Deadline 将用于调度器的 picknext 决策
+
+**进程队列的表示方法和调度策略**
+
+在操作系统内部，所有的 Ready 进程都被存放在进程队列中，调度器从进程队列中选取下一个被调度的进程。因此如何设计进程队列是我们研究调度器的一个重要话题。BFS 采用了非常传统的进程队列表示方法，即 bitmap 加 queue。
+
+BFS 将所有进程分成 4 类，分别表示不同的调度策略 :
+
+Realtime，实时进程 SCHED_ISO，isochronous 进程，用于交互式任务 SCHED_NORMAL，普通进程 SCHED_IDELPRO，低优先级任务 实时进程总能获得 CPU，采用 Round Robin 或者 FIFO 的方法来选择同样优先级的实时进程。他们需要 superuser 的权限，通常限于那些占用 CPU 时间不多却非常在乎 Latency 的进程。
+
+SCHED_ISO 在主流内核中至今仍未实现，Con 早在 2003 年就提出了这个 patch，但一直无法进入主流内核，这种调度策略是为了那些 near-realtime 的进程设计的。如前所述，实时进程需要用户有 superuser 的权限，这类进程能够独占 CPU，因此只有很少的进程可以被配置为实时进程。对于那些对交互性要求比较高的，又无法成为实时进程的进程，BFS 将采用 SCHED_ISO，这些进程能够抢占 SCHED_NORMAL 进程。他们的优先级比 SCHED_NORMAL 高，但又低于实时进程。此外当 SCHED_ISO 进程占用 CPU 时间达到一定限度后，会被降级为 SCHED_NORMAL，防止其独占整个系统资源。
+
+SCHED_NORMAL 类似于主流调度器 CFS 中的 SCHED_OTHER，是基本的分时调度策略。
+
+SCHED_IDELPRO 类似于 CFS 中的 SCHED_IDLE，即只有当 CPU 即将处于 IDLE 状态时才被调度的进程。
+在这些不同的调度策略中，实时进程分成 100 个不同的优先级，加上其他三个调度策略，一共有 103 个不
+
+同的进程类型。对于每个进程类型，系统中都有可能有多个进程同时 Ready，比如很可能有两个优先级为 10 的 RT 进程同时 Ready，所以对于每个类型，还需要一个队列来存储属于该类型的 ready 进程。
+BFS 用 103 个 bitmap 来表示是否有相应类型的进程准备进行调度。如图所示：
+当任何一种类型的进程队列非空时，即存在 Ready 进程时，相应的 bitmap 位被设置为 1。
+调度器如何在这样一个 bitmap 加 queue 的复杂结构中选择下一个被调度的进程的问题被称为 Task Selection 或者 pick next。
+
+**Task Selection i.e. Pick Next**
+
+当调度器决定进行进程调度的时候，BFS 将按照下面的原则来进行任务的选择：
+首先查看 bitmap 是否有置位的比特。比如上图，对应于 SCHED_NORMAL 的 bit 被置位，表明有类型为 SCHED_NORMAL 的进程 ready。如果有 SCHED_ISO 或者 RT task 的比特被置位，则优先处理他们。
+选定了相应的 bit 位之后，便需要遍历其相应的子队列。假如是一个 RT 进程的子队列，则选取其中的第一个进程。如果是其他的队列，那么就采用 EEVDF 算法来选取合适的进程。
+EEVDF，即 earliest eligible virtual deadline first。BFS 将遍历该子队列，一个双向列表，比较队列中的每一个进程的 Virtual Deadline 值，找到最小的那个。最坏情况下，这是一个 O(n) 的算法，即需要遍历整个双向列表，假如其中有 n 个进程，就需要进行 n 此读取和比较。
+
+但实际上，往往不需要遍历整个 n 个进程，这是因为 BFS 还有这样一个搜索条件：
+
+当某个进程的 Virtual Deadline 小于当前的 jiffies 值时，直接返回该进程。并将其从就绪队列中删除，下次再 insert 时会放到队列的尾部，从而保证每个进程都有可能被选中，而不会出现饥饿现象。
+
+这条规则对应于这样一种情况，即进程已经睡眠了比较长的时间，以至于已经睡过了它的 Virtual Deadline，
+
+
+##5.6	BFS调度器初始版本的链表的非O(n)遍历
+
+BFS调度器的发展历程中也经历了一个为了优化性能而引入“小手段”的时期，该“小手段”是如此合理，以至于每一个细节都值得品味，现表述如下：
+
+大家都知道，遍历一个链表的时间复杂度是O(n)，然而这只是遍历的开销，在BFS调度器中，遍历的目的其实就是pick-next，如果该链表某种意义上是预排序的，那么pick-next的开销可以减少到接近O(1)。BFS如何做到的呢？
+
+我们首先看一下virtual deadline的概念
+
+```c
+virtual deadline(VD)
+VD=jiffies + (prio_ratio * rr_interval)
+```
+
+其中prio_ratio为进程优先级，rr_interval为一个Deadline，表示该进程在最多多久内被调度，链表中的每一个entry代表一个进程，都有一个VD与之相关。VD的存在使得entry在链表的位置得以预排序，这里的预排序指的是vitrual deadline expire的影响下的预排序，BFS和O(n)的差别就在于这个expire，由于这个expire在，一般都会在遍历的途中遇到VD expire，进而不需要O(n)。基于VD的O(n)和基于优先级的O(n)是不同的，其区别在于根据上述的计算公式，VD是单调向前的，而优先级几乎是不怎么变化的，因此基于VD的O(n)调度器某种程度上和基于红黑树的CFS是一样的，VD也正类似于CFS中的虚拟时钟，只是数据结构不同而已，BFS用链表实现，CFS用红黑树实现。
+
+其实，O(n)并没有那么可怕，特别是在桌面环境中，你倒是有多少进程需要调度呢？理论上O(n)会随着进程数量的增加而效率降低，然而桌面环境下实际上没有太多的进程需要被调度，所以采用了BFS而抛弃了诸多小手段的调度器效果会更好些。理论上，CFS或者O(1)可以支持SMP下的诸多进程调度的高效性，然而，桌面环境下，第一，SMP也只是2到4个处理器，进程数也大多不超过1000个，进程在CPU之间蹦来蹦去，很累，何必杀鸡用牛刀呢？瓶颈不是鸡，而是杀鸡的刀，是吧！
+
+##5.7	pick-next算法
+
+BFS的pick-next算法对于SCHED_ISO进程依照以下的原则进行：
+
+*	依照FIFO原则进行，不再遍历链表
+
+BFS的pick-next算法对于SCHED_NORMAL或者SCHED_IDLEPRIO进程依照以下的原则进行：
+
+*	遍历运行链表，比较每一个entry的VD，找出最小的entry，从链表中删除，投入运行
+
+*	如果发现有entry的VD小于当前的jiffers，则停止遍历，取出该entry，投入运行--小手段
+
+以上的原则可以总结为“最小最负最优先”原则。作者一席话如下：
+
+>BFS has 103 priority queues. 100 of these are dedicated to the static priority of realtime tasks, and the remaining 3 are, in order of best to worst priority, SCHED_ISO (isochronous), SCHED_NORMAL, and SCHED_IDLEPRIO (idle priority scheduling). When a task of these priorities is queued, a bitmap of running priorities is set showing which of these priorities has tasks waiting for CPU time. When a CPU is made to reschedule, the lookup for the next task to get CPU time is performed in the following way:
+>
+>First the bitmap is checked to see what static priority tasks are queued. If any realtime priorities are found, the corresponding queue is checked and the first task listed there is taken (provided CPU affinity is suitable) and lookup is complete. If the priority corresponds to a SCHED_ISO task, they are also taken in FIFO order (as they behave like SCHED_RR). If the priority corresponds to either SCHED_NORMAL or SCHED_IDLEPRIO, then the lookup becomes O(n). At this stage, every task in the runlist that corresponds to that priority is checked
+to see which has the earliest set deadline, and (provided it has suitable CPU affinity) it is taken off the runqueue and given the CPU. If a task has an expired deadline, it is taken and the rest of the lookup aborted (as they are
+chosen in FIFO order).
+>
+>Thus, the lookup is O(n) in the worst case only, where n is as described earlier, as tasks may be chosen before the whole task list is looked over.
+
+使用virtual deadline，类似于CFS的virtual runtime的概念，然而不要红黑树，而采用了双向链表来实现，因为红黑树的插入效率不如链表插入效率，在pick-next算法上虽然红黑树占优势，然而由于VD expire的存在也使得pick-next不再是O(n)了
+
+BFS初始版本的小手段的意义在于减少O(n)遍历比较时间复杂度带来的恐惧。
+
+
+
+##5.8	去除了小手段的BFS调度器
+-------
+
+最终将小手段去除是重要的，否则BFS最终还是会陷入类似O(1)，CFS等复杂化的泥潭里面不可自拔，因此在后续的patch中，BFS去除了上述的小手段，用统一的O(n)复杂度来pick-next，毕竟前面已经说了O(n)在特定环境下并不是问题的关键，该patch在2.6.31.14-bfs318-330test.patch中体现。
+
+##5.9	队列外部执行
+-------
+
+BFS调度器和CFS是一样的，都是队列外执行进程的，这样可以减少锁争用带来的性能问题。再列出作者的一席话：
+
+>BFS has one single lock protecting the process local data of every task in the global queue. Thus every insertion, removal and modification of task data in the global runqueue needs to grab the global lock. However, once a task is taken by a CPU, the CPU has its own local data copy of the running process' accounting information which only that CPU accesses and modifies (such as during a timer tick) thus allowing the accounting data to be updated lockless. Once a CPU has taken a task to run, it removes it from the global queue. Thus the
+global queue only ever has, at most,
+>
+>    (number of tasks requesting cpu time) - (number of logical CPUs) + 1
+>
+>tasks in the global queue. This value is relevant for the time taken to look up tasks during scheduling. This will increase if many tasks with CPU affinity set in their policy to limit which CPUs they're allowed to run on if they outnumber the number of CPUs. The +1 is because when rescheduling a task, the CPU's currently running task is put back on the queue. Lookup will be described after the virtual deadline mechanism is explained.
+
+在schedule核心函数中，使用return_task来把prev进程重新入队，在earliest_deadline_task这个pick-next中，使用take_task将选中的next从队列取出，从而实现队列外执行。
+
+##6	结论
+-------
+
+从上面的论述，我们丝毫没有看到有任何的诸如“SMP负载均衡”，“CPU亲和力”，“补偿”，“惩罚”之类的字眼，是的，这些字眼在BFS中完全不需要，BFS也正是摒弃了这些字眼才获得成功的，毕竟在一个一般人使用的桌面操作系统中，没有这么多的套套，大多数人使用的就是一个只有一个到两个处理器核心的系统，难道有必要搞什么调度域么？难道有必要搞什么NUMA么？需求决定一切，面对大型服务器，有UNIX的机制站在那里，而如果我们想把Linux推广到每一个掌上设备，那就没必要复制UNIX的那套了，BFS完全可以完美的搞定一切。小手段的去除，说明BFS调度器的发展方向起码是正确的。
+
+BFS对SMP的支持如何呢？答案是它仅仅支持少量CPU的SMP体系，别忘了BFS的应用场合。因为在调度过程中需要一个遍历所有CPU的O(m)复杂度的计算，这就明确告诉人们，别指望BFS使用在拥有4096个CPU的系统上，正如没人用这种系统看视频一样，那样的话，还是乖乖使用CFS吧。
+
+BFS调度器思想很简单：集中精力做好一件事，适应一种场景，代码同样十分简单，因此即使贴上代码整个文章也不会显得过于冗长，你再也看不到诸如load_balance或者for_each_domain之类的东西了，至于CPU cache的亲和力智能判断，如果你非要做，那么就自己调用sched_setaffinity系统调用设置吧，把一个线程或者一组相关的进程设置到一个或者一组共享Cache的CPU上，让内核这些，在进程不那么多，CPU个数不那么多，没有NUMA的系统上，真的太累了。
