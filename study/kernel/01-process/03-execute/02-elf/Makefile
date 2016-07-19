@@ -45,6 +45,7 @@ libtestelf.so:$(SUBS_OBJS)
 	gcc -shared $^ -o $@
 
 # Complie the Static Link Library libtestelf.so
+STAT_FILE:$(STAT_FILE)(add.o) $(STAT_FILE)(sub.o)
 libtestelf.a:$(SUBS_OBJS)
 	ar -r $@ $^
 
