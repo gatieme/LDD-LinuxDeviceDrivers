@@ -54,12 +54,13 @@ union thread_union* get_thread_union(struct thread_info *threadinfo)
 
 unsigned long show_kstack(union thread_union *threadunion)
 {
-    unsigned long kstack = (unsigned long)threadunion->stack;
+    unsigned long kstack_thread = (unsigned long)threadunion->stack;
+    unsigned long kstack_task   = (unsigned long)threadunion->thread_info.task->stack;
     printk(KERN_INFO "THREAD_SIZE           : %d == %dKB", THREAD_SIZE, THREAD_SIZE / 1024);
-    printk(KERN_INFO "union_stack           : %p\n", (unsigned long)kstack);
-    printk(KERN_INFO "union_stack align     : %p\n", ((unsigned long)kstack & ~(THREAD_SIZE - 1)));
-    printk(KERN_INFO "kstack start          : %p\n", (void *)(((unsigned long) kstack & ~(THREAD_SIZE - 1)) + THREAD_SIZE - 1));
-    printk(KERN_INFO "kstack end            : %p\n", (void *)(((unsigned long) kstack & ~(THREAD_SIZE - 1)) + sizeof(struct thread_info)));
+    printk(KERN_INFO "union_stack           : %p %p\n", (unsigned long)kstack_thread, kstack_task);
+    printk(KERN_INFO "union_stack align     : %p\n", ((unsigned long)kstack_thread & ~(THREAD_SIZE - 1)));
+    printk(KERN_INFO "kstack start          : %p\n", (void *)(((unsigned long) kstack_thread & ~(THREAD_SIZE - 1)) + THREAD_SIZE - 1));
+    printk(KERN_INFO "kstack end            : %p\n", (void *)(((unsigned long) kstack_thread & ~(THREAD_SIZE - 1)) + sizeof(struct thread_info)));
 }
 
 static void print_thread_info(int pid)
@@ -75,8 +76,15 @@ static void print_thread_info(int pid)
 
 	printk(KERN_INFO "process   : %s, pid   : %d\n", ptask->comm, ptask->pid);
 
+    /*  ptask->stack point to thread_unuion  */
     threadinfo = get_thread_info(ptask);
 
+    /* union thread_union
+     * {
+     *     struct thread_info thread_info;
+     *     unsigned long stack[THREAD_SIZE/sizeof(long)];
+     * };
+     */
     threadunion = get_thread_union(threadinfo);
 
     show_kstack(threadunion);
