@@ -3,7 +3,7 @@
 | 2016-07-21  | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.5) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
 
 
-#0	项目链接
+#0.	项目链接
 -------
 
 | 项目 | 描述 |
