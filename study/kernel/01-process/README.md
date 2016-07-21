@@ -10,7 +10,7 @@
 |:-------:|:-------:|
 | [KernelInKernel](https://github.com/gatieme/KernelInKernel) | 一个运行在linux上的小巧内核, 修改了linux-kernel的start_kernel以启动我们自己的内核, 基于[jserv/kernel-in-kernel](https://github.com/jserv/kernel-in-kernel)(基于linux-4.1.0)和[mengning/mykernel](https://github.com/mengning/mykernel)(基于linux-3.9.4), 适合学习和研究调度算法 |
 | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) | CSDN博客--Linux进程管理与调度 |
-| [LDD-LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process) | 与CSDN博客同步更新, 但是除了包含博客的内容, 还包含了一些以驱动方式村子啊的实验代码 |
+| [LDD-LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process) | 与CSDN博客同步更新, 但是除了包含博客的内容, 还包含了一些以驱动方式实现的实验代码 |
 
 
 
