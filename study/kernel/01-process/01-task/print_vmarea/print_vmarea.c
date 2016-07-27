@@ -57,7 +57,7 @@ void print_vm_file(struct vm_area_struct *vmarea)
 
     if(vmarea->vm_file == NULL)
     {
-        printk("not mmp file\n");
+        printk("\tit's not a file map\n");
     }
     else //  the vm_files
     {
@@ -92,8 +92,8 @@ void print_vm_file(struct vm_area_struct *vmarea)
                     break;
                 }
             }
-            printk("%s\n", file);
-            /*
+            //printk("%s\n", file);
+
             do
             {
                 end = file + strlen(file) - 1;
@@ -108,8 +108,8 @@ void print_vm_file(struct vm_area_struct *vmarea)
 				printk("/%s", start);
 				*start = '\0';
 			} while(start > file);
-            */
 		}
+        printk("\n");
 	}
 }
 
@@ -132,9 +132,9 @@ void print_vmraea_node(struct vm_area_struct *vmnode)
 		printk("-");
 
 	if (vmnode->vm_flags & VM_SHARED)
-		printk("s\n");
+		printk("s");
 	else
-		printk("p\n");
+		printk("p");
 
     print_vm_file(vmnode);
 }
