@@ -133,7 +133,6 @@ static int find_pgd_init(void)
 static void  find_pgd_exit(void)
 {
         printk(KERN_INFO"Goodbye!\n");
-
 }
 
 module_init(find_pgd_init);
