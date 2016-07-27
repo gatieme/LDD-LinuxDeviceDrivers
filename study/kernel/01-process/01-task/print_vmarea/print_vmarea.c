@@ -47,8 +47,8 @@ struct dentry* file_entry(struct file *pfile)
 
 void print_vm_file(struct vm_area_struct *vmarea)
 {
-    struct file             *vmfile = vmarea->vm_file;
-    struct dentry           *den = file_entry(vmfile);
+    struct file             *vmfile = NULL;
+    struct dentry           *den = NULL;
 	struct dentry           *pPath = NULL;
 
 
@@ -61,6 +61,8 @@ void print_vm_file(struct vm_area_struct *vmarea)
     }
     else //  the vm_files
     {
+        vmfile = vmarea->vm_file;
+        den = file_entry(vmfile);
         //  i find in linux-kernel-3.16
         //  http://lxr.free-electrons.com/source/include/linux/fs.h?v=3.16#L753
         //  struct path             f_path;
@@ -89,9 +91,9 @@ void print_vm_file(struct vm_area_struct *vmarea)
                 {
                     break;
                 }
-
             }
-
+            printk("%s\n", file);
+            /*
             do
             {
                 end = file + strlen(file) - 1;
@@ -106,6 +108,7 @@ void print_vm_file(struct vm_area_struct *vmarea)
 				printk("/%s", start);
 				*start = '\0';
 			} while(start > file);
+            */
 		}
 	}
 }

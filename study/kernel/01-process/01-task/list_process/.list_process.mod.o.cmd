@@ -1,8 +1,9 @@
-cmd_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.o := aarch64-linux-gnu-gcc -Wp,-MD,/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/.print_vmarea.o.d  -nostdinc -isystem /usr/lib/gcc/aarch64-linux-gnu/4.9/include -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include -Iarch/arm64/include/generated  -Iinclude -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi -Iarch/arm64/include/generated/uapi -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi -Iinclude/generated/uapi -include /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/linux/kconfig.h -D__KERNEL__ -mlittle-endian -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -O2 -mgeneral-regs-only -Wframe-larger-than=2048 -fno-stack-protector -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -g -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -Werror=implicit-int -Werror=strict-prototypes -Werror=date-time -DCC_HAVE_ASM_GOTO  -DMODULE  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(print_vmarea)"  -D"KBUILD_MODNAME=KBUILD_STR(print_vmarea)" -c -o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/.tmp_print_vmarea.o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.c
+cmd_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.mod.o := aarch64-linux-gnu-gcc -Wp,-MD,/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/.list_process.mod.o.d  -nostdinc -isystem /usr/lib/gcc/aarch64-linux-gnu/4.9/include -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include -Iarch/arm64/include/generated  -Iinclude -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi -Iarch/arm64/include/generated/uapi -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi -Iinclude/generated/uapi -include /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/linux/kconfig.h -D__KERNEL__ -mlittle-endian -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -O2 -mgeneral-regs-only -Wframe-larger-than=2048 -fno-stack-protector -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -g -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -Werror=implicit-int -Werror=strict-prototypes -Werror=date-time -DCC_HAVE_ASM_GOTO  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(list_process.mod)"  -D"KBUILD_MODNAME=KBUILD_STR(list_process)" -DMODULE  -c -o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.mod.o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.mod.c
 
-source_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.o := /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.c
+source_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.mod.o := /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.mod.c
 
-deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.o := \
+deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.mod.o := \
+    $(wildcard include/config/module/unload.h) \
   include/linux/module.h \
     $(wildcard include/config/sysfs.h) \
     $(wildcard include/config/modules.h) \
@@ -15,7 +16,6 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01
     $(wildcard include/config/tracing.h) \
     $(wildcard include/config/event/tracing.h) \
     $(wildcard include/config/ftrace/mcount/record.h) \
-    $(wildcard include/config/module/unload.h) \
     $(wildcard include/config/constructors.h) \
     $(wildcard include/config/debug/set/module/ronx.h) \
   include/linux/list.h \
@@ -541,76 +541,9 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01
     $(wildcard include/config/have/mod/arch/specific.h) \
     $(wildcard include/config/modules/use/elf/rel.h) \
     $(wildcard include/config/modules/use/elf/rela.h) \
-  include/linux/mm.h \
-    $(wildcard include/config/mem/soft/dirty.h) \
-    $(wildcard include/config/x86.h) \
-    $(wildcard include/config/ppc.h) \
-    $(wildcard include/config/parisc.h) \
-    $(wildcard include/config/metag.h) \
-    $(wildcard include/config/ksm.h) \
-    $(wildcard include/config/debug/vm/rb.h) \
-    $(wildcard include/config/debug/pagealloc.h) \
-    $(wildcard include/config/hibernation.h) \
-    $(wildcard include/config/hugetlbfs.h) \
-  include/linux/debug_locks.h \
-    $(wildcard include/config/debug/locking/api/selftests.h) \
-  include/linux/range.h \
-  include/linux/bit_spinlock.h \
-  include/linux/shrinker.h \
-  include/linux/page-flags.h \
-    $(wildcard include/config/pageflags/extended.h) \
-    $(wildcard include/config/arch/uses/pg/uncached.h) \
-    $(wildcard include/config/memory/failure.h) \
-    $(wildcard include/config/swap.h) \
-  include/linux/huge_mm.h \
-  include/linux/vmstat.h \
-    $(wildcard include/config/vm/event/counters.h) \
-  include/linux/vm_event_item.h \
-    $(wildcard include/config/migration.h) \
-  include/generated/uapi/linux/version.h \
-  include/linux/proc_fs.h \
-  include/linux/fs.h \
-    $(wildcard include/config/fs/posix/acl.h) \
-    $(wildcard include/config/quota.h) \
-    $(wildcard include/config/fsnotify.h) \
-    $(wildcard include/config/ima.h) \
-    $(wildcard include/config/debug/writecount.h) \
-    $(wildcard include/config/file/locking.h) \
-    $(wildcard include/config/fs/xip.h) \
-  include/linux/kdev_t.h \
-  include/uapi/linux/kdev_t.h \
-  include/linux/dcache.h \
-  include/linux/rculist_bl.h \
-  include/linux/list_bl.h \
-  include/linux/lockref.h \
-    $(wildcard include/config/arch/use/cmpxchg/lockref.h) \
-  include/linux/path.h \
-  include/linux/list_lru.h \
-  include/linux/radix-tree.h \
-  include/linux/semaphore.h \
-  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/linux/fiemap.h \
-  include/linux/migrate_mode.h \
-  include/linux/percpu-rwsem.h \
-  include/uapi/linux/fs.h \
-  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/linux/limits.h \
-  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/linux/ioctl.h \
-  arch/arm64/include/generated/asm/ioctl.h \
-  include/asm-generic/ioctl.h \
-  include/uapi/asm-generic/ioctl.h \
-  include/linux/quota.h \
-    $(wildcard include/config/quota/netlink/interface.h) \
-  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/linux/dqblk_xfs.h \
-  include/linux/dqblk_v1.h \
-  include/linux/dqblk_v2.h \
-  include/linux/dqblk_qtree.h \
-  include/linux/projid.h \
-  include/uapi/linux/quota.h \
-  include/linux/nfs_fs_i.h \
-  include/linux/fcntl.h \
-  include/uapi/linux/fcntl.h \
-  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi/asm/fcntl.h \
-  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/asm-generic/fcntl.h \
+  include/linux/vermagic.h \
+  include/generated/utsrelease.h \
 
-/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.o: $(deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.o)
+/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.mod.o: $(deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.mod.o)
 
-$(deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.o):
+$(deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.mod.o):

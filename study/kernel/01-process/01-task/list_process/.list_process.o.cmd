@@ -1,25 +1,23 @@
-cmd_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.mod.o := aarch64-linux-gnu-gcc -Wp,-MD,/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/.print_vmarea.mod.o.d  -nostdinc -isystem /usr/lib/gcc/aarch64-linux-gnu/4.9/include -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include -Iarch/arm64/include/generated  -Iinclude -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi -Iarch/arm64/include/generated/uapi -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi -Iinclude/generated/uapi -include /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/linux/kconfig.h -D__KERNEL__ -mlittle-endian -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -O2 -mgeneral-regs-only -Wframe-larger-than=2048 -fno-stack-protector -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -g -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -Werror=implicit-int -Werror=strict-prototypes -Werror=date-time -DCC_HAVE_ASM_GOTO  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(print_vmarea.mod)"  -D"KBUILD_MODNAME=KBUILD_STR(print_vmarea)" -DMODULE  -c -o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.mod.o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.mod.c
+cmd_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.o := aarch64-linux-gnu-gcc -Wp,-MD,/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/.list_process.o.d  -nostdinc -isystem /usr/lib/gcc/aarch64-linux-gnu/4.9/include -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include -Iarch/arm64/include/generated  -Iinclude -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi -Iarch/arm64/include/generated/uapi -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi -Iinclude/generated/uapi -include /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/linux/kconfig.h -D__KERNEL__ -mlittle-endian -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -O2 -mgeneral-regs-only -Wframe-larger-than=2048 -fno-stack-protector -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -g -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -Werror=implicit-int -Werror=strict-prototypes -Werror=date-time -DCC_HAVE_ASM_GOTO  -DMODULE  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(list_process)"  -D"KBUILD_MODNAME=KBUILD_STR(list_process)" -c -o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/.tmp_list_process.o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.c
 
-source_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.mod.o := /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.mod.c
+source_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.o := /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.c
 
-deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.mod.o := \
-    $(wildcard include/config/module/unload.h) \
-  include/linux/module.h \
-    $(wildcard include/config/sysfs.h) \
+deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.o := \
+  include/linux/init.h \
+    $(wildcard include/config/broken/rodata.h) \
     $(wildcard include/config/modules.h) \
-    $(wildcard include/config/unused/symbols.h) \
-    $(wildcard include/config/module/sig.h) \
-    $(wildcard include/config/generic/bug.h) \
-    $(wildcard include/config/kallsyms.h) \
-    $(wildcard include/config/smp.h) \
-    $(wildcard include/config/tracepoints.h) \
-    $(wildcard include/config/tracing.h) \
-    $(wildcard include/config/event/tracing.h) \
-    $(wildcard include/config/ftrace/mcount/record.h) \
-    $(wildcard include/config/constructors.h) \
-    $(wildcard include/config/debug/set/module/ronx.h) \
-  include/linux/list.h \
-    $(wildcard include/config/debug/list.h) \
+  include/linux/compiler.h \
+    $(wildcard include/config/sparse/rcu/pointer.h) \
+    $(wildcard include/config/trace/branch/profiling.h) \
+    $(wildcard include/config/profile/all/branches.h) \
+    $(wildcard include/config/enable/must/check.h) \
+    $(wildcard include/config/enable/warn/deprecated.h) \
+    $(wildcard include/config/kprobes.h) \
+  include/linux/compiler-gcc.h \
+    $(wildcard include/config/arch/supports/optimized/inlining.h) \
+    $(wildcard include/config/optimize/inlining.h) \
+  include/linux/compiler-gcc4.h \
+    $(wildcard include/config/arch/use/builtin/bswap.h) \
   include/linux/types.h \
     $(wildcard include/config/uid16.h) \
     $(wildcard include/config/lbdaf.h) \
@@ -37,20 +35,24 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01
   /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/linux/posix_types.h \
   include/linux/stddef.h \
   include/uapi/linux/stddef.h \
-  include/linux/compiler.h \
-    $(wildcard include/config/sparse/rcu/pointer.h) \
-    $(wildcard include/config/trace/branch/profiling.h) \
-    $(wildcard include/config/profile/all/branches.h) \
-    $(wildcard include/config/enable/must/check.h) \
-    $(wildcard include/config/enable/warn/deprecated.h) \
-    $(wildcard include/config/kprobes.h) \
-  include/linux/compiler-gcc.h \
-    $(wildcard include/config/arch/supports/optimized/inlining.h) \
-    $(wildcard include/config/optimize/inlining.h) \
-  include/linux/compiler-gcc4.h \
-    $(wildcard include/config/arch/use/builtin/bswap.h) \
   arch/arm64/include/generated/asm/posix_types.h \
   /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/asm-generic/posix_types.h \
+  include/linux/module.h \
+    $(wildcard include/config/sysfs.h) \
+    $(wildcard include/config/unused/symbols.h) \
+    $(wildcard include/config/module/sig.h) \
+    $(wildcard include/config/generic/bug.h) \
+    $(wildcard include/config/kallsyms.h) \
+    $(wildcard include/config/smp.h) \
+    $(wildcard include/config/tracepoints.h) \
+    $(wildcard include/config/tracing.h) \
+    $(wildcard include/config/event/tracing.h) \
+    $(wildcard include/config/ftrace/mcount/record.h) \
+    $(wildcard include/config/module/unload.h) \
+    $(wildcard include/config/constructors.h) \
+    $(wildcard include/config/debug/set/module/ronx.h) \
+  include/linux/list.h \
+    $(wildcard include/config/debug/list.h) \
   include/linux/poison.h \
     $(wildcard include/config/illegal/pointer/value.h) \
   /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/linux/const.h \
@@ -179,8 +181,6 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01
     $(wildcard include/config/early/printk.h) \
     $(wildcard include/config/printk.h) \
     $(wildcard include/config/dynamic/debug.h) \
-  include/linux/init.h \
-    $(wildcard include/config/broken/rodata.h) \
   include/linux/kern_levels.h \
   include/linux/cache.h \
     $(wildcard include/config/arch/has/cache/line/size.h) \
@@ -541,9 +541,7 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01
     $(wildcard include/config/have/mod/arch/specific.h) \
     $(wildcard include/config/modules/use/elf/rel.h) \
     $(wildcard include/config/modules/use/elf/rela.h) \
-  include/linux/vermagic.h \
-  include/generated/utsrelease.h \
 
-/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.mod.o: $(deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.mod.o)
+/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.o: $(deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.o)
 
-$(deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_vmarea/print_vmarea.mod.o):
+$(deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/list_process/list_process.o):
