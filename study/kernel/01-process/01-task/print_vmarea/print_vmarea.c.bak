@@ -22,43 +22,43 @@ static int pid = 1;
 
 module_param(pid,int,0644);
 
-void print_vmraea_node(struct vm_area_struct *vmnode)
+static void printvm_list(void)
 {
-	printk("0x%lx - 0x%lx\t", vmnode->vm_start, vmnode->vm_end);
-	if (vmnode->vm_flags & VM_READ)
-		printk("r");
-	else
-		printk("-");
+	struct task_struct      *p = NULL;
+	struct pid              *k = NULL;
+	struct vm_area_struct   *tmp = NULL;
 
-	if (vmnode->vm_flags & VM_WRITE)
-		printk("w");
-	else
-		printk("-");
+    k = find_vpid(pid);
+	p = pid_task(k,PIDTYPE_PID);
 
-	if (vmnode->vm_flags & VM_EXEC)
-		printk("x");
-	else
-		printk("-");
+    tmp = p->mm->mmap;
 
-	if (vmnode->vm_flags & VM_SHARED)
-		printk("s\n");
-	else
-		printk("p\n");
-}
+	printk("process:%s,pid:%d\n",p->comm,p->pid);
 
-
-static void printvm_list(struct vm_area_struct *vmlist)
-{
-    struct vm_area_struct   *vmnode = vmlist;
-
-	printk("0x%lx - 0x%lx\t",vmnode->vm_start,vmnode->vm_end);
-
-    while (vmnode != NULL)
+	while (tmp != NULL)
     {
+		printk("0x%lx - 0x%lx\t",tmp->vm_start,tmp->vm_end);
+		if (tmp->vm_flags & VM_READ)
+			printk("r");
+		else
+			printk("-");
 
-        print_vmraea_node(vmnode);
+		if (tmp->vm_flags & VM_WRITE)
+			printk("w");
+		else
+			printk("-");
 
-        vmnode = vmnode->vm_next;
+		if (tmp->vm_flags & VM_EXEC)
+			printk("x");
+		else
+			printk("-");
+
+		if (tmp->vm_flags & VM_SHARED)
+			printk("s\n");
+		else
+			printk("p\n");
+
+		tmp = tmp->vm_next;
 	}
 }
 
@@ -66,50 +66,63 @@ static void printvm_list(struct vm_area_struct *vmlist)
 
 static void visit(struct rb_node *root)
 {
-	struct vm_area_struct *vmnode;
-	vmnode =  container_of(root,struct vm_area_struct,vm_rb);
-    print_vmraea_node(vmnode);
+	struct vm_area_struct *tmp;
+	tmp =  container_of(root,struct vm_area_struct,vm_rb);
+	printk("0x%lx - 0x%lx\t",tmp->vm_start,tmp->vm_end);
+	if (tmp->vm_flags & VM_READ)
+		printk("r");
+	else
+		printk("-");
+
+	if (tmp->vm_flags & VM_WRITE)
+		printk("w");
+	else
+		printk("-");
+
+	if (tmp->vm_flags & VM_EXEC)
+		printk("x");
+	else
+		printk("-");
+
+	if (tmp->vm_flags & VM_SHARED)
+		printk("s\n");
+	else
+		printk("p\n");
 }
 
 static void print_rb_tree(struct rb_node *root)
 {
-	if (root != NULL)
-    {
+	if (root != NULL) {
 		visit(root);
 		print_rb_tree(root->rb_left);
 		print_rb_tree(root->rb_right);
 	}
 }
 
-static void print_vmarea(void)
+static void printvm_tree(void)
 {
-    struct task_struct      *p = NULL;
-	struct pid              *k = NULL;
-    struct vm_area_struct   *vmlist = NULL;
-	struct rb_node          *root = NULL;
+    struct task_struct *p = NULL;
+	struct pid *k = NULL;
+	struct rb_node *root = NULL;
 
 	k = find_vpid(pid);
 	p = pid_task(k, PIDTYPE_PID);
 
     //  visit vmarea by list
-	printk("-------[visit vmarea by list   START]-------\n");
-    vmlist = p->mm->mmap;
-    printvm_list(vmlist);
-	printk("-------[visit vmarea by list     END]-------\n");
-
+    printvm_list();
     // visit vmarea by rbtree
-	printk("-------[visit vmarea by rbtree START]-------\n");
 	root = p->mm->mm_rb.rb_node;
 	print_rb_tree(root);
-	printk("-------[visit vmarea by rbtree   END]-------\n");
 
     return ;
 }
 
 static int __init printvm_init(void)
 {
-    print_vmarea( );
-    return 0;
+	printvm_list();
+	printk("------------------------\n");
+	printvm_tree();
+	return 0;
 }
 
 static void __exit printvm_exit(void)
