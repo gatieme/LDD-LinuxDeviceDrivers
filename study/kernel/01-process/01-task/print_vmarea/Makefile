@@ -16,3 +16,17 @@ clean:
 
 
 endif
+
+
+
+insmod:
+	sudo insmod ./print_vmarea.ko
+
+rmmod:
+	sudo rmmod print_vmarea
+
+reinsmod:
+	make rmmod
+	make insmod
+
+

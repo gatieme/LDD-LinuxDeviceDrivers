@@ -81,7 +81,7 @@ unsigned long show_kstack(union thread_union *threadunion)
     unsigned long kstack_thread = (unsigned long)threadunion->stack;
     unsigned long kstack_task   = (unsigned long)threadunion->thread_info.task->stack;
 
-    printk(KERN_INFO "THREAD_SIZE           : %ld == %ld == %ldKB",
+    printk(KERN_INFO "THREAD_SIZE           : %ldB == %ldB == %ldKB",
            sizeof(union thread_union), THREAD_SIZE, THREAD_SIZE / 1024);
     //printk(KERN_INFO "THREAD_MASK           : 0x%x\n", ~(THREAD_SIZE - 1));
 
