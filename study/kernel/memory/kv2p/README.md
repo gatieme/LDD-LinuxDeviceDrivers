@@ -111,6 +111,13 @@ __virt_to_phys函数定义在[arch/arm64/include/asm/memory.h, line 109](http://
 
 ```
 
+其中\__x中间变量是内核的一点小技巧, 通过宏实现的函数没有检查, 比如传入一个x++
+
+其主要操作就是
+
+```c
+__x & BIT(VA_BITS - 1) ? (__x & ~PAGE_OFFSET) + PHYS_OFFSET : (__x - kimage_voffset); })
+```
 
 ##2.4	__phys_to_virt函数
 -------
