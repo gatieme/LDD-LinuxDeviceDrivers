@@ -7,6 +7,10 @@
 #include <linux/mm.h>
 #include <linux/mm_types.h>
 
+
+#include <linux/version.h>      /*  for KERNEL_VERSION  */
+#include <linux/proc_fs.h>      /*  for struct file     */
+
 #ifndef offsetof
 #define offsetof(type, field)   ((long) &((type *)0)->field)
 #endif   /* offsetof */
@@ -24,6 +28,72 @@
 static int pid = 1;
 
 module_param(pid,int,0644);
+
+
+
+struct dentry* file_entry(struct file *pfile)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+
+    return pfile->f_path.dentry;
+
+#else
+
+    return pfile->f_dentry;
+
+#endif
+
+}
+
+void print_vm_file(struct vm_area_struct *vmarea)
+{
+    struct file             *vmfile = vmarea->vm_file;
+    struct dentry           *den = file_entry(vmfile);
+	struct dentry           *pPath = NULL;
+
+    if(vmarea->vm_file == NULL)
+    {
+        printk("not mmp file\n");
+    }
+    else //  the vm_files
+    {
+        //  i find in linux-kernel-3.16
+        //  http://lxr.free-electrons.com/source/include/linux/fs.h?v=3.16#L753
+        //  struct path             f_path;
+        //  #define f_dentry        f_path.dentry
+
+        //if(p->vm_file->f_path.dentry != NULL)
+        if(den != NULL)
+        {
+            printk("\t");
+            //for(pPath = p->vm_file->f_path.dentry;
+            for(pPath = den;
+                pPath != NULL;
+                pPath = pPath->d_parent)
+            {
+
+                if(strcmp(pPath->d_name.name, "/") != 0)
+                {
+                    printk("%s/", pPath->d_name.name);
+                    continue;
+                }
+                break;
+            }
+/*
+            do
+            {
+                end = file + strlen(file) - 1;
+                for(start = end - 1; *start != '/' && start > file; start--);
+                if(*start == '/')	{start++;}
+                *end = '\0';
+                printk("/%s", start);
+                *start = '\0';
+            } while(start > file);*/
+        }
+    }
+
+    //printk("%c", DELIMITER);
+}
 
 void print_vmraea_node(struct vm_area_struct *vmnode)
 {
@@ -47,6 +117,8 @@ void print_vmraea_node(struct vm_area_struct *vmnode)
 		printk("s\n");
 	else
 		printk("p\n");
+
+    print_vm_file(vmnode);
 }
 
 
@@ -126,6 +198,8 @@ static void print_vmarea(void)
 
     return ;
 }
+
+
 
 static int __init printvm_init(void)
 {
