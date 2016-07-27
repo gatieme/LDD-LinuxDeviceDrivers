@@ -65,34 +65,42 @@ void print_vm_file(struct vm_area_struct *vmarea)
         //if(p->vm_file->f_path.dentry != NULL)
         if(den != NULL)
         {
-            printk("\t");
-            //for(pPath = p->vm_file->f_path.dentry;
-            for(pPath = den;
+		    printf("\t");
+			memset(file,'\0',sizeof(file));
+			//for(pPath = p->vm_file->f_path.dentry;
+			for(pPath = den;
                 pPath != NULL;
                 pPath = pPath->d_parent)
             {
 
                 if(strcmp(pPath->d_name.name, "/") != 0)
                 {
-                    printk("%s/", pPath->d_name.name);
+                    strcpy(file + strlen(file), pPath->d_name.name);
+				    strcpy(file + strlen(file), "/");
+
                     continue;
+
                 }
+
                 break;
             }
-/*
+
             do
             {
                 end = file + strlen(file) - 1;
-                for(start = end - 1; *start != '/' && start > file; start--);
-                if(*start == '/')	{start++;}
-                *end = '\0';
-                printk("/%s", start);
-                *start = '\0';
-            } while(start > file);*/
-        }
-    }
+				for(start = end - 1; *start != '/' && start > file; start--);
 
-    //printk("%c", DELIMITER);
+                if(*start == '/')
+                {
+                    start++;
+                }
+				*end = '\0';
+
+				printk("/%s", start);
+				*start = '\0';
+			} while(start > file);
+		}
+	}
 }
 
 void print_vmraea_node(struct vm_area_struct *vmnode)
