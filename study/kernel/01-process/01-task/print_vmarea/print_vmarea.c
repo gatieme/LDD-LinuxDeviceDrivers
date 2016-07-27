@@ -51,6 +51,10 @@ void print_vm_file(struct vm_area_struct *vmarea)
     struct dentry           *den = file_entry(vmfile);
 	struct dentry           *pPath = NULL;
 
+
+    char                    file[255];
+    char                    *start = NULL, *end = NULL;
+
     if(vmarea->vm_file == NULL)
     {
         printk("not mmp file\n");
@@ -65,7 +69,7 @@ void print_vm_file(struct vm_area_struct *vmarea)
         //if(p->vm_file->f_path.dentry != NULL)
         if(den != NULL)
         {
-		    printf("\t");
+		    printk("\t");
 			memset(file,'\0',sizeof(file));
 			//for(pPath = p->vm_file->f_path.dentry;
 			for(pPath = den;
@@ -81,8 +85,11 @@ void print_vm_file(struct vm_area_struct *vmarea)
                     continue;
 
                 }
+                else
+                {
+                    break;
+                }
 
-                break;
             }
 
             do
