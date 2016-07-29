@@ -2,7 +2,7 @@ all:github
 
 
 
-COMMIT="更新了CFS调度器类的学习实例和博客信息..."
+COMMIT="测试的proc_test驱动包括只读proc_entry, 只写proc_entry和可读写proc_entry..."
 
 .PHONY	:	github
 github:

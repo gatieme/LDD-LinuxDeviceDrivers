@@ -5,7 +5,11 @@
 #include <asm/uaccess.h>
 
 
-static ssize_t hello_read(struct file * file, char * buf, size_t count, loff_t *ppos)
+static ssize_t hello_read(
+        struct file * file,
+        char * buf,
+        size_t count,
+        loff_t *ppos)
 {
     char *hello_str = "Hello, world!\n";
 
@@ -64,7 +68,7 @@ static struct miscdevice hello_dev =
     * What functions to call when a program performs file
     * operations on the device.
     */
-    &hello_fops
+    &hello_fops,
 };
 
 
@@ -79,8 +83,11 @@ static int __init hello_init(void)
     ret = misc_register(&hello_dev);
     if (ret != 0)
     {
-        printk(KERN_ERR
-            "Unable to register \"Hello, world!\" misc devicen");
+        printk(KERN_ERR "Unable to register \"Hello, world!\" misc devicen");
+    }
+    else
+    {
+        printk(KERN_INFO "register \"Hello World!\" misc devicen...\n");
     }
 
     return ret;
@@ -91,6 +98,7 @@ module_init(hello_init);
 static void __exit hello_exit(void)
 {
     misc_deregister(&hello_dev);
+    printk(KERN_INFO "deregister \"Hello World!\" misc devicen...\n");
 }
 module_exit(hello_exit);
 
@@ -106,7 +114,3 @@ MODULE_VERSION(DRIVER_VERSION);
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_LICENSE(DRIVER_LICENSE);
-
-
-module_init(globalmem_init);
-module_exit(globalmem_exit);

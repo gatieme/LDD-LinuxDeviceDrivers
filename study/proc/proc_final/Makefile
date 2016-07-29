@@ -24,7 +24,8 @@ DRIVER_DESC    := "Linux input module for Elo MultiTouch(MT) devices"
 DRIVER_LICENSE := "Dual BSD/GPL"
 
 
-MODULE_NAME := hello
+
+MODULE_NAME := proc-test
 
 ifneq ($(KERNELRELEASE),)
 
@@ -32,13 +33,21 @@ ifneq ($(KERNELRELEASE),)
 #EXTRA_CFLAGS  += $(C_FLAGS) $(CFG_INC) $(CFG_INC)
 
 
+#MODULE_NAME := proc-test
 
-obj-m := $(MODULE_NAME).o #print_vmarea.o
+RESMAIN_CORE_OBJS := main.o
+RESMAIN_GLUE_OBJS := ro.o	wo.o	rw.o
+
+
+
+proc-test-objs := $(RESMAIN_GLUE_OBJS) $(RESMAIN_CORE_OBJS)
+obj-m := $(MODULE_NAME).o #proc-test.o
 
 else
 
+#MODULE_NAME := proc-test
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-
+#KERNELDIR ?= /home/gatieme/Work/Kernel/
 PWD := $(shell pwd)
 
 modules:

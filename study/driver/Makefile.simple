@@ -17,6 +17,13 @@ ROOT=..
 #PLATFORM=$(shell $(ROOT)/systype.sh)
 #include $(ROOT)/Make.defines.$(PLATFORM)
 
+#	my driver description
+DRIVER_VERSION := "1.0.0"
+DRIVER_AUTHOR  := "Gatieme @ AderStep Inc..."
+DRIVER_DESC    := "Linux input module for Elo MultiTouch(MT) devices"
+DRIVER_LICENSE := "Dual BSD/GPL"
+
+
 MODULE_NAME := print_vmarea
 
 ifneq ($(KERNELRELEASE),)

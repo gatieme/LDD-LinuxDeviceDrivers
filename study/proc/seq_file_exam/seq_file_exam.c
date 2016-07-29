@@ -72,7 +72,7 @@ static struct file_operations exam_seq_fops = {
 static int __init exam_seq_init(void)
 {
 
-    entry = create_proc_entry("exam_esq_file", 0, NULL);
+    entry = create_proc_entry("exam_esq_file", 0666, NULL);
     if (entry)
         entry->proc_fops = &exam_seq_fops;
 
