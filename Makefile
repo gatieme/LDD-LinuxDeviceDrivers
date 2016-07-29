@@ -2,7 +2,7 @@ all:github
 
 
 
-COMMIT="list/rbtree遍历进程虚拟地址空间vm_area_struct的学习代码中增加了输出文件映射的代码print_vm_file--驱动print_vmarea"
+COMMIT="print_task_struct中增加了对进程优先级/调度器类的实验示例..."
 
 .PHONY	:	github
 github:

@@ -1,4 +1,6 @@
-# Makefile for the memory fault injection engine.
+# ------------------------------------------------------------------------------
+#
+# Makefile for the LDD-LinuxDeviceDrivers.
 #
 # Author: gatieme
 # Create: 2016-07-29 15:50:46
@@ -8,11 +10,14 @@
 # 	Use "make install" to load it into kernel.
 # 	Use "make remove" to remove the module out of kernel.
 #
+# ------------------------------------------------------------------------------
+
+
 ROOT=..
 #PLATFORM=$(shell $(ROOT)/systype.sh)
 #include $(ROOT)/Make.defines.$(PLATFORM)
 
-MODULE_NAME := print_vmarea
+MODULE_NAME := memory-engine
 
 ifneq ($(KERNELRELEASE),)
 
@@ -20,12 +25,20 @@ ifneq ($(KERNELRELEASE),)
 #EXTRA_CFLAGS  += $(C_FLAGS) $(CFG_INC) $(CFG_INC)
 
 
+#MODULE_NAME := memory-engine
 
-obj-m := $(MODULE_NAME).o #print_vmarea.o
+RESMAIN_CORE_OBJS := memoryEngine.o
+RESMAIN_GLUE_OBJS := ctl.o	physicalAddr.o	signal.o		\
+					 virtualAddr.o 		kFuncName.o			\
+					 memVal.o	pid.o	taskInfo.o
+
+
+memory-engine-objs := $(RESMAIN_GLUE_OBJS) $(RESMAIN_CORE_OBJS)
+obj-m := $(MODULE_NAME).o #memory-engine.o
 
 else
 
-#MODULE_NAME := print_vmarea
+#MODULE_NAME := memory-engine
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 #KERNELDIR ?= /home/gatieme/Work/Kernel/
 PWD := $(shell pwd)

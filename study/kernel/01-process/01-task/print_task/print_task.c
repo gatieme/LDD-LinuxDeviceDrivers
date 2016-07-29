@@ -61,19 +61,46 @@ static inline int print_task_policy(int policy)
             break;
     }
 
-
     return policy;
 }
 
 
+#if 0
+extern const struct sched_class stop_sched_class;
+extern const struct sched_class dl_sched_class;
+extern const struct sched_class rt_sched_class;
+extern const struct sched_class fair_sched_class;
+extern const struct sched_class idle_sched_class;
 
-void print_task_sched_class(struct sched_class  *schedclass)
+
+void print_task_sched_class(const struct sched_class  *schedclass)
 {
-    switch(sched_class)
+    if(schedclass == &stop_sched_class)
     {
-        case &rt_
+        printk("STOP SCHED CLASS\n");
+    }
+    else if(schedclass == &dl_sched_class)
+    {
+        printk("EDF SCHED CLASS\n");
+    }
+    else if(schedclass == &rt_sched_class)
+    {
+        printk("RT SCHED CLASS\n");
+    }
+    else if(schedclass == &fair_sched_class)
+    {
+        printk("CFS SCHED CLASS\n");
+    }
+    else if(schedclass == &idle_sched_class)
+    {
+        printk("IDLE SCHED CLASS\n");
+    }
+    else
+    {
+        printk("unknown shced class\n");
     }
 }
+#endif
 
 void print_task_priority(struct task_struct *ptask)
 {
@@ -98,11 +125,16 @@ void print_task_priority(struct task_struct *ptask)
 void print_task_struct(struct task_struct *ptask)
 {
     printk("flag = 0x%x\n", ptask->flags);
+
     //  priority
     print_task_priority(ptask);
 
     //  policy
     print_task_policy(ptask->policy);
+    printk("cpus_allow = 0x%x\n", ptask->nr_cpus_allowed);
+
+    // sched class
+    //print_task_sched_class(ptask->sched_class);
 }
 
 
@@ -137,4 +169,5 @@ static void __exit print_task_exit(void)
 
 module_init(print_task_init);
 module_exit(print_task_exit);
+
 MODULE_LICENSE("GPL");
