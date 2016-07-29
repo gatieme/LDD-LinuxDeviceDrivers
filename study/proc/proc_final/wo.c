@@ -16,45 +16,48 @@
 
 
 
-char    ro_buffer[MAX_LINE] =
+//char    wo_buffer[MAX_LINE] = "WRITE ONLY!!!";
+unsigned long wo_buffer;
 /*
 *
 */
-int proc_write_ctl( struct file *file,
+int proc_write_wo( struct file *file,
                     const char *buffer,
                     unsigned long count,
                     void * data)
 {
 	int iRet;
-	char sCtl[MAX_LINE];
+	char temp[MAX_LINE];
 
 	if(count <= 0)
     {
         return FAIL;
     }
 
-    memset(sCtl, '\0', sizeof(sCtl));
+    memset(temp, '\0', sizeof(temp));
 
-    iRet = copy_from_user(sCtl, buffer, count);
+    iRet = copy_from_user(temp, buffer, count);
 	if(iRet)
     {
         return FAIL;
     }
 
-    iRet = sscanf(sCtl,"%d",&ctl);
+    iRet = sscanf(temp,"%d",&wo_buffer);
 	if(iRet != 1)
     {
         return FAIL;
     }
-    dbginfo("Rcv ctl : %d\n", ctl);
-    do_request( );
+    dbginfo("Rcv wo : %d\n", wo_buffer);
+    /////////////////
+    //  do something
+    /////////////////
 
     return count;
 }
 
-const struct file_operations proc_ctl_fops =
+const struct file_operations proc_wo_fops =
 {
     .owner = THIS_MODULE,
-    //.read  = proc_read_ctl,                       // can read
-    .write = proc_write_ctl,                        // write only
+    //.read  = proc_read_wo,                       // can read
+    .write = proc_write_wo,                        // write only
 };
