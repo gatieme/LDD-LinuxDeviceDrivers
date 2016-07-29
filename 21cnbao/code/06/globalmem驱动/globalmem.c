@@ -5,6 +5,10 @@
     <author@linuxdriver.cn>. All Rights Reserved.
 ======================================================================*/
 
+
+
+#include <linux/version.h>
+
 #include <linux/module.h>
 #include <linux/types.h>
 #include <linux/fs.h>
@@ -14,14 +18,25 @@
 #include <linux/init.h>
 #include <linux/cdev.h>
 #include <asm/io.h>
+
+//  error: implicit declaration of function `kfree`
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3, 19, 0)
 #include <asm/system.h>
+#else
+#include <linux/slab.h>
+#endif
+
 #include <asm/uaccess.h>
 
 #define GLOBALMEM_SIZE      0x1000            /*  全局内存最大4K字节          */
 #define MEM_CLEAR           0x1               /*  清0全局内存                 */
-#define GLOBALMEM_MAJOR     254               /*  预设的globalmem的主设备号   */
+#define GLOBALMEM_MAJOR     300               /*  预设的globalmem的主设备号   */
 
-static globalmem_major = GLOBALMEM_MAJOR;
+
+/*  globalmem的设备号   */
+static int globalmem_major = GLOBALMEM_MAJOR;
+module_param(globalmem_major, int, S_IRUGO);
+
 
 /*  globalmem设备结构体 */
 struct globalmem_dev
@@ -33,6 +48,7 @@ struct globalmem_dev
 };
 
 struct globalmem_dev *globalmem_devp;         /*  设备结构体指针    */
+
 
 /*  文件打开函数    */
 int globalmem_open(struct inode *inode, struct file *filp)
@@ -64,8 +80,8 @@ static int globalmem_ioctl(
         {
             memset(dev->mem, 0, GLOBALMEM_SIZE);
             printk(KERN_INFO "globalmem is set to zero\n");
-        }
             break;
+        }
 
         default:
         {
@@ -218,7 +234,14 @@ static const struct file_operations globalmem_fops =
     .llseek = globalmem_llseek,
     .read = globalmem_read,
     .write = globalmem_write,
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 36)
     .ioctl = globalmem_ioctl,
+#else
+    .unlocked_ioctl = globalmem_ioctl,
+    .compat_ioctl = globalmem_ioctl,
+#endif
+
     .open = globalmem_open,
     .release = globalmem_release,
 };
@@ -246,15 +269,17 @@ int globalmem_init(void)
     int result;
     dev_t devno = MKDEV(globalmem_major, 0);
 
-    /* 申请设备号*/
-    if (globalmem_major)
+    /*  申请设备号  */
+    if (globalmem_major != 0)
     {
         result = register_chrdev_region(devno, 1, "globalmem");
+        printk(KERN_INFO "register char device drivers [globalmem], MAJOR = %d\n", globalmem_major);
     }
     else  /* 动态申请设备号 */
     {
         result = alloc_chrdev_region(&devno, 0, 1, "globalmem");
         globalmem_major = MAJOR(devno);
+        printk(KERN_INFO "alloc char device drivers [globalmem], MAJOR = %d\n", globalmem_major);
     }
 
     if (result < 0)
@@ -288,10 +313,19 @@ void globalmem_exit(void)
     unregister_chrdev_region(MKDEV(globalmem_major, 0), 1); /*释放设备号*/
 }
 
-MODULE_AUTHOR("Song Baohua");
-MODULE_LICENSE("Dual BSD/GPL");
 
-module_param(globalmem_major, int, S_IRUGO);
+//Driver Information
+#define DRIVER_VERSION  "1.0.0"
+#define DRIVER_AUTHOR   "Gatieme @ AderStep Inc..."
+#define DRIVER_DESC     "Linux input module for Elo MultiTouch(MT) devices"
+#define DRIVER_LICENSE  "Dual BSD/GPL"
+
+// Kernel Module Information
+MODULE_VERSION(DRIVER_VERSION);
+MODULE_AUTHOR(DRIVER_AUTHOR);
+MODULE_DESCRIPTION(DRIVER_DESC);
+MODULE_LICENSE(DRIVER_LICENSE);
+
 
 module_init(globalmem_init);
 module_exit(globalmem_exit);

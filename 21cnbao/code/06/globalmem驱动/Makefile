@@ -17,15 +17,7 @@ ROOT=..
 #PLATFORM=$(shell $(ROOT)/systype.sh)
 #include $(ROOT)/Make.defines.$(PLATFORM)
 
-#	my driver description
-DRIVER_VERSION := "1.0.0"
-DRIVER_AUTHOR  := "Gatieme @ AderStep Inc..."
-DRIVER_DESC    := "Linux input module for Elo MultiTouch(MT) devices"
-DRIVER_LICENSE := "Dual BSD/GPL"
-
-
-
-MODULE_NAME := memory-engine
+MODULE_NAME := globalmem
 
 ifneq ($(KERNELRELEASE),)
 
@@ -33,22 +25,13 @@ ifneq ($(KERNELRELEASE),)
 #EXTRA_CFLAGS  += $(C_FLAGS) $(CFG_INC) $(CFG_INC)
 
 
-#MODULE_NAME := memory-engine
 
-RESMAIN_CORE_OBJS := memoryEngine.o
-RESMAIN_GLUE_OBJS := ctl.o	physicalAddr.o	signal.o		\
-					 virtualAddr.o 		kFuncName.o			\
-					 memVal.o	pid.o	taskInfo.o
-
-
-memory-engine-objs := $(RESMAIN_GLUE_OBJS) $(RESMAIN_CORE_OBJS)
-obj-m := $(MODULE_NAME).o #memory-engine.o
+obj-m := $(MODULE_NAME).o #globalmem.o
 
 else
 
-#MODULE_NAME := memory-engine
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-#KERNELDIR ?= /home/gatieme/Work/Kernel/
+
 PWD := $(shell pwd)
 
 modules:
