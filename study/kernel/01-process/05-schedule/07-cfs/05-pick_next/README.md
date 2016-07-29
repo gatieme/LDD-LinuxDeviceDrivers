@@ -213,7 +213,7 @@ simple:
 -------
 
 
-##2.2.1	**全局put_prev_task函数**
+###2.2.1	**全局put_prev_task函数**
 
 
 put_prev_task用来将前一个进程prev放回到就绪队列中, 这是一个全局的函数, 而每个调度器类也必须实现一个自己的put_prev_task函数(比如CFS的put_prev_task_fair), 
@@ -229,7 +229,7 @@ static inline void put_prev_task(struct rq *rq, struct task_struct *prev)
 }
 ```
 
-##2.2.2	**CFS的put_prev_task_fair函数**
+###2.2.2	**CFS的put_prev_task_fair函数**
 
 
 然后我们来分析一下CFS的put_prev_task_fair函数, 其定义在[kernel/sched/fair.c, line 5572](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L5572)
@@ -257,7 +257,7 @@ static void put_prev_task_fair(struct rq *rq, struct task_struct *prev)
 而put_prev_task_fair函数最终会调用put_prev_entity函数将prev的调度时提se放回到就绪队列中等待下次调度
 
 
-##2.2.3	**put_prev_entity函数**
+###2.2.3	**put_prev_entity函数**
 
 [put_prev_entity](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L3443)函数定义在[kernel/sched/fair.c, line 3443](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v=4.6#L3443), 他在更新了虚拟运行时间等信息后, 最终通过__enqueue_entity函数将prev进程(即current进程)放回就绪队列rq上
 
@@ -267,6 +267,7 @@ static void put_prev_task_fair(struct rq *rq, struct task_struct *prev)
 -------
 
 ###2.3.1	**pick_next_entity函数完全注释**
+-------
 
 ```c
 /*
@@ -376,6 +377,7 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 ```
 
 ###2.3.2	**从left, second和curr进程中选择最优的进程**
+-------
 
 
 pick_next_entity则从CFS的红黑树中摘取一个最优的进程, 这个进程往往在红黑树的最左端, 即vruntime最小, 但是也有例外, 但是不外乎这几个进程
@@ -393,6 +395,7 @@ pick_next_entity则从CFS的红黑树中摘取一个最优的进程, 这个进�
 
 
 ###2.3.3	**cfs_rq的last和next指针域**
+-------
 
 在pick_next_entity的最后, 要把红黑树最左下角的进程和另外两个进程(即next和last)做比较, next是抢占失败的进程, 而last则是抢占成功后被抢占的进程, 这三个进程到底哪一个是最优的next进程呢?
 
@@ -409,6 +412,7 @@ Linux CFS实现的判决条件是：
 
 
 ###2.3.4	**wakeup_preempt_entity检查是否可以被抢占**
+-------
 
 
 ```c
@@ -732,7 +736,7 @@ idle_balance其实就是pull的工作.
 ```
 
 
-#与主调度器schedule进行通信
+#5	与主调度器schedule进行通信
 -------
 
 我们在之前讲解主调度器的时候就提到过, 主调度器函数schedule会调用__schedule来完成抢占, 而主调度器的主要功能就是选择一个新的进程来抢占到当前的处理器. 因此其中必然不能缺少pick_next_task工作
@@ -766,7 +770,7 @@ static void __sched notrace __schedule(bool preempt)
 其定义在[kernel/sched/core.c, line 3068](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L3064)
 
 
-#5	总结
+#6	总结
 -------
 
 pick_next_task_fair用于完全公平调度器在CFS的运行队列中优选出一个最优的进程, 为了适应组调度策略和基本的策略, pick_next_task_fair使用的不同的代码标签

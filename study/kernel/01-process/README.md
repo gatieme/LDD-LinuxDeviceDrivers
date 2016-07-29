@@ -3,7 +3,7 @@
 | 2016-07-21  | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.5) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
 
 
-#0.	项目链接
+#1  项目链接
 -------
 
 | 项目 | 描述 |
@@ -13,8 +13,7 @@
 | [LDD-LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process) | 与CSDN博客同步更新, 但是除了包含博客的内容, 还包含了一些以驱动方式实现的实验代码 |
 
 
-
-#1.	进程的描述
+#2  进程的描述
 -------
 
 | CSDN | GitHub |
@@ -24,12 +23,12 @@
 |[Linux进程ID号--Linux进程的管理与调度（三）](http://blog.csdn.net/gatieme/article/details/51383377) | [study/kernel/01-process/01-task/03-pid](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/01-task/03-pid)|
 
 
-#2.	进程的创建
+#3  进程的创建
 -------
 
 | CSDN | GitHub |
 | ------------- |:-------------:|
-| [Linux下的进程类别（内核线程、轻量级进程和用户进程）以及其创建方式--Linux进程的管理与调度（四）	](http://blog.csdn.net/gatieme/article/details/51482122) | [study/kernel/01-process/02-create/01-duplicate](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/02-create/01-duplicate)|
+| [Linux下的进程类别（内核线程、轻量级进程和用户进程）以及其创建方式--Linux进程的管理与调度（四）    ](http://blog.csdn.net/gatieme/article/details/51482122) | [study/kernel/01-process/02-create/01-duplicate](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/02-create/01-duplicate)|
 | [Linux下0号进程的前世(init_task进程)今生(idle进程)----Linux进程的管理与调度（五）](http://blog.csdn.net/gatieme/article/details/51484562) | [study/kernel/01-process/02-create/02-idel](http://blog.csdn.net/gatieme/article/details/51484562) |
 | [Linux下1号进程的前世(kernel_init)今生(init进程)----Linux进程的管理与调度（六）](http://blog.csdn.net/gatieme/article/details/51532804) | [study/kernel/01-process/02-create/03-init](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/02-create/03-init)|
 | [Linux下2号进程的kthreadd--Linux进程的管理与调度（七）](http://blog.csdn.net/gatieme/article/details/51566690) | [study/kernel/01-process/02-create/04-kthreadd](http://blog.csdn.net/gatieme/article/details/51566690) |
@@ -37,7 +36,7 @@
 | [Linux进程内核栈与thread_info结构详解--Linux进程的管理与调度（九）](http://blog.csdn.net/gatieme/article/details/51577479) | [study/kernel/01-process/02-create/06-thread_info](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/02-create/06-thread_info) |
 | [Linux内核线程kernel thread详解--Linux进程的管理与调度（十）](http://blog.csdn.net/gatieme/article/details/51589205) | [study/kernel/01-process/02-create/07-kernel_thead](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/02-create/07-kernel_thead)|
 
-#3.	进程的加载与运行
+#4  进程的加载与运行
 -------
 
 | CSDN | GitHub |
@@ -48,7 +47,7 @@
 
 
 
-#4.	进程的退出
+#5  进程的退出
 -------
 
 | CSDN | GitHub |
@@ -57,7 +56,7 @@
 
 
 
-#5.	进程的调度
+#6  进程的调度
 -------
 
 
@@ -73,3 +72,16 @@
 | [Linux进程优先级的处理--Linux进程的管理与调度(二十二)](http://blog.csdn.net/gatieme/article/details/51719208) | [study/kernel/01-process/05-schedule/03-design/06-priority](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/03-design/06-priority) |
 | [Linux唤醒抢占----Linux进程的管理与调度(二十三）](http://blog.csdn.net/gatieme/article/details/51872831) | [study/kernel/01-process/05-schedule/03-design/07-wakeup](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/03-design/07-wakeup) |
 
+
+#7  调度普通进程-完全公平调度器CFS
+-------
+
+| CSDN | GitHub |
+| ------------- |:-------------:|
+| [Linux进程调度之CFS调度器概述--Linux进程的管理与调度(二十四）](http://blog.csdn.net/gatieme/article/details/52067518) |  [study/kernel/01-process/05-schedule/07-cfs/01-cfs/](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/07-cfs/01-cfs) |
+| [Linux CFS调度器之负荷权重load_weight--Linux进程的管理与调度(二十五）](http://blog.csdn.net/gatieme/article/details/52067665) | [study/kernel/01-process/05-schedule/07-cfs/02-load_weight/](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/07-cfs/02-load_weight) |
+| [Linux CFS调度器之虚拟时钟vruntime与调度延迟--Linux进程的管理与调度(二十六）](http://blog.csdn.net/gatieme/article/details/52067748) | [study/kernel/01-process/05-schedule/07-cfs/03-vruntime/](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/07-cfs/03-vruntime) |
+| [Linux CFS调度器之队列操作--Linux进程的管理与调度(二十七）](http://blog.csdn.net/gatieme/article/details/52067898) |  [study/kernel/01-process/05-schedule/07-cfs/04-queue/](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/07-cfs/04-queue) |
+| [Linux CFS调度器之pick_next_task_fair选择下一个被调度的进程--Linux进程的管理与调度(二十八）](http://blog.csdn.net/gatieme/article/details/52068016) | [study/kernel/01-process/05-schedule/07-cfs/05-pick_next/](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/07-cfs/05-pick_next) |
+| [Linux CFS调度器之task_tick_fair处理周期性调度器--Linux进程的管理与调度(二十九）](http://blog.csdn.net/gatieme/article/details/52068050) | [study/kernel/01-process/05-schedule/07-cfs/06-task_tick_fair/](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/07-cfs/06-task_tick_fair) |
+| [Linux CFS调度器之唤醒抢占--Linux进程的管理与调度(三十）](http://blog.csdn.net/gatieme/article/details/52068061) | [study/kernel/01-process/05-schedule/07-cfs/07-task_new_fair/](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/07-cfs/07-task_new_fair) |

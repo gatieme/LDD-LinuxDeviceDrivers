@@ -4,8 +4,10 @@ Linux CFS调度器之负荷权重load_weight
 
 | 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
 | ------- |:-------:|:-------:|:-------:|:-------:|:-------:|
-| 2016-06-14 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/category/6225543) |
+| 2016-07-29 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/details/51456569) |
 
+
+Linux内核使用CFS是来调度我们最常见的普通进程, 其所属调度器类为fair_sched_class, 使用的调度策略包括SCHED_NORMAL和SCHED_BATCH, 进程task_struct中struct sched_entity se;字段标识的就是CFS调度器类的调度实体.
 
 
 前面我们详细的了解了linux下进程优先级的表示以及其计算的方法, 我们了解到linux针对普通进程和实时进程分别使用静态优先级static_prio和实时优先级rt_priority来指定其默认的优先级别, 然后通过normal_prio函数将他们分别转换为普通优先级normal_prio, 最终换算出动态优先级prio, 动态优先级prio才是内核调度时候有限考虑的优先级字段
@@ -14,46 +16,10 @@ Linux CFS调度器之负荷权重load_weight
 
 
 
-#前景回顾
+#1	前景回顾
 -------
 
-
-##进程调度
--------
-
-内存中保存了对每个进程的唯一描述, 并通过若干结构与其他进程连接起来.
-
-**调度器**面对的情形就是这样, 其任务是在程序之间共享CPU时间, 创造并行执行的错觉, 该任务分为两个不同的部分, 其中一个涉及**调度策略**, 另外一个涉及**上下文切换**.
-
-
-内核必须提供一种方法, 在各个进程之间尽可能公平地共享CPU时间, 而同时又要考虑不同的任务优先级.
-
-调度器的一般原理是, 按所需分配的计算能力, 向系统中每个进程提供最大的公正性, 或者从另外一个角度上说, 他试图确保没有进程被亏待.
-
-
-##进程的分类
--------
-
-linux把进程区分为实时进程和非实时进程, 其中非实时进程进一步划分为交互式进程和批处理进程
-
-| 类型 | 描述 | 示例 |
-| ------- |:-------:|:-------:|:-------:|
-| 交互式进程(interactive process) | 此类进程经常与用户进行交互, 因此需要花费很多时间等待键盘和鼠标操作. 当接受了用户的输入后, 进程必须很快被唤醒, 否则用户会感觉系统反应迟钝 | shell, 文本编辑程序和图形应用程序 |
-| 批处理进程(batch process) | 此类进程不必与用户交互, 因此经常在后台运行. 因为这样的进程不必很快相应, 因此常受到调度程序的怠慢 | 程序语言的编译程序, 数据库搜索引擎以及科学计算 |
-| 实时进程(real-time process) | 这些进程由很强的调度需要, 这样的进程绝不会被低优先级的进程阻塞. 并且他们的响应时间要尽可能的短 | 视频音频应用程序, 机器人控制程序以及从物理传感器上收集数据的程序|
-
-
-##不同进程采用不同的调度策略
--------
-
-根据进程的不同分类Linux采用不同的调度策略.
-
-对于实时进程，采用FIFO, Round Robin或者Earliest Deadline First (EDF)最早截止期限优先调度算法|的调度策略.
-
-但是普通进程的调度策略就比较麻烦了, 因为普通进程不能简单的只看优先级, 必须公平的占有CPU, 否则很容易出现进程饥饿, 这种情况下用户会感觉操作系统很卡, 响应总是很慢，因此在linux调度器的发展历程中经过了多次重大变动, linux总是希望寻找一个最接近于完美的调度策略来公平快速的调度进程.
-
-
-##linux调度器的演变
+##1.1	linux调度器的演变
 -------
 
 
@@ -64,13 +30,13 @@ linux把进程区分为实时进程和非实时进程, 其中非实时进程进�
 
 
 | 字段 | 版本 |
-| ------------- |:-------------:|:-------------:|
+| --- |:----:|
 | O(n)的始调度算法 | linux-0.11~2.4 |
 | O(1)调度器 | linux-2.5 |
 | CFS调度器 | linux-2.6~至今 |
 
 
-##Linux的调度器组成
+##1.2	Linux的调度器组成
 -------
 
 
@@ -106,7 +72,7 @@ linux内核目前实现了6中调度策略(即调度算法), 用于对不同类�
 
 
 其所属进程的优先级顺序为
-````c
+```c
 stop_sched_class -> dl_sched_class -> rt_sched_class -> fair_sched_class -> idle_sched_class
 ```
 
@@ -142,10 +108,10 @@ linux实现了6种调度策略, 依据其调度策略的不同实现了5个调�
 
 它们的关系如下图
 
-![调度器的组成](../images/level.jpg)
+![调度器的组成](../../images/level.jpg)
 
 
-##优先级的内核表示
+##1.3	优先级的内核表示
 -------
 
 
@@ -161,9 +127,9 @@ linux实现了6种调度策略, 依据其调度策略的不同实现了5个调�
 | 0——99 | 实时进程 |
 | 100——139 | 非实时进程 |
 
-![内核优先级标度](../images/priority.jpg)
+![内核优先级标度](../../images/priority.jpg)
 
-##进程的优先级表示
+##1.4	进程的优先级表示
 -------
 
 
@@ -201,11 +167,11 @@ struct task_struct
 
 
 
-#负荷权重
+#2	负荷权重
 -------
 
 
-##负荷权重结构struct load_weight
+##2.1	负荷权重结构struct load_weight
 -------
 
 负荷权重用struct load_weight数据结构来表示, 保存着进程权重值weight。其定义在[/include/linux/sched.h, v=4.6, L1195](http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L1195), 如下所示
@@ -219,7 +185,7 @@ struct load_weight {
 
 
 
-##调度实体的负荷权重load
+##2.2	调度实体的负荷权重load
 -------
 
 既然struct load_weight保存着进程的权重信息, 那么作为进程调度的实体, 必须将这个权重值与特定的进程task_struct, 更一般的与通用的调度实体sched_entity相关联
@@ -233,7 +199,7 @@ struct sched_entity {
 };
 ```
 
-##进程的负荷权重
+##2.3	进程的负荷权重
 
 而进程可以被作为一个调度的实时, 其内部通过存储struct sched_entity se而间接存储了其load_weight信息, 参照http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.6#L1415
 
@@ -249,11 +215,11 @@ struct task_struct
 因此我们就可以通过task_statuct->se.load获取负荷权重的信息, 而set_load_weight负责根据进程类型及其静态优先级计算符合权重.
 
 
-#优先级和权重的转换
+#3	优先级和权重的转换
 -------
 
 
-##优先级->权重转换表
+##3.1	优先级->权重转换表
 -------
 
 
@@ -345,7 +311,7 @@ $$sched\_prio\_to\_wmult[i] = \frac{2^{32}}{sched\_prio\_to\_weight[i]}$$
 $$\frac{2^{32}}{WEIGHT_IDLEPRIO} = WMULT_IDLEPRIO$$
 
 
-##linux-4.4之前的shced_prio_to_weight和sched_prio_to_wmult
+##3.2	linux-4.4之前的shced_prio_to_weight和sched_prio_to_wmult
 -------
 
 关于优先级->权重转换表sched_prio_to_weight
@@ -371,7 +337,7 @@ $$\frac{2^{32}}{WEIGHT_IDLEPRIO} = WMULT_IDLEPRIO$$
 其定义并没有发生变化, 依然是一个一对一NICE to WEIGHT的转换表
 
 
-##1.25的乘积因子
+##3.3	1.25的乘积因子
 -------
 
 
@@ -382,7 +348,7 @@ $$\frac{2^{32}}{WEIGHT_IDLEPRIO} = WMULT_IDLEPRIO$$
 如果进程B的优先级+1(优先级降低), 成为nice=1, 那么其CPU份额应该减少10%, 换句话说进程A得到的总的CPU应该是55%, 而进程B应该是45%. 优先级增加1导致权重减少, 即1024/1.25=820, 而进程A仍旧是1024, 则进程A现在将得到的CPU份额是1024/(1024+820=0.55, 而进程B的CPU份额则是820/(1024+820)=0.45. 这样就正好产生了10%的差值.
 
 
-#进程负荷权重的计算
+#4	进程负荷权重的计算
 -------
 
 
@@ -397,7 +363,7 @@ set_load_weight负责根据非实时进程类型极其静态优先级计算符�
 >而另一方面, SCHED_IDLE进程的权值总是非常小, 普通非实时进程则根据其静态优先级设置对应的负荷权重
 
 
-##set_load_weight依据静态优先级设置进程的负荷权重
+##4.1	set_load_weight依据静态优先级设置进程的负荷权重
 -------
 
 
@@ -430,7 +396,7 @@ static void set_load_weight(struct task_struct *p)
 }
 ```
 
-##scale_load取得负荷权重的值
+##4.2	scale_load取得负荷权重的值
 -------
 
 其中scale_load是一个宏, 定义在[include/linux/sched.h, line 785](http://lxr.free-electrons.com/source/include/linux/sched.h?v=3.9?v=4.6#L785)
@@ -451,7 +417,7 @@ static void set_load_weight(struct task_struct *p)
 我们可以看到目前版本的scale_load其实什么也没做就是简单取了个值, 但是我们注意到负荷权重仍然保留了SCHED_LOAD_RESOLUTION不为0的情形, 只不过目前因为效率原因和功耗问题没有启用而已
 
 
-##set_load_weight的演变
+##4.3	set_load_weight的演变
 -------
 
 linux内核的调度器经过了不同阶段的发展, 但是即使是同一个调度器其算法也不是一成不变的, 也在不停的改进和优化
@@ -462,7 +428,9 @@ linux内核的调度器经过了不同阶段的发展, 但是即使是同一个�
 | 2.6.23~2.6.34 |  实时进程的权重为非实时权重的二倍 | [kernel/sched.c#L1836](http://lxr.linux.no/linux+v2.6.32/kernel/sched.c#1836) |
 | 2.6.35~2.6.36| 实时进程的权重设置为0, 重除值设置为WMULT_CONST | [kernel/sched.c, L1859](http://lxr.linux.no/linux+v2.6.36/kernel/sched.c#L1859) |
 | 2.6.37~至今4.6 | 实时进程不再设置权重 | 其中<= linux-3.2时, 代码在sched.c中<br>3.3~4.4之后, 增加了[sched/core.c](http://lxr.linux.no/linux+v4.4/kernel/sched/core.c#L812)文件调度的核心代码在此存放<br>4.5~至今, [修改prio_to_weight为sched_prio_to_weight](http://lxr.linux.no/linux+v4.5/kernel/sched/core.c#L813), 并将声明存放头文件中 |
-#就绪队列的负荷权重
+
+
+#5	就绪队列的负荷权重
 -------
 
 不仅进程, 就绪队列也关联到一个负荷权重. 这个我们在前面讲[Linux进程调度器的设计--Linux进程的管理与调度(十七）](http://blog.csdn.net/gatieme/article/details/51702662)的时候提到过了在cpu的就绪队列rq和cfs调度器的就绪队列cfs_rq中都保存了其load_weight.
@@ -471,7 +439,7 @@ linux内核的调度器经过了不同阶段的发展, 但是即使是同一个�
 
 
 
-##cfs就绪队列的负荷权重
+##5.1	cfs就绪队列的负荷权重
 -------
 
 ```c
@@ -504,7 +472,7 @@ struct dl_rq中不需要负荷权重
 是不需要保存负荷权重的.
 
 
-##就绪队列的负荷权重计算
+##5.2	就绪队列的负荷权重计算
 -------
 
 
@@ -561,7 +529,7 @@ static inline void update_load_set(struct load_weight *lw, unsigned long w)
 >其中sched_slice函数计算当前进程在调度延迟内期望的运行时间, 它根据cfs就绪队列中进程数确定一个最长时间间隔，然后看在该时间间隔内当前进程按照权重比例执行
 
 
-#总结
+#6	总结
 -------
 
 

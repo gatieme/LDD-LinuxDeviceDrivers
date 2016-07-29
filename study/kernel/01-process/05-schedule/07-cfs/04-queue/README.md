@@ -21,7 +21,7 @@ CFS负责处理普通非实时进程, 这类进程是我们linux中最普遍的�
 
 理想状态下每个进程都能获得相同的时间片，并且同时运行在CPU上，但实际上一个CPU同一时刻运行的进程只能有一个。也就是说，当一个进程占用CPU时，其他进程就必须等待。CFS为了实现公平，必须惩罚当前正在运行的进程，以使那些正在等待的进程下次被调度.
 
-##  负荷权重和虚拟时钟
+##1.2	负荷权重和虚拟时钟
 
 **虚拟时钟是红黑树排序的依据**
 
@@ -65,7 +65,7 @@ linux内核代码中是通过一个叫vruntime的变量来实现上面的原理�
 | curr.nice=NICE_0_LOAD | vruntime += delta; |
 
 
-##1.2	今日内容--CFS进程入队和出队
+##1.3	今日内容--CFS进程入队和出队
 -------
 
 
@@ -146,8 +146,7 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 
     hrtick_update(rq);
 }
-
-````
+```
 
 
 ##2.3	for_each_sched_entity
@@ -157,6 +156,7 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 
 ```c
 //  enqueue_task_fair函数
+{
     struct cfs_rq *cfs_rq;
     struct sched_entity *se = &p->se;
 
@@ -164,6 +164,7 @@ enqueue_task_fair(struct rq *rq, struct task_struct *p, int flags)
     {
     /*  ......  */
     }
+}
 ```
 
 但是有个疑问是, 进程p所在的调度时提就一个为嘛要循环才能遍历啊, 这是因为为了支持组调度.组调度下调度实体是有层次结构的, 我们将进程加入的时候, 同时要更新其父调度实体的调度信息, 而非组调度情况下, 就不需要调度实体的层次结构
@@ -196,6 +197,7 @@ linux对组调度的支持可以通过CONFIG_FAIR_GROUP_SCHED来启用, 在启�
 
 ```c
 //  enqueue_task_fair函数
+{
         /*  如果当前进程已经在就绪队列上  */
         if (se->on_rq)
             break;
@@ -204,7 +206,8 @@ linux对组调度的支持可以通过CONFIG_FAIR_GROUP_SCHED来启用, 在启�
         cfs_rq = cfs_rq_of(se);
         /*  内核委托enqueue_entity完成真正的插入工作  */
         enqueue_entity(cfs_rq, se, flags);
-````
+}
+```
 
 
 ##2.4	enqueue_entity插入进程
@@ -416,7 +419,7 @@ static void __enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se)
     /*  为新插入的结点进行着色  */
     rb_insert_color(&se->run_node, &cfs_rq->tasks_timeline);
 }
-````
+```
 
 #3	dequeue_task_fair出队操作
 -------
@@ -426,16 +429,19 @@ dequeue_task_fair函数在完成睡眠等情况下调度, 将任务从就绪队�
 其执行的过程正好跟enqueue_task_fair的思路相同, 只是操作刚好相反
 
 
-enqueue_task_fair的执行流程如下
+dequeue_task_fair的执行流程如下
 
 *	如果通过struct sched_entity的on_rq成员判断进程已经在就绪队列上, 则无事可做. 
 
 *	否则, 具体的工作委托给dequeue_entity完成, 其中内核会借机用update_curr更新统计量
 	在enqueue_entity内部如果需要会调用__dequeue_entity将进程插入到CFS红黑树中合适的结点
 
-##3.1	dequeue_task_fair函数
--------
 
+dequeue_task_fair定义在[/kernel/sched/fair.c, line 4155](http://lxr.free-electrons.com/source/kernel/sched/fair.c?v4.6#L4155), 其大致框架流程如下
+
+
+##3.1  dequeue_task_fair函数
+-------
 
 ```c
 /*
@@ -444,47 +450,15 @@ enqueue_task_fair的执行流程如下
  * update the fair scheduling stats:
  */
 static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
-{
+;
+
     struct cfs_rq *cfs_rq;
     struct sched_entity *se = &p->se;
     int task_sleep = flags & DEQUEUE_SLEEP;
-
-    for_each_sched_entity(se) {
-        cfs_rq = cfs_rq_of(se);
-        /*  将se调度实体所在的进程从队列中移除  */
-        dequeue_entity(cfs_rq, se, flags);
-
-        /*
-         * end evaluation on encountering a throttled cfs_rq
-         *
-         * note: in the case of encountering a throttled cfs_rq we will
-         * post the final h_nr_running decrement below.
-        */
-        if (cfs_rq_throttled(cfs_rq))
-            break;
-
-        /*  进程移除后, 队列上的可运行程序数目减少1  */
-        cfs_rq->h_nr_running--;
-
-        /* Don't dequeue parent if it has other entities besides us 
-         * 如果
-        */
-        if (cfs_rq->load.weight) {
-            /*
-             * Bias pick_next to pick a task from this cfs_rq, as
-             * p is sleeping when it is within its sched_slice.
-             */
-            if (task_sleep && parent_entity(se))
-                set_next_buddy(parent_entity(se));
-
-            /* avoid re-evaluating load for this entity */
-            se = parent_entity(se);
-            break;
-        }
 		
-        //   设置
-        flags |= DEQUEUE_SLEEP;
-    }
+    //   设置
+    flags |= DEQUEUE_SLEEP;
+
 
     for_each_sched_entity(se) {
         cfs_rq = cfs_rq_of(se);
@@ -504,7 +478,7 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 }
 ```
 
-## dequeue_entity
+##3.2	dequeue_entity将调度实体出队
 -------
 
 ```c
@@ -543,7 +517,7 @@ dequeue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
 }
 ```
 
-##  __dequeue_entity
+##3.3	__dequeue_entity完成真正的出队操作
 -------
 
 
