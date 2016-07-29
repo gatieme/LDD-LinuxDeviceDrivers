@@ -16,3 +16,17 @@ clean:
 
 
 endif
+
+
+
+insmod:
+	sudo insmod ./print_task.ko
+
+rmmod:
+	sudo rmmod print_task
+
+reinsmod:
+	make rmmod
+	make insmod
+
+

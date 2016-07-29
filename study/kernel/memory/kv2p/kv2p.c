@@ -6,7 +6,7 @@ va 接收待查询的虚拟地址
 *****************************************************************/
 
 
-#include  <linux/module.h>
+#include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/sched.h>
@@ -22,13 +22,14 @@ module_param(VA, ulong, 0644);
 
 
 
-static int __init kv2p_init( )
+static int __init kv2p_init(void)
 {
+    int value = 10;
     // use virt_to_phys
     // http://lxr.free-electrons.com/source/arch/arm64/include/asm/memory.h?v4.7#L189
-    //
-    virt_to_phys(VA);
 
+    phys_addr_t phyaddr = virt_to_phys((const volatile void *)&value);
+    printk("0x%lx\n", (unsigned long )phyaddr);
 
     return 0;
 }
