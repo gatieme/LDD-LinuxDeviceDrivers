@@ -75,7 +75,10 @@
 #define HIGH_3BIT(v)       ((v) >> (8 * sizeof(int) - 3) & 0x07)
 /// 取出当前信息的高1位
 #define HIGH_1BIT(v)       ((v) >> (8 * sizeof(int) - 1) & 0x01)
+
+#ifndef ALIGN
 #define ALIGN(size, align) ((size + align - 1) & (~(align - 1)))
+#endif
 
 #define BitGet(number, pos) ((number) >> (pos) & 1)     /// 用宏得到某数的某位
 #define BitSet(number, pos) ((number) |= 1 << (pos))    /// 把某位置1

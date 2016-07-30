@@ -1,0 +1,3 @@
+0x35a0b04d	read_write	/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/proc/proc_final/proc-test	EXPORT_SYMBOL
+0x50efacf5	write_only	/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/proc/proc_final/proc-test	EXPORT_SYMBOL
+0xe5fefaf3	read_only	/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/proc/proc_final/proc-test	EXPORT_SYMBOL

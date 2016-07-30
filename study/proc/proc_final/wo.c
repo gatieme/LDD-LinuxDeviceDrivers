@@ -16,8 +16,8 @@
 
 
 
-//char    wo_buffer[MAX_LINE] = "WRITE ONLY!!!";
-unsigned long wo_buffer;
+char    wo_buffer[MAX_LINE] = "WRITE ONLY!!!";
+//unsigned long wo_data;
 /*
 *
 */
@@ -42,12 +42,12 @@ int proc_write_wo( struct file *file,
         return FAIL;
     }
 
-    iRet = sscanf(temp,"%d",&wo_buffer);
+    iRet = sscanf(temp,"%s",wo_buffer);
 	if(iRet != 1)
     {
         return FAIL;
     }
-    dbginfo("Rcv wo : %d\n", wo_buffer);
+    printk(KERN_INFO "Rcv wo : %s\n", wo_buffer);
     /////////////////
     //  do something
     /////////////////

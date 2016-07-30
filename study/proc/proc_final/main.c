@@ -45,14 +45,14 @@ static int __init proc_test_init(void)
      *  as the interface between the kernel and the user program.
      *
      */
-    dir = proc_mkdir("proc_test", NULL);
+    dir = proc_mkdir(PROC_DIR, NULL);
 	if(dir == NULL)
 	{
-		dbginfo("Can't create "PROC_DIR"\n");
+		printk("Can't create " PROC_ROOT "/" PROC_DIR "\n");
 		return FAIL;
 	}
-    dbginfo("PROC_MKDIR ");
-    printk("Create /proc/memoryEngine success...\n");
+    printk("PROC_MKDIR ");
+    printk("Create " PROC_ROOT "/" PROC_DIR "success...\n");
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 32)
     /// modify by gatieme for system porting NeoKylin-linux-3.14/16
@@ -90,54 +90,57 @@ static int __init proc_test_init(void)
     ////////////////////////////////////////////////////////////////////////////
 #ifdef CREATE_PROC_ENTRY
 
-    proc_read_only = create_proc_entry("ctl", PERMISSION, dir);
+    proc_read_only = create_proc_entry(PROC_READ_ONLY_ENTRY, PERMISSION, dir);
 	if(proc_read_only == NULL)
 	{
-		dbginfo("Can't create "PROC_DIR PROC_READ_ONLY_ENTRY "\n");
+		printk("Can't create " PROC_READ_ONLY_FILE "\n");
         ret = FAIL;
 
         goto create_read_only_failed;
 
 	}
 
-    proc_read_only->write_proc = proc_read_only;              // write only
+    proc_read_only->write_proc = proc_read_ro;              // write only
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 32)
+    proc_read_only->owner = THIS_MODULE;
+#endif
 
-    //proc_read_only->owner = THIS_MODULE;
-
-    dbginfo("CREATE_PROC_ENTRY ");
+    printk("CREATE_PROC_ENTRY ");
 #elif defined PROC_CREATE
 
-    proc_read_only = proc_create("ctl", PERMISSION, dir, &proc_read_only_fops);
+    proc_read_only = proc_create(PROC_READ_ONLY_ENTRY, PERMISSION, dir, &proc_read_only_fops);
 
     if(proc_read_only == NULL)
 	{
-		dbginfo("Can't create "PROC_DIR PROC_READ_ONLY_ENTRY "\n");
+		printk("Can't create " PROC_READ_ONLY_FILE "\n");
         ret = FAIL;
 
 	    goto create_read_only_failed;
     }
-    dbginfo("PROC_CREATE ");
+    printk("PROC_CREATE ");
 #endif
-    printk("Create "PROC_DIR PROC_READ_ONLY_ENTRY " success...\n");
+    printk("Create " PROC_READ_ONLY_FILE " success...\n");
 
     ////////////////////////////////////////////////////////////////////////////
     /// create a file named "write only" in direntory
     ////////////////////////////////////////////////////////////////////////////
 #ifdef CREATE_PROC_ENTRY
 
-    proc_write_only = create_proc_entry(PROC_DIR, PERMISSION, dir);
+    proc_write_only = create_proc_entry(PROC_WRITE_ONLY_ENTRY, PERMISSION, dir);
 
     if(proc_write_only == NULL)
 	{
-		dbginfo("Can't create " PROC_DIR PROC_WRITE_ONLY_ENTRY"\n");
+		printk("Can't create " PROC_WRITE_ONLY_FILE "\n");
         ret = FAIL;
 
         goto create_write_only_failed;
 	}
-	proc_write_only->write_proc = proc_write_pid;  /// write only
-	//proc_write_only->owner = THIS_MODULE;
+	proc_write_only->write_proc = proc_write_wo;  /// write only
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 32)
+	proc_write_only->owner = THIS_MODULE;
+#endif
 
-    dbginfo("CREATE_PROC_ENTRY ");
+    printk("CREATE_PROC_ENTRY ");
 
 #elif defined PROC_CREATE
 
@@ -145,14 +148,14 @@ static int __init proc_test_init(void)
 
     if(proc_write_only == NULL)
 	{
-		dbginfo("Can't create " PRPC_DIR PROC_WRITE_ONLY_ENTRY "\n");
+		printk("Can't create " PROC_WRITE_ONLY_FILE "\n");
         ret = FAIL;
 
         goto create_write_only_failed;
 	}
-    dbginfo("PROC_CREATE ");
+    printk("PROC_CREATE ");
 #endif
-    printk("Create " PRPC_DIR PROC_WRITE_ONLY_ENTRY " success...\n");
+    printk("Create " PROC_WRITE_ONLY_FILE " success...\n");
 
 
 
@@ -162,36 +165,39 @@ static int __init proc_test_init(void)
     ////////////////////////////////////////////////////////////////////////////
 #ifdef CREATE_PROC_ENTRY
 
-	proc_read_write = create_proc_entry("virtualAddr", PERMISSION, dir);
+	proc_read_write = create_proc_entry(PROC_READ_WRITE_ENTRY, PERMISSION, dir);
 	if(proc_read_write == NULL)
 	{
-		dbginfo("Can't create " PRPC_DIR PROC_READ_WRITE_ENTRY "\n");
+		printk("Can't create " PROC_READ_WRITE_FILE "\n");
         ret = FAIL;
 
         goto create_read_write_failed;
 	}
-	proc_read_write->read_proc = proc_read_va;         // can read
-	proc_read_write->write_proc = proc_write_va;       // can write
-	//proc_read_write->owner = THIS_MODULE;
+	proc_read_write->read_proc = proc_read_rw;         // can read
+	proc_read_write->write_proc = proc_write_rw;       // can write
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 32)
+	proc_read_write->owner = THIS_MODULE;
+#endif
 
-    dbginfo("CREATE_PROC_ENTRY ");
+    printk("CREATE_PROC_ENTRY ");
+
 #elif defined PROC_CREATE
 
-    proc_read_write = proc_create("virtualAddr", PERMISSION, dir, &proc_read_write_fops);
+    proc_read_write = proc_creat(PROC_READ_WRITE_ENTRY, PERMISSION, dir, &proc_read_write_fops);
 
     if(proc_read_write == NULL)
 	{
-		dbginfo("Can't create " PRPC_DIR PROC_READ_WRITE_ENTRY "\n");
+		printk("Can't create " PROC_READ_WRITE_FILE "\n");
         ret = FAIL;
 
         goto create_va_failed;
     }
-    dbginfo("PROC_CREATE ");
+    printk("PROC_CREATE ");
 #endif
 
-    printk("Create " PRPC_DIR PROC_READ_WRITE_ENTRY " success...\n");
+    printk("Create " PROC_READ_WRITE_FILE " success...\n");
 
-	dbginfo("Memory engine module init\n");
+	printk("Memory engine module init\n");
 
     return OK;
 
@@ -206,7 +212,7 @@ create_write_only_failed    :
 create_read_only_failed     :
     remove_proc_entry(PROC_DIR, NULL);
 
-    return ret;
+    return FAIL;
 }
 
 
@@ -214,7 +220,7 @@ create_read_only_failed     :
 /*
 *  uninit memory fault injection module
 */
-static void __exit exitME(void)
+static void __exit proc_test_exit(void)
 {
 	remove_proc_entry("read_write", dir);
     printk("Remove /proc/proc_test/read_write success\n");
@@ -225,11 +231,11 @@ static void __exit exitME(void)
 	remove_proc_entry("read_only", dir);
     printk("Remove /proc/proc_test/read_only success\n");
 
-	dbginfo("Memory proc_test module exit\n");
+	printk("Memory proc_test module exit\n");
 }
 
-module_init(initPROC);
-module_exit(exitPROC);
+module_init(proc_test_init);
+module_exit(proc_test_exit);
 
 MODULE_LICENSE("Dual BSD/GPL");
 MODULE_AUTHOR("Gatieme @ HIT CS HDMC team");

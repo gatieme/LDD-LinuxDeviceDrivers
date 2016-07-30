@@ -26,9 +26,16 @@
 /*
  * proc files
  */
-#define     PROC_DIR                "/proc/proc_test"
+#define     PROC_ROOT               "proc"
+#define     PROC_DIR                "proc_test"
 #define     PROC_READ_ONLY_ENTRY    "read_only"
 #define     PROC_WRITE_ONLY_ENTRY   "write_only"
 #define     PROC_READ_WRITE_ENTRY   "read_write"
+
+#define     PROC_READ_ONLY_FILE      PROC_ROOT "/" PROC_DIR "/" PROC_READ_ONLY_ENTRY
+#define     PROC_WRITE_ONLY_FILE     PROC_ROOT "/" PROC_DIR "/" PROC_WRITE_ONLY_ENTRY
+#define     PROC_READ_WRITE_FILE     PROC_ROOT "/" PROC_DIR "/" PROC_READ_WRITE_ENTRY
+
+
 
 #endif                      //  #define __MAIN_H_INCLUDE__

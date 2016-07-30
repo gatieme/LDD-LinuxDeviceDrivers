@@ -309,3 +309,8 @@ struct cfs_rq {
 [理解CFS组调度](http://www.360doc.com/content/15/1006/18/18252487_503643269.shtml)
 
 [从几个问题开始理解CFS调度器](http://linuxperf.com/?p=42)
+
+
+[Linux 任务调度策略](http://blog.csdn.net/mtofum/article/details/44108043)
+
+[Linux内核学习6：内存管理(2)-进程地址空间](http://blog.csdn.net/gzbaishabi/article/details/39371523)

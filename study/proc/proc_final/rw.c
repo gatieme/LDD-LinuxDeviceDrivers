@@ -10,7 +10,7 @@
 
 #include "main.h"
 
-
+unsigned long   rw_data;
 
 /*
 *
@@ -22,11 +22,16 @@ int proc_write_rw(struct file *file, const char *buffer, unsigned long count, vo
 
 	if(count <= 0) { return FAIL; }
 	memset(srw, '\0', sizeof(srw));
-	iRet = copy_from_user(srw, buffer, count);
-	if(iRet) { return FAIL; }
-	iRet = sscanf(srw,"%lx",&rw);
-	if(iRet != 1) { return FAIL; }
-	dbginfo("Rcv rw:0x%lx\n",rw);
+
+    iRet = copy_from_user(srw, buffer, count);
+
+    if(iRet) { return FAIL; }
+
+    iRet = sscanf(srw,"%lx",&rw_data);
+
+    if(iRet != 1) { return FAIL; }
+
+    printk(KERN_INFO "Rcv rw:0x%lx\n", rw_data);
 	return count;
 }
 
@@ -37,8 +42,8 @@ int proc_write_rw(struct file *file, const char *buffer, unsigned long count, vo
 int proc_read_rw(char * rwge,char **start, off_t off, int count, int * eof,void * data)
 {
 	int iLen;
-    dbginfo("0x%lx\n", ack_rw);
-	iLen = sprintf(rwge, "%lx", ack_rw);
+    printk("0x%lx\n", rw_data);
+	iLen = sprintf(rwge, "%lx", rw_data);
 	return iLen;
 }
 
@@ -57,12 +62,12 @@ static int seq_show_rw(struct seq_file *m, void *v)
     /*
 	char buf[MAX_LINE];
 	int ret = 0;
-    dbginfo("0x%lx\n", ack_rw);
-	ret = sprintf(buf, "%lx", ack_rw);
+    printk("0x%lx\n", rw_data);
+	ret = sprintf(buf, "%lx", rw_data);
     */
 
-    dbginfo("0x%lx\n", ack_rw);
-	seq_printf(m, "%lx", ack_rw);
+    printk("0x%lx\n", rw_data);
+	seq_printf(m, "%lx", rw_data);
 
 	return 0; //!! must be 0, or will show nothing T.T
 }
