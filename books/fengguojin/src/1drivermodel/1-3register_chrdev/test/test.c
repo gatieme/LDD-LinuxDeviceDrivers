@@ -14,6 +14,8 @@
 
 
 #define MAX_LINE    256
+#define DEV_FILE    "/dev/gatieme"
+
 
 int main(void)
 {
@@ -22,13 +24,13 @@ int main(void)
 	char data[MAX_LINE] = "Hello World!";
 	int retval;
 
-	fd = open("/dev/fgj",O_RDWR);
+	fd = open(DEV_FILE, O_RDWR);
 	if(fd == -1)
 	{
         perror("error open");
 		exit(-1);
 	}
-	printf("open /dev/fgj successfully\n");
+	printf("open " DEV_FILE " successfully\n");
 
 	retval = write(fd, data, strlen(data));
 	if(retval == -1)
@@ -51,4 +53,5 @@ int main(void)
 	printf("read successfully:%s\n", data);
 
 	close(fd);
+    printf("close " DEV_FILE "\n");
 }

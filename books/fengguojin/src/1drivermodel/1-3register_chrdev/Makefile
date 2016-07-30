@@ -1,7 +1,7 @@
 ROOT=.
 
 
-DIRS=	demo test
+DIRS=	simple test
 
 all:
 	for i in $(DIRS); do \
@@ -16,13 +16,13 @@ clean:
 
 
 insmod:
-	cd demo && make insmod
+	cd simple && make insmod
 
 rmmod:
-	cd demo && make rmmod
+	cd simple && make rmmod
 
 reinsmod:
-	cd demo && make reinsmod
+	cd simple && make reinsmod
 
 run	:
 	sudo ./test/test

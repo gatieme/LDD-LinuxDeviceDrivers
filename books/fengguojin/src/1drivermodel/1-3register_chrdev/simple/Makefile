@@ -23,8 +23,8 @@ DRIVER_AUTHOR  := "Gatieme @ AderStep Inc..."
 DRIVER_DESC    := "Demo module for LDD-LinuxDeviceDrivers devices"
 DRIVER_LICENSE := "Dual BSD/GPL"
 
-
-MODULE_NAME := demo
+DEV_FILE	:= /dev/gatieme
+MODULE_NAME := simple
 
 ifneq ($(KERNELRELEASE),)
 
@@ -51,7 +51,7 @@ modules_install:
 
 insmod:
 	sudo insmod $(MODULE_NAME).ko
-	sudo mknod /dev/fgj c 224 0
+	sudo mknod $(DEV_FILE) c 224 0
 
 reinsmod:
 	sudo rmmod $(MODULE_NAME)
@@ -59,7 +59,7 @@ reinsmod:
 
 rmmod:
 	sudo rmmod $(MODULE_NAME)
-	sudo /bin/rm /dev/fgj
+	sudo /bin/rm $(DEV_FILE)
 
 clean:
 	make -C $(KERNELDIR) M=$(PWD) clean
