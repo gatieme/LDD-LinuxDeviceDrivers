@@ -1,4 +1,3 @@
-
 #ifndef _simple_H_
 #define _simple_H_
 
@@ -21,11 +20,15 @@
 #undef PDEBUGG
 #define PDEBUGG(fmt, args...) /* nothing: it's a placeholder */
 
-//设备号
+//  设备号
+//  error inserting 'globalmem.ko': -1 Device or resource busy
+//  出现这个原因是定义的设备号有冲突,
+//  可以通过cat /proc/devices查看有哪些设备号还没被使用
+//  或者直接由系统动态分配主设备号
 #define simple_MAJOR 224
 
 //设备结构
-struct simple_dev 
+struct simple_dev
 {
 	struct cdev cdev;	  /* Char device structure		*/
 };

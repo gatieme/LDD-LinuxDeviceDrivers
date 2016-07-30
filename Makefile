@@ -2,7 +2,7 @@ all:github
 
 
 
-COMMIT="完善了thread_info的学习..."
+COMMIT="使用cdev_add注册字符设备..."
 
 .PHONY	:	github
 github:

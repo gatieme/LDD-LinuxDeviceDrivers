@@ -37,7 +37,7 @@ ssize_t simple_read(struct file *filp, char __user *buf, size_t count,loff_t *f_
 	/* 把数据拷贝到应用程序空间 */
 	if (copy_to_user(buf,demoBuffer,count))
 	{
-	   count=-EFAULT; 
+	   count=-EFAULT;
 	}
 	return count;
 }
@@ -65,14 +65,14 @@ struct file_operations simple_fops = {
 *******************************************************/
 void simple_cleanup_module(void)
 {
-    unregister_chrdev(simple_MAJOR,  "simple"); 
+    unregister_chrdev(simple_MAJOR,  "simple");
 	printk("simple_cleanup_module!\n");
 }
 
 int simple_init_module(void)
 {
 	int ret;
-	ret = register_chrdev(simple_MAJOR, "simple", &simple_fops);//注册设备号231，设备名 
+	ret = register_chrdev(simple_MAJOR, "simple", &simple_fops);//注册设备号231，设备名
 	if (ret < 0)
 	{
 		printk("Unable to register character device %d!\n",simple_MAJOR);
