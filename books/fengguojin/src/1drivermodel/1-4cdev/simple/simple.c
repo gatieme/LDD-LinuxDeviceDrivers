@@ -1,6 +1,6 @@
-
 #include <linux/module.h>
 #include <linux/kernel.h>
+
 #include <linux/fs.h>
 #include <linux/errno.h>
 #include <linux/types.h>
@@ -11,11 +11,15 @@
 #include <linux/ctype.h>
 #include <linux/pagemap.h>
 
+//  error: implicit declaration of function `kfree`
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3, 19, 0)
+#include <asm/system.h>
+#else
+#include <linux/slab.h>
+#endif
 
-#include "demo.h"
 
-MODULE_AUTHOR("fgj");
-MODULE_LICENSE("Dual BSD/GPL");
+#include "simple.h"
 
 struct simple_dev *simple_devices;
 static unsigned char simple_inc=0;
@@ -66,11 +70,11 @@ struct file_operations simple_fops = {
 /*******************************************************
                 MODULE ROUTINE
 *******************************************************/
-void simple_cleanup_module(void)
+static void __exit simple_cleanup_module(void)
 {
 	dev_t devno = MKDEV(simple_MAJOR, simple_MINOR);
 
-	if (simple_devices) 
+	if (simple_devices)
 	{
 		cdev_del(&simple_devices->cdev);
 		kfree(simple_devices);
@@ -78,14 +82,14 @@ void simple_cleanup_module(void)
 	unregister_chrdev_region(devno,1);
 }
 
-int simple_init_module(void)
+static int __init simple_setup_module(void)
 {
 	int result;
 	dev_t dev = 0;
 
 	dev = MKDEV(simple_MAJOR, simple_MINOR);
 	result = register_chrdev_region(dev, 1, "DEMO");
-	if (result < 0) 
+	if (result < 0)
 	{
 		printk(KERN_WARNING "DEMO: can't get major %d\n", simple_MAJOR);
 		return result;
@@ -114,5 +118,21 @@ fail:
 	return result;
 }
 
-module_init(simple_init_module);
+
+module_init(simple_setup_module);
 module_exit(simple_cleanup_module);
+
+
+
+/*  Driver Information  */
+#define DRIVER_VERSION  "1.0.0"
+#define DRIVER_AUTHOR   "Gatieme @ AderStep Inc..."
+#define DRIVER_DESC     "Linux \"cdev\" module for LDD-LinuxDeviceDrivers devices"
+#define DRIVER_LICENSE  "Dual BSD/GPL"
+
+
+/*  Kernel Module Information   */
+MODULE_VERSION(DRIVER_VERSION);
+MODULE_AUTHOR(DRIVER_AUTHOR);
+MODULE_DESCRIPTION(DRIVER_DESC);
+MODULE_LICENSE(DRIVER_LICENSE);
