@@ -31,7 +31,7 @@ int proc_write_rw(struct file *file, const char *buffer, unsigned long count, vo
 
     if(iRet != 1) { return FAIL; }
 
-    printk(KERN_INFO "Rcv rw:0x%lx\n", rw_data);
+    printk(KERN_INFO "Rcv rw : 0x%lx\n", rw_data);
 	return count;
 }
 

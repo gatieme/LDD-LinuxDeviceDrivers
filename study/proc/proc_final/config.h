@@ -66,7 +66,7 @@
 #endif
 
 #if defined(CREATE_PROC_ENTRY) || defined(PROC_CREATE)
-
+    #warning "defined CREATE_PROC_ENTRY || PROC_CREATE"
 #else
     #error "you must define one of CREATE_PROC_ENTRY and PROC_CREATE"
 #endif

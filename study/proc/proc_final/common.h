@@ -46,7 +46,7 @@
 #endif
 
 
-
+#include "config.h"
 
 /// 当前字符是数字
 #define IsDigit(c)         (c >= '0' && c <= '9')

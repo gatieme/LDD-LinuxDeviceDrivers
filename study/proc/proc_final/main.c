@@ -3,8 +3,8 @@
 *  Create: 2010-3-12 8:50
 *  Last modified: 2010-6-13 14:06:20
 *  Description:
-*  	Memory fault injection engine running as a kernel module.
-*		This module will create "/proc/memoryEngine/" directory and 9 proc nodes.
+*   Memory fault injection engine running as a kernel module.
+*       This module will create "/proc/memoryEngine/" directory and 9 proc nodes.
 *   Write paramenters and request to these proc nodes and read the output from related proc node.
 */
 
@@ -13,51 +13,41 @@
 
 
 /*
-*	proc entries
+*   proc entries
 */
-struct proc_dir_entry   *dir             = NULL; // the directory of the Moudle
-struct proc_dir_entry   *proc_write_only = NULL; // write only
-struct proc_dir_entry   *proc_read_only  = NULL; // read only
-struct proc_dir_entry   *proc_read_write = NULL; // rw
-
-unsigned long           write_only;
-unsigned long           read_only;
-unsigned long           read_write;
+struct proc_dir_entry   *proc_dir             = NULL; // the directory of the Moudle
+struct proc_dir_entry   *proc_wo = NULL; // write only
+struct proc_dir_entry   *proc_ro  = NULL; // read only
+struct proc_dir_entry   *proc_rw = NULL; // rw
 
 
-
-EXPORT_SYMBOL(write_only);
-EXPORT_SYMBOL(read_only);
-EXPORT_SYMBOL(read_write);
+extern const struct file_operations proc_ro_fops;  /*  RW */
+extern const struct file_operations proc_rw_fops; /*  RW */
+extern const struct file_operations proc_wo_fops; /*  WO */
 
 
 
-
-
-extern const struct file_operations proc_read_only_fops;  /*  RW */
-extern const struct file_operations proc_read_write_fops; /*  RW */
-extern const struct file_operations proc_write_only_fops; /*  WO */
 
 static int __init proc_test_init(void)
 {
-	/*
+    /*
      *  create a direntory named "memoryEngine" in /proc for the moudles
      *  as the interface between the kernel and the user program.
      *
      */
-    dir = proc_mkdir(PROC_DIR, NULL);
-	if(dir == NULL)
-	{
-		printk("Can't create " PROC_ROOT "/" PROC_DIR "\n");
-		return FAIL;
-	}
+    proc_dir = proc_mkdir(PROC_DIR, NULL);
+    if(proc_dir == NULL)
+    {
+        printk("Can't create " PROC_ROOT "/" PROC_DIR "\n");
+        return FAIL;
+    }
     printk("PROC_MKDIR ");
-    printk("Create " PROC_ROOT "/" PROC_DIR "success...\n");
+    printk("Create " PROC_ROOT "/" PROC_DIR " success...\n");
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 32)
     /// modify by gatieme for system porting NeoKylin-linux-3.14/16
     /// error: dereferencing pointer to incomplete type
-	dir->owner = THIS_MODULE;
+    proc_dir->owner = THIS_MODULE;
 #endif
 
 
@@ -88,71 +78,72 @@ static int __init proc_test_init(void)
     ////////////////////////////////////////////////////////////////////////////
     ///  create a file named "read only" in direntory
     ////////////////////////////////////////////////////////////////////////////
-#ifdef CREATE_PROC_ENTRY
+#if defined(CREATE_PROC_ENTRY)
 
-    proc_read_only = create_proc_entry(PROC_READ_ONLY_ENTRY, PERMISSION, dir);
-	if(proc_read_only == NULL)
-	{
-		printk("Can't create " PROC_READ_ONLY_FILE "\n");
-        ret = FAIL;
+    proc_ro = create_proc_entry(PROC_READ_ONLY_ENTRY, PERMISSION, proc_dir/;
+    if(proc_ro == NULL)
+    {
+        printk("Can't create " PROC_READ_ONLY_FILE "\n");
+        //ret = FAIL;
 
         goto create_read_only_failed;
 
-	}
+    }
 
-    proc_read_only->write_proc = proc_read_ro;              // write only
+    proc_ro->write_proc = proc_read_ro;              // write only
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 32)
-    proc_read_only->owner = THIS_MODULE;
+    proc_ro->owner = THIS_MODULE;
 #endif
 
     printk("CREATE_PROC_ENTRY ");
-#elif defined PROC_CREATE
+#elif defined(PROC_CREATE)
 
-    proc_read_only = proc_create(PROC_READ_ONLY_ENTRY, PERMISSION, dir, &proc_read_only_fops);
+    proc_ro = proc_create(PROC_READ_ONLY_ENTRY, PERMISSION, proc_dir, &proc_ro_fops);
 
-    if(proc_read_only == NULL)
-	{
-		printk("Can't create " PROC_READ_ONLY_FILE "\n");
-        ret = FAIL;
+    if(proc_ro == NULL)
+    {
+        printk("Can't create " PROC_READ_ONLY_FILE "\n");
+        //ret = FAIL;
 
-	    goto create_read_only_failed;
+        goto create_read_only_failed;
     }
     printk("PROC_CREATE ");
 #endif
     printk("Create " PROC_READ_ONLY_FILE " success...\n");
+
 
     ////////////////////////////////////////////////////////////////////////////
     /// create a file named "write only" in direntory
     ////////////////////////////////////////////////////////////////////////////
 #ifdef CREATE_PROC_ENTRY
 
-    proc_write_only = create_proc_entry(PROC_WRITE_ONLY_ENTRY, PERMISSION, dir);
+    proc_wo = create_proc_entry(PROC_WRITE_ONLY_ENTRY, PERMISSION, proc_dir);
 
-    if(proc_write_only == NULL)
-	{
-		printk("Can't create " PROC_WRITE_ONLY_FILE "\n");
-        ret = FAIL;
+    if(proc_wo == NULL)
+    {
+        printk("Can't create " PROC_WRITE_ONLY_FILE "\n");
+        //ret = FAIL;
 
         goto create_write_only_failed;
-	}
-	proc_write_only->write_proc = proc_write_wo;  /// write only
+    }
+    proc_wo->write_proc = proc_write_wo;  /// write only
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 32)
-	proc_write_only->owner = THIS_MODULE;
+    proc_wo->owner = THIS_MODULE;
 #endif
 
     printk("CREATE_PROC_ENTRY ");
 
 #elif defined PROC_CREATE
 
-    proc_write_only = proc_create("pid", PERMISSION, dir, &proc_write_only_fops);
+    proc_wo = proc_create(PROC_WRITE_ONLY_ENTRY, PERMISSION, proc_dir, &proc_wo_fops);
 
-    if(proc_write_only == NULL)
-	{
-		printk("Can't create " PROC_WRITE_ONLY_FILE "\n");
-        ret = FAIL;
+    if(proc_wo == NULL)
+    {
+        printk("Can't create " PROC_WRITE_ONLY_FILE "\n");
+        //ret = FAIL;
 
         goto create_write_only_failed;
-	}
+    }
     printk("PROC_CREATE ");
 #endif
     printk("Create " PROC_WRITE_ONLY_FILE " success...\n");
@@ -165,49 +156,50 @@ static int __init proc_test_init(void)
     ////////////////////////////////////////////////////////////////////////////
 #ifdef CREATE_PROC_ENTRY
 
-	proc_read_write = create_proc_entry(PROC_READ_WRITE_ENTRY, PERMISSION, dir);
-	if(proc_read_write == NULL)
-	{
-		printk("Can't create " PROC_READ_WRITE_FILE "\n");
+    proc_rw = create_proc_entry(PROC_READ_WRITE_ENTRY, PERMISSION, proc_dir);
+    if(proc_rw == NULL)
+    {
+        printk("Can't create " PROC_READ_WRITE_FILE "\n");
         ret = FAIL;
 
         goto create_read_write_failed;
-	}
-	proc_read_write->read_proc = proc_read_rw;         // can read
-	proc_read_write->write_proc = proc_write_rw;       // can write
+    }
+    proc_rw->read_proc = proc_read_rw;         // can read
+    proc_rw->write_proc = proc_write_rw;       // can write
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 32)
-	proc_read_write->owner = THIS_MODULE;
+    proc_rw->owner = THIS_MODULE;
 #endif
 
     printk("CREATE_PROC_ENTRY ");
 
 #elif defined PROC_CREATE
 
-    proc_read_write = proc_creat(PROC_READ_WRITE_ENTRY, PERMISSION, dir, &proc_read_write_fops);
+    proc_rw = proc_create(PROC_READ_WRITE_ENTRY, PERMISSION, proc_dir, &proc_rw_fops);
 
-    if(proc_read_write == NULL)
-	{
-		printk("Can't create " PROC_READ_WRITE_FILE "\n");
-        ret = FAIL;
+    if(proc_rw == NULL)
+    {
+        printk("Can't create " PROC_READ_WRITE_FILE "\n");
+        //ret = FAIL;
 
-        goto create_va_failed;
+
+        goto create_read_write_failed;
     }
     printk("PROC_CREATE ");
 #endif
 
     printk("Create " PROC_READ_WRITE_FILE " success...\n");
 
-	printk("Memory engine module init\n");
+    printk("Memory engine module init\n");
 
     return OK;
 
 
 
 create_read_write_failed    :
-    remove_proc_entry(PROC_WRITE_ONLY_ENTRY, dir);
+    remove_proc_entry(PROC_WRITE_ONLY_ENTRY, proc_dir);
 
 create_write_only_failed    :
-    remove_proc_entry(PROC_READ_ONLY_ENTRY, dir);
+    remove_proc_entry(PROC_READ_ONLY_ENTRY, proc_dir);
 
 create_read_only_failed     :
     remove_proc_entry(PROC_DIR, NULL);
@@ -222,16 +214,21 @@ create_read_only_failed     :
 */
 static void __exit proc_test_exit(void)
 {
-	remove_proc_entry("read_write", dir);
-    printk("Remove /proc/proc_test/read_write success\n");
+    remove_proc_entry(PROC_READ_WRITE_ENTRY, proc_dir);
+    printk("Remove " PROC_READ_WRITE_FILE " success\n");
 
-    remove_proc_entry("write_only", dir);
-    printk("Remove /proc/proc_test/write_only success\n");
+    remove_proc_entry(PROC_WRITE_ONLY_ENTRY, proc_dir);
+    printk("Remove " PROC_WRITE_ONLY_FILE " success\n");
 
-	remove_proc_entry("read_only", dir);
-    printk("Remove /proc/proc_test/read_only success\n");
+    remove_proc_entry(PROC_READ_ONLY_ENTRY, proc_dir);
+    printk("Remove " PROC_READ_ONLY_FILE " success\n");
 
-	printk("Memory proc_test module exit\n");
+    proc_remove(proc_dir);
+    printk("Remove " PROC_ROOT "/" PROC_DIR " success\n");
+
+    printk("proc-test module exit\n");
+
+
 }
 
 module_init(proc_test_init);
