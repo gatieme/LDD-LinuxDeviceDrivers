@@ -81,16 +81,21 @@ unsigned long show_kstack(union thread_union *threadunion)
     unsigned long kstack_thread = (unsigned long)threadunion->stack;
     unsigned long kstack_task   = (unsigned long)threadunion->thread_info.task->stack;
 
+
     printk(KERN_INFO "THREAD_SIZE           : %ldB == %ldB == %ldKB",
            sizeof(union thread_union), THREAD_SIZE, THREAD_SIZE / 1024);
     //printk(KERN_INFO "THREAD_MASK           : 0x%x\n", ~(THREAD_SIZE - 1));
 
-    printk(KERN_INFO "union_stack           : %p == %p\n",
+    printk(KERN_INFO "task->stack           : %p == %p\n",
            (void *)kstack_thread, (void *)kstack_task);
 
     printk(KERN_INFO "kernel stack          : [%p, %p]\n",
            (void *)kstack_thread + sizeof(struct thread_info),
            (void *)(kstack_task) + sizeof(union thread_union));
+#if 1
+    printk("==thread_union [0x%lx, 0x%lx]==\n", (unsigned long)threadunion, ((unsigned long)threadunion) + sizeof(union thread_union));
+#endif
+
 
     assert(kstack_thread == kstack_task);
     return kstack_thread;

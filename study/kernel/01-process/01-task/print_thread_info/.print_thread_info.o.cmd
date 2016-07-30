@@ -1,8 +1,8 @@
-cmd_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o := aarch64-linux-gnu-gcc -Wp,-MD,/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/.hello.o.d  -nostdinc -isystem /usr/lib/gcc/aarch64-linux-gnu/4.9/include -I/usr/src/linux-headers-3.14.0/arch/arm64/include -Iarch/arm64/include/generated  -Iinclude -I/usr/src/linux-headers-3.14.0/arch/arm64/include/uapi -Iarch/arm64/include/generated/uapi -I/usr/src/linux-headers-3.14.0/include/uapi -Iinclude/generated/uapi -include /usr/src/linux-headers-3.14.0/include/linux/kconfig.h -D__KERNEL__ -mlittle-endian -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -O2 -mgeneral-regs-only -Wframe-larger-than=2048 -fno-stack-protector -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -g -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -Werror=implicit-int -Werror=strict-prototypes -Werror=date-time -DCC_HAVE_ASM_GOTO  -DMODULE  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(hello)"  -D"KBUILD_MODNAME=KBUILD_STR(hello)" -c -o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/.tmp_hello.o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.c
+cmd_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_thread_info/print_thread_info.o := aarch64-linux-gnu-gcc -Wp,-MD,/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_thread_info/.print_thread_info.o.d  -nostdinc -isystem /usr/lib/gcc/aarch64-linux-gnu/4.9/include -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include -Iarch/arm64/include/generated  -Iinclude -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi -Iarch/arm64/include/generated/uapi -I/usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi -Iinclude/generated/uapi -include /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/linux/kconfig.h -D__KERNEL__ -mlittle-endian -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -O2 -mgeneral-regs-only -Wframe-larger-than=2048 -fno-stack-protector -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -g -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -Werror=implicit-int -Werror=strict-prototypes -Werror=date-time -DCC_HAVE_ASM_GOTO  -DMODULE  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(print_thread_info)"  -D"KBUILD_MODNAME=KBUILD_STR(print_thread_info)" -c -o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_thread_info/.tmp_print_thread_info.o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_thread_info/print_thread_info.c
 
-source_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o := /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.c
+source_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_thread_info/print_thread_info.o := /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_thread_info/print_thread_info.c
 
-deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o := \
+deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_thread_info/print_thread_info.o := \
   include/linux/module.h \
     $(wildcard include/config/sysfs.h) \
     $(wildcard include/config/modules.h) \
@@ -28,13 +28,13 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
     $(wildcard include/config/64bit.h) \
   include/uapi/linux/types.h \
   arch/arm64/include/generated/asm/types.h \
-  /usr/src/linux-headers-3.14.0/include/uapi/asm-generic/types.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/asm-generic/types.h \
   include/asm-generic/int-ll64.h \
   include/uapi/asm-generic/int-ll64.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/uapi/asm/bitsperlong.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi/asm/bitsperlong.h \
   include/asm-generic/bitsperlong.h \
   include/uapi/asm-generic/bitsperlong.h \
-  /usr/src/linux-headers-3.14.0/include/uapi/linux/posix_types.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/linux/posix_types.h \
   include/linux/stddef.h \
   include/uapi/linux/stddef.h \
   include/linux/compiler.h \
@@ -50,16 +50,16 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
   include/linux/compiler-gcc4.h \
     $(wildcard include/config/arch/use/builtin/bswap.h) \
   arch/arm64/include/generated/asm/posix_types.h \
-  /usr/src/linux-headers-3.14.0/include/uapi/asm-generic/posix_types.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/asm-generic/posix_types.h \
   include/linux/poison.h \
     $(wildcard include/config/illegal/pointer/value.h) \
-  /usr/src/linux-headers-3.14.0/include/uapi/linux/const.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/linux/const.h \
   include/linux/stat.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/stat.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/stat.h \
     $(wildcard include/config/compat.h) \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/uapi/asm/stat.h \
-  /usr/src/linux-headers-3.14.0/include/uapi/asm-generic/stat.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/compat.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi/asm/stat.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/asm-generic/stat.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/compat.h \
   include/linux/sched.h \
     $(wildcard include/config/sched/debug.h) \
     $(wildcard include/config/prove/rcu.h) \
@@ -124,7 +124,7 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
     $(wildcard include/config/preempt.h) \
     $(wildcard include/config/mm/owner.h) \
   include/uapi/linux/sched.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/uapi/asm/param.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi/asm/param.h \
   include/asm-generic/param.h \
     $(wildcard include/config/hz.h) \
   include/uapi/asm-generic/param.h \
@@ -144,10 +144,10 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
   include/linux/export.h \
     $(wildcard include/config/have/underscore/symbol/prefix.h) \
     $(wildcard include/config/modversions.h) \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/linkage.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/linkage.h \
   include/linux/bitops.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/bitops.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/barrier.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/bitops.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/barrier.h \
   include/asm-generic/bitops/builtin-__ffs.h \
   include/asm-generic/bitops/builtin-ffs.h \
   include/asm-generic/bitops/builtin-__fls.h \
@@ -163,13 +163,13 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
   include/asm-generic/bitops/lock.h \
   include/asm-generic/bitops/non-atomic.h \
   include/asm-generic/bitops/le.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/uapi/asm/byteorder.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi/asm/byteorder.h \
   include/linux/byteorder/little_endian.h \
   include/uapi/linux/byteorder/little_endian.h \
   include/linux/swab.h \
   include/uapi/linux/swab.h \
   arch/arm64/include/generated/asm/swab.h \
-  /usr/src/linux-headers-3.14.0/include/uapi/asm-generic/swab.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/asm-generic/swab.h \
   include/linux/byteorder/generic.h \
   include/linux/log2.h \
     $(wildcard include/config/arch/has/ilog2/u32.h) \
@@ -185,18 +185,18 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
   include/linux/cache.h \
     $(wildcard include/config/arch/has/cache/line/size.h) \
   include/uapi/linux/kernel.h \
-  /usr/src/linux-headers-3.14.0/include/uapi/linux/sysinfo.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/cache.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/linux/sysinfo.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/cache.h \
   include/linux/dynamic_debug.h \
   include/linux/string.h \
     $(wildcard include/config/binary/printf.h) \
   include/uapi/linux/string.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/string.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/string.h \
   include/linux/errno.h \
   include/uapi/linux/errno.h \
   arch/arm64/include/generated/asm/errno.h \
-  /usr/src/linux-headers-3.14.0/include/uapi/asm-generic/errno.h \
-  /usr/src/linux-headers-3.14.0/include/uapi/asm-generic/errno-base.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/asm-generic/errno.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/asm-generic/errno-base.h \
   include/linux/timex.h \
   include/uapi/linux/timex.h \
   include/linux/time.h \
@@ -219,28 +219,28 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
     $(wildcard include/config/bug.h) \
     $(wildcard include/config/generic/bug/relative/pointers.h) \
     $(wildcard include/config/debug/bugverbose.h) \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/thread_info.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/thread_info.h \
     $(wildcard include/config/arm64/64k/pages.h) \
   include/linux/irqflags.h \
     $(wildcard include/config/irqsoff/tracer.h) \
     $(wildcard include/config/trace/irqflags/support.h) \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/irqflags.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/ptrace.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/uapi/asm/ptrace.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/hwcap.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/uapi/asm/hwcap.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/irqflags.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/ptrace.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi/asm/ptrace.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/hwcap.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi/asm/hwcap.h \
   include/linux/bottom_half.h \
   include/linux/preempt_mask.h \
   include/linux/spinlock_types.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/spinlock_types.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/spinlock_types.h \
   include/linux/lockdep.h \
     $(wildcard include/config/lock/stat.h) \
   include/linux/rwlock_types.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/spinlock.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/processor.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/spinlock.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/processor.h \
     $(wildcard include/config/arch/phytium.h) \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/fpsimd.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/hw_breakpoint.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/fpsimd.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/hw_breakpoint.h \
     $(wildcard include/config/have/hw/breakpoint.h) \
   include/linux/rwlock.h \
   include/linux/spinlock_api_smp.h \
@@ -276,17 +276,17 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
   include/linux/atomic.h \
     $(wildcard include/config/arch/has/atomic/or.h) \
     $(wildcard include/config/generic/atomic64.h) \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/atomic.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/cmpxchg.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/atomic.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/cmpxchg.h \
   include/asm-generic/atomic-long.h \
   include/linux/math64.h \
     $(wildcard include/config/arch/supports/int128.h) \
   arch/arm64/include/generated/asm/div64.h \
   include/asm-generic/div64.h \
   include/uapi/linux/time.h \
-  /usr/src/linux-headers-3.14.0/include/uapi/linux/param.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/timex.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/arch_timer.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/linux/param.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/timex.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/arch_timer.h \
   include/clocksource/arm_arch_timer.h \
     $(wildcard include/config/arm/arch/timer.h) \
   include/linux/clocksource.h \
@@ -302,19 +302,19 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
   include/linux/debugobjects.h \
     $(wildcard include/config/debug/objects.h) \
     $(wildcard include/config/debug/objects/free.h) \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/io.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/io.h \
     $(wildcard include/config/pci.h) \
   include/linux/blk_types.h \
     $(wildcard include/config/blk/cgroup.h) \
     $(wildcard include/config/blk/dev/integrity.h) \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/pgtable.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/pgtable.h \
     $(wildcard include/config/transparent/hugepage.h) \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/proc-fns.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/page.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/proc-fns.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/page.h \
     $(wildcard include/config/have/arch/pfn/valid.h) \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/pgtable-3level-types.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/pgtable-3level-types.h \
   include/asm-generic/pgtable-nopud.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/memory.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/memory.h \
   arch/arm64/include/generated/asm/sizes.h \
   include/asm-generic/sizes.h \
   include/linux/sizes.h \
@@ -324,8 +324,8 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
     $(wildcard include/config/sparsemem/vmemmap.h) \
     $(wildcard include/config/sparsemem.h) \
   include/asm-generic/getorder.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/pgtable-hwdef.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/pgtable-3level-hwdef.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/pgtable-hwdef.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/pgtable-3level-hwdef.h \
   include/asm-generic/pgtable.h \
     $(wildcard include/config/have/arch/soft/dirty.h) \
     $(wildcard include/config/arch/uses/numa/prot/none.h) \
@@ -341,7 +341,7 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
     $(wildcard include/config/compaction.h) \
   include/linux/auxvec.h \
   include/uapi/linux/auxvec.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/uapi/asm/auxvec.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi/asm/auxvec.h \
   include/linux/rbtree.h \
   include/linux/rwsem.h \
     $(wildcard include/config/rwsem/generic/spinlock.h) \
@@ -364,8 +364,8 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
   include/linux/numa.h \
     $(wildcard include/config/nodes/shift.h) \
   include/generated/bounds.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/sparsemem.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/mmu.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/sparsemem.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/mmu.h \
   include/xen/xen.h \
     $(wildcard include/config/xen.h) \
     $(wildcard include/config/xen/dom0.h) \
@@ -389,7 +389,7 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
   include/linux/smp.h \
   include/linux/llist.h \
     $(wildcard include/config/arch/have/nmi/safe/cmpxchg.h) \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/smp.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/smp.h \
   include/linux/sem.h \
   include/linux/rcupdate.h \
     $(wildcard include/config/rcu/torture/test.h) \
@@ -408,19 +408,19 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
   include/linux/highuid.h \
   include/uapi/linux/ipc.h \
   arch/arm64/include/generated/asm/ipcbuf.h \
-  /usr/src/linux-headers-3.14.0/include/uapi/asm-generic/ipcbuf.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/asm-generic/ipcbuf.h \
   arch/arm64/include/generated/asm/sembuf.h \
-  /usr/src/linux-headers-3.14.0/include/uapi/asm-generic/sembuf.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/asm-generic/sembuf.h \
   include/linux/signal.h \
     $(wildcard include/config/old/sigaction.h) \
   include/uapi/linux/signal.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/uapi/asm/signal.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi/asm/signal.h \
   include/asm-generic/signal.h \
   include/uapi/asm-generic/signal.h \
-  /usr/src/linux-headers-3.14.0/include/uapi/asm-generic/signal-defs.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/sigcontext.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/uapi/asm/sigcontext.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/uapi/asm/siginfo.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/asm-generic/signal-defs.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/sigcontext.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi/asm/sigcontext.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/uapi/asm/siginfo.h \
   include/asm-generic/siginfo.h \
   include/uapi/asm-generic/siginfo.h \
   include/linux/pid.h \
@@ -432,7 +432,7 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
     $(wildcard include/config/debug/vm.h) \
     $(wildcard include/config/debug/virtual.h) \
   include/linux/pfn.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/percpu.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/percpu.h \
   include/asm-generic/percpu.h \
   include/linux/percpu-defs.h \
     $(wildcard include/config/debug/force/weak/per/cpu.h) \
@@ -516,11 +516,11 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
   include/uapi/linux/stat.h \
   include/linux/kmod.h \
   include/linux/elf.h \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/elf.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/elf.h \
   arch/arm64/include/generated/asm/user.h \
   include/asm-generic/user.h \
   include/uapi/linux/elf.h \
-  /usr/src/linux-headers-3.14.0/include/uapi/linux/elf-em.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/include/uapi/linux/elf-em.h \
   include/linux/kobject.h \
     $(wildcard include/config/debug/kobject/release.h) \
   include/linux/sysfs.h \
@@ -536,12 +536,38 @@ deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o
   include/linux/static_key.h \
   include/linux/jump_label.h \
     $(wildcard include/config/jump/label.h) \
-  /usr/src/linux-headers-3.14.0/arch/arm64/include/asm/module.h \
+  /usr/src/linux-headers-3.14.0-20150821.kylin.3.desktop/arch/arm64/include/asm/module.h \
   include/asm-generic/module.h \
     $(wildcard include/config/have/mod/arch/specific.h) \
     $(wildcard include/config/modules/use/elf/rel.h) \
     $(wildcard include/config/modules/use/elf/rela.h) \
+  include/linux/mm.h \
+    $(wildcard include/config/mem/soft/dirty.h) \
+    $(wildcard include/config/x86.h) \
+    $(wildcard include/config/ppc.h) \
+    $(wildcard include/config/parisc.h) \
+    $(wildcard include/config/metag.h) \
+    $(wildcard include/config/ksm.h) \
+    $(wildcard include/config/debug/vm/rb.h) \
+    $(wildcard include/config/debug/pagealloc.h) \
+    $(wildcard include/config/hibernation.h) \
+    $(wildcard include/config/hugetlbfs.h) \
+  include/linux/debug_locks.h \
+    $(wildcard include/config/debug/locking/api/selftests.h) \
+  include/linux/range.h \
+  include/linux/bit_spinlock.h \
+  include/linux/shrinker.h \
+  include/linux/page-flags.h \
+    $(wildcard include/config/pageflags/extended.h) \
+    $(wildcard include/config/arch/uses/pg/uncached.h) \
+    $(wildcard include/config/memory/failure.h) \
+    $(wildcard include/config/swap.h) \
+  include/linux/huge_mm.h \
+  include/linux/vmstat.h \
+    $(wildcard include/config/vm/event/counters.h) \
+  include/linux/vm_event_item.h \
+    $(wildcard include/config/migration.h) \
 
-/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o: $(deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o)
+/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_thread_info/print_thread_info.o: $(deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_thread_info/print_thread_info.o)
 
-$(deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/hello/hello.o):
+$(deps_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/print_thread_info/print_thread_info.o):
