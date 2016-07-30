@@ -1,0 +1,8 @@
+~$insmod demo.ko
+Using demo.ko
+~$mknod /dev/fgj c 224 0
+~$./read &
+[1] 335
+~$./write
+The data is FG
+

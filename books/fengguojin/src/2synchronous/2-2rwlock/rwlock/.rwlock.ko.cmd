@@ -1,0 +1,1 @@
+cmd_/mnt/hgfs/windows/src/2synchronous/2-3rwlock/rwlock/rwlock.ko := /usr/local/arm/4.2.2-eabi/usr/bin/arm-linux-ld -EL -r   -o /mnt/hgfs/windows/src/2synchronous/2-3rwlock/rwlock/rwlock.ko /mnt/hgfs/windows/src/2synchronous/2-3rwlock/rwlock/rwlock.o /mnt/hgfs/windows/src/2synchronous/2-3rwlock/rwlock/rwlock.mod.o

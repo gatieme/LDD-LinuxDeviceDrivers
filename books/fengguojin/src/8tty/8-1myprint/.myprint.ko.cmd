@@ -1,0 +1,1 @@
+cmd_/mnt/hgfs/windows/8tty/8-1myprint/myprint.ko := /usr/local/arm/4.2.2-eabi/usr/bin/arm-linux-ld -EL -r   -o /mnt/hgfs/windows/8tty/8-1myprint/myprint.ko /mnt/hgfs/windows/8tty/8-1myprint/myprint.o /mnt/hgfs/windows/8tty/8-1myprint/myprint.mod.o

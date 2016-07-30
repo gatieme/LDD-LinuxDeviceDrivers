@@ -1,0 +1,1 @@
+cmd_/mnt/hgfs/windows/src/5hardsimple/5-1wdc/demo/demo.ko := /usr/local/arm/4.2.2-eabi/usr/bin/arm-linux-ld -EL -r   -o /mnt/hgfs/windows/src/5hardsimple/5-1wdc/demo/demo.ko /mnt/hgfs/windows/src/5hardsimple/5-1wdc/demo/demo.o /mnt/hgfs/windows/src/5hardsimple/5-1wdc/demo/demo.mod.o

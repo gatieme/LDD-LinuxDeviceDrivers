@@ -1,0 +1,1 @@
+cmd_/mnt/hgfs/windows/src/3memory/3-2mmap/mmap/demo.ko := /usr/local/arm/4.2.2-eabi/usr/bin/arm-linux-ld -EL -r   -o /mnt/hgfs/windows/src/3memory/3-2mmap/mmap/demo.ko /mnt/hgfs/windows/src/3memory/3-2mmap/mmap/demo.o /mnt/hgfs/windows/src/3memory/3-2mmap/mmap/demo.mod.o

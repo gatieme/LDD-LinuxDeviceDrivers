@@ -1,0 +1,1 @@
+cmd_/mnt/hgfs/windows/src/2synchronous/2-4rcu/rcu/rcu.ko := /usr/local/arm/4.2.2-eabi/usr/bin/arm-linux-ld -EL -r   -o /mnt/hgfs/windows/src/2synchronous/2-4rcu/rcu/rcu.ko /mnt/hgfs/windows/src/2synchronous/2-4rcu/rcu/rcu.o /mnt/hgfs/windows/src/2synchronous/2-4rcu/rcu/rcu.mod.o

@@ -1,0 +1,1 @@
+cmd_/mnt/hgfs/windows/src/11input/11-1beep/demo/demo.ko := /usr/local/arm/4.2.2-eabi/usr/bin/arm-linux-ld -EL -r   -o /mnt/hgfs/windows/src/11input/11-1beep/demo/demo.ko /mnt/hgfs/windows/src/11input/11-1beep/demo/demo.o /mnt/hgfs/windows/src/11input/11-1beep/demo/demo.mod.o

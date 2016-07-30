@@ -1,0 +1,1 @@
+cmd_/mnt/hgfs/windows/3-3list/demo/smodule.ko := /usr/local/arm/4.2.2-eabi/usr/bin/arm-linux-ld -EL -r   -o /mnt/hgfs/windows/3-3list/demo/smodule.ko /mnt/hgfs/windows/3-3list/demo/smodule.o /mnt/hgfs/windows/3-3list/demo/smodule.mod.o
