@@ -15,9 +15,9 @@ static int __init init_cr3_pgd(void)
     unsigned long pgd = 0;
 
     cr3 = read_cr3();
-    printk("cr3----------------->0x%lx\n",cr3);
+    printk("cr3----------------->0x%lx\n", cr3);
     pgd = __pa(read_pgd());
-    printk("pgd----------------->0x%lx\n",pgd);
+    printk("pgd----------------->0x%lx\n", pgd);
     return 0;
 }
 
