@@ -42,8 +42,11 @@ int simple_open(struct inode *inode, struct file *filp)
 int simple_release(struct inode *inode, struct file *filp)
 {
 	simple_inc--;
-	return 0;
+
+    return 0;
 }
+
+
 
 /*  read读设备文件操作  */
 ssize_t simple_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
@@ -58,6 +61,7 @@ ssize_t simple_read(struct file *filp, char __user *buf, size_t count, loff_t *f
 }
 
 
+
 /*  write写设备文件操作  */
 ssize_t simple_write(struct file *filp, const char __user *buf, size_t count,loff_t *f_pos)
 {
@@ -70,6 +74,8 @@ ssize_t simple_write(struct file *filp, const char __user *buf, size_t count,lof
 	return count;
 }
 
+
+
 struct file_operations simple_fops =
 {
 	.owner =    THIS_MODULE,
@@ -79,16 +85,21 @@ struct file_operations simple_fops =
 	.release =  simple_release,
 };
 
+
+
 /*******************************************************
                 MODULE ROUTINE
 *******************************************************/
-void simple_cleanup_module(void)
+static void __exit simple_cleanup_module(void)
 {
     unregister_chrdev(simple_MAJOR, "simple");
 	printk("simple_cleanup_module!\n");
 }
 
-static int __init simple_init_module(void)
+
+
+
+static int __init simple_setup_module(void)
 {
 	int ret = -1;
 
@@ -104,7 +115,7 @@ static int __init simple_init_module(void)
     return 0;
 }
 
-module_init(simple_init_module);
+module_init(simple_setup_module);
 module_exit(simple_cleanup_module);
 
 
