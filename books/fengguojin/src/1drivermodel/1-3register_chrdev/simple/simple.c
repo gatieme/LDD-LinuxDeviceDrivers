@@ -90,15 +90,6 @@ struct file_operations simple_fops =
 /*******************************************************
                 MODULE ROUTINE
 *******************************************************/
-static void __exit simple_cleanup_module(void)
-{
-    unregister_chrdev(simple_MAJOR, "simple");
-	printk("simple_cleanup_module!\n");
-}
-
-
-
-
 static int __init simple_setup_module(void)
 {
 	int ret = -1;
@@ -114,6 +105,14 @@ static int __init simple_setup_module(void)
 
     return 0;
 }
+
+
+static void __exit simple_cleanup_module(void)
+{
+    unregister_chrdev(simple_MAJOR, "simple");
+	printk("simple_cleanup_module!\n");
+}
+
 
 module_init(simple_setup_module);
 module_exit(simple_cleanup_module);

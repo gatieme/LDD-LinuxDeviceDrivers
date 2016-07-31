@@ -13,7 +13,7 @@
 # ------------------------------------------------------------------------------
 
 
-ROOT=../../../../../
+ROOT=../../../../../..
 #PLATFORM=$(shell $(ROOT)/systype.sh)
 #include $(ROOT)/Make.defines.$(PLATFORM)
 
@@ -66,7 +66,8 @@ clean:
 	rm -f modules.order Module.symvers Module.markers
 
 
-COMMIT="[1.1.4 带参数的可加载模块](http://book.51cto.com/art/201205/337663.htm)"
+COMMIT="[1.2.2-使用register_chrdev注册字符设备](http://book.51cto.com/art/201205/337666.htm)"
+
 github:
 	cd $(ROOT) && make github
 
