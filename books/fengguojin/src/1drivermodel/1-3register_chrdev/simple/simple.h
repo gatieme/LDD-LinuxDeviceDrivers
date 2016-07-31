@@ -30,16 +30,6 @@
 
 
 
-//  设备结构
-struct simple_dev
-{
-	struct cdev cdev;	  /* Char device structure		*/
-};
-
-
-
-
-
 /////////////////////
 //函数申明
 /////////////////////

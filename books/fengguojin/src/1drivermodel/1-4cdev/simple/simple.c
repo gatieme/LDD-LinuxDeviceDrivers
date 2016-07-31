@@ -59,7 +59,8 @@ ssize_t simple_write(struct file *filp, const char __user *buf, size_t count,lof
 	return count;
 }
 
-struct file_operations simple_fops = {
+struct file_operations simple_fops =
+{
 	.owner =    THIS_MODULE,
 	.read =     simple_read,
 	.write =    simple_write,
