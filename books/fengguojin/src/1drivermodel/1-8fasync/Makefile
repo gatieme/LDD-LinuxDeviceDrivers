@@ -2,6 +2,8 @@ ROOT=../../../../..
 
 DIRS=	simple test
 
+COMMIT="[例1.8  异步通知实例](http://book.51cto.com/art/201205/337673.htm)"
+
 all:
 	for i in $(DIRS); do \
 		(cd $$i && echo "making $$i" && $(MAKE) ) || exit 1; \
