@@ -6,7 +6,7 @@ GITHUB_COMMIT := $(COMMIT)
 
 
 ifeq ($(COMMIT), )
-	GITHUB_COMMIT="完善了README.md"
+	GITHUB_COMMIT="完善了README.md..."
 endif
 
 
