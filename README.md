@@ -1,8 +1,17 @@
 LDD-LinuxDeviceDrivers
 =======
 
+#1  study--本人的linux学习以及驱动代码
+-------
 
-#books--一些书中的源码和示例
+| 目录 | 书籍 |
+|:------:|:------:|
+| [kernel](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel)    | 学习linux内核的设计与实现, 包括文档和示例代码, 文档与[CSDN博客](http://blog.csdn.net/gatieme/article/details/51456569)同步更新 |
+| [driver](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/driver)     | 自己实现的一些linux内核的驱动代码 |
+
+
+
+#2  books--一些书中的源码和示例
 -------
 
 | 目录 | 书籍 |
@@ -12,14 +21,5 @@ LDD-LinuxDeviceDrivers
 | [21cnbao](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/books/21cnbao)    | [宋宝华-Linux设备驱动开发详解](http://21cnbao.blog.51cto.com)                            |
 
 
-
-
-#study--本人的linux学习以及驱动代码
--------
-
-| 目录 | 书籍 |
-|:------:|:------:|
-| [kernel](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel)    | 学习linux内核的设计与实现, 包括文档和示例代码, 文档与[CSDN博客](http://blog.csdn.net/gatieme/article/details/51456569)同步更新 |
-| [driver](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/driver)     | 自己实现的一些linux内核的驱动代码 |
 
 
