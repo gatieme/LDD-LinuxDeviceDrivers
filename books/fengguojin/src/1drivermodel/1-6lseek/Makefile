@@ -1,4 +1,5 @@
-ROOT=../../../../..
+ROOT=.
+
 
 DIRS=	simple test
 
@@ -23,8 +24,7 @@ rmmod:
 reinsmod:
 	cd simple && make reinsmod
 
-run		:
+run	:
 	sudo ./test/test
 
-github	:
-	cd $(ROOT)	&& make github
+

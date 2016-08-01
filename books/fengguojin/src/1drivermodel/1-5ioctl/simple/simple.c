@@ -14,19 +14,23 @@
 
 #include "simple.h"
 
-MODULE_AUTHOR("fgj");
-MODULE_LICENSE("Dual BSD/GPL");
 
-struct simple_dev *simple_devices;
-static unsigned char simple_inc=0;
-static u8 demoBuffer[256];
+struct simple_dev       *simple_devices = NULL;
+static unsigned char    simple_inc = 0;
+static char             simple_buffer[MAX_SIZE];
+
+
 
 int simple_open(struct inode *inode, struct file *filp)
 {
 	struct simple_dev *dev;
 
-	if(simple_inc>0)return -ERESTARTSYS;
-	simple_inc++;
+	if(simple_inc > 0)
+    {
+        return -ERESTARTSYS;
+    }
+
+    simple_inc++;
 
 	dev = container_of(inode->i_cdev, struct simple_dev, cdev);
 	filp->private_data = dev;
@@ -40,25 +44,77 @@ int simple_release(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-int simple_ioctl(struct inode *inode, struct file *filp,unsigned int cmd, unsigned long arg)
+
+
+
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 36)
+
+int simple_ioctl(struct inode *inode, struct file *filp,
+                unsigned int cmd, unsigned long arg)
 {
 	switch(cmd)
 	{
 		case COMMAND1   :
-			memset(demoBuffer,0x31,256);
+        {
+            memset(simple_buffer, 0x31, MAX_SIZE);
 			break;
+        }
 
 		case COMMAND2   :
-			memset(demoBuffer,0x32,256);
+        {
+            memset(simple_buffer, 0x32, MAX_SIZE);
 			break;
+        }
 
-        default:
+        default         :
+        {
 			return -EFAULT;
 			break;
+        }
 	}
 
     return 0;
 }
+
+#else
+
+long simple_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+    printk("command = %d, ", cmd);
+
+    switch(cmd)
+    {
+		case COMMAND_1  :
+        {
+            printk("ioctl COMMAND_1 ");
+            memset(simple_buffer, 0x31, MAX_SIZE);
+			//strcpy(simple_buffer, "command 1!");
+            break;
+        }
+
+		case COMMAND_2  :
+        {
+            printk("ioctl COMMAND_2 ");
+            memset(simple_buffer, 0x32, MAX_SIZE);
+			//strcpy(simple_buffer, "command 2!");
+			break;
+        }
+
+        default         :
+        {
+			return -EFAULT;
+			break;
+        }
+    }
+    printk("success\n");
+
+    return 1;
+}
+
+
+
+#endif
+
 
 
 
@@ -81,7 +137,7 @@ struct file_operations simple_fops = {
 *******************************************************/
 static void __exit simple_cleanup_module(void)
 {
-	dev_t devno = MKDEV(simple_MAJOR, simple_MINOR);
+	dev_t devno = MKDEV(SIMPLE_MAJOR, SIMPLE_MINOR);
 
 	if (simple_devices)
 	{
@@ -98,11 +154,11 @@ static int __init simple_setup_module(void)
 	int result;
 	dev_t dev = 0;
 
-	dev = MKDEV(simple_MAJOR, simple_MINOR);
+	dev = MKDEV(SIMPLE_MAJOR, SIMPLE_MINOR);
 	result = register_chrdev_region(dev, 1, "DEMO");
 	if (result < 0)
 	{
-		printk(KERN_WARNING "DEMO: can't get major %d\n", simple_MAJOR);
+		printk(KERN_WARNING "DEMO: can't get major %d\n", SIMPLE_MAJOR);
 		return result;
 	}
 
