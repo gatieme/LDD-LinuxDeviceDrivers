@@ -1,6 +1,5 @@
-
-#ifndef _simple_H_
-#define _simple_H_
+#ifndef __SIMPLE_H_INCLUDE__
+#define __SIMPLE_H_INCLUDE__
 
 #include <linux/ioctl.h> /* needed for the _IOW etc stuff used later */
 
@@ -28,7 +27,7 @@
 #define COMMAND2 2
 
 //设备结构
-struct simple_dev 
+struct simple_dev
 {
 	struct cdev cdev;	  /* Char device structure		*/
 };
@@ -43,4 +42,4 @@ int     simple_ioctl(struct inode *inode, struct file *filp,
                     unsigned int cmd, unsigned long arg);
 
 
-#endif /* _simple_H_ */
+#endif /*   #endif  __SIMPLE_H_INCLUDE__    */

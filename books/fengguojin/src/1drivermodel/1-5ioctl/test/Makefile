@@ -7,7 +7,7 @@ target=test
 all:$(target)
 
 
-memorylayout : test.o
+test : test.o
 	$(CC) $^ -o $@ $(LDFLAGS)
 	@echo "测试使用register_chrdev注册的字符设备..."
 

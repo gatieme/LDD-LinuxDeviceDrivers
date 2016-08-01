@@ -6,49 +6,72 @@
 #include<stdio.h>
 #include<stdlib.h>
 
-void main()
+
+#define     MAX_SIZE    256
+#define     DEV_FILE    "/dev/gatieme"
+
+int main(void)
 {
 	int fd;
 	int i;
-	char data[256];
-	
+	char data[MAX_SIZE];
+
 	int retval;
-	fd=open("/dev/fgj",O_RDWR);
-	if(fd==-1)
+
+	fd = open(DEV_FILE, O_RDWR);
+	if(fd == -1)
 	{
 		perror("error open\n");
 		exit(-1);
 	}
-	printf("open /dev/fgj successfully\n");
-	retval=lseek(fd,5,0);
-	if(retval==-1)
+	printf("open " DEV_FILE " successfully\n");
+
+    //  read data
+    retval = read(fd, data, MAX_SIZE);
+	if(retval == -1)
+	{
+		perror("read error");
+		exit(-1);
+	}
+	printf("read successfully : %s\n", data);
+
+    // lseek 5 and read data
+    retval = lseek(fd, 5, 0);
+	if(retval == -1)
 	{
 		perror("lseek error\n");
 		exit(-1);
 	}
-	retval=read(fd,data,3);
-	if(retval==-1)
+    printf("lseek 5\n");
+
+	retval = read(fd, data, MAX_SIZE);
+	if(retval == -1)
 	{
-		perror("read error\n");
+		perror("read error");
 		exit(-1);
 	}
-	data[retval]=0;
-	printf("read successfully:%s\n",data);
-	
-	retval=lseek(fd,2,0);
-	if(retval==-1)
+
+	data[retval] = 0;
+	printf("read successfully : %s\n", data);
+
+    // lseek 2 and read data
+	retval = lseek(fd, 2, 0);
+	if(retval == -1)
 	{
-		perror("lseek error\n");
+		perror("lseek error");
 		exit(-1);
 	}
-	retval=read(fd,data,3);
-	if(retval==-1)
+    printf("lseek 2\n");
+
+    retval = read(fd, data, MAX_SIZE);
+	if(retval == -1)
 	{
-		perror("read error\n");
+		perror("read error");
 		exit(-1);
 	}
-	data[retval]=0;
-	printf("read successfully:%s\n",data);
-	
+	data[retval] = 0;
+
+	printf("read successfully : %s\n", data);
+
 	close(fd);
 }

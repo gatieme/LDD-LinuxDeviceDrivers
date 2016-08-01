@@ -1,4 +1,3 @@
-
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
@@ -10,15 +9,27 @@
 #include <linux/vmalloc.h>
 #include <linux/ctype.h>
 #include <linux/pagemap.h>
+#include <linux/poll.h>
 
-#include "demo.h"
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+#include <linux/slab.h>
+#endif
 
-MODULE_AUTHOR("fgj");
+#include "simple.h"
+
+
+
+MODULE_AUTHOR("fgj & gatieme");
 MODULE_LICENSE("Dual BSD/GPL");
 
 struct simple_dev *simple_devices;
 static unsigned char simple_inc=0;
+static unsigned char simple_flag=0;
 static unsigned char demoBuffer[256];
+wait_queue_head_t read_queue;
+
+
+
 
 int simple_open(struct inode *inode, struct file *filp)
 {
@@ -39,73 +50,64 @@ int simple_release(struct inode *inode, struct file *filp)
 	return 0;
 }
 
+
 ssize_t simple_read(struct file *filp, char __user *buf, size_t count,loff_t *f_pos)
 {
-	loff_t pos= *f_pos;
-	if(pos>=256)
+	//printk("wait_event_interruptible before\n");
+	wait_event_interruptible(read_queue, simple_flag);
+	//printk("wait_event_interruptible after\n");
+	if (copy_to_user(buf,demoBuffer,count))
 	{
-		count=0;
-		goto out;
+		count=-EFAULT;
+
 	}
-	if(count>(256-pos))
-	{
-		count=256-pos;
-	}
-	pos += count;
-	
-	if (copy_to_user(buf,demoBuffer+*f_pos,count))
-	{
-	   count=-EFAULT; 
-	   goto out;
-	}
-	*f_pos = pos;
- out:
 	return count;
 }
 
-loff_t simple_llseek(struct file *filp, loff_t off, int whence)
+ssize_t simple_write(struct file *filp, const char __user *buf, size_t count,loff_t *f_pos)
 {
-	loff_t pos;
-	pos = filp->f_pos;
-	switch (whence) 
+	if (copy_from_user(demoBuffer, buf, count))
 	{
-	case 0:
-		pos = off;
-		break;
-	case 1:
-		pos += off;
-		break;
-	case 2:
-		pos =255+off;
-		break;
-	default:
-		return -EINVAL;
+		count = -EFAULT;
+		goto out;
 	}
-	
-	if ((pos>=256) || (pos<0)) 
-	{
-		return -EINVAL;
-	}
-	
-	return filp->f_pos=pos;
+	simple_flag=1;
+    wake_up(&read_queue);
+out:
+	return count;
+}
+
+unsigned int simple_poll(struct file * file, poll_table * pt)
+{
+	unsigned int mask = POLLIN | POLLRDNORM;
+
+    printk("poll_wait before\n");
+	poll_wait(file, &read_queue, pt);
+	printk("poll_wait after\n");
+
+    return mask;
 }
 
 struct file_operations simple_fops = {
 	.owner =    THIS_MODULE,
-	.llseek =   simple_llseek,
+	.poll =     simple_poll,
 	.read =     simple_read,
+	.write=	    simple_write,
 	.open =     simple_open,
 	.release =  simple_release,
 };
 
+
+
+
 /*******************************************************
-                MODULE ROUTINE
+MODULE ROUTINE
 *******************************************************/
-void simple_cleanup_module(void)
+static void __exit simple_cleanup_module(void)
 {
 	dev_t devno = MKDEV(simple_MAJOR, simple_MINOR);
 
-	if (simple_devices) 
+	if (simple_devices)
 	{
 		cdev_del(&simple_devices->cdev);
 		kfree(simple_devices);
@@ -114,14 +116,15 @@ void simple_cleanup_module(void)
 	unregister_chrdev_region(devno,1);
 }
 
-int simple_init_module(void)
+
+static int __init simple_setup_module(void)
 {
 	int result;
 	dev_t dev = 0;
 
 	dev = MKDEV(simple_MAJOR, simple_MINOR);
 	result = register_chrdev_region(dev, 1, "DEMO");
-	if (result < 0) 
+	if (result < 0)
 	{
 		printk(KERN_WARNING "DEMO: can't get major %d\n", simple_MAJOR);
 		return result;
@@ -144,7 +147,8 @@ int simple_init_module(void)
 		printk(KERN_NOTICE "Error %d adding DEMO\n", result);
 		goto fail;
 	}
-    memcpy(demoBuffer,"ABCDEFGHIJKLMN",14);
+    init_waitqueue_head(&read_queue);
+
 	return 0;
 
 fail:
@@ -152,5 +156,5 @@ fail:
 	return result;
 }
 
-module_init(simple_init_module);
+module_init(simple_setup_module);
 module_exit(simple_cleanup_module);
