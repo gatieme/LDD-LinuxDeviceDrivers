@@ -5,7 +5,9 @@ books--一些书中的源码和示例
 
 > 返回主页      [LDD-LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers)
 >
-> 前往study     [study-作者学习内核和驱动的示例代码](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study)
+> 当前books     [books-作者收录的一些学习驱动或者内核比较好的书籍的实例代码](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/books)
+>
+> 前往study     [study-作者学习内核和驱动的实例代码](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study)
 
 
 
