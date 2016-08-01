@@ -2,6 +2,14 @@ books--一些书中的源码和示例
 =======
 
 
+
+> 返回主页      [LDD-LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers)
+>
+> 前往study     [study-作者学习内核和驱动的示例代码](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study)
+
+
+
+
 #1  本章内容
 -------
 
@@ -11,10 +19,6 @@ books--一些书中的源码和示例
 | [fengguojin](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/books/fengguojin) | [冯国进--Linux驱动程序开发实例](http://book.51cto.com/art/201205/337656.htm)   |
 | [21cnbao](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/books/21cnbao)    | [宋宝华-Linux设备驱动开发详解](http://21cnbao.blog.51cto.com)                            |
 
-
-> 返回主页      [LDD-LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers)
->
-> 前往study     [study-作者学习内核和驱动的示例代码](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study)
 
 
 
