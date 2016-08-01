@@ -22,13 +22,13 @@
 #define PDEBUGG(fmt, args...) /* nothing: it's a placeholder */
 
 //设备号
-#define simple_MAJOR 226
+#define simple_MAJOR 224
 #define simple_MINOR 0
 #define COMMAND_LEDON 1
 #define COMMAND_LEDOFF 2
 
 //设备结构
-struct simple_dev 
+struct simple_dev
 {
 	struct cdev cdev;	  /* Char device structure		*/
 };

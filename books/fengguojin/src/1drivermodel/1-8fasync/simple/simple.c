@@ -1,4 +1,3 @@
-
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
@@ -17,16 +16,20 @@
 #include <asm/signal.h>
 #include <asm/uaccess.h>
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 36)
+#include <linux/slab.h>
+#endif
 
-#include "demo.h"
 
-MODULE_AUTHOR("fgj");
+#include "simple.h"
+
+MODULE_AUTHOR("fgj & gatieme");
 MODULE_LICENSE("Dual BSD/GPL");
 
 
-struct simple_dev *simple_devices;
-static unsigned char simple_inc=0;
-static struct timer_list simple_timer;
+struct simple_dev           *simple_devices;
+static unsigned char        simple_inc=0;
+static struct timer_list    simple_timer;
 static struct fasync_struct *fasync_queue=NULL;
 
 static void simple_timer_handler( unsigned long data)
@@ -47,20 +50,27 @@ int simple_open(struct inode *inode, struct file *filp)
 	dev = container_of(inode->i_cdev, struct simple_dev, cdev);
 	filp->private_data = dev;
 
+    simple_inc++;
+
     simple_timer.function = &simple_timer_handler;
 	simple_timer.expires = jiffies + 2*HZ;
 	add_timer (&simple_timer);
     printk("add_timer...\n");
+
 	return 0;
 }
 
 
-static int simple_fasync(int fd, struct file * filp, int mode) 
+static int simple_fasync(int fd, struct file * filp, int mode)
 {
     int retval;
     printk("simple_fasync...\n");
-    retval=fasync_helper(fd,filp,mode,&fasync_queue);
-    if(retval<0)
+    retval = fasync_helper(fd, filp, mode, &fasync_queue);
+
+    simple_inc--;
+
+
+    if(retval < 0)
       return retval;
     return 0;
 }
@@ -76,7 +86,7 @@ struct file_operations simple_fops = {
 	.open =     simple_open,
 	.release=   simple_release,
 	.fasync=    simple_fasync,
-	
+
 };
 
 /*******************************************************
@@ -86,7 +96,7 @@ void simple_cleanup_module(void)
 {
 	dev_t devno = MKDEV(simple_MAJOR, simple_MINOR);
 
-	if (simple_devices) 
+	if (simple_devices)
 	{
 		cdev_del(&simple_devices->cdev);
 		kfree(simple_devices);
@@ -102,7 +112,7 @@ int simple_init_module(void)
 
 	dev = MKDEV(simple_MAJOR, simple_MINOR);
 	result = register_chrdev_region(dev, 1, "DEMO");
-	if (result < 0) 
+	if (result < 0)
 	{
 		printk(KERN_WARNING "DEMO: can't get major %d\n", simple_MAJOR);
 		return result;
