@@ -21,10 +21,13 @@
 #define PDEBUGG(fmt, args...) /* nothing: it's a placeholder */
 
 //设备号
-#define simple_MAJOR 224
-#define simple_MINOR 0
-#define COMMAND1 1
-#define COMMAND2 2
+#define     simple_MAJOR    224
+#define     simple_MINOR    0
+#define     COMMAND1        1
+#define     COMMAND2        2
+
+
+#define     MAX_SIZE        256
 
 //设备结构
 struct simple_dev

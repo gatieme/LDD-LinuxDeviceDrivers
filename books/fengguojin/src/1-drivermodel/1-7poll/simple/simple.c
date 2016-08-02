@@ -54,26 +54,32 @@ int simple_release(struct inode *inode, struct file *filp)
 
 ssize_t simple_read(struct file *filp, char __user *buf, size_t count,loff_t *f_pos)
 {
-	//printk("wait_event_interruptible before\n");
+	printk("wait_event_interruptible before\n");
 	wait_event_interruptible(read_queue, simple_flag);
-	//printk("wait_event_interruptible after\n");
-	if (copy_to_user( buf, demoBuffer, count))
+	printk("wait_event_interruptible after\n");
+    if (copy_to_user( buf, demoBuffer, count))
 	{
 		count=-EFAULT;
 	}
 
+    printk("read data : %s\n", demoBuffer);
     return count;
 }
 
 ssize_t simple_write(struct file *filp, const char __user *buf, size_t count,loff_t *f_pos)
 {
+	memset(demoBuffer, 0, MAX_SIZE);
 	if (copy_from_user(demoBuffer, buf, count))
 	{
 		count = -EFAULT;
 		goto out;
 	}
-	simple_flag=1;
+
+    printk("write data : %s\n", demoBuffer);
+
+    simple_flag = 1;
     wake_up(&read_queue);
+
 out:
 	return count;
 }
@@ -83,7 +89,7 @@ unsigned int simple_poll(struct file * file, poll_table * pt)
 	unsigned int mask = POLLIN | POLLRDNORM;
 
     printk("poll_wait before\n");
-	poll_wait(file, &read_queue, pt);
+	poll_wait(file, &read_queue, pt);   /*  put current process into the wait queue  */
 	printk("poll_wait after\n");
 
     return mask;

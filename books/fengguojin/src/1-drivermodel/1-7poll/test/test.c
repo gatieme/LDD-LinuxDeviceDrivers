@@ -3,6 +3,7 @@
 #include <fcntl.h>
 #include <linux/rtc.h>
 #include <linux/ioctl.h>
+#include <sys/select.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,9 +24,9 @@ void *readthread(void *arg)
 {
 	char data[MAX_SIZE];
 
-    fd_set      rfds; //¶ÁÃèÊö·û¼¯ºÏ
-    fd_set      wfds; //Ð´ÃèÊö·û¼¯ºÏ
-	int         retval = 0;
+    fd_set      rfds;   /*  the set of the readable files   */
+    fd_set      wfds;   /*  the set of the writeable files  */
+    int         retval = 0;
 
     while( 1 )
 	{
@@ -43,8 +44,10 @@ void *readthread(void *arg)
 				exit(-1);
 			}
 			data[retval] = 0;
-			printf("read successfully:%s\n",data);
+			printf("read successfully : %s\n",data);
 		}
+
+        sleep(1);
 	}
     return (void *)0;
 }
@@ -54,8 +57,10 @@ void *readthread(void *arg)
 int main(void)
 {
 
-	int i;
-	int retval;
+	int     i;
+	int     retval;
+    char    str[3][81] = { "gatieme", "wangpanpan", "Hello World!!!" };
+    //char    (*pstr)[81] = str;
 
     fd = open(DEV_FILE, O_RDWR);
     if(fd == -1)
@@ -68,14 +73,18 @@ int main(void)
 	pthread_t   tid;
 	pthread_create(&tid, NULL, readthread, NULL);
 
+    srand(time(NULL));
+
 	while( 1 )
 	{
-		retval = write(fd, "gatieme", strlen("gatieme"));
+        i = rand( ) % 3;
+		retval = write(fd, str[i], strlen(str[i]));
 		if(retval == -1)
 		{
 			perror("write error\n");
 			exit(-1);
 		}
+        sleep(2);
 	}
 
 	close(fd);
