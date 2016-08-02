@@ -105,7 +105,7 @@ void simple_cleanup_module(void)
 	unregister_chrdev_region(devno,1);
 }
 
-int simple_init_module(void)
+static int __init simple_setup_module(void)
 {
 	int result;
 	dev_t dev = 0;
@@ -143,5 +143,5 @@ fail:
 	return result;
 }
 
-module_init(simple_init_module);
+module_init(simple_setup_module);
 module_exit(simple_cleanup_module);

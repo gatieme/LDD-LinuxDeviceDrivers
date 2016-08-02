@@ -12,8 +12,8 @@
 
 
 
-#define       DEV_FILE    "/dev/gatieme"
-int           fd;
+#define     DEV_FILE    "/dev/gatieme"
+int         fd;
 
 
 void fasync_handler(int num)
@@ -31,18 +31,16 @@ int main(void)
 
     signal(SIGIO, fasync_handler);
 
-    fd = open(DEV_FILE, O_RDWR);
-    if(fd == -1)
+      fd=open(DEV_FILE, O_RDWR);
+    if(fd==-1)
     {
-        perror("error open\n");
-        exit(-1);
+       perror("error open\n");
+       exit(-1);
     }
-
     printf("open " DEV_FILE " successfully\n");
-
-    //  使能了异步的通知到当前进程
+    //使能了异步的通知到当前进程
     fcntl(fd, F_SETOWN, getpid());
-    oflags = fcntl(fd, F_GETFL);
+    oflags=fcntl(fd, F_GETFL);
     fcntl(fd, F_SETFL, oflags | FASYNC);
 
     while(1);

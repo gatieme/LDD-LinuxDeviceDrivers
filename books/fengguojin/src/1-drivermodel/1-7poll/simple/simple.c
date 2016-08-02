@@ -22,11 +22,11 @@
 MODULE_AUTHOR("fgj & gatieme");
 MODULE_LICENSE("Dual BSD/GPL");
 
-struct simple_dev *simple_devices;
-static unsigned char simple_inc=0;
-static unsigned char simple_flag=0;
-static unsigned char demoBuffer[256];
-wait_queue_head_t read_queue;
+struct simple_dev       *simple_devices;
+static unsigned char    simple_inc=0;
+static unsigned char    simple_flag=0;
+static unsigned char    demoBuffer[256];
+wait_queue_head_t       read_queue;
 
 
 
@@ -35,7 +35,8 @@ int simple_open(struct inode *inode, struct file *filp)
 {
 	struct simple_dev *dev;
 
-	if(simple_inc>0)return -ERESTARTSYS;
+	if(simple_inc >0 )
+        return -ERESTARTSYS;
 	simple_inc++;
 
 	dev = container_of(inode->i_cdev, struct simple_dev, cdev);
@@ -56,12 +57,12 @@ ssize_t simple_read(struct file *filp, char __user *buf, size_t count,loff_t *f_
 	//printk("wait_event_interruptible before\n");
 	wait_event_interruptible(read_queue, simple_flag);
 	//printk("wait_event_interruptible after\n");
-	if (copy_to_user(buf,demoBuffer,count))
+	if (copy_to_user( buf, demoBuffer, count))
 	{
 		count=-EFAULT;
-
 	}
-	return count;
+
+    return count;
 }
 
 ssize_t simple_write(struct file *filp, const char __user *buf, size_t count,loff_t *f_pos)
