@@ -71,7 +71,7 @@ struct zone {
      * recalculated at runtime if the sysctl_lowmem_reserve_ratio sysctl
      * changes.
      * 分别为各种内存域指定了若干页
-     * 用于一些无论如何都不能失败的关键性内存分配。  
+     * 用于一些无论如何都不能失败的关键性内存分配。
      */
     long lowmem_reserve[MAX_NR_ZONES];
 
@@ -82,7 +82,7 @@ struct zone {
     /*
      * The target ratio of ACTIVE_ANON to INACTIVE_ANON pages on
      * this zone's LRU.  Maintained by the pageout code.
-     * 不活动页的比例, 
+     * 不活动页的比例,
      * 接着是一些很少使用或者大部分情况下是只读的字段：
      * wait_table wait_table_hash_nr_entries wait_table_bits
      * 形成等待列队，可以等待某一页可供进程使用  */
@@ -215,7 +215,7 @@ struct zone {
 
     ZONE_PADDING(_pad1_)
 
-    /* free areas of different sizes 
+    /* free areas of different sizes
        页面使用状态的信息，以每个bit标识对应的page是否可以分配
        是用于伙伴系统的，每个数组元素指向对应阶也表的数组开头
        以下是供页帧回收扫描器(page reclaim scanner)访问的字段
@@ -236,7 +236,7 @@ struct zone {
 
     /* Fields commonly accessed by the page reclaim scanner */
     spinlock_t          lru_lock;   /* LRU(最近最少使用算法)活动以及非活动链表使用的自旋锁  */
-    struct lruvec       lruvec;    
+    struct lruvec       lruvec;
 
     /*
      * When free pages are below this point, additional steps are taken
@@ -283,7 +283,7 @@ enum zone_flags
 {
     ZONE_RECLAIM_LOCKED,         /* prevents concurrent reclaim */
     ZONE_OOM_LOCKED,               /* zone is in OOM killer zonelist */
-ZONE_CONGESTED,                     /* zone has many dirty pages backed by 
+    ZONE_CONGESTED,                 /* zone has many dirty pages backed by
                                                     * a congested BDI
                                                     */
     ZONE_DIRTY,                           /* reclaim scanning has recently found
@@ -294,4 +294,57 @@ ZONE_CONGESTED,                     /* zone has many dirty pages backed by
                                                    * many pages under writeback
                                                    */
     ZONE_FAIR_DEPLETED,           /* fair zone policy batch depleted */
+};
+
+
+
+
+enum zone_stat_item
+{
+    /* First 128 byte cacheline (assuming 64 bit words) */
+    NR_FREE_PAGES,
+    NR_ALLOC_BATCH,
+    NR_LRU_BASE,
+    NR_INACTIVE_ANON = NR_LRU_BASE, /* must match order of LRU_[IN]ACTIVE */
+    NR_ACTIVE_ANON,         /*  "     "     "   "       "         */
+    NR_INACTIVE_FILE,       /*  "     "     "   "       "         */
+    NR_ACTIVE_FILE,         /*  "     "     "   "       "         */
+    NR_UNEVICTABLE,         /*  "     "     "   "       "         */
+    NR_MLOCK,               /* mlock()ed pages found and moved off LRU */
+    NR_ANON_PAGES,  /* Mapped anonymous pages */
+    NR_FILE_MAPPED, /* pagecache pages mapped into pagetables.
+                       only modified from process context */
+    NR_FILE_PAGES,
+    NR_FILE_DIRTY,
+    NR_WRITEBACK,
+    NR_SLAB_RECLAIMABLE,
+    NR_SLAB_UNRECLAIMABLE,
+    NR_PAGETABLE,           /* used for pagetables */
+    NR_KERNEL_STACK,
+    /* Second 128 byte cacheline */
+    NR_UNSTABLE_NFS,        /* NFS unstable pages */
+    NR_BOUNCE,
+    NR_VMSCAN_WRITE,
+    NR_VMSCAN_IMMEDIATE,    /* Prioritise for reclaim when writeback ends */
+    NR_WRITEBACK_TEMP,      /* Writeback using temporary buffers */
+    NR_ISOLATED_ANON,       /* Temporary isolated pages from anon lru */
+    NR_ISOLATED_FILE,       /* Temporary isolated pages from file lru */
+    NR_SHMEM,               /* shmem pages (included tmpfs/GEM pages) */
+    NR_DIRTIED,             /* page dirtyings since bootup */
+    NR_WRITTEN,             /* page writings since bootup */
+    NR_PAGES_SCANNED,       /* pages scanned since last reclaim */
+#ifdef CONFIG_NUMA
+    NUMA_HIT,               /* allocated in intended node */
+    NUMA_MISS,              /* allocated in non intended node */
+    NUMA_FOREIGN,           /* was intended here, hit elsewhere */
+    NUMA_INTERLEAVE_HIT,    /* interleaver preferred this zone */
+    NUMA_LOCAL,             /* allocation from local node */
+    NUMA_OTHER,             /* allocation from other node */
+#endif
+    WORKINGSET_REFAULT,
+    WORKINGSET_ACTIVATE,
+    WORKINGSET_NODERECLAIM,
+    NR_ANON_TRANSPARENT_HUGEPAGES,
+    NR_FREE_CMA_PAGES,
+    NR_VM_ZONE_STAT_ITEMS
 };
