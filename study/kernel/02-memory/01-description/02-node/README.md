@@ -57,10 +57,7 @@ Linux把物理内存划分为三个层次来管理
 | 页面(Page) 	   |	内存被细分为多个页面帧, 页面是最基本的页面分配的单位　｜
 
 
-#2	内存节点node
--------
-
-##2.1	参照内容
+##参照
 -------
 
 >参照
@@ -72,6 +69,14 @@ Linux把物理内存划分为三个层次来管理
 >[Bootmem机制](http://blog.csdn.net/samssm/article/details/25064897)
 >
 >[Linux-2.6.32 NUMA架构之内存和调度](http://www.cnblogs.com/zhenjing/archive/2012/03/21/linux_numa.html)
+>
+>[Linux 用户空间与内核空间——高端内存详解](http://blog.csdn.net/tommy_wxie/article/details/17122923)
+>
+>[探索 Linux 内存模型](http://www.ibm.com/developerworks/cn/linux/l-memmod/)
+
+
+#2	内存节点node
+-------
 
 
 ##2.2	内存结点的概念
@@ -90,22 +95,6 @@ Linux把物理内存划分为三个层次来管理
 在分配一个页面时, Linux采用节点局部分配的策略, 从最靠近运行中的CPU的节点分配内存, 由于进程往往是在同一个CPU上运行, 因此从当前节点得到的内存很可能被用到
 
 
-在内存中，每个簇所对应的node又被分成的称为管理区（zone）的块，它们各自描述在内存中的范围。一个管理区（zone）由[struct zone](http://lxr.free-electrons.com/source/include/linux/mmzone.h#L326)结构体来描述，在linux-2.4.37之前的内核中是用[`typedef  struct zone_struct zone_t `](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L47)数据结构来描述）
-
-管理区的类型有如下几种
-*    ZONE_DMA
-*    ZONE_NORMAL
-*    ZONE_HIGHMEM这三种类型
-
-不同的管理区的用途是不一样的，ZONE_DMA类型的内存区域在物理内存的低端，主要是ISA设备只能用低端的地址做DMA操作。ZONE_NORMAL类型的内存区域直接被内核映射到线性地址空间上面的区域（line address space），ZONE_HIGHMEM将保留给系统使用，是系统中预留的可用内存空间，不能被内核直接映射。
-
-对于x86机器，管理区（内存区域）类型如下分布
-
-| 类型 | 区域 |
-| :------- | ----: |
-| ZONE_DMA | 0~16MB |
-| ZONE_NORMAL | 16MB~896MB |
-| ZONE_HIGHMEM | 896MB~物理内存结束 |
 
 
 ##2.3	pg_data_t描述内存节点
@@ -226,9 +215,9 @@ typedef struct pglist_data {
 
 在新的linux3.x~linux4.x的内核中，Linux定义了一个大小为[MAX_NUMNODES](http://lxr.free-electrons.com/source/include/linux/numa.h#L11)类型为[`pgdat_list`](http://lxr.free-electrons.com/source/arch/ia64/mm/discontig.c#L50)数组，数组的大小根据[CONFIG_NODES_SHIFT](http://lxr.free-electrons.com/source/include/linux/numa.h#L6)的配置决定。对于UMA来说，NODES_SHIFT为0，所以MAX_NUMNODES的值为1。内核提供了[for_each_online_pgdat(pgdat)](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L871)来遍历节点
 
-而在linux-2.4.x之前的内核中所有的节点，都由一个被称为[pgdat_list](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L169)的链表维护。这些节点都放在该链表中，均由函数[init_bootmem_core()](http://lxr.free-electrons.com/source/mm/bootmem.c#L96)初始化结点。内核提供了[宏for_each_pgdat(pgdat)]http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L169)来遍历节点链表。
+>而在linux-2.4.x之前的内核中所有的节点，都由一个被称为[pgdat_list](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L169)的链表维护。这些节点都放在该链表中，均由函数[init_bootmem_core()](http://lxr.free-electrons.com/source/mm/bootmem.c#L96)初始化结点。内核提供了[宏for_each_pgdat(pgdat)]http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L169)来遍历节点链表。
 
-对于单一node的系统，contig_page_data 是系统唯一的node数据结构对象。查看contig_page_data的定义[linux-4.5](http://lxr.free-electrons.com/source/mm/bootmem.c#L27)，[linux-2.4.37](http://lxr.free-electrons.com/source/mm/numa.c?v=2.4.37#L15)
+对于单一node的系统，contig_page_data 是系统唯一的node数据结构对象。查看contig_page_data的定义[linux-4.5](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L27)，[linux-2.4.37](http://lxr.free-electrons.com/source/mm/numa.c?v=2.4.37#L15)
 
 
 
@@ -236,7 +225,133 @@ typedef struct pglist_data {
 -------
 
 
-linux系统中，内存中的每个簇所对应的node又被分成的称为管理区(zone)的块，
+##3.1	为什么要分区
+-------
+
+
+NUMA结构下, 每个处理器CPU与一个本地内存直接相连, 而不同处理器之前则通过总线进行进一步的连接, 因此相对于任何一个CPU访问本地内存的速度比访问远程内存的速度要快, 而Linux为了兼容NUMAJ结构, 把物理内存相依照CPU的不同node分成簇, 一个CPU-node对应一个本地内存pgdata_t.
+
+
+
+这样已经很好的表示物理内存了, 在一个理想的计算机系统中, 一个页框就是一个内存的分配单元, 可用于任何事情:存放内核数据, 用户数据和缓冲磁盘数据等等. 任何种类的数据页都可以存放在任页框中, 没有任何限制.
+
+<font color=0x00ffff>
+但是Linux内核又把各个物理内存节点分成个不同的管理区域zone, 这是为什么呢?
+</font>
+
+因为实际的计算机体系结构有硬件的诸多限制, 这限制了页框可以使用的方式. 尤其是, Linux内核必须处理80x86体系结构的两种硬件约束.
+
+*	ISA总线的直接内存存储DMA处理器有一个严格的限制 : 他们只能对RAM的前16MB进行寻址
+
+*	在具有大容量RAM的现代32位计算机中, CPU不能直接访问所有的物理地址, 因为线性地址空间太小, 内核不可能直接映射所有物理内存到线性地址空间, 我们会在后面典型架构(x86)上内存区域划分详细讲解x86_32上的内存区域划分
+</font>
+
+因此Linux内核对不同区域的内存需要采用不同的管理方式和映射方式, 因此内核将物理地址或者成用zone_t表示的不同地址区域
+
+
+
+##3.1	内存管理区类型zone_type
+-------
+
+前面我们说了由于硬件的一些约束, 低端的一些地址被用于DMA, 而在实际内存大小超过了内核所能使用的现行地址的时候, 一些高地址处的物理地址不能简单持久的直接映射到内核空间. 因此内核将内存的节点node分成了不同的内存区域方便管理和映射.
+
+Linux使用enum zone_type来标记内核所支持的所有内存区域
+
+
+###3.1.1	内存区域类型zone_type
+-------
+
+zone_type结构定义在[include/linux/mmzone.h](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L267), 其基本信息如下所示
+
+```c
+enum zone_type
+{
+#ifdef CONFIG_ZONE_DMA
+    ZONE_DMA,
+#endif
+
+#ifdef CONFIG_ZONE_DMA32
+
+    ZONE_DMA32,
+#endif
+
+    ZONE_NORMAL,
+
+#ifdef CONFIG_HIGHMEM
+    ZONE_HIGHMEM,
+#endif
+    ZONE_MOVABLE,
+#ifdef CONFIG_ZONE_DEVICE
+    ZONE_DEVICE,
+#endif
+    __MAX_NR_ZONES
+
+};
+
+```
+不同的管理区的用途是不一样的，ZONE_DMA类型的内存区域在物理内存的低端，主要是ISA设备只能用低端的地址做DMA操作。ZONE_NORMAL类型的内存区域直接被内核映射到线性地址空间上面的区域（line address space），ZONE_HIGHMEM将保留给系统使用，是系统中预留的可用内存空间，不能被内核直接映射。
+
+
+##3.1.2	不同的内存区域的作用
+-------
+
+在内存中，每个簇所对应的node又被分成的称为管理区(zone)的块，它们各自描述在内存中的范围。一个管理区(zone)由[struct zone](http://lxr.free-electrons.com/source/include/linux/mmzone.h#L326)结构体来描述，在linux-2.4.37之前的内核中是用[`typedef  struct zone_struct zone_t `](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L47)数据结构来描述）
+
+管理区的类型用zone_type表示, 有如下几种
+
+| 管理内存域 | 描述 |
+|:---------:|:---:|
+| ZONE_DMA | 标记了适合DMA的内存域. 该区域的长度依赖于处理器类型. 这是由于古老的ISA设备强加的边界. 但是为了兼容性, 现代的计算机也可能受此影响 |
+| ZONE_DMA32 | 标记了使用32位地址字可寻址, 适合DMA的内存域. 显然, 只有在53位系统中ZONE_DMA32才和ZONE_DMA有区别, 在32位系统中, 本区域是空的, 即长度为0MB, 在Alpha和AMD64系统上, 该内存的长度可能是从0到4GB |
+| ZONE_NORMAL | 标记了可直接映射到内存段的普通内存域. 这是在所有体系结构上保证会存在的唯一内存区域, 但无法保证该地址范围对应了实际的物理地址. 例如, 如果AMD64系统只有两2G内存, 那么所有的内存都属于ZONE_DMA32范围, 而ZONE_NORMAL则为空 |
+| ZONE_HIGHMEM | 标记了超出内核虚拟地址空间的物理内存段, 因此这段地址不能被内核直接映射 |
+| ZONE_MOVABLE | 内核定义了一个伪内存域ZONE_MOVABLE, 在防止物理内存碎片的机制memory migration中需要使用该内存域. |
+| ZONE_DEVICE | 为支持热插拔设备而分配的Non Volatile Memory非易失性内存 |
+| MAX_NR_ZONES | 充当结束标记, 在内核中想要迭代系统中所有内存域, 会用到该常亮 |
+
+根据编译时候的配置, 可能无需考虑某些内存域. 例如在64位系统中, 并不需要高端内存, 因为AM64的linux采用4级页表，支持的最大物理内存为64TB, 对于虚拟地址空间的划分，将0x0000,0000,0000,0000 – 0x0000,7fff,ffff,f000这128T地址用于用户空间；而0xffff,8000,0000,0000以上的128T为系统空间地址, 这远大于当前我们系统中的内存空间, 因此所有的物理地址都可以直接映射到内核中, 不需要高端内存的特殊映射. 可以参见[Documentation/x86/x86_64/mm.txt](https://www.kernel.org/doc/Documentation/x86/x86_64/mm.txt)
+	`
+
+ZONE_MOVABLE和ZONE_DEVICE其实是和其他的ZONE的用途有异,
+
+*	ZONE_MOVABLE在防止物理内存碎片的机制中需要使用该内存区域,
+
+*	ZONE_DEVICE笔者也第一次知道了，理解有错的话欢迎大家批评指正, 这个应该是为支持热插拔设备而分配的Non Volatile Memory非易失性内存, 
+
+
+>关于ZONE_DEVICE, 具体的信息可以参见[ATCH v2 3/9] mm: ZONE_DEVICE for "device memory"](https://lkml.org/lkml/2015/8/25/844)
+>
+>While pmem is usable as a block device or via DAX mappings to userspace
+there are several usage scenarios that can not target pmem due to its
+lack of struct page coverage. In preparation for "hot plugging" pmem
+into the vmemmap add ZONE_DEVICE as a new zone to tag these pages
+separately from the ones that are subject to standard page allocations.
+Importantly "device memory" can be removed at will by userspace
+unbinding the driver of the device.
+
+
+##3.1.3	典型架构(x86)上内存区域划分
+-------
+
+
+对于x86机器，管理区(内存区域)类型如下分布
+
+| 类型 | 区域 |
+| :------- | ----: |
+| ZONE_DMA | 0~15MB |
+| ZONE_NORMAL | 16MB~895MB |
+| ZONE_HIGHMEM | 896MB~物理内存结束 |
+
+而由于32位系统中, Linux内核虚拟地址空间只有1G, 而0~895M这个986MB被用于DMA和直接映射, 剩余的物理内存被成为高端内存. 那内核是如何借助剩余128MB高端内存地址空间是如何实现访问可以所有物理内存？
+
+当内核想访问高于896MB物理地址内存时，从0xF8000000 ~ 0xFFFFFFFF地址空间范围内找一段相应大小空闲的逻辑地址空间，借用一会。借用这段逻辑地址空间，建立映射到想访问的那段物理内存（即填充内核PTE页面表），临时用一会，用完后归还。这样别人也可以借用这段地址空间访问其他物理内存，实现了使用有限的地址空间，访问所有所有物理内存
+
+>关于高端内存的内容, 我们后面会专门抽出一章进行讲解
+
+
+
+##3.2	管理区结构zone_t
+-------
 
 >一个管理区（zone）由[struct zone](http://lxr.free-electrons.com/source/include/linux/mmzone.h#L326)结构体来描述(linux-3.8~目前linux4.5)，而在linux-2.4.37之前的内核中是用[`typedef  struct zone_struct zone_t `](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L47)数据结构来描述)
 
