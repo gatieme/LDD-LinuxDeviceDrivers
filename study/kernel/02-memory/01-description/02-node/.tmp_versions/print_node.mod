@@ -1,2 +1,0 @@
-/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/02-memory/01-description/02-node/print_node.ko
-/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/02-memory/01-description/02-node/print_node.o
