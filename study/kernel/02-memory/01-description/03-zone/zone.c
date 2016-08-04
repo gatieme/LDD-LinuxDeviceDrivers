@@ -104,6 +104,9 @@ struct zone {
     /*
      * Flags for a pageblock_nr_pages block. See pageblock-flags.h.
      * In SPARSEMEM, this map is stored in struct mem_section
+     * 它用于跟踪包含pageblock_nr_pages个页的内存区的属性。
+     * 在初始化期间，内核自动保证对每个迁移类型，
+     * 在pageblock_flags中都分配了足够存储NR_PAGEBLOCK_BITS个比特的空间。
      */
     unsigned long       *pageblock_flags;
 #endif /* CONFIG_SPARSEMEM */
@@ -282,9 +285,9 @@ struct zone {
 enum zone_flags
 {
     ZONE_RECLAIM_LOCKED,         /* prevents concurrent reclaim */
-    ZONE_OOM_LOCKED,               /* zone is in OOM killer zonelist */
+    ZONE_OOM_LOCKED,               /* zone is in OOM killer zonelist 内存域可被回收*/
     ZONE_CONGESTED,                 /* zone has many dirty pages backed by
-                                                    * a congested BDI
+                                                    * a congested BDI 
                                                     */
     ZONE_DIRTY,                           /* reclaim scanning has recently found
                                                    * many dirty file pages at the tail
@@ -297,7 +300,22 @@ enum zone_flags
 };
 
 
+/*
+ * zone->lock and zone->lru_lock are two of the hottest locks in the kernel.
+ * So add a wild amount of padding here to ensure that they fall into separate
+ * cachelines.  There are very few zone structures in the machine, so space
+ * consumption is not a concern here.
+     */
+#if defined(CONFIG_SMP)
+    struct zone_padding
+    {
+            char x[0];
+    } ____cacheline_internodealigned_in_smp;
+    #define ZONE_PADDING(name)      struct zone_padding name;
 
+#else
+    #define ZONE_PADDING(name)
+ #endif
 
 enum zone_stat_item
 {
@@ -348,3 +366,16 @@ enum zone_stat_item
     NR_FREE_CMA_PAGES,
     NR_VM_ZONE_STAT_ITEMS
 };
+
+
+
+enum zone_watermarks {
+        WMARK_MIN,
+        WMARK_LOW,
+        WMARK_HIGH,
+        NR_WMARK
+};
+
+#define min_wmark_pages(z) (z->watermark[WMARK_MIN])
+#define low_wmark_pages(z) (z->watermark[WMARK_LOW])
+#define high_wmark_pages(z) (z->watermark[WMARK_HIGH])
