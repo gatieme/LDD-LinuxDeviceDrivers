@@ -5,6 +5,9 @@
 | ------- |:-------:|:-------:|:-------:|:-------:|:-------:|
 | 2016-06-14 | [Linux-4.7](http://lxr.free-electrons.com/source/?v=4.7) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux内存管理](http://blog.csdn.net/gatieme/article/category/6225543) |
 
+http://www.cnblogs.com/plinx/archive/2013/01/15/2860520.html
+http://blog.chinaunix.net/uid-30282771-id-5176971.html
+
 
 #好的收藏
 -------
@@ -33,6 +36,9 @@
 >[内存管理(一)](http://www.cnblogs.com/openix/p/3334026.html)
 >
 >[Linux内存管理原理](http://www.cnblogs.com/zhaoyl/p/3695517.html)
+>
+>[第 15 章 内存映射和 DMA](http://www.embeddedlinux.org.cn/ldd3/ch15.html)
+
 
 #1	前景回顾
 -------
