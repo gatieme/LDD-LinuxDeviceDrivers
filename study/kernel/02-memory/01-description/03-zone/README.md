@@ -746,7 +746,37 @@ unsigned long *zones_sizes: 系统中每个zone所管理的page的数量的数�
 
 `struct zone`的pageset成员用于实现冷热分配器(hot-n-cold allocator)
 
-内核说页面是热的， 意味着
+```cpp
+struct zone
+{
+    struct per_cpu_pageset __percpu *pageset;
+};
+```
+内核说页面是热的， 意味着页面已经加载到CPU的高速缓存, 与在内存中的页相比, 其数据访问速度更快. 相反, 冷页则不再高速缓存中. 在多处理器系统上每个CPU都有一个或者多个告诉缓存. 各个CPU的管理必须是独立的.
+
+>尽管内存域可能属于一个特定的NUMA结点, 因而关联到某个特定的CPU。 但其他CPU的告诉缓存仍然可以包含该内存域中的页面. 最终的效果是, 每个处理器都可以访问系统中的所有页, 尽管速度不同. 因而, 特定于内存域的数据结构不仅要考虑到所属NUMA结点相关的CPU, 还必须照顾到系统中其他的CPU.
+
+```c
+struct per_cpu_pages {
+	int count;              /* number of pages in the list */
+	int high;               /* high watermark, emptying needed */
+    int batch;              /* chunk size for buddy add/remove */
+
+	/* Lists of pages, one per migrate type stored on the pcp-lists */
+       struct list_head lists[MIGRATE_PCPTYPES];
+};
+
+struct per_cpu_pageset {
+    struct per_cpu_pages pcp;
+#ifdef CONFIG_NUMA
+	s8 expire;
+#endif
+#ifdef CONFIG_SMP
+	s8 stat_threshold;
+	s8 vm_stat_diff[NR_VM_ZONE_STAT_ITEMS];
+#endif
+};
+```
 
 #5	内存域水印的计算
 -------
