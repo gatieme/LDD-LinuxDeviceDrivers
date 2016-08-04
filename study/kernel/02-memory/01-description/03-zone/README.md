@@ -1,4 +1,4 @@
-服务器体系与共享存储器架构
+ 服务器体系与共享存储器架构
 =======
 
 | 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
@@ -466,7 +466,7 @@ struct zone
 | lock | 对zone并发访问的保护的自旋锁 |
 | free_area[MAX_ORDER] | 页面使用状态的信息，以每个bit标识对应的page是否可以分配 |
 | lru_lock | LRU(最近最少使用算法)的自旋锁 |
-| wait_table | 待一个page释放的等待队列哈希表。它会被wait_on_page()，unlock_page()函数使用. 用哈希表，而不用一个等待队列的原因，防止进程长期等待资源。
+| wait_table | 待一个page释放的等待队列哈希表。它会被wait_on_page()，unlock_page()函数使用. 用哈希表，而不用一个等待队列的原因，防止进程长期等待资源 |
 | wait_table_hash_nr_entries | 哈希表中的等待队列的数量 |
 | zone_pgdat | 指向这个zone所在的pglist_data对象 |
 | zone_start_pfn | 和node_start_pfn的含义一样。这个成员是用于表示zone中的开始那个page在物理内存中的位置的present_pages， spanned_pages: 和node中的类似的成员含义一样 |
@@ -486,7 +486,8 @@ struct zone
 那么数据保存在CPU高速缓存中, 那么会处理得更快速. 高速缓冲分为行, 每一行负责不同的内存区. 内核使用ZONE_PADDING宏生成"填充"字段添加到结构中, 以确保每个自旋锁处于自身的缓存行中
 
 ZONE_PADDING宏定义在[nclude/linux/mmzone.h?v4.7, line 105](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v4.7#L105)
-```c
+
+```cpp
 /*
  * zone->lock and zone->lru_lock are two of the hottest locks in the kernel.
  * So add a wild amount of padding here to ensure that they fall into separate
@@ -510,7 +511,7 @@ ZONE_PADDING宏定义在[nclude/linux/mmzone.h?v4.7, line 105](http://lxr.free-e
 
 该宏定义在[include/linux/cache.h](http://lxr.free-electrons.com/source/include/linux/cache.h?v=4.7#L68)
 
-```c
+```cpp
 #if !defined(____cacheline_internodealigned_in_smp)
 	#if defined(CONFIG_SMP)
 		#define ____cacheline_internodealigned_in_smp \
@@ -529,7 +530,7 @@ Zone的管理调度的一些参数watermarks水印, 水存量很小(MIN)进水�
 WMARK_LOW, WMARK_LOW, WMARK_HIGH就是这个标准
 
 
-```c
+```cpp
 enum zone_watermarks
 {
         WMARK_MIN,
@@ -570,8 +571,167 @@ typedef struct zone_struct {
 | watermark[WMARK_MIN] | 当空闲页面的数量达到page_min所标定的数量的时候， 说明页面数非常紧张, 分配页面的动作和kswapd线程同步运行.<br>WMARK_MIN所表示的page的数量值，是在内存初始化的过程中调用[free_area_init_core](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5932)中计算的。这个数值是根据zone中的page的数量除以一个>1的系数来确定的。通常是这样初始化的ZoneSizeInPages/12 |
 | watermark[WMARK_LOW] | 当空闲页面的数量达到WMARK_LOW所标定的数量的时候，说明页面刚开始紧张, 则kswapd线程将被唤醒，并开始释放回收页面 |
 | watermark[WMARK_HIGH] | 当空闲页面的数量达到page_high所标定的数量的时候， 说明内存页面数充足, 不需要回收, kswapd线程将重新休眠，通常这个数值是page_min的3倍 |
-zone的大小的计算
-setup_memory()函数计算每个zone的大小：
+
+*	如果空闲页多于pages_high = watermark[WMARK_HIGH], 则说明内存页面充足, 内存域的状态是理想的.
+
+*	如果空闲页的数目低于pages_low = watermark[WMARK_LOW], 则说明内存页面开始紧张, 内核开始将页患处到硬盘.
+
+*	如果空闲页的数目低于pages_min = watermark[WMARK_MIN], 则内存页面非常紧张, 页回收工作的压力就比较大
+
+
+##4.3	内存域标志
+-------
+
+[内存管理域zone_t结构中的flags字段](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v4.7#L475)描述了内存域的当前状态
+
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/mmzone.h#L475
+struct zone
+{
+	/* zone flags, see below */
+	unsigned long           flags;
+}
+```
+
+它允许使用的标识用[`enum zone_flags`](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v4.7#L525)标识, 该枚举标识定义在[include/linux/mmzone.h?v4.7, line 525](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v4.7#L525), 如下所示
+
+```cpp
+enum zone_flags
+{
+    ZONE_RECLAIM_LOCKED,         /* prevents concurrent reclaim */
+    ZONE_OOM_LOCKED,               /* zone is in OOM killer zonelist 内存域可被回收*/
+    ZONE_CONGESTED,                 /* zone has many dirty pages backed by
+                                                    * a congested BDI
+                                                    */
+    ZONE_DIRTY,                           /* reclaim scanning has recently found
+                                                   * many dirty file pages at the tail
+                                                   * of the LRU.
+                                                   */
+    ZONE_WRITEBACK,                 /* reclaim scanning has recently found
+                                                   * many pages under writeback
+                                                   */
+    ZONE_FAIR_DEPLETED,           /* fair zone policy batch depleted */
+};
+```
+
+
+| flag标识 |  描述   |
+|:-------:|:-------:|
+| ZONE_RECLAIM_LOCKED | 防止并发回收, 在SMP上系统, 多个CPU可能试图并发的回收亿i个内存域. ZONE_RECLAIM_LCOKED标志可防止这种情况: 如果一个CPU在回收某个内存域, 则设置该标识. 这防止了其他CPU的尝试 |
+| ZONE_OOM_LOCKED | 用于某种不走运的情况: 如果进程消耗了大量的内存, 致使必要的操作都无法完成, 那么内核会使徒杀死消耗内存最多的进程, 以获取更多的空闲页, 该标志可以放置多个CPU同时进行这种操作 |
+| ZONE_CONGESTED | 标识当前区域中有很多脏页 |
+| ZONE_DIRTY | 用于标识最近的一次页面扫描中, LRU算法发现了很多脏的页面 |
+| ZONE_WRITEBACK | 最近的回收扫描发现有很多页在写回 |
+| ZONE_FAIR_DEPLETED | 公平区策略耗尽(没懂) |
+
+
+##4.4	内存域统计信息vm_stat
+-------
+
+
+内存域struct zone的vm_stat维护了大量有关该内存域的统计信息. 由于其中维护的大部分信息曲面没有多大意义
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/mmzone.h#L522
+struct zone
+{
+	  atomic_long_t vm_stat[NR_VM_ZONE_STAT_ITEMS];
+}
+```
+
+vm_stat的统计信息由`enum zone_stat_item`枚举变量标识, 定义在[include/linux/mmzone.h?v=4.7, line 110](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L110)
+
+```cpp
+enum zone_stat_item
+{
+    /* First 128 byte cacheline (assuming 64 bit words) */
+    NR_FREE_PAGES,
+    NR_ALLOC_BATCH,
+    NR_LRU_BASE,
+    NR_INACTIVE_ANON = NR_LRU_BASE, /* must match order of LRU_[IN]ACTIVE */
+    NR_ACTIVE_ANON,         /*  "     "     "   "       "         */
+    NR_INACTIVE_FILE,       /*  "     "     "   "       "         */
+    NR_ACTIVE_FILE,         /*  "     "     "   "       "         */
+    NR_UNEVICTABLE,         /*  "     "     "   "       "         */
+    NR_MLOCK,               /* mlock()ed pages found and moved off LRU */
+    NR_ANON_PAGES,  /* Mapped anonymous pages */
+    NR_FILE_MAPPED, /* pagecache pages mapped into pagetables.
+                       only modified from process context */
+    NR_FILE_PAGES,
+    NR_FILE_DIRTY,
+    NR_WRITEBACK,
+    NR_SLAB_RECLAIMABLE,
+    NR_SLAB_UNRECLAIMABLE,
+    NR_PAGETABLE,           /* used for pagetables */
+    NR_KERNEL_STACK,
+    /* Second 128 byte cacheline */
+    NR_UNSTABLE_NFS,        /* NFS unstable pages */
+    NR_BOUNCE,
+    NR_VMSCAN_WRITE,
+    NR_VMSCAN_IMMEDIATE,    /* Prioritise for reclaim when writeback ends */
+    NR_WRITEBACK_TEMP,      /* Writeback using temporary buffers */
+    NR_ISOLATED_ANON,       /* Temporary isolated pages from anon lru */
+    NR_ISOLATED_FILE,       /* Temporary isolated pages from file lru */
+    NR_SHMEM,               /* shmem pages (included tmpfs/GEM pages) */
+    NR_DIRTIED,             /* page dirtyings since bootup */
+    NR_WRITTEN,             /* page writings since bootup */
+    NR_PAGES_SCANNED,       /* pages scanned since last reclaim */
+#ifdef CONFIG_NUMA
+    NUMA_HIT,               /* allocated in intended node */
+    NUMA_MISS,              /* allocated in non intended node */
+    NUMA_FOREIGN,           /* was intended here, hit elsewhere */
+    NUMA_INTERLEAVE_HIT,    /* interleaver preferred this zone */
+    NUMA_LOCAL,             /* allocation from local node */
+    NUMA_OTHER,             /* allocation from other node */
+#endif
+    WORKINGSET_REFAULT,
+    WORKINGSET_ACTIVATE,
+    WORKINGSET_NODERECLAIM,
+    NR_ANON_TRANSPARENT_HUGEPAGES,
+    NR_FREE_CMA_PAGES,
+    NR_VM_ZONE_STAT_ITEMS
+};
+```
+
+内核提供了很多方式来获取当前内存域的状态信息, 这些函数大多定义在[include/linux/vmstat.h?v=4.7](http://lxr.free-electrons.com/source/include/linux/vmstat.h?v=4.7)
+
+
+
+##4.5	等待队列
+-------
+
+
+struct zone中实现了一个等待队列, 可用于等待某一页的进程, 内核将进程排成一个列队, 等待某些条件. 在条件变成真时, 内核会通知进程恢复工作.
+
+```c
+struct zone
+{
+	wait_queue_head_t       *wait_table;
+	unsigned long               wait_table_hash_nr_entries;
+	unsigned long               wait_table_bits;
+}
+```
+
+| 字段 | 描述 |
+|:-----:|:-----:|
+| wait_table | 待一个page释放的等待队列哈希表。它会被wait_on_page()，unlock_page()函数使用. 用哈希表，而不用一个等待队列的原因，防止进程长期等待资源 |
+| wait_table_hash_nr_entries | 哈希表中的等待队列的数量 |
+| wait_table_bits | 等待队列散列表数组大小 |
+
+
+##4.6	冷热页
+-------
+
+`struct zone`的pageset成员用于实现冷热分配器(hot-n-cold allocator)
+
+内核说页面是热的， 意味着
+
+#5	内存域水印的计算
+-------
+
+
+
 
 PFN是物理内存以Page为单位的偏移量。系统可用的第一个PFN是min_low_pfn变量，开始与_end标号的后面，也就是kernel结束的地方。在文件mm/bootmem.c中对这个变量作初始化。系统可用的最后一个PFN是max_pfn变量，这个变量的初始化完全依赖与硬件的体系结构。x86的系统中，find_max_pfn()函数通过读取e820表获得最高的page frame的数值。同样在文件mm/bootmem.c中对这个变量作初始化。e820表是由BIOS创建的。
 x86中，max_low_pfn变量是由find_max_low_pfn()函数计算并且初始化的，它被初始化成ZONE_NORMAL的最后一个page的位置。这个位置是kernel直接访问的物理内存，也是关系到kernel/userspace通过“PAGE_OFFSET宏”把线性地址内存空间分开的内存地址位置。（原文：This is the physical memory directly accessible by the kernel and is related to the kernel/userspace split in the linear address space marked by PAGE OFFSET.）我理解为这段地址kernel可以直接访问，可以通过PAGE_OFFSET宏直接将kernel所用的虚拟地址转换成物理地址的区段。在文件mm/bootmem.c中对这个变量作初始化。在内存比较小的系统中max_pfn和max_low_pfn的值相同
@@ -590,70 +750,3 @@ Zone的初始化
 free_area_init()函数的参数：
 unsigned long *zones_sizes: 系统中每个zone所管理的page的数量的数组。这个时候，还没能确定zone中那些page是可以分配使用的（free）。这个信息知道boot memory allocator完成之前还无法知道。
 来源： http://www.uml.org.cn/embeded/201208071.asp
-
-
-##4.3	内存域标志
--------
-
-[内存管理域zone_t结构中的flags字段](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v4.7#L475)描述了内存域的当前状态
-
-
-```c
-//  http://lxr.free-electrons.com/source/include/linux/mmzone.h#L475
-struct zone
-{
-	/* zone flags, see below */
-	unsigned long           flags;
-}
-```
-
-它允许使用的标识用[`enum zone_flags`](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v4.7#L525)标识, 该枚举标识定义在[include/linux/mmzone.h?v4.7, line 525](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v4.7#L525), 如下所示
-
-```c
-enum zone_flags
-{
-    ZONE_RECLAIM_LOCKED,         /* prevents concurrent reclaim */
-    ZONE_OOM_LOCKED,               /* zone is in OOM killer zonelist 内存域可被回收*/
-    ZONE_CONGESTED,                 /* zone has many dirty pages backed by
-                                                    * a congested BDI 
-                                                    */
-    ZONE_DIRTY,                           /* reclaim scanning has recently found
-                                                   * many dirty file pages at the tail
-                                                   * of the LRU.
-                                                   */
-    ZONE_WRITEBACK,                 /* reclaim scanning has recently found
-                                                   * many pages under writeback
-                                                   */
-    ZONE_FAIR_DEPLETED,           /* fair zone policy batch depleted */
-};
-```
-
-
-| flag标识 |  描述   |
-|:-------:|:-------:|
-| ZONE_RECLAIM_LOCKED | |
-| ZONE_OOM_LOCKED | |
-| ZONE_CONGESTED | |
-| ZONE_DIRTY | |
-| ZONE_DIRTY | |
-| ZONE_FAIR_DEPLETED |
-
-
-##4.4	内存域统计信息vm_stat
--------
-
-
-内存域struct zone的vm_stat维护了大量有关该内存域的统计信息. 由于其中维护的大部分信息曲面没有多大意义, 
-
-```c
-//  http://lxr.free-electrons.com/source/include/linux/mmzone.h#L522
-struct zone
-{
-	  atomic_long_t vm_stat[NR_VM_ZONE_STAT_ITEMS];
-}
-```
-
-内核提供了很多方式来获取当前内存域的状态信息, 这些函数大多定义在[include/linux/vmstat.h?v=4.7](http://lxr.free-electrons.com/source/include/linux/vmstat.h?v=4.7)
-
-
-

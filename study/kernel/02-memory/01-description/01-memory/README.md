@@ -31,6 +31,8 @@
 >[内存管理-之内核内存管理-基于linux3.10](http://blog.csdn.net/shichaog/article/details/45509917)
 >
 >[内存管理(一)](http://www.cnblogs.com/openix/p/3334026.html)
+>
+>[Linux内存管理原理](http://www.cnblogs.com/zhaoyl/p/3695517.html)
 
 #1	前景回顾
 -------
