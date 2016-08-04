@@ -744,6 +744,7 @@ unsigned long *zones_sizes: 系统中每个zone所管理的page的数量的数�
 ##4.6	冷热页
 -------
 
+
 `struct zone`的pageset成员用于实现冷热分配器(hot-n-cold allocator)
 
 ```cpp
@@ -756,36 +757,80 @@ struct zone
 
 >尽管内存域可能属于一个特定的NUMA结点, 因而关联到某个特定的CPU。 但其他CPU的告诉缓存仍然可以包含该内存域中的页面. 最终的效果是, 每个处理器都可以访问系统中的所有页, 尽管速度不同. 因而, 特定于内存域的数据结构不仅要考虑到所属NUMA结点相关的CPU, 还必须照顾到系统中其他的CPU.
 
-```c
-struct per_cpu_pages {
-	int count;              /* number of pages in the list */
-	int high;               /* high watermark, emptying needed */
-    int batch;              /* chunk size for buddy add/remove */
+pageset是一个指针, 其容量与系统能够容纳的CPU的数目的最大值相同.
 
-	/* Lists of pages, one per migrate type stored on the pcp-lists */
-       struct list_head lists[MIGRATE_PCPTYPES];
-};
+数组元素类型为per_cpu_pageset, 定义在[include/linux/mmzone.h?v4.7, line 254](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v4.7#L254), 如下所示
 
+```cpp
 struct per_cpu_pageset {
-    struct per_cpu_pages pcp;
+       struct per_cpu_pages pcp;
 #ifdef CONFIG_NUMA
-	s8 expire;
+       s8 expire;
 #endif
 #ifdef CONFIG_SMP
-	s8 stat_threshold;
-	s8 vm_stat_diff[NR_VM_ZONE_STAT_ITEMS];
+       s8 stat_threshold;
+       s8 vm_stat_diff[NR_VM_ZONE_STAT_ITEMS];
 #endif
 };
 ```
 
-#5	内存域水印的计算
+该结构由一个per_cpu_pages pcp变量组成, 该数据结构定义如下, 位于[include/linux/mmzone.h?v4.7, line 245](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v4.7#L245)
+
+
+
+```cpp
+struct per_cpu_pages {
+	int count;              /* number of pages in the list 列表中的页数  */
+	int high;               /* high watermark, emptying needed 页数上限水印, 在需要的情况清空列表  */
+    int batch;              /* chunk size for buddy add/remove,  添加/删除多页块的时候, 块的大小  */
+
+	/* Lists of pages, one per migrate type stored on the pcp-lists 页的链表*/
+       struct list_head lists[MIGRATE_PCPTYPES];
+};
+```
+
+| 字段 | 描述 |
+|:---:|:----:|
+| count | 记录了与该列表相关的页的数目 |
+| high  | 是一个水印. 如果count的值超过了high, 则表明列表中的页太多了 |
+| batch | 如果可能, CPU的高速缓存不是用单个页来填充的, 而是欧诺个多个页组成的块, batch作为每次添加/删除页时多个页组成的块大小的一个参考值 |
+| list | 一个双链表, 保存了当前CPU的冷页或热页, 可使用内核的标准方法处理 |
+
+
+#4.7	内存域的第一个页帧zone_start_pfn
 -------
 
+struct zone中通过zone_start_pfn成员标记了内存管理区的页面地址.
+
+
+然后内核也通过一些全局变量标记了物理内存所在页面的偏移, 这些变量定义在[mm/nobootmem.c?v4.7, line 31](http://lxr.free-electrons.com/source/mm/nobootmem.c?v4.7#L31)
+
+```cpp
+unsigned long max_low_pfn;
+unsigned long min_low_pfn;
+unsigned long max_pfn;
+unsigned long long max_possible_pfn;
+```
+
+PFN是物理内存以Page为单位的偏移量
+
+| 变量 | 描述 |
+|:----:|:---:|
+| max_low_pfn 		|  x86中，max_low_pfn变量是由find_max_low_pfn函数计算并且初始化的，它被初始化成ZONE_NORMAL的最后一个page的位置。这个位置是kernel直接访问的物理内存, 也是关系到kernel/userspace通过“PAGE_OFFSET宏”把线性地址内存空间分开的内存地址位置 |
+| min_low_pfn 		| 系统可用的第一个pfn是[min_low_pfn变量](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v4.7#L16), 开始与_end标号的后面, 也就是kernel结束的地方.在文件mm/bootmem.c中对这个变量作初始化
+| max_pfn 			| 系统可用的最后一个PFN是[max_pfn变量](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v4.7#L21), 这个变量的初始化完全依赖与硬件的体系结构. |
+| max_possible_pfn 	|
 
 
 
-PFN是物理内存以Page为单位的偏移量。系统可用的第一个PFN是min_low_pfn变量，开始与_end标号的后面，也就是kernel结束的地方。在文件mm/bootmem.c中对这个变量作初始化。系统可用的最后一个PFN是max_pfn变量，这个变量的初始化完全依赖与硬件的体系结构。x86的系统中，find_max_pfn()函数通过读取e820表获得最高的page frame的数值。同样在文件mm/bootmem.c中对这个变量作初始化。e820表是由BIOS创建的。
-x86中，max_low_pfn变量是由find_max_low_pfn()函数计算并且初始化的，它被初始化成ZONE_NORMAL的最后一个page的位置。这个位置是kernel直接访问的物理内存，也是关系到kernel/userspace通过“PAGE_OFFSET宏”把线性地址内存空间分开的内存地址位置。（原文：This is the physical memory directly accessible by the kernel and is related to the kernel/userspace split in the linear address space marked by PAGE OFFSET.）我理解为这段地址kernel可以直接访问，可以通过PAGE_OFFSET宏直接将kernel所用的虚拟地址转换成物理地址的区段。在文件mm/bootmem.c中对这个变量作初始化。在内存比较小的系统中max_pfn和max_low_pfn的值相同
+
+
+
+x86的系统中, find_max_pfn函数通过读取e820表获得最高的page frame的数值, 同样在文件mm/bootmem.c中对这个变量作初始化。e820表是由BIOS创建的
+
+>This is the physical memory directly accessible by the kernel and is related to the kernel/userspace split in the linear address space marked by PAGE OFFSET.
+
+我理解为这段地址kernel可以直接访问，可以通过PAGE_OFFSET宏直接将kernel所用的虚拟地址转换成物理地址的区段。在文件mm/bootmem.c中对这个变量作初始化。在内存比较小的系统中max_pfn和max_low_pfn的值相同
 min_low_pfn， max_pfn和max_low_pfn这3个值，也要用于对高端内存（high memory)的起止位置的计算。在arch/i386/mm/init.c文件中会对类似的highstart_pfn和highend_pfn变量作初始化。这些变量用于对高端内存页面的分配。后面将描述。
 
 
