@@ -210,10 +210,208 @@ typedef struct pglist_data {
 | classzone_idx | 这个字段暂时没弄明白，不过其中的zone_type是对ZONE_DMA,ZONE_DMA32,ZONE_NORMAL,ZONE_HIGH,ZONE_MOVABLE,__MAX_NR_ZONES的枚举 |
 
 
+
+
+##2.4	查找内存结点
+-------
+
+node_id作为全局节点id。 系统中的NUMA结点都是从0开始编号的
+
+
 在新的linux3.x~linux4.x的内核中，Linux定义了一个大小为[MAX_NUMNODES](http://lxr.free-electrons.com/source/include/linux/numa.h#L11)类型为[`pgdat_list`](http://lxr.free-electrons.com/source/arch/ia64/mm/discontig.c#L50)数组，数组的大小根据[CONFIG_NODES_SHIFT](http://lxr.free-electrons.com/source/include/linux/numa.h#L6)的配置决定。对于UMA来说，NODES_SHIFT为0，所以MAX_NUMNODES的值为1。内核提供了[for_each_online_pgdat(pgdat)](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L871)来遍历节点
 
 >而在linux-2.4.x之前的内核中所有的节点，都由一个被称为[pgdat_list](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L169)的链表维护。这些节点都放在该链表中，均由函数[init_bootmem_core()](http://lxr.free-electrons.com/source/mm/bootmem.c#L96)初始化结点。内核提供了[宏for_each_pgdat(pgdat)]http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L169)来遍历节点链表。
 
-对于单一node的系统，contig_page_data 是系统唯一的node数据结构对象。查看contig_page_data的定义[linux-4.5](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L27)，[linux-2.4.37](http://lxr.free-electrons.com/source/mm/numa.c?v=2.4.37#L15)
+内核提供了NODE_DATA(node_id)宏函数来按照编号来查找对应的结点
+
+在UMA结构的机器中, 只有一个node结点即contig_page_data, 此时NODE_DATA直接指向了全局的contig_page_data, 而与node的编号nid无关, 参照[include/linux/mmzone.h?v=4.7, line 858](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L858), 其中全局唯一的cnode结点ontig_page_data定义在[mm/nobootmem.c?v=4.7, line 27](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L27), [linux-2.4.37](http://lxr.free-electrons.com/source/mm/numa.c?v=2.4.37#L15)
 
 
+
+```cpp
+#ifndef CONFIG_NEED_MULTIPLE_NODES
+extern struct pglist_data contig_page_data;
+#define NODE_DATA(nid)          (&contig_page_data)
+#define NODE_MEM_MAP(nid)       mem_map
+else
+/*  ......  */
+#endif
+```
+
+
+而对于NUMA结构的系统中, 通过pg_data_t->pgdat_next链接到下一个结点, 系统中所有结点都通过单链表链接起来, 其末尾是一个NULL指针标记
+
+同时所有的node都存储在node_data数组中,
+NODE_DATA直接通过node编号索引即可, 参见[NODE_DATA的定义](http://lxr.free-electrons.com/ident?v=4.7;i=NODE_DATA)
+
+```cpp
+extern struct pglist_data *node_data[];
+#define NODE_DATA(nid)          (node_data[(nid)])
+```
+
+
+##2.5	结点的内存管理域
+-------
+
+```cpp
+typedef struct pglist_data {
+	/*  包含了结点中各内存域的数据结构 , 可能的区域类型用zone_type表示*/
+    struct zone node_zones[MAX_NR_ZONES];
+    /*  指点了备用结点及其内存域的列表，以便在当前结点没有可用空间时，在备用结点分配内存   */
+    struct zonelist node_zonelists[MAX_ZONELISTS];
+    int nr_zones;									/*  保存结点中不同内存域的数目    */
+
+} pg_data_t;
+```
+
+node_zones[MAX_NR_ZONES]数组保存了节点中各个内存域的数据结构, 
+
+而node_zonelist则指定了备用节点以及其内存域的列表, 以便在当前结点没有可用空间时, 在备用节点分配内存.
+
+nr_zones存储了结点中不同内存域的数目
+
+
+##2.6	结点的内存页面
+-------
+
+
+```cpp
+typedef struct pglist_data
+{
+    struct page *node_mem_map;		/*  指向page实例数组的指针，用于描述结点的所有物理内存页，它包含了结点中所有内存域的页。    */
+
+	/* /*起始页面帧号，指出该节点在全局mem_map中的偏移
+    系统中所有的页帧是依次编号的，每个页帧的号码都是全局唯一的（不只是结点内唯一）  */
+    unsigned long node_start_pfn;
+    unsigned long node_present_pages; /* total number of physical pages 结点中页帧的数目 */
+    unsigned long node_spanned_pages; /* total size of physical page range, including holes  					该结点以页帧为单位计算的长度，包含内存空洞 */
+    int node_id;		/*  全局结点ID，系统中的NUMA结点都从0开始编号  */
+} pg_data_t;
+```
+
+其中node_mem_map是指向页面page实例数组的指针, 用于描述结点的所有物理内存页. 它包含了结点中所有内存域的页.
+
+node_start_pfn是该NUMA结点的第一个页帧的逻辑编号. 系统中所有的节点的页帧是一次编号的, 每个页帧的编号是全局唯一的. node_start_pfn在UMA系统中总是0， 因为系统中只有一个内存结点， 因此其第一个页帧编号总是0.
+
+node_present_pages指定了结点中页帧的数目, 而node_spanned_pages则给出了该结点以页帧为单位计算的长度. 二者的值不一定相同, 因为结点中可能有一些空洞, 并不对应真正的页帧.
+
+
+##2.7	交换守护进程
+-------
+
+
+```cpp
+typedef struct pglist_data
+{
+    wait_queue_head_t kswapd_wait;		/*  交换守护进程的等待队列，
+    在将页帧换出结点时会用到。后面的文章会详细讨论。    */
+    wait_queue_head_t pfmemalloc_wait;
+    struct task_struct *kswapd;     /* Protected by  mem_hotplug_begin/end() 指向负责该结点的交换守护进程的task_struct。   */
+};
+```
+
+kswapd指向了负责将该结点的交换守护进程的task_struct. 在将页帧换出结点时会唤醒该进程.
+
+kswap_wait是交换守护进程(swap daemon)的等待队列
+
+而kswapd_max_order用于页交换子系统的实现, 用来定义需要释放的区域的长度.
+
+
+#3	结点状态
+
+
+##3.1	结点状态标识node_states
+-------
+
+内核用enum node_state变量标记了内存结点所有可能的状态信息, 其定义在[include/linux/nodemask.h?v=4.7, line 381](http://lxr.free-electrons.com/source/include/linux/nodemask.h?v=4.7#L381)
+
+```cpp
+enum node_states {
+    N_POSSIBLE,         /* The node could become online at some point 
+    					 结点在某个时候可能变成联机*/
+    N_ONLINE,           /* The node is online 
+    					节点是联机的*/
+    N_NORMAL_MEMORY,    /* The node has regular memory
+    						结点是普通内存域 */
+#ifdef CONFIG_HIGHMEM
+    N_HIGH_MEMORY,      /* The node has regular or high memory 
+    					   结点是普通或者高端内存域*/
+#else
+    N_HIGH_MEMORY = N_NORMAL_MEMORY,
+#endif
+#ifdef CONFIG_MOVABLE_NODE
+    N_MEMORY,           /* The node has memory(regular, high, movable) */
+#else
+    N_MEMORY = N_HIGH_MEMORY,
+#endif
+    N_CPU,      /* The node has one or more cpus */
+    NR_NODE_STATES
+};
+```
+
+| 状态 | 描述 |
+|:-----:|:-----:|
+| N_POSSIBLE | 结点在某个时候可能变成联机 |
+| N_ONLINE | 节点是联机的 |
+| N_NORMAL_MEMORY | 结点是普通内存域 |
+| N_HIGH_MEMORY | 结点是普通或者高端内存域 |
+| N_MEMORY | 结点是普通，高端内存或者MOVEABLE域 |
+| N_CPU | 结点有一个或多个CPU |
+
+其中N_POSSIBLE, N_ONLINE和N_CPU用于CPU和内存的热插拔.
+
+对内存管理有必要的标志是N_HIGH_MEMORY和N_NORMAL_MEMORY, 如果结点有普通或高端内存则使用N_HIGH_MEMORY, 仅当结点没有高端内存时才设置N_NORMAL_MEMORY
+
+
+```cpp
+    N_NORMAL_MEMORY,    /* The node has regular memory
+    						结点是普通内存域 */
+#ifdef CONFIG_HIGHMEM
+    N_HIGH_MEMORY,      /* The node has regular or high memory 
+    					   结点是高端内存域*/
+#else
+	/*  没有高端内存域, 仍设置N_NORMAL_MEMORY  */
+    N_HIGH_MEMORY = N_NORMAL_MEMORY,
+#endif
+```
+
+同样ZONE_MOVABLE内存域同样用类似的方法设置, 仅当系统中存在ZONE_MOVABLE内存域内存域(配置了CONFIG_MOVABLE_NODE参数)时, N_MEMORY才被设定, 否则则被设定成N_HIGH_MEMORY, 而N_HIGH_MEMORY设定与否同样依赖于参数CONFIG_HIGHMEM的设定
+
+```cpp
+#ifdef CONFIG_MOVABLE_NODE
+    N_MEMORY,           /* The node has memory(regular, high, movable) */
+#else
+    N_MEMORY = N_HIGH_MEMORY,
+#endif
+```
+
+##3.2	结点状态设置函数
+-------
+
+内核提供了辅助函数来设置或者清楚位域活特定结点的一个比特位
+
+```cpp
+static inline int node_state(int node, enum node_states state)
+static inline void node_set_state(int node, enum node_states state)
+static inline void node_clear_state(int node, enum node_states state)
+static inline int num_node_state(enum node_states state)
+```
+
+此外宏for_each_node_state(__node, __state)用来迭代处于特定状态的所有结点, 
+```cpp
+#define for_each_node_state(__node, __state) \
+		for_each_node_mask((__node), node_states[__state])
+```
+
+而for_each_online_node(node)则负责迭代所有的活动结点.
+
+如果内核编译只支持当个结点(即使用平坦内存模型), 则没有结点位图, 上述操作该位图的函数则变成空操作, 其定义形式如下, 参见[include/linux/nodemask.h?v=4.7, line 406](http://lxr.free-electrons.com/source/include/linux/nodemask.h?v=4.7#L406)
+
+参见内核
+```cpp
+#if MAX_NUMNODES > 1
+	/*   some real function  */
+#else
+	/*  some NULL function  */
+#endif
+```

@@ -148,7 +148,7 @@ linux进程的调度算法其实经过了很多次的演变, 但是其演变主�
 | O(1)调度器 | linux-2.5 |
 | CFS调度器 | linux-2.6~至今 |
 
-
+关于调度器发展的详细内容, 可以阅读[Linux进程调度策略的发展和演变--Linux进程的管理与调度(十六）](http://blog.csdn.net/gatieme/article/details/51701149)
 
 #4	Linux的调度器设计
 -------
@@ -287,6 +287,8 @@ linux针对实时进程实现了Roound-Robin, FIFO和Earliest-Deadline-First(EDF
 ##4.2	进程的调度
 -------
 
+
+
 首先，我们需要清楚，什么样的进程会进入调度器进行选择，就是处于TASK_RUNNING状态的进程，而其他状态下的进程都不会进入调度器进行调度。
 系统发生调度的时机如下
 
@@ -312,24 +314,193 @@ linux针对实时进程实现了Roound-Robin, FIFO和Earliest-Deadline-First(EDF
 
 系统并不是每时每刻都允许调度的发生，当处于硬中断期间的时候，调度是被系统禁止的，之后硬中断过后才重新允许调度。而对于异常，系统并不会禁止调度，也就是在异常上下文中，系统是有可能发生调度的。
 
+##4.3	抢占标识TIF_NEED_RESCHED
 
-##周期性调度器
+内核在检查need_resched标识TIF_NEED_RESCHED的值判断是否需要抢占当前进程, 内核在thread_info的flag中设置了一个标识来标志进程是否需要重新调度, 即重新调度need_resched标识TIF_NEED_RESCHED, 内核在即将返回用户空间时会检查标识TIF_NEED_RESCHED标志进程是否需要重新调度
+
+系统中每个进程都有一个特定于体系结构的struct thread_info结构, 用户层程序被调度的时候会检查struct thread_info中的need_resched标识TLF_NEED_RESCHED标识来检查自己是否需要被重新调度.
+
+如果内核检查进程的抢占标识被设置, 则会在一个关键的时刻, 调用调度器来完成调度和抢占的工作
+
+
+
+##4.4	内核抢占和用户抢占
+-------
+
+而根据进程抢占发生的时机, 抢占可以分为内核抢占和用户抢占, **内核抢占**就是指一个在内核态运行的进程, 可能在执行内核函数期间被另一个进程取
+
+一般来说，用户抢占发生几下情况：
+
+*	从系统调用返回用户空间；
+
+*	从中断(异常)处理程序返回用户空间
+
+内核抢占发生的时机，一般发生在：
+
+*	当从中断处理程序正在执行，且返回内核空间之前。当一个中断处理例程退出，在返回到内核态时(kernel-space)。这是隐式的调用schedule()函数，当前任务没有主动放弃CPU使用权，而是被剥夺了CPU使用权。
+
+*	当内核代码再一次具有可抢占性的时候，如解锁（spin_unlock_bh）及使能软中断(local_bh_enable)等, 此时当kernel code从不可抢占状态变为可抢占状态时(preemptible again)。也就是preempt_count从正整数变为0时。这也是隐式的调用schedule()函数
+
+*	如果内核中的任务显式的调用schedule(), 任务主动放弃CPU使用权
+
+*	如果内核中的任务阻塞(这同样也会导致调用schedule()), 导致需要调用schedule()函数。任务主动放弃CPU使用权
+
+
+内核抢占采用同抢占标识的类似方法被实现, linux内核在thread_info结构中添加了一个自旋锁标识preempt_count, 称为**抢占计数器(preemption counter)**.
+
+```c
+struct thread_info
+{
+	/*  ......  */
+	int preempt_count;	 /* 0 => preemptable, <0 => BUG */
+    /*  ......  */
+}
+```
+
+| preempt_count值 | 描述 |
+| ------- |:-------:|
+| >0 | 禁止内核抢占, 其值标记了使用preempt_count的临界区的数目 |
+| 0 | 开启内核抢占 |
+| <0 | 锁为负值, 内核出现错误 |
+
+内核自然也提供了一些函数或者宏, 用来开启, 关闭以及检测抢占计数器preempt_coun的值, 这些通用的函数定义在[include/asm-generic/preempt.h](http://lxr.free-electrons.com/source/include/asm-generic/preempt.h?v=4.6#L8), 而某些架构也定义了自己的接口， 比如x86架构[/arch/x86/include/asm/preempt.h](http://lxr.free-electrons.com/source/arch/x86/include/asm/preempt.h?v=4.6)
+
+
+>详细内容请参见 [Linux用户抢占和内核抢占详解(概念, 实现和触发时机)--Linux进程的管理与调度(二十）](http://blog.csdn.net/gatieme/article/details/51872618)
+
+
+##4.5	周期性调度器scheduler_tick
 -------
 
 
-##核心调度器
+**周期调度器**
+
+周期性调度器scheduler_tick由内核时钟中断周期性的触发, 周期性调度器以固定的频率激活负责当前进程调度类的周期性调度方法, 以保证系统的并发性, 周期性调度器通过调用进程所属调度器类的task_tick操作完成周期性调度的通知和配置工作, 通过resched_curr函数(早期的resched_task函数)设置抢占标识TIF_NEED_RESCHED来通知内核在必要的时间由主调度函数完成真正的调度工作, 此种做法称之为延迟调度策略
+
+>关于周期性调度器的详细信息, 参见[Linux核心调度器之周期性调度器scheduler_tick--Linux进程的管理与调度(十八）](http://blog.csdn.net/gatieme/article/details/51872561)
+
+
+
+
+
+##4.6	主调度器schedule
+-------
+
+**主调度器**
+
+schedule就是主调度器的工作函数, 在内核中的许多地方, 如果要将CPU分配给与当前活动进程不同的另一个进程, 都会直接调用主调度器函数schedule或者其子函数__schedule.
+
+**__schedule完成抢占**
+
+*	完成一些必要的检查, 并设置进程状态, 处理进程所在的就绪队列
+
+*	调度全局的pick_next_task选择抢占的进程
+
+	如果当前cpu上所有的进程都是cfs调度的普通非实时进程, 则直接用cfs调度, 如果无程序可调度则调度idle进程
+
+	否则从优先级最高的调度器类sched_class_highest(目前是stop_sched_class)开始依次遍历所有调度器类的pick_next_task函数, 选择最优的那个进程执行
+
+*	context_switch完成进程上下文切换
+
+	调用switch_mm(), 把虚拟内存从一个进程映射切换到新进程中
+
+	调用switch_to(),从上一个进程的处理器状态切换到新进程的处理器状态。这包括保存、恢复栈信息和寄存器信息
+
+>主调度器的详细信息, 可以参考 [Linux进程核心调度器之主调度器--Linux进程的管理与调度(十九）](http://blog.csdn.net/gatieme/article/details/51872594)
+
+
+##4.7	进程上下文切换context_switch
 -------
 
 
-##linux内核抢占与用户抢占
+**context_switch流程**
+
+context_switch其实是一个分配器, 他会调用所需的特定体系结构的方法
+
+*	调用switch_mm(), 把虚拟内存从一个进程映射切换到新进程中
+
+	switch_mm更换通过task_struct->mm描述的内存管理上下文, 该工作的细节取决于处理器, 主要包括加载页表, 刷出地址转换后备缓冲器(部分或者全部), 向内存管理单元(MMU)提供新的信息
+
+*	调用switch_to(),从上一个进程的处理器状态切换到新进程的处理器状态。这包括保存、恢复栈信息和寄存器信息
+
+	switch_to切换处理器寄存器的呢内容和内核栈(虚拟地址空间的用户部分已经通过switch_mm变更, 其中也包括了用户状态下的栈, 因此switch_to不需要变更用户栈, 只需变更内核栈), 此段代码严重依赖于体系结构, 且代码通常都是用汇编语言编写.
+
+
+**为什么switch_to需要3个参数**
+
+
+
+在新进程被选中执行时, 内核恢复到进程被切换出去的点继续执行, 此时内核只知道谁之前将新进程抢占了, 但是却不知道新进程再次执行是抢占了谁, 因此底层的进程切换机制必须将此前执行的进程(即新进程抢占的那个进程)提供给context_switch. 由于控制流会回到函数的该中间, 因此无法通过普通函数的返回值来完成. 因此使用了一个3个参数, 但是逻辑效果是相同的, 仿佛是switch_to是带有两个参数的函数, 而且返回了一个指向此前运行的进程的指针. 
+
+```c
+switch_to(prev, next, last);
+
+即
+
+prev = last = switch_to(prev, next);
+```
+其中返回的prev值并不是做参数的prev值, 而是prev被再次调度的时候抢占掉的那个进程last.
+
+详情请参见, [Linux进程上下文切换过程context_switch详解--Linux进程的管理与调度(二十一）](http://blog.csdn.net/gatieme/article/details/51872659)
+
+
+##4.8	处理进程优先级
+-------
+内核使用一些简单的数值范围0~139表示内部优先级, 数值越低, 优先级越高。
+
+从0~99的范围专供实时进程使用, nice的值[-20,19]则映射到范围100~139
+
+动态优先级 静态优先级 实时优先级
+
+其中task_struct采用了三个成员表示进程的优先级:prio和normal_prio表示动态优先级, static_prio表示进程的静态优先级.
+
+
+此外还用了一个字段rt_priority保存了实时进程的优先级
+
+|字段 | 描述 |
+|:-------:|:-------:|
+| static_prio | 用于保存静态优先级, 是进程启动时分配的优先级, ，可以通过nice和sched_setscheduler系统调用来进行修改, 否则在进程运行期间会一直保持恒定 |
+| prio | 保存进程的动态优先级 |
+| normal_prio | 表示基于进程的静态优先级static_prio和调度策略计算出的优先级. 因此即使普通进程和实时进程具有相同的静态优先级, 其普通优先级也是不同的, 进程分叉(fork)时, 子进程会继承父进程的普通优先级 |
+| rt_priority | 用于保存实时优先级, 实时进程的优先级用实时优先级rt_priority来表示 |
+
+静态优先级static_prio(普通进程)和实时优先级rt_priority(实时进程)是计算的起点 
+
+因此他们也是进程创建的时候设定好的, 我们通过nice修改的就是普通进程的静态优先级static_prio
+
+首先通过静态优先级static_prio计算出普通优先级normal_prio, 该工作可以由nromal_prio来完成, 该函数定义在[kernel/sched/core.c#L861](http://lxr.free-electrons.com/source/kernel/sched/core.c?v=4.6#L861)
+
+内核通过ffective_prio设置动态优先级prio, 计算动态优先级的流程如下
+
+*	设置进程的普通优先级(实时进程99-rt_priority, 普通进程为static_priority)
+
+*	计算进程的动态优先级(实时进程则维持动态优先级的prio不变, 普通进程的动态优先级即为其普通优先级)
+
+最后, 我们综述一下在针对不同类型进程的计算结果
+
+| 进程类型  | 实时优先级rt_priority | 静态优先级static_prio | 普通优先级normal_prio | 动态优先级prio |
+| ------- |:-------:|:-------:|:-------:|
+| EDF调度的实时进程 | rt_priority | 不使用 | MAX_DL_PRIO-1 | 维持原prio不变 |
+| RT算法调度的实时进程 | rt_priority | 不使用 | MAX_RT_PRIO-1-rt_priority | 维持原prio不变 |
+| 普通进程 | 不使用 | static_prio | static_prio | static_prio |
+| 优先级提高的普通进程 | 不使用 | static_prio(改变) | static_prio | 维持原prio不变 |
+
+>关于进程优先级的详细信息请参见[Linux进程优先级的处理--Linux进程的管理与调度(二十二)](http://blog.csdn.net/gatieme/article/details/51719208)
+
+
+
+##4.9	唤醒抢占
 -------
 
 
 
-##处理进程优先级
--------
+当在try_to_wake_up/wake_up_process和wake_up_new_task中唤醒进程时, 内核使用全局check_preempt_curr看看是否进程可以抢占当前进程可以抢占当前运行的进程.
+
+每个调度器类都因应该实现一个check_preempt_curr函数, 在全局check_preempt_curr中会调用进程其所属调度器类check_preempt_curr进行抢占检查, 对于完全公平调度器CFS处理的进程, 则对应由check_preempt_wakeup函数执行该策略.
+
+新唤醒的进程不必一定由完全公平调度器处理, 如果新进程是一个实时进程, 则会立即请求调度, 因为实时进程优先极高, 实时进程总会抢占CFS进
 
 
-##linux进程上下文切换
--------
+参见[Linux唤醒抢占----Linux进程的管理与调度(二十三）](http://blog.csdn.net/gatieme/article/details/51872831)
 
+>内核为了实现完全公平, 对一些交互式进程有补偿机制, 这些交互式进程多数情况下属于睡眠状态, 只有在接收到信号以后被唤醒, 比如vim在接收了键盘录入的信号后被唤醒, 完成工作后又进入睡眠态, 因此我们需要对唤醒的进程做一些补偿, 关于补偿的内容我们会在各个调度器类的设计中讲解.
