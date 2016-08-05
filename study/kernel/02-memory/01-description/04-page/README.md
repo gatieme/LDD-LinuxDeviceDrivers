@@ -427,15 +427,34 @@ struct page {
 | PG_young | |
 | PG_idle  | |
 
-内核中提供了一些标准宏，用来检查、操作某些特定的比特位，如
 
+
+内核中提供了一些标准宏，用来检查、操作某些特定的比特位，这些宏定义在[include/linux/page-flags.h?v=4.7, line 183](http://lxr.free-electrons.com/source/include/linux/page-flags.h?v=4.7#L183)
+
+
+```c
+#define TESTPAGEFLAG(uname, lname, policy)
+#define SETPAGEFLAG(uname, lname, policy)
+#define CLEARPAGEFLAG(uname, lname, policy)
+```
+
+**关于page flags的早期实现**
+
+
+*	linux-2.6以后的内核中, 很少出现直接用宏定义的标识, 这些标识大多通过enum枚举常量来定义, 然后__NR_XXXX的形式结束, 正好可以标记出宏参数的个数, 但是在早期的实现中, 这些变量都通过宏来标识
+
+例如我们的page->flags用enum pageflags来定义, 内存管理区类型通过zone_type来定义, 但是这些内容在早期的内核中都是通过宏定义来实现的.
+
+*	其次标识的函数接口也变了, 早期的内核中, 针对每个宏标识都设置了一组test/set/clear, 参见[/include/linux/mm.h?v=2.4.37, line 324](http://lxr.free-electrons.com/source/include/linux/mm.h?v=2.4.37#L324)
+
+形式如下
 ```c
 PageXXX(page)：检查page是否设置了PG_XXX位
 SetPageXXX(page)：设置page的PG_XXX位
 ClearPageXXX(page)：清除page的PG_XXX位
 TestSetPageXXX(page)：设置page的PG_XXX位，并返回原值
 TestClearPageXXX(page)：清除page的PG_XXX位，并返回原值
-
+```
 
 
 
