@@ -70,27 +70,236 @@ Linux把物理内存划分为三个层次来管理
 #2	页帧
 -------
 
-内核把物理页作为内存管理的基本单位. 尽管处理器的最小可寻址单位通常是字, 但是, 内存管理单元MMU通常以页为单位进行处理. 因此，从虚拟内存的上来看，页就是最小单位. 内核用[struct  page(include/linux/mm_types.h?v=4.7, line 45)](http://lxr.free-electrons.com/source/include/linux/mm_types.h?v4.7#L45)结构表示系统中的每个物理页.
-
-
-出于节省内存的考虑，struct page中使用了大量的联合体union.
+内核把物理页作为内存管理的基本单位. 尽管处理器的最小可寻址单位通常是字, 但是, 内存管理单元MMU通常以页为单位进行处理. 因此，从虚拟内存的上来看，页就是最小单位.
 
 ##2.1	struct page结构
 -------
 
+ 内核用[struct  page(include/linux/mm_types.h?v=4.7, line 45)](http://lxr.free-electrons.com/source/include/linux/mm_types.h?v4.7#L45)结构表示系统中的每个物理页.
 
+出于节省内存的考虑，struct page中使用了大量的联合体union.
+
+```cpp
+/*
+ * Each physical page in the system has a struct page associated with
+ * it to keep track of whatever it is we are using the page for at the
+ * moment. Note that we have no way to track which tasks are using
+ * a page, though if it is a pagecache page, rmap structures can tell us
+ * who is mapping it.
+ *
+ * The objects in struct page are organized in double word blocks in
+ * order to allows us to use atomic double word operations on portions
+ * of struct page. That is currently only used by slub but the arrangement
+ * allows the use of atomic double word operations on the flags/mapping
+ * and lru list pointers also.
+ */
+struct page {
+    /* First double word block */
+    unsigned long flags;        /* Atomic flags, some possibly updated asynchronously
+                                              描述page的状态和其他信息  */
+    union
+    {
+        struct address_space *mapping;  /* If low bit clear, points to
+                         * inode address_space, or NULL.
+                         * If page mapped as anonymous
+                         * memory, low bit is set, and
+                         * it points to anon_vma object:
+                         * see PAGE_MAPPING_ANON below.
+                         */
+        void *s_mem;            /* slab first object */
+        atomic_t compound_mapcount;     /* first tail page */
+        /* page_deferred_list().next     -- second tail page */
+    };
+
+    /* Second double word */
+    struct {
+        union {
+            pgoff_t index;      /* Our offset within mapping.
+            在映射的虚拟空间（vma_area）内的偏移；
+            一个文件可能只映射一部分，假设映射了1M的空间，
+            index指的是在1M空间内的偏移，而不是在整个文件内的偏移。 */
+            void *freelist;     /* sl[aou]b first free object */
+            /* page_deferred_list().prev    -- second tail page */
+        };
+
+        union {
+#if defined(CONFIG_HAVE_CMPXCHG_DOUBLE) && \
+    defined(CONFIG_HAVE_ALIGNED_STRUCT_PAGE)
+            /* Used for cmpxchg_double in slub */
+            unsigned long counters;
+#else
+            /*
+             * Keep _refcount separate from slub cmpxchg_double
+             * data.  As the rest of the double word is protected by
+             * slab_lock but _refcount is not.
+             */
+            unsigned counters;
+#endif
+
+            struct {
+
+                union {
+                    /*
+                     * Count of ptes mapped in mms, to show
+                     * when page is mapped & limit reverse
+                     * map searches.
+                     * 页映射计数器
+                     */
+                    atomic_t _mapcount;
+
+                    struct { /* SLUB */
+                        unsigned inuse:16;
+                        unsigned objects:15;
+                        unsigned frozen:1;
+                    };
+                    int units;      /* SLOB */
+                };
+                /*
+                 * Usage count, *USE WRAPPER FUNCTION*
+                 * when manual accounting. See page_ref.h
+                 * 页引用计数器
+                 */
+                atomic_t _refcount;
+            };
+            unsigned int active;    /* SLAB */
+        };
+    };
+
+    /*
+     * Third double word block
+     *
+     * WARNING: bit 0 of the first word encode PageTail(). That means
+     * the rest users of the storage space MUST NOT use the bit to
+     * avoid collision and false-positive PageTail().
+     */
+    union {
+        struct list_head lru;   /* Pageout list, eg. active_list
+                     * protected by zone->lru_lock !
+                     * Can be used as a generic list
+                     * by the page owner.
+                     */
+        struct dev_pagemap *pgmap; /* ZONE_DEVICE pages are never on an
+                        * lru or handled by a slab
+                        * allocator, this points to the
+                        * hosting device page map.
+                        */
+        struct {        /* slub per cpu partial pages */
+            struct page *next;      /* Next partial slab */
+#ifdef CONFIG_64BIT
+            int pages;      /* Nr of partial slabs left */
+            int pobjects;   /* Approximate # of objects */
+#else
+            short int pages;
+            short int pobjects;
+#endif
+        };
+
+        struct rcu_head rcu_head;       /* Used by SLAB
+                         * when destroying via RCU
+                         */
+        /* Tail pages of compound page */
+        struct {
+            unsigned long compound_head; /* If bit zero is set */
+
+            /* First tail page only */
+#ifdef CONFIG_64BIT
+            /*
+             * On 64 bit system we have enough space in struct page
+             * to encode compound_dtor and compound_order with
+             * unsigned int. It can help compiler generate better or
+             * smaller code on some archtectures.
+             */
+            unsigned int compound_dtor;
+            unsigned int compound_order;
+#else
+            unsigned short int compound_dtor;
+            unsigned short int compound_order;
+#endif
+        };
+
+#if defined(CONFIG_TRANSPARENT_HUGEPAGE) && USE_SPLIT_PMD_PTLOCKS
+        struct {
+            unsigned long __pad;    /* do not overlay pmd_huge_pte
+                         * with compound_head to avoid
+                         * possible bit 0 collision.
+                         */
+            pgtable_t pmd_huge_pte; /* protected by page->ptl */
+        };
+#endif
+    };
+
+    /* Remainder is not double word aligned */
+    union {
+        unsigned long private;      /* Mapping-private opaque data:
+                         * usually used for buffer_heads
+                         * if PagePrivate set; used for
+                         * swp_entry_t if PageSwapCache;
+                         * indicates order in the buddy
+                         * system if PG_buddy is set.
+                         * 私有数据指针，由应用场景确定其具体的含义
+                         */
+#if USE_SPLIT_PTE_PTLOCKS
+#if ALLOC_SPLIT_PTLOCKS
+        spinlock_t *ptl;
+#else
+        spinlock_t ptl;
+#endif
+#endif
+        struct kmem_cache *slab_cache;  /* SL[AU]B: Pointer to slab */
+    };
+
+#ifdef CONFIG_MEMCG
+    struct mem_cgroup *mem_cgroup;
+#endif
+
+    /*
+     * On machines where all RAM is mapped into kernel address space,
+     * we can simply calculate the virtual address. On machines with
+     * highmem some memory is mapped into kernel virtual memory
+     * dynamically, so we need a place to store that address.
+     * Note that this field could be 16 bits on x86 ... ;)
+     *
+     * Architectures with slow multiplication can define
+     * WANT_PAGE_VIRTUAL in asm/page.h
+     */
+#if defined(WANT_PAGE_VIRTUAL)
+    void *virtual;          /* Kernel virtual address (NULL if
+                       not kmapped, ie. highmem) */
+#endif /* WANT_PAGE_VIRTUAL */
+
+#ifdef CONFIG_KMEMCHECK
+    /*
+     * kmemcheck wants to track the status of each byte in a page; this
+     * is a pointer to such a status block. NULL if not tracked.
+     */
+    void *shadow;
+#endif
+
+#ifdef LAST_CPUPID_NOT_IN_PAGE_FLAGS
+    int _last_cpupid;
+#endif
+}
+/*
+ * The struct page can be forced to be double word aligned so that atomic ops
+ * on double words work. The SLUB allocator can make use of such a feature.
+ */
+#ifdef CONFIG_HAVE_ALIGNED_STRUCT_PAGE
+    __aligned(2 * sizeof(unsigned long))
+#endif
+;
+```
 
 | 字段 | 描述 |
 |:---:|:----:|
 | flag | 用来存放页的状态，每一位代表一种状态，所以至少可以同时表示出32中不同的状态,这些状态定义在linux/page-flags.h中 |
-| mapping | 指向与该页相关的address_space对象
-| virtual | 页的虚拟地址，它就是页在虚拟内存中的地址。要理解的一点是page结构与物理页相关，而并非与虚拟页相关。因此，该结构对页的描述是短暂的。内核仅仅用这个结构来描述当前时刻在相关的物理页中存放的东西。这种数据结构的目的在于描述物理内存本身，而不是描述包含在其中的数据 |
+| virtual | 对于如果物理内存可以直接映射内核的系统, 我们可以之间映射出虚拟地址与物理地址的管理, 但是对于需要使用高端内存区域的页, 即无法直接映射到内核的虚拟地址空间, 因此需要用virtual保存该页的虚拟地址 |
 |  _refcount | 引用计数，表示内核中引用该page的次数, 如果要操作该page, 引用计数会+1, 操作完成-1. 当该值为0时, 表示没有引用该page的位置，所以该page可以被解除映射，这往往在内存回收时是有用的 |
 | _mapcount | 被页表映射的次数，也就是说该page同时被多少个进程共享。初始值为-1，如果只被一个进程的页表映射了，该值为0. 如果该page处于伙伴系统中，该值为PAGE_BUDDY_MAPCOUNT_VALUE（-128），内核通过判断该值是否为PAGE_BUDDY_MAPCOUNT_VALUE来确定该page是否属于伙伴系统 |
 | index | 在映射的虚拟空间（vma_area）内的偏移；一个文件可能只映射一部分，假设映射了1M的空间，index指的是在1M空间内的偏移，而不是在整个文件内的偏移 |
 | private | 私有数据指针，由应用场景确定其具体的含义 |
-| lru | LRU算法的链表头，主要有3个用途: 伙伴算法, slab分配器, 被用户态使用或被当做页缓存使用 |
-
+| lru |链表头，用于在各种链表上维护该页, 以便于按页将不同类别分组, 主要有3个用途: 伙伴算法, slab分配器, 被用户态使用或被当做页缓存使用 |
+| mapping | 指向与该页相关的address_space对象 |
+| index | 页帧在映射内部的偏移量
 
 >注意区分_count和_mapcount，_mapcount表示的是映射次数，而_count表示的是使用次数；被映射了不一定在使用，但要使用必须先映射。
 
@@ -98,13 +307,71 @@ Linux把物理内存划分为三个层次来管理
 
 
 
-
-#2.2	页面的状态flags
+##2.2	mapping & index
 -------
 
 
-page->flags描述page的状态和其他信息
+mapping指定了页帧所在的地址空间, index是页帧在映射内部的偏移量. 地址空间是一个非常一般的概念. 例如, 可以用在向内存读取文件时. 地址空间用于将文件的内容与装载数据的内存区关联起来. mapping不仅能够保存一个指针, 而且还能包含一些额外的信息, 用于判断页是否属于未关联到地址空间的某个匿名内存区.
 
+
+1.	如果mapping = 0，说明该page属于交换高速缓存页（swap cache）；当需要使用地址空间时会指定交换分区的地址空间swapper_space。
+
+2.	如果mapping != 0，第0位bit[0] = 0，说明该page属于页缓存或文件映射，mapping指向文件的地址空间address_space。
+
+3.	如果mapping != 0，第0位bit[0] != 0，说明该page为匿名映射，mapping指向struct anon_vma对象。
+
+
+通过mapping恢复anon_vma的方法：anon_vma = (struct anon_vma *)(mapping - PAGE_MAPPING_ANON)。
+
+
+
+pgoff_t index是该页描述结构在地址空间radix树page_tree中的对象索引号即页号, 表示该页在vm_file中的偏移页数, 其类型pgoff_t被定义为unsigned long即一个机器字长.
+
+
+```cpp
+/*
+ * The type of an index into the pagecache.
+ */
+#define pgoff_t unsigned long
+```
+
+##2.3	private私有数据指针
+-------
+
+private私有数据指针, 由应用场景确定其具体的含义：
+
+
+1.	如果设置了PG_private标志，则private字段指向struct buffer_head
+
+2.	如果设置了PG_compound，则指向struct page
+
+
+3.	如果设置了PG_swapcache标志，private存储了该page在交换分区中对应的位置信息swp_entry_t。
+
+4.	如果_mapcount = PAGE_BUDDY_MAPCOUNT_VALUE，说明该page位于伙伴系统，private存储该伙伴的阶
+
+
+
+##2.4	lru链表头
+-------
+
+最近、最久未使用struct slab结构指针变量
+
+lru：链表头，主要有3个用途：
+
+1.	则page处于伙伴系统中时，用于链接相同阶的伙伴（只使用伙伴中的第一个page的lru即可达到目的）。
+
+2.	设置PG_slab, 则page属于slab，page->lru.next指向page驻留的的缓存的管理结构，page->lru.prec指向保存该page的slab的管理结构。
+
+3.	page被用户态使用或被当做页缓存使用时，用于将该page连入zone中相应的lru链表，供内存回收时使用。
+
+
+
+
+#3	体系结构无关的页面的状态flags
+-------
+
+页的不同属性通过一系列页标志描述, 存储在struct page的flag成员中的各个比特位.
 
 ```cpp
 struct page {
@@ -112,6 +379,9 @@ struct page {
     unsigned long flags;        /* Atomic flags,
     some possibly updated asynchronously, 描述page的状态和其他信息  */
 ```
+
+
+这些标识是独立于体系结构的, 因而无法通过特定于CPU或计算机的信息(该信息保存在页表中)
 
 如下如所示
 
@@ -131,18 +401,18 @@ struct page {
 
 | 页面状态 | 描述 |
 |:-------:|:----:|
-| PG_locked | page被锁定，说明有使用者正在操作该page |
-| PG_error | 状态标志，表示涉及该page的IO操作发生了错误 |
+| PG_locked | 指定了页是否被锁定, 如果该比特未被置位, 说明有使用者正在操作该page, 则内核的其他部分不允许访问该页， 这可以防止内存管理出现竞态条件 |
+| PG_error | 如果涉及该page的I/O操作发生了错误, 则该位被设置 |
 | PG_referenced | 表示page刚刚被访问过 |
-| PG_uptodate | 表示page的数据已经与后备存储器是同步的，是最新的 |
-| PG_dirty | 与后备存储器中的数据相比，该page的内容已经被修改 |
-| PG_lru | 表示该page处于LRU链表上 |
+| PG_uptodate | 表示page的数据已经与后备存储器是同步的, 即页的数据已经从块设备读取，且没有出错,数据是最新的 |
+| PG_dirty | 与后备存储器中的数据相比，该page的内容已经被修改. 出于性能能的考虑，页并不在每次改变后立即回写, 因此内核需要使用该标识来表明页面中的数据已经改变, 应该在稍后刷出 |
+| PG_lru | 表示该page处于LRU链表上， 这有助于实现页面的回收和切换. 内核使用两个最近最少使用(least recently used-LRU)链表来区别活动和不活动页. 如果页在其中一个链表中, 则该位被设置 |
 | PG_active | page处于inactive LRU链表, PG_active和PG_referenced一起控制该page的活跃程度，这在内存回收时将会非常有用 |
 | PG_slab | 该page属于slab分配器 |
 | PG_onwer_priv_1 | |
 | PG_arch_1	      | |
 | PG_reserved | 设置该标志，防止该page被交换到swap  |
-| PG_private | 如果page中的private成员非空，则需要设置该标志 |
+| PG_private | 如果page中的private成员非空，则需要设置该标志, 用于I/O的页可使用该字段将页细分为多核缓冲区 |
 | PG_private_2 | |
 | PG_writeback | page中的数据正在被回写到后备存储器 |
 | PG_head | |
@@ -157,100 +427,17 @@ struct page {
 | PG_young | |
 | PG_idle  | |
 
-内核中提供了一些标准宏，用来检查、操作某些特定的比特位，如：
-        -> PageXXX(page)：检查page是否设置了PG_XXX位
-        -> SetPageXXX(page)：设置page的PG_XXX位
-        -> ClearPageXXX(page)：清除page的PG_XXX位
-        -> TestSetPageXXX(page)：设置page的PG_XXX位，并返回原值
-        -> TestClearPageXXX(page)：清除page的PG_XXX位，并返回原值
-
-
-
-
-
-
-##2.3	mapping：有三种含义
--------
-
-
-mappind是该页所在地址空间描述结构指针
-
-
-1.	如果mapping = 0，说明该page属于交换高速缓存页（swap cache）；当需要使用地址空间时会指定交换分区的地址空间swapper_space。
-
-2.	如果mapping != 0，第0位bit[0] = 0，说明该page属于页缓存或文件映射，mapping指向文件的地址空间address_space。
-
-3.	如果mapping != 0，第0位bit[0] != 0，说明该page为匿名映射，mapping指向struct anon_vma对象。
-
-
-通过mapping恢复anon_vma的方法：anon_vma = (struct anon_vma *)(mapping - PAGE_MAPPING_ANON)。
-
-##2.4	private私有数据指针
--------
-
-private私有数据指针, 由应用场景确定其具体的含义：
-
-
-1.	如果设置了PG_private标志，则private字段指向struct buffer_head
-
-2.	如果设置了PG_compound，则指向struct page
-
-
-3.	如果设置了PG_swapcache标志，private存储了该page在交换分区中对应的位置信息swp_entry_t。
-
-4.	如果_mapcount = PAGE_BUDDY_MAPCOUNT_VALUE，说明该page位于伙伴系统，private存储该伙伴的阶
-
-##2.5	lru链表头
--------
-
-最近、最久未使用struct slab结构指针变量
-
-lru：链表头，主要有3个用途：
-
-1.	则page处于伙伴系统中时，用于链接相同阶的伙伴（只使用伙伴中的第一个page的lru即可达到目的）。
-
-2.	设置PG_slab, 则page属于slab，page->lru.next指向page驻留的的缓存的管理结构，page->lru.prec指向保存该page的slab的管理结构。
-
-3.	page被用户态使用或被当做页缓存使用时，用于将该page连入zone中相应的lru链表，供内存回收时使用。
-
-
-##2.6	index索引
--------
-
-
-pgoff_t index是该页描述结构在地址空间radix树page_tree中的对象索引号即页号, 表示该页在vm_file中的偏移页数
-```cpp
-#define unsigned long pgoff_t
-```
-
-
-#struct pagevec
--------
+内核中提供了一些标准宏，用来检查、操作某些特定的比特位，如
 
 ```c
-struct pagevec {                //页向量描述结构
-        unsigned long nr;       //该页向量中的内存页数
-        unsigned long cold;    //冷区标志，0表示热区，非0表示冷区
-        struct page *pages[PAGEVEC_SIZE];
-        //该也想两种的页描述结构指针数组（PAGEVEC_SIZE=14）
-};
-```
+PageXXX(page)：检查page是否设置了PG_XXX位
+SetPageXXX(page)：设置page的PG_XXX位
+ClearPageXXX(page)：清除page的PG_XXX位
+TestSetPageXXX(page)：设置page的PG_XXX位，并返回原值
+TestClearPageXXX(page)：清除page的PG_XXX位，并返回原值
 
-#struct page_address_map
 
-```cpp
-struct page_address_map {        //页地址映射
-        struct page *page;            //页的描述结构
-        void *virtual;                //页的虚拟地址
-        struct list_head list;           //通过list字段链接到页表池全局链表page_address_pool中或page_address_htable[hash_ptr(page,PA_HASH_ORDER)].lh
-};
-```
 
-#struct page_address_slot
-------
-```cpp
-static struct page_address_slot {
-        struct list_head lh;                    /* List of page_address_maps */
-        spinlock_t lock;                        /* Protect this bucket's list */
-} ____cacheline_aligned_in_smp page_address_htable[1<<PA_HASH_ORDER];
-```
+
+
+
