@@ -83,16 +83,23 @@ Linux把物理内存划分为三个层次来管理
 | 字段 | 描述 |
 |:---:|:----:|
 | flag | 用来存放页的状态，每一位代表一种状态，所以至少可以同时表示出32中不同的状态,这些状态定义在linux/page-flags.h中 |
-| count | 记录了该页被引用了多少次 |
 | mapping | 指向与该页相关的address_space对象
 | virtual | 页的虚拟地址，它就是页在虚拟内存中的地址。要理解的一点是page结构与物理页相关，而并非与虚拟页相关。因此，该结构对页的描述是短暂的。内核仅仅用这个结构来描述当前时刻在相关的物理页中存放的东西。这种数据结构的目的在于描述物理内存本身，而不是描述包含在其中的数据 |
-|
+|  _refcount | 引用计数，表示内核中引用该page的次数, 如果要操作该page, 引用计数会+1, 操作完成-1. 当该值为0时, 表示没有引用该page的位置，所以该page可以被解除映射，这往往在内存回收时是有用的 |
+| _mapcount | 被页表映射的次数，也就是说该page同时被多少个进程共享。初始值为-1，如果只被一个进程的页表映射了，该值为0. 如果该page处于伙伴系统中，该值为PAGE_BUDDY_MAPCOUNT_VALUE（-128），内核通过判断该值是否为PAGE_BUDDY_MAPCOUNT_VALUE来确定该page是否属于伙伴系统 |
+| index | 在映射的虚拟空间（vma_area）内的偏移；一个文件可能只映射一部分，假设映射了1M的空间，index指的是在1M空间内的偏移，而不是在整个文件内的偏移 |
+| private | 私有数据指针，由应用场景确定其具体的含义 |
+| lru | LRU算法的链表头，主要有3个用途: 伙伴算法, slab分配器, 被用户态使用或被当做页缓存使用 |
+
+
+>注意区分_count和_mapcount，_mapcount表示的是映射次数，而_count表示的是使用次数；被映射了不一定在使用，但要使用必须先映射。
 
 
 
 
 
-#页面的状态flags
+
+#2.2	页面的状态flags
 -------
 
 
@@ -157,32 +164,93 @@ struct page {
         -> TestSetPageXXX(page)：设置page的PG_XXX位，并返回原值
         -> TestClearPageXXX(page)：清除page的PG_XXX位，并返回原值
 
-    2) _count：引用计数，表示内核中引用该page的次数，如果要操作该page，引用计数会+1，操作完成-1。当该值为0时，表示没有引用该page的位置，所以该page可以被解除映射，这往往在内存回收时是有用的。
-
-    3) _mapcount：被页表映射的次数，也就是说该page同时被多少个进程共享。初始值为-1，如果只被一个进程的页表映射了，该值为0 。如果该page处于伙伴系统中，该值为PAGE_BUDDY_MAPCOUNT_VALUE（-128），内核通过判断该值是否为PAGE_BUDDY_MAPCOUNT_VALUE来确定该page是否属于伙伴系统。
-    注意区分_count和_mapcount，_mapcount表示的是映射次数，而_count表示的是使用次数；被映射了不一定在使用，但要使用必须先映射。
-
-    4) mapping：有三种含义
-        a: 如果mapping = 0，说明该page属于交换缓存（swap cache）；当需要使用地址空间时会指定交换分区的地址空间swapper_space。
-        b: 如果mapping != 0，bit[0] = 0，说明该page属于页缓存或文件映射，mapping指向文件的地址空间address_space。
-        c: 如果mapping != 0，bit[0] != 0，说明该page为匿名映射，mapping指向struct anon_vma对象。
-        通过mapping恢复anon_vma的方法：anon_vma = (struct anon_vma *)(mapping - PAGE_MAPPING_ANON)。
-
-    5) index：在映射的虚拟空间（vma_area）内的偏移；一个文件可能只映射一部分，假设映射了1M的空间，index指的是在1M空间内的偏移，而不是在整个文件内的偏移。
-
-    6) private：私有数据指针，由应用场景确定其具体的含义：
-        a：如果设置了PG_private标志，表示buffer_heads；
-        b：如果设置了PG_swapcache标志，private存储了该page在交换分区中对应的位置信息swp_entry_t。
-        c：如果_mapcount = PAGE_BUDDY_MAPCOUNT_VALUE，说明该page位于伙伴系统，private存储该伙伴的阶。
-
-    7) lru：链表头，主要有3个用途：
-        a：page处于伙伴系统中时，用于链接相同阶的伙伴（只使用伙伴中的第一个page的lru即可达到目的）。
-        b：page属于slab时，page->lru.next指向page驻留的的缓存的管理结构，page->lru.prec指向保存该page的slab的管理结构。
-        c：page被用户态使用或被当做页缓存使用时，用于将该page连入zone中相应的lru链表，供内存回收时使用。
 
 
 
 
 
+##2.3	mapping：有三种含义
+-------
 
 
+mappind是该页所在地址空间描述结构指针
+
+
+1.	如果mapping = 0，说明该page属于交换高速缓存页（swap cache）；当需要使用地址空间时会指定交换分区的地址空间swapper_space。
+
+2.	如果mapping != 0，第0位bit[0] = 0，说明该page属于页缓存或文件映射，mapping指向文件的地址空间address_space。
+
+3.	如果mapping != 0，第0位bit[0] != 0，说明该page为匿名映射，mapping指向struct anon_vma对象。
+
+
+通过mapping恢复anon_vma的方法：anon_vma = (struct anon_vma *)(mapping - PAGE_MAPPING_ANON)。
+
+##2.4	private私有数据指针
+-------
+
+private私有数据指针, 由应用场景确定其具体的含义：
+
+
+1.	如果设置了PG_private标志，则private字段指向struct buffer_head
+
+2.	如果设置了PG_compound，则指向struct page
+
+
+3.	如果设置了PG_swapcache标志，private存储了该page在交换分区中对应的位置信息swp_entry_t。
+
+4.	如果_mapcount = PAGE_BUDDY_MAPCOUNT_VALUE，说明该page位于伙伴系统，private存储该伙伴的阶
+
+##2.5	lru链表头
+-------
+
+最近、最久未使用struct slab结构指针变量
+
+lru：链表头，主要有3个用途：
+
+1.	则page处于伙伴系统中时，用于链接相同阶的伙伴（只使用伙伴中的第一个page的lru即可达到目的）。
+
+2.	设置PG_slab, 则page属于slab，page->lru.next指向page驻留的的缓存的管理结构，page->lru.prec指向保存该page的slab的管理结构。
+
+3.	page被用户态使用或被当做页缓存使用时，用于将该page连入zone中相应的lru链表，供内存回收时使用。
+
+
+##2.6	index索引
+-------
+
+
+pgoff_t index是该页描述结构在地址空间radix树page_tree中的对象索引号即页号, 表示该页在vm_file中的偏移页数
+```cpp
+#define unsigned long pgoff_t
+```
+
+
+#struct pagevec
+-------
+
+```c
+struct pagevec {                //页向量描述结构
+        unsigned long nr;       //该页向量中的内存页数
+        unsigned long cold;    //冷区标志，0表示热区，非0表示冷区
+        struct page *pages[PAGEVEC_SIZE];
+        //该也想两种的页描述结构指针数组（PAGEVEC_SIZE=14）
+};
+```
+
+#struct page_address_map
+
+```cpp
+struct page_address_map {        //页地址映射
+        struct page *page;            //页的描述结构
+        void *virtual;                //页的虚拟地址
+        struct list_head list;           //通过list字段链接到页表池全局链表page_address_pool中或page_address_htable[hash_ptr(page,PA_HASH_ORDER)].lh
+};
+```
+
+#struct page_address_slot
+------
+```cpp
+static struct page_address_slot {
+        struct list_head lh;                    /* List of page_address_maps */
+        spinlock_t lock;                        /* Protect this bucket's list */
+} ____cacheline_aligned_in_smp page_address_htable[1<<PA_HASH_ORDER];
+```

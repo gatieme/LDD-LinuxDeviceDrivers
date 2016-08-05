@@ -46,7 +46,8 @@ struct page {
     /* First double word block */
     unsigned long flags;        /* Atomic flags, some possibly updated asynchronously
                                               描述page的状态和其他信息  */
-    union {
+    union
+    {
         struct address_space *mapping;  /* If low bit clear, points to
                          * inode address_space, or NULL.
                          * If page mapped as anonymous
@@ -62,7 +63,10 @@ struct page {
     /* Second double word */
     struct {
         union {
-            pgoff_t index;      /* Our offset within mapping. */
+            pgoff_t index;      /* Our offset within mapping.
+            在映射的虚拟空间（vma_area）内的偏移；
+            一个文件可能只映射一部分，假设映射了1M的空间，
+            index指的是在1M空间内的偏移，而不是在整个文件内的偏移。 */
             void *freelist;     /* sl[aou]b first free object */
             /* page_deferred_list().prev    -- second tail page */
         };
@@ -88,6 +92,7 @@ struct page {
                      * Count of ptes mapped in mms, to show
                      * when page is mapped & limit reverse
                      * map searches.
+                     * 页映射计数器
                      */
                     atomic_t _mapcount;
 
@@ -101,6 +106,7 @@ struct page {
                 /*
                  * Usage count, *USE WRAPPER FUNCTION*
                  * when manual accounting. See page_ref.h
+                 * 页引用计数器
                  */
                 atomic_t _refcount;
             };
@@ -179,6 +185,7 @@ struct page {
                          * swp_entry_t if PageSwapCache;
                          * indicates order in the buddy
                          * system if PG_buddy is set.
+                         * 私有数据指针，由应用场景确定其具体的含义
                          */
 #if USE_SPLIT_PTE_PTLOCKS
 #if ALLOC_SPLIT_PTLOCKS
