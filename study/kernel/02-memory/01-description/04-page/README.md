@@ -399,6 +399,69 @@ struct page {
 
 其中最后一个flag用于标识page的状态, 这些状态由枚举常量[`enum pageflags`](http://lxr.free-electrons.com/source/include/linux/page-flags.h?v=4.7#L74)定义, 定义在[include/linux/page-flags.h?v=4.7, line 74](http://lxr.free-electrons.com/source/include/linux/page-flags.h?v=4.7#L74). 常用的有如下状态
 
+```c
+enum pageflags {
+        PG_locked,              /* Page is locked. Don't touch. */
+        PG_error,
+        PG_referenced,
+        PG_uptodate,
+        PG_dirty,
+        PG_lru,
+        PG_active,
+        PG_slab,
+        PG_owner_priv_1,        /* Owner use. If pagecache, fs may use*/
+        PG_arch_1,
+        PG_reserved,
+        PG_private,             /* If pagecache, has fs-private data */
+        PG_private_2,           /* If pagecache, has fs aux data */
+        PG_writeback,           /* Page is under writeback */
+        PG_head,                /* A head page */
+        PG_swapcache,           /* Swap page: swp_entry_t in private */
+        PG_mappedtodisk,        /* Has blocks allocated on-disk */
+        PG_reclaim,             /* To be reclaimed asap */
+        PG_swapbacked,          /* Page is backed by RAM/swap */
+        PG_unevictable,         /* Page is "unevictable"  */
+#ifdef CONFIG_MMU
+        PG_mlocked,             /* Page is vma mlocked */
+#endif
+#ifdef CONFIG_ARCH_USES_PG_UNCACHED
+        PG_uncached,            /* Page has been mapped as uncached */
+#endif
+#ifdef CONFIG_MEMORY_FAILURE
+        PG_hwpoison,            /* hardware poisoned page. Don't touch */
+#endif
+#if defined(CONFIG_IDLE_PAGE_TRACKING) && defined(CONFIG_64BIT)
+        PG_young,
+        PG_idle,
+#endif
+        __NR_PAGEFLAGS,
+
+        /* Filesystems */
+        PG_checked = PG_owner_priv_1,
+
+        /* Two page bits are conscripted by FS-Cache to maintain local caching
+         * state.  These bits are set on pages belonging to the netfs's inodes
+         * when those inodes are being locally cached.
+         */
+        PG_fscache = PG_private_2,      /* page backed by cache */
+
+        /* XEN */
+        /* Pinned in Xen as a read-only pagetable page. */
+        PG_pinned = PG_owner_priv_1,
+        /* Pinned as part of domain save (see xen_mm_pin_all()). */
+        PG_savepinned = PG_dirty,
+        /* Has a grant mapping of another (foreign) domain's page. */
+        PG_foreign = PG_owner_priv_1,
+
+        /* SLOB */
+        PG_slob_free = PG_private,
+
+        /* Compound pages. Stored in first tail page's flags */
+        PG_double_map = PG_private_2,
+};
+```
+
+
 | 页面状态 | 描述 |
 |:-------:|:----:|
 | PG_locked | 指定了页是否被锁定, 如果该比特未被置位, 说明有使用者正在操作该page, 则内核的其他部分不允许访问该页， 这可以防止内存管理出现竞态条件 |
@@ -407,10 +470,10 @@ struct page {
 | PG_uptodate | 表示page的数据已经与后备存储器是同步的, 即页的数据已经从块设备读取，且没有出错,数据是最新的 |
 | PG_dirty | 与后备存储器中的数据相比，该page的内容已经被修改. 出于性能能的考虑，页并不在每次改变后立即回写, 因此内核需要使用该标识来表明页面中的数据已经改变, 应该在稍后刷出 |
 | PG_lru | 表示该page处于LRU链表上， 这有助于实现页面的回收和切换. 内核使用两个最近最少使用(least recently used-LRU)链表来区别活动和不活动页. 如果页在其中一个链表中, 则该位被设置 |
-| PG_active | page处于inactive LRU链表, PG_active和PG_referenced一起控制该page的活跃程度，这在内存回收时将会非常有用 |
+| PG_active | page处于inactive LRU链表, PG_active和PG_referenced一起控制该page的活跃程度，这在内存回收时将会非常有用<br>当位于LRU active_list链表上的页面该位被设置, 并在页面移除时清除该位, 它标记了页面是否处于活动状态 |
 | PG_slab | 该page属于slab分配器 |
 | PG_onwer_priv_1 | |
-| PG_arch_1	      | |
+| PG_arch_1	      | 直接从代码中引用, PG_arch_1是一个体系结构相关的页面状态位, 一般的代码保证了在第一次禁图页面高速缓存时, 该位被清除. 这使得体系结构可以延迟到页面被某个进程映射后， 才可以D-Cache刷盘 |
 | PG_reserved | 设置该标志，防止该page被交换到swap  |
 | PG_private | 如果page中的private成员非空，则需要设置该标志, 用于I/O的页可使用该字段将页细分为多核缓冲区 |
 | PG_private_2 | |
@@ -455,6 +518,35 @@ ClearPageXXX(page)：清除page的PG_XXX位
 TestSetPageXXX(page)：设置page的PG_XXX位，并返回原值
 TestClearPageXXX(page)：清除page的PG_XXX位，并返回原值
 ```
+
+
+很多情况下, 需要等待页的状态改变, 然后才能恢复工作. 因此内核提供了两个辅助函数
+
+```c
+http://lxr.free-electrons.com/source/include/linux/pagemap.h?v=4.7#L495
+/*
+ * Wait for a page to be unlocked.
+ *
+ * This must be called with the caller "holding" the page,
+ * ie with increased "page->count" so that the page won't
+ * go away during the wait..
+ */
+static inline void wait_on_page_locked(struct page *page)
+
+// http://lxr.free-electrons.com/source/include/linux/pagemap.h?v=4.7#L504
+/*
+ * Wait for a page to complete writeback
+ */
+static inline void wait_on_page_writeback(struct page *page)
+```
+
+假定内核的一部分在等待一个被锁定的页面, 直至页面被解锁. wait_on_page_locked提供了该功能. 在页面被锁定的情况下, 调用该函数, 内核将进入睡眠. 而在页面解锁后, 睡眠进程会被自动唤醒并继续工作
+
+wait_on_page_writeback的工作方式类似, 该函数会等待与页面相关的所有待决回写操作结束, 将页面包含的数据同步到块设备为止.
+
+
+#4	页面映射到管理区
+-------
 
 
 
