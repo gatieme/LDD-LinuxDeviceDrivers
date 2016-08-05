@@ -6,7 +6,7 @@ GITHUB_COMMIT := $(COMMIT)
 
 
 ifeq ($(COMMIT), )
-	GITHUB_COMMIT="完善了README.md..."
+	GITHUB_COMMIT="更新了内存管理之内存描述(四)--页帧struct page详解..."
 endif
 
 

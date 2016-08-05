@@ -741,7 +741,7 @@ free_area_init()函数的参数：
 unsigned long *zones_sizes: 系统中每个zone所管理的page的数量的数组。这个时候，还没能确定zone中那些page是可以分配使用的（free）。这个信息知道boot memory allocator完成之前还无法知道。
 来源： http://www.uml.org.cn/embeded/201208071.asp
 
-##4.6	冷热页
+##4.6	冷热页与Per-CPU上的页面链表
 -------
 
 
@@ -797,6 +797,15 @@ struct per_cpu_pages {
 | list | 一个双链表, 保存了当前CPU的冷页或热页, 可使用内核的标准方法处理 |
 
 
+在内核中只有一个子系统会积极的尝试为任何对象维护per-cpu上的list链表, 这个子系统就是slab分配器.
+
+*	struct per_cpu_pageset具有一个字段, 该字段
+
+*	struct per_cpu_pages则维护了链表中目前已有的一系列页面, 高极值和低极值决定了何时填充该集合或者释放一批页面, 变量决定了一个块中应该分配多少个页面, 并最后决定在页面前的实际链表中分配多少各页面
+
+
+
+
 #4.7	内存域的第一个页帧zone_start_pfn
 -------
 
@@ -835,7 +844,7 @@ min_low_pfn， max_pfn和max_low_pfn这3个值，也要用于对高端内存（h
 
 
 
-#
+#总结
 -------
 
 在linux中，内核也不是对所有物理内存都一视同仁，内核而是把页分为不同的区, 使用区来对具有相似特性的页进行分组.

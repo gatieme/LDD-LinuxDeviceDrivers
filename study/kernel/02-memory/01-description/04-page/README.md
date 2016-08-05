@@ -6,8 +6,8 @@
 | 2016-06-14 | [Linux-4.7](http://lxr.free-electrons.com/source/?v=4.7) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux内存管理](http://blog.csdn.net/gatieme/article/category/6225543) |
 
 
-http://blog.chinaunix.net/uid-30282771-id-5176971.html
-http://www.cnblogs.com/hanyan225/archive/2011/07/28/2119628.html
+
+
 #1	前景回顾
 -------
 
@@ -381,14 +381,120 @@ struct page {
 ```
 
 
+
 这些标识是独立于体系结构的, 因而无法通过特定于CPU或计算机的信息(该信息保存在页表中)
 
-如下如所示
-
-![page的flags标识](./images/flags.png)
 
 
-主要分为4部分，其中标志位flag向高位增长, 其余位字段向低位增长，中间存在空闲位
+
+##3.1	页面到管理区和节点的映射
+-------
+
+
+在**早期的linux-2.4.18的内核**中, [struct page存储有一个指向对应管理区的指针page->zone](http://lxr.linux.no/linux-old+v2.4.18/include/linux/mm.h#L167), 但是该这hi真在吼吼被认为是一种浪费, 因为如果有成千上万的这样的struct page存在, 那么即使是很小的指针也会消耗大量的内存空间.
+
+因此在**后来linux-2.4.x的更新**中, 删除了这个字段, 取而代之的是page->flags的最高[ZONE_SHIFT位](http://lxr.free-electrons.com/source/include/linux/mm.h?v=2.4.37#L340)和NODE_SHIFT位, 存储了其所在zone和node在内存区域表zone_table的编号索引.
+
+
+
+那么内核在初始化内存管理区时, 首先建立管理区表zone_table. 参见[mm/page_alloc.c?v=2.4.37, line 38](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=2.4.37#L38)
+
+```cpp
+/*
+ *
+ * The zone_table array is used to look up the address of the
+ * struct zone corresponding to a given zone number (ZONE_DMA,
+ * ZONE_NORMAL, or ZONE_HIGHMEM).
+ */
+zone_t *zone_table[MAX_NR_ZONES*MAX_NR_NODES];
+EXPORT_SYMBOL(zone_table);
+```
+
+
+MAX_NR_ZONES是一个节点中所能包容纳的管理区的最大数, 如3个, 定义在[include/linux/mmzone.h?v=2.4.37, line 25](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L25), 与zone区域的类型(ZONE_DMA, ZONE_NORMAL, ZONE_HIGHMEM)定义在一起. 当然这时候我们这些标识都是通过宏的方式来实现的, 而不是如今的枚举类型
+
+
+MAX_NR_NODES是可以存在的节点的最大数.
+
+函数EXPORT_SYMBOL使得内核的变量或者函数可以被载入的模块(比如我们的驱动模块)所访问.
+
+该表处理起来就像一个多维数组, 在函数free_area_init_core中, 一个节点的所有页面都会被初始化.
+
+内核提供了page_zone通过页面查找其对应的内存区域zone_t, 页提供了set_page_zone接口, 而查找到了zone后, 可以通过 其`struct pglist_data      *zone_pgdat`直接获取其所在node信息
+
+```cpp
+/*
+ * The zone field is never updated after free_area_init_core()
+ * sets it, so none of the operations on it need to be atomic.
+ */
+#define NODE_SHIFT 4
+#define ZONE_SHIFT (BITS_PER_LONG - 8)
+
+struct zone_struct;
+extern struct zone_struct *zone_table[];
+
+static inline zone_t *page_zone(struct page *page)
+{
+        return zone_table[page->flags >> ZONE_SHIFT];
+}
+
+static inline void set_page_zone(struct page *page, unsigned long zone_num)
+{
+        page->flags &= ~(~0UL << ZONE_SHIFT);
+        page->flags |= zone_num << ZONE_SHIFT;
+}
+```
+
+而**后来的内核(至今linux-4.7)**中, 这些必要的标识(ZONE_DMA等)都是通过枚举类型实现的(ZONE_DMA等用enum zone_type定义), 然后zone_table也被移除, 参照[[PATCH] zone table removal miss merge](https://lkml.org/lkml/2006/9/27/112)
+
+因此内核提供了新的思路, 参见[include/linux/mm.h?v4.7, line 907](http://lxr.free-electrons.com/source/include/linux/mm.h?v4.7#L907)
+
+
+```cpp
+static inline struct zone *page_zone(const struct page *page)
+{
+	return &NODE_DATA(page_to_nid(page))->node_zones[page_zonenum(page)];
+}
+
+static inline void set_page_zone(struct page *page, enum zone_type zone)
+{
+	page->flags &= ~(ZONES_MASK << ZONES_PGSHIFT);
+    page->flags |= (zone & ZONES_MASK) << ZONES_PGSHIFT;
+}
+
+static inline void set_page_node(struct page *page, unsigned long node)
+{
+	page->flags &= ~(NODES_MASK << NODES_PGSHIFT);
+	page->flags |= (node & NODES_MASK) << NODES_PGSHIFT;
+}
+```
+
+
+其中NODE_DATA使用了全局的node表进行索引.
+
+在UMA结构的机器中, 只有一个node结点即contig_page_data, 此时NODE_DATA直接指向了全局的contig_page_data, 而与node的编号nid无关, 参照[include/linux/mmzone.h?v=4.7, line 858](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L858), 其中全局唯一的cnode结点ontig_page_data定义在[mm/nobootmem.c?v=4.7, line 27](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L27)
+
+
+```cpp
+#ifndef CONFIG_NEED_MULTIPLE_NODES
+extern struct pglist_data contig_page_data;
+#define NODE_DATA(nid)          (&contig_page_data)
+#define NODE_MEM_MAP(nid)       mem_map
+else
+/*  ......  */
+#endif
+```
+
+而对于NUMA结构的系统中, 所有的node都存储在node_data数组中,
+NODE_DATA直接通过node编号索引即可, 参见[NODE_DATA的定义](http://lxr.free-electrons.com/ident?v=4.7;i=NODE_DATA)
+
+```cpp
+extern struct pglist_data *node_data[];
+#define NODE_DATA(nid)          (node_data[(nid)])
+```
+
+
+那么page的flags标识主要分为4部分，其中标志位flag向高位增长, 其余位字段向低位增长，中间存在空闲位
 
 | 字段 | 描述 |
 |:----:|:---:|
@@ -397,9 +503,25 @@ struct page {
 | zone | 内存域标志，标识该page属于哪一个zone |
 | flag | page的状态标识 |
 
+
+如下图所示
+
+![page的flags标识](./images/flags.png)
+
+
+##3.2	内存页标识pageflags
+-------
+
+
 其中最后一个flag用于标识page的状态, 这些状态由枚举常量[`enum pageflags`](http://lxr.free-electrons.com/source/include/linux/page-flags.h?v=4.7#L74)定义, 定义在[include/linux/page-flags.h?v=4.7, line 74](http://lxr.free-electrons.com/source/include/linux/page-flags.h?v=4.7#L74). 常用的有如下状态
 
-```c
+
+
+
+
+
+
+```cpp
 enum pageflags {
         PG_locked,              /* Page is locked. Don't touch. */
         PG_error,
@@ -511,7 +633,8 @@ enum pageflags {
 *	其次标识的函数接口也变了, 早期的内核中, 针对每个宏标识都设置了一组test/set/clear, 参见[/include/linux/mm.h?v=2.4.37, line 324](http://lxr.free-electrons.com/source/include/linux/mm.h?v=2.4.37#L324)
 
 形式如下
-```c
+
+```cpp
 PageXXX(page)：检查page是否设置了PG_XXX位
 SetPageXXX(page)：设置page的PG_XXX位
 ClearPageXXX(page)：清除page的PG_XXX位
@@ -522,7 +645,7 @@ TestClearPageXXX(page)：清除page的PG_XXX位，并返回原值
 
 很多情况下, 需要等待页的状态改变, 然后才能恢复工作. 因此内核提供了两个辅助函数
 
-```c
+```cpp
 http://lxr.free-electrons.com/source/include/linux/pagemap.h?v=4.7#L495
 /*
  * Wait for a page to be unlocked.
@@ -543,12 +666,6 @@ static inline void wait_on_page_writeback(struct page *page)
 假定内核的一部分在等待一个被锁定的页面, 直至页面被解锁. wait_on_page_locked提供了该功能. 在页面被锁定的情况下, 调用该函数, 内核将进入睡眠. 而在页面解锁后, 睡眠进程会被自动唤醒并继续工作
 
 wait_on_page_writeback的工作方式类似, 该函数会等待与页面相关的所有待决回写操作结束, 将页面包含的数据同步到块设备为止.
-
-
-#4	页面映射到管理区
--------
-
-
 
 
 
