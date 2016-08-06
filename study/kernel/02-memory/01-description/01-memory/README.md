@@ -26,7 +26,7 @@
 | [Linux内存管理原理](http://www.cnblogs.com/zhaoyl/p/3695517.html) |
 | [第 15 章 内存映射和 DMA](http://www.embeddedlinux.org.cn/ldd3/ch15.html) |
 | [ 内存管理（二）struct page ](http://blog.chinaunix.net/uid-30282771-id-5176971.html) |
-
+| [进程页表页和内核页表](http://guojing.me/linux-kernel-architecture/posts/thread-page-table-and-kernel-page-table/)
 
 #1	前景回顾
 -------
