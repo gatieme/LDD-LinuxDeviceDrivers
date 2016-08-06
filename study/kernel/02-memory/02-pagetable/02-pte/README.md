@@ -531,7 +531,7 @@ pud_bad宏和pgd_bad宏总是产生0。没有定义pte_bad宏，因为页表项�
 ![内存索引](http://img.blog.csdn.net/20160806142316752)
 
 
-##3.2   inux中通过3级页表访问物理内存
+##3.2   Linux中通过4级页表访问物理内存
 -------
 
 
@@ -554,7 +554,7 @@ PTEs, PMDs和PGDs分别由pte_t, pmd_t 和pgd_t来描述。为了存储保护位
 根据虚拟地址获取物理页的示例代码详见`mm/memory.c`中的函数`follow_page`
 >不同的版本可能有所不同，早起内核中存在follow_page，而后来的内核中被follow_page_mask替代，目前最新的发布4.4中为查找到此函数
 
-linux3.8中代码如下
+我们从早期的linux-3.8的源代码中, 截取的代码如下
 ```
 /**
  * follow_page - look up a page descriptor from a user-virtual address
@@ -714,3 +714,90 @@ no_page_table:
 }
 ``` 
 
+以上代码可以精简为
+
+```cpp
+unsigned long v2p(int pid unsigned long va)
+{
+        unsigned long pa = 0;
+        struct task_struct *pcb_tmp = NULL;
+        pgd_t *pgd_tmp = NULL;
+        pud_t *pud_tmp = NULL;
+        pmd_t *pmd_tmp = NULL;
+        pte_t *pte_tmp = NULL;
+
+        printk(KERN_INFO"PAGE_OFFSET = 0x%lx\n",PAGE_OFFSET);
+        printk(KERN_INFO"PGDIR_SHIFT = %d\n",PGDIR_SHIFT);
+        printk(KERN_INFO"PUD_SHIFT = %d\n",PUD_SHIFT);
+        printk(KERN_INFO"PMD_SHIFT = %d\n",PMD_SHIFT);
+        printk(KERN_INFO"PAGE_SHIFT = %d\n",PAGE_SHIFT);
+
+        printk(KERN_INFO"PTRS_PER_PGD = %d\n",PTRS_PER_PGD);
+        printk(KERN_INFO"PTRS_PER_PUD = %d\n",PTRS_PER_PUD);
+        printk(KERN_INFO"PTRS_PER_PMD = %d\n",PTRS_PER_PMD);
+        printk(KERN_INFO"PTRS_PER_PTE = %d\n",PTRS_PER_PTE);
+
+        printk(KERN_INFO"PAGE_MASK = 0x%lx\n",PAGE_MASK);
+
+        //if(!(pcb_tmp = find_task_by_pid(pid)))
+        if(!(pcb_tmp = findTaskByPid(pid)))
+        {
+                printk(KERN_INFO"Can't find the task %d .\n",pid);
+                return 0;
+        }
+        printk(KERN_INFO"pgd = 0x%p\n",pcb_tmp->mm->pgd);
+
+        /* 判断给出的地址va是否合法(va&lt;vm_end)*/
+        if(!find_vma(pcb_tmp->mm,va))
+        {
+                printk(KERN_INFO"virt_addr 0x%lx not available.\n",va);
+                return 0;
+        }
+
+        pgd_tmp = pgd_offset(pcb_tmp->mm,va);
+        printk(KERN_INFO"pgd_tmp = 0x%p\n",pgd_tmp);
+        printk(KERN_INFO"pgd_val(*pgd_tmp) = 0x%lx\n",pgd_val(*pgd_tmp));
+        if(pgd_none(*pgd_tmp))
+        {
+                printk(KERN_INFO"Not mapped in pgd.\n");
+                return 0;
+        }
+
+        pud_tmp = pud_offset(pgd_tmp,va);
+        printk(KERN_INFO"pud_tmp = 0x%p\n",pud_tmp);
+        printk(KERN_INFO"pud_val(*pud_tmp) = 0x%lx\n",pud_val(*pud_tmp));
+        if(pud_none(*pud_tmp))
+        {
+                printk(KERN_INFO"Not mapped in pud.\n");
+                return 0;
+        }
+
+        pmd_tmp = pmd_offset(pud_tmp,va);
+        printk(KERN_INFO"pmd_tmp = 0x%p\n",pmd_tmp);
+        printk(KERN_INFO"pmd_val(*pmd_tmp) = 0x%lx\n",pmd_val(*pmd_tmp));
+        if(pmd_none(*pmd_tmp))
+        {
+                printk(KERN_INFO"Not mapped in pmd.\n");
+                return 0;
+        }
+
+        /*在这里，把原来的pte_offset_map()改成了pte_offset_kernel*/
+        pte_tmp = pte_offset_kernel(pmd_tmp,va);
+
+        printk(KERN_INFO"pte_tmp = 0x%p\n",pte_tmp);
+        printk(KERN_INFO"pte_val(*pte_tmp) = 0x%lx\n",pte_val(*pte_tmp));
+        if(pte_none(*pte_tmp))
+        {
+                printk(KERN_INFO"Not mapped in pte.\n");
+                return 0;
+        }
+        if(!pte_present(*pte_tmp)){
+                printk(KERN_INFO"pte not in RAM.\n");
+                return 0;
+        }
+
+        pa = (pte_val(*pte_tmp) & PAGE_MASK) | (va & ~PAGE_MASK);
+        printk(KERN_INFO"virt_addr 0x%lx in RAM is 0x%lx t .\n",va,pa);
+        printk(KERN_INFO"contect in 0x%lx is 0x%lx\n", pa, *(unsigned long *)((char *)pa + PAGE_OFFSET)
+}
+```
