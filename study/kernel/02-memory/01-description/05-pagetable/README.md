@@ -103,22 +103,34 @@ Linux不同于其他的操作系统, 它把计算机分成独立层(体系结构
 
 
 
-#页表
+#2	页表
 -------
 
 
 Linux内核通过四级页表将虚拟内存空间分为5个部分(4个页表项用于选择页, 1个索引用来表示页内的偏移). 各个体系结构不仅地址长度不同, 而且地址字拆分的方式也不一定相同. 因此内核使用了宏用于将地址分解为各个分量.
-http://bbs.csdn.net/topics/390831818
 
-http://blog.csdn.net/hmsiwtv/article/details/39956981
 
-http://biancheng.dnbcw.info/linux/335152.html
+![linux四级页表](./images/pte.gif)
 
-http://blog.chinaunix.net/uid-21718047-id-3140041.html
+其他内容请参照博主的另外两篇博客, 我就不罗嗦了
 
-http://blog.csdn.net/gatieme/article/details/50651561
+[深入理解计算机系统-之-内存寻址（五）--页式存储管理](http://blog.csdn.net/gatieme/article/details/50651561), 详细讲解了传统的页式存储管理机制
 
-http://blog.csdn.net/gatieme/article/details/50756050
+[深入理解计算机系统-之-内存寻址（六）--linux中的分页机制](http://blog.csdn.net/gatieme/article/details/50756050), 详细的讲解了Linux内核分页机制的实现机制
 
-http://www.360doc.com/content/11/0804/10/7204565_137844381.shtml
+
+
+#3	链接
+-------
+
+[我对linux内核四级分页理解](http://bbs.csdn.net/topics/390831818)
+
+[Linux内核4级页表的演进](http://blog.csdn.net/hmsiwtv/article/details/39956981)
+
+[Linux内存 之 页表](http://biancheng.dnbcw.info/linux/335152.html)
+
+[内存管理（四） 页表数据结构 ](http://blog.chinaunix.net/uid-21718047-id-3140041.html)
+
+
+[Linux内存管理之我见(二)-页表、页式内存管理机制](http://www.360doc.com/content/11/0804/10/7204565_137844381.shtml)
 
