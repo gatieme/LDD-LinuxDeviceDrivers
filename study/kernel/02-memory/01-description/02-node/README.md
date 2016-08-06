@@ -212,44 +212,6 @@ typedef struct pglist_data {
 
 
 
-##2.4	查找内存结点
--------
-
-node_id作为全局节点id。 系统中的NUMA结点都是从0开始编号的
-
-
-在新的linux3.x~linux4.x的内核中，Linux定义了一个大小为[MAX_NUMNODES](http://lxr.free-electrons.com/source/include/linux/numa.h#L11)类型为[`pgdat_list`](http://lxr.free-electrons.com/source/arch/ia64/mm/discontig.c#L50)数组，数组的大小根据[CONFIG_NODES_SHIFT](http://lxr.free-electrons.com/source/include/linux/numa.h#L6)的配置决定。对于UMA来说，NODES_SHIFT为0，所以MAX_NUMNODES的值为1。内核提供了[for_each_online_pgdat(pgdat)](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L871)来遍历节点
-
->而在linux-2.4.x之前的内核中所有的节点，都由一个被称为[pgdat_list](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L169)的链表维护。这些节点都放在该链表中，均由函数[init_bootmem_core()](http://lxr.free-electrons.com/source/mm/bootmem.c#L96)初始化结点。内核提供了[宏for_each_pgdat(pgdat)]http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L169)来遍历节点链表。
-
-内核提供了NODE_DATA(node_id)宏函数来按照编号来查找对应的结点
-
-在UMA结构的机器中, 只有一个node结点即contig_page_data, 此时NODE_DATA直接指向了全局的contig_page_data, 而与node的编号nid无关, 参照[include/linux/mmzone.h?v=4.7, line 858](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L858), 其中全局唯一的cnode结点ontig_page_data定义在[mm/nobootmem.c?v=4.7, line 27](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L27), [linux-2.4.37](http://lxr.free-electrons.com/source/mm/numa.c?v=2.4.37#L15)
-
-
-
-```cpp
-#ifndef CONFIG_NEED_MULTIPLE_NODES
-extern struct pglist_data contig_page_data;
-#define NODE_DATA(nid)          (&contig_page_data)
-#define NODE_MEM_MAP(nid)       mem_map
-else
-/*  ......  */
-#endif
-```
-
-
-而对于NUMA结构的系统中, 通过pg_data_t->pgdat_next链接到下一个结点, 系统中所有结点都通过单链表链接起来, 其末尾是一个NULL指针标记
-
-同时所有的node都存储在node_data数组中,
-NODE_DATA直接通过node编号索引即可, 参见[NODE_DATA的定义](http://lxr.free-electrons.com/ident?v=4.7;i=NODE_DATA)
-
-```cpp
-extern struct pglist_data *node_data[];
-#define NODE_DATA(nid)          (node_data[(nid)])
-```
-
-
 ##2.5	结点的内存管理域
 -------
 
@@ -414,4 +376,147 @@ static inline int num_node_state(enum node_states state)
 #else
 	/*  some NULL function  */
 #endif
+```
+
+
+#4	查找内存结点
+-------
+
+node_id作为全局节点id。 系统中的NUMA结点都是从0开始编号的
+
+##4.1	linux-2.4中的实现
+-------
+
+
+**pgdat_next指针域和pgdat_list内存结点链表**
+
+
+而对于NUMA结构的系统中, 在**linux-2.4.x之前的内核**中所有的节点，内存结点pg_data_t都有一个next指针域pgdat_next指向下一个内存结点. 这样一来系统中所有结点都通过单链表[pgdat_list](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L169)链接起来, 其末尾是一个NULL指针标记.
+
+这些节点都放在该链表中，均由函数[init_bootmem_core()](http://lxr.free-electrons.com/source/mm/bootmem.c#L96)初始化结点
+
+
+
+**for_each_pgdat(pgdat)来遍历node节点**
+
+
+那么内核提供了宏函数for_each_pgdat(pgdat)来遍历node节点, 其只需要沿着node_next以此便立即可, 参照[include/linux/mmzone.h?v=2.4.37, line 187](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L186)
+
+```cpp
+/**
+ * for_each_pgdat - helper macro to iterate over nodes
+ * @pgdat - pg_data_t * variable
+ * Meant to help with common loops of the form
+ * pgdat = pgdat_list;
+ * while(pgdat) {
+ *      ...
+ *      pgdat = pgdat->node_next;
+ * }
+ */
+#define for_each_pgdat(pgdat) \
+        for (pgdat = pgdat_list; pgdat; pgdat = pgdat->node_next)
+```
+
+##4.2	linux-3.x~4.x的实现
+-------
+
+**node_data内存节点数组**
+
+
+
+在**新的linux3.x~linux4.x的内核**中，内核移除了pg_data_t的pgdat_next之指针域, 同时也删除了pgdat_list链表, 参见[Remove pgdat list](http://marc.info/?l=lhms-devel&m=111595348412761)和[Remove pgdat list ver.2 ](http://www.gelato.unsw.edu.au/archives/linux-ia64/0509/15528.html)
+
+但是定义了一个大小为[MAX_NUMNODES](http://lxr.free-electrons.com/source/include/linux/numa.h#L11)类型为[`pg_data_t`](http://lxr.free-electrons.com/source/arch/ia64/mm/discontig.c#L50)数组node_data,数组的大小根据[CONFIG_NODES_SHIFT](http://lxr.free-electrons.com/source/include/linux/numa.h#L6)的配置决定. 对于UMA来说，NODES_SHIFT为0，所以MAX_NUMNODES的值为1.
+
+
+**for_each_online_pgdat遍历所有的内存结点**
+
+
+内核提供了[for_each_online_pgdatfor_each_online_pgdat(pgdat)](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L871)来遍历节点
+
+
+```cpp
+/**
+ * for_each_online_pgdat - helper macro to iterate over all online nodes
+ * @pgdat - pointer to a pg_data_t variable
+ */
+#define for_each_online_pgdat(pgdat)                    \
+        for (pgdat = first_online_pgdat();              \
+             pgdat;                                     \
+             pgdat = next_online_pgdat(pgdat))
+```
+
+
+
+其中first_online_pgdat可以查找到系统中第一个内存节点的pg_data_t信息, next_online_pgdat则查找下一个内存节点.
+
+
+
+
+下面我们来看看first_online_pgdat和next_online_pgdat是怎么实现的.
+
+
+**first_online_node和next_online_node返回结点编号**
+
+由于没了next指针域pgdat_next和全局node链表pgdat_list, 因而内核提供了first_online_node指向第一个内存结点, 而通过next_online_node来查找其下一个结点, 他们是通过状态node_states的位图来查找结点信息的, 定义在[include/linux/nodemask.h?v4.7, line 432](http://lxr.free-electrons.com/source/include/linux/nodemask.h?v4.7#L432)
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/nodemask.h?v4.7#L432
+#define first_online_node       first_node(node_states[N_ONLINE])
+#define first_memory_node       first_node(node_states[N_MEMORY])
+static inline int next_online_node(int nid)
+{
+	return next_node(nid, node_states[N_ONLINE]);
+}
+```
+
+first_online_node和next_online_node返回所查找的node结点的编号, 而有了编号, 我们直接去node_data数组中按照编号进行索引即可去除对应的pg_data_t的信息.内核提供了NODE_DATA(node_id)宏函数来按照编号来查找对应的结点, 它的工作其实其实就是从node_data数组中进行索引
+
+**NODE_DATA(node_id)查找编号node_id的结点pg_data_t信息**
+
+移除了pg_data_t->pgdat_next指针域. 但是所有的node都存储在node_data数组中, 内核提供了函数NODE_DATA直接通过node编号索引节点pg_data_t信息, 参见[NODE_DATA的定义](http://lxr.free-electrons.com/ident?v=4.7;i=NODE_DATA)
+
+```cpp
+extern struct pglist_data *node_data[];
+#define NODE_DATA(nid)          (node_data[(nid)])
+```
+
+
+在UMA结构的机器中, 只有一个node结点即contig_page_data, 此时NODE_DATA直接指向了全局的contig_page_data, 而与node的编号nid无关, 参照[include/linux/mmzone.h?v=4.7, line 858](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L858), 其中全局唯一的cnode结点contig_page_data定义在[mm/nobootmem.c?v=4.7, line 27](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L27), [linux-2.4.37](http://lxr.free-electrons.com/source/mm/numa.c?v=2.4.37#L15)
+
+
+
+```cpp
+#ifndef CONFIG_NEED_MULTIPLE_NODES
+extern struct pglist_data contig_page_data;
+#define NODE_DATA(nid)          (&contig_page_data)
+#define NODE_MEM_MAP(nid)       mem_map
+else
+/*  ......  */
+#endif
+```
+
+
+
+**first_online_pgdat和next_online_pgdat返回结点的pg_data_t**
+
+*	首先通过first_online_node和next_online_node找到节点的编号
+
+*	然后通过NODE_DATA(node_id)查找到对应编号的结点的pg_data_t信息
+
+
+```cpp
+struct pglist_data *first_online_pgdat(void)
+{
+        return NODE_DATA(first_online_node);
+}
+
+struct pglist_data *next_online_pgdat(struct pglist_data *pgdat)
+{
+    int nid = next_online_node(pgdat->node_id);
+
+	if (nid == MAX_NUMNODES)
+		return NULL;
+	return NODE_DATA(nid);
+}
 ```
