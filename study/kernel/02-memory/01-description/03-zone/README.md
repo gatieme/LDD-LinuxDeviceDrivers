@@ -741,9 +741,12 @@ free_area_init()函数的参数：
 unsigned long *zones_sizes: 系统中每个zone所管理的page的数量的数组。这个时候，还没能确定zone中那些page是可以分配使用的（free）。这个信息知道boot memory allocator完成之前还无法知道。
 来源： http://www.uml.org.cn/embeded/201208071.asp
 
-##4.6	冷热页与Per-CPU上的页面链表
+
+##4.6	冷热页与Per-CPU上的页面高速缓存
 -------
 
+
+内核经常请求和释放单个页框. 为了提升性能, 每个内存管理区都定义了一个每CPU(Per-CPU)的页面高速缓存. 所有"每CPU高速缓存"包含一些预先分配的页框, 他们被定义满足本地CPU发出的单一内存请求.
 
 `struct zone`的pageset成员用于实现冷热分配器(hot-n-cold allocator)
 
@@ -757,7 +760,9 @@ struct zone
 
 >尽管内存域可能属于一个特定的NUMA结点, 因而关联到某个特定的CPU。 但其他CPU的告诉缓存仍然可以包含该内存域中的页面. 最终的效果是, 每个处理器都可以访问系统中的所有页, 尽管速度不同. 因而, 特定于内存域的数据结构不仅要考虑到所属NUMA结点相关的CPU, 还必须照顾到系统中其他的CPU.
 
+
 pageset是一个指针, 其容量与系统能够容纳的CPU的数目的最大值相同.
+
 
 数组元素类型为per_cpu_pageset, 定义在[include/linux/mmzone.h?v4.7, line 254](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v4.7#L254), 如下所示
 
