@@ -6,7 +6,7 @@ GITHUB_COMMIT := $(COMMIT)
 
 
 ifeq ($(COMMIT), )
-	GITHUB_COMMIT="更新了内存管理之页式管理机制..."
+	GITHUB_COMMIT="更新了内存管理的目录结构..."
 endif
 
 
