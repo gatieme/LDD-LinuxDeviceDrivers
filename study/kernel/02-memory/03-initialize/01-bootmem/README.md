@@ -1,4 +1,4 @@
-初始化内存管理
+启动过程期间的内存管理--bootmem分配器
 =======
 
 
@@ -17,7 +17,7 @@ http://www.cnblogs.com/zhenjing/archive/2012/03/21/linux_numa.html
 http://www.linuxidc.com/Linux/2012-05/60230.htm
 
 
-在内存管理的上下文中, 初始化(initialization)可以有多种含义. 在许多CPU上, 必须显式设置适用于Linux内核的内存模型. 例如在x86_32上需要切换到保护模式, 然后奇偶内核才能检测到可用内存和寄存器.
+在内存管理的上下文中, 初始化(initialization)可以有多种含义. 在许多CPU上, 必须显式设置适用于Linux内核的内存模型. 例如在x86_32上需要切换到保护模式, 然后内核才能检测到可用内存和寄存器.
 
 
 
@@ -141,6 +141,7 @@ UMA体系结构中，free_area_init函数在系统唯一的struct node对象cont
 
 其代码很复杂, 我们只截取出其中与内存管理初始化相关的部分, 如下所示
 
+
 ```cpp
 asmlinkage __visible void __init start_kernel(void)
 {
@@ -171,6 +172,7 @@ asmlinkage __visible void __init start_kernel(void)
 }
 ```
 
+
 | 函数  | 功能 |
 |:----:|:----:|
 | [setup_arch](http://lxr.free-electrons.com/ident?v=4.7;i=setup_arch) | 是一个特定于体系结构的设置函数, 其中一项任务是负责初始化自举分配器 |
@@ -183,7 +185,28 @@ asmlinkage __visible void __init start_kernel(void)
 | [setup_per_cpu_pageset](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5392) | 初始化CPU高速缓存行, 为pagesets的第一个数组元素分配内存, 换句话说, 其实就是第一个系统处理器分配<br>由于在分页情况下，每次存储器访问都要存取多级页表，这就大大降低了访问速度。所以，为了提高速度，在CPU中设置一个最近存取页面的高速缓存硬件机制，当进行存储器访问时，先检查要访问的页面是否在高速缓存中. |
 
 
+
 #2	节点和内存域的初始化
+-------
+
+
+##2.1	zone_sizes_init
+-------
+
+在内核首先通过setup_arch()-->paging_init()-->bootmem_init()-->zone_sizes_init()来初始化节点和管理区的一些数据项
+
+
+
+在获取了三个管理区的页面数后，通过free_area_init_nodes()来完成后续工作, 其中核心函数为free_area_init_node(),用来针对特定的节点进行初始化
+
+至此，节点和管理区的关键数据已完成初始化，内核在后面为内存管理做得一个准备工作就是将所有节点的管理区都链入到zonelist中，便于后面内存分配工作的进行
+
+内核在start_kernel()-->build_all_zonelist()中完成zonelist的初始化
+
+
+
+
+##build_all_zonelists
 -------
 
 
@@ -402,6 +425,7 @@ static int default_zonelist_order(void)
 
 在NUMA结构下, 系统支持用户指定内存域的排列方式, 用户以字符串的形式操作numa_zonelist_order(default, node和zone), 最终被内核转换为user_zonelist_order, 这个变量被指定为字符串numa_zonelist_order指定的排列方式, 他们定义在[mm/page_alloc.c?v4.7, line 4573](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L4573), 注意只有在NUMA结构中才需要这个配置信息.
 
+
 ```cpp
 #ifdef CONFIG_NUMA
 /* The value user specified ....changed by config */
@@ -415,7 +439,9 @@ char numa_zonelist_order[16] = "default";
 #endif
 ```
 
-而接受和处理用户配置的工作, 自然是交给我们强大的proc文件系统来完成的, 用户通过操作`/proc/sys/vm/numa_zonelist_order`来完成配置工作.
+而接受和处理用户配置的工作, 自然是交给我们强大的proc文件系统来完成的, 可以通过/proc/sys/vm/numa_zonelist_order动态改变zonelist order的分配方式。
+
+
 
 
 ![/proc/sys/vm/numa_zonelist_order`](../images/proc-numa_zonelist_order.png)
@@ -430,6 +456,8 @@ char numa_zonelist_order[16] = "default";
 
 
 参见[mm/page_alloc.c?v=4.7, line 4578](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4578)
+
+
 ```cpp
 /*
  * interface for configure zonelist ordering.
@@ -470,12 +498,14 @@ static __init int setup_numa_zonelist_order(char *s)
 early_param("numa_zonelist_order", setup_numa_zonelist_order);
 ```
 
-##2.2	
+##2.2	build_all_zonelists_init
+-------
 
 
 ###2.2.1	system_state系统状态标识
 
 其中`system_state`变量是一个系统全局定义的用来表示系统当前运行状态的枚举变量, 其定义在[include/linux/kernel.h?v=4.7, line 487](http://lxr.free-electrons.com/source/include/linux/kernel.h?v=4.7#L487)
+
 
 ```cpp
 /* Values used for system_state */
