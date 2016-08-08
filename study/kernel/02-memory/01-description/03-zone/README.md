@@ -849,6 +849,34 @@ min_low_pfn， max_pfn和max_low_pfn这3个值，也要用于对高端内存（h
 
 
 
+#5  管理区表zone_table与管理区节点的映射
+-------
+
+
+内核在初始化内存管理区时, 首先建立管理区表zone_table. 参见[mm/page_alloc.c?v=2.4.37, line 38](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=2.4.37#L38)
+
+```cpp
+/*
+ *
+ * The zone_table array is used to look up the address of the
+ * struct zone corresponding to a given zone number (ZONE_DMA,
+ * ZONE_NORMAL, or ZONE_HIGHMEM).
+ */
+zone_t *zone_table[MAX_NR_ZONES*MAX_NR_NODES];
+EXPORT_SYMBOL(zone_table);
+```
+
+
+MAX_NR_ZONES是一个节点中所能包容纳的管理区的最大数, 如3个, 定义在[include/linux/mmzone.h?v=2.4.37, line 25](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L25), 与zone区域的类型(ZONE_DMA, ZONE_NORMAL, ZONE_HIGHMEM)定义在一起. 当然这时候我们这些标识都是通过宏的方式来实现的, 而不是如今的枚举类型
+
+MAX_NR_NODES是可以存在的节点的最大数.
+
+函数EXPORT_SYMBOL使得内核的变量或者函数可以被载入的模块(比如我们的驱动模块)所访问.
+
+该表处理起来就像一个多维数组, 在函数free_area_init_core中, 一个节点的所有页面都会被初始化.
+
+
+
 #总结
 -------
 
@@ -883,3 +911,5 @@ Linux必须处理如下两种硬件存在缺陷而引起的内存寻址问题：
 
 
 ![每个区及其在X86上所占的列表](./images/zone_x86_32.png)
+
+

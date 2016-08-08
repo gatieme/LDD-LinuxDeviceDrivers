@@ -8,7 +8,7 @@
 | 2016-06-14 | [Linux-4.7](http://lxr.free-electrons.com/source/?v=4.7) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux内存管理](http://blog.csdn.net/gatieme/article/category/6225543) |
 
 
-http://blog.csdn.net/lobbve/article/details/23208817
+http://www.linuxidc.com/Linux/2012-05/60230.htm
 
 
 在内存管理的上下文中, 初始化(initialization)可以有多种含义. 在许多CPU上, 必须显式设置适用于Linux内核的内存模型. 例如在x86_32上需要切换到保护模式, 然后奇偶内核才能检测到可用内存和寄存器.
@@ -131,7 +131,9 @@ UMA体系结构中，free_area_init函数在系统唯一的struct node对象cont
 #1	系统启动
 -------
 
-首先我们来看看start_kernel是如何初始化系统的, start_kerne定义在
+首先我们来看看start_kernel是如何初始化系统的, start_kerne定义在[init/main.c?v=4.7, line 479](http://lxr.free-electrons.com/source/init/main.c?v=4.7#L479)
+
+其代码很复杂, 我们只截取出其中与内存管理初始化相关的部分, 如下所示
 
 ```cpp
 asmlinkage __visible void __init start_kernel(void)
@@ -166,10 +168,10 @@ asmlinkage __visible void __init start_kernel(void)
 | 函数  | 功能 |
 |:----:|:----:|
 | [setup_arch](http://lxr.free-electrons.com/ident?v=4.7;i=setup_arch) | 是一个特定于体系结构的设置函数, 其中一项任务是负责初始化自举分配器 |
-| mm_init_cpumask |
+| [mm_init_cpumask](http://lxr.free-electrons.com/source/include/linux/mm_types.h?v=4.7#L522) | 初始化CPU屏蔽字 |
 | [setup_per_cpu_areas](http://lxr.free-electrons.com/ident?v=4.7;i=setup_per_cpu_areas) | 函数[(查看定义)](http://lxr.free-electrons.com/source/mm/percpu.c?v4.7#L2205])给每个CPU分配内存，并拷贝.data.percpu段的数据. 为系统中的每个CPU的per_cpu变量申请空间.<br>在SMP系统中, setup_per_cpu_areas初始化源代码中(使用[per_cpu宏](http://lxr.free-electrons.com/source/include/linux/percpu-defs.h#L256))定义的静态per-cpu变量, 这种变量对系统中每个CPU都有一个独立的副本. <br>此类变量保存在内核二进制影像的一个独立的段中, setup_per_cpu_areas的目的就是为系统中各个CPU分别创建一份这些数据的副本<br>在非SMP系统中这是一个空操作 |
 | [build_all_zonelists](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L5029) | 建立并初始化结点和内存域的数据结构 |
-| [mm_init](http://lxr.free-electrons.com/source/init/main.c?v4.7#L464) | 建立了内核的内存分配器, <br>其中通过[mem_init](http://lxr.free-electrons.com/ident?v=4.7&i=mem_init)停用bootmem分配器并迁移到实际的内存管理器<br>然后调用kmem_cache_init函数初始化内核内部用于小块内存区的分配器 |
+| [mm_init](http://lxr.free-electrons.com/source/init/main.c?v4.7#L464) | 建立了内核的内存分配器, <br>其中通过[mem_init](http://lxr.free-electrons.com/ident?v=4.7&i=mem_init)停用bootmem分配器并迁移到实际的内存管理器(比如伙伴系统)<br>然后调用kmem_cache_init函数初始化内核内部用于小块内存区的分配器 |
 | [kmem_cache_init_late](http://lxr.free-electrons.com/source/mm/slab.c?v4.7#L1378) | 在kmem_cache_init之后, 完善分配器的缓存机制,　当前3个可用的内核内存分配器[slab](http://lxr.free-electrons.com/source/mm/slab.c?v4.7#L1378), [slob](http://lxr.free-electrons.com/source/mm/slob.c?v4.7#L655), [slub](http://lxr.free-electrons.com/source/mm/slub.c?v=4.7#L3960)都会定义此函数　|
 | [kmemleak_init](http://lxr.free-electrons.com/source/mm/kmemleak.c?v=4.7#L1857) | Kmemleak工作于内核态，Kmemleak 提供了一种可选的内核泄漏检测，其方法类似于跟踪内存收集器。当独立的对象没有被释放时，其报告记录在 [/sys/kernel/debug/kmemleak](http://lxr.free-electrons.com/source/mm/kmemleak.c?v=4.7#L1467)中, Kmemcheck能够帮助定位大多数内存错误的上下文 |
 | [setup_per_cpu_pageset](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5392) | 初始化CPU高速缓存行, 为pagesets的第一个数组元素分配内存, 换句话说, 其实就是第一个系统处理器分配<br>由于在分页情况下，每次存储器访问都要存取多级页表，这就大大降低了访问速度。所以，为了提高速度，在CPU中设置一个最近存取页面的高速缓存硬件机制，当进行存储器访问时，先检查要访问的页面是否在高速缓存中. |
@@ -178,6 +180,140 @@ asmlinkage __visible void __init start_kernel(void)
 #2	节点和内存域的初始化
 -------
 
+
+内核在start_kernel中通过build_all_zonelists完成了内存结点及其管理内存域的初始化工作, 调用如下
+
+
+```cpp
+  build_all_zonelists(NULL, NULL);
+```
+
+[build_all_zonelists](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L5029)建立内存管理结点及其内存域所需的数据结构.
+
+
+
+
+前面我们讲解内存管理域时候讲解到, 系统中的所有管理域都存储在一个多维的数组zone_table. 内核在初始化内存管理区时, 必须要建立管理区表zone_table. 参见[mm/page_alloc.c?v=2.4.37, line 38](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=2.4.37#L38)
+```cpp
+/*
+ *
+ * The zone_table array is used to look up the address of the
+ * struct zone corresponding to a given zone number (ZONE_DMA,
+ * ZONE_NORMAL, or ZONE_HIGHMEM).
+ */
+zone_t *zone_table[MAX_NR_ZONES*MAX_NR_NODES];
+EXPORT_SYMBOL(zone_table);
+```
+
+*	MAX_NR_NODES为系统中内存结点的数目
+
+*	MAX_NR_ZONES为系统中单个内存结点所拥有的最大内存区域数目
+
+##2.1	set_zonelist_order
+-------
+
+##2.1.1	zonelist order
+-------
+
+NUMA系统中存在多个节点，　每个节点对应一个struct pglist_data结构，　此结构中可以包含多个zone，　如: ZONE_DMA, ZONE_NORMAL，这样就产生几种排列顺序，以2个节点2个zone为例(zone从高到低排列, ZONE_DMA0表示节点0的ZONE_DMA，其它类似)：
+
+在build_all_zonelists开始, 首先内核通过set_zonelist_order函数设置了`zonelist_order`,如下所示, 参见[mm/page_alloc.c?v=4.7, line 5031](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5031)
+
+
+```cpp
+void __ref build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
+{
+	set_zonelist_order();
+	/* .......  */
+}
+```
+
+该函数
+
+```cpp
+// http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4551
+/*
+ *  zonelist_order:
+ *  0 = automatic detection of better ordering.
+ *  1 = order by ([node] distance, -zonetype)
+ *  2 = order by (-zonetype, [node] distance)
+ *
+ *  If not NUMA, ZONELIST_ORDER_ZONE and ZONELIST_ORDER_NODE will create
+ *  the same zonelist. So only NUMA can configure this param.
+ */
+#define ZONELIST_ORDER_DEFAULT  0
+#define ZONELIST_ORDER_NODE     1
+#define ZONELIST_ORDER_ZONE     2
+/* zonelist order in the kernel.
+ * set_zonelist_order() will set this to NODE or ZONE.
+ */
+static int current_zonelist_order = ZONELIST_ORDER_DEFAULT;
+static char zonelist_order_name[3][8] = {"Default", "Node", "Zone"};
+
+// http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4571
+#ifdef CONFIG_NUMA
+/* The value user specified ....changed by config */
+static int user_zonelist_order = ZONELIST_ORDER_DEFAULT;
+/* string for sysctl */
+#define NUMA_ZONELIST_ORDER_LEN 16
+char numa_zonelist_order[16] = "default";
+
+
+//  http://lxr.free-electrons.com/source/mm/page_alloc.c#L4571
+static void set_zonelist_order(void)
+{
+    if (user_zonelist_order == ZONELIST_ORDER_DEFAULT)
+        current_zonelist_order = default_zonelist_order();
+    else
+        current_zonelist_order = user_zonelist_order;
+}
+
+
+#else   /* CONFIG_NUMA */
+
+//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4892
+static void set_zonelist_order(void)
+{
+	current_zonelist_order = ZONELIST_ORDER_ZONE;
+}
+```
+
+
+
+##system_state系统状态标识
+
+其中`system_state`变量是一个系统全局定义的用来表示系统当前运行状态的枚举变量, 其定义在[include/linux/kernel.h?v=4.7, line 487](http://lxr.free-electrons.com/source/include/linux/kernel.h?v=4.7#L487)
+
+```cpp
+/* Values used for system_state */
+extern enum system_states
+{
+	SYSTEM_BOOTING,
+	SYSTEM_RUNNING,
+	SYSTEM_HALT,
+	SYSTEM_POWER_OFF,
+	SYSTEM_RESTART,
+} system_state;
+```
+
+*	如果系统system_state是SYSTEM_BOOTING, 则调用`build_all_zonelists_init`初始化所有的内存结点
+
+*	否则的话如果定义了冷热页`CONFIG_MEMORY_HOTPLUG`且参数zone(待初始化的内存管理域zone)不为NULL, 则调用setup_zone_pageset设置冷热页
+
+
+
+```cpp
+if (system_state == SYSTEM_BOOTING)
+{
+	build_all_zonelists_init();
+}
+else
+{
+#ifdef CONFIG_MEMORY_HOTPLUG
+	if (zone)
+    	setup_zone_pageset(zone);
+#endif
+```
 
 #3	特定于体系结构的设置
 -------

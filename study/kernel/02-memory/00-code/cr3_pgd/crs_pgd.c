@@ -1,4 +1,4 @@
-//#include <asm/system.h>
+#include <linux/module.h>
 #include <linux/mm.h>
 #include <linux/mm_types.h>
 #include <linux/sched.h>
@@ -9,10 +9,15 @@ static unsigned long read_pgd(void)
     return (unsigned long)current->mm->pgd;
 }
 
+
+
+extern enum system_states system_state;
 static int __init init_cr3_pgd(void)
 {
     unsigned long cr3;
     unsigned long pgd = 0;
+
+    printk("system_state = %d\n", system_state);
 
     cr3 = read_cr3();
     printk("cr3----------------->0x%lx\n", cr3);

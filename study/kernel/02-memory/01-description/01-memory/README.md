@@ -28,6 +28,8 @@
 | [ 内存管理（二）struct page ](http://blog.chinaunix.net/uid-30282771-id-5176971.html) |
 | [进程页表页和内核页表](http://guojing.me/linux-kernel-architecture/posts/thread-page-table-and-kernel-page-table/)
 
+
+
 #1	前景回顾
 -------
 
@@ -63,7 +65,7 @@ NUMA模式是一种分布式存储器访问方式，处理器可以同时访问�
 
 NUMA模式下，处理器被划分成多个"节点"（node）， 每个节点被分配有的本地存储器空间。 所有节点中的处理器都可以访问全部的系统物理存储器，但是访问本节点内的存储器所需要的时间，比访问某些远程节点内的存储器所花的时间要少得多。
 
->其访问时间随存储字的位置不同而变化。其共享存储器物理上是分布在所有处理机的本地存储器上。所有本地存储器的集合组成了全局地址空间，可被所有的处理机访问。处理机访问本地存储器是比较快的，但访问属于另一台处理机的远程存储器则比较慢，因为通过互连网络会产生附加时延。
+>其访问时间随存储字的位置不同而变化。其共享存储器物理上是分布在所有处理机的本地存储器上。所有本地存储器的集合组成了全局地址空间，可被所有的处理机访问。处理机访问本地存储器是比较快的，但访问属于另一台处理机的远程存储器则比较慢，因为通过互连网络会产生附加时延
 
 NUMA 的主要优点是伸缩性。NUMA 体系结构在设计上已超越了 SMP 体系结构在伸缩性上的限制。通过 SMP，所有的内存访问都传递到相同的共享内存总线。这种方式非常适用于 CPU 数量相对较少的情况，但不适用于具有几十个甚至几百个 CPU 的情况，因为这些 CPU 会相互竞争对共享内存总线的访问。NUMA 通过限制任何一条内存总线上的 CPU 数量并依靠高速互连来连接各个节点，从而缓解了这些瓶颈状况。
 
@@ -78,7 +80,7 @@ Linux适用于各种不同的体系结构, 而不同体系结构在内存管理�
 Linux内核通过插入一些兼容层, 使得不同体系结构的差异很好的被隐藏起来, 内核对一致和非一致内存访问使用相同的数据结构
 
 
-#2.1	(N)UMA模型中linux内存的机构
+##2.1	(N)UMA模型中linux内存的机构
 -------
 
 
@@ -115,55 +117,124 @@ Linux把物理内存划分为三个层次来管理
 
 *	最后页帧(page frame)代表了系统内存的最小单位, 堆内存中的每个页都会创建一个struct page的一个实例. 传统上，把内存视为连续的字节，即内存为字节数组，内存单元的编号(地址)可作为字节数组的索引. 分页管理时，将若干字节视为一页，比如4K byte. 此时，内存变成了连续的页，即内存为页数组，每一页物理内存叫页帧，以页为单位对内存进行编号，该编号可作为页数组的索引，又称为页帧号.
 
+
 在一个单独的节点内，任一给定CPU访问页面所需的时间都是相同的。然而，对不同的CPU，这个时间可能就不同。对每个CPU而言，内核都试图把耗时节点的访问次数减到最少这就要小心地选择CPU最常引用的内核数据结构的存放位置.
 
-对于UMA体系的，系统中只有一个node
-
-在LINUX中引入一个数据结构`struct pglist_data` ，来描述一个node，定义在[`include/linux/mmzone.h`](http://lxr.free-electrons.com/source/include/linux/mmzone.h#L630) 文件中。（这个结构被typedef pg_data_t）。
-
-
-*    对于NUMA系统来讲， 整个系统的内存由一个[node_data](http://lxr.free-electrons.com/source/arch/s390/numa/numa.c?v=4.7#L23)的pg_data_t指针数组来管理。(因为可能有多个node)，系统中的每个节点链接到一个以NULL结尾的[pgdat_list](http://lxr.free-electrons.com/source/arch/ia64/include/asm/numa.h#L27)链表中，而其中的每个节点利用pd_data_tnode_next字段链接到下一个节点。
-
-
-*    对于PC这样的UMA系统，使用struct pglist_data contig_page_data ，作为系统唯一的node管理所有的内存区域。（UMA系统中中只有一个node）
 
 
 
 
-##内存节点node
+##2.3   内存节点node
 -------
+
+
 
 >CPU被划分为多个节点(node), 内存则被分簇, 每个CPU对应一个本地物理内存, 即一个CPU-node对应一个内存簇bank，即每个内存簇被认为是一个节点
 >
 >系统的物理内存被划分为几个节点(node), 一个node对应一个内存簇bank，即每个内存簇被认为是一个节点
 
-*	首先, 内存被划分为结点. 每个节点关联到系统中的一个处理器, 内核中表示为`pg_data_t`的实例. 系统中每个节点被链接到一个以NULL结尾的`pgdat_list`链表中<而其中的每个节点利用`pg_data_tnode_next`字段链接到下一节．而对于PC这种UMA结构的机器来说, 只使用了一个成为contig_page_data的静态pg_data_t结构.
+在LINUX中引入一个数据结构`struct pglist_data` ，来描述一个node，定义在[`include/linux/mmzone.h`](http://lxr.free-electrons.com/source/include/linux/mmzone.h#L630) 文件中。（这个结构被typedef pg_data_t）。
 
 
-内存中的每个节点都是由pg_data_t描述,而pg_data_t由struct pglist_data定义而来, 该数据结构定义在[include/linux/mmzone.h, line 615](http://lxr.free-electrons.com/source/include/linux/mmzone.h#L615)
+*    对于NUMA系统来讲， 整个系统的内存由一个[node_data](http://lxr.free-electrons.com/source/arch/s390/numa/numa.c?v=4.7#L23)的pg_data_t指针数组来管理, 
 
+*    对于PC这样的UMA系统，使用struct pglist_data contig_page_data ，作为系统唯一的node管理所有的内存区域。（UMA系统中中只有一个node）
+
+
+可以使用NODE_DATA(node_id)来查找系统中编号为node_id的结点, 参见[NODE_DATA的定义](http://lxr.free-electrons.com/ident?v=4.7;i=NODE_DATA)
+
+UMA结构下由于只有一个结点, 因此该宏总是返回全局的contig_page_data, 而与参数node_id无关.
+
+```cpp
+extern struct pglist_data *node_data[];
+#define NODE_DATA(nid)          (node_data[(nid)])
+```
+
+
+在UMA结构的机器中, 只有一个node结点即contig_page_data, 此时NODE_DATA直接指向了全局的contig_page_data, 而与node的编号nid无关, 参照[include/linux/mmzone.h?v=4.7, line 858](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L858), 其中全局唯一的内存node结点contig_page_data定义在[mm/nobootmem.c?v=4.7, line 27](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L27), [linux-2.4.37](http://lxr.free-electrons.com/source/mm/numa.c?v=2.4.37#L15)
+
+
+
+```cpp
+#ifndef CONFIG_NEED_MULTIPLE_NODES
+extern struct pglist_data contig_page_data;
+#define NODE_DATA(nid)          (&contig_page_data)
+#define NODE_MEM_MAP(nid)       mem_map
+else
+/*  ......  */
+#endif
+```
 
 在分配一个页面时, Linux采用节点局部分配的策略, 从最靠近运行中的CPU的节点分配内存, 由于进程往往是在同一个CPU上运行, 因此从当前节点得到的内存很可能被用到
 
 
-在内存中，每个簇所对应的node又被分成的称为管理区（zone）的块，它们各自描述在内存中的范围。一个管理区（zone）由[struct zone](http://lxr.free-electrons.com/source/include/linux/mmzone.h#L326)结构体来描述，在linux-2.4.37之前的内核中是用[`typedef  struct zone_struct zone_t `](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L47)数据结构来描述）
 
-管理区的类型有如下几种
-*    ZONE_DMA
-*    ZONE_NORMAL
-*    ZONE_HIGHMEM这三种类型
 
-不同的管理区的用途是不一样的，ZONE_DMA类型的内存区域在物理内存的低端，主要是ISA设备只能用低端的地址做DMA操作。ZONE_NORMAL类型的内存区域直接被内核映射到线性地址空间上面的区域（line address space），ZONE_HIGHMEM将保留给系统使用，是系统中预留的可用内存空间，不能被内核直接映射。
+##2.4   物理内存区域zone
+-------
 
-对于x86机器，管理区（内存区域）类型如下分布
+因为实际的计算机体系结构有硬件的诸多限制, 这限制了页框可以使用的方式. 尤其是, Linux内核必须处理80x86体系结构的两种硬件约束.
+
+*   ISA总线的直接内存存储DMA处理器有一个严格的限制 : 他们只能对RAM的前16MB进行寻址
+
+*   在具有大容量RAM的现代32位计算机中, CPU不能直接访问所有的物理地址, 因为线性地址空间太小, 内核不可能直接映射所有物理内存到线性地址空间, 我们会在后面典型架构(x86)上内存区域划分详细讲解x86_32上的内存区域划分
+</font>
+
+因此Linux内核对不同区域的内存需要采用不同的管理方式和映射方式, 
+
+为了解决这些制约条件，Linux使用了三种区:
+
+1.  ZONE_DMA : 这个区包含的页用来执行DMA操作。
+
+2.  ZONE_NOMAL : 这个区包含的都是能正常映射的页。
+
+3.  ZONE_HIGHEM : 这个区包"高端内存"，其中的页能不永久地映射到内核地址空间
+
+而为了兼容一些设备的热插拔支持以及内存碎片化的处理, 内核也引入一些逻辑上的内存区.
+
+1.  ZONE_MOVABLE    :   内核定义了一个伪内存域ZONE_MOVABLE, 在防止物理内存碎片的机制memory migration中需要使用该内存域. 供防止物理内存碎片的极致使用
+
+2.  ZONE_DEVICE :   为支持热插拔设备而分配的Non Volatile Memory非易失性内存
+
+内核将每个簇所对应的node又被分成的称为管理区(zone)的块，它们各自描述在内存中的范围。一个管理区(zone)由[struct zone](http://lxr.free-electrons.com/source/include/linux/mmzone.h#L326)结构体来描述，在linux-2.4.37之前的内核中是用[`typedef  struct zone_struct zone_t `](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L47)数据结构来描述）
+
+
+
+对于x86_32的机器，管理区(内存区域)类型如下分布
+
 
 | 类型 | 区域 |
 | :------- | ----: |
-| ZONE_DMA | 0~16MB |
-| ZONE_NORMAL | 16MB~896MB |
+| ZONE_DMA | 0~15MB |
+| ZONE_NORMAL | 16MB~895MB |
 | ZONE_HIGHMEM | 896MB~物理内存结束 |
 
-##内存页page
+
+内核在初始化内存管理区时, 首先建立管理区表zone_table. 参见[mm/page_alloc.c?v=2.4.37, line 38](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=2.4.37#L38)
+
+
+```cpp
+/*
+ *
+ * The zone_table array is used to look up the address of the
+ * struct zone corresponding to a given zone number (ZONE_DMA,
+ * ZONE_NORMAL, or ZONE_HIGHMEM).
+ */
+zone_t *zone_table[MAX_NR_ZONES*MAX_NR_NODES];
+EXPORT_SYMBOL(zone_table);
+```
+
+该表处理起来就像一个多维数组, 
+
+*   MAX_NR_ZONES是一个节点中所能包容纳的管理区的最大数, 如3个, 定义在[include/linux/mmzone.h?v=2.4.37, line 25](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=2.4.37#L25), 与zone区域的类型(ZONE_DMA, ZONE_NORMAL, ZONE_HIGHMEM)定义在一起. 当然这时候我们这些标识都是通过宏的方式来实现的, 而不是如今的枚举类型
+
+
+*   MAX_NR_NODES是可以存在的节点的最大数.
+
+*   函数EXPORT_SYMBOL使得内核的变量或者函数可以被载入的模块(比如我们的驱动模块)所访问.
+
+
+##2.5   内存页page
 -------
 
 大多数内核（kernel）的操作只使用ZONE_NORMAL区域，系统内存由很多固定大小的内存块组成的，这样的内存块称作为“页”（PAGE），
@@ -174,7 +245,7 @@ x86体系结构中，page的大小为4096个字节。
 
 
 
-##高端内存
+##2.6   高端内存
 -------
 
 由于能够被Linux内核直接访问的ZONE_NORMAL区域的内存空间也是有限的，所以LINUX提出了高端内存（High memory）的概念，并且允许对高端内存的访问
