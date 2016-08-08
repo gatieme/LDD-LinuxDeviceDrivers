@@ -46,7 +46,6 @@ Linux把物理内存划分为三个层次来管理
 
 *	首先内存被划分为结点. 内存中的每个节点都是由pg_data_t描述,而pg_data_t由struct pglist_data定义而来, 该数据结构定义在[include/linux/mmzone.h, line 615](http://lxr.free-electrons.com/source/include/linux/mmzone.h#L615), 每个结点关联到系统中的一个处理器, 内核中表示为`pg_data_t`的实例. 系统中每个节点被链接到一个以NULL结尾的`pgdat_list`链表中<而其中的每个节点利用`pg_data_tnode_next`字段链接到下一节．而对于PC这种UMA结构的机器来说, 只使用了一个成为contig_page_data的静态pg_data_t结构.
 
-
 *	接着各个节点又被划分为内存管理区域, 一个管理区域通过struct zone_struct描述, 其被定义为zone_t, 用以表示内存的某个范围, 低端范围的16MB被描述为ZONE_DMA, 某些工业标准体系结构中的(ISA)设备需要用到它, 然后是可直接映射到内核的普通内存域ZONE_NORMAL,最后是超出了内核段的物理地址域ZONE_HIGHMEM, 被称为高端内存.　是系统中预留的可用内存空间, 不能被内核直接映射.
 
 *	最后页帧(page frame)代表了系统内存的最小单位, 堆内存中的每个页都会创建一个struct page的一个实例. 传统上，把内存视为连续的字节，即内存为字节数组，内存单元的编号(地址)可作为字节数组的索引. 分页管理时，将若干字节视为一页，比如4K byte. 此时，内存变成了连续的页，即内存为页数组，每一页物理内存叫页帧，以页为单位对内存进行编号，该编号可作为页数组的索引，又称为页帧号.
@@ -55,9 +54,7 @@ Linux把物理内存划分为三个层次来管理
 ##1.4	今日内容(页帧struct page)
 -------
 
-
 分页单元可以实现把线性地址转换为物理地址, 为了效率起见, 线性地址被分为固定长度为单位的组, 称为"页", 页内部的线性地址被映射到连续的物理地址. 这样内核可以指定一个页的物理地址和其存储权限, 而不用指定页所包含的全部线性地址的存储权限.
-
 分页单元把所有RAM分为固定长度的页帧(也叫页框, 物理页, 英文page frame). 每一个页帧包含一个页(page). 也就是说一个页帧的长度与一个页的长度一致. 页框是主存的一部分, 因此也是一个存储区域. 简单来说, 页是一个数据块, 可以存放在任何页框(内存中)或者磁盘(被交换至交换分区)中
 
 我们今天就来详细讲解一下linux下物理页帧的描述
@@ -670,6 +667,29 @@ static inline void wait_on_page_writeback(struct page *page)
 假定内核的一部分在等待一个被锁定的页面, 直至页面被解锁. wait_on_page_locked提供了该功能. 在页面被锁定的情况下, 调用该函数, 内核将进入睡眠. 而在页面解锁后, 睡眠进程会被自动唤醒并继续工作
 
 wait_on_page_writeback的工作方式类似, 该函数会等待与页面相关的所有待决回写操作结束, 将页面包含的数据同步到块设备为止.
+
+
+
+#4	全局页面数组mem_map
+-------
+
+`mem_map`是一个struct page的数组，管理着系统中所有的物理内存页面。在系统启动的过程中，创建和分配mem_map的内存区域, mem_map定义在[mm/page_alloc.c?v=4.7, line 6691](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6691)
+
+
+
+```cpp
+#ifndef CONFIG_NEED_MULTIPLE_NODES
+/* use the per-pgdat data instead for discontigmem - mbligh */
+unsigned long max_mapnr;
+struct page *mem_map;
+ 
+EXPORT_SYMBOL(max_mapnr);
+EXPORT_SYMBOL(mem_map);
+#endif
+```
+
+
+UMA体系结构中，free_area_init函数在系统唯一的struct node对象contig_page_data中node_mem_map成员赋值给全局的mem_map变量
 
 
 
