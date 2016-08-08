@@ -1,2 +1,0 @@
-/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/find_task/find-task.ko
-/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/find_task/print_task.o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/find_task/print_vmarea.o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/kernel/01-process/01-task/find_task/find_task.o
