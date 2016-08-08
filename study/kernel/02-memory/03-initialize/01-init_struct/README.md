@@ -54,7 +54,7 @@ Linux把物理内存划分为三个层次来管理
 在LINUX中引入一个数据结构`struct pglist_data` ，来描述一个node，定义在[`include/linux/mmzone.h`](http://lxr.free-electrons.com/source/include/linux/mmzone.h#L630) 文件中。（这个结构被typedef pg_data_t）。
 
 
-*    对于NUMA系统来讲， 整个系统的内存由一个[node_data](http://lxr.free-electrons.com/source/arch/s390/numa/numa.c?v=4.7#L23)的pg_data_t指针数组来管理, 
+*    对于NUMA系统来讲， 整个系统的内存由一个[node_data](http://lxr.free-electrons.com/source/arch/s390/numa/numa.c?v=4.7#L23)的pg_data_t指针数组来管理
 
 *    对于PC这样的UMA系统，使用struct pglist_data contig_page_data ，作为系统唯一的node管理所有的内存区域。（UMA系统中中只有一个node）
 
@@ -85,9 +85,9 @@ extern struct pglist_data contig_page_data;
 *	ISA总线的直接内存存储DMA处理器有一个严格的限制 : 他们只能对RAM的前16MB进行寻址
 
 *	在具有大容量RAM的现代32位计算机中, CPU不能直接访问所有的物理地址, 因为线性地址空间太小, 内核不可能直接映射所有物理内存到线性地址空间, 我们会在后面典型架构(x86)上内存区域划分详细讲解x86_32上的内存区域划分
-</font>
 
-因此Linux内核对不同区域的内存需要采用不同的管理方式和映射方式, 因此内核将物理地址或者成用zone_t表示的不同地址区域, 
+
+因此Linux内核对不同区域的内存需要采用不同的管理方式和映射方式, 因此内核将物理地址或者成用zone_t表示的不同地址区域
 
 对于x86_32的机器，管理区(内存区域)类型如下分布
 
@@ -196,10 +196,27 @@ asmlinkage __visible void __init start_kernel(void)
 
 [build_all_zonelists](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L5029)建立内存管理结点及其内存域所需的数据结构.
 
+##2.1	设置结点初始化顺序
+-------
 
+在build_all_zonelists开始, 首先内核通过set_zonelist_order函数设置了`zonelist_order`,如下所示, 参见[mm/page_alloc.c?v=4.7, line 5031](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5031)
+
+```cpp
+void __ref build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
+{
+	set_zonelist_order();
+	/* .......  */
+}
+```
+
+
+##2.1.1	zone table
+-------
 
 
 前面我们讲解内存管理域时候讲解到, 系统中的所有管理域都存储在一个多维的数组zone_table. 内核在初始化内存管理区时, 必须要建立管理区表zone_table. 参见[mm/page_alloc.c?v=2.4.37, line 38](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=2.4.37#L38)
+
+
 ```cpp
 /*
  *
@@ -215,26 +232,33 @@ EXPORT_SYMBOL(zone_table);
 
 *	MAX_NR_ZONES为系统中单个内存结点所拥有的最大内存区域数目
 
-##2.1	set_zonelist_order
+
+
+##2.1.2	内存域初始化顺序zonelist_order
 -------
 
-##2.1.1	zonelist order
--------
 
-NUMA系统中存在多个节点，　每个节点对应一个struct pglist_data结构，　此结构中可以包含多个zone，　如: ZONE_DMA, ZONE_NORMAL，这样就产生几种排列顺序，以2个节点2个zone为例(zone从高到低排列, ZONE_DMA0表示节点0的ZONE_DMA，其它类似)：
+NUMA系统中存在多个节点, 每个节点对应一个`struct pglist_data`结构, 每个结点中可以包含多个zone, 如: ZONE_DMA, ZONE_NORMAL, 这样就产生几种排列顺序, 以2个节点2个zone为例(zone从高到低排列, ZONE_DMA0表示节点0的ZONE_DMA，其它类似).
 
-在build_all_zonelists开始, 首先内核通过set_zonelist_order函数设置了`zonelist_order`,如下所示, 参见[mm/page_alloc.c?v=4.7, line 5031](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5031)
+*	Legacy方式, 每个节点只排列自己的zone；
+
+![Legacy方式](../images/legacy-order.jpg)
+
+*	Node方式, 按节点顺序依次排列，先排列本地节点的所有zone，再排列其它节点的所有zone。
 
 
-```cpp
-void __ref build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
-{
-	set_zonelist_order();
-	/* .......  */
-}
-```
+![Node方式](../images/node-order.jpg)
 
-该函数
+
+*	Zone方式, 按zone类型从高到低依次排列各节点的同相类型zone
+
+
+
+![Zone方式](../images/zone-order.jpg)
+
+
+
+可通过启动参数"numa_zonelist_order"来配置zonelist order，内核定义了3种配置, 这些顺序定义在[mm/page_alloc.c?v=4.7, line 4551](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4551)
 
 ```cpp
 // http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4551
@@ -247,15 +271,55 @@ void __ref build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
  *  If not NUMA, ZONELIST_ORDER_ZONE and ZONELIST_ORDER_NODE will create
  *  the same zonelist. So only NUMA can configure this param.
  */
-#define ZONELIST_ORDER_DEFAULT  0
-#define ZONELIST_ORDER_NODE     1
-#define ZONELIST_ORDER_ZONE     2
+#define ZONELIST_ORDER_DEFAULT  0 /* 智能选择Node或Zone方式 */
+
+#define ZONELIST_ORDER_NODE     1 /* 对应Node方式 */
+
+#define ZONELIST_ORDER_ZONE     2 /* 对应Zone方式 */
+```
+
+>注意
+>
+>在非NUMA系统中(比如UMA), 由于只有一个内存结点, 因此ZONELIST_ORDER_ZONE和ZONELIST_ORDER_NODE选项会配置相同的内存域排列方式, 因此, 只有NUMA可以配置这几个参数
+
+
+
+
+
+
+全局的current_zonelist_order变量标识了系统中的当前使用的内存域排列方式, 默认配置为ZONELIST_ORDER_DEFAULT, 参见[mm/page_alloc.c?v=4.7, line 4564](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4564)
+
+
+```cpp
+//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4564
 /* zonelist order in the kernel.
  * set_zonelist_order() will set this to NODE or ZONE.
  */
 static int current_zonelist_order = ZONELIST_ORDER_DEFAULT;
 static char zonelist_order_name[3][8] = {"Default", "Node", "Zone"};
+```
 
+
+
+
+
+而zonelist_order_name方式分别对应了Legacy方式, Node方式和Zone方式. 其zonelist_order_name[current_zonelist_order]就标识了当前系统中所使用的内存域排列方式的名称"Default", "Node", "Zone".
+
+
+| 宏 | zonelist_order_name[宏](排列名称) | 排列方式 | 描述 |
+|:--:|:-------------------:|:------:|:----:|
+| ZONELIST_ORDER_DEFAULT | Default |  | 由系统智能选择Node或Zone方式 |
+| ZONELIST_ORDER_NODE | Node | Node方式 | 按节点顺序依次排列，先排列本地节点的所有zone，再排列其它节点的所有zone |
+| ZONELIST_ORDER_ZONE | Zone | Zone方式 | 按zone类型从高到低依次排列各节点的同相类型zone |
+
+
+
+##2.1.3	set_zonelist_order设置排列方式
+-------
+
+内核就通过通过set_zonelist_order函数设置当前系统的内存域排列方式current_zonelist_order, 其定义依据系统的NUMA结构还是UMA结构有很大的不同.
+
+```cpp
 // http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4571
 #ifdef CONFIG_NUMA
 /* The value user specified ....changed by config */
@@ -285,8 +349,131 @@ static void set_zonelist_order(void)
 ```
 
 
+其设置的基本流程如下
 
-##system_state系统状态标识
+*	如果系统当前系统是非NUMA结构的, 则系统中只有一个结点, 配置ZONELIST_ORDER_NODE和ZONELIST_ORDER_ZONE结果相同. 那么set_zonelist_order函数被定义为直接配置当前系统的内存域排列方式`current_zonelist_order`为ZONE方式(与NODE效果相同)
+
+*	如果系统是NUMA结构, 则设置为系统指定的方式即可
+	1.	当前的排列方式为ZONELIST_ORDER_DEFAULT, 即系统默认方式, 则current_zonelist_order则由内核交给default_zonelist_order采用一定的算法选择一个最优的分配策略,　目前的系统中如果是32位则配置为ZONE方式, 而如果是６４位系统则设置为NODE方式
+
+	2.	当前的排列方式不是默认方式, 则设置为user_zonelist_order指定的内存域排列方式
+
+##2.1.4	default_zonelist_order函数选择最优的配置
+-------
+
+在UMA结构下, 内存域使用NODE和ZONE两个排列方式会产生相同的效果, 因此系统不用特殊指定, 直接通过set_zonelist_order函数, 将当前系统的内存域排列方式`current_zonelist_order`配置为为ZONE方式(与NODE效果相同)即可
+
+
+但是NUMA结构下, 默认情况下(当配置了ZONELIST_ORDER_DEFAULT), 系统需要根据系统自身的环境信息选择一个最优的配置(NODE或者ZONE方式), 这个工作就由**default_zonelist_order函数**了来完成. 其定义在[mm/page_alloc.c?v=4.7, line 4789](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4789)
+
+
+```cpp
+#if defined(CONFIG_64BIT)
+/*
+ * Devices that require DMA32/DMA are relatively rare and do not justify a
+ * penalty to every machine in case the specialised case applies. Default
+ * to Node-ordering on 64-bit NUMA machines
+ */
+static int default_zonelist_order(void)
+{
+    return ZONELIST_ORDER_NODE;
+}
+#else
+/*
+ * On 32-bit, the Normal zone needs to be preserved for allocations accessible
+ * by the kernel. If processes running on node 0 deplete the low memory zone
+ * then reclaim will occur more frequency increasing stalls and potentially
+ * be easier to OOM if a large percentage of the zone is under writeback or
+ * dirty. The problem is significantly worse if CONFIG_HIGHPTE is not set.
+ * Hence, default to zone ordering on 32-bit.
+ */
+static int default_zonelist_order(void)
+{
+    return ZONELIST_ORDER_ZONE;
+}
+#endif /* CONFIG_64BIT */
+```
+
+
+
+###2.1.5	user_zonelist_order用户指定排列方式
+-------
+
+
+在NUMA结构下, 系统支持用户指定内存域的排列方式, 用户以字符串的形式操作numa_zonelist_order(default, node和zone), 最终被内核转换为user_zonelist_order, 这个变量被指定为字符串numa_zonelist_order指定的排列方式, 他们定义在[mm/page_alloc.c?v4.7, line 4573](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L4573), 注意只有在NUMA结构中才需要这个配置信息.
+
+```cpp
+#ifdef CONFIG_NUMA
+/* The value user specified ....changed by config */
+static int user_zonelist_order = ZONELIST_ORDER_DEFAULT;
+/* string for sysctl */
+#define NUMA_ZONELIST_ORDER_LEN 16
+char numa_zonelist_order[16] = "default";
+
+#else
+/* ......*/
+#endif
+```
+
+而接受和处理用户配置的工作, 自然是交给我们强大的proc文件系统来完成的, 用户通过操作`/proc/sys/vm/numa_zonelist_order`来完成配置工作.
+
+
+![/proc/sys/vm/numa_zonelist_order`](../images/proc-numa_zonelist_order.png)
+
+
+
+内核通过setup_numa_zonelist_order读取并处理用户写入的配置信息
+
+*	接收到用户的信息后用__parse_numa_zonelist_order处理接收的参数
+
+*	如果前面用__parse_numa_zonelist_order处理的信息串成功, 则将对用的设置信息写入到字符串numa_zonelist_order中
+
+
+参见[mm/page_alloc.c?v=4.7, line 4578](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4578)
+```cpp
+/*
+ * interface for configure zonelist ordering.
+ * command line option "numa_zonelist_order"
+ *      = "[dD]efault   - default, automatic configuration.
+ *      = "[nN]ode      - order by node locality, then by zone within node
+ *      = "[zZ]one      - order by zone, then by locality within zone
+ */
+
+static int __parse_numa_zonelist_order(char *s)
+{
+    if (*s == 'd' || *s == 'D') {
+        user_zonelist_order = ZONELIST_ORDER_DEFAULT;
+    } else if (*s == 'n' || *s == 'N') {
+        user_zonelist_order = ZONELIST_ORDER_NODE;
+    } else if (*s == 'z' || *s == 'Z') {
+        user_zonelist_order = ZONELIST_ORDER_ZONE;
+    } else {
+        pr_warn("Ignoring invalid numa_zonelist_order value:  %s\n", s);
+        return -EINVAL;
+    }
+    return 0;
+}
+
+static __init int setup_numa_zonelist_order(char *s)
+{
+    int ret;
+
+    if (!s)
+        return 0;
+
+    ret = __parse_numa_zonelist_order(s);
+    if (ret == 0)
+        strlcpy(numa_zonelist_order, s, NUMA_ZONELIST_ORDER_LEN);
+
+    return ret;
+}
+early_param("numa_zonelist_order", setup_numa_zonelist_order);
+```
+
+##2.2	
+
+
+###2.2.1	system_state系统状态标识
 
 其中`system_state`变量是一个系统全局定义的用来表示系统当前运行状态的枚举变量, 其定义在[include/linux/kernel.h?v=4.7, line 487](http://lxr.free-electrons.com/source/include/linux/kernel.h?v=4.7#L487)
 
