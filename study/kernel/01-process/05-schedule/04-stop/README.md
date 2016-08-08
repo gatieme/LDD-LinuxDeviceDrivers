@@ -98,6 +98,9 @@ void sched_set_stop_task(int cpu, struct task_struct *stop)
 }
 ```
 
+sched_set_stop_task把stop进程绑定为编号为cpu的处理器上的stop进程, 进程的调度策略设置为SCHED_FIFO, 但是所属的进程的调度器类设置为stop_sched_class, 这样当恢复进程的调度类时, 只需要将进程的调度器类设置为rt_sched_class即可
+
+
 
 #2	stop_machine机制
 -------
@@ -136,6 +139,27 @@ struct cpu_stop_work {
         void                    *arg;
 };
 ```
+
+
+SMP系统中, migration用来执行任务迁移的一组进程, 其comm字段为migration/%u, 后面标识绑定的CPU编号
+
+```cpp
+static struct smp_hotplug_thread cpu_stop_threads = {
+	.store                  = &cpu_stopper.thread,
+	.thread_should_run      = cpu_stop_should_run,
+    .thread_fn              = cpu_stopper_thread,
+	.thread_comm            = "migration/%u",
+	.create                 = cpu_stop_create,
+	.park                   = cpu_stop_park,
+	.selfparking            = true,
+};
+```
+
+如下图所示, 我们可以显示出migration/0(当前系统中9号进程), 即第0个cpu上的任务迁移内核线程, 该线程的调度策略是SCHED_FIFO, 但是所属的调度器类为stop_sched_class.与我们之前讲解sched_set_stop_task看到的内容一致
+
+
+![任务迁移](./stop-migration.jpg)
+
 
 ##2.2	stop_one_cpu
 -------
