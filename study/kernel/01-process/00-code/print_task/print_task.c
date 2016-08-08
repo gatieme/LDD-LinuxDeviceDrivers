@@ -32,8 +32,8 @@
 #endif
 
 
-static int pid = 1;
-module_param(pid,int,0644);
+static int PID = 9;
+module_param(PID, int, 0644);
 
 
 static inline int print_task_policy(int policy)
@@ -124,6 +124,7 @@ void print_task_priority(struct task_struct *ptask)
 
 void print_task_struct(struct task_struct *ptask)
 {
+    printk("PID = %d, COMMAND = %s\n", ptask->pid, ptask->comm);
     printk("flag = 0x%x\n", ptask->flags);
 
     //  priority
@@ -156,7 +157,7 @@ static void print_task(int pid)
 static int __init print_task_init(void)
 {
 	printk(KERN_INFO"------------------------\n");
-    print_task(pid);
+    print_task(PID);
 	printk(KERN_INFO"------------------------\n");
 
     return 0;
