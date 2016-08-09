@@ -252,7 +252,7 @@ bootmem分配器是系统启动初期的内存分配方式，在耳熟能详的�
 #3	引导内存分配器数据结构
 -------
 
-##3.1	bootmem_data表示引导内存区域
+内核用bootmem_data表示引导内存区域
 
 即使是初始化用的最先适配分配器也必须使用一些数据结构存, 内核为系统中每一个结点都提供了一个struct bootmem_data结构的实例, 用于bootmem的内存管理. 它含有引导内存分配器给结点分配内存时所需的信息. 当然, 这时候内存管理还没有初始化, 因而该结构所需的内存是无法动态分配的, 必须在编译时分配给内核.
 
@@ -300,7 +300,7 @@ bootmem的位图建立在从start_pfn开始的地方, 也就是说, 内核映像
 *	node_low_pfn 表示物理内存的顶点, 最高不超过896MB
 
 
-##3.2	初始化引导分配器
+#4	初始化引导分配器
 -------
 
 
@@ -309,11 +309,11 @@ bootmem的位图建立在从start_pfn开始的地方, 也就是说, 内核映像
 各种体系结构都有其函数来获取这些信息, 在x86体系结构中
 
 
-##3.3	初始化内存结点与内存域
+#5	初始化内存结点与内存域
 -------
 
 
-###3.3.1	初始化过程
+##5.1	初始化过程
 -------
 
 | 调用层次 | 描述 | x86(已经不使用bootmem初始化) | arm | arm64 |
@@ -337,7 +337,7 @@ bootmem的位图建立在从start_pfn开始的地方, 也就是说, 内核映像
 
 *	接着paging_init函数通过[bootmem_init](http://lxr.free-electrons.com/source/arch/arm/mm/mmu.c#L1642)开始进行bootmem初始化的工作
 
-###3.3.2	bootmem_init
+##5.2	bootmem_init
 -------
 
 ```cpp
@@ -385,3 +385,88 @@ void __init bootmem_init(void)
     max_pfn = max_high;
 }
 ```
+
+###5.2.1	find_limits函数设置内存区域大小
+-------
+
+find_limits函数用来查找系统中可用内存区域的大小, 该函数定义在[arch/arm/mm/init.c?v=4.7, line 90](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L90)
+
+计算完成后, 设置了min_low_pfn, max_low_pfn, max_pfn三个全局变量. 这几个变量我们在之前的[struct zone详解中](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/02-memory/01-description/03-zone)中提到过, 内核也通过这些全局变量标记了物理内存所在页面的偏移, 这些变量定义在[mm/nobootmem.c?v4.7, line 31](http://lxr.free-electrons.com/source/mm/nobootmem.c?v4.7#L31)
+
+| 变量 | 描述 |
+|:----:|:---:|
+| max_low_pfn 		|  max_low_pfn变量是由find_max_low_pfn函数计算并且初始化的，它被初始化成ZONE_NORMAL的最后一个page的位置。这个位置是kernel直接访问的物理内存, 也是关系到kernel/userspace通过“PAGE_OFFSET宏”把线性地址内存空间分开的内存地址位置 |
+| min_low_pfn 		| 系统可用的第一个pfn是[min_low_pfn变量](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v4.7#L16), 开始与_end标号的后面, 也就是kernel结束的地方.在文件mm/bootmem.c中对这个变量作初始化
+| max_pfn 			| 系统可用的最后一个PFN是[max_pfn变量](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v4.7#L21), 这个变量的初始化完全依赖与硬件的体系结构. |
+
+
+##5.2.2	zone_sizes_init初始化节点和内存域
+-------
+
+内核通过zone_sizes_init函数来初始化节点和管理区的一些数据项, 该函数定义在[arch/arm/mm/init.c?v=4.7#L137](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L137)中.
+
+
+```cpp
+static void __init zone_sizes_init(unsigned long min, unsigned long max_low,
+    unsigned long max_high)
+{
+    unsigned long zone_size[MAX_NR_ZONES], zhole_size[MAX_NR_ZONES];
+    struct memblock_region *reg;
+
+    /*
+     * initialise the zones.
+     */
+    memset(zone_size, 0, sizeof(zone_size));
+
+    /*
+     * The memory size has already been determined.  If we need
+     * to do anything fancy with the allocation of this memory
+     * to the zones, now is the time to do it.
+     */
+    zone_size[0] = max_low - min;
+#ifdef CONFIG_HIGHMEM
+    zone_size[ZONE_HIGHMEM] = max_high - max_low;
+#endif
+
+    /*
+     * Calculate the size of the holes.
+     *  holes = node_size - sum(bank_sizes)
+     */
+    memcpy(zhole_size, zone_size, sizeof(zhole_size));
+    for_each_memblock(memory, reg) {
+        unsigned long start = memblock_region_memory_base_pfn(reg);
+        unsigned long end = memblock_region_memory_end_pfn(reg);
+
+        if (start < max_low) {
+            unsigned long low_end = min(end, max_low);
+            zhole_size[0] -= low_end - start;
+        }
+#ifdef CONFIG_HIGHMEM
+        if (end > max_low) {
+            unsigned long high_start = max(start, max_low);
+            zhole_size[ZONE_HIGHMEM] -= end - high_start;
+        }
+#endif
+    }
+
+#ifdef CONFIG_ZONE_DMA
+    /*
+     * Adjust the sizes according to any special requirements for
+     * this machine type.
+     */
+    if (arm_dma_zone_size)
+        arm_adjust_dma_zone(zone_size, zhole_size,
+            arm_dma_zone_size >> PAGE_SHIFT);
+#endif
+
+    free_area_init_node(0, zone_size, min, zhole_size);
+}
+```
+
+
+###5.2.3	free_area_init_node初始化内存域
+-------
+
+
+#6	build_all_zonelist
+-------
