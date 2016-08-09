@@ -307,10 +307,8 @@ bootmem的位图建立在从start_pfn开始的地方, 也就是说, 内核映像
 | setup_arch  | 设置特定体系的信息 | [arch/x86/kernel/setup.c](http://lxr.free-electrons.com/source/arch/x86/kernel/setup.c?v=4.7#L857), 但是不再调用paging_init | [arch/arm/kernel/setup.c](http://lxr.free-electrons.com/source/arch/arm/kernel/setup.c?v=4.7#L1073), 调用了[paging_init](http://lxr.free-electrons.com/source/arch/arm/kernel/setup.c?v=4.7#L1073) | [arch/arm64/kernel/setup.c](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L266), 调用了[paging_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L266)和[bootmem_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L271) |
 | paging_init | 初始化分页机制 | 定义了[arch/x86/mm/init_32.c](http://lxr.free-electrons.com/source/arch/x86/mm/init_32.c?v=4.7#L695)和[arch/x86/mm/init_64.c](http://lxr.free-electrons.com/source/arch/x86/mm/init_64.c?v=4.7#L579)两个版本 | 分别定义了[arch/arm/mm/nommu.c](http://lxr.free-electrons.com/source/arch/arm/mm/nommu.c?v=4.7#L311)和[arch/arm/mm/mmu.c](http://lxr.free-electrons.com/source/arch/arm/mm/mmu.c?v=4.7#L1623)两个版本, 均调用了bootmem_init | [arch/arm64/mm/mmu.c](http://lxr.free-electrons.com/source/arch/arm64/mm/mmu.c?v=4.7#L538) |
 | bootmem_init | 初始化bootmem分配器 | 无定义 | [arch/arm/mm/init.c](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L282), 调用了zone_sizes_init | [arch/arm64/mm/init.c](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L306),调用了zone_sizes_init |
-|  zone_sizes_init　| | [arch/x86/mm/init.c](http://lxr.free-electrons.com/source/arch/x86/mm/init.c?v=4.7#L718)  | [arch/arm/mm/init.c](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L137)| [arch/arm64/mm/init.c](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L92)
-
-| init_bootmem_node |
-| init_bootmem_core |
+|  zone_sizes_init　| 初始化节点和管理区 | [arch/x86/mm/init.c](http://lxr.free-electrons.com/source/arch/x86/mm/init.c?v=4.7#L718)  | [arch/arm/mm/init.c](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L137)| [arch/arm64/mm/init.c](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L92) |
+| [free_area_init_nodes](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6460) | 初始化结点中所有内存区 | [mm/page_alloc.c](http://lxr.free-electrons.com/ident?i=free_area_init_nodes), 体系结构无关 | [mm/page_alloc.c](http://lxr.free-electrons.com/ident?i=free_area_init_nodes), 体系结构无关 | [mm/page_alloc.c](http://lxr.free-electrons.com/ident?i=free_area_init_nodes), 体系结构无关 |
 
 每一个体系结构都有一个setup_arch函数, 用于获取初始化引导内存分配器所需的参数信息
 
