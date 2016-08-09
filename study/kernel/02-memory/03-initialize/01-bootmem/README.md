@@ -303,26 +303,28 @@ bootmem的位图建立在从start_pfn开始的地方, 也就是说, 内核映像
 #4	初始化引导分配器
 -------
 
+系统是从start_kernel开始启动的, 在启动过程中通过调用体系结构相关的setup_arch函数, 来获取初始化引导内存分配器所需的参数信息, 各种体系结构都有对应的函数来获取这些信息, 在获取信息完成后, 内核首先初始化了bootmem自身, 然后接着又用bootmem分配和初始化了内存结点和管理域, 因此初始化bootmem的工作主要分成两步
 
-每一个体系结构都有一个setup_arch函数, 用于获取初始化引导内存分配器所需的参数信息
+*	初始化bootmem自身的数据结构
 
-各种体系结构都有其函数来获取这些信息, 在x86体系结构中
+*	用bootmem初始化内存结点管理域
 
 
-#5	初始化内存结点与内存域
+##4.1	初始化过程
 -------
 
 
-##5.1	初始化过程
--------
 
 | 调用层次 | 描述 | x86(已经不使用bootmem初始化) | arm | arm64 |
 |:-------:|:---:|:---:|:---:|:-----:|
 | setup_arch  | 设置特定体系的信息 | [arch/x86/kernel/setup.c](http://lxr.free-electrons.com/source/arch/x86/kernel/setup.c?v=4.7#L857), 但是不再调用paging_init | [arch/arm/kernel/setup.c](http://lxr.free-electrons.com/source/arch/arm/kernel/setup.c?v=4.7#L1073), 调用了[paging_init](http://lxr.free-electrons.com/source/arch/arm/kernel/setup.c?v=4.7#L1073) | [arch/arm64/kernel/setup.c](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L266), 调用了[paging_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L266)和[bootmem_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L271) |
 | paging_init | 初始化分页机制 | 定义了[arch/x86/mm/init_32.c](http://lxr.free-electrons.com/source/arch/x86/mm/init_32.c?v=4.7#L695)和[arch/x86/mm/init_64.c](http://lxr.free-electrons.com/source/arch/x86/mm/init_64.c?v=4.7#L579)两个版本 | 分别定义了[arch/arm/mm/nommu.c](http://lxr.free-electrons.com/source/arch/arm/mm/nommu.c?v=4.7#L311)和[arch/arm/mm/mmu.c](http://lxr.free-electrons.com/source/arch/arm/mm/mmu.c?v=4.7#L1623)两个版本, 均调用了bootmem_init | [arch/arm64/mm/mmu.c](http://lxr.free-electrons.com/source/arch/arm64/mm/mmu.c?v=4.7#L538) |
 | bootmem_init | 初始化bootmem分配器 | 无定义 | [arch/arm/mm/init.c](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L282), 调用了zone_sizes_init | [arch/arm64/mm/init.c](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L306),调用了zone_sizes_init |
-|  zone_sizes_init　| 初始化节点和管理区 | [arch/x86/mm/init.c](http://lxr.free-electrons.com/source/arch/x86/mm/init.c?v=4.7#L718)  | [arch/arm/mm/init.c](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L137)| [arch/arm64/mm/init.c](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L92) |
+|  zone_sizes_init　| 初始化节点和管理区<br>一般来说NUMA结构下会调用free_area_init_nodes完成所有内存结点的初始化, 而UMA结构下则会调用free_area_init_node完成唯一一个结点的初始化 | [arch/x86/mm/init.c](http://lxr.free-electrons.com/source/arch/x86/mm/init.c?v=4.7#L718), zone_sizes_init依据系统是NUMA还是UMA会有不同的定义 | [arch/arm/mm/init.c](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L137), 注意arm是非numa结构, 因此直接调用free_area_init_node完成初始化 | [arch/arm64/mm/init.c](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L92) |
 | [free_area_init_nodes](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6460) | 初始化结点中所有内存区 | [mm/page_alloc.c](http://lxr.free-electrons.com/ident?i=free_area_init_nodes), 体系结构无关 | [mm/page_alloc.c](http://lxr.free-electrons.com/ident?i=free_area_init_nodes), 体系结构无关 | [mm/page_alloc.c](http://lxr.free-electrons.com/ident?i=free_area_init_nodes), 体系结构无关 |
+| free_area_init_node |
+
+
 
 
 
@@ -333,12 +335,17 @@ bootmem的位图建立在从start_pfn开始的地方, 也就是说, 内核映像
 
 *	然后进入体系结构相关的设置部分[setup_arch](http://lxr.free-electrons.com/source/arch/arm/kernel/setup.c?v=4.7#L1073), 开始获取并设置指定体系结构的一些物理信息
 
-*	在setup_arch函数内, 通过[paging_init函数]()初始化了分页机制和页表的细心
+*	在setup_arch函数内, 通过[paging_init函数]()初始化了分页机制和页表的信息
 
 *	接着paging_init函数通过[bootmem_init](http://lxr.free-electrons.com/source/arch/arm/mm/mmu.c#L1642)开始进行bootmem初始化的工作
 
-##5.2	bootmem_init
+
+
+##4.2	bootmem_init
 -------
+
+###4.2.1	bootmem_init函数
+
 
 ```cpp
 void __init bootmem_init(void)
@@ -386,7 +393,9 @@ void __init bootmem_init(void)
 }
 ```
 
-###5.2.1	find_limits函数设置内存区域大小
+
+
+###4.2.2	find_limits函数设置内存区域大小
 -------
 
 find_limits函数用来查找系统中可用内存区域的大小, 该函数定义在[arch/arm/mm/init.c?v=4.7, line 90](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L90)
@@ -400,7 +409,7 @@ find_limits函数用来查找系统中可用内存区域的大小, 该函数定�
 | max_pfn 			| 系统可用的最后一个PFN是[max_pfn变量](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v4.7#L21), 这个变量的初始化完全依赖与硬件的体系结构. |
 
 
-##5.2.2	zone_sizes_init初始化节点和内存域
+###4.2.3	zone_sizes_init初始化节点和内存域
 -------
 
 内核通过zone_sizes_init函数来初始化节点和管理区的一些数据项, 该函数定义在[arch/arm/mm/init.c?v=4.7#L137](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L137)中.
@@ -464,9 +473,46 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max_low,
 ```
 
 
+内核在zone_sizes_init函数来中获取了三个管理区的页面数(即大小), 然后通过free_area_init_node函数来设置和初始化内存域
+
+
 ###5.2.3	free_area_init_node初始化内存域
 -------
 
 
-#6	build_all_zonelist
--------
+
+```cpp
+void __paginginit free_area_init_node(int nid, unsigned long *zones_size,
+        unsigned long node_start_pfn, unsigned long *zholes_size)
+{
+    pg_data_t *pgdat = NODE_DATA(nid);
+    unsigned long start_pfn = 0;
+    unsigned long end_pfn = 0;
+
+    /* pg_data_t should be reset to zero when it's allocated */
+    WARN_ON(pgdat->nr_zones || pgdat->classzone_idx);
+
+    reset_deferred_meminit(pgdat);
+    pgdat->node_id = nid;
+    pgdat->node_start_pfn = node_start_pfn;
+#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
+    get_pfn_range_for_nid(nid, &start_pfn, &end_pfn);
+    pr_info("Initmem setup node %d [mem %#018Lx-%#018Lx]\n", nid,
+        (u64)start_pfn << PAGE_SHIFT,
+        end_pfn ? ((u64)end_pfn << PAGE_SHIFT) - 1 : 0);
+#else
+    start_pfn = node_start_pfn;
+#endif
+    calculate_node_totalpages(pgdat, start_pfn, end_pfn,
+                  zones_size, zholes_size);
+
+    alloc_node_mem_map(pgdat);
+#ifdef CONFIG_FLAT_NODE_MEM_MAP
+    printk(KERN_DEBUG "free_area_init_node: node %d, pgdat %08lx, node_mem_map %08lx\n",
+        nid, (unsigned long)pgdat,
+        (unsigned long)pgdat->node_mem_map);
+#endif
+
+    free_area_init_core(pgdat);
+}
+```
