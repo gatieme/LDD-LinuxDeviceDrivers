@@ -205,7 +205,7 @@ asmlinkage __visible void __init start_kernel(void)
 
 
 
-#2	引导内存分配器bootmem
+#2	引导内存分配器bootmem概述
 -------
 
 
@@ -231,11 +231,11 @@ bootmem分配器是系统启动初期的内存分配方式，在耳熟能详的�
 该分配机制通过记录上一次分配的页面帧号(PFN)结束时的偏移量来实现分配大小小于一页的空间, 连续的小的空闲空间将被合并存储在一页上.
 
 
-##2.1	为什么需要bootmem
+##2.2	为什么需要bootmem
 -------
 
 
-##2.2	为什么在系统运行时抛弃bootmem
+##2.3	为什么在系统运行时抛弃bootmem
 
 当系统运行时, 为何不继续使用bootmem分配机制呢?
 
@@ -249,7 +249,7 @@ bootmem分配器是系统启动初期的内存分配方式，在耳熟能详的�
 
 
 
-#3	数据结构表示引导内存区域
+#3	引导内存分配器数据结构
 -------
 
 ##3.1	bootmem_data表示引导内存区域
@@ -299,7 +299,21 @@ bootmem的位图建立在从start_pfn开始的地方, 也就是说, 内核映像
 
 *	node_low_pfn 表示物理内存的顶点, 最高不超过896MB
 
-#初始化引导分配器
+
+##3.2	初始化引导分配器
+-------
+
+
+每一个体系结构都有一个setup_arch函数, 用于获取初始化引导内存分配器所需的参数信息
+
+各种体系结构都有其函数来获取这些信息, 在x86体系结构中
+
+
+##3.3	初始化内存结点与内存域
+-------
+
+
+###3.3.1	初始化过程
 -------
 
 | 调用层次 | 描述 | x86(已经不使用bootmem初始化) | arm | arm64 |
@@ -310,6 +324,64 @@ bootmem的位图建立在从start_pfn开始的地方, 也就是说, 内核映像
 |  zone_sizes_init　| 初始化节点和管理区 | [arch/x86/mm/init.c](http://lxr.free-electrons.com/source/arch/x86/mm/init.c?v=4.7#L718)  | [arch/arm/mm/init.c](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L137)| [arch/arm64/mm/init.c](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L92) |
 | [free_area_init_nodes](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6460) | 初始化结点中所有内存区 | [mm/page_alloc.c](http://lxr.free-electrons.com/ident?i=free_area_init_nodes), 体系结构无关 | [mm/page_alloc.c](http://lxr.free-electrons.com/ident?i=free_area_init_nodes), 体系结构无关 | [mm/page_alloc.c](http://lxr.free-electrons.com/ident?i=free_area_init_nodes), 体系结构无关 |
 
-每一个体系结构都有一个setup_arch函数, 用于获取初始化引导内存分配器所需的参数信息
 
-各种体系结构都有其函数来获取这些信息, 在x86体系结构中
+
+
+下面我们就以标准的arm架构来分析bootmem初始化内存结点和内存域的过程
+
+*	首先内核从[start_kernel](http://lxr.free-electrons.com/source/init/main.c?v=4.7#L505)开始启动
+
+*	然后进入体系结构相关的设置部分[setup_arch](http://lxr.free-electrons.com/source/arch/arm/kernel/setup.c?v=4.7#L1073), 开始获取并设置指定体系结构的一些物理信息
+
+*	在setup_arch函数内, 通过[paging_init函数]()初始化了分页机制和页表的细心
+
+*	接着paging_init函数通过[bootmem_init](http://lxr.free-electrons.com/source/arch/arm/mm/mmu.c#L1642)开始进行bootmem初始化的工作
+
+###3.3.2	bootmem_init
+-------
+
+```cpp
+void __init bootmem_init(void)
+{
+    unsigned long min, max_low, max_high;
+
+    memblock_allow_resize();
+    max_low = max_high = 0;
+
+    /* 找到内存区域大小，
+     * max_low低端内存上界限
+     * max_high 总内存上界
+     */
+    find_limits(&min, &max_low, &max_high);
+
+    early_memtest((phys_addr_t)min << PAGE_SHIFT,
+              (phys_addr_t)max_low << PAGE_SHIFT);
+
+    /*
+     * Sparsemem tries to allocate bootmem in memory_present(),
+     * so must be done after the fixed reservations
+     */
+    arm_memory_present();
+
+    /*
+     * sparse_init() needs the bootmem allocator up and running.
+     */
+    sparse_init();
+
+    /*
+     * Now free the memory - free_area_init_node needs
+     * the sparse mem_map arrays initialized by sparse_init()
+     * for memmap_init_zone(), otherwise all PFNs are invalid.
+     */
+    zone_sizes_init(min, max_low, max_high);
+
+    /*
+     * This doesn't seem to be used by the Linux memory manager any
+     * more, but is used by ll_rw_block.  If we can get rid of it, we
+     * also get rid of some of the stuff above as well.
+     */
+    min_low_pfn = min;
+    max_low_pfn = max_low;
+    max_pfn = max_high;
+}
+```
