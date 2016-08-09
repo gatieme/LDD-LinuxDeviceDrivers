@@ -322,32 +322,56 @@ bootmem的位图建立在从start_pfn开始的地方, 也就是说, 内核映像
 | bootmem_init | 初始化bootmem分配器 | 无定义 | [arch/arm/mm/init.c](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L282), 调用了zone_sizes_init | [arch/arm64/mm/init.c](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L306),调用了zone_sizes_init |
 |  zone_sizes_init　| 初始化节点和管理区<br>一般来说NUMA结构下会调用free_area_init_nodes完成所有内存结点的初始化, 而UMA结构下则会调用free_area_init_node完成唯一一个结点的初始化 | [arch/x86/mm/init.c](http://lxr.free-electrons.com/source/arch/x86/mm/init.c?v=4.7#L718), zone_sizes_init依据系统是NUMA还是UMA会有不同的定义 | [arch/arm/mm/init.c](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L137), 注意arm是非numa结构, 因此直接调用free_area_init_node完成初始化 | [arch/arm64/mm/init.c](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L92) |
 | [free_area_init_nodes](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6460) | 初始化结点中所有内存区 | [mm/page_alloc.c](http://lxr.free-electrons.com/ident?i=free_area_init_nodes), 体系结构无关 | [mm/page_alloc.c](http://lxr.free-electrons.com/ident?i=free_area_init_nodes), 体系结构无关 | [mm/page_alloc.c](http://lxr.free-electrons.com/ident?i=free_area_init_nodes), 体系结构无关 |
-| free_area_init_node |
+| free_area_init_node | 初始化单个节点域  | | | |
 
 
 
 
 
 
-下面我们就以标准的arm架构来分析bootmem初始化内存结点和内存域的过程
+下面我们就以标准的arm架构来分析bootmem初始化内存结点和内存域的过程, 在讲解的过程中我们会兼顾的考虑arm64架构下的异同
 
 *	首先内核从[start_kernel](http://lxr.free-electrons.com/source/init/main.c?v=4.7#L505)开始启动
 
-*	然后进入体系结构相关的设置部分[setup_arch](http://lxr.free-electrons.com/source/arch/arm/kernel/setup.c?v=4.7#L1073), 开始获取并设置指定体系结构的一些物理信息
 
-*	在setup_arch函数内, 通过[paging_init函数]()初始化了分页机制和页表的信息
+*	然后进入体系结构相关的设置部分[setup_arch](http://lxr.free-electrons.com/source/arch/arm/kernel/setup.c?v=4.7#L1073), 开始获取并设置指定体系结构的一些物理信息, 而arm64架构下则对应着[rch/arm64/kernel/setup.c](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L229)
 
-*	接着paging_init函数通过[bootmem_init](http://lxr.free-electrons.com/source/arch/arm/mm/mmu.c#L1642)开始进行bootmem初始化的工作
+
+*	在setup_arch函数内, 通过paging_init函数初始化了分页机制和页表的信息
+
+
+*	接着paging_init函数通过[bootmem_init](http://lxr.free-electrons.com/source/arch/arm/mm/mmu.c#L1642)开始进行初始化工作
+
+
+arm64在整个初始化的流程上并没有什么不同, 但是有细微的差别
+
+
+*	由于arm是在后期才开始加入了MMU内存管理单元的, 因此内核必须实现mmu和nonmmu两套不同的代码, 这主要是提现在分页机制的不同上, 因而paging_init分别定义了[arch/arm/mm/nommu.c](http://lxr.free-electrons.com/source/arch/arm/mm/nommu.c?v=4.7#L311)和[arch/arm/mm/mmu.c](http://lxr.free-electrons.com/source/arch/arm/mm/mmu.c?v=4.7#L1623)两个版本, 但是它们均调用了bootmem_init来完成初始化
+
+
+*	也是因为上面的原因, arm上paging_init有两份代码([mmu](http://lxr.free-electrons.com/source/arch/arm/mm/mmu.c?v=4.7#L162)和[nonmmu](http://lxr.free-electrons.com/source/arch/arm/mm/nommu.c?v=4.7#L311)), 为了降低代码的耦合性, arm通过setup_arch调用paging_init函数, 后者进一步调用了bootmem_init来完成, 而arm64上不存在这样的问题, 则在[setup_arch中顺序的先用paging_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L266)初始化了页表, 然后[setup_arch又调用bootmem_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v4.7#L271)来完成了bootmem的初始化
 
 
 
 ##4.2	bootmem_init
 -------
 
+在paging_init之后, 系统的页帧已经建立起来, 然后通过bootmem_init中, 系统开始完成bootmem的初始化工作.
+
+
+不同的体系结构bootmem_init的实现, 没有很大的区别, 但是在初始化的过程中, 其中的很多函数, 依据系统是NUMA还是UMA结构则有不同的定义
+
+
+
 ###4.2.1	bootmem_init函数
+
+| 函数实现 | arm | arm64 |
+|:---:|:---:|:-----:|
+| bootmem_init | [arch/arm/mm/init.c, line 282](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L282) | [arch/arm64/mm/init.c, line 306](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L306)
 
 
 ```cpp
+//  http://lxr.free-electrons.com/source/arch/arm/mm/init.c#L282
 void __init bootmem_init(void)
 {
     unsigned long min, max_low, max_high;
@@ -391,16 +415,41 @@ void __init bootmem_init(void)
     max_low_pfn = max_low;
     max_pfn = max_high;
 }
+
+//  http://lxr.free-electrons.com/source/arch/arm64/mm/init.c#L306
+void __init bootmem_init(void)
+{
+    unsigned long min, max;
+
+    min = PFN_UP(memblock_start_of_DRAM());
+    max = PFN_DOWN(memblock_end_of_DRAM());
+
+    early_memtest(min << PAGE_SHIFT, max << PAGE_SHIFT);
+
+    max_pfn = max_low_pfn = max;
+
+    arm64_numa_init();
+    /*
+     * Sparsemem tries to allocate bootmem in memory_present(), so must be
+     * done after the fixed reservations.
+     */
+    arm64_memory_present();
+
+    sparse_init();
+    zone_sizes_init(min, max);
+
+    high_memory = __va((max << PAGE_SHIFT) - 1) + 1;
+    memblock_dump_all();
 ```
 
 
 
-###4.2.2	find_limits函数设置内存区域大小
+###4.2.2	函数设置内存区域大小
 -------
 
-find_limits函数用来查找系统中可用内存区域的大小, 该函数定义在[arch/arm/mm/init.c?v=4.7, line 90](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L90)
 
-计算完成后, 设置了min_low_pfn, max_low_pfn, max_pfn三个全局变量. 这几个变量我们在之前的[struct zone详解中](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/02-memory/01-description/03-zone)中提到过, 内核也通过这些全局变量标记了物理内存所在页面的偏移, 这些变量定义在[mm/nobootmem.c?v4.7, line 31](http://lxr.free-electrons.com/source/mm/nobootmem.c?v4.7#L31)
+
+要想初始化内存区域, 首先要先获取内存域的大小(起始和结束), 内核通过min_low_pfn, max_low_pfn, max_pfn三个全局变量标识了内存页面的开始和结束. 这几个变量我们在之前的[struct zone详解中](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/02-memory/01-description/03-zone)中提到过, 内核也通过这些全局变量标记了物理内存所在页面的偏移, 这些变量定义在[mm/nobootmem.c?v4.7, line 31](http://lxr.free-electrons.com/source/mm/nobootmem.c?v4.7#L31)
 
 | 变量 | 描述 |
 |:----:|:---:|
@@ -408,11 +457,44 @@ find_limits函数用来查找系统中可用内存区域的大小, 该函数定�
 | min_low_pfn 		| 系统可用的第一个pfn是[min_low_pfn变量](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v4.7#L16), 开始与_end标号的后面, 也就是kernel结束的地方.在文件mm/bootmem.c中对这个变量作初始化
 | max_pfn 			| 系统可用的最后一个PFN是[max_pfn变量](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v4.7#L21), 这个变量的初始化完全依赖与硬件的体系结构. |
 
+**arm架构**下通过find_limits函数用来查找系统中可用内存区域的大小, 该函数定义在[arch/arm/mm/init.c?v=4.7, line 90](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L90)
+
+```cpp
+static void __init find_limits(unsigned long *min, unsigned long *max_low,
+                   unsigned long *max_high)
+{
+    *max_low = PFN_DOWN(memblock_get_current_limit());
+    *min = PFN_UP(memblock_start_of_DRAM());
+    *max_high = PFN_DOWN(memblock_end_of_DRAM());
+}
+```
+
+而**arm64架构**下, 则直接通过如下代码获取
+
+```cpp
+void __init bootmem_init(void)
+{
+	/* ......  */
+    min = PFN_UP(memblock_start_of_DRAM());
+    max = PFN_DOWN(memblock_end_of_DRAM());
+
+    early_memtest(min << PAGE_SHIFT, max << PAGE_SHIFT);
+
+    max_pfn = max_low_pfn = max;
+    /*  ......  */
+```
+
+
+
 
 ###4.2.3	zone_sizes_init初始化节点和内存域
 -------
 
-内核通过zone_sizes_init函数来初始化节点和管理区的一些数据项, 该函数定义在[arch/arm/mm/init.c?v=4.7#L137](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L137)中.
+
+内核通过zone_sizes_init函数来初始化节点和管理区的一些数据项
+
+
+**arm架构**下该函数定义在[arch/arm/mm/init.c?v=4.7#L137](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L137)中. 如下所示
 
 
 ```cpp
@@ -474,6 +556,90 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max_low,
 
 
 内核在zone_sizes_init函数来中获取了三个管理区的页面数(即大小), 然后通过free_area_init_node函数来设置和初始化内存域
+
+
+由于arm是非numa结构, 因为只需要通过
+```cpp
+free_area_init_node(0, zone_size, min, zhole_size);
+```
+设置唯一一个内存节点即可.
+
+
+而**arm64架构**下则需要一句系统是NUMA还是UMA结构分别进行处理
+
+*	如果是UMA结构则直接通过free_area_init_node初始化全局唯一的内存结点即可
+
+```cpp
+free_area_init_node(0, zone_size, min, zhole_size);
+
+```
+
+*	如果是NUMA结构则需要free_area_init_nodes使用初始化所有结点, 而该函数会进一步遍历所有的结点, 依次通过free_area_init_node完成内存结点的初始化
+
+```cpp
+free_area_init_nodes(max_zone_pfns);
+```
+arm64架构下zone_sizes_init的定义在[arch/arm64/mm/init.c?v=4.7, line 90](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L90)
+
+
+```cpp
+#ifdef CONFIG_NUMA
+
+static void __init zone_sizes_init(unsigned long min, unsigned long max)
+{
+    unsigned long max_zone_pfns[MAX_NR_ZONES]  = {0};
+
+    if (IS_ENABLED(CONFIG_ZONE_DMA))
+        max_zone_pfns[ZONE_DMA] = PFN_DOWN(max_zone_dma_phys());
+    max_zone_pfns[ZONE_NORMAL] = max;
+
+    free_area_init_nodes(max_zone_pfns);
+}
+
+#else
+
+static void __init zone_sizes_init(unsigned long min, unsigned long max)
+{
+    struct memblock_region *reg;
+    unsigned long zone_size[MAX_NR_ZONES], zhole_size[MAX_NR_ZONES];
+    unsigned long max_dma = min;
+
+    memset(zone_size, 0, sizeof(zone_size));
+
+    /* 4GB maximum for 32-bit only capable devices */
+#ifdef CONFIG_ZONE_DMA
+    max_dma = PFN_DOWN(arm64_dma_phys_limit);
+    zone_size[ZONE_DMA] = max_dma - min;
+#endif
+    zone_size[ZONE_NORMAL] = max - max_dma;
+
+    memcpy(zhole_size, zone_size, sizeof(zhole_size));
+
+    for_each_memblock(memory, reg) {
+        unsigned long start = memblock_region_memory_base_pfn(reg);
+        unsigned long end = memblock_region_memory_end_pfn(reg);
+
+        if (start >= max)
+            continue;
+
+#ifdef CONFIG_ZONE_DMA
+        if (start < max_dma) {
+            unsigned long dma_end = min(end, max_dma);
+            zhole_size[ZONE_DMA] -= dma_end - start;
+        }
+#endif
+        if (end > max_dma) {
+            unsigned long normal_end = min(end, max);
+            unsigned long normal_start = max(start, max_dma);
+            zhole_size[ZONE_NORMAL] -= normal_end - normal_start;
+        }
+    }
+
+    free_area_init_node(0, zone_size, min, zhole_size);
+}
+
+#endif /* CONFIG_NUMA */
+```
 
 
 ###5.2.3	free_area_init_node初始化内存域
