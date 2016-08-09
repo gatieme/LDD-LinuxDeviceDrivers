@@ -367,7 +367,7 @@ arm64在整个初始化的流程上并没有什么不同, 但是有细微的差�
 
 | 函数实现 | arm | arm64 |
 |:---:|:---:|:-----:|
-| bootmem_init | [arch/arm/mm/init.c, line 282](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L282) | [arch/arm64/mm/init.c, line 306](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L306)
+| bootmem_init | [arch/arm/mm/init.c, line 282](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L282) | [arch/arm64/mm/init.c, line 306](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L306) |
 
 
 ```cpp
@@ -494,6 +494,10 @@ void __init bootmem_init(void)
 内核通过zone_sizes_init函数来初始化节点和管理区的一些数据项
 
 
+| 函数实现 | arm | arm64 |
+|:---:|:---:|:-----:|
+| zone_sizes_init | [arch/arm/mm/init.c?v=4.7#L137](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L137) | [arch/arm64/mm/init.c?v=4.7, line 90](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L90) |
+
 **arm架构**下该函数定义在[arch/arm/mm/init.c?v=4.7#L137](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L137)中. 如下所示
 
 
@@ -579,6 +583,8 @@ free_area_init_node(0, zone_size, min, zhole_size);
 ```cpp
 free_area_init_nodes(max_zone_pfns);
 ```
+
+
 arm64架构下zone_sizes_init的定义在[arch/arm64/mm/init.c?v=4.7, line 90](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L90)
 
 
@@ -642,9 +648,118 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
 ```
 
 
-###5.2.3	free_area_init_node初始化内存域
+###5.2.3	free_area_init_nodes初始化内存节点
 -------
 
+
+内核通过zone_sizes_init函数来初始化节点和管理区的一些数据项
+
+
+| 函数实现 | 体系结构无关 |
+|:---:|:---:|:-----:|
+| free_area_init_nodes | [mm/page_alloc.c?v=4.7, line 6460](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6460) |
+| free_area_init_node | [mm/page_alloc.c?v4.7, line 6076](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6076) |
+
+
+
+```cpp
+
+/**
+ * free_area_init_nodes - Initialise all pg_data_t and zone data
+ * @max_zone_pfn: an array of max PFNs for each zone
+ *
+ * This will call free_area_init_node() for each active node in the system.
+ * Using the page ranges provided by memblock_set_node(), the size of each
+ * zone in each node and their holes is calculated. If the maximum PFN
+ * between two adjacent zones match, it is assumed that the zone is empty.
+ * For example, if arch_max_dma_pfn == arch_max_dma32_pfn, it is assumed
+ * that arch_max_dma32_pfn has no pages. It is also assumed that a zone
+ * starts where the previous one ended. For example, ZONE_DMA32 starts
+ * at arch_max_dma_pfn.
+ */
+void __init free_area_init_nodes(unsigned long *max_zone_pfn)
+{
+    unsigned long start_pfn, end_pfn;
+    int i, nid;
+
+    /* Record where the zone boundaries are */
+    memset(arch_zone_lowest_possible_pfn, 0,
+                sizeof(arch_zone_lowest_possible_pfn));
+    memset(arch_zone_highest_possible_pfn, 0,
+                sizeof(arch_zone_highest_possible_pfn));
+    arch_zone_lowest_possible_pfn[0] = find_min_pfn_with_active_regions();
+    arch_zone_highest_possible_pfn[0] = max_zone_pfn[0];
+    for (i = 1; i < MAX_NR_ZONES; i++) {
+        if (i == ZONE_MOVABLE)
+            continue;
+        arch_zone_lowest_possible_pfn[i] =
+            arch_zone_highest_possible_pfn[i-1];
+        arch_zone_highest_possible_pfn[i] =
+            max(max_zone_pfn[i], arch_zone_lowest_possible_pfn[i]);
+    }
+    arch_zone_lowest_possible_pfn[ZONE_MOVABLE] = 0;
+    arch_zone_highest_possible_pfn[ZONE_MOVABLE] = 0;
+
+    /* Find the PFNs that ZONE_MOVABLE begins at in each node */
+    memset(zone_movable_pfn, 0, sizeof(zone_movable_pfn));
+    find_zone_movable_pfns_for_nodes();
+
+    /* Print out the zone ranges */
+    pr_info("Zone ranges:\n");
+    for (i = 0; i < MAX_NR_ZONES; i++) {
+        if (i == ZONE_MOVABLE)
+            continue;
+        pr_info("  %-8s ", zone_names[i]);
+        if (arch_zone_lowest_possible_pfn[i] ==
+                arch_zone_highest_possible_pfn[i])
+            pr_cont("empty\n");
+        else
+            pr_cont("[mem %#018Lx-%#018Lx]\n",
+                (u64)arch_zone_lowest_possible_pfn[i]
+                    << PAGE_SHIFT,
+                ((u64)arch_zone_highest_possible_pfn[i]
+                    << PAGE_SHIFT) - 1);
+    }
+
+    /* Print out the PFNs ZONE_MOVABLE begins at in each node */
+    pr_info("Movable zone start for each node\n");
+    for (i = 0; i < MAX_NUMNODES; i++) {
+        if (zone_movable_pfn[i])
+            pr_info("  Node %d: %#018Lx\n", i,
+                   (u64)zone_movable_pfn[i] << PAGE_SHIFT);
+    }
+
+    /* Print out the early node map */
+    pr_info("Early memory node ranges\n");
+    for_each_mem_pfn_range(i, MAX_NUMNODES, &start_pfn, &end_pfn, &nid)
+        pr_info("  node %3d: [mem %#018Lx-%#018Lx]\n", nid,
+            (u64)start_pfn << PAGE_SHIFT,
+            ((u64)end_pfn << PAGE_SHIFT) - 1);
+
+    /* Initialise every node */
+    mminit_verify_pageflags_layout();
+    setup_nr_node_ids();
+    for_each_online_node(nid) {
+        pg_data_t *pgdat = NODE_DATA(nid);
+        free_area_init_node(nid, NULL,
+                find_min_pfn_for_node(nid), NULL);
+
+        /* Any memory on that node */
+        if (pgdat->node_present_pages)
+            node_set_state(nid, N_MEMORY);
+        check_for_memory(pgdat, nid);
+    }
+}
+```
+
+
+##5.2.4	free_area_init_node初始化内存节点
+-------
+
+| 函数实现 | 体系结构无关 |
+|:---:|:---:|:-----:|
+| free_area_init_nodes | [mm/page_alloc.c?v=4.7, line 6460](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6460) |
+| free_area_init_node | [mm/page_alloc.c?v4.7, line 6076](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6076) |
 
 
 ```cpp
@@ -682,3 +797,121 @@ void __paginginit free_area_init_node(int nid, unsigned long *zones_size,
     free_area_init_core(pgdat);
 }
 ```
+
+
+###5.2.4	  free_area_init_core
+-------
+
+| 函数实现 | 体系结构无关 |
+|:---:|:---:|:-----:|
+| free_area_init_core | [mm/page_alloc.c?v=4.7#L5932](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5932) |
+
+
+```cpp
+/*
+ * Set up the zone data structures:
+ *   - mark all pages reserved
+ *   - mark all memory queues empty
+ *   - clear the memory bitmaps
+ *
+ * NOTE: pgdat should get zeroed by caller.
+ */
+static void __paginginit free_area_init_core(struct pglist_data *pgdat)
+{
+    enum zone_type j;
+    int nid = pgdat->node_id;
+    int ret;
+
+    pgdat_resize_init(pgdat);
+#ifdef CONFIG_NUMA_BALANCING
+    spin_lock_init(&pgdat->numabalancing_migrate_lock);
+    pgdat->numabalancing_migrate_nr_pages = 0;
+    pgdat->numabalancing_migrate_next_window = jiffies;
+#endif
+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+    spin_lock_init(&pgdat->split_queue_lock);
+    INIT_LIST_HEAD(&pgdat->split_queue);
+    pgdat->split_queue_len = 0;
+#endif
+    init_waitqueue_head(&pgdat->kswapd_wait);
+    init_waitqueue_head(&pgdat->pfmemalloc_wait);
+#ifdef CONFIG_COMPACTION
+    init_waitqueue_head(&pgdat->kcompactd_wait);
+#endif
+    pgdat_page_ext_init(pgdat);
+
+    for (j = 0; j < MAX_NR_ZONES; j++) {
+        struct zone *zone = pgdat->node_zones + j;
+        unsigned long size, realsize, freesize, memmap_pages;
+        unsigned long zone_start_pfn = zone->zone_start_pfn;
+
+        size = zone->spanned_pages;
+        realsize = freesize = zone->present_pages;
+
+        /*
+         * Adjust freesize so that it accounts for how much memory
+         * is used by this zone for memmap. This affects the watermark
+         * and per-cpu initialisations
+         */
+        memmap_pages = calc_memmap_size(size, realsize);
+        if (!is_highmem_idx(j)) {
+            if (freesize >= memmap_pages) {
+                freesize -= memmap_pages;
+                if (memmap_pages)
+                    printk(KERN_DEBUG
+                           "  %s zone: %lu pages used for memmap\n",
+                           zone_names[j], memmap_pages);
+            } else
+                pr_warn("  %s zone: %lu pages exceeds freesize %lu\n",
+                    zone_names[j], memmap_pages, freesize);
+        }
+
+        /* Account for reserved pages */
+        if (j == 0 && freesize > dma_reserve) {
+            freesize -= dma_reserve;
+            printk(KERN_DEBUG "  %s zone: %lu pages reserved\n",
+                    zone_names[0], dma_reserve);
+        }
+
+        if (!is_highmem_idx(j))
+            nr_kernel_pages += freesize;
+        /* Charge for highmem memmap if there are enough kernel pages */
+        else if (nr_kernel_pages > memmap_pages * 2)
+            nr_kernel_pages -= memmap_pages;
+        nr_all_pages += freesize;
+
+        /*
+         * Set an approximate value for lowmem here, it will be adjusted
+         * when the bootmem allocator frees pages into the buddy system.
+         * And all highmem pages will be managed by the buddy system.
+         */
+        zone->managed_pages = is_highmem_idx(j) ? realsize : freesize;
+#ifdef CONFIG_NUMA
+        zone->node = nid;
+        zone->min_unmapped_pages = (freesize*sysctl_min_unmapped_ratio)
+                        / 100;
+        zone->min_slab_pages = (freesize * sysctl_min_slab_ratio) / 100;
+#endif
+        zone->name = zone_names[j];
+        spin_lock_init(&zone->lock);
+        spin_lock_init(&zone->lru_lock);
+        zone_seqlock_init(zone);
+        zone->zone_pgdat = pgdat;
+        zone_pcp_init(zone);
+
+        /* For bootup, initialized properly in watermark setup */
+        mod_zone_page_state(zone, NR_ALLOC_BATCH, zone->managed_pages);
+
+        lruvec_init(&zone->lruvec);
+        if (!size)
+            continue;
+
+        set_pageblock_order();
+        setup_usemap(pgdat, zone, zone_start_pfn, size);
+        ret = init_currently_empty_zone(zone, zone_start_pfn, size);
+        BUG_ON(ret);
+        memmap_init(size, nid, j, zone_start_pfn);
+    }
+}
+```
+
