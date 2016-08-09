@@ -648,7 +648,7 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
 ```
 
 
-###5.2.3	free_area_init_nodes初始化内存节点
+###4.2.4	free_area_init_nodes初始化内存节点
 -------
 
 
@@ -753,7 +753,7 @@ void __init free_area_init_nodes(unsigned long *max_zone_pfn)
 ```
 
 
-##5.2.4	free_area_init_node初始化内存节点
+###4.2.5	free_area_init_node初始化内存节点
 -------
 
 | 函数实现 | 体系结构无关 |
@@ -799,8 +799,9 @@ void __paginginit free_area_init_node(int nid, unsigned long *zones_size,
 ```
 
 
-###5.2.4	  free_area_init_core
+###4.2.6	free_area_init_core
 -------
+
 
 | 函数实现 | 体系结构无关 |
 |:---:|:---:|:-----:|
@@ -914,4 +915,295 @@ static void __paginginit free_area_init_core(struct pglist_data *pgdat)
     }
 }
 ```
+
+
+#5	bootmem分配内存接口
+-------
+
+bootmem提供了各种函数用于在初始化期间分配内存.
+
+尽管[mm/bootmem.c](http://lxr.free-electrons.com/source/mm/nobootmem.c?v4.7)中提供了一些了的内存分配函数，但是这些函数大多数以\__下划线开头, 这个标识告诉我们尽量不要使用他们, 他们过于底层, 往往是不安全的, 因此特定于某个体系架构的代码并没有直接调用它们，而是通过[linux/bootmem.h](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v4.7)提供的一系列的宏
+
+
+
+##5.1	NUMA结构的分配函数
+-------
+
+首先我们讲解一下子在UMA系统中, 可供使用的函数
+
+##5.1.1	从ZONE_NORMAL区域分配函数
+-------
+
+
+下面列出的这些函数可以从ZONE_NORMAL内存域分配指向大小的内存
+
+| 函数 | 描述 | 定义 |
+|:---:|:----:|:---:|
+| alloc_bootmem(size) | 按照指定大小在ZONE_NORMAL内存域分配函数. 数据是对齐的, 这使得内存或者从可适用于L1高速缓存的理想位置开始| [alloc_bootmem](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L122)<br>[__alloc_bootmem](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L309)<br>[___alloc_bootmem](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L281) |
+| alloc_bootmem_align(x, align) | 同alloc_bootmem函数, 按照指定大小在ZONE_NORMAL内存域分配函数, 并按照align进行数据对齐 | [alloc_bootmem_align](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L124)<br>基于__alloc_bootmem实现 |
+| alloc_bootmem_pages(size)) | 同alloc_bootmem函数, 按照指定大小在ZONE_NORMAL内存域分配函数, 其中_page只是指定数据的对其方式从页边界(__pages)开始  |  [alloc_bootmem_pages](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L128)<br>基于__alloc_bootmem实现 |
+|  alloc_bootmem_nopanic(size) | alloc_bootmem_nopanic是最基础的通用的，一个用来尽力而为分配内存的函数，它通过list_for_each_entry在全局链表bdata_list中分配内存. alloc_bootmem和alloc_bootmem_nopanic类似，它的底层实现首先通过alloc_bootmem_nopanic函数分配内存，但是一旦内存分配失败，系统将通过panic("Out of memory")抛出信息，并停止运行 | [alloc_bootmem_nopanic](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L126)<br>[__alloc_bootmem_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L273)<br>[___alloc_bootmem_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L235)
+
+
+
+<br>
+
+这些函数的定义在[include/linux/bootmem.h](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L122)
+
+
+```cpp
+http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L122
+#define alloc_bootmem(x) \
+    __alloc_bootmem(x, SMP_CACHE_BYTES, BOOTMEM_LOW_LIMIT)
+#define alloc_bootmem_align(x, align) \
+    __alloc_bootmem(x, align, BOOTMEM_LOW_LIMIT)
+#define alloc_bootmem_nopanic(x) \
+    __alloc_bootmem_nopanic(x, SMP_CACHE_BYTES, BOOTMEM_LOW_LIMIT)
+#define alloc_bootmem_pages(x) \
+    __alloc_bootmem(x, PAGE_SIZE, BOOTMEM_LOW_LIMIT)
+#define alloc_bootmem_pages_nopanic(x) \
+    __alloc_bootmem_nopanic(x, PAGE_SIZE, BOOTMEM_LOW_LIMIT)
+```
+
+##5.1.2	从ZONE_DMA区域分配函数
+-------
+
+
+下面的函数可以从ZONE_DMA中分配内存
+<br>
+
+| 函数 | 描述 | 定义 |
+|:---:|:----:|:---:|
+| alloc_bootmem_low(size) | 按照指定大小在ZONE_DMA内存域分配函数. 类似于alloc_bootmem, 数据是对齐的 | [alloc_bootmem_low_pages_nopanic](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L141)<br>底层基于___alloc_bootmem |
+| alloc_bootmem_low_pages_nopanic(size) | 按照指定大小在ZONE_DMA内存域分配函数. 类似于alloc_bootmem_pages, 数据在页边界对齐, 并且错误后不输出panic | [alloc_bootmem_low_pages_nopanic](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L143)<br>底层基于[__alloc_bootmem_low_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L421)
+| alloc_bootmem_low_pages(size) | 按照指定大小在ZONE_DMA内存域分配函数. 类似于alloc_bootmem_pages, 数据在页边界对齐 | [alloc_bootmem_low_pages](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L145)<br>底层基于[__alloc_bootmem_low](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L415) |
+
+<br>
+
+这些函数的定义在[include/linux/bootmem.h](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L141)
+
+```cpp
+#define alloc_bootmem_low(x) \
+    __alloc_bootmem_low(x, SMP_CACHE_BYTES, 0)
+#define alloc_bootmem_low_pages_nopanic(x) \
+    __alloc_bootmem_low_nopanic(x, PAGE_SIZE, 0)
+#define alloc_bootmem_low_pages(x) \
+    __alloc_bootmem_low(x, PAGE_SIZE, 0)
+```
+
+
+##5.1.3	函数实现方式
+-------
+
+
+通过分析我们可以看到alloc_bootmem_nopanic的底层实现函数[___alloc_bootmem_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v4.7#L273)实现了一套最基础的内存分配函数, 而[___alloc_bootmem函数](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L281)则通过___alloc_bootmem_nopanic函数实现, 它首先通过___alloc_bootmem_nopanic函数分配内存，但是一旦内存分配失败，系统将通过`panic("Out of memory")`抛出信息，并停止运行, 其他的内存分配函数除了都是基于alloc_bootmem_nopanic族的函数, 都是基于_\_\_alloc_bootmem的. 那么所有的函数都是间接的基于_\_\_alloc_bootmem_nopanic实现的
+
+
+
+
+下面我们列出**___alloc_bootmem_nopanic**的实现
+
+
+
+
+```cpp
+static void * __init ___alloc_bootmem_nopanic(
+		unsigned long size,		/*  分配的内存大小 */
+        unsigned long align,	   /*	表示数据的对齐方式
+        SMP_CACHE_BYTES / PAGE_SIZE  */
+        unsigned long goal,		/* goal开始搜索适当空闲内存区的起始地址, 
+        (normal)BOOTMEM_LOW_LIMIT / (low)ARCH_LOW_ADDRESS_LIMIT /  */
+        unsigned long limit)
+{
+    void *ptr;
+
+    if (WARN_ON_ONCE(slab_is_available()))
+        return kzalloc(size, GFP_NOWAIT);
+
+restart:
+
+    ptr = __alloc_memory_core_early(NUMA_NO_NODE, size, align, goal, limit);
+
+    if (ptr)
+        return ptr;
+
+    if (goal != 0) {
+        goal = 0;
+        goto restart;
+    }
+
+    return NULL;
+}
+```
+
+
+
+然后___alloc_bootmem首先通过___alloc_bootmem_nopanic函数分配内存，但是一旦内存分配失败，系统将通过`panic("Out of memory")`抛出信息，并停止运行. 参见[mm/nobootmem.c?v=4.7, line 281](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L281)
+
+```cpp
+static void * __init ___alloc_bootmem(unsigned long size, unsigned long align,
+                    unsigned long goal, unsigned long limit)
+{
+    void *mem = ___alloc_bootmem_nopanic(size, align, goal, limit);
+
+    if (mem)
+        return mem;
+    /*
+     * Whoops, we cannot satisfy the allocation request.
+     */
+    pr_alert("bootmem alloc of %lu bytes failed!\n", size);
+    panic("Out of memory");
+    return NULL;
+}
+```
+
+
+##5.2	NUMA结构下的分配函数
+-------
+
+
+##5.2.1	分配函数接口
+-------
+
+在NUMA系统上, 基本的API是相同的, 但是函数增加了_node后缀, 与UMA系统的函数相比, 还需要一些额外的参数, 用于指定内存分配的结点.
+
+
+| 函数 | 定义 |
+|:---:|:---:|
+| alloc_bootmem_node(pgdat, size) |  [__alloc_bootmem_node](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L383)<br>[ ___alloc_bootmem_node](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L353)|
+| alloc_bootmem_node_nopanic(pgdat, size) |  [__alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L317) |
+| alloc_bootmem_pages_node(pgdat, size) |  [alloc_bootmem_pages_node](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L136)<br>[__alloc_bootmem_node](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L353) |
+| alloc_bootmem_pages_node_nopanic(pgdat, size) |  [alloc_bootmem_pages_node_nopanic](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L138)<br>[__alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L317) |
+| alloc_bootmem_low_pages_node(pgdat, size) |  [alloc_bootmem_pages_node_nopanic](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L138)<br>[__alloc_bootmem_low_node](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L444) |
+
+
+这些函数定义在[include/linux/bootmem.h]( http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L141)和
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L132
+#define alloc_bootmem_node(pgdat, x) \
+    __alloc_bootmem_node(pgdat, x, SMP_CACHE_BYTES, BOOTMEM_LOW_LIMIT)
+#define alloc_bootmem_node_nopanic(pgdat, x) \
+    __alloc_bootmem_node_nopanic(pgdat, x, SMP_CACHE_BYTES, BOOTMEM_LOW_LIMIT)
+#define alloc_bootmem_pages_node(pgdat, x) \
+    __alloc_bootmem_node(pgdat, x, PAGE_SIZE, BOOTMEM_LOW_LIMIT)
+#define alloc_bootmem_pages_node_nopanic(pgdat, x) \
+    __alloc_bootmem_node_nopanic(pgdat, x, PAGE_SIZE, BOOTMEM_LOW_LIMIT)
+
+//  http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L147
+    __alloc_bootmem_low(x, PAGE_SIZE, 0)
+#define alloc_bootmem_low_pages_node(pgdat, x) \
+    __alloc_bootmem_low_node(pgdat, x, PAGE_SIZE, 0)
+```
+
+##5.2.2	函数实现方式
+-------
+
+
+NUMA结构下这些分配接口的实现方式与UMA结构下类似, 这些都是_\__alloc_bootmem_node或者_\__alloc_bootmem_node_nopanic, 而_\__alloc_bootmem_node函数则先通过___alloc_bootmem_node_nopanic分配内存空间, 如果出错则打印`panic("Out of memory")`, 并终止
+
+
+```cpp
+static void * __init ___alloc_bootmem_node(pg_data_t *pgdat, unsigned long size,
+                    unsigned long align, unsigned long goal,
+                    unsigned long limit)
+{
+    void *ptr;
+
+    ptr = ___alloc_bootmem_node_nopanic(pgdat, size, align, goal, limit);
+    if (ptr)
+        return ptr;
+
+    pr_alert("bootmem alloc of %lu bytes failed!\n", size);
+    panic("Out of memory");
+    return NULL;
+}
+```
+
+那么我们现在就进入分配函数的核心___alloc_bootmem_node_nopanic, 它定义在[mm/nobootmem.c?v=4.7, line 317](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L317)
+
+```cpp
+void * __init ___alloc_bootmem_node_nopanic(pg_data_t *pgdat,
+                           unsigned long size,
+                           unsigned long align,
+                           unsigned long goal,
+                           unsigned long limit)
+{
+    void *ptr;
+
+again:
+    ptr = __alloc_memory_core_early(pgdat->node_id, size, align,
+                    goal, limit);
+    if (ptr)
+        return ptr;
+
+    ptr = __alloc_memory_core_early(NUMA_NO_NODE, size, align,
+                    goal, limit);
+    if (ptr)
+        return ptr;
+
+    if (goal) {
+        goal = 0;
+        goto again;
+    }
+
+    return NULL;
+}
+```
+#5.3	__alloc_memory_core_early进行内存分配
+-------
+
+
+__alloc_memory_core_early函数的功能相对而言很广泛(在启动期间不需要太高的效率), 该函数基于最先适配算法, 但是该分配器不仅可以分配整个内存页, 还能分配页的一部分.
+
+```cpp
+static void * __init __alloc_memory_core_early(int nid, u64 size, u64 align,
+                    u64 goal, u64 limit)
+{
+    void *ptr;
+    u64 addr;
+    ulong flags = choose_memblock_flags();
+
+    if (limit > memblock.current_limit)
+        limit = memblock.current_limit;
+
+again:
+    addr = memblock_find_in_range_node(size, align, goal, limit, nid,
+                       flags);
+    if (!addr && (flags & MEMBLOCK_MIRROR)) {
+        flags &= ~MEMBLOCK_MIRROR;
+        pr_warn("Could not allocate %pap bytes of mirrored memory\n",
+            &size);
+        goto again;
+    }
+    if (!addr)
+        return NULL;
+
+    if (memblock_reserve(addr, size))
+        return NULL;
+
+    ptr = phys_to_virt(addr);
+    memset(ptr, 0, size);
+    /*
+     * The min_count is set to 0 so that bootmem allocated blocks
+     * are never reported as leaks.
+     */
+    kmemleak_alloc(ptr, size, 0, 0);
+    return ptr;
+}
+```
+
+#6	bootmem释放内存
+-------
+
+```cpp
+```
+
+#7	停用bootmem
+-------
+
+
+#总结
+-------
+
 
