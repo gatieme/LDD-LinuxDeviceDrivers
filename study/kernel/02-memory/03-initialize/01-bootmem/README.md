@@ -16,9 +16,37 @@ http://www.cnblogs.com/zhenjing/archive/2012/03/21/linux_numa.html
 
 http://www.linuxidc.com/Linux/2012-05/60230.htm
 
+[[内存管理] bootmem没了？](http://bbs.chinaunix.net/thread-4141073-1-1.html)
+
+http://blog.chinaunix.net/uid-26009923-id-3860465.html
+
+http://www.linuxidc.com/Linux/2012-02/53139.htm
+
+http://blog.chinaunix.net/uid-7588746-id-1629805.html
+
+
+http://blog.csdn.net/xxxxxlllllxl/article/details/12091667
+
+
+http://blog.csdn.net/xxxxxlllllxl/article/details/12091667
+
+http://lib.csdn.net/article/embeddeddevelopment/29997#focustext
 
 在内存管理的上下文中, 初始化(initialization)可以有多种含义. 在许多CPU上, 必须显式设置适用于Linux内核的内存模型. 例如在x86_32上需要切换到保护模式, 然后内核才能检测到可用内存和寄存器.
 
+
+而我们今天要讲的bootmem分配器就是系统初始化阶段使用的内存分配器. 
+
+为什么要使用bootmem分配器，内存管理不是有buddy系统和slab分配器吗？由于在系统初始化的时候需要执行一些内存管理，内存分配的任务，这个时候buddy系统，slab分配器等并没有被初始化好，此时就引入了一种内存管理器bootmem分配器在系统初始化的时候进行内存管理与分配，当buddy系统和slab分配器初始化好后，在mem_init()中对bootmem分配器进行释放，内存管理与分配由buddy系统，slab分配器等进行接管。
+
+bootmem分配器使用一个bitmap来标记物理页是否被占用，分配的时候按照第一适应的原则，从bitmap中进行查找，如果这位为1，表示已经被占用，否则表示未被占用。为什么系统运行的时候不使用bootmem分配器呢？bootmem分配器每次在bitmap中进行线性搜索，效率非常低，而且在内存的起始端留下许多小的空闲碎片，在需要非常大的内存块的时候，检查位图这一过程就显得代价很高。bootmem分配器是用于在启动阶段分配内存的，对该分配器的需求集中于简单性方面，而不是性能和通用性。
+
+bootmem allocator 核心数据结构
+bootmem allocator 的初始化
+bootmem allocator 分配内存
+bootmem allocator 保留内存
+bootmem allocator 释放内存
+bootmem allocator的销毁
 
 
 #1	前景回顾
@@ -125,17 +153,7 @@ UMA体系结构中，free_area_init函数在系统唯一的struct node对象cont
 
 在初始化过程中, 还必须建立内存管理的数据结构, 以及很多事务. 因为内核在内存管理完全初始化之前就需要使用内存. 在系统启动过程期间, 使用了额外的简化悉尼股市的内存管理模块, 然后在初始化完成后, 将旧的模块丢弃掉.
 
-
-
-**建立内存管理的数据结构**
-
-对相关数据结构的初始化是从全局启动函数start_kernel中开始的, 该函数在加载内核并激活各个子系统之后执行. 由于内存管理是内核一个非常重要的部分, 因此在特定体系结构的设置步骤中检测并确定系统中内存的分配情况后, 会立即执行内存管理的初始化.
-
-
-
-
-#1	系统启动
--------
+**系统启动**
 
 首先我们来看看start_kernel是如何初始化系统的, start_kerne定义在[init/main.c?v=4.7, line 479](http://lxr.free-electrons.com/source/init/main.c?v=4.7#L479)
 
@@ -186,374 +204,114 @@ asmlinkage __visible void __init start_kernel(void)
 
 
 
-#2	节点和内存域的初始化
+
+#2	引导内存分配器bootmem
 -------
 
 
-##2.1	zone_sizes_init
+
+由于硬件配置多种多样, 所以在编译时就静态初始化所有的内核存储结构是不现实的.
+
+
+bootmem分配器是系统启动初期的内存分配方式，在耳熟能详的伙伴系统建立前内存都是利用bootmem分配器来分配的，伙伴系统框架建立起来后，bootmem会过度到伙伴系统.
+
+
+##2.1	初始化阶段的引导内存分配器bootmem
 -------
 
-在内核首先通过setup_arch()-->paging_init()-->bootmem_init()-->zone_sizes_init()来初始化节点和管理区的一些数据项
+在启动过程期间, 尽管内存管理尚未初始化, 但是内核仍然需要分配内存以创建各种数据结构. 因此在系统启动过程期间, 内核使用了一个额外的简化形式的内存管理模块**引导内存分配器(boot memory allocator--bootmem分配器)**, 用于在启动阶段早期分配内存, 而在系统初始化完成后, 该分配器被内核抛弃, 然后初始化了一套新的更加完善的内存分配器.
+
+显然, 对该内存分配器的需求集中于简单性方面,　而不是性能和通用性, 它仅用于初始化阶段. 因此内核开发者决定实现一个最先适配(first-first)分配器用于在启动阶段管理内存. 这是可能想到的最简单的方式.
 
 
+**引导内存分配器(boot memory allocator--bootmem分配器)**基于最先适配(first-first)分配器的原理(这儿是很多系统的内存分配所使用的原理), 使用一个位图来管理页, 以位图代替原来的空闲链表结构来表示存储空间, 位图的比特位的数目与系统中物理内存页面数目相同. 若位图中某一位是1, 则标识该页面已经被分配(已用页), 否则表示未被占有(未用页).
 
-在获取了三个管理区的页面数后，通过free_area_init_nodes()来完成后续工作, 其中核心函数为free_area_init_node(),用来针对特定的节点进行初始化
+在需要分配内存时, 分配器逐位的扫描位图, 直至找到一个能提供足够连续页的位置, 即所谓的最先最佳(first-best)或最先适配位置.
 
-至此，节点和管理区的关键数据已完成初始化，内核在后面为内存管理做得一个准备工作就是将所有节点的管理区都链入到zonelist中，便于后面内存分配工作的进行
-
-内核在start_kernel()-->build_all_zonelist()中完成zonelist的初始化
-
+该分配机制通过记录上一次分配的页面帧号(PFN)结束时的偏移量来实现分配大小小于一页的空间, 连续的小的空闲空间将被合并存储在一页上.
 
 
-
-##build_all_zonelists
+##2.1	为什么需要bootmem
 -------
 
 
-内核在start_kernel中通过build_all_zonelists完成了内存结点及其管理内存域的初始化工作, 调用如下
+##2.2	为什么在系统运行时抛弃bootmem
 
+当系统运行时, 为何不继续使用bootmem分配机制呢?
+
+*	其中一个关键原因在于 : 但它每次分配都必须从头扫描位图, 每次通过对内存域进行线性搜索来实现分配.
+
+＊	其次首先适应算法容易在内存的起始断留下许多小的空闲碎片, 在需要分配较大的空间页时,　检查位图的成本将是非常高的.
+
+
+
+引导内存分配器bootmem分配器简单却非常低效,　因此在内核完全初始化之后,　不能将该分配器继续欧诺个与内存管理,　而伙伴系统(连同slab, slub或者slob分配器)是一个好很多的备选方案．
+
+
+
+#3	数据结构表示引导内存区域
+-------
+
+##3.1	bootmem_data表示引导内存区域
+
+即使是初始化用的最先适配分配器也必须使用一些数据结构存, 内核为系统中每一个结点都提供了一个struct bootmem_data结构的实例, 用于bootmem的内存管理. 它含有引导内存分配器给结点分配内存时所需的信息. 当然, 这时候内存管理还没有初始化, 因而该结构所需的内存是无法动态分配的, 必须在编译时分配给内核.
+
+在UMA系统上该分配的实现与CPU无关, 而NUMA系统内存结点与CPU相关联, 因此采用了特定体系结构的解决方法.
+
+
+bootmem_data的结构定义在[include/linux/bootmem.h?v=4.7, line 28](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L28), 其定义如下所示
 
 ```cpp
-  build_all_zonelists(NULL, NULL);
-```
-
-[build_all_zonelists](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L5029)建立内存管理结点及其内存域所需的数据结构.
-
-##2.1	设置结点初始化顺序
--------
-
-在build_all_zonelists开始, 首先内核通过set_zonelist_order函数设置了`zonelist_order`,如下所示, 参见[mm/page_alloc.c?v=4.7, line 5031](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5031)
-
-```cpp
-void __ref build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
-{
-	set_zonelist_order();
-	/* .......  */
-}
-```
-
-
-##2.1.1	zone table
--------
-
-
-前面我们讲解内存管理域时候讲解到, 系统中的所有管理域都存储在一个多维的数组zone_table. 内核在初始化内存管理区时, 必须要建立管理区表zone_table. 参见[mm/page_alloc.c?v=2.4.37, line 38](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=2.4.37#L38)
-
-
-```cpp
+#ifndef CONFIG_NO_BOOTMEM
 /*
- *
- * The zone_table array is used to look up the address of the
- * struct zone corresponding to a given zone number (ZONE_DMA,
- * ZONE_NORMAL, or ZONE_HIGHMEM).
- */
-zone_t *zone_table[MAX_NR_ZONES*MAX_NR_NODES];
-EXPORT_SYMBOL(zone_table);
-```
+* node_bootmem_map is a map pointer - the bits represent all physical 
+* memory pages (including holes) on the node.
+*/
+typedef struct bootmem_data {
+       unsigned long node_min_pfn;
+       unsigned long node_low_pfn;
+       void *node_bootmem_map;
+       unsigned long last_end_off;
+       unsigned long hint_idx;
+       struct list_head list;
+} bootmem_data_t;
+
+extern bootmem_data_t bootmem_node_data[];
 
-*	MAX_NR_NODES为系统中内存结点的数目
-
-*	MAX_NR_ZONES为系统中单个内存结点所拥有的最大内存区域数目
-
-
-
-##2.1.2	内存域初始化顺序zonelist_order
--------
-
-
-NUMA系统中存在多个节点, 每个节点对应一个`struct pglist_data`结构, 每个结点中可以包含多个zone, 如: ZONE_DMA, ZONE_NORMAL, 这样就产生几种排列顺序, 以2个节点2个zone为例(zone从高到低排列, ZONE_DMA0表示节点0的ZONE_DMA，其它类似).
-
-*	Legacy方式, 每个节点只排列自己的zone；
-
-![Legacy方式](../images/legacy-order.jpg)
-
-*	Node方式, 按节点顺序依次排列，先排列本地节点的所有zone，再排列其它节点的所有zone。
-
-
-![Node方式](../images/node-order.jpg)
-
-
-*	Zone方式, 按zone类型从高到低依次排列各节点的同相类型zone
-
-
-
-![Zone方式](../images/zone-order.jpg)
-
-
-
-可通过启动参数"numa_zonelist_order"来配置zonelist order，内核定义了3种配置, 这些顺序定义在[mm/page_alloc.c?v=4.7, line 4551](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4551)
-
-```cpp
-// http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4551
-/*
- *  zonelist_order:
- *  0 = automatic detection of better ordering.
- *  1 = order by ([node] distance, -zonetype)
- *  2 = order by (-zonetype, [node] distance)
- *
- *  If not NUMA, ZONELIST_ORDER_ZONE and ZONELIST_ORDER_NODE will create
- *  the same zonelist. So only NUMA can configure this param.
- */
-#define ZONELIST_ORDER_DEFAULT  0 /* 智能选择Node或Zone方式 */
-
-#define ZONELIST_ORDER_NODE     1 /* 对应Node方式 */
-
-#define ZONELIST_ORDER_ZONE     2 /* 对应Zone方式 */
-```
-
->注意
->
->在非NUMA系统中(比如UMA), 由于只有一个内存结点, 因此ZONELIST_ORDER_ZONE和ZONELIST_ORDER_NODE选项会配置相同的内存域排列方式, 因此, 只有NUMA可以配置这几个参数
-
-
-
-
-
-
-全局的current_zonelist_order变量标识了系统中的当前使用的内存域排列方式, 默认配置为ZONELIST_ORDER_DEFAULT, 参见[mm/page_alloc.c?v=4.7, line 4564](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4564)
-
-
-```cpp
-//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4564
-/* zonelist order in the kernel.
- * set_zonelist_order() will set this to NODE or ZONE.
- */
-static int current_zonelist_order = ZONELIST_ORDER_DEFAULT;
-static char zonelist_order_name[3][8] = {"Default", "Node", "Zone"};
-```
-
-
-
-
-
-而zonelist_order_name方式分别对应了Legacy方式, Node方式和Zone方式. 其zonelist_order_name[current_zonelist_order]就标识了当前系统中所使用的内存域排列方式的名称"Default", "Node", "Zone".
-
-
-| 宏 | zonelist_order_name[宏](排列名称) | 排列方式 | 描述 |
-|:--:|:-------------------:|:------:|:----:|
-| ZONELIST_ORDER_DEFAULT | Default |  | 由系统智能选择Node或Zone方式 |
-| ZONELIST_ORDER_NODE | Node | Node方式 | 按节点顺序依次排列，先排列本地节点的所有zone，再排列其它节点的所有zone |
-| ZONELIST_ORDER_ZONE | Zone | Zone方式 | 按zone类型从高到低依次排列各节点的同相类型zone |
-
-
-
-##2.1.3	set_zonelist_order设置排列方式
--------
-
-内核就通过通过set_zonelist_order函数设置当前系统的内存域排列方式current_zonelist_order, 其定义依据系统的NUMA结构还是UMA结构有很大的不同.
-
-```cpp
-// http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4571
-#ifdef CONFIG_NUMA
-/* The value user specified ....changed by config */
-static int user_zonelist_order = ZONELIST_ORDER_DEFAULT;
-/* string for sysctl */
-#define NUMA_ZONELIST_ORDER_LEN 16
-char numa_zonelist_order[16] = "default";
-
-
-//  http://lxr.free-electrons.com/source/mm/page_alloc.c#L4571
-static void set_zonelist_order(void)
-{
-    if (user_zonelist_order == ZONELIST_ORDER_DEFAULT)
-        current_zonelist_order = default_zonelist_order();
-    else
-        current_zonelist_order = user_zonelist_order;
-}
-
-
-#else   /* CONFIG_NUMA */
-
-//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4892
-static void set_zonelist_order(void)
-{
-	current_zonelist_order = ZONELIST_ORDER_ZONE;
-}
-```
-
-
-其设置的基本流程如下
-
-*	如果系统当前系统是非NUMA结构的, 则系统中只有一个结点, 配置ZONELIST_ORDER_NODE和ZONELIST_ORDER_ZONE结果相同. 那么set_zonelist_order函数被定义为直接配置当前系统的内存域排列方式`current_zonelist_order`为ZONE方式(与NODE效果相同)
-
-*	如果系统是NUMA结构, 则设置为系统指定的方式即可
-	1.	当前的排列方式为ZONELIST_ORDER_DEFAULT, 即系统默认方式, 则current_zonelist_order则由内核交给default_zonelist_order采用一定的算法选择一个最优的分配策略,　目前的系统中如果是32位则配置为ZONE方式, 而如果是６４位系统则设置为NODE方式
-
-	2.	当前的排列方式不是默认方式, 则设置为user_zonelist_order指定的内存域排列方式
-
-##2.1.4	default_zonelist_order函数选择最优的配置
--------
-
-在UMA结构下, 内存域使用NODE和ZONE两个排列方式会产生相同的效果, 因此系统不用特殊指定, 直接通过set_zonelist_order函数, 将当前系统的内存域排列方式`current_zonelist_order`配置为为ZONE方式(与NODE效果相同)即可
-
-
-但是NUMA结构下, 默认情况下(当配置了ZONELIST_ORDER_DEFAULT), 系统需要根据系统自身的环境信息选择一个最优的配置(NODE或者ZONE方式), 这个工作就由**default_zonelist_order函数**了来完成. 其定义在[mm/page_alloc.c?v=4.7, line 4789](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4789)
-
-
-```cpp
-#if defined(CONFIG_64BIT)
-/*
- * Devices that require DMA32/DMA are relatively rare and do not justify a
- * penalty to every machine in case the specialised case applies. Default
- * to Node-ordering on 64-bit NUMA machines
- */
-static int default_zonelist_order(void)
-{
-    return ZONELIST_ORDER_NODE;
-}
-#else
-/*
- * On 32-bit, the Normal zone needs to be preserved for allocations accessible
- * by the kernel. If processes running on node 0 deplete the low memory zone
- * then reclaim will occur more frequency increasing stalls and potentially
- * be easier to OOM if a large percentage of the zone is under writeback or
- * dirty. The problem is significantly worse if CONFIG_HIGHPTE is not set.
- * Hence, default to zone ordering on 32-bit.
- */
-static int default_zonelist_order(void)
-{
-    return ZONELIST_ORDER_ZONE;
-}
-#endif /* CONFIG_64BIT */
-```
-
-
-
-###2.1.5	user_zonelist_order用户指定排列方式
--------
-
-
-在NUMA结构下, 系统支持用户指定内存域的排列方式, 用户以字符串的形式操作numa_zonelist_order(default, node和zone), 最终被内核转换为user_zonelist_order, 这个变量被指定为字符串numa_zonelist_order指定的排列方式, 他们定义在[mm/page_alloc.c?v4.7, line 4573](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L4573), 注意只有在NUMA结构中才需要这个配置信息.
-
-
-```cpp
-#ifdef CONFIG_NUMA
-/* The value user specified ....changed by config */
-static int user_zonelist_order = ZONELIST_ORDER_DEFAULT;
-/* string for sysctl */
-#define NUMA_ZONELIST_ORDER_LEN 16
-char numa_zonelist_order[16] = "default";
-
-#else
-/* ......*/
 #endif
 ```
 
-而接受和处理用户配置的工作, 自然是交给我们强大的proc文件系统来完成的, 可以通过/proc/sys/vm/numa_zonelist_order动态改变zonelist order的分配方式。
 
 
+|  字段  |  描述  |
+|:-----:|:------:|
+| node_min_pfn | 节点起始地址 |
+| node_low_pfn | 低端内存最后一个page的页帧号 |
+| node_bootmem_map | 指向内存中位图bitmap所在的位置 |
+| last_end_off | 分配的最后一个页内的偏移，如果该页完全使用，则offset为0 |
+| hint_idx | |
+| list | |
 
 
-![/proc/sys/vm/numa_zonelist_order`](../images/proc-numa_zonelist_order.png)
+bootmem的位图建立在从start_pfn开始的地方, 也就是说, 内核映像终点_end上方的地方. 这个位图用来管理低区（例如小于 896MB), 因为在0到896MB的范围内, 有些页面可能保留, 有些页面可能有空洞, 因此, 建立这个位图的目的就是要搞清楚哪一些物理页面是可以动态分配的
 
+*	node_bootmem_map就是一个指向位图的指针. node_min_pfn表示存放bootmem位图的第一个页面(即内核映像结束处的第一个页面)
 
+*	node_low_pfn 表示物理内存的顶点, 最高不超过896MB
 
-内核通过setup_numa_zonelist_order读取并处理用户写入的配置信息
-
-*	接收到用户的信息后用__parse_numa_zonelist_order处理接收的参数
-
-*	如果前面用__parse_numa_zonelist_order处理的信息串成功, 则将对用的设置信息写入到字符串numa_zonelist_order中
-
-
-参见[mm/page_alloc.c?v=4.7, line 4578](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4578)
-
-
-```cpp
-/*
- * interface for configure zonelist ordering.
- * command line option "numa_zonelist_order"
- *      = "[dD]efault   - default, automatic configuration.
- *      = "[nN]ode      - order by node locality, then by zone within node
- *      = "[zZ]one      - order by zone, then by locality within zone
- */
-
-static int __parse_numa_zonelist_order(char *s)
-{
-    if (*s == 'd' || *s == 'D') {
-        user_zonelist_order = ZONELIST_ORDER_DEFAULT;
-    } else if (*s == 'n' || *s == 'N') {
-        user_zonelist_order = ZONELIST_ORDER_NODE;
-    } else if (*s == 'z' || *s == 'Z') {
-        user_zonelist_order = ZONELIST_ORDER_ZONE;
-    } else {
-        pr_warn("Ignoring invalid numa_zonelist_order value:  %s\n", s);
-        return -EINVAL;
-    }
-    return 0;
-}
-
-static __init int setup_numa_zonelist_order(char *s)
-{
-    int ret;
-
-    if (!s)
-        return 0;
-
-    ret = __parse_numa_zonelist_order(s);
-    if (ret == 0)
-        strlcpy(numa_zonelist_order, s, NUMA_ZONELIST_ORDER_LEN);
-
-    return ret;
-}
-early_param("numa_zonelist_order", setup_numa_zonelist_order);
-```
-
-##2.2	build_all_zonelists_init
+#初始化引导分配器
 -------
 
+| 调用层次 | 描述 | x86(已经不使用bootmem初始化) | ia64 | arm | arm64 |
+|:-------:|:---:|:---:|:---:|:-----:|
+| setup_arch  | 设置特定体系的信息 | [arch/x86/kernel/setup.c](http://lxr.free-electrons.com/source/arch/x86/kernel/setup.c?v=4.7#L857), 但是不再调用paging_init | [arch/ia64/kernel/setup.c](http://lxr.free-electrons.com/source/arch/ia64/kernel/setup.c?v=4.7#L523), 调用pagin_init | [arch/arm/kernel/setup.c](http://lxr.free-electrons.com/source/arch/arm/kernel/setup.c?v=4.7#L1073), 调用了[paging_init](http://lxr.free-electrons.com/source/arch/arm/kernel/setup.c?v=4.7#L1073) | [arch/arm64/kernel/setup.c](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L266), 调用了[paging_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L266)和[bootmem_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L271) |
+| paging_init | 初始化分页机制 | 定义了[arch/x86/mm/init_32.c](http://lxr.free-electrons.com/source/arch/x86/mm/init_32.c?v=4.7#L695)和[arch/x86/mm/init_64.c](http://lxr.free-electrons.com/source/arch/x86/mm/init_64.c?v=4.7#L579)两个版本 | [arch/ia64/mm/contig.c](http://lxr.free-electrons.com/source/arch/ia64/mm/contig.c?v=4.7#L234), 调用free_area_init_nodes | 分别定义了[arch/arm/mm/nommu.c](http://lxr.free-electrons.com/source/arch/arm/mm/nommu.c?v=4.7#L311)和[arch/arm/mm/mmu.c](http://lxr.free-electrons.com/source/arch/arm/mm/mmu.c?v=4.7#L1623)两个版本, 均调用了bootmem_init | [arch/arm64/mm/mmu.c](http://lxr.free-electrons.com/source/arch/arm64/mm/mmu.c?v=4.7#L538) |
+| bootmem_init | 初始化bootmem分配器 | 无定义 | 无定义 | [arch/arm/mm/init.c](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L282), 调用了zone_sizes_init | [arch/arm64/mm/init.c](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L306),调用了zone_sizes_init |
+|  zone_sizes_init　| | [arch/x86/mm/init.c](http://lxr.free-electrons.com/source/arch/x86/mm/init.c?v=4.7#L718) | 无定义 | [arch/arm/mm/init.c](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L137)| [arch/arm64/mm/init.c](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L92)
 
-###2.2.1	system_state系统状态标识
+| init_bootmem_node |
+| init_bootmem_core |
 
-其中`system_state`变量是一个系统全局定义的用来表示系统当前运行状态的枚举变量, 其定义在[include/linux/kernel.h?v=4.7, line 487](http://lxr.free-electrons.com/source/include/linux/kernel.h?v=4.7#L487)
+每一个体系结构都有一个setup_arch函数, 用于获取初始化引导内存分配器所需的参数信息
 
-
-```cpp
-/* Values used for system_state */
-extern enum system_states
-{
-	SYSTEM_BOOTING,
-	SYSTEM_RUNNING,
-	SYSTEM_HALT,
-	SYSTEM_POWER_OFF,
-	SYSTEM_RESTART,
-} system_state;
-```
-
-*	如果系统system_state是SYSTEM_BOOTING, 则调用`build_all_zonelists_init`初始化所有的内存结点
-
-*	否则的话如果定义了冷热页`CONFIG_MEMORY_HOTPLUG`且参数zone(待初始化的内存管理域zone)不为NULL, 则调用setup_zone_pageset设置冷热页
-
-
-
-```cpp
-if (system_state == SYSTEM_BOOTING)
-{
-	build_all_zonelists_init();
-}
-else
-{
-#ifdef CONFIG_MEMORY_HOTPLUG
-	if (zone)
-    	setup_zone_pageset(zone);
-#endif
-```
-
-#3	特定于体系结构的设置
--------
-
-##2.1	内核在内存中的布局
--------
-
-##2.2	初始化过程
--------
-
-
-##2.3	分页机制初始化
--------
-
-##2.4	注册活动内存区
--------
-
-##2.5	系统的地址空间设置
--------
-
+各种体系结构都有其函数来获取这些信息, 在x86体系结构中
