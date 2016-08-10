@@ -249,7 +249,7 @@ endif
 *	用bootmem初始化内存结点管理域
 
 
-###2.2.2	初始化阶段的nonbootmem
+##2.2.2	初始化阶段的nonbootmem
 -------
 
 但是bootmem也有很多问题. 最明显的就是外碎片的问题, 因此内核同时维护了nobootmem机制
@@ -265,7 +265,7 @@ memory链表维护系统的内存信息(在初始化阶段通过bios获取的), 
 
 
 
-#3	bootmem的初始化过程
+##2.3	bootmem的初始化过程
 -------
 
 
@@ -275,7 +275,7 @@ memory链表维护系统的内存信息(在初始化阶段通过bios获取的), 
 
 
 
-##3.1   bootmem_data描述内存引导区
+##2.3.1   bootmem_data描述内存引导区
 -------
 
 内核用bootmem_data表示引导内存区域
@@ -306,7 +306,7 @@ extern bootmem_data_t bootmem_node_data[];
 #endif
 ```
 
-##3.2	初始化bootmem
+##2.3.2	初始化bootmem
 -------
 
 
@@ -314,11 +314,21 @@ bootmem分配器的初始化是一个特定于体系结构的过程, 此外还�
 
 系统是从start_kernel开始启动的, 在启动过程中通过调用体系结构相关的setup_arch函数, 来获取初始化引导内存分配器所需的参数信息, 各种体系结构都有对应的函数来获取这些信息.
 
+
+下面我们查看一下子早期内核中i386架构下的bootmem初始化流程
+
 ![i386上的初始化过程](../images/i386-setup_memory.jpg)
 
 
-#4	memblock的初始化过程
+##2.4	nonbootmem(memblcok)的初始化流程
 -------
+
+
+
+#3	初始化buddy内存管理
+-------
+
+
 
 
 系统是从start_kernel开始启动的, 在启动过程中通过调用体系结构相关的setup_arch函数, 来获取初始化引导内存分配器所需的参数信息, 各种体系结构都有对应的函数来获取这些信息, 在获取信息完成后
