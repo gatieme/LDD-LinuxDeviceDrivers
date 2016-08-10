@@ -1,4 +1,4 @@
-启动过程期间的内存管理--bootmem分配器
+启动过程期间的内存管理--memblock分配器
 =======
 
 
@@ -267,12 +267,12 @@ enum {
 |         memblock          |   |                           |
 |  _______________________  |   |                           |
 | |        memory         | |   |       Array of the        |
-| |      memblock_type    |-|--&gt;|      membock_region       |
+| |      memblock_type    |-|-->|      membock_region       |
 | |_______________________| |   |                           |
 |                           |   +---------------------------+
 |  _______________________  |   +---------------------------+
 | |       reserved        | |   |                           |
-| |      memblock_type    |-|--&gt;|       Array of the        |
+| |      memblock_type    |-|-->|       Array of the        |
 | |_______________________| |   |      memblock_region      |
 |                           |   |                           |
 +---------------------------+   +---------------------------+
@@ -472,7 +472,7 @@ memblock_add_range函数添加新的内存区域到内存块中, 定义在[mm/me
 
 
 
-*	首先，该函数检查给定的内存区域大小, 如果是0就返回. 
+*	首先，该函数检查给定的内存区域大小, 如果是0就返回.
 
 *	在这之后, memblock_add_range用给定的memblock_type检查memblock结构体中是否存在内存区域
 
@@ -504,9 +504,7 @@ int __init_memblock memblock_add_range(struct memblock_type *type,
     bool insert = false;
     phys_addr_t obase = base;
     ／*  获取内存区域的结束位置,
-      *  memblock_cap_size函数会设置size大小确保base + size不会溢出
-
-  */
+      *  memblock_cap_size函数会设置size大小确保base + size不会溢出  */
     phys_addr_t end = base + memblock_cap_size(base, &size);
     int idx, nr_new;
     struct memblock_region *rgn;
@@ -1019,6 +1017,70 @@ int __init_memblock memblock_free(phys_addr_t base, phys_addr_t size)
     return memblock_remove_range(&memblock.reserved, base, size);
 }
 ```
+#3	兼容bootmem的接口API
+-------
+
+我们了解到memblock是作为bootmem的替代品而引入内核的
+
+在编译Kernel的时候可以选择nobootmem或者bootmem 来在buddy system起来之前管理memory.
+这两种机制对提供的API是一致的，因此对用户是透明的
+
+参见[mm/Makefile](http://lxr.free-electrons.com/source/mm/Makefile#L44)
+
+
+```cpp
+ifdef CONFIG_NO_BOOTMEM
+	obj-y           += nobootmem.o
+else
+	obj-y           += bootmem.o
+endif
+```
+
+
+为了保证系统的兼容性, 内核为bootmem和memblock提供了相同的API接口.
+
+
+由于接口是一致的, 那么他们共同使用一份
+
+| 头文件 | bootmem接口 | nobootmem接口 |
+|:-------:|:----------------:|:-------------------:|
+| [include/linux/bootmem.h](http://lxr.free-electrons.com/source/include/linux/bootmem.h) | [mm/bootmem.c](http://lxr.free-electrons.com/source/mm/bootmem.c) | [mm/nobootmem.c](http://lxr.free-electrons.com/source/mm/nobootmem.c) |
+
+<br>
+我们知道memblock自己的接口都在自己的头文件和源文件中
+
+| memblock 头文件 | memblock接口 |
+|:--------------:|:------------:|
+| [include/linux/memblock.h](http://lxr.free-electrons.com/source/include/linux/memblock.h?v=4.7) | [mm/memblock.c](http://lxr.free-electrons.com/source/mm/memblock.c?v=4.7)
+
+
+为了实现接口兼容, 内核用[mm/memblock.c](http://lxr.free-electrons.com/source/mm/memblock.c?v=4.7)定义的memblock接口, 实现了一套bootmem的接口机制, 而bootmem的接口我们在上一篇引导内存管理bootmem机制中已经讲过了, 这些实现的bootmem函数接口API, 就定义在[mm/nobootmem.c](http://lxr.free-electrons.com/source/mm/nobootmem.c)文件中, 然后内核把他们进行了封装, 然后提供了与bootmem相同功能和函数的接口, 这些接口都在[include/linux/memblock.h](http://lxr.free-electrons.com/source/include/linux/memblock.h?v=4.7).
+
+
+
+在NUMA系统上, 基本的API是相同的, 但是函数增加了_node后缀, 与UMA系统的函数相比, 还需要一些额外的参数, 用于指定内存分配的结点.
+
+
+| 函数 | bootmem定义 | nobootmem定义 |
+|:-----:|:------------------:|:----------------------:|
+| ZONE_NORMAL的分配函数 | 按照指定大小在ZONE_NORMAL内存域分配函数. 数据是对齐的, 这使得内存或者从可适用于L1高速缓存的理想位置开始| |
+| alloc_bootmem(size) |  [alloc_bootmem](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L122)<br>[__alloc_bootmem](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L700)<br>[___alloc_bootmem](http://lxr.free-electrons.com/source/mm/bootmem.c?=4.7#L672) | [alloc_bootmem](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L122)<br>[__alloc_bootmem](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L309)<br>[___alloc_bootmem](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L281)  |
+| alloc_bootmem_align(size) | [alloc_bootmem_align](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L124)<br>基于__alloc_bootmem实现 | [alloc_bootmem_align](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L124)<br>[__alloc_bootmem](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L309)<br>[___alloc_bootmem](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L281)  |
+| alloc_bootmem_pages(size)) | [alloc_bootmem_pages](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L128)<br>基于__alloc_bootmem实现 | [alloc_bootmem_pages](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L128)<br>基于__alloc_bootmem实现 |
+|  alloc_bootmem_nopanic(size) | [alloc_bootmem_nopanic](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L126)<br>[__alloc_bootmem_nopanic](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L664)<br>[___alloc_bootmem_nopanic](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L632) | [alloc_bootmem_nopanic](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L126)<br>[__alloc_bootmem_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L261)<br>[___alloc_bootmem_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L235) |
+| ZONE_DMA区域的分配函数 |  |
+| alloc_bootmem_low(size) | [alloc_bootmem_low](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L141)<br>[__alloc_bootmem_low](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L415)底层基于___alloc_bootmem | [alloc_bootmem_low](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L141)<br>底层基于___alloc_bootmem  |
+| alloc_bootmem_low_pages_nopanic(size) | [alloc_bootmem_low_pages_nopanic](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L143)<br>底层基于[__alloc_bootmem_low_nopanic](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L838)<br>[___alloc_bootmem_nopanic](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L632) | [alloc_bootmem_low_pages_nopanic](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L143)<br>底层基于[__alloc_bootmem_low_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L421)<br>[___alloc_bootmem_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L235) |
+| alloc_bootmem_low_pages(size) | [alloc_bootmem_low_pages](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L832)<br>底层基于[__alloc_bootmem_low_nopanic](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L838) | [alloc_bootmem_low_pages](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L832)<br>底层基于[__alloc_bootmem_low_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L421) |
+| NUMA结构的分配函数 | | |
+| alloc_bootmem_node(pgdat, size) |  [alloc_bootmem_node](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L132)<br>[__alloc_bootmem_node](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L777)<br>[ ___alloc_bootmem_node](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L708) | [alloc_bootmem_node](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L132)<br>[__alloc_bootmem_node](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L383)<br>[ ___alloc_bootmem_node](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L317) | 
+| alloc_bootmem_node_nopanic(pgdat, size) |  [alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L134)<br>[__alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L738)<br>[___alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L708) | [alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L134)<br>[__alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L344)<br>[___alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L317) |
+| alloc_bootmem_pages_node(pgdat, size) |  [alloc_bootmem_pages_node](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L136)<br>[__alloc_bootmem_node](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L747)<br>[___alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L708) | [alloc_bootmem_pages_node](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L136)<br>[__alloc_bootmem_node](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L344)<br>[___alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L317) |
+| alloc_bootmem_pages_node_nopanic(pgdat, size) |  [alloc_bootmem_pages_node_nopanic](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L138)<br>[__alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L344)<br>[___alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L317) |
+| alloc_bootmem_low_pages_node(pgdat, size) | [alloc_bootmem_low_pages_node](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L14)<br>[__alloc_bootmem_low_node](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L861)<be>[___alloc_bootmem_node](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L747)<br>[___alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L707) | [alloc_bootmem_low_pages_node](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L14)<br>[__alloc_bootmem_low_node](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L444)<be>[___alloc_bootmem_node](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L353)<br>[___alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L317) |
+
+
+我们可以看到最基本的
 
 
 #3	memblock初始化
@@ -1110,6 +1172,8 @@ void __init memblock_x86_fill(void)
 比较简单,通过e820中的信息memblock_add(),将内存添加到memblock中的memory中,当做可分配内存.后两个函数主要是修剪内存使之对齐和输出信息.
 
 至此, 我们的memblock就初始化好了, 简单而且粗暴
+
+
 
 ##3.2	arm架构下的memblock初始化
 -------
