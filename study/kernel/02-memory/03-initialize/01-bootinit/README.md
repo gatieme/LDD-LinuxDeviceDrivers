@@ -7,30 +7,7 @@
 | ------- |:-------:|:-------:|:-------:|:-------:|:-------:|
 | 2016-06-14 | [Linux-4.7](http://lxr.free-electrons.com/source/?v=4.7) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux内存管理](http://blog.csdn.net/gatieme/article/category/6225543) |
 
-http://blog.csdn.net/vanbreaker/article/details/7554977
 
-
-http://blog.csdn.net/yuzhihui_no1/article/details/50759567
-
-http://www.cnblogs.com/zhenjing/archive/2012/03/21/linux_numa.html
-
-http://www.linuxidc.com/Linux/2012-05/60230.htm
-
-[[内存管理] bootmem没了？](http://bbs.chinaunix.net/thread-4141073-1-1.html)
-
-http://blog.chinaunix.net/uid-26009923-id-3860465.html
-
-http://www.linuxidc.com/Linux/2012-02/53139.htm
-
-http://blog.chinaunix.net/uid-7588746-id-1629805.html
-
-
-http://blog.csdn.net/xxxxxlllllxl/article/details/12091667
-
-
-http://blog.csdn.net/xxxxxlllllxl/article/details/12091667
-
-http://lib.csdn.net/article/embeddeddevelopment/29997#focustext
 
 在内存管理的上下文中, 初始化(initialization)可以有多种含义. 在许多CPU上, 必须显式设置适用于Linux内核的内存模型. 例如在x86_32上需要切换到保护模式, 然后内核才能检测到可用内存和寄存器.
 
@@ -270,6 +247,7 @@ endif
 *	初始化bootmem自身的数据结构
 
 *	用bootmem初始化内存结点管理域
+
 
 ###2.2.2	初始化阶段的nonbootmem
 -------
