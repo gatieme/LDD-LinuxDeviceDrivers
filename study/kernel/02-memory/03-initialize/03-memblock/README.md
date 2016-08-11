@@ -1,4 +1,4 @@
-启动过程期间的内存管理--memblock分配器
+的启动过程期间的内存管理--memblock分配器
 =======
 
 
@@ -928,7 +928,7 @@ __memblock_find_range_top_down(phys_addr_t start, phys_addr_t end,
 至此满足要求的内存块算是找到了。
 
 
-###2.4.5	
+###2.4.5	memblock_reserve标记申请的内存
 -------
 
 
@@ -1020,6 +1020,11 @@ int __init_memblock memblock_free(phys_addr_t base, phys_addr_t size)
 #3	兼容bootmem的接口API
 -------
 
+
+
+##3.1	memblock与bootmem
+-------
+
 我们了解到memblock是作为bootmem的替代品而引入内核的
 
 在编译Kernel的时候可以选择nobootmem或者bootmem 来在buddy system起来之前管理memory.
@@ -1040,11 +1045,18 @@ endif
 为了保证系统的兼容性, 内核为bootmem和memblock提供了相同的API接口.
 
 
+
+##3.2	memblock与bootmem接口对比
+-------
+
+
 由于接口是一致的, 那么他们共同使用一份
 
 | 头文件 | bootmem接口 | nobootmem接口 |
 |:-------:|:----------------:|:-------------------:|
 | [include/linux/bootmem.h](http://lxr.free-electrons.com/source/include/linux/bootmem.h) | [mm/bootmem.c](http://lxr.free-electrons.com/source/mm/bootmem.c) | [mm/nobootmem.c](http://lxr.free-electrons.com/source/mm/nobootmem.c) |
+
+
 
 <br>
 我们知道memblock自己的接口都在自己的头文件和源文件中
@@ -1080,15 +1092,49 @@ endif
 | alloc_bootmem_low_pages_node(pgdat, size) | [alloc_bootmem_low_pages_node](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L14)<br>[__alloc_bootmem_low_node](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L861)<be>[___alloc_bootmem_node](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L747)<br>[___alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L707) | [alloc_bootmem_low_pages_node](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L14)<br>[__alloc_bootmem_low_node](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L444)<be>[___alloc_bootmem_node](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L353)<br>[___alloc_bootmem_node_nopanic](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L317) |
 
 
-我们可以看到最基本的
+我们可以看到最基本的实现思路都是一样的, 只是最底层的实现函数有细微的区别.
 
 
-#3	memblock初始化
+##3.3	实现差异
+-------
+
+
+*	UMA结构下这些函数最终都是通过___alloc_bootmem_nopanic函数来实现的
+
+*	NUMA架构下, 最终这些函数都是简介的调用___alloc_bootmem_node_nopanic函数来实现的,
+
+
+
+
+| 函数 | bootmem | memblock |
+|:-----:|:-----------:|:------------:|
+| ___alloc_bootmem_nopanic | [mm/bootmem.c?v=4.7, line 632](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L632), 通过[alloc_bootmem_core](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L607)函数来实现 | [mm/nobootmem.c?v=4.7, line 235](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L235), 通过[__alloc_memory_core_early](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L36) |
+| ___alloc_bootmem_node_nopanic | [mm/bootmem.c?v=4.7, line 708](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L708), 通过调用[alloc_bootmem_core](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L607)和[alloc_bootmem_bdata](http://lxr.free-electrons.com/source/mm/bootmem.c?v=4.7#L500)来实现 | [mm/nobootmem.c?v=4.7, line 317](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L317), 通过调用[__alloc_memory_core_early](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L36)来实现 |
+
+
+bootmem的核心函数__alloc_memory_core()的实现机制我们前一篇博文[引导分配器bootmem](待添加链接)已经讲过了, 那么memblock下nobootmem的核心函数__alloc_memory_core_early是怎么实现的呢?
+
+前面[2.4.1节memblock_alloc函数代码](待添加链接)我们分析memblock_alloc函数的时候提到, 该函数最终通过memblock_alloc_range_nid函数粗暴粗暴的进行内存分配, 而有些情况下需要从特定的内存范围内分配内存. 解决方法就是通过memblock_alloc_range_nid函数或者实现类似机制的函数, 这里的__alloc_memory_core_early函数就是基于memblock_alloc_range_nid同样的思路实现的函数
+
+
+*	首先使用memblock_find_in_range_node指定内存区域和大小查找内存区域
+
+*	memblock_reserve后将其标为已经分配
+
+
+我们列出 memblock_alloc_range_nid函数与__alloc_memory_core_early函数的实现对比
+
+| memblock_alloc_range_nid | __alloc_memory_core_early |
+|:------------------------------:|:------------------------------:|
+| [mm/memblock.c?v=4.7, line 1133](http://lxr.free-electrons.com/source/mm/memblock.c?v=4.7#L1133) | [mm/nobootmem.c?v=4.7, line 36](http://lxr.free-electrons.com/source/mm/nobootmem.c?v=4.7#L36) |
+
+
+#4	memblock初始化
 -------
 
 如果从整个linux生命周期来讲,涉及到各种初始化等,这里来详细分析,因为还没有分析完内核,所以这里是分析到哪里就记录到哪里了.
 
-##3.1	x86架构下的memblock初始化
+##4.1	x86架构下的memblock初始化
 -------
 
 要理解memblock是如何工作和实现的, 我们首先看一下它的用法.
@@ -1175,16 +1221,81 @@ void __init memblock_x86_fill(void)
 
 
 
-##3.2	arm架构下的memblock初始化
+##4.2	arm架构下的memblock初始化
 -------
 
 
-##3.3	arm64下的memblock初始化
+arm下的memblock初始化也是从start_kernel()->[setup_arch()](http://lxr.free-electrons.com/source/arch/arm/kernel/setup.c#L1034)开始的, 在setup_arch()中arm架构通过arm_memblock_init完成了memblock的初始化工作.
+
+```cpp
+void __init setup_arch(char **cmdline_p)
+{
+	arm_memblock_init(mdesc);
+}
+```
+
+arm_memblock_init定义在[arch/arm/mm/init.c](http://lxr.free-electrons.com/source/arch/arm/mm/init.c?v=4.7#L230), 如下所示
+
+
+```cpp
+void __init arm_memblock_init(const struct machine_desc *mdesc)
+{
+    /* Register the kernel text, kernel data and initrd with memblock. */
+#ifdef CONFIG_XIP_KERNEL
+    memblock_reserve(__pa(_sdata), _end - _sdata);
+#else
+    memblock_reserve(__pa(_stext), _end - _stext);
+#endif
+#ifdef CONFIG_BLK_DEV_INITRD
+    /* FDT scan will populate initrd_start */
+    if (initrd_start && !phys_initrd_size) {
+        phys_initrd_start = __virt_to_phys(initrd_start);
+        phys_initrd_size = initrd_end - initrd_start;
+    }
+    initrd_start = initrd_end = 0;
+    if (phys_initrd_size &&
+        !memblock_is_region_memory(phys_initrd_start, phys_initrd_size)) {
+        pr_err("INITRD: 0x%08llx+0x%08lx is not a memory region - disabling initrd\n",
+               (u64)phys_initrd_start, phys_initrd_size);
+        phys_initrd_start = phys_initrd_size = 0;
+    }
+    if (phys_initrd_size &&
+        memblock_is_region_reserved(phys_initrd_start, phys_initrd_size)) {
+        pr_err("INITRD: 0x%08llx+0x%08lx overlaps in-use memory region - disabling initrd\n",
+               (u64)phys_initrd_start, phys_initrd_size);
+        phys_initrd_start = phys_initrd_size = 0;
+    }
+    if (phys_initrd_size) {
+        memblock_reserve(phys_initrd_start, phys_initrd_size);
+
+        /* Now convert initrd to virtual addresses */
+        initrd_start = __phys_to_virt(phys_initrd_start);
+        initrd_end = initrd_start + phys_initrd_size;
+    }
+#endif
+
+    arm_mm_memblock_reserve();
+
+    /* reserve any platform specific memblock areas */
+    if (mdesc->reserve)
+        mdesc->reserve();
+
+    early_init_fdt_reserve_self();
+    early_init_fdt_scan_reserved_mem();
+
+    /* reserve memory for DMA contiguous allocations */
+    dma_contiguous_reserve(arm_dma_limit);
+
+    arm_memblock_steal_permitted = false;
+    memblock_dump_all();
+}
+```
+
+##4.3	arm64下的memblock初始化
 -------
 
-
-
-#4	总结
+与arm架构类似, arm64的memblock初始化没有意外, 只是初始化函数成为[arm64_memblock_init()](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L261), 该函数定义在[arch/arm64/mm/init.c?v=4.7, line 192](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L192)
+#5	总结
 -------
 
 
@@ -1192,5 +1303,3 @@ memblock内存管理是将所有的物理内存放到`memblock.memory`中作为�
 
 同理释放内存也会加入到`memory`中. 也就是说, `memory`在`fill`过后基本就是不动的了. 申请和分配内存仅仅修改`reserved`就达到目的. 在初始化阶段没有那么多复杂的内存操作场景, 甚至很多地方都是申请了内存做永久使用的, 所以这样的内存管理方式已经足够凑合着用了, 毕竟内核也不指望用它一辈子. 在系统完成初始化之后所有的工作会移交给强大的`buddy`系统来进行内存管理
 
-
--------
