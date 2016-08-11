@@ -143,6 +143,7 @@ http://www.maxwellxxx.com/linuxmemblock
 
 https://0xax.gitbooks.io/linux-insides/content/mm/linux-mm-1.html
 
+
 #1	memblock的数据结构
 -------
 
@@ -199,6 +200,8 @@ struct memblock_type
     struct memblock_region *regions;
 };
 ```
+
+
 该结构体存储的是内存类型信息
 
 
@@ -1294,7 +1297,37 @@ void __init arm_memblock_init(const struct machine_desc *mdesc)
 ##4.3	arm64下的memblock初始化
 -------
 
+前面我们的内核从start_kernel开始, 进入setup_arch(), 并完成了早期内存分配器的初始化和设置工作.
+
+```cpp
+void __init setup_arch(char **cmdline_p)
+{
+	/*  初始化memblock  */
+	arm64_memblock_init( );
+
+	/*  分页机制初始化  */
+	paging_init();
+
+	bootmem_init();
+}
+```
+
+| 流程 | 描述 |
+|:---:|:----:|
+| [arm64_memblock_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L229) | 初始化memblock内存分配器 |
+| [paging_init](http://lxr.free-electrons.com/source/arch/arm64/mm/mmu.c?v=4.7#L538) | 初始化分页机制 |
+| [bootmem_init](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L306) | 初始化内存管理 |
+
+
+
+
+其中arm64_memblock_init就完成了arm64架构下的memblock的初始化
+
+
 与arm架构类似, arm64的memblock初始化没有意外, 只是初始化函数成为[arm64_memblock_init()](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L261), 该函数定义在[arch/arm64/mm/init.c?v=4.7, line 192](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L192)
+
+
+
 #5	总结
 -------
 

@@ -47,6 +47,7 @@ Linux把物理内存划分为三个层次来管理
 ##1.2	内存结点pg_data_t
 -------
 
+
 在LINUX中引入一个数据结构`struct pglist_data` ，来描述一个node，定义在[`include/linux/mmzone.h`](http://lxr.free-electrons.com/source/include/linux/mmzone.h#L630) 文件中。（这个结构被typedef pg_data_t）。
 
 
@@ -133,8 +134,8 @@ UMA体系结构中，free_area_init函数在系统唯一的struct node对象cont
 
 
 
-##2.1	系统启动过程中的内存管理
--------
+**系统启动过程中的内存管理**
+
 
 首先我们来看看start_kernel是如何初始化系统的, start_kerne定义在[init/main.c?v=4.7, line 479](http://lxr.free-electrons.com/source/init/main.c?v=4.7#L479)
 
@@ -145,12 +146,14 @@ UMA体系结构中，free_area_init函数在系统唯一的struct node对象cont
 asmlinkage __visible void __init start_kernel(void)
 {
 
+    /*  设置特定架构的信息
+     *	同时初始化memblock  */
     setup_arch(&command_line);
     mm_init_cpumask(&init_mm);
 
     setup_per_cpu_areas();
 
-
+	/*  初始化内存结点和内段区域  */
     build_all_zonelists(NULL, NULL);
     page_alloc_init();
 
@@ -183,23 +186,22 @@ asmlinkage __visible void __init start_kernel(void)
 | [kmemleak_init](http://lxr.free-electrons.com/source/mm/kmemleak.c?v=4.7#L1857) | Kmemleak工作于内核态，Kmemleak 提供了一种可选的内核泄漏检测，其方法类似于跟踪内存收集器。当独立的对象没有被释放时，其报告记录在 [/sys/kernel/debug/kmemleak](http://lxr.free-electrons.com/source/mm/kmemleak.c?v=4.7#L1467)中, Kmemcheck能够帮助定位大多数内存错误的上下文 |
 | [setup_per_cpu_pageset](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5392) | 初始化CPU高速缓存行, 为pagesets的第一个数组元素分配内存, 换句话说, 其实就是第一个系统处理器分配<br>由于在分页情况下，每次存储器访问都要存取多级页表，这就大大降低了访问速度。所以，为了提高速度，在CPU中设置一个最近存取页面的高速缓存硬件机制，当进行存储器访问时，先检查要访问的页面是否在高速缓存中. |
 
-#2	第一阶段
--------
 
 
-#3	第二阶段
+#2	第一阶段(启动过程中的内存管理)
 -------
 
 
 内存管理是操作系统资源管理的重点, 但是在操作系统初始化的初期, 操作系统只是获取到了内存的基本信息, 但是内存管理的数据结构都没有建立, 而我们这些数据结构创建的过程本身就是一个内存分配的过程, 那么就出现一个问题
 
 
-我们还没有一个内存管理器去负责分配和回收内存, 而我们又不可能将所有的内存信息都静态创建并初始化, 那么我们怎么分配内存管理器所需要的内存呢? 现在我们进入了一个先有鸡还是先有蛋的怪圈, 这种问题的一般解决方法是, 我们先实现一个满足要求的但是可能效率不高的笨家伙(内存管理器), 用它来负责系统初始化初期的内存管理, 最重要的, 用它来初始化我们内存的数据结构, 直到我们真正的内存管理器被初始化完成并能投入使用, 我们将旧的内存管理器丢掉, 
+我们还没有一个内存管理器去负责分配和回收内存, 而我们又不可能将所有的内存信息都静态创建并初始化, 那么我们怎么分配内存管理器所需要的内存呢? 现在我们进入了一个先有鸡还是先有蛋的怪圈, 这种问题的一般解决方法是, 我们先实现一个满足要求的但是可能效率不高的笨家伙(内存管理器), 用它来负责系统初始化初期的内存管理, 最重要的, 用它来初始化我们内存的数据结构, 直到我们真正的内存管理器被初始化完成并能投入使用, 我们将旧的内存管理器丢掉
 
 即因此在系统启动过程期间, 内核使用了一个额外的简化形式的内存管理模块早期的**引导内存分配器(boot memory allocator--bootmem分配器)**或者**memblock**, 用于在启动阶段早期分配内存, 而在系统初始化完成后, 该分配器被内核抛弃, 然后初始化了一套新的更加完善的内存分配器.
 
 
-##3.1	引导内存分配器bootmem
+
+##2.1	引导内存分配器bootmem
 -------
 
 在启动过程期间, 尽管内存管理尚未初始化, 但是内核仍然需要分配内存以创建各种数据结构, 早期的内核中负责初始化阶段的内存分配器称为**引导内存分配器(boot memory allocator--bootmem分配器)**, 在耳熟能详的伙伴系统建立前内存都是利用分配器来分配的，伙伴系统框架建立起来后，bootmem会过度到伙伴系统. 显然, 对该内存分配器的需求集中于简单性方面,　而不是性能和通用性, 它仅用于初始化阶段. 因此内核开发者决定实现一个最先适配(first-first)分配器用于在启动阶段管理内存. 这是可能想到的最简单的方式.
@@ -218,16 +220,30 @@ asmlinkage __visible void __init start_kernel(void)
 bootmem_data的结构定义在[include/linux/bootmem.h?v=4.7, line 28](http://lxr.free-electrons.com/source/include/linux/bootmem.h?v=4.7#L28), 其定义如下所示
 
 
+关于引导内存分配器的具体内容, 请参见另外一篇博文
 
-##3.2	memblock内存分配器
+|  CSDN | GitHub |
+|:-----:|:------:|
+| [引导内存分配器bootmem](带添加链接) | [study/kernel/02-memory/03-initialize/02-bootmem](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/02-memory/03-initialize/02-bootmem) |
+
+
+##2.2	memblock内存分配器
 -------
 
 
-但是bootmem也有很多问题. 最明显的就是外碎片的问题, 因此内核维护了**memblock内存管理器**, 同时用memblock实现了一份bootmem相同的兼容API, 即nobootmem, Memblock以前被定义为Logical Memory Block( 逻辑内存块), 但根据[Yinghai Lu的补丁](https://lkml.org/lkml/2010/7/13/68), 它被重命名为memblock. 并最终替代bootmem成为初始化阶段的内存管理器
+但是bootmem也有很多问题. 最明显的就是外碎片的问题, 因此内核维护了**memblock内存分配器**, 同时用memblock实现了一份bootmem相同的兼容API, 即nobootmem, Memblock以前被定义为Logical Memory Block( 逻辑内存块), 但根据[Yinghai Lu的补丁](https://lkml.org/lkml/2010/7/13/68), 它被重命名为memblock. 并最终替代bootmem成为初始化阶段的内存管理器
+
+关于引导内存分配器的具体内容, 请参见另外一篇博文
+
+
+|  CSDN | GitHub |
+|:-----:|:------:|
+| [memblock内存分配器](带添加链接) | [study/kernel/02-memory/03-initialize/03-memblock](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/02-memory/03-initialize/03-memblock) |
 
 
 
-##3.3	两者的区别和兼容性
+
+##2.3	两者的区别与联系
 
 bootmem是通过位图来管理，位图存在地地址段, 而memblock是在高地址管理内存, 维护两个链表, 即memory和reserved
 
@@ -260,37 +276,88 @@ endif
 由于接口是一致的, 那么他们共同使用一份
 
 | 头文件 | bootmem接口 | nobootmem接口 |
-|:-------:|:----------------:|:-------------------:|
+|:-----:|:-----------:|:------------:|
 | [include/linux/bootmem.h](http://lxr.free-electrons.com/source/include/linux/bootmem.h) | [mm/bootmem.c](http://lxr.free-electrons.com/source/mm/bootmem.c) | [mm/nobootmem.c](http://lxr.free-electrons.com/source/mm/nobootmem.c) |
 
-
-
-
-
-
-
-
-#4	第三阶段
+##2.4	memblock的初始化(arm64架构)
 -------
 
 
+前面我们的内核从start_kernel开始, 进入setup_arch(), 并完成了早期内存分配器的初始化和设置工作.
+
+```cpp
+void __init setup_arch(char **cmdline_p)
+{
+	/*  初始化memblock  */
+	arm64_memblock_init( );
+
+	/*  分页机制初始化  */
+	paging_init();
+
+	bootmem_init();
+}
+```
+
+| 流程 | 描述 |
+|:---:|:----:|
+| [arm64_memblock_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L229) | 初始化memblock内存分配器 |
+| [paging_init](http://lxr.free-electrons.com/source/arch/arm64/mm/mmu.c?v=4.7#L538) | 初始化分页机制 |
+| [bootmem_init](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L306) | 初始化内存管理 |
 
 
 
 
+其中arm64_memblock_init就完成了arm64架构下的memblock的初始化
 
 
 
 
-
-
-
-#3	初始化buddy内存管理
+#3	第二阶段(初始化buddy内存管理)
 -------
 
 
+在arm64架构下, 内核在start_kernel()->setup_arch()函数中依次完成了如下工作
 
-下面我们就以标准的arm架构来分析bootmem初始化内存结点和内存域的过程, 在讲解的过程中我们会兼顾的考虑arm64架构下的异同
+
+前面我们的内核从start_kernel开始, 进入setup_arch(), 并完成了早期内存分配器的初始化和设置工作.
+
+```cpp
+void __init setup_arch(char **cmdline_p)
+{
+	/*  初始化memblock  */
+	arm64_memblock_init( );
+
+	/*  分页机制初始化  */
+	paging_init();
+
+	bootmem_init();
+}
+```
+
+| 流程 | 描述 |
+|:---:|:----:|
+| [arm64_memblock_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L229) | 初始化memblock内存分配器 |
+| [paging_init](http://lxr.free-electrons.com/source/arch/arm64/mm/mmu.c?v=4.7#L538) | 初始化分页机制 |
+| [bootmem_init](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L306) | 初始化内存管理 |
+
+
+其中arm64_memblock_init就完成了arm64架构下的memblock的初始化.
+
+
+而setup_arch则主要完成如下工作
+
+
+*	调用arm64_memblock_init来完成了memblock的初始化
+
+*	paging_init初始化内存的分页机制
+
+*	bootmem_init初始化内存管理
+
+
+##3.1	初始化流程
+-------
+
+下面我们就以arm64架构来分析bootmem初始化内存结点和内存域的过程, 在讲解的过程中我们会兼顾的考虑arm64架构下的异同
 
 *	首先内核从[start_kernel](http://lxr.free-electrons.com/source/init/main.c?v=4.7#L505)开始启动
 
@@ -313,8 +380,10 @@ arm64在整个初始化的流程上并没有什么不同, 但是有细微的差�
 *	也是因为上面的原因, arm上paging_init有两份代码([mmu](http://lxr.free-electrons.com/source/arch/arm/mm/mmu.c?v=4.7#L162)和[nonmmu](http://lxr.free-electrons.com/source/arch/arm/mm/nommu.c?v=4.7#L311)), 为了降低代码的耦合性, arm通过setup_arch调用paging_init函数, 后者进一步调用了bootmem_init来完成, 而arm64上不存在这样的问题, 则在[setup_arch中顺序的先用paging_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L266)初始化了页表, 然后[setup_arch又调用bootmem_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v4.7#L271)来完成了bootmem的初始化
 
 
-##3.1	pagging_init初始化分页机制
+
+##3.2	paging_init初始化分页机制
 -------
+
 
 paging_init负责建立只能用于内核的页表, 用户空间是无法访问的. 这对管理普通应用程序和内核访问内存的方式，有深远的影响
 
@@ -323,17 +392,27 @@ paging_init负责建立只能用于内核的页表, 用户空间是无法访问�
 在x86_32系统上内核通常将总的4GB可用虚拟地址空间按3:1的比例划分给用户空间和内核空间, 虚拟地址空间的低端3GB
 用于用户状态应用程序, 而高端的1GB则专用于内核. 尽管在分配内核的虚拟地址空间时, 当前系统上下文是不相干的, 但每个进程都有自身特定的地址空间.
 
-这些划分主要的动机如下所示。
+这些划分主要的动机如下所示
 
 *	在用户应用程序的执行切换到核心态时（这总是会发生，例如在使用系统调用或发生周期性的时钟中断时），内核必须装载在一个可靠的环境中。因此有必要将地址空间的一部分分配给内核专用.
 
 *	物理内存页则映射到内核地址空间的起始处，以便内核直接访问，而无需复杂的页表操作.
 
-如果所有物理内存页都映射到用户空间进程能访问的地址空间中, 如果在系统上有几个应用程序在运行, 将导致严重的安全问题. 每个应用程序都能够读取和修改其他进程在物理内存中的内存区. 显然必须不惜任何代价防止这种情况出现. 
+如果所有物理内存页都映射到用户空间进程能访问的地址空间中, 如果在系统上有几个应用程序在运行, 将导致严重的安全问题. 每个应用程序都能够读取和修改其他进程在物理内存中的内存区. 显然必须不惜任何代价防止这种情况出现.
 
 虽然用于用户层进程的虚拟地址部分随进程切换而改变，但是内核部分总是相同的
 
-![内核空间](../images/vmarea_space.jpg)
+
+##3.3	虚拟地址空间(以x86_32位系统为例)
+-------
+
+
+
+出于内存保护等一系列的考虑, 内核将整个进程的虚拟运行空间划分为内核虚拟运行空间和内核虚拟运行空间
+
+
+
+![虚拟地址空间](../images/vmarea_space.jpg)
 
 按3:1的比例划分地址空间, 只是约略反映了内核中的情况，内核地址空间作为内核的常驻虚拟地址空间, 自身又分为各个段
 
@@ -357,9 +436,24 @@ paging_init负责建立只能用于内核的页表, 用户空间是无法访问�
 的关联可以自行定义，关联建立后内核总是会注意到的
 
 
-同样我们的用户空间, 也被划分为几个段
+同样我们的[用户空间](http://www.360doc.com/content/14/1020/21/19947352_418512226.shtml), 也被划分为几个段, 包括从高地址到低地址分别为 :
 
-##3.2	bootmem_init
+
+
+![进程的虚拟地址空间](../images/user_space.jpg)
+
+<br>
+
+| 区域 | 存储内容 |
+|:---:|:------:|
+|  栈   | 局部变量, 函数参数, 返回地址等 |
+|  堆   | 动态分配的内存 |
+| BSS段 | 未初始化或初值为0的全局变量和静态局部变量|
+| 数据段 | 一初始化且初值非0的全局变量和静态局部变量|
+| 代码段 | 可执行代码, 字符串面值, 只读变量 |
+
+
+##3.4	bootmem_init初始化内存
 -------
 
 在paging_init之后, 系统的页帧已经建立起来, 然后通过bootmem_init中, 系统开始完成bootmem的初始化工作.
@@ -368,8 +462,7 @@ paging_init负责建立只能用于内核的页表, 用户空间是无法访问�
 不同的体系结构bootmem_init的实现, 没有很大的区别, 但是在初始化的过程中, 其中的很多函数, 依据系统是NUMA还是UMA结构则有不同的定义
 
 
-
-###4.2.1	bootmem_init函数
+bootmem_init函数的实现如下
 
 | 函数实现 | arm | arm64 |
 |:---:|:---:|:-----:|
@@ -448,10 +541,43 @@ void __init bootmem_init(void)
     memblock_dump_all();
 ```
 
+*	通过zone_sizes_init函数设置内存区域大小
+
+*	memblock_dump_all舍弃memblock
 
 
-###4.2.2	函数设置内存区域大小
--------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////
+/////////////////////////////////////////
+/////////////////////////////////////////
+/////////////////////////////////////////
+/////////////////////////////////////////
+/////////////////////////////////////////
+/////////////////////////////////////////
 
 
 
@@ -493,7 +619,7 @@ void __init bootmem_init(void)
 
 
 
-###4.2.3	zone_sizes_init初始化节点和内存域
+###3.4.3	zone_sizes_init初始化节点和内存域
 -------
 
 

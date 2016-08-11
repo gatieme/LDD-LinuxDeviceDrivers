@@ -7,15 +7,6 @@
 | ------- |:-------:|:-------:|:-------:|:-------:|:-------:|
 | 2016-06-14 | [Linux-4.7](http://lxr.free-electrons.com/source/?v=4.7) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux内存管理](http://blog.csdn.net/gatieme/article/category/6225543) |
 
-http://blog.csdn.net/vanbreaker/article/details/7554977
-
-
-http://blog.csdn.net/yuzhihui_no1/article/details/50759567
-
-http://www.cnblogs.com/zhenjing/archive/2012/03/21/linux_numa.html
-
-http://www.linuxidc.com/Linux/2012-05/60230.htm
-
 
 在内存管理的上下文中, 初始化(initialization)可以有多种含义. 在许多CPU上, 必须显式设置适用于Linux内核的内存模型. 例如在x86_32上需要切换到保护模式, 然后奇偶内核才能检测到可用内存和寄存器.
 
@@ -48,94 +39,25 @@ Linux把物理内存划分为三个层次来管理
 *	最后**页帧(page frame)**代表了系统内存的最小单位, 堆内存中的每个页都会创建一个struct page的一个实例. 传统上，把内存视为连续的字节，即内存为字节数组，内存单元的编号(地址)可作为字节数组的索引. 分页管理时，将若干字节视为一页，比如4K byte. 此时，内存变成了连续的页，即内存为页数组，每一页物理内存叫页帧，以页为单位对内存进行编号，该编号可作为页数组的索引，又称为页帧号.
 
 
-##1.2	内存结点pg_data_t
+##1.2	今日内容(启动过程中的内存初始化)
 -------
 
-在LINUX中引入一个数据结构`struct pglist_data` ，来描述一个node，定义在[`include/linux/mmzone.h`](http://lxr.free-electrons.com/source/include/linux/mmzone.h#L630) 文件中。（这个结构被typedef pg_data_t）。
-
-
-*    对于NUMA系统来讲， 整个系统的内存由一个[node_data](http://lxr.free-electrons.com/source/arch/s390/numa/numa.c?v=4.7#L23)的pg_data_t指针数组来管理
-
-*    对于PC这样的UMA系统，使用struct pglist_data contig_page_data ，作为系统唯一的node管理所有的内存区域。（UMA系统中中只有一个node）
-
-可以使用NODE_DATA(node_id)来查找系统中编号为node_id的结点, 而UMA结构下由于只有一个结点, 因此该宏总是返回全局的contig_page_data, 而与参数node_id无关.
-
-**NODE_DATA(node_id)查找编号node_id的结点pg_data_t信息** 参见[NODE_DATA的定义](http://lxr.free-electrons.com/ident?v=4.7;i=NODE_DATA)
-
-```cpp
-extern struct pglist_data *node_data[];
-#define NODE_DATA(nid)          (node_data[(nid)])
-```
-
-
-在UMA结构的机器中, 只有一个node结点即contig_page_data, 此时NODE_DATA直接指向了全局的contig_page_data, 而与node的编号nid无关, 参照[include/linux/mmzone.h?v=4.7, line 858](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L858)
-
-
-```cpp
-extern struct pglist_data contig_page_data;
-#define NODE_DATA(nid)          (&contig_page_data)
-
-```
-
-##1.2	物理内存区域
--------
-
-因为实际的计算机体系结构有硬件的诸多限制, 这限制了页框可以使用的方式. 尤其是, Linux内核必须处理80x86体系结构的两种硬件约束.
-
-*	ISA总线的直接内存存储DMA处理器有一个严格的限制 : 他们只能对RAM的前16MB进行寻址
-
-*	在具有大容量RAM的现代32位计算机中, CPU不能直接访问所有的物理地址, 因为线性地址空间太小, 内核不可能直接映射所有物理内存到线性地址空间, 我们会在后面典型架构(x86)上内存区域划分详细讲解x86_32上的内存区域划分
-
-
-因此Linux内核对不同区域的内存需要采用不同的管理方式和映射方式, 因此内核将物理地址或者成用zone_t表示的不同地址区域
-
-对于x86_32的机器，管理区(内存区域)类型如下分布
-
-
-| 类型 | 区域 |
-| :------- | ----: |
-| ZONE_DMA | 0~15MB |
-| ZONE_NORMAL | 16MB~895MB |
-| ZONE_HIGHMEM | 896MB~物理内存结束 |
-
-
-##1.3	物理页帧
--------
-
-内核把物理页作为内存管理的基本单位. 尽管处理器的最小可寻址单位通常是字, 但是, 内存管理单元MMU通常以页为单位进行处理. 因此，从虚拟内存的上来看，页就是最小单位.
-
-页帧代表了系统内存的最小单位, 对内存中的每个页都会创建struct page的一个实例. 内核必须要保证page结构体足够的小，否则仅struct page就要占用大量的内存.
-
-
- 内核用[struct  page(include/linux/mm_types.h?v=4.7, line 45)](http://lxr.free-electrons.com/source/include/linux/mm_types.h?v4.7#L45)结构表示系统中的每个物理页.
-
-出于节省内存的考虑，struct page中使用了大量的联合体union.
-
-
-`mem_map`是一个struct page的数组，管理着系统中所有的物理内存页面。在系统启动的过程中，创建和分配mem_map的内存区域, mem_map定义在[mm/page_alloc.c?v=4.7, line 6691](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6691)
-
-
-UMA体系结构中，free_area_init函数在系统唯一的struct node对象contig_page_data中node_mem_map成员赋值给全局的mem_map变量
-
-##1.4	今日内容(启动过程中的内存初始化)
--------
-
-
-**启动过程中的内存初始化**
 
 在初始化过程中, 还必须建立内存管理的数据结构, 以及很多事务. 因为内核在内存管理完全初始化之前就需要使用内存. 在系统启动过程期间, 使用了额外的简化悉尼股市的内存管理模块, 然后在初始化完成后, 将旧的模块丢弃掉.
 
 
+因此我们可以把linux内核的内存管理分三个阶段。
 
-**建立内存管理的数据结构**
+| 阶段 | 起点 | 终点 | 描述 |
+|:-----:|:-----:|:-----:|
+| 第一阶段 | 系统启动 | bootmem或者memblock初始化完成 | 此阶段只能使用memblock_reserve函数分配内存， 早期内核中使用init_bootmem_done = 1标识此阶段结束 |
+| 第二阶段 | bootmem或者memblock初始化完 | buddy完成前 | 引导内存分配器bootmem或者memblock接受内存的管理工作, 早期内核中使用mem_init_done = 1标记此阶段的结束 |
+| 第三阶段 | buddy初始化完成 | 系统停止运行 | 可以用cache和buddy分配内存 |
 
-对相关数据结构的初始化是从全局启动函数start_kernel中开始的, 该函数在加载内核并激活各个子系统之后执行. 由于内存管理是内核一个非常重要的部分, 因此在特定体系结构的设置步骤中检测并确定系统中内存的分配情况后, 会立即执行内存管理的初始化.
 
 
+##1.3	start_kernel系统启动阶段的内存初始化过程
 
-
-##1.5	系统启动阶段的内存初始化过程
--------
 
 首先我们来看看start_kernel是如何初始化系统的, start_kerne定义在[init/main.c?v=4.7, line 479](http://lxr.free-electrons.com/source/init/main.c?v=4.7#L479)
 
@@ -187,16 +109,231 @@ asmlinkage __visible void __init start_kernel(void)
 
 
 
-#2	节点和内存域的初始化
+##1.4	setup_arch函数初始化内存流程
 -------
 
 
-##2.1	zone_sizes_init
+前面我们的内核从start_kernel开始, 进入setup_arch(), 并完成了早期内存分配器的初始化和设置工作.
+
+```cpp
+void __init setup_arch(char **cmdline_p)
+{
+	/*  初始化memblock  */
+	arm64_memblock_init( );
+
+	/*  分页机制初始化  */
+	paging_init();
+
+	bootmem_init();
+}
+```
+
+| 流程 | 描述 |
+|:---:|:----:|
+| [arm64_memblock_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L229) | 初始化memblock内存分配器 |
+| [paging_init](http://lxr.free-electrons.com/source/arch/arm64/mm/mmu.c?v=4.7#L538) | 初始化分页机制 |
+| [bootmem_init](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L306) | 初始化内存管理 |
+
+
+该函数主要执行了如下操作
+
+
+1.	使用arm64_memblock_init来完成memblock机制的初始化工作, 至此memblock分配器接受系统中系统中内存的分配工作
+
+2.	调用paging_init来完成系统分页机制的初始化工作, 建立页表, 从而内核可以完成虚拟内存的映射和转换工作
+
+3.	最后调用bootmem_init来完成实现buddy内存管理所需要的工作
+
+
+
+##1.5	(第一阶段)启动过程中的内存分配器
 -------
 
-在内核首先通过setup_arch()-->paging_init()-->bootmem_init()-->zone_sizes_init()来初始化节点和管理区的一些数据项
+
+在初始化过程中, 还必须建立内存管理的数据结构, 以及很多事务. 因为内核在内存管理完全初始化之前就需要使用内存. 在系统启动过程期间, 使用了额外的简化悉尼股市的内存管理模块, 然后在初始化完成后, 将旧的模块丢弃掉.
+
+这个阶段的内存分配其实很简单, 因此我们往往称之为内存分配器(而不是内存管理器), 早期的内核中内存分配器使用的**bootmem引导分配器**, 它基于一个内存位图bitmap, 使用最优适配算法来查找内存, 但是这个分配器有很大的缺陷, 最严重的就是内存碎片的问题, 因此在后来的内核中将其舍弃《而使用了**新的memblock机制**. memblock机制的初始化在arm64上是通过[arm64_memblock_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L229)函数来实现的
 
 
+
+
+##1.6	今日内容(第二阶段--初始化buddy内存管理)
+-------
+
+
+**初始化内存分页机制**
+
+
+在初始化内存的结点和内存区域之前, 内核先通过pagging_init初始化了内核的分页机制, 这样我们的虚拟运行空间就初步建立, 并可以完成物理地址到虚拟地址空间的映射工作.
+
+
+在arm64架构下, 内核在start_kernel()->setup_arch()中通过arm64_memblock_init( )完成了memblock的初始化之后, 接着通过setup_arch()->paging_init()开始初始化分页机制
+
+
+paging_init负责建立只能用于内核的页表, 用户空间是无法访问的. 这对管理普通应用程序和内核访问内存的方式，有深远的影响
+
+
+
+**特定于体系结构的设置**
+
+在完成了基础的内存结点和内存域的初始化工作以后, 我们必须克服一些硬件的特殊设置
+
+
+**建立内存管理的数据结构**
+
+对相关数据结构的初始化是从全局启动函数start_kernel中开始的, 该函数在加载内核并激活各个子系统之后执行. 由于内存管理是内核一个非常重要的部分, 因此在特定体系结构的设置步骤中检测并确定系统中内存的分配情况后, 会立即执行内存管理的初始化.
+
+
+
+
+**移交早期的分配器到内存管理器**
+
+最后我们的内存管理器已经初始化并设置完成, 可以投入运行了, 因此内核将内存管理的工作从早期的内存分配器(bootmem或者memblock)移交到我们的buddy伙伴系统.
+
+
+
+
+#2	初始化前的准备工作
+-------
+
+
+##2.1	回到setup_arch函数(当前已经完成的工作)
+-------
+
+
+现在我们回到start_kernel()->setup_arch()函数
+
+
+```cpp
+void __init setup_arch(char **cmdline_p)
+{
+	/*  初始化memblock  */
+	arm64_memblock_init( );
+
+	/*  分页机制初始化  */
+	paging_init();
+
+	bootmem_init();
+}
+```
+
+
+到目前位置我们已经完成了如下工作
+
+*	memblock已经通过arm64_memblock_init完成了初始化, 至此系统中的内存可以通过memblock分配了
+
+*	paging_init完成了分页机制的初始化, 至此内核已经布局了一套完整的虚拟内存空间
+
+
+至此我们所有的内存都可以通过memblock机制来分配和释放, 尽管它实现的笨拙而简易, 但是已经足够我们初始化阶段使用了, 反正内核页不可能指着它过一辈子, 而我们也通过pagging_init创建了页表, 为内核提供了一套可供内核和进程运行的虚拟运行空间, 我们可以安全的进行内存的分配了
+
+因此该是时候初始化我们强大的buddy系统了.
+
+内核接着setup_arch()->bootmem_init()函数开始执行
+
+
+##2.2	bootmem_init函数
+-------
+
+
+arm64架构下, 在setup_arch中通过paging_init函数初始化内核分页机制之后, 内核通过`bootmem_init()`开始完成内存结点和内存区域的初始化工作, 该函数定义在[arch/arm64/mm/init.c, line 306](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L306)
+
+```cpp
+void __init bootmem_init(void)
+{
+    unsigned long min, max;
+
+    min = PFN_UP(memblock_start_of_DRAM());
+    max = PFN_DOWN(memblock_end_of_DRAM());
+
+    early_memtest(min << PAGE_SHIFT, max << PAGE_SHIFT);
+
+    max_pfn = max_low_pfn = max;
+
+    arm64_numa_init();
+    /*
+     * Sparsemem tries to allocate bootmem in memory_present(), so must be
+     * done after the fixed reservations.
+     */
+    arm64_memory_present();
+
+    sparse_init();
+    zone_sizes_init(min, max);
+
+    high_memory = __va((max << PAGE_SHIFT) - 1) + 1;
+    memblock_dump_all();
+}
+```
+
+
+##2.3	zone_sizes_init函数
+-------
+
+
+在初始化内存结点和内存域之前, 内核首先通过setup_arch()-->bootmem_init()-->zone_sizes_init()来初始化节点和管理区的一些数据项
+
+
+
+[zone_sizes_init](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L92)函数定义在[arch/arm64/mm/init.c?v=4.7, line 92](http://lxr.free-electrons.com/source/arch/arm64/mm/init.c?v=4.7#L92), 由于arm64支持NUMA和UMA两种存储器架构, 因此该函数依照NUMA和UMA, 有两种不同的实现.
+
+```cpp
+#ifdef CONFIG_NUMA
+
+static void __init zone_sizes_init(unsigned long min, unsigned long max)
+{
+    unsigned long max_zone_pfns[MAX_NR_ZONES]  = {0};
+
+    if (IS_ENABLED(CONFIG_ZONE_DMA))
+        max_zone_pfns[ZONE_DMA] = PFN_DOWN(max_zone_dma_phys());
+    max_zone_pfns[ZONE_NORMAL] = max;
+
+    free_area_init_nodes(max_zone_pfns);
+}
+
+#else
+
+static void __init zone_sizes_init(unsigned long min, unsigned long max)
+{
+    struct memblock_region *reg;
+    unsigned long zone_size[MAX_NR_ZONES], zhole_size[MAX_NR_ZONES];
+    unsigned long max_dma = min;
+
+    memset(zone_size, 0, sizeof(zone_size));
+
+    /* 4GB maximum for 32-bit only capable devices */
+#ifdef CONFIG_ZONE_DMA
+    max_dma = PFN_DOWN(arm64_dma_phys_limit);
+    zone_size[ZONE_DMA] = max_dma - min;
+#endif
+    zone_size[ZONE_NORMAL] = max - max_dma;
+
+    memcpy(zhole_size, zone_size, sizeof(zhole_size));
+
+    for_each_memblock(memory, reg) {
+        unsigned long start = memblock_region_memory_base_pfn(reg);
+        unsigned long end = memblock_region_memory_end_pfn(reg);
+
+        if (start >= max)
+            continue;
+
+#ifdef CONFIG_ZONE_DMA
+        if (start < max_dma) {
+            unsigned long dma_end = min(end, max_dma);
+            zhole_size[ZONE_DMA] -= dma_end - start;
+        }
+#endif
+        if (end > max_dma) {
+            unsigned long normal_end = min(end, max);
+            unsigned long normal_start = max(start, max_dma);
+            zhole_size[ZONE_NORMAL] -= normal_end - normal_start;
+        }
+    }
+
+    free_area_init_node(0, zone_size, min, zhole_size);
+}
+
+#endif /* CONFIG_NUMA */
+```
 
 在获取了三个管理区的页面数后，通过free_area_init_nodes()来完成后续工作, 其中核心函数为free_area_init_node(),用来针对特定的节点进行初始化
 
@@ -205,10 +342,24 @@ asmlinkage __visible void __init start_kernel(void)
 内核在start_kernel()-->build_all_zonelist()中完成zonelist的初始化
 
 
-
-
-##build_all_zonelists
+##2.4	free_area_init_node
 -------
+
+
+
+#3	初始化内存结点和内存域
+-------
+
+
+
+##3.1	回到start_kernel函数(已经完成的工作)
+-------
+
+
+
+##3.2	build_all_zonelists
+-------
+
 
 
 内核在start_kernel中通过build_all_zonelists完成了内存结点及其管理内存域的初始化工作, 调用如下
@@ -220,7 +371,8 @@ asmlinkage __visible void __init start_kernel(void)
 
 [build_all_zonelists](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L5029)建立内存管理结点及其内存域所需的数据结构.
 
-##2.1	设置结点初始化顺序
+
+##2.3	设置结点初始化顺序
 -------
 
 在build_all_zonelists开始, 首先内核通过set_zonelist_order函数设置了`zonelist_order`,如下所示, 参见[mm/page_alloc.c?v=4.7, line 5031](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5031)
@@ -234,7 +386,7 @@ void __ref build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
 ```
 
 
-##2.1.1	zone table
+##2.3.1	zone table
 -------
 
 
@@ -258,7 +410,7 @@ EXPORT_SYMBOL(zone_table);
 
 
 
-##2.1.2	内存域初始化顺序zonelist_order
+##2.3.2	内存域初始化顺序zonelist_order
 -------
 
 
@@ -338,7 +490,7 @@ static char zonelist_order_name[3][8] = {"Default", "Node", "Zone"};
 
 
 
-##2.1.3	set_zonelist_order设置排列方式
+##2.3.3	set_zonelist_order设置排列方式
 -------
 
 内核就通过通过set_zonelist_order函数设置当前系统的内存域排列方式current_zonelist_order, 其定义依据系统的NUMA结构还是UMA结构有很大的不同.
@@ -382,7 +534,7 @@ static void set_zonelist_order(void)
 
 	2.	当前的排列方式不是默认方式, 则设置为user_zonelist_order指定的内存域排列方式
 
-##2.1.4	default_zonelist_order函数选择最优的配置
+##2.3.4	default_zonelist_order函数选择最优的配置
 -------
 
 在UMA结构下, 内存域使用NODE和ZONE两个排列方式会产生相同的效果, 因此系统不用特殊指定, 直接通过set_zonelist_order函数, 将当前系统的内存域排列方式`current_zonelist_order`配置为为ZONE方式(与NODE效果相同)即可
@@ -420,7 +572,7 @@ static int default_zonelist_order(void)
 
 
 
-###2.1.5	user_zonelist_order用户指定排列方式
+###2.3.5	user_zonelist_order用户指定排列方式
 -------
 
 
@@ -499,11 +651,11 @@ static __init int setup_numa_zonelist_order(char *s)
 early_param("numa_zonelist_order", setup_numa_zonelist_order);
 ```
 
-##2.2	build_all_zonelists_init
+##2.4	build_all_zonelists_init
 -------
 
 
-###2.2.1	system_state系统状态标识
+###2.4.1	system_state系统状态标识
 
 其中`system_state`变量是一个系统全局定义的用来表示系统当前运行状态的枚举变量, 其定义在[include/linux/kernel.h?v=4.7, line 487](http://lxr.free-electrons.com/source/include/linux/kernel.h?v=4.7#L487)
 
