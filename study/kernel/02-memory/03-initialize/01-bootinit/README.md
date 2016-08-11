@@ -114,13 +114,39 @@ extern struct pglist_data contig_page_data;
 UMA体系结构中，free_area_init函数在系统唯一的struct node对象contig_page_data中node_mem_map成员赋值给全局的mem_map变量
 
 
-#2	启动过程中的内存初始化
+#1.6	今日内容(启动过程中的内存初始化)
 -------
 
 
 
 
 在初始化过程中, 还必须建立内存管理的数据结构, 以及很多事务. 因为内核在内存管理完全初始化之前就需要使用内存. 在系统启动过程期间, 使用了额外的简化悉尼股市的内存管理模块, 然后在初始化完成后, 将旧的模块丢弃掉.
+
+
+因此我们可以把linux内核的内存管理分三个阶段。
+
+| 阶段 | 起点 | 终点 | 描述 |
+|:-----:|:-----:|:-----:|
+| 第一阶段 | 系统启动 | bootmem或者memblock初始化完成 | 此阶段只能使用memblock_reserve函数分配内存， 早期内核中使用init_bootmem_done = 1标识此阶段结束 |
+| 第二阶段 | bootmem或者memblock初始化完 | buddy完成前 | 引导内存分配器bootmem或者memblock接受内存的管理工作, 早期内核中使用mem_init_done = 1标记此阶段的结束 |
+| 第三阶段 | buddy开始初始化 | 全部内存以及buddy初始化完毕 | 可以用cache和buddy分配内存 |
+
+
+#2	第一阶段
+-------
+
+
+#3	第二阶段
+-------
+
+
+
+
+#4	第四阶段
+-------
+
+
+
 
 ##2.1	系统启动过程中的内存管理
 -------
@@ -171,6 +197,10 @@ asmlinkage __visible void __init start_kernel(void)
 | [kmem_cache_init_late](http://lxr.free-electrons.com/source/mm/slab.c?v4.7#L1378) | 在kmem_cache_init之后, 完善分配器的缓存机制,　当前3个可用的内核内存分配器[slab](http://lxr.free-electrons.com/source/mm/slab.c?v4.7#L1378), [slob](http://lxr.free-electrons.com/source/mm/slob.c?v4.7#L655), [slub](http://lxr.free-electrons.com/source/mm/slub.c?v=4.7#L3960)都会定义此函数　|
 | [kmemleak_init](http://lxr.free-electrons.com/source/mm/kmemleak.c?v=4.7#L1857) | Kmemleak工作于内核态，Kmemleak 提供了一种可选的内核泄漏检测，其方法类似于跟踪内存收集器。当独立的对象没有被释放时，其报告记录在 [/sys/kernel/debug/kmemleak](http://lxr.free-electrons.com/source/mm/kmemleak.c?v=4.7#L1467)中, Kmemcheck能够帮助定位大多数内存错误的上下文 |
 | [setup_per_cpu_pageset](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5392) | 初始化CPU高速缓存行, 为pagesets的第一个数组元素分配内存, 换句话说, 其实就是第一个系统处理器分配<br>由于在分页情况下，每次存储器访问都要存取多级页表，这就大大降低了访问速度。所以，为了提高速度，在CPU中设置一个最近存取页面的高速缓存硬件机制，当进行存储器访问时，先检查要访问的页面是否在高速缓存中. |
+
+
+
+
 
 
 ##2.2	引导过程中的内存初始化(bootmem和nobootmem)
@@ -249,12 +279,12 @@ endif
 *	用bootmem初始化内存结点管理域
 
 
-##2.2.2	初始化阶段的nonbootmem
+##2.2.2	初始化阶段的nonbootmem(memblock)
 -------
 
-但是bootmem也有很多问题. 最明显的就是外碎片的问题, 因此内核同时维护了nobootmem机制
+但是bootmem也有很多问题. 最明显的就是外碎片的问题, 因此内核同时维护了memblock内存管理器, 同时用memblock实现了一份bootmem相同的兼容API, 即nobootmem
 
-bootmem是通过位图来管理，位图存在地地址段, 而memblock是在高地址管理内存, 维护两个链表, 即memory和 reserved
+bootmem是通过位图来管理，位图存在地地址段, 而memblock是在高地址管理内存, 维护两个链表, 即memory和reserved
 
 memory链表维护系统的内存信息(在初始化阶段通过bios获取的), 对于任何内存分配, 先去查找memory链表, 然后在reserve链表上记录(新增一个节点，或者合并)
 
@@ -320,8 +350,14 @@ bootmem分配器的初始化是一个特定于体系结构的过程, 此外还�
 ![i386上的初始化过程](../images/i386-setup_memory.jpg)
 
 
-##2.4	nonbootmem(memblcok)的初始化流程
+##2.4	memblcok(nonbootmem)的初始化流程
 -------
+
+
+
+目前大多数架构下都已经开始使用memblock来管理引导阶段的内存, 只有少数架构使用着早期的引导内存分配器bootmem
+
+
 
 
 
