@@ -57,7 +57,7 @@ Linux把物理内存划分为三个层次来管理
 
 
 ##1.3	start_kernel系统启动阶段的内存初始化过程
-
+-------
 
 首先我们来看看start_kernel是如何初始化系统的, start_kerne定义在[init/main.c?v=4.7, line 479](http://lxr.free-electrons.com/source/init/main.c?v=4.7#L479)
 
@@ -176,17 +176,20 @@ paging_init负责建立只能用于内核的页表, 用户空间是无法访问�
 
 **特定于体系结构的设置**
 
+
 在完成了基础的内存结点和内存域的初始化工作以后, 我们必须克服一些硬件的特殊设置
 
 
 **建立内存管理的数据结构**
 
+
 对相关数据结构的初始化是从全局启动函数start_kernel中开始的, 该函数在加载内核并激活各个子系统之后执行. 由于内存管理是内核一个非常重要的部分, 因此在特定体系结构的设置步骤中检测并确定系统中内存的分配情况后, 会立即执行内存管理的初始化.
 
 
 
-
 **移交早期的分配器到内存管理器**
+
+
 
 最后我们的内存管理器已经初始化并设置完成, 可以投入运行了, 因此内核将内存管理的工作从早期的内存分配器(bootmem或者memblock)移交到我们的buddy伙伴系统.
 
@@ -232,7 +235,7 @@ void __init setup_arch(char **cmdline_p)
 内核接着setup_arch()->bootmem_init()函数开始执行
 
 
-##2.2	bootmem_init函数
+##2.2	bootmem_init函数初始化内存结点和管理域
 -------
 
 
@@ -342,8 +345,349 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
 内核在start_kernel()-->build_all_zonelist()中完成zonelist的初始化
 
 
-##2.4	free_area_init_node
+##2.4	free_area_init_node(s)初始化NUMA内存结点
 -------
+
+>注意
+>
+>此部分内容参照
+>
+>[Linux内存管理伙伴算法](http://www.linuxidc.com/Linux/2012-09/70711p3.htm)
+>
+>[linux 内存管理 - paging_init 函数](http://blog.csdn.net/decload/article/details/8080126)
+
+
+[free_area_init_nodes](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6460)初始化了NUMA系统中所有结点的pg_data_t和zone、page的数据, 并打印了管理区信息, 该函数定义在[mm/page_alloc.c?v=4.7, line 6460](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6460)
+
+
+```cpp
+//  初始化各个节点的所有pg_data_t和zone、page的数据
+void __init free_area_init_nodes(unsigned long *max_zone_pfn)
+{
+    unsigned long start_pfn, end_pfn;
+    int i, nid;
+
+    /* Record where the zone boundaries are
+     * 全局数组arch_zone_lowest_possible_pfn
+     * 用来存储各个内存域可使用的最低内存页帧编号   */
+    memset(arch_zone_lowest_possible_pfn, 0,
+                sizeof(arch_zone_lowest_possible_pfn));
+
+    /* 全局数组arch_zone_highest_possible_pfn
+     * 用来存储各个内存域可使用的最高内存页帧编号   */
+	memset(arch_zone_highest_possible_pfn, 0,
+                sizeof(arch_zone_highest_possible_pfn));
+
+	/* 辅助函数find_min_pfn_with_active_regions
+     * 用于找到注册的最低内存域中可用的编号最小的页帧 */
+    arch_zone_lowest_possible_pfn[0] = find_min_pfn_with_active_regions();
+
+    /*  max_zone_pfn记录了各个内存域包含的最大页帧号  */
+    arch_zone_highest_possible_pfn[0] = max_zone_pfn[0];
+
+    /*  依次遍历，确定各个内存域的边界    */
+    for (i = 1; i < MAX_NR_ZONES; i++) {
+    	/*  由于ZONE_MOVABLE是一个虚拟内存域
+         *  不与真正的硬件内存域关联
+         *  该内存域的边界总是设置为0 */
+        if (i == ZONE_MOVABLE)
+            continue;
+        /*  第n个内存域的最小页帧
+         *  即前一个（第n-1个）内存域的最大页帧  */
+        arch_zone_lowest_possible_pfn[i] =
+            arch_zone_highest_possible_pfn[i-1];
+        /*  不出意外，当前内存域的最大页帧
+         *  由max_zone_pfn给出  */
+        arch_zone_highest_possible_pfn[i] =
+            max(max_zone_pfn[i], arch_zone_lowest_possible_pfn[i]);
+    }
+    arch_zone_lowest_possible_pfn[ZONE_MOVABLE] = 0;
+    arch_zone_highest_possible_pfn[ZONE_MOVABLE] = 0;
+
+    /* Find the PFNs that ZONE_MOVABLE begins at in each node */
+    memset(zone_movable_pfn, 0, sizeof(zone_movable_pfn));
+    /*  用于计算进入ZONE_MOVABLE的内存数量  */
+    find_zone_movable_pfns_for_nodes();
+
+    /* Print out the zone ranges
+     * 将各个内存域的最大、最小页帧号显示出来  */
+    pr_info("Zone ranges:\n");
+    for (i = 0; i < MAX_NR_ZONES; i++) {
+        if (i == ZONE_MOVABLE)
+            continue;
+        pr_info("  %-8s ", zone_names[i]);
+        if (arch_zone_lowest_possible_pfn[i] ==
+                arch_zone_highest_possible_pfn[i])
+            pr_cont("empty\n");
+        else
+            pr_cont("[mem %#018Lx-%#018Lx]\n",
+                (u64)arch_zone_lowest_possible_pfn[i]
+                    << PAGE_SHIFT,
+                ((u64)arch_zone_highest_possible_pfn[i]
+                    << PAGE_SHIFT) - 1);
+    }
+
+    /* Print out the PFNs ZONE_MOVABLE begins at in each node */
+    pr_info("Movable zone start for each node\n");
+    for (i = 0; i < MAX_NUMNODES; i++) {
+    	/*  对每个结点来说，zone_movable_pfn[node_id]
+         *  表示ZONE_MOVABLE在movable_zone内存域中所取得内存的起始地址
+         *  内核确保这些页将用于满足符合ZONE_MOVABLE职责的内存分配 */
+        if (zone_movable_pfn[i])
+        {
+        	/*  显示各个内存域的分配情况  */
+            pr_info("  Node %d: %#018Lx\n", i,
+                   (u64)zone_movable_pfn[i] << PAGE_SHIFT);
+        }
+    }
+
+    /* Print out the early node map */
+    pr_info("Early memory node ranges\n");
+    for_each_mem_pfn_range(i, MAX_NUMNODES, &start_pfn, &end_pfn, &nid)
+        pr_info("  node %3d: [mem %#018Lx-%#018Lx]\n", nid,
+            (u64)start_pfn << PAGE_SHIFT,
+            ((u64)end_pfn << PAGE_SHIFT) - 1);
+
+    /* Initialise every node */
+    mminit_verify_pageflags_layout();
+    setup_nr_node_ids();
+
+    /*  代码遍历所有的活动结点，
+     *  并分别对各个结点调用free_area_init_node建立数据结构，
+     *  该函数需要结点第一个可用的页帧作为一个参数，
+     *  而find_min_pfn_for_node则从early_node_map数组提取该信息   */
+    for_each_online_node(nid) {
+        pg_data_t *pgdat = NODE_DATA(nid);
+        free_area_init_node(nid, NULL,
+                find_min_pfn_for_node(nid), NULL);
+
+        /* Any memory on that node
+         * 根据node_present_pages字段判断结点具有内存
+         * 则在结点位图中设置N_HIGH_MEMORY标志
+         * 该标志只表示结点上存在普通或高端内存
+         * 因此check_for_regular_memory
+         * 进一步检查低于ZONE_HIGHMEM的内存域中是否有内存
+         * 并据此在结点位图中相应地设置N_NORMAL_MEMORY   */
+        if (pgdat->node_present_pages)
+            node_set_state(nid, N_MEMORY);
+        check_for_memory(pgdat, nid);
+    }
+}
+```
+
+free_area_init_nodes函数中通过循环遍历各个节点，循环中调用了free_area_init_node函数初始化该节点对应的pg_data_t和zone、page的数据.
+
+
+##2.5	free_area_init_node初始化UMA内存结点
+-------
+
+[free_area_init_nodes](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6076)函数初始化所有结点的pg_data_t和zone、page的数据，并打印了管理区信息：
+
+```cpp
+void __paginginit free_area_init_node(int nid, unsigned long *zones_size,
+        unsigned long node_start_pfn, unsigned long *zholes_size)
+{
+    pg_data_t *pgdat = NODE_DATA(nid);
+    unsigned long start_pfn = 0;
+    unsigned long end_pfn = 0;
+
+    /* pg_data_t should be reset to zero when it's allocated */
+    WARN_ON(pgdat->nr_zones || pgdat->classzone_idx);
+
+    reset_deferred_meminit(pgdat);
+    pgdat->node_id = nid;
+    pgdat->node_start_pfn = node_start_pfn;
+#ifdef CONFIG_HAVE_MEMBLOCK_NODE_MAP
+    get_pfn_range_for_nid(nid, &start_pfn, &end_pfn);
+    pr_info("Initmem setup node %d [mem %#018Lx-%#018Lx]\n", nid,
+        (u64)start_pfn << PAGE_SHIFT,
+        end_pfn ? ((u64)end_pfn << PAGE_SHIFT) - 1 : 0);
+#else
+    start_pfn = node_start_pfn;
+#endif
+	/*  首先累计各个内存域的页数
+     *	计算结点中页的总数
+     *	对连续内存模型而言
+     *	这可以通过zone_sizes_init完成
+     *	但calculate_node_totalpages还考虑了内存空洞 */
+    calculate_node_totalpages(pgdat, start_pfn, end_pfn,
+                  zones_size, zholes_size);
+	/*  分配了该节点的页面描述符数组
+     *  [pgdat->node_mem_map数组的内存分配  */
+    alloc_node_mem_map(pgdat);
+#ifdef CONFIG_FLAT_NODE_MEM_MAP
+    printk(KERN_DEBUG "free_area_init_node: node %d, pgdat %08lx, node_mem_map %08lx\n",
+        nid, (unsigned long)pgdat,
+        (unsigned long)pgdat->node_mem_map);
+#endif
+
+    /*  对该节点的每个区[DMA,NORMAL,HIGH]的的结构进行初始化  */
+    free_area_init_core(pgdat);
+}
+```
+
+*	[calculate_node_totalpages](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5789)函数累计各个内存域的页数，计算结点中页的总数。对连续内存模型而言，这可以通过zone_sizes_init完成，但calculate_node_totalpages还考虑了内存空洞,该函数定义在[mm/page_alloc.c, line 5789](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5789)
+
+
+*	[alloc_node_mem_map(pgdat)](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6030)函数分配了该节点的页面描述符数组[pgdat->node_mem_map数组的内存分配.
+
+
+*	继续调用[free_area_init_core](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5932)函数，继续初始化该节点的pg_data_t结构，初始化zone以及page结构 ，##2.6	free_area_init_core函数是初始化zone的核心
+
+
+
+##2.6	free_area_init_core初始化zone
+-------
+
+```cpp
+/*
+ * Set up the zone data structures:
+ *   - mark all pages reserved
+ *   - mark all memory queues empty
+ *   - clear the memory bitmaps
+ *
+ * NOTE: pgdat should get zeroed by caller.
+ */
+static void __paginginit free_area_init_core(struct pglist_data *pgdat)
+{
+    enum zone_type j;
+    int nid = pgdat->node_id;
+    int ret;
+
+    /*  初始化pgdat->node_size_lock自旋锁  */
+    pgdat_resize_init(pgdat);
+#ifdef CONFIG_NUMA_BALANCING
+    spin_lock_init(&pgdat->numabalancing_migrate_lock);
+    pgdat->numabalancing_migrate_nr_pages = 0;
+    pgdat->numabalancing_migrate_next_window = jiffies;
+#endif
+#ifdef CONFIG_TRANSPARENT_HUGEPAGE
+    spin_lock_init(&pgdat->split_queue_lock);
+    INIT_LIST_HEAD(&pgdat->split_queue);
+    pgdat->split_queue_len = 0;
+#endif
+
+    /*  初始化pgdat->kswapd_wait等待队列  */
+    init_waitqueue_head(&pgdat->kswapd_wait);
+    /*  初始化页换出守护进程创建空闲块的大小
+     *  为2^kswapd_max_order  */
+    init_waitqueue_head(&pgdat->pfmemalloc_wait);
+#ifdef CONFIG_COMPACTION
+    init_waitqueue_head(&pgdat->kcompactd_wait);
+#endif
+    pgdat_page_ext_init(pgdat);
+
+	/* 遍历每个管理区 */
+    for (j = 0; j < MAX_NR_ZONES; j++) {
+        struct zone *zone = pgdat->node_zones + j;
+        unsigned long size, realsize, freesize, memmap_pages;
+        unsigned long zone_start_pfn = zone->zone_start_pfn;
+
+        /*  size为该管理区中的页框数，包括洞 */
+        size = zone->spanned_pages;
+         /* realsize为管理区中的页框数，不包括洞  /
+        realsize = freesize = zone->present_pages;
+
+        /*
+         * Adjust freesize so that it accounts for how much memory
+         * is used by this zone for memmap. This affects the watermark
+         * and per-cpu initialisations
+         * 调整realsize的大小，即减去page结构体占用的内存大小  */
+        /*  memmap_pags为包括洞的所有页框的page结构体所占的大小  */
+        memmap_pages = calc_memmap_size(size, realsize);
+        if (!is_highmem_idx(j)) {
+            if (freesize >= memmap_pages) {
+                freesize -= memmap_pages;
+                if (memmap_pages)
+                    printk(KERN_DEBUG
+                           "  %s zone: %lu pages used for memmap\n",
+                           zone_names[j], memmap_pages);
+            } else  /*  内存不够存放page结构体  */
+                pr_warn("  %s zone: %lu pages exceeds freesize %lu\n",
+                    zone_names[j], memmap_pages, freesize);
+        }
+
+        /* Account for reserved pages
+         * 调整realsize的大小，即减去DMA保留页的大小  */
+        if (j == 0 && freesize > dma_reserve) {
+            freesize -= dma_reserve;
+            printk(KERN_DEBUG "  %s zone: %lu pages reserved\n",
+                    zone_names[0], dma_reserve);
+        }
+
+        if (!is_highmem_idx(j))
+            nr_kernel_pages += freesize;
+        /* Charge for highmem memmap if there are enough kernel pages */
+        else if (nr_kernel_pages > memmap_pages * 2)
+            nr_kernel_pages -= memmap_pages;
+        nr_all_pages += freesize;
+
+        /*
+         * Set an approximate value for lowmem here, it will be adjusted
+         * when the bootmem allocator frees pages into the buddy system.
+         * And all highmem pages will be managed by the buddy system.
+         */
+        /* 设置zone->spanned_pages为包括洞的页框数  */
+        zone->managed_pages = is_highmem_idx(j) ? realsize : freesize;
+#ifdef CONFIG_NUMA
+		/* 设置zone中的节点标识符 */
+        zone->node = nid;
+        /* 设置可回收页面比率 */
+        zone->min_unmapped_pages = (freesize*sysctl_min_unmapped_ratio)
+                        / 100;
+        /* 设置slab回收缓存页的比率 */
+        zone->min_slab_pages = (freesize * sysctl_min_slab_ratio) / 100;
+#endif
+		/*  设置zone的名称  */
+        zone->name = zone_names[j];
+
+        /* 初始化各种锁 */
+		spin_lock_init(&zone->lock);
+        spin_lock_init(&zone->lru_lock);
+        zone_seqlock_init(zone);
+        /* 设置管理区属于的节点对应的pg_data_t结构 */
+        zone->zone_pgdat = pgdat;
+        /* 初始化cpu的页面缓存 */
+        zone_pcp_init(zone);
+
+        /* For bootup, initialized properly in watermark setup */
+        mod_zone_page_state(zone, NR_ALLOC_BATCH, zone->managed_pages);
+
+        /* 初始化lru相关成员 */
+        lruvec_init(&zone->lruvec);
+        if (!size)
+            continue;
+
+        set_pageblock_order();
+        /* 定义了CONFIG_SPARSEMEM该函数为空 */
+        setup_usemap(pgdat, zone, zone_start_pfn, size);
+		/* 设置pgdat->nr_zones和zone->zone_start_pfn成员
+         * 初始化zone->free_area成员
+         * 初始化zone->wait_table相关成员
+         */
+         ret = init_currently_empty_zone(zone, zone_start_pfn, size);
+        BUG_ON(ret);
+        /* 初始化该zone对应的page结构 */
+        memmap_init(size, nid, j, zone_start_pfn);
+    }
+}
+```
+
+##2.7	 memmap_init
+-------
+
+在free_area_init_core初始化内存管理区zone的过程中, 通过memmap_init函数对每个内存管理区zone的page内存进行了初始化
+
+
+memmap_init函数定义在[mm/page_alloc.c?v=4.7, line ](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5241)
+
+```cpp
+#ifndef __HAVE_ARCH_MEMMAP_INIT
+#define memmap_init(size, nid, zone, start_pfn) \
+	memmap_init_zone((size), (nid), (zone), (start_pfn), MEMMAP_EARLY)
+#endif
+```
+memmap_init_zone函数完成了page的初始化工作, 该函数定义在[mm/page_alloc.c?v=4.7, line 5139](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5139)
 
 
 
