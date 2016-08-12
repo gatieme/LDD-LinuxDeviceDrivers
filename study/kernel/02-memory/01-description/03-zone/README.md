@@ -877,8 +877,198 @@ MAX_NR_NODES是可以存在的节点的最大数.
 
 
 
-#总结
+
+#6	zonelist内存域存储层次
 -------
+
+
+
+##6.1	内存域之间的层级结构
+-------
+
+
+当前结点与系统中其他结点的内存域之前存在一种等级次序
+
+
+我们考虑一个例子, 其中内核想要分配高端内存. 
+
+1.	它首先企图在当前结点的高端内存域找到一个大小适当的空闲段. 如果失败, 则查看该结点的普通内存域. 如果还失败, 则试图在该结点的DMA内存域执行分配.
+
+2.	如果在3个本地内存域都无法找到空闲内存, 则查看其他结点. 在这种情况下, 备
+选结点应该尽可能靠近主结点, 以最小化由于访问非本地内存引起的性能损失.
+
+内核定义了内存的一个层次结构, 首先试图分配"廉价的"内存. 如果失败, 则根据访问速度和容量, 逐渐尝试分配"更昂贵的"内存.
+
+
+**高端内存是最廉价的**, 因为内核没有任何部份依赖于从该内存域分配的内存. 如果高端内存域用尽, 对内核没有任何副作用, 这也是优先分配高端内存的原因.
+
+**其次是普通内存域**, 这种情况有所不同. 许多内核数据结构必须保存在该内存域, 而不能放置到高端内存域.
+
+因此如果普通内存完全用尽, 那么内核会面临紧急情况. 所以只要高端内存域的内存没有用尽, 都不会从普通内存域分配内存.
+
+**最昂贵的是DMA内存域**, 因为它用于外设和系统之间的数据传输. 因此从该内存域分配内存是最后一招.
+
+
+
+##6.2	zonelist结构
+-------
+
+
+内核还针对当前内存结点的备选结点, 定义了一个等级次序. 这有助于在当前结点所有内存域的内存都用尽时, 确定一个备选结点
+
+内核使用[pg_data_t](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L627)中的[zonelist数组](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L629), 来表示所描述的层次结构.
+
+```cpp
+typedef struct pglist_data {
+	struct zonelist node_zonelists[MAX_ZONELISTS];
+	/*  ......  */
+}pg_data_t;
+```
+
+>关于该结构zonelist的所有相关信息定义[include/linux/mmzone.h?v=4.7, line 568](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L568), 我们下面慢慢来讲.
+
+node_zonelists数组对每种可能的内存域类型, 都配置了一个独立的数组项.
+
+该数组项的大小MAX_ZONELISTS用一个匿名的枚举常量定义, 定义在[include/linux/mmzone.h?v=4.7, line 571](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L571)
+
+```cpp
+enum
+{
+    ZONELIST_FALLBACK,      /* zonelist with fallback */
+#ifdef CONFIG_NUMA
+    /*
+     * The NUMA zonelists are doubled because we need zonelists that
+     * restrict the allocations to a single node for __GFP_THISNODE.
+     */
+    ZONELIST_NOFALLBACK,    /* zonelist without fallback (__GFP_THISNODE) */
+#endif
+    MAX_ZONELISTS
+};
+```
+
+
+我们会发现在UMA结构下, 数组大小MAX_ZONELISTS = 1, 因为只有一个内存结点, zonelist中只会存储一个`ZONELIST_FALLBACK`类型的结构, 但是NUMA下需要多余的`ZONELIST_NOFALLBACK`用以表示当前结点的信息
+
+pg_data_t->node_zonelists数组项用struct zonelis结构体定义, 该结构包含了类型为`struct zoneref`的一个备用列表由于该备用列表必须包括所有结点的所有内存域，因此由MAX_NUMNODES * MAX_NZ_ZONES项组成，外加一个用于标记列表结束的空指针
+
+struct zonelist结构的定义在[include/linux/mmzone.h?v=4.7, line 606](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L606)
+
+
+```cpp
+/*
+ * One allocation request operates on a zonelist. A zonelist
+ * is a list of zones, the first one is the 'goal' of the
+ * allocation, the other zones are fallback zones, in decreasing
+ * priority.
+ *
+ * To speed the reading of the zonelist, the zonerefs contain the zone index
+ * of the entry being read. Helper functions to access information given
+ * a struct zoneref are
+ *
+ * zonelist_zone()      - Return the struct zone * for an entry in _zonerefs
+ * zonelist_zone_idx()  - Return the index of the zone for an entry
+ * zonelist_node_idx()  - Return the index of the node for an entry
+ */
+struct zonelist {
+    struct zoneref _zonerefs[MAX_ZONES_PER_ZONELIST + 1];
+};
+```
+
+而struct zoneref结构的定义如下[include/linux/mmzone.h?v=4.7, line 583](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L583)
+
+/*
+ * This struct contains information about a zone in a zonelist. It is stored
+ * here to avoid dereferences into large structures and lookups of tables
+ */
+struct zoneref {
+    struct zone *zone;      /* Pointer to actual zone */
+    int zone_idx;       /* zone_idx(zoneref->zone) */
+};
+
+
+##6.3	内存域的排列方式
+-------
+
+
+那么我们内核是如何组织在zonelist中组织内存域的呢?
+
+NUMA系统中存在多个节点, 每个节点对应一个`struct pglist_data`结构, 每个结点中可以包含多个zone, 如: ZONE_DMA, ZONE_NORMAL, 这样就产生几种排列顺序, 以2个节点2个zone为例(zone从高到低排列, ZONE_DMA0表示节点0的ZONE_DMA，其它类似).
+
+*	Legacy方式, 每个节点只排列自己的zone；
+
+![Legacy方式](../images/legacy-order.jpg)
+
+*	Node方式, 按节点顺序依次排列，先排列本地节点的所有zone，再排列其它节点的所有zone。
+
+
+![Node方式](../images/node-order.jpg)
+
+
+*	Zone方式, 按zone类型从高到低依次排列各节点的同相类型zone
+
+
+![Zone方式](../images/zone-order.jpg)
+
+
+
+可通过启动参数"numa_zonelist_order"来配置zonelist order，内核定义了3种配置, 这些顺序定义在[mm/page_alloc.c?v=4.7, line 4551](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4551)
+
+```cpp
+// http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4551
+#define ZONELIST_ORDER_DEFAULT  0 /* 智能选择Node或Zone方式 */
+
+#define ZONELIST_ORDER_NODE     1 /* 对应Node方式 */
+
+#define ZONELIST_ORDER_ZONE     2 /* 对应Zone方式 */
+```
+
+>注意
+>
+>在非NUMA系统中(比如UMA), 由于只有一个内存结点, 因此ZONELIST_ORDER_ZONE和ZONELIST_ORDER_NODE选项会配置相同的内存域排列方式, 因此, 只有NUMA可以配置这几个参数
+
+
+
+全局的current_zonelist_order变量标识了系统中的当前使用的内存域排列方式, 默认配置为ZONELIST_ORDER_DEFAULT, 参见[mm/page_alloc.c?v=4.7, line 4564](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4564)
+
+
+```cpp
+//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4564
+/* zonelist order in the kernel.
+ * set_zonelist_order() will set this to NODE or ZONE.
+ */
+static int current_zonelist_order = ZONELIST_ORDER_DEFAULT;
+static char zonelist_order_name[3][8] = {"Default", "Node", "Zone"};
+```
+
+而zonelist_order_name方式分别对应了Legacy方式, Node方式和Zone方式. 其zonelist_order_name[current_zonelist_order]就标识了当前系统中所使用的内存域排列方式的名称"Default", "Node", "Zone".
+
+
+| 宏 | zonelist_order_name[宏](排列名称) | 排列方式 | 描述 |
+|:--:|:-------------------:|:------:|:----:|
+| ZONELIST_ORDER_DEFAULT | Default |  | 由系统智能选择Node或Zone方式 |
+| ZONELIST_ORDER_NODE | Node | Node方式 | 按节点顺序依次排列，先排列本地节点的所有zone，再排列其它节点的所有zone |
+| ZONELIST_ORDER_ZONE | Zone | Zone方式 | 按zone类型从高到低依次排列各节点的同相类型zone |
+
+
+内核就通过通过set_zonelist_order函数设置当前系统的内存域排列方式current_zonelist_order, 其定义依据系统的NUMA结构还是UMA结构有很大的不同. 该函数定义在[mm/page_alloc.c?v=4.7, line 4571](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4571)
+
+
+##6.4	build_all_zonelists初始化内存节点
+-------
+
+内核通过build_all_zonelists初始化了内存结点的zonelists域
+
+*	首先内核通过set_zonelist_order函数设置了`zonelist_order`,如下所示, 参见[mm/page_alloc.c?v=4.7, line 5031](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5031)
+
+*	建立备用层次结构的任务委托给build_zonelists, 该函数为每个NUMA结点都创建了相应的数据结构. 它需要指向相关的pg_data_t实例的指针作为参数
+
+
+
+
+
+#7	总结
+-------
+
 
 在linux中，内核也不是对所有物理内存都一视同仁，内核而是把页分为不同的区, 使用区来对具有相似特性的页进行分组.
 
@@ -911,5 +1101,4 @@ Linux必须处理如下两种硬件存在缺陷而引起的内存寻址问题：
 
 
 ![每个区及其在X86上所占的列表](./images/zone_x86_32.png)
-
 
