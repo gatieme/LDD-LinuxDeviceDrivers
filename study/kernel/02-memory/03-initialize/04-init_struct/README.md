@@ -338,11 +338,7 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
 #endif /* CONFIG_NUMA */
 ```
 
-在获取了三个管理区的页面数后，通过free_area_init_nodes()来完成后续工作, 其中核心函数为free_area_init_node(),用来针对特定的节点进行初始化
-
-至此，节点和管理区的关键数据已完成初始化，内核在后面为内存管理做得一个准备工作就是将所有节点的管理区都链入到zonelist中，便于后面内存分配工作的进行
-
-内核在start_kernel()-->build_all_zonelist()中完成zonelist的初始化
+在获取了三个管理区的页面数后, NUMA架构下通过free_area_init_nodes()来完成后续工作, 其中核心函数为free_area_init_node(),用来针对特定的节点进行初始化, 由于UMA架构下只有一个内存结点, 因此直接通过free_area_init_node来完成内存结点的初始化
 
 
 ##2.4	free_area_init_node(s)初始化NUMA内存结点
@@ -481,7 +477,9 @@ free_area_init_nodes函数中通过循环遍历各个节点，循环中调用了
 ##2.5	free_area_init_node初始化UMA内存结点
 -------
 
-[free_area_init_nodes](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6076)函数初始化所有结点的pg_data_t和zone、page的数据，并打印了管理区信息：
+[free_area_init_nodes](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6076)函数初始化所有结点的pg_data_t和zone、page的数据，并打印了管理区信息.
+
+该函数定义在[mm/page_alloc.c?v=4.7, line 6076](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6076)
 
 ```cpp
 void __paginginit free_area_init_node(int nid, unsigned long *zones_size,
@@ -673,7 +671,34 @@ static void __paginginit free_area_init_core(struct pglist_data *pgdat)
 }
 ```
 
-##2.7	 memmap_init
+##2.7	zone_pcp_init初始化per_cpu缓存(冷热页)废弃
+-------
+
+前面讲解内存管理域zone的时候, 提到了per-CPU缓存, 即冷热页. 而zone_pcp_init就负责该缓存的初始化. 该函数由free_area_init_node调用.
+
+该函数定义在[mm/page_alloc.c?v=4.7, line 5029](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5029)
+
+```cpp
+static __meminit void zone_pcp_init(struct zone *zone)
+{
+    /*
+     * per cpu subsystem is not up at this point. The following code
+     * relies on the ability of the linker to provide the
+     * offset of a (static) per cpu variable into the per cpu area.
+     */
+    zone->pageset = &boot_pageset;
+
+    if (populated_zone(zone))
+        printk(KERN_DEBUG "  %s zone: %lu pages, LIFO batch:%u\n",
+            zone->name, zone->present_pages,
+                     zone_batchsize(zone));
+}
+```
+
+
+
+
+##2.7	 memmap_init初始化page页面
 -------
 
 在free_area_init_core初始化内存管理区zone的过程中, 通过memmap_init函数对每个内存管理区zone的page内存进行了初始化
@@ -690,16 +715,52 @@ memmap_init函数定义在[mm/page_alloc.c?v=4.7, line ](http://lxr.free-electro
 memmap_init_zone函数完成了page的初始化工作, 该函数定义在[mm/page_alloc.c?v=4.7, line 5139](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5139)
 
 
+至此，节点和管理区的关键数据已完成初始化，内核在后面为内存管理做得一个准备工作就是将所有节点的管理区都链入到zonelist中，便于后面内存分配工作的进行
 
-#3	初始化内存结点和内存域
+内核在start_kernel()-->build_all_zonelist()中完成zonelist的初始化
+
+
+#3	初始化zonelists
 -------
 
 
+内核setup_arch的最后通过bootmem_init中完成了内存数据结构的初始化(包括内存结点pg_data_t, 内存管理域zone和页面信息page), 数据结构已经基本准备好了, 在后面为内存管理做得一个准备工作就是将所有节点的管理区都链入到zonelist中，便于后面内存分配工作的进行.
 
 ##3.1	回到start_kernel函数(已经完成的工作)
 -------
 
 
+前面我们分析了start_kernel()->setup_arch()函数, 已经完成了memblock内存分配器的创建和初始化工作, 然后paging_init也完成分页机制的初始化, 然后bootmem_init也完成了内存结点和内存管理域的初始化工作. setup_arch函数已经执行完了, 现在我们回到start_kernel
+
+
+```cpp
+asmlinkage __visible void __init start_kernel(void)
+{
+
+    setup_arch(&command_line);
+
+
+    build_all_zonelists(NULL, NULL);
+    page_alloc_init();
+
+
+    /*
+     * These use large bootmem allocations and must precede
+     * mem_init();
+     * kmem_cache_init();
+     */
+    mm_init();
+
+    kmem_cache_init_late();
+
+	kmemleak_init();
+    setup_per_cpu_pageset();
+
+    rest_init();
+}
+```
+
+下面内核开始通过start_kernel()->build_all_zonelists来设计内存的组织形式
 
 ##3.2	build_all_zonelists
 -------
@@ -713,11 +774,67 @@ memmap_init_zone函数完成了page的初始化工作, 该函数定义在[mm/pag
   build_all_zonelists(NULL, NULL);
 ```
 
-[build_all_zonelists](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L5029)建立内存管理结点及其内存域所需的数据结构.
+[build_all_zonelists](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L5029)建立内存管理结点及其内存域的组织形式, 将描述内存的数据结构(结点, 管理域, 页帧)通过一定的算法组织在一起, 方便以后内存管理工作的进行. 该函数定义在[mm/page_alloc.c?v4.7, line 5029](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L5029)
 
 
-##2.3	设置结点初始化顺序
+
+```cpp
+/*
+ * Called with zonelists_mutex held always
+ * unless system_state == SYSTEM_BOOTING.
+ *
+ * __ref due to (1) call of __meminit annotated setup_zone_pageset
+ * [we're only called with non-NULL zone through __meminit paths] and
+ * (2) call of __init annotated helper build_all_zonelists_init
+ * [protected by SYSTEM_BOOTING].
+ */
+void __ref build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
+{
+	/*  设置zonelist中节点和内存域的组织形式
+     *  current_zonelist_order变量标识了当前系统的内存组织形式
+     *	zonelist_order_name以字符串存储了系统中内存组织形式的名称  */
+    set_zonelist_order();
+
+    if (system_state == SYSTEM_BOOTING) {
+        build_all_zonelists_init();
+    } else {
+#ifdef CONFIG_MEMORY_HOTPLUG
+        if (zone)
+            setup_zone_pageset(zone);
+#endif
+        /* we have to stop all cpus to guarantee there is no user
+           of zonelist */
+        stop_machine(__build_all_zonelists, pgdat, NULL);
+        /* cpuset refresh routine should be here */
+    }
+    vm_total_pages = nr_free_pagecache_pages();
+    /*
+     * Disable grouping by mobility if the number of pages in the
+     * system is too low to allow the mechanism to work. It would be
+     * more accurate, but expensive to check per-zone. This check is
+     * made on memory-hotadd so a system can start with mobility
+     * disabled and enable it later
+     */
+    if (vm_total_pages < (pageblock_nr_pages * MIGRATE_TYPES))
+        page_group_by_mobility_disabled = 1;
+    else
+        page_group_by_mobility_disabled = 0;
+
+    pr_info("Built %i zonelists in %s order, mobility grouping %s.  Total pages: %ld\n",
+        nr_online_nodes,
+        zonelist_order_name[current_zonelist_order],
+        page_group_by_mobility_disabled ? "off" : "on",
+        vm_total_pages);
+#ifdef CONFIG_NUMA
+    pr_info("Policy zone: %s\n", zone_names[policy_zone]);
+#endif
+}
+```
+
+
+##3.3	设置结点初始化顺序
 -------
+
 
 在build_all_zonelists开始, 首先内核通过set_zonelist_order函数设置了`zonelist_order`,如下所示, 参见[mm/page_alloc.c?v=4.7, line 5031](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5031)
 
@@ -730,7 +847,7 @@ void __ref build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
 ```
 
 
-##2.3.1	zone table
+##3.3.1	zone table
 -------
 
 
@@ -754,7 +871,7 @@ EXPORT_SYMBOL(zone_table);
 
 
 
-##2.3.2	内存域初始化顺序zonelist_order
+##3.3.2	内存域初始化顺序zonelist_order
 -------
 
 
@@ -834,7 +951,7 @@ static char zonelist_order_name[3][8] = {"Default", "Node", "Zone"};
 
 
 
-##2.3.3	set_zonelist_order设置排列方式
+##3.3.3	set_zonelist_order设置排列方式
 -------
 
 内核就通过通过set_zonelist_order函数设置当前系统的内存域排列方式current_zonelist_order, 其定义依据系统的NUMA结构还是UMA结构有很大的不同.
@@ -878,8 +995,12 @@ static void set_zonelist_order(void)
 
 	2.	当前的排列方式不是默认方式, 则设置为user_zonelist_order指定的内存域排列方式
 
-##2.3.4	default_zonelist_order函数选择最优的配置
+
+
+##3.3.4	default_zonelist_order函数选择最优的配置
 -------
+
+
 
 在UMA结构下, 内存域使用NODE和ZONE两个排列方式会产生相同的效果, 因此系统不用特殊指定, 直接通过set_zonelist_order函数, 将当前系统的内存域排列方式`current_zonelist_order`配置为为ZONE方式(与NODE效果相同)即可
 
@@ -916,7 +1037,7 @@ static int default_zonelist_order(void)
 
 
 
-###2.3.5	user_zonelist_order用户指定排列方式
+###3.3.5	user_zonelist_order用户指定排列方式
 -------
 
 
@@ -995,11 +1116,13 @@ static __init int setup_numa_zonelist_order(char *s)
 early_param("numa_zonelist_order", setup_numa_zonelist_order);
 ```
 
-##2.4	build_all_zonelists_init
+##3.4	build_all_zonelists_init
 -------
 
 
-###2.4.1	system_state系统状态标识
+###3.4.1	system_state系统状态标识
+-------
+
 
 其中`system_state`变量是一个系统全局定义的用来表示系统当前运行状态的枚举变量, 其定义在[include/linux/kernel.h?v=4.7, line 487](http://lxr.free-electrons.com/source/include/linux/kernel.h?v=4.7#L487)
 
@@ -1035,22 +1158,5 @@ else
 #endif
 ```
 
-#3	特定于体系结构的设置
--------
 
-##2.1	内核在内存中的布局
--------
-
-##2.2	初始化过程
--------
-
-
-##2.3	分页机制初始化
--------
-
-##2.4	注册活动内存区
--------
-
-##2.5	系统的地址空间设置
--------
 
