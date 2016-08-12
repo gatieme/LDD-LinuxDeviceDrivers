@@ -6,7 +6,7 @@ GITHUB_COMMIT := $(COMMIT)
 
 
 ifeq ($(COMMIT), )
-	GITHUB_COMMIT="内存管理之内存初始化内存管理..."
+	GITHUB_COMMIT="..."
 endif
 
 
