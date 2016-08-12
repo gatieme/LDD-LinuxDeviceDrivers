@@ -671,30 +671,6 @@ static void __paginginit free_area_init_core(struct pglist_data *pgdat)
 }
 ```
 
-##2.7	zone_pcp_init初始化per_cpu缓存(冷热页)废弃
--------
-
-前面讲解内存管理域zone的时候, 提到了per-CPU缓存, 即冷热页. 而zone_pcp_init就负责该缓存的初始化. 该函数由free_area_init_node调用.
-
-该函数定义在[mm/page_alloc.c?v=4.7, line 5029](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5029)
-
-```cpp
-static __meminit void zone_pcp_init(struct zone *zone)
-{
-    /*
-     * per cpu subsystem is not up at this point. The following code
-     * relies on the ability of the linker to provide the
-     * offset of a (static) per cpu variable into the per cpu area.
-     */
-    zone->pageset = &boot_pageset;
-
-    if (populated_zone(zone))
-        printk(KERN_DEBUG "  %s zone: %lu pages, LIFO batch:%u\n",
-            zone->name, zone->present_pages,
-                     zone_batchsize(zone));
-}
-```
-
 
 
 
@@ -725,6 +701,29 @@ memmap_init_zone函数完成了page的初始化工作, 该函数定义在[mm/pag
 
 
 内核setup_arch的最后通过bootmem_init中完成了内存数据结构的初始化(包括内存结点pg_data_t, 内存管理域zone和页面信息page), 数据结构已经基本准备好了, 在后面为内存管理做得一个准备工作就是将所有节点的管理区都链入到zonelist中，便于后面内存分配工作的进行.
+
+
+内存节点pg_data_t中将内存节点中的内存区域zone按照某种组织层次存储在一个zonelist中, 即pglist_data->node_zonelists成员信息
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L626
+typedef struct pglist_data
+{
+	struct zone node_zones[MAX_NR_ZONES];
+	struct zonelist node_zonelists[MAX_ZONELISTS];
+}
+```
+
+
+内核定义了内存的一个层次结构关系, 首先试图分配廉价的内存，如果失败，则根据访问速度和容量，逐渐尝试分配更昂贵的内存.
+
+高端内存最廉价, 因为内核没有任何部分依赖于从该内存域分配的内存, 如果高端内存用尽, 对内核没有副作用, 所以优先分配高端内存
+
+普通内存域的情况有所不同, 许多内核数据结构必须保存在该内存域, 而不能放置到高端内存域, 因此如果普通内存域用尽, 那么内核会面临内存紧张的情况
+
+DMA内存域最昂贵，因为它用于外设和系统之间的数据传输。
+举例来讲，如果内核指定想要分配高端内存域。它首先在当前结点的高端内存域寻找适当的空闲内存段，如果失败，则查看该结点的普通内存域，如果还失败，则试图在该结点的DMA内存域分配。如果在3个本地内存域都无法找到空闲内存，则查看其他结点。这种情况下，备选结点应该尽可能靠近主结点，以最小化访问非本地内存引起的性能损失。
+
 
 ##3.1	回到start_kernel函数(已经完成的工作)
 -------
@@ -1119,6 +1118,21 @@ early_param("numa_zonelist_order", setup_numa_zonelist_order);
 ##3.4	build_all_zonelists_init
 -------
 
+build_all_zonelists函数在通过set_zonelist_order设置了zonelists中结点的组织顺序后, 首先检查了ssytem_state标识. 如果当前系统处于boot阶段(SYSTEM_BOOTING), 就开始通过build_all_zonelists_init函数初始化zonelist
+
+
+```cpp
+build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
+{
+	/*  设置zonelist中节点和内存域的组织形式
+     *  current_zonelist_order变量标识了当前系统的内存组织形式
+     *	zonelist_order_name以字符串存储了系统中内存组织形式的名称  */
+    set_zonelist_order();
+
+    if (system_state == SYSTEM_BOOTING) {
+        build_all_zonelists_init();
+```
+
 
 ###3.4.1	system_state系统状态标识
 -------
@@ -1158,5 +1172,266 @@ else
 #endif
 ```
 
+##3.4.2	build_all_zonelists_init函数
+
+build_all_zonelists函数在如果当前系统处于boot阶段(system_state == SYSTEM_BOOTING), 就开始通过build_all_zonelists_init函数初始化zonelist
 
 
+build_all_zonelists_init函数定义在[mm/page_alloc.c?v=4.7, line 5013](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5013)
+
+```cpp
+static noinline void __init
+build_all_zonelists_init(void)
+{
+    __build_all_zonelists(NULL);
+    mminit_verify_zonelist();
+    cpuset_init_current_mems_allowed();
+}
+```
+
+
+其中__build_all_zonelists完成了zonelists的初始化工作
+
+```cpp
+/* return values int ....just for stop_machine() */
+static int __build_all_zonelists(void *data)
+{
+    int nid;
+    int cpu;
+    pg_data_t *self = data;
+
+#ifdef CONFIG_NUMA
+    memset(node_load, 0, sizeof(node_load));
+#endif
+
+    if (self && !node_online(self->node_id)) {
+        build_zonelists(self);
+    }
+
+    for_each_online_node(nid) {
+        pg_data_t *pgdat = NODE_DATA(nid);
+
+        build_zonelists(pgdat);
+    }
+
+    /*
+     * Initialize the boot_pagesets that are going to be used
+     * for bootstrapping processors. The real pagesets for
+     * each zone will be allocated later when the per cpu
+     * allocator is available.
+     *
+     * boot_pagesets are used also for bootstrapping offline
+     * cpus if the system is already booted because the pagesets
+     * are needed to initialize allocators on a specific cpu too.
+     * F.e. the percpu allocator needs the page allocator which
+     * needs the percpu allocator in order to allocate its pagesets
+     * (a chicken-egg dilemma).
+     */
+    for_each_possible_cpu(cpu) {
+        setup_pageset(&per_cpu(boot_pageset, cpu), 0);
+
+#ifdef CONFIG_HAVE_MEMORYLESS_NODES
+        /*
+         * We now know the "local memory node" for each node--
+         * i.e., the node of the first zone in the generic zonelist.
+         * Set up numa_mem percpu variable for on-line cpus.  During
+         * boot, only the boot cpu should be on-line;  we'll init the
+         * secondary cpus' numa_mem as they come on-line.  During
+         * node/memory hotplug, we'll fixup all on-line cpus.
+         */
+        if (cpu_online(cpu))
+            set_cpu_numa_mem(cpu, local_memory_node(cpu_to_node(cpu)));
+#endif
+    }
+
+    return 0;
+}
+```
+
+##3.4.3	build_zonelists初始化每个内存结点的zonelists
+-------
+
+build_zonelists(pg_data_t *pgdat)完成了节点pgdat上zonelists的初始化工作
+
+
+*	如果设置了设置了ZONELIST_ORDER_NODE内存区域顺序排列, 就调用build_zonelists_in_node_order(pgdat, node)完
+成节点内区域顺序的排列
+
+
+该函数的任务是在当前处理的结点和系统中其他结点的内存域之间建立一种等级次序。接下来，依据这种次序分配内存，如果在期望的结点内存域中，没有空闲内存，就去查找相邻结点的内存域
+
+内核定义了内存的一个层次结构关系, 首先试图分配廉价的内存，如果失败，则根据访问速度和容量，逐渐尝试分配更昂贵的内存.
+
+高端内存最廉价, 因为内核没有任何部分依赖于从该内存域分配的内存, 如果高端内存用尽, 对内核没有副作用, 所以优先分配高端内存
+
+普通内存域的情况有所不同, 许多内核数据结构必须保存在该内存域, 而不能放置到高端内存域, 因此如果普通内存域用尽, 那么内核会面临内存紧张的情况
+
+DMA内存域最昂贵，因为它用于外设和系统之间的数据传输。
+举例来讲，如果内核指定想要分配高端内存域。它首先在当前结点的高端内存域寻找适当的空闲内存段，如果失败，则查看该结点的普通内存域，如果还失败，则试图在该结点的DMA内存域分配。如果在3个本地内存域都无法找到空闲内存，则查看其他结点。这种情况下，备选结点应该尽可能靠近主结点，以最小化访问非本地内存引起的性能损失。
+
+##3.4.4	setup_pageset初始化per_cpu缓存
+-------
+
+前面讲解内存管理域zone的时候, 提到了per-CPU缓存, 即冷热页. 在组织每个节点的zonelist的过程中, setup_pageset初始化了per-CPU缓存(冷热页面)
+
+```cpp
+static void setup_pageset(struct per_cpu_pageset *p, unsigned long batch)
+{
+	pageset_init(p);
+	pageset_set_batch(p, batch);
+}
+```
+
+
+
+在此之前free_area_init_node初始化内存结点的时候, 内核就输出了冷热页的一些信息, 该工作由zone_pcp_init完成, 该函数定义在[mm/page_alloc.c?v=4.7, line 5029](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5029)
+
+```cpp
+static __meminit void zone_pcp_init(struct zone *zone)
+{
+    /*
+     * per cpu subsystem is not up at this point. The following code
+     * relies on the ability of the linker to provide the
+     * offset of a (static) per cpu variable into the per cpu area.
+     */
+    zone->pageset = &boot_pageset;
+
+    if (populated_zone(zone))
+        printk(KERN_DEBUG "  %s zone: %lu pages, LIFO batch:%u\n",
+            zone->name, zone->present_pages,
+                     zone_batchsize(zone));
+}
+```
+
+
+
+
+#总结
+-------
+
+
+
+##	start_kernel启动流程
+-------
+
+
+```cpp
+start_kernel()
+    |---->page_address_init()
+    |     考虑支持高端内存
+    |     业务：初始化page_address_pool链表；
+    |          将page_address_maps数组元素按索引降序插入
+    |          page_address_pool链表; 
+    |          初始化page_address_htable数组.
+    | 
+    |---->setup_arch(&command_line);
+    |
+    |---->setup_per_cpu_areas();
+    |     为per-CPU变量分配空间
+    |
+    |---->build_all_zonelist()
+    |     为系统中的zone建立后备zone的列表.
+    |     所有zone的后备列表都在
+    |     pglist_data->node_zonelists[0]中;
+    |
+    |     期间也对per-CPU变量boot_pageset做了初始化. 
+    |
+    |---->page_alloc_init()
+         |---->hotcpu_notifier(page_alloc_cpu_notifier, 0);
+         |     不考虑热插拔CPU 
+         |
+    |---->pidhash_init()
+    |     详见下文.
+    |     根据低端内存页数和散列度，分配hash空间，并赋予pid_hash
+    |
+    |---->vfs_caches_init_early()
+          |---->dcache_init_early()
+          |     dentry_hashtable空间，d_hash_shift, h_hash_mask赋值；
+          |     同pidhash_init();
+          |     区别:
+          |         散列度变化了（13 - PAGE_SHIFT）;
+          |         传入alloc_large_system_hash的最后参数值为0;
+          |
+          |---->inode_init_early()
+          |     inode_hashtable空间，i_hash_shift, i_hash_mask赋值；
+          |     同pidhash_init();
+          |     区别:
+          |         散列度变化了（14 - PAGE_SHIFT）;
+          |         传入alloc_large_system_hash的最后参数值为0;
+          |
+```
+
+##pidhash_init配置高端内存
+-------
+
+
+```cpp
+void pidhash_init(void)
+    |---->pid_hash = alloc_large_system_hash("PID", sizeof(*pid_hash), 
+    |         0, 18, HASH_EARLY|HASH_SMALL, &pidhash_shift, NULL, 4096);
+    |     根据nr_kernel_pages(低端内存的页数)，分配哈希数组，以及各个哈希
+    |     数组元素下的哈希链表的空间，原理如下：
+    |     number = nr_kernel_pages; 
+    |     number >= (18 - PAGE_SHIFT) 根据散列度获得数组元素个数
+    |     number = roundup_pow_of_two(number);
+    |     pidhash_shift = max{x | 2**x <= number}
+    |     size = number * sizeof(*pid_hash);
+    |     使用位图分配器分配size空间，将返回值付给pid_hash;
+    |
+    |---->pidhash_size = 1 << pidhash_shift;
+    |
+    |---->for(i = 0; i < pidhash_size; i++)
+    |         INIT_HLIST_HEAD(&pid_hash[i]);
+```
+
+##	build_all_zonelists初始化每个内存节点的zonelists
+-------
+
+
+
+```cpp
+void build_all_zonelists(void)
+    |---->set_zonelist_order()
+         |---->current_zonelist_order = ZONELIST_ORDER_ZONE;
+    |
+    |---->__build_all_zonelists(NULL);
+    |    Memory不支持热插拔, 为每个zone建立后备的zone,
+    |    每个zone及自己后备的zone，形成zonelist
+    	|
+        |---->pg_data_t *pgdat = NULL;
+        |     pgdat = &contig_page_data;(单node)
+        |
+        |---->build_zonelists(pgdat);
+        |     为每个zone建立后备zone的列表
+            |
+            |---->struct zonelist *zonelist = NULL;
+            |     enum zone_type j;
+            |     zonelist = &pgdat->node_zonelists[0];
+            |
+            |---->j = build_zonelists_node(pddat, zonelist, 0, MAX_NR_ZONES - 1);
+            |     为pgdat->node_zones[0]建立后备的zone，node_zones[0]后备的zone
+            |     存储在node_zonelist[0]内，对于node_zone[0]的后备zone，其后备的zone
+            |     链表如下(只考虑UMA体系，而且不考虑ZONE_DMA)：
+            |     node_zonelist[0]._zonerefs[0].zone = &node_zones[2];
+            |     node_zonelist[0]._zonerefs[0].zone_idx = 2;
+            |     node_zonelist[0]._zonerefs[1].zone = &node_zones[1];
+            |     node_zonelist[0]._zonerefs[1].zone_idx = 1;
+            |     node_zonelist[0]._zonerefs[2].zone = &node_zones[0];
+            |     node_zonelist[0]._zonerefs[2].zone_idx = 0;
+            |     
+            |     zonelist->_zonerefs[3].zone = NULL;
+            |     zonelist->_zonerefs[3].zone_idx = 0;    
+        |
+        |---->build_zonelist_cache(pgdat);
+              |---->pdat->node_zonelists[0].zlcache_ptr = NULL;
+              |     UMA体系结构
+              |
+        |---->for_each_possible_cpu(cpu)
+        |     setup_pageset(&per_cpu(boot_pageset, cpu), 0);
+              |详见下文
+    |---->vm_total_pages = nr_free_pagecache_pages();
+    |    业务：获得所有zone中的present_pages总和.
+    |
+    |---->page_group_by_mobility_disabled = 0;
+    |     对于代码中的判断条件一般不会成立，因为页数会最够多（内存较大）
+```
