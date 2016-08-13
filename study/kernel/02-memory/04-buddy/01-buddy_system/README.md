@@ -26,6 +26,9 @@ Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该�
 -------
 
 
+##2.1	伙伴系统数据结构
+-------
+
 系统内存中的每个物理内存页（页帧），都对应于一个struct page实例, 每个内存域都关联了一个struct zone的实例，其中保存了用于管理伙伴数据的主要数数组
 
 
@@ -73,8 +76,9 @@ zone->free_area[MAX_ORDER]数组中阶作为各个元素的索引, 用于指定�
 ![空闲页快](../images/order_free_list.png)
 
 
-##MAX_ORDER与FORCE_MAX_ZONEORDER配置选项
+##2.2	最大阶MAX_ORDER与FORCE_MAX_ZONEORDER配置选项
 -------
+
 
 一般来说`MAX_ORDER`默认定义为11, 这意味着一次分配可以请求的页数最大是2^11=2048, 参见[include/linux/mmzone.h?v=4.7, line 22](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L22)
 
@@ -117,8 +121,9 @@ default "11"`
 
 
 
-##内存区是如何连接的
+##2.3	内存区是如何连接的
 -------
+
 
 内存区中第1页内的链表元素, 可用于将内存区维持在链表中。因此，也不必引入新的数据结构来管理物理上连续的页，否则这些页不可能在同一内存区中. 如下图所示
 
@@ -145,9 +150,125 @@ default "11"`
 上述输出给出了各个内存域中每个分配阶中空闲项的数目, 从左至右, 阶依次升高. 上面给出的信息取自4 GiB物理内存的AMD64系统.
 
 
-#3	避免碎片
+
+
+#	分配器API
 -------
 
+
+## 分配内存的接口
+-------
+
+就伙伴系统的接口而言, NUMA或UMA体系结构是没有差别的, 二者的调用语法都是相同的.
+
+所有函数的一个共同点是 : 只能分配2的整数幂个页.
+
+因此，接口中不像C标准库的malloc函数或bootmem和memblock分配器那样指定了所需内存大小作为参数. 相反, 必须指定的是分配阶, 伙伴系统将在内存中分配$2^order$页. 内核中细粒度的分配只能借助于slab分配器(或者slub、slob分配器), 后者基于伙伴系统
+
+
+| 内存分配函数 | 功能 | 定义 |
+|:-----:|:-----:|
+| alloc_pages(mask, order) | 分配$2^order$页并返回一个struct page的实例，表示分配的内存块的起始页 | [NUMA-include/linux/gfp.h, line 466](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L466)<br>[UMA-include/linux/gfp.h?v=4.7, line 476](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L476) |
+| alloc_page(mask) | 是前者在order = 0情况下的简化形式，只分配一页 |  [include/linux/gfp.h?v=4.7, line 483](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483) |
+| get_zeroed_page(mask) | 分配一页并返回一个page实例，页对应的内存填充0（所有其他函数，分配之后页的内容是未定义的） | [mm/page_alloc.c?v=4.7, line 3900](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3900)| |
+| [__get_free_pages(mask, order)](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)<br>[__get_free_page(mask)](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L500) | 工作方式与上述函数相同，但返回分配内存块的虚拟地址，而不是page实例 |
+| get_dma_pages(gfp_mask, order) | 用来获得适用于DMA的页. | [include/linux/gfp.h?v=4.7, line 503](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L503) |
+
+
+在空闲内存无法满足请求以至于分配失败的情况下，所有上述函数都返回空指针(比如alloc_pages和alloc_page)或者0(比如get_zeroed_page、__get_free_pages和__get_free_page).
+
+因此内核在各次分配之后都必须检查返回的结果. 这种惯例与设计得很好的用户层应用程序没什么不同, 但在内核中忽略检查会导致严重得多的故障
+
+
+内核除了伙伴系统函数之外, 还提供了其他内存管理函数. 它们以伙伴系统为基础, 但并不属于伙伴分配器自身. 这些函数包括vmalloc和vmalloc_32, 使用页表将不连续的内存映射到内核地址空间中, 使之看上去是连续的.
+
+还有一组kmalloc类型的函数, 用于分配小于一整页的内存区. 其实现
+将在本章后续的几节分别讨论。
+
+## 释放函数
+-------
+
+有4个函数用于释放不再使用的页，与所述函数稍有不同
+
+
+| 内存释放函数 | 描述 |
+|:--------------:|:-----:|
+| [free_page(struct page *)](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L520)<br>[free_pages(struct page *, order)](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3918) | 用于将一个或2order页返回给内存管理子系统。内存区的起始地址由指向该内存区的第一个page实例的指针表示 |
+| [__free_page(addr)](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L519)<br>[__free_pages(addr, order)](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3906) | 类似于前两个函数，但在表示需要释放的内存区时，使用了虚拟内存地址而不是page实例 |
+
+##分配掩码
+-------
+
+
+前述所有函数中强制使用的mask参数，到底是什么语义?
+
+我们知道Linux将内存划分为内存域. 内核提供了所谓的内存域修饰符(zone modifier)(在掩码的最低4个比特位定义), 来指定从哪个内存域分配所需的页.
+
+
+参见[include/linux/gfp.h?v=4.7, line 12~374](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L12)
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7
+
+//  line 12 ~ line 44
+/* Plain integer GFP bitmasks. Do not use this directly. */
+#define ___GFP_DMA              0x01u
+#define ___GFP_HIGHMEM          0x02u
+#define ___GFP_DMA32            0x04u
+#define ___GFP_MOVABLE          0x08u
+/*  ......  */
+
+// line 46 ~ line 192
+#define __GFP_DMA       ((__force gfp_t)___GFP_DMA)
+#define __GFP_HIGHMEM   ((__force gfp_t)___GFP_HIGHMEM)
+#define __GFP_DMA32     ((__force gfp_t)___GFP_DMA32)
+#define __GFP_MOVABLE   ((__force gfp_t)___GFP_MOVABLE)  /* ZONE_MOVABLE allowed */
+
+// line 194 ~ line 260
+```
+其中GFP缩写的意思为获取空闲页(get free page), __GFP_MOVABLE不表示物理内存域, 但通知内核应在特殊的虚拟内存域ZONE_MOVABLE进行相应的分配.
+
+
+我们从注释中找到这样的信息
+```cpp
+bit       result
+=================
+0x0    => NORMAL
+0x1    => DMA or NORMAL
+0x2    => HIGHMEM or NORMAL
+0x3    => BAD (DMA+HIGHMEM)
+0x4    => DMA32 or DMA or NORMAL
+0x5    => BAD (DMA+DMA32)
+0x6    => BAD (HIGHMEM+DMA32)
+0x7    => BAD (HIGHMEM+DMA32+DMA)
+0x8    => NORMAL (MOVABLE+0)
+0x9    => DMA or NORMAL (MOVABLE+DMA)
+0xa    => MOVABLE (Movable is valid only if HIGHMEM is set too)
+0xb    => BAD (MOVABLE+HIGHMEM+DMA)
+0xc    => DMA32 (MOVABLE+DMA32)
+0xd    => BAD (MOVABLE+DMA32+DMA)
+0xe    => BAD (MOVABLE+DMA32+HIGHMEM)
+0xf    => BAD (MOVABLE+DMA32+HIGHMEM+DMA)
+
+GFP_ZONES_SHIFT must be <= 2 on 32 bit platforms.
+```
+
+很有趣的一点是，没有\__GFP_NORMAL常数，而内存分配的主要负担却落到ZONE_NORMAL内存域
+
+内核考虑到这一点, 提供了一个函数gfp_zone来计算与给定分配标志兼容的最高内存域. 那么内存分配可以从该内存域或更低的内存域进行, 该函数定义在[](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L394)
+
+```cpp
+static inline enum zone_type gfp_zone(gfp_t flags)
+{
+    enum zone_type z;
+    int bit = (__force int) (flags & GFP_ZONEMASK);
+
+    z = (GFP_ZONE_TABLE >> (bit * GFP_ZONES_SHIFT)) &
+                     ((1 << GFP_ZONES_SHIFT) - 1);
+    VM_BUG_ON((GFP_ZONE_BAD >> bit) & 1);
+    return z;
+}
+```
 
 
 
