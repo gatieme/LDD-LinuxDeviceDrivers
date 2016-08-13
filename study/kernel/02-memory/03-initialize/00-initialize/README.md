@@ -589,17 +589,14 @@ setup_arch(char **cmdline_p)
 
 ```cpp
 bootmem_init(void)
-    |---->arm64_memblock_init( );
-    |     初始化引导阶段的内存分配器memblock
-    |
     |---->min = PFN_UP(memblock_start_of_DRAM());
     |---->max = PFN_DOWN(memblock_end_of_DRAM());
     |
     |
     |---->arm64_numa_init();
-    |   支持numa架构
+    |     支持numa架构
     |---->arm64_numa_init();
-        支持numa架构
+    |     支持numa架构
     |
     |
     |---->zone_sizes_init(min, max);

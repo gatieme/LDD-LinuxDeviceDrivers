@@ -10,6 +10,16 @@
 
 在内核初始化完成之后, 内存管理的责任就由伙伴系统来承担. 伙伴系统基于一种相对简单然而令人吃惊的强大算法.
 
+Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该算法由Knowlton设计, 后来Knuth又进行了更深刻的描述.
+
+伙伴系统是一个结合了2的方幂个分配器和空闲缓冲区合并计技术的内存分配方案, 其基本思想很简单. 内存被分成含有很多页面的大块, 每一块都是2个页面大小的方幂. 如果找不到想要的块, 一个大块会被分成两部分, 这两部分彼此就成为伙伴. 其中一半被用来分配, 而另一半则空闲. 这些块在以后分配的过程中会继续被二分直至产生一个所需大小的块. 当一个块被最终释放时, 其伙伴将被检测出来, 如果伙伴也空闲则合并两者.
+
+*	内核如何记住哪些内存块是空闲的
+*	分配空闲页面的方法
+*	影响分配器行为的众多标识位
+*	内存碎片的问题和分配器如何处理碎片
+
+
 
 
 #2	伙伴系统的结构
@@ -28,7 +38,7 @@ struct zone
 };
 ```
 
-struct free_area是一个辅助数据结构, 它定义在[include/linux/mmzone.h?v=4.7, line 88](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L88)
+struct free_area是一个伙伴系统的辅助数据结构, 它定义在[include/linux/mmzone.h?v=4.7, line 88](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L88)
 
 ```cpp
 struct free_area {
@@ -43,7 +53,30 @@ unsigned long           nr_free;
 | nr_free | 指定了当前内存区中空闲页块的数目（对0阶内存区逐页计算，对1阶内存区计算页对的数目，对2阶内存区计算4页集合的数目，依次类推 |
 
 
-阶是伙伴系统中一个非常重要的术语. 它描述了内存分配的数量单位. 内存块的长度是2order，其中order的范围从0到MAX_ORDER, 参见[include/linux/mmzone.h?v=4.7, line 22](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L22)
+
+伙伴系统的分配器维护空闲页面所组成的块, 这里每一块都是2的方幂个页面, 方幂的指数称为**阶**.
+
+
+阶是伙伴系统中一个非常重要的术语. 它描述了内存分配的数量单位. 内存块的长度是$2^order$, 其中order的范围从0到MAX_ORDER
+
+
+zone->free_area[MAX_ORDER]数组中阶作为各个元素的索引, 用于指定对应链表中的连续内存区包含多少个页帧.
+
+*	数组中第0个元素的阶为0, 它的free_list链表域指向具有包含区为单页($2^0=1$)的内存页面链表
+
+*	数组中第1个元素的free_list域管理的内存区为两页($2^1=2$)
+
+*	第3个管理的内存区为4页, 依次类推.
+
+*	直到$2^{MAX_ORDER-1}$个页面大小的块
+
+![空闲页快](../images/order_free_list.png)
+
+
+##MAX_ORDER与FORCE_MAX_ZONEORDER配置选项
+-------
+
+一般来说`MAX_ORDER`默认定义为11, 这意味着一次分配可以请求的页数最大是2^11=2048, 参见[include/linux/mmzone.h?v=4.7, line 22](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L22)
 
 ```cpp
 /* Free memory management - zoned buddy allocator.  */
@@ -55,7 +88,7 @@ unsigned long           nr_free;
 #define MAX_ORDER_NR_PAGES (1 << (MAX_ORDER - 1))
 ```
 
-该常数通常设置为11，这意味着一次分配可以请求的页数最大是2^11=2048
+
 
 但如果特定于体系结构的代码设置了`FORCE_MAX_ZONEORDER`配置选项, 该值也可以手工改变
 
@@ -82,16 +115,10 @@ default "11"`
 
 
 
-free_area[]数组中各个元素的索引也解释为阶, 用于指定对应链表中的连续内存区包含多少个页帧.
-
-*	第0个链表包含的内存区为单页($2^0=1$)
-
-*	第1个链表管理的内存区为两页($2^1=2$)
-
-*	第3个管理的内存区为4页, 依次类推.
 
 
-内存区是如何连接的?
+##内存区是如何连接的
+-------
 
 内存区中第1页内的链表元素, 可用于将内存区维持在链表中。因此，也不必引入新的数据结构来管理物理上连续的页，否则这些页不可能在同一内存区中. 如下图所示
 
@@ -112,7 +139,8 @@ free_area[]数组中各个元素的索引也解释为阶, 用于指定对应链�
 
 最后要注意, 有关伙伴系统和当前状态的信息可以在/proc/buddyinfo中获取
 
-![伙伴系统和当前状态的信息](../imaes)
+![伙伴系统和当前状态的信息](../images/buddy_info.png)
+
 
 上述输出给出了各个内存域中每个分配阶中空闲项的数目, 从左至右, 阶依次升高. 上面给出的信息取自4 GiB物理内存的AMD64系统.
 

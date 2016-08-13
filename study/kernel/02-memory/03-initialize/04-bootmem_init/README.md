@@ -154,23 +154,61 @@ void __init setup_arch(char **cmdline_p)
 
 这个阶段的内存分配其实很简单, 因此我们往往称之为内存分配器(而不是内存管理器), 早期的内核中内存分配器使用的**bootmem引导分配器**, 它基于一个内存位图bitmap, 使用最优适配算法来查找内存, 但是这个分配器有很大的缺陷, 最严重的就是内存碎片的问题, 因此在后来的内核中将其舍弃《而使用了**新的memblock机制**. memblock机制的初始化在arm64上是通过[arm64_memblock_init](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L229)函数来实现的
 
+```cpp
+```cpp
+start_kernel()
+    |---->page_address_init()
+    |     考虑支持高端内存
+    |     业务：初始化page_address_pool链表；
+    |          将page_address_maps数组元素按索引降序插入
+    |          page_address_pool链表; 
+    |          初始化page_address_htable数组.
+    | 
+    |---->setup_arch(&command_line);
+    |     初始化特定体系结构的内容
+    	  |
+    	  |---->arm64_memblock_init( );
+          |     初始化引导阶段的内存分配器memblock
+          |
+          |---->paging_init();
+          |     分页机制初始化
+          |
+          |---->bootmem_init();   [当前位置]
+          |     始化内存数据结构包括内存节点, 内存域和页帧page
+                |
+                |---->arm64_numa_init();
+                |     支持numa架构
+                |
+                |---->zone_sizes_init(min, max);
+                    来初始化节点和管理区的一些数据项
+                    |
+                    |---->free_area_init_node
+                    |   初始化内存节点
+                    |
+                        |---->free_area_init_core
+                            |	初始化zone
+                            |
+                            |---->memmap_init
+                            |	初始化page页面
+                |
+                |---->memblock_dump_all();
+                |   初始化完成, 显示memblock的保留的所有内存信息
+         	   |
+    |---->build_all_zonelist()
+    |     为系统中的zone建立后备zone的列表.
+    |     所有zone的后备列表都在
+    |     pglist_data->node_zonelists[0]中;
+    |
+    |     期间也对per-CPU变量boot_pageset做了初始化. 
+    |
+```
 
 
-
-##1.6	今日内容(第二阶段--初始化buddy内存管理)
+##1.6	今日内容(第二阶段(一)--初始化内存管理数据结构)
 -------
 
 
-**初始化内存分页机制**
-
-
-在初始化内存的结点和内存区域之前, 内核先通过pagging_init初始化了内核的分页机制, 这样我们的虚拟运行空间就初步建立, 并可以完成物理地址到虚拟地址空间的映射工作.
-
-
-在arm64架构下, 内核在start_kernel()->setup_arch()中通过arm64_memblock_init( )完成了memblock的初始化之后, 接着通过setup_arch()->paging_init()开始初始化分页机制
-
-
-paging_init负责建立只能用于内核的页表, 用户空间是无法访问的. 这对管理普通应用程序和内核访问内存的方式，有深远的影响
+我们之前讲了在memblock完成之后, 内存初始化开始进入第二阶段, 第二阶段是一个漫长的过程, 它执行了一系列复杂的操作, 从体系结构相关信息的初始化慢慢向上层展开, 其主要执行了如下操作
 
 
 
@@ -178,6 +216,41 @@ paging_init负责建立只能用于内核的页表, 用户空间是无法访问�
 
 
 在完成了基础的内存结点和内存域的初始化工作以后, 我们必须克服一些硬件的特殊设置
+
+*	在初始化内存的结点和内存区域之前, 内核先通过pagging_init初始化了内核的分页机制, 这样我们的虚拟运行空间就初步建立, 并可以完成物理地址到虚拟地址空间的映射工作.
+
+在arm64架构下, 内核在start_kernel()->setup_arch()中通过arm64_memblock_init( )完成了memblock的初始化之后, 接着通过setup_arch()->paging_init()开始初始化分页机制
+
+
+paging_init负责建立只能用于内核的页表, 用户空间是无法访问的. 这对管理普通应用程序和内核访问内存的方式，有深远的影响
+
+
+*	在分页机制完成后, 内核通过setup_arch()->bootmem_init开始进行内存基本数据结构(内存结点pg_data_t, 内存域zone和页帧)的初始化工作, 就是在这个函数中, 内核开始从体系结构相关的部分逐渐展开到体系结构无关的部分, 在zone_sizes_init->free_area_init_node中开始, 内核开始进行内存基本数据结构的初始化, 也不再依赖于特定体系结构无关的层次
+
+```cpp
+bootmem_init()
+始化内存数据结构包括内存节点, 内存域和页帧page
+|
+|---->arm64_numa_init();
+|     支持numa架构
+|
+|---->zone_sizes_init(min, max);
+    来初始化节点和管理区的一些数据项
+    |
+    |---->free_area_init_node
+    |   初始化内存节点
+    |
+        |---->free_area_init_core
+            |   初始化zone
+            |
+            |---->memmap_init
+            |   初始化page页面
+|
+|---->memblock_dump_all();
+|   初始化完成, 显示memblock的保留的所有内存信息
+```
+
+
 
 
 **建立内存管理的数据结构**
@@ -234,6 +307,16 @@ void __init setup_arch(char **cmdline_p)
 
 内核接着setup_arch()->bootmem_init()函数开始执行
 
+体系结构相关的代码需要在启动期间建立如下信息 
+
+*	系统中各个内存域的页帧边界，保存在max_zone_pfn数组
+
+早期的内核还需记录各结点页帧的分配情况，保存在全局变量early_node_map中
+
+![zone_sizes_init函数](../images/arch_do_somethig.png)
+
+内核提供了一个通用的框架, 用于将上述信息转换为伙伴系统预期的节点和内存域数据结构, 但是在此之前各个体系结构必须自行建立相关结构. 
+
 
 ##2.2	bootmem_init函数初始化内存结点和管理域
 -------
@@ -273,7 +356,7 @@ void __init bootmem_init(void)
 -------
 
 
-在初始化内存结点和内存域之前, 内核首先通过setup_arch()-->bootmem_init()-->zone_sizes_init()来初始化节点和管理区的一些数据项
+在初始化内存结点和内存域之前, 内核首先通过setup_arch()-->bootmem_init()-->zone_sizes_init()来初始化节点和管理区的一些数据项, 其中关键的是初始化了系统中各个内存域的页帧边界，保存在max_zone_pfn数组.
 
 
 
@@ -341,7 +424,9 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
 在获取了三个管理区的页面数后, NUMA架构下通过free_area_init_nodes()来完成后续工作, 其中核心函数为free_area_init_node(),用来针对特定的节点进行初始化, 由于UMA架构下只有一个内存结点, 因此直接通过free_area_init_node来完成内存结点的初始化
 
 
-##2.4	free_area_init_node(s)初始化NUMA内存结点
+截至到目前为止, 体系结构相关的部分已经结束了, 各个体系结构已经自行建立了自己所需的一些底层数据结构, 这些结构建立好以后, 内核将繁重的内存数据结构创建和初始化的工作交给free_area_init_node(s)函数来完成,
+
+#3	free_area_init_nodes初始化NUMA管理数据结构
 -------
 
 >注意
@@ -355,6 +440,8 @@ static void __init zone_sizes_init(unsigned long min, unsigned long max)
 
 [free_area_init_nodes](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6460)初始化了NUMA系统中所有结点的pg_data_t和zone、page的数据, 并打印了管理区信息, 该函数定义在[mm/page_alloc.c?v=4.7, line 6460](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6460)
 
+##3.1	代码注释
+-------
 
 ```cpp
 //  初始化各个节点的所有pg_data_t和zone、page的数据
@@ -474,10 +561,146 @@ void __init free_area_init_nodes(unsigned long *max_zone_pfn)
 free_area_init_nodes函数中通过循环遍历各个节点，循环中调用了free_area_init_node函数初始化该节点对应的pg_data_t和zone、page的数据.
 
 
-##2.5	free_area_init_node初始化UMA内存结点
+##3.2	设置可使用的页帧编号
+-------
+
+
+free_area_init_nodes首先必须分析并改写特定于体系结构的代码提供的信息。其中，需要对照在zone_max_pfn和zone_min_pfn中指定的内存域的边界，计算各个内存域可使用的最低和最高的页帧编号。使用了两个全局数组来存储这些信息：
+
+参见[mm/page_alloc.c?v=4.7, line 259)](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L259)
+
+```cpp
+static unsigned long __meminitdata arch_zone_lowest_possible_pfn[MAX_NR_ZONES];
+
+static unsigned long __meminitdata arch_zone_highest_possible_pfn[MAX_NR_ZONES];
+```
+
+通过max_zone_pfn传递给free_area_init_nodes的信息记录了各个内存域包含的最大页帧号。
+free_area_init_nodes将该信息转换为一种更方便的表示形式，即以［low, high］形式描述各个内
+存域的页帧区间，存储在前述的全局变量中（我省去了对这些变量填充字节0的初始化过程）：
+
+
+```cpp
+void __init free_area_init_nodes(unsigned long *max_zone_pfn)
+{
+	/*  ......  */
+    arch_zone_lowest_possible_pfn[ZONE_MOVABLE] = 0;
+    arch_zone_highest_possible_pfn[ZONE_MOVABLE] = 0;
+
+    /* Find the PFNs that ZONE_MOVABLE begins at in each node */
+    memset(zone_movable_pfn, 0, sizeof(zone_movable_pfn));
+    /*  用于计算进入ZONE_MOVABLE的内存数量  */
+    find_zone_movable_pfns_for_nodes();
+    /*  依次遍历，确定各个内存域的边界    */
+    for (i = 1; i < MAX_NR_ZONES; i++) {
+    	/*  由于ZONE_MOVABLE是一个虚拟内存域
+         *  不与真正的硬件内存域关联
+         *  该内存域的边界总是设置为0 */
+        if (i == ZONE_MOVABLE)
+            continue;
+        /*  第n个内存域的最小页帧
+         *  即前一个（第n-1个）内存域的最大页帧  */
+        arch_zone_lowest_possible_pfn[i] =
+            arch_zone_highest_possible_pfn[i-1];
+        /*  不出意外，当前内存域的最大页帧
+         *  由max_zone_pfn给出  */
+        arch_zone_highest_possible_pfn[i] =
+            max(max_zone_pfn[i], arch_zone_lowest_possible_pfn[i]);
+    }
+
+    /*  ......  */
+}
+```
+辅助函数find_min_pfn_with_active_regions用于找到注册的最低内存域中可用的编号最小的页帧。该内存域不必一定是ZONE_DMA，例如，在计算机不需要DMA内存的情况下也可以是ZONE_NORMAL。最低内存域的最大页帧号可以从max_zone_pfn提供的信息直接获得。
+
+##3.3	构建其他内存域的页帧区间
+-------
+
+接下来构建其他内存域的页帧区间，方法很直接：第n个内存域的最小页帧，即前一个（第n-1个）内存域的最大页帧。当前内存域的最大页帧由max_zone_pfn给出
+
+```cpp
+void __init free_area_init_nodes(unsigned long *max_zone_pfn)
+{
+	/*  ......  */
+
+    arch_zone_lowest_possible_pfn[ZONE_MOVABLE] = 0;
+    arch_zone_highest_possible_pfn[ZONE_MOVABLE] = 0;
+
+    /* Find the PFNs that ZONE_MOVABLE begins at in each node */
+    memset(zone_movable_pfn, 0, sizeof(zone_movable_pfn));
+    /*  用于计算进入ZONE_MOVABLE的内存数量  */
+    find_zone_movable_pfns_for_nodes();
+
+    /*  ......  */
+}
+```
+由于ZONE_MOVABLE是一个虚拟内存域，不与真正的硬件内存域关联，该内存域的边界总是设置为0。回忆前文，可知只有在指定了内核命令行参数kernelcore或movablecore之一时，该内存域才会存在.
+该内存域一般开始于各个结点的某个特定内存域的某一页帧号。相应的编号在find_zone_movable_pfns_for_nodes里计算。
+
+现在可以向用户提供一些有关已确定的页帧区间的信息。举例来说，其中可能包括下列内容（输出取自AMD64系统，有4 GiB物理内存）：
+
+
+```cpp
+> dmesg
+
+Zone PFN ranges:
+DMA 0 0 -> 4096
+DMA32 4096 -> 1048576
+Normal 1048576 -> 1245184
+```
+
+
+##3.4	建立结点数据结构
+-------
+
+
+free_area_init_nodes剩余的部分遍历所有结点，分别建立其数据结构
+
+```cpp
+void __init free_area_init_nodes(unsigned long *max_zone_pfn)
+{
+	/*  输出有关内存域的信息  */
+	/*  ......  */
+
+    /*  代码遍历所有的活动结点，
+     *  并分别对各个结点调用free_area_init_node建立数据结构，
+     *  该函数需要结点第一个可用的页帧作为一个参数，
+     *  而find_min_pfn_for_node则从early_node_map数组提取该信息   */
+    for_each_online_node(nid) {
+        pg_data_t *pgdat = NODE_DATA(nid);
+        free_area_init_node(nid, NULL,
+                find_min_pfn_for_node(nid), NULL);
+
+        /* Any memory on that node
+         * 根据node_present_pages字段判断结点具有内存
+         * 则在结点位图中设置N_HIGH_MEMORY标志
+         * 该标志只表示结点上存在普通或高端内存
+         * 因此check_for_regular_memory
+         * 进一步检查低于ZONE_HIGHMEM的内存域中是否有内存
+         * 并据此在结点位图中相应地设置N_NORMAL_MEMORY   */
+        if (pgdat->node_present_pages)
+            node_set_state(nid, N_MEMORY);
+        check_for_memory(pgdat, nid);
+    }
+
+    /*  ......  */
+}
+```
+
+
+代码遍历所有活动结点，并分别对各个结点调用free_area_init_node建立数据结构。该函数需要结点第一个可用的页帧作为一个参数，而find_min_pfn_for_node则从early_node_map数组提取该信息。
+
+如果根据node_present_pages字段判断结点具有内存，则在结点位图中设置N_HIGH_MEMORY标志。我们知道该标志只表示结点上存在普通或高端内存，因此check_for_regular_memory进一步检查低于ZONE_HIGHMEM的内存域中是否有内存，并据此在结点位图中相应地设置N_NORMAL_MEMORY标志
+
+
+#4	free_area_init_node初始化UMA内存结点
 -------
 
 [free_area_init_nodes](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6076)函数初始化所有结点的pg_data_t和zone、page的数据，并打印了管理区信息.
+
+
+##4.1	free_area_init_node函数注释
+-------
 
 该函数定义在[mm/page_alloc.c?v=4.7, line 6076](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6076)
 
@@ -523,8 +746,17 @@ void __paginginit free_area_init_node(int nid, unsigned long *zones_size,
     free_area_init_core(pgdat);
 }
 ```
+##4.2	流程分析
+-------
 
 *	[calculate_node_totalpages](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5789)函数累计各个内存域的页数，计算结点中页的总数。对连续内存模型而言，这可以通过zone_sizes_init完成，但calculate_node_totalpages还考虑了内存空洞,该函数定义在[mm/page_alloc.c, line 5789](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5789)
+
+	以下例子取自一个UMA系统, 具有512 MiB物理内存。
+```cpp
+> dmesg
+...
+On node 0 totalpages: 131056
+```
 
 
 *	[alloc_node_mem_map(pgdat)](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L6030)函数分配了该节点的页面描述符数组[pgdat->node_mem_map数组的内存分配.
@@ -534,7 +766,82 @@ void __paginginit free_area_init_node(int nid, unsigned long *zones_size,
 
 
 
-##2.6	free_area_init_core初始化zone
+##4.3	alloc_node_mem_map函数
+-------
+
+
+alloc_node_mem_map负责初始化一个简单但非常重要的数据结构。如上所述，系统中的各个物理内存页，都对应着一个struct page实例。该结构的初始化由alloc_node_mem_map执行
+
+
+```cpp
+static void __init_refok alloc_node_mem_map(struct pglist_data *pgdat)
+{
+    unsigned long __maybe_unused start = 0;
+    unsigned long __maybe_unused offset = 0;
+
+    /* Skip empty nodes */
+    if (!pgdat->node_spanned_pages)
+        return;
+
+#ifdef CONFIG_FLAT_NODE_MEM_MAP
+    start = pgdat->node_start_pfn & ~(MAX_ORDER_NR_PAGES - 1);
+    offset = pgdat->node_start_pfn - start;
+    /* ia64 gets its own node_mem_map, before this, without bootmem */
+    if (!pgdat->node_mem_map) {
+        unsigned long size, end;
+        struct page *map;
+
+        /*
+         * The zone's endpoints aren't required to be MAX_ORDER
+         * aligned but the node_mem_map endpoints must be in order
+         * for the buddy allocator to function correctly.
+         */
+        end = pgdat_end_pfn(pgdat);
+        end = ALIGN(end, MAX_ORDER_NR_PAGES);
+        size =  (end - start) * sizeof(struct page);
+        map = alloc_remap(pgdat->node_id, size);
+        if (!map)
+            map = memblock_virt_alloc_node_nopanic(size,
+                                   pgdat->node_id);
+        pgdat->node_mem_map = map + offset;
+    }
+#ifndef CONFIG_NEED_MULTIPLE_NODES
+    /*
+     * With no DISCONTIG, the global mem_map is just set as node 0's
+     */
+    if (pgdat == NODE_DATA(0)) {
+        mem_map = NODE_DATA(0)->node_mem_map;
+#if defined(CONFIG_HAVE_MEMBLOCK_NODE_MAP) || defined(CONFIG_FLATMEM)
+        if (page_to_pfn(mem_map) != pgdat->node_start_pfn)
+            mem_map -= offset;
+#endif /* CONFIG_HAVE_MEMBLOCK_NODE_MAP */
+    }
+#endif
+#endif /* CONFIG_FLAT_NODE_MEM_MAP */
+}
+```
+没有页的空结点显然可以跳过。如果特定于体系结构的代码尚未建立内存映射（这是可能的，例如，在IA-64系统上），则必须分配与该结点关联的所有struct page实例所需的内存。各个体系结构可以为此提供一个特定的函数。但目前只有在IA-32系统上使用不连续内存配置时是这样。在所有其他的配置上，则使用普通的自举内存分配器进行分配。请注意，代码将内存映射对齐到伙伴系统的最大分配阶，因为要使所有的计算都工作正常，这是必需的。
+
+
+指向该空间的指针不仅保存在pglist_data实例中，还保存在全局变量mem_map中，前提是当前考察的结点是系统的第0个结点（如果系统只有一个内存结点，则总是这样）。mem_map是一个全局数组，在讲解内存管理时，我们会经常遇到, 定义在[mm/memory.c?v=4.7, line 85](http://lxr.free-electrons.com/source/mm/memory.c?v=4.7#L85)
+
+```cpp
+struct page *mem_map;
+```
+
+
+
+然后在free_area_init_node函数的最后, 通过free_area_init_core来完成内存域zone的初始化
+
+
+
+#5	free_area_init_core初始化内存域zone
+-------
+
+初始化内存域数据结构涉及的繁重工作由free_area_init_core执行，它会依次遍历结点的所有内存域, 该函数定义在[mm/page_alloc.c?v=4.7, line 5932](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5932)
+
+
+##5.1	free_area_init_core函数代码注释
 -------
 
 ```cpp
@@ -668,13 +975,122 @@ static void __paginginit free_area_init_core(struct pglist_data *pgdat)
         /* 初始化该zone对应的page结构 */
         memmap_init(size, nid, j, zone_start_pfn);
     }
+	/*  ......  */
+}
+```
+
+
+##5.2	流程讲解
+-------
+
+
+初始化内存域数据结构涉及的繁重工作由free_area_init_core执行，它会依次遍历结点的所有内存域
+
+
+```cpp
+static void __paginginit free_area_init_core(struct pglist_data *pgdat)
+{
+    enum zone_type j;
+    int nid = pgdat->node_id;
+    int ret;
+
+	/*  ......  */
+	/* 遍历每个管理区 */
+    for (j = 0; j < MAX_NR_ZONES; j++) {
+        struct zone *zone = pgdat->node_zones + j;
+        unsigned long size, realsize, freesize, memmap_pages;
+        unsigned long zone_start_pfn = zone->zone_start_pfn;
+
+        /*  size为该管理区中的页框数，包括洞 */
+        size = zone->spanned_pages;
+         /* realsize为管理区中的页框数，不包括洞  /
+        realsize = freesize = zone->present_pages;
+
+		/*  ......  */
+}
+```
+
+
+内存域的真实长度，可通过跨越的页数减去空洞覆盖的页数而得到。这两个值是通过两个辅助函数计算的，我不会更详细地讨论了。其复杂性实质上取决于内存模型和所选定的配置选项，但所有变体最终都没有什么意外之处
+
+
+```cpp
+static void __paginginit free_area_init_core(struct pglist_data *pgdat)
+{
+		/*  ......  */
+        if (!is_highmem_idx(j))
+            nr_kernel_pages += freesize;
+        /* Charge for highmem memmap if there are enough kernel pages */
+        else if (nr_kernel_pages > memmap_pages * 2)
+            nr_kernel_pages -= memmap_pages;
+        nr_all_pages += freesize;
+
+        /*
+         * Set an approximate value for lowmem here, it will be adjusted
+         * when the bootmem allocator frees pages into the buddy system.
+         * And all highmem pages will be managed by the buddy system.
+         */
+        /* 设置zone->spanned_pages为包括洞的页框数  */
+        zone->managed_pages = is_highmem_idx(j) ? realsize : freesize;
+#ifdef CONFIG_NUMA
+		/* 设置zone中的节点标识符 */
+        zone->node = nid;
+        /* 设置可回收页面比率 */
+        zone->min_unmapped_pages = (freesize*sysctl_min_unmapped_ratio)
+                        / 100;
+        /* 设置slab回收缓存页的比率 */
+        zone->min_slab_pages = (freesize * sysctl_min_slab_ratio) / 100;
+#endif
+		/*  设置zone的名称  */
+        zone->name = zone_names[j];
+
+        /* 初始化各种锁 */
+		spin_lock_init(&zone->lock);
+        spin_lock_init(&zone->lru_lock);
+        zone_seqlock_init(zone);
+        /* 设置管理区属于的节点对应的pg_data_t结构 */
+        zone->zone_pgdat = pgdat;
+		/*  ......  */
+}
+```
+
+
+内核使用两个全局变量跟踪系统中的页数。nr_kernel_pages统计所有一致映射的页，而nr_all_pages还包括高端内存页在内free_area_init_core始化为0
+
+我们比较感兴趣的是调用的两个辅助函数
+
+*	zone_pcp_init尝试初始化该内存域的per-CPU缓存, 定义在[mm/page_alloc.c?v=4.7, line 5443](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5443)
+
+*	init_currently_empty_zone初始化free_area列表，并将属于该内存域的所有page实例都设置为初始默认值。正如前文的讨论，调用了memmap_init_zone来初始化内存域的页, 定义在[mm/page_alloc.c?v=4.7, line 5458](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5458)
+
+我们还可以回想前文提到的，所有页属性起初都设置MIGRATE_MOVABLE。
+此外，空闲列表是在zone_init_free_lists中初始化的
+
+
+```cpp
+static void __paginginit free_area_init_core(struct pglist_data *pgdat)
+{
+	/*  ......  */
+	{
+		/* 初始化cpu的页面缓存 */
+        zone_pcp_init(zone);
+
+		/* 设置pgdat->nr_zones和zone->zone_start_pfn成员
+         * 初始化zone->free_area成员
+         * 初始化zone->wait_table相关成员
+         */
+         ret = init_currently_empty_zone(zone, zone_start_pfn, size);
+        BUG_ON(ret);
+        /* 初始化该zone对应的page结构 */
+        memmap_init(size, nid, j, zone_start_pfn);
+    }
+    /*  ......  */
 }
 ```
 
 
 
-
-##2.7	 memmap_init初始化page页面
+#6	memmap_init初始化page页面
 -------
 
 在free_area_init_core初始化内存管理区zone的过程中, 通过memmap_init函数对每个内存管理区zone的page内存进行了初始化
@@ -696,741 +1112,14 @@ memmap_init_zone函数完成了page的初始化工作, 该函数定义在[mm/pag
 内核在start_kernel()-->build_all_zonelist()中完成zonelist的初始化
 
 
-#3	初始化zonelists
--------
 
 
-内核setup_arch的最后通过bootmem_init中完成了内存数据结构的初始化(包括内存结点pg_data_t, 内存管理域zone和页面信息page), 数据结构已经基本准备好了, 在后面为内存管理做得一个准备工作就是将所有节点的管理区都链入到zonelist中，便于后面内存分配工作的进行.
-
-
-内存节点pg_data_t中将内存节点中的内存区域zone按照某种组织层次存储在一个zonelist中, 即pglist_data->node_zonelists成员信息
-
-```cpp
-//  http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L626
-typedef struct pglist_data
-{
-	struct zone node_zones[MAX_NR_ZONES];
-	struct zonelist node_zonelists[MAX_ZONELISTS];
-}
-```
-
-
-内核定义了内存的一个层次结构关系, 首先试图分配廉价的内存，如果失败，则根据访问速度和容量，逐渐尝试分配更昂贵的内存.
-
-高端内存最廉价, 因为内核没有任何部分依赖于从该内存域分配的内存, 如果高端内存用尽, 对内核没有副作用, 所以优先分配高端内存
-
-普通内存域的情况有所不同, 许多内核数据结构必须保存在该内存域, 而不能放置到高端内存域, 因此如果普通内存域用尽, 那么内核会面临内存紧张的情况
-
-DMA内存域最昂贵，因为它用于外设和系统之间的数据传输。
-举例来讲，如果内核指定想要分配高端内存域。它首先在当前结点的高端内存域寻找适当的空闲内存段，如果失败，则查看该结点的普通内存域，如果还失败，则试图在该结点的DMA内存域分配。如果在3个本地内存域都无法找到空闲内存，则查看其他结点。这种情况下，备选结点应该尽可能靠近主结点，以最小化访问非本地内存引起的性能损失。
-
-
-##3.1	回到start_kernel函数(已经完成的工作)
--------
-
-
-前面我们分析了start_kernel()->setup_arch()函数, 已经完成了memblock内存分配器的创建和初始化工作, 然后paging_init也完成分页机制的初始化, 然后bootmem_init也完成了内存结点和内存管理域的初始化工作. setup_arch函数已经执行完了, 现在我们回到start_kernel
-
-
-```cpp
-asmlinkage __visible void __init start_kernel(void)
-{
-
-    setup_arch(&command_line);
-
-
-    build_all_zonelists(NULL, NULL);
-    page_alloc_init();
-
-
-    /*
-     * These use large bootmem allocations and must precede
-     * mem_init();
-     * kmem_cache_init();
-     */
-    mm_init();
-
-    kmem_cache_init_late();
-
-	kmemleak_init();
-    setup_per_cpu_pageset();
-
-    rest_init();
-}
-```
-
-下面内核开始通过start_kernel()->build_all_zonelists来设计内存的组织形式
-
-##3.2	build_all_zonelists初始化zonelists
+#7	总结
 -------
 
 
 
-内核在start_kernel中通过build_all_zonelists完成了内存结点及其管理内存域的初始化工作, 调用如下
-
-
-```cpp
-  build_all_zonelists(NULL, NULL);
-```
-
-[build_all_zonelists](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L5029)建立内存管理结点及其内存域的组织形式, 将描述内存的数据结构(结点, 管理域, 页帧)通过一定的算法组织在一起, 方便以后内存管理工作的进行. 该函数定义在[mm/page_alloc.c?v4.7, line 5029](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L5029)
-
-
-
-```cpp
-/*
- * Called with zonelists_mutex held always
- * unless system_state == SYSTEM_BOOTING.
- *
- * __ref due to (1) call of __meminit annotated setup_zone_pageset
- * [we're only called with non-NULL zone through __meminit paths] and
- * (2) call of __init annotated helper build_all_zonelists_init
- * [protected by SYSTEM_BOOTING].
- */
-void __ref build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
-{
-	/*  设置zonelist中节点和内存域的组织形式
-     *  current_zonelist_order变量标识了当前系统的内存组织形式
-     *	zonelist_order_name以字符串存储了系统中内存组织形式的名称  */
-    set_zonelist_order();
-
-    if (system_state == SYSTEM_BOOTING) {
-        build_all_zonelists_init();
-    } else {
-#ifdef CONFIG_MEMORY_HOTPLUG
-        if (zone)
-            setup_zone_pageset(zone);
-#endif
-        /* we have to stop all cpus to guarantee there is no user
-           of zonelist */
-        stop_machine(__build_all_zonelists, pgdat, NULL);
-        /* cpuset refresh routine should be here */
-    }
-    vm_total_pages = nr_free_pagecache_pages();
-    /*
-     * Disable grouping by mobility if the number of pages in the
-     * system is too low to allow the mechanism to work. It would be
-     * more accurate, but expensive to check per-zone. This check is
-     * made on memory-hotadd so a system can start with mobility
-     * disabled and enable it later
-     */
-    if (vm_total_pages < (pageblock_nr_pages * MIGRATE_TYPES))
-        page_group_by_mobility_disabled = 1;
-    else
-        page_group_by_mobility_disabled = 0;
-
-    pr_info("Built %i zonelists in %s order, mobility grouping %s.  Total pages: %ld\n",
-        nr_online_nodes,
-        zonelist_order_name[current_zonelist_order],
-        page_group_by_mobility_disabled ? "off" : "on",
-        vm_total_pages);
-#ifdef CONFIG_NUMA
-    pr_info("Policy zone: %s\n", zone_names[policy_zone]);
-#endif
-}
-```
-
-
-##3.3	设置结点初始化顺序
--------
-
-
-在build_all_zonelists开始, 首先内核通过set_zonelist_order函数设置了`zonelist_order`,如下所示, 参见[mm/page_alloc.c?v=4.7, line 5031](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5031)
-
-```cpp
-void __ref build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
-{
-	set_zonelist_order();
-	/* .......  */
-}
-```
-
-
-##3.3.1	zonelist
--------
-
-
-前面我们讲解内存管理域时候讲解到, 系统中的所有管理域都存储在一个多维的数组zone_table. 内核在初始化内存管理区时, 必须要建立管理区表zone_table. 参见[mm/page_alloc.c?v=2.4.37, line 38](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=2.4.37#L38)
-
-
-```cpp
-/*
- *
- * The zone_table array is used to look up the address of the
- * struct zone corresponding to a given zone number (ZONE_DMA,
- * ZONE_NORMAL, or ZONE_HIGHMEM).
- */
-zone_t *zone_table[MAX_NR_ZONES*MAX_NR_NODES];
-EXPORT_SYMBOL(zone_table);
-```
-
-*	MAX_NR_NODES为系统中内存结点的数目
-
-*	MAX_NR_ZONES为系统中单个内存结点所拥有的最大内存区域数目
-
-
-
-##3.3.2	内存域初始化顺序zonelist_order
--------
-
-
-NUMA系统中存在多个节点, 每个节点对应一个`struct pglist_data`结构, 每个结点中可以包含多个zone, 如: ZONE_DMA, ZONE_NORMAL, 这样就产生几种排列顺序, 以2个节点2个zone为例(zone从高到低排列, ZONE_DMA0表示节点0的ZONE_DMA，其它类似).
-
-*	Legacy方式, 每个节点只排列自己的zone；
-
-![Legacy方式](../images/legacy-order.jpg)
-
-*	Node方式, 按节点顺序依次排列，先排列本地节点的所有zone，再排列其它节点的所有zone。
-
-
-![Node方式](../images/node-order.jpg)
-
-
-*	Zone方式, 按zone类型从高到低依次排列各节点的同相类型zone
-
-
-
-![Zone方式](../images/zone-order.jpg)
-
-
-
-可通过启动参数"numa_zonelist_order"来配置zonelist order，内核定义了3种配置, 这些顺序定义在[mm/page_alloc.c?v=4.7, line 4551](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4551)
-
-```cpp
-// http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4551
-/*
- *  zonelist_order:
- *  0 = automatic detection of better ordering.
- *  1 = order by ([node] distance, -zonetype)
- *  2 = order by (-zonetype, [node] distance)
- *
- *  If not NUMA, ZONELIST_ORDER_ZONE and ZONELIST_ORDER_NODE will create
- *  the same zonelist. So only NUMA can configure this param.
- */
-#define ZONELIST_ORDER_DEFAULT  0 /* 智能选择Node或Zone方式 */
-
-#define ZONELIST_ORDER_NODE     1 /* 对应Node方式 */
-
-#define ZONELIST_ORDER_ZONE     2 /* 对应Zone方式 */
-```
-
->注意
->
->在非NUMA系统中(比如UMA), 由于只有一个内存结点, 因此ZONELIST_ORDER_ZONE和ZONELIST_ORDER_NODE选项会配置相同的内存域排列方式, 因此, 只有NUMA可以配置这几个参数
-
-
-
-
-
-
-全局的current_zonelist_order变量标识了系统中的当前使用的内存域排列方式, 默认配置为ZONELIST_ORDER_DEFAULT, 参见[mm/page_alloc.c?v=4.7, line 4564](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4564)
-
-
-```cpp
-//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4564
-/* zonelist order in the kernel.
- * set_zonelist_order() will set this to NODE or ZONE.
- */
-static int current_zonelist_order = ZONELIST_ORDER_DEFAULT;
-static char zonelist_order_name[3][8] = {"Default", "Node", "Zone"};
-```
-
-
-
-
-
-而zonelist_order_name方式分别对应了Legacy方式, Node方式和Zone方式. 其zonelist_order_name[current_zonelist_order]就标识了当前系统中所使用的内存域排列方式的名称"Default", "Node", "Zone".
-
-
-| 宏 | zonelist_order_name[宏](排列名称) | 排列方式 | 描述 |
-|:--:|:-------------------:|:------:|:----:|
-| ZONELIST_ORDER_DEFAULT | Default |  | 由系统智能选择Node或Zone方式 |
-| ZONELIST_ORDER_NODE | Node | Node方式 | 按节点顺序依次排列，先排列本地节点的所有zone，再排列其它节点的所有zone |
-| ZONELIST_ORDER_ZONE | Zone | Zone方式 | 按zone类型从高到低依次排列各节点的同相类型zone |
-
-
-
-##3.3.3	set_zonelist_order设置排列方式
--------
-
-内核就通过通过set_zonelist_order函数设置当前系统的内存域排列方式current_zonelist_order, 其定义依据系统的NUMA结构还是UMA结构有很大的不同.
-
-```cpp
-// http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4571
-#ifdef CONFIG_NUMA
-/* The value user specified ....changed by config */
-static int user_zonelist_order = ZONELIST_ORDER_DEFAULT;
-/* string for sysctl */
-#define NUMA_ZONELIST_ORDER_LEN 16
-char numa_zonelist_order[16] = "default";
-
-
-//  http://lxr.free-electrons.com/source/mm/page_alloc.c#L4571
-static void set_zonelist_order(void)
-{
-    if (user_zonelist_order == ZONELIST_ORDER_DEFAULT)
-        current_zonelist_order = default_zonelist_order();
-    else
-        current_zonelist_order = user_zonelist_order;
-}
-
-
-#else   /* CONFIG_NUMA */
-
-//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4892
-static void set_zonelist_order(void)
-{
-	current_zonelist_order = ZONELIST_ORDER_ZONE;
-}
-```
-
-
-其设置的基本流程如下
-
-*	如果系统当前系统是非NUMA结构的, 则系统中只有一个结点, 配置ZONELIST_ORDER_NODE和ZONELIST_ORDER_ZONE结果相同. 那么set_zonelist_order函数被定义为直接配置当前系统的内存域排列方式`current_zonelist_order`为ZONE方式(与NODE效果相同)
-
-*	如果系统是NUMA结构, 则设置为系统指定的方式即可
-	1.	当前的排列方式为ZONELIST_ORDER_DEFAULT, 即系统默认方式, 则current_zonelist_order则由内核交给default_zonelist_order采用一定的算法选择一个最优的分配策略,　目前的系统中如果是32位则配置为ZONE方式, 而如果是６４位系统则设置为NODE方式
-
-	2.	当前的排列方式不是默认方式, 则设置为user_zonelist_order指定的内存域排列方式
-
-
-
-##3.3.4	default_zonelist_order函数选择最优的配置
--------
-
-
-
-在UMA结构下, 内存域使用NODE和ZONE两个排列方式会产生相同的效果, 因此系统不用特殊指定, 直接通过set_zonelist_order函数, 将当前系统的内存域排列方式`current_zonelist_order`配置为为ZONE方式(与NODE效果相同)即可
-
-
-但是NUMA结构下, 默认情况下(当配置了ZONELIST_ORDER_DEFAULT), 系统需要根据系统自身的环境信息选择一个最优的配置(NODE或者ZONE方式), 这个工作就由**default_zonelist_order函数**了来完成. 其定义在[mm/page_alloc.c?v=4.7, line 4789](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4789)
-
-
-```cpp
-#if defined(CONFIG_64BIT)
-/*
- * Devices that require DMA32/DMA are relatively rare and do not justify a
- * penalty to every machine in case the specialised case applies. Default
- * to Node-ordering on 64-bit NUMA machines
- */
-static int default_zonelist_order(void)
-{
-    return ZONELIST_ORDER_NODE;
-}
-#else
-/*
- * On 32-bit, the Normal zone needs to be preserved for allocations accessible
- * by the kernel. If processes running on node 0 deplete the low memory zone
- * then reclaim will occur more frequency increasing stalls and potentially
- * be easier to OOM if a large percentage of the zone is under writeback or
- * dirty. The problem is significantly worse if CONFIG_HIGHPTE is not set.
- * Hence, default to zone ordering on 32-bit.
- */
-static int default_zonelist_order(void)
-{
-    return ZONELIST_ORDER_ZONE;
-}
-#endif /* CONFIG_64BIT */
-```
-
-
-
-###3.3.5	user_zonelist_order用户指定排列方式
--------
-
-
-在NUMA结构下, 系统支持用户指定内存域的排列方式, 用户以字符串的形式操作numa_zonelist_order(default, node和zone), 最终被内核转换为user_zonelist_order, 这个变量被指定为字符串numa_zonelist_order指定的排列方式, 他们定义在[mm/page_alloc.c?v4.7, line 4573](http://lxr.free-electrons.com/source/mm/page_alloc.c?v4.7#L4573), 注意只有在NUMA结构中才需要这个配置信息.
-
-
-```cpp
-#ifdef CONFIG_NUMA
-/* The value user specified ....changed by config */
-static int user_zonelist_order = ZONELIST_ORDER_DEFAULT;
-/* string for sysctl */
-#define NUMA_ZONELIST_ORDER_LEN 16
-char numa_zonelist_order[16] = "default";
-
-#else
-/* ......*/
-#endif
-```
-
-而接受和处理用户配置的工作, 自然是交给我们强大的proc文件系统来完成的, 可以通过/proc/sys/vm/numa_zonelist_order动态改变zonelist order的分配方式。
-
-
-
-
-![/proc/sys/vm/numa_zonelist_order`](../images/proc-numa_zonelist_order.png)
-
-
-
-内核通过setup_numa_zonelist_order读取并处理用户写入的配置信息
-
-*	接收到用户的信息后用__parse_numa_zonelist_order处理接收的参数
-
-*	如果前面用__parse_numa_zonelist_order处理的信息串成功, 则将对用的设置信息写入到字符串numa_zonelist_order中
-
-
-参见[mm/page_alloc.c?v=4.7, line 4578](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4578)
-
-
-```cpp
-/*
- * interface for configure zonelist ordering.
- * command line option "numa_zonelist_order"
- *      = "[dD]efault   - default, automatic configuration.
- *      = "[nN]ode      - order by node locality, then by zone within node
- *      = "[zZ]one      - order by zone, then by locality within zone
- */
-
-static int __parse_numa_zonelist_order(char *s)
-{
-    if (*s == 'd' || *s == 'D') {
-        user_zonelist_order = ZONELIST_ORDER_DEFAULT;
-    } else if (*s == 'n' || *s == 'N') {
-        user_zonelist_order = ZONELIST_ORDER_NODE;
-    } else if (*s == 'z' || *s == 'Z') {
-        user_zonelist_order = ZONELIST_ORDER_ZONE;
-    } else {
-        pr_warn("Ignoring invalid numa_zonelist_order value:  %s\n", s);
-        return -EINVAL;
-    }
-    return 0;
-}
-
-static __init int setup_numa_zonelist_order(char *s)
-{
-    int ret;
-
-    if (!s)
-        return 0;
-
-    ret = __parse_numa_zonelist_order(s);
-    if (ret == 0)
-        strlcpy(numa_zonelist_order, s, NUMA_ZONELIST_ORDER_LEN);
-
-    return ret;
-}
-early_param("numa_zonelist_order", setup_numa_zonelist_order);
-```
-
-##3.4	build_all_zonelists_init完成内存域zonelists的初始化
--------
-
-build_all_zonelists函数在通过set_zonelist_order设置了zonelists中结点的组织顺序后, 首先检查了ssytem_state标识. 如果当前系统处于boot阶段(SYSTEM_BOOTING), 就开始通过build_all_zonelists_init函数初始化zonelist
-
-
-```cpp
-build_all_zonelists(pg_data_t *pgdat, struct zone *zone)
-{
-	/*  设置zonelist中节点和内存域的组织形式
-     *  current_zonelist_order变量标识了当前系统的内存组织形式
-     *	zonelist_order_name以字符串存储了系统中内存组织形式的名称  */
-    set_zonelist_order();
-
-    if (system_state == SYSTEM_BOOTING) {
-        build_all_zonelists_init();
-```
-
-
-###3.4.1	system_state系统状态标识
--------
-
-
-其中`system_state`变量是一个系统全局定义的用来表示系统当前运行状态的枚举变量, 其定义在[include/linux/kernel.h?v=4.7, line 487](http://lxr.free-electrons.com/source/include/linux/kernel.h?v=4.7#L487)
-
-
-```cpp
-/* Values used for system_state */
-extern enum system_states
-{
-	SYSTEM_BOOTING,
-	SYSTEM_RUNNING,
-	SYSTEM_HALT,
-	SYSTEM_POWER_OFF,
-	SYSTEM_RESTART,
-} system_state;
-```
-
-*	如果系统system_state是SYSTEM_BOOTING, 则调用`build_all_zonelists_init`初始化所有的内存结点
-
-*	否则的话如果定义了冷热页`CONFIG_MEMORY_HOTPLUG`且参数zone(待初始化的内存管理域zone)不为NULL, 则调用setup_zone_pageset设置冷热页
-
-
-
-```cpp
-if (system_state == SYSTEM_BOOTING)
-{
-	build_all_zonelists_init();
-}
-else
-{
-#ifdef CONFIG_MEMORY_HOTPLUG
-	if (zone)
-    	setup_zone_pageset(zone);
-#endif
-```
-
-##3.4.2	build_all_zonelists_init函数
-
-build_all_zonelists函数在如果当前系统处于boot阶段(system_state == SYSTEM_BOOTING), 就开始通过build_all_zonelists_init函数初始化zonelist
-
-
-build_all_zonelists_init函数定义在[mm/page_alloc.c?v=4.7, line 5013](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5013)
-
-```cpp
-static noinline void __init
-build_all_zonelists_init(void)
-{
-    __build_all_zonelists(NULL);
-    mminit_verify_zonelist();
-    cpuset_init_current_mems_allowed();
-}
-```
-
-
-build_all_zonelists_init将将所有工作都委托给__build_all_zonelists完成了zonelists的初始化工作, 后者又对系统中的各个NUMA结点分别调用build_zonelists. 
-
-
-函数__build_all_zonelists定义在[mm/page_alloc.c?v=4.7, line 4959](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4959)
-
-
-```cpp
-/* return values int ....just for stop_machine() */
-static int __build_all_zonelists(void *data)
-{
-    int nid;
-    int cpu;
-    pg_data_t *self = data;
-
-	/*  ......  */
-
-    for_each_online_node(nid) {
-        pg_data_t *pgdat = NODE_DATA(nid);
-
-        build_zonelists(pgdat);
-    }
-	/*  ......  */
-}
-```
-
-`for_each_online_node`遍历了系统中所有的活动结点. 
-
-由于UMA系统只有一个结点，build_zonelists只调用了一次, 就对所有的内存创建了内存域列表.
-
-NUMA系统调用该函数的次数等同于结点的数目. 每次调用对一个不同结点生成内存域数据
-
-
-##3.4.3	build_zonelists初始化每个内存结点的zonelists
--------
-
-build_zonelists(pg_data_t *pgdat)完成了节点pgdat上zonelists的初始化工作, 它建立了备用层次结构zonelists. 由于UMA和NUMA架构下结点的层次结构有很大的区别, 因此内核分别提供了两套不同的接口.
-
-如下所示
-
-```cpp
-// http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7
-4571 #ifdef CONFIG_NUMA
-
-4586 static int __parse_numa_zonelist_order(char *s)
-
-4601 static __init int setup_numa_zonelist_order(char *s)
-
-4619 int numa_zonelist_order_handler(struct ctl_table *table, int write,
-4620                 void __user *buffer, size_t *length,
-
-4678 static int find_next_best_node(int node, nodemask_t *used_node_mask)
-
-4730 static void build_zonelists_in_node_order(pg_data_t *pgdat, int node)
-
-4746 static void build_thisnode_zonelists(pg_data_t *pgdat)
-
-4765 static void build_zonelists_in_zone_order(pg_data_t *pgdat, int nr_nodes)
-
-4789 #if defined(CONFIG_64BIT)
-
-4795 static int default_zonelist_order(void)
-4799 #else
-4808 static int default_zonelist_order(void)
-4812 #endif /* CONFIG_64BIT */
-
-4822 static void build_zonelists(pg_data_t *pgdat)
-
-4872 #ifdef CONFIG_HAVE_MEMORYLESS_NODES
-4879 int local_memory_node(int node)
-4888 #endif
-
-4890 #else   /* CONFIG_NUMA */
-
-4897 static void build_zonelists(pg_data_t *pgdat)
-
-4892 static void set_zonelist_order(void)
-
-4931 #endif  /* CONFIG_NUMA */
-```
-
-| 函数 | NUMA | UMA |
-|:------:|:--------:|
-| build_zonelists | [build_zonelists -=> mm/page_alloc.c?v=4.7, line 4822](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4822) | [build_zonelists -=> mm/page_alloc.c?v=4.7, line 4897](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4897)<br><br>[build_zonelists_node -=> mm/page_alloc.c?v=4.7, line 4531](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4531) |
-
-我们以UMA结构下的build_zonelists为例, 来讲讲内核是怎么初始化备用内存域层次结构的, UMA结构下的build_zonelists函数定义在[mm/page_alloc.c?v=4.7, line 4897](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4897), 如下所示
-
-
-node_zonelists的数组元素通过指针操作寻址, 这在C语言中是完全合法的惯例。实际工作则委托给build_zonelist_node。在调用时，它首先生成本地结点内分配内存时的备用次
-
-
-内核在build_zonelists中按分配代价从昂贵到低廉的次序, 迭代了结点中所有的内存域. 而在build_zonelists_node中, 则按照分配代价从低廉到昂贵的次序, 迭代了分配代价不低于当前内存域的内存域.
-
-
-首先我们来看看build_zonelists_node函数, 该函数定义在[mm/page_alloc.c?v=4.7, line 4531](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4531)
-
-```cpp
-/*
- * Builds allocation fallback zone lists.
- *
- * Add all populated zones of a node to the zonelist.
- */
-static int build_zonelists_node(pg_data_t *pgdat, struct zonelist *zonelist, int nr_zones)
-{
-    struct zone *zone;
-    enum zone_type zone_type = MAX_NR_ZONES;
-
-    do {
-        zone_type--;
-        zone = pgdat->node_zones + zone_type;
-        if (populated_zone(zone)) {
-            zoneref_set_zone(zone,
-                &zonelist->_zonerefs[nr_zones++]);
-            check_highest_zone(zone_type);
-        }
-    } while (zone_type);
-
-    return nr_zones;
-}
-```
-
-备用列表zonelists的各项是借助于zone_type参数排序的, 该参数指定了最优先选择哪个内存域, 该参数的初始值是外层循环的控制变量i.
-
-我们知道其值可能是ZONE_HIGHMEM、ZONE_NORMAL、ZONE_DMA或ZONE_DMA32之一.
-
-nr_zones表示从备用列表中的哪个位置开始填充新项. 由于列表中尚没有项, 因此调用者传递了0.
-
-内核在build_zonelists中按分配代价从昂贵到低廉的次序, 迭代了结点中所有的内存域. 而在build_zonelists_node中, 则按照分配代价从低廉到昂贵的次序, 迭代了分配代价不低于当前内存域的内存域.
-
-在build_zonelists_node的每一步中, 都对所选的内存域调用populated_zone, 确认zone->present_pages大于0, 即确认内存域中确实有页存在. 倘若如此, 则将指向zone实例的指针添加到zonelist->zones中的当前位置. 后备列表的当前位置保存在nr_zones.
-
-在每一步结束时, 都将内存域类型zone_type减1.换句话说, 设置为一个更昂贵的内存域类型. 例如, 如果开始的内存域是ZONE_HIGHMEM, 减1后下一个内存域类型是ZONE_NORMAL.
-
-考虑一个系统, 有内存域ZONE_HIGHMEM、ZONE_NORMAL、ZONE_DMA。在第一次运行build_zonelists_node时, 实际上会执行下列赋值
-
-```cpp
-zonelist->zones[0] = ZONE_HIGHMEM;
-zonelist->zones[1] = ZONE_NORMAL;
-zonelist->zones[2] = ZONE_DMA;
-```
-
-我们以某个系统为例, 图中示范了一个备用列表在多次循环中不断填充的过程. 系统中共有四个结点
-
-![连续填充备用列表](../images/build_zonelists_node.png)
-
-```cpp
-其中
-A=（NUMA）结点0 0=DMA内存域
-B=（NUMA）结点1 1=普通内存域
-C=（NUMA）结点2 2=高端内存域
-D=（NUMA）结点3
-```
-
-
-第一步之后, 列表中的分配目标是高端内存, 接下来是第二个结点的普通和DMA内存域.
-
-内核接下来必须确立次序, 以便将系统中其他结点的内存域按照次序加入到备用列表.
-
-现在我们回到build_zonelists函数, UMA架构下该函数定义在[mm/page_alloc.c?v=4.7, line 4897](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4897), 如下所示
-
-
-
-```cpp
-static void build_zonelists(pg_data_t *pgdat)
-{
-    int node, local_node;
-    enum zone_type j;
-    struct zonelist *zonelist;
-
-	/*  ......  */
-
-    for (node = local_node + 1; node < MAX_NUMNODES; node++) {
-        if (!node_online(node))
-            continue;
-        j = build_zonelists_node(NODE_DATA(node), zonelist, j);
-    }
-    for (node = 0; node < local_node; node++) {
-        if (!node_online(node))
-            continue;
-        j = build_zonelists_node(NODE_DATA(node), zonelist, j);
-    }
-
-    zonelist->_zonerefs[j].zone = NULL;
-    zonelist->_zonerefs[j].zone_idx = 0;
-}
-```
-
-第一个循环依次迭代大于当前结点编号的所有结点. 在我们的例子中，有4个结点编号副本为0、1、2、3，此时只剩下结点3。新的项通过build_zonelists_node被加到备用列表。此时j的作用就体现出来了。在本地结点的备用目标找到之后，该变量的值是3。该值用作新项的起始位置。如果结点3也由3个内存域组成，备用列表在第二个循环之后的情况如图3-9的第二步所示
-
-第二个for循环接下来对所有编号小于当前结点的结点生成备用列表项。在我们的例子中，这些结点的编号为0和1。 如果这些结点也有3个内存域，则循环完毕之后备用列表的情况如下图下半部分所示
-
-![完成的备用列表](../images/build_zonelists.png)
-
-备用列表中项的数目一般无法准确知道，因为系统中不同结点的内存域配置可能并不相同。因此
-列表的最后一项赋值为空指针，显式标记列表结束。
-对总数N个结点中的结点m来说，内核生成备用列表时，选择备用结点的顺序总是：m、m+1、
-m+2、…、N1、0、1、…、m1。这确保了不过度使用任何结点。例如，对照情况是：使用一个独立
-于m、不变的备用列表。
-
-
-
-##3.4.4	setup_pageset初始化per_cpu缓存
--------
-
-前面讲解内存管理域zone的时候, 提到了per-CPU缓存, 即冷热页. 在组织每个节点的zonelist的过程中, setup_pageset初始化了per-CPU缓存(冷热页面)
-
-```cpp
-static void setup_pageset(struct per_cpu_pageset *p, unsigned long batch)
-{
-	pageset_init(p);
-	pageset_set_batch(p, batch);
-}
-```
-
-
-
-在此之前free_area_init_node初始化内存结点的时候, 内核就输出了冷热页的一些信息, 该工作由zone_pcp_init完成, 该函数定义在[mm/page_alloc.c?v=4.7, line 5029](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L5029)
-
-```cpp
-static __meminit void zone_pcp_init(struct zone *zone)
-{
-    /*
-     * per cpu subsystem is not up at this point. The following code
-     * relies on the ability of the linker to provide the
-     * offset of a (static) per cpu variable into the per cpu area.
-     */
-    zone->pageset = &boot_pageset;
-
-    if (populated_zone(zone))
-        printk(KERN_DEBUG "  %s zone: %lu pages, LIFO batch:%u\n",
-            zone->name, zone->present_pages,
-                     zone_batchsize(zone));
-}
-```
-
-
-#4	总结
--------
-
-
-
-##4.1	start_kernel启动流程
+##7.1	start_kernel启动流程
 -------
 
 
@@ -1480,7 +1169,7 @@ start_kernel()
           |
 ```
 
-##4.2	pidhash_init配置高端内存
+##7.2	pidhash_init配置高端内存
 -------
 
 
@@ -1503,7 +1192,7 @@ void pidhash_init(void)
     |         INIT_HLIST_HEAD(&pid_hash[i]);
 ```
 
-##4.3	build_all_zonelists初始化每个内存节点的zonelists
+##7.3	build_all_zonelists初始化每个内存节点的zonelists
 -------
 
 
