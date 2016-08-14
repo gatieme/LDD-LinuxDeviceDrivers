@@ -176,13 +176,14 @@ default "11"`
 在内核版本2.6.24之后, 增加了一些有效措施来防止内存碎片.
 
 
-#	避免碎片
+#3	避免碎片
 -------
 
 在第1章给出的简化说明中, 一个双链表即可满足伙伴系统的所有需求. 在内核版本2.6.23之前, 的确是这样. 但在内核2.6.24开发期间, 内核开发者对伙伴系统的争论持续了相当长时间. 这是因为伙伴系统是内核最值得尊敬的一部分，对它的改动不会被大家轻易接受
 
-##依据可移动性组织页
--------
+
+##3.1	内存碎片
+
 
 伙伴系统的基本原理已经在第1章中讨论过，其方案在最近几年间确实工作得非常好。但在Linux内存管理方面，有一个长期存在的问题：在系统启动并长期运行后，物理内存会产生很多碎片。该情形如下图所示
 
@@ -204,28 +205,145 @@ default "11"`
 
 很长时间以来，物理内存的碎片确实是Linux的弱点之一。尽管已经提出了许多方法，但没有哪个方法能够既满足Linux需要处理的各种类型工作负荷提出的苛刻需求，同时又对其他事务影响不大。
 
+
+
+
+##3.2	依据可移动性组织页
+-------
+
+
 在内核2.6.24开发期间，防止碎片的方法最终加入内核。在我讨论具体策略之前，有一点需要澄清。
 
-文件系统也有碎片，该领域的碎片问题主要通过碎片合并工具解决。它们分析文件系统，重新排序已分配存储块，从而建立较大的连续存储区。理论上，该方法对物理内存也是可能的，但由于许多物理内存页不能移动到任意位置，阻碍了该方法的实施。因此，内核的方法是反碎片（anti-fragmentation），
-即试图从最初开始尽可能防止碎片。
+文件系统也有碎片，该领域的碎片问题主要通过碎片合并工具解决。它们分析文件系统，重新排序已分配存储块，从而建立较大的连续存储区. 理论上，该方法对物理内存也是可能的，但由于许多物理内存页不能移动到任意位置，阻碍了该方法的实施。因此，内核的方法是反碎片(anti-fragmentation), 即试图从最初开始尽可能防止碎片.
 
-
+<font color=0x00ffff>
 反碎片的工作原理如何?
+</font>
+
 
 为理解该方法，我们必须知道内核将已分配页划分为下面3种不同类型。
 
 
-不可移动页：在内存中有固定位置，不能移动到其他地方。核心内核分配的大多数内存属于
-该类别。
- 可回收页：不能直接移动，但可以删除，其内容可以从某些源重新生成。例如，映射自文件
-的数据属于该类别。
-kswapd守护进程会根据可回收页访问的频繁程度，周期性释放此类内存。这是一个复杂的过
-程，本身就需要详细论述：第18章详细描述了页面回收。目前，了解到内核会在可回收页占
-据了太多内存时进行回收，就足够了。
-另外，在内存短缺（即分配失败）时也可以发起页面回收。有关内核发起页面回收的时机，更
-具体的信息请参考下文。
- 可移动页可以随意地移动。属于用户空间应用程序的页属于该类别。它们是通过页表映射的。
-如果它们复制到新位置，页表项可以相应地更新，应用程序不会注意到任何事。
+| 页面类型 | 描述 | 举例 |
+|:---------:|:-----:|:-----:|
+| 不可移动页 | 在内存中有固定位置, **不能移动**到其他地方. | 核心内核分配的大多数内存属于该类别 |
+| 可移动页 | **可以随意地移动**. | 属于用户空间应用程序的页属于该类别. 它们是通过页表映射的<br>如果它们复制到新位置，页表项可以相应地更新，应用程序不会注意到任何事 |
+| 可回收页 | **不能直接移动, 但可以删除, 其内容可以从某些源重新生成**. | 例如，映射自文件的数据属于该类别<br>kswapd守护进程会根据可回收页访问的频繁程度，周期性释放此类内存. , 页面回收本身就是一个复杂的过程. 内核会在可回收页占据了太多内存时进行回收, 在内存短缺(即分配失败)时也可以发起页面回收. |
+
+
+
+页的可移动性，依赖该页属于3种类别的哪一种. 内核使用的**反碎片技术**, 即基于将具有相同可移动性的页分组的思想.
+
+<font color=0x00ffff>
+为什么这种方法有助于减少碎片?
+</font>
+
+由于页无法移动, 导致在原本几乎全空的内存区中无法进行连续分配. 根据页的可移动性, 将其分配到不同的列表中, 即可防止这种情形. 例如, 不可移动的页不能位于可移动内存区的中间, 否则就无法从该内存区分配较大的连续内存块.
+
+
+想一下, 上图中大多数空闲页都属于可回收的类别, 而分配的页则是不可移动的. 如果这些页聚集到两个不同的列表中, 如下图所示. 在不可移动页中仍然难以找到较大的连续空闲空间, 但对可回收的页, 就容易多了.
+
+
+![减少内存碎片](../images/little_memory_fragmentation.png)
+
+
+但要注意, 从最初开始, 内存并未划分为可移动性不同的区. 这些是在运行时形成的. 内核的另一种方法确实将内存分区, 分别用于可移动页和不可移动页的分配, 我会下文讨论其工作原理. 但这种划分对这里描述的方法是不必要的
+
+
+
+##3.3	避免碎片数据结构
+-------
+
+
+尽管内核使用的反碎片技术卓有成效，它对伙伴分配器的代码和数据结构几乎没有影响。内核定义了一些枚举常量(早期用宏来实现)来表示不同的迁移类型, 参见[include/linux/mmzone.h?v=4.7, line 38](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L38)
+
+```cpp
+enum {
+        MIGRATE_UNMOVABLE,
+        MIGRATE_MOVABLE,
+        MIGRATE_RECLAIMABLE,
+        MIGRATE_PCPTYPES,       /* the number of types on the pcp lists */
+        MIGRATE_HIGHATOMIC = MIGRATE_PCPTYPES,
+#ifdef CONFIG_CMA
+        /*
+         * MIGRATE_CMA migration type is designed to mimic the way
+         * ZONE_MOVABLE works.  Only movable pages can be allocated
+         * from MIGRATE_CMA pageblocks and page allocator never
+         * implicitly change migration type of MIGRATE_CMA pageblock.
+         *
+         * The way to use it is to change migratetype of a range of
+         * pageblocks to MIGRATE_CMA which can be done by
+         * __free_pageblock_cma() function.  What is important though
+         * is that a range of pageblocks must be aligned to
+         * MAX_ORDER_NR_PAGES should biggest page be bigger then
+         * a single pageblock.
+         */
+        MIGRATE_CMA,
+#endif
+#ifdef CONFIG_MEMORY_ISOLATION
+        MIGRATE_ISOLATE,        /* can't allocate from here */
+#endif
+        MIGRATE_TYPES
+};
+```
+
+
+|  宏  | 类型 |
+|:----:|:-----:|
+| MIGRATE_UNMOVABLE | 不可移动页 |
+| MIGRATE_MOVABLE | 可移动页 |
+| MIGRATE_RECLAIMABLE | 可回收页 |
+| MIGRATE_PCPTYPES | 是per_cpu_pageset, 即用来表示每CPU页框高速缓存的数据结构中的链表的迁移类型数目 |
+| MIGRATE_HIGHATOMIC |  = MIGRATE_PCPTYPES, 在罕见的情况下，内核需要分配一个高阶的页面块而不能休眠. |
+| MIGRATE_CMA | Linux内核最新的连续内存分配器(CMA), 用于避免预留大块内存 |
+| MIGRATE_ISOLATE | 是一个特殊的虚拟区域, 用于跨越NUMA结点移动物理内存页. 在大型系统上, 它有益于将物理内存页移动到接近于使用该页最频繁的CPU. |
+| MIGRATE_TYPES | 只是表示迁移类型的数目, 也不代表具体的区域 |
+
+对于MIGRATE_CMA类型, 其中在我们使用ARM等嵌入式Linux系统的时候, 一个头疼的问题是GPU, Camera, HDMI等都需要预留大量连续内存，这部分内存平时不用，但是一般的做法又必须先预留着. 目前, Marek Szyprowski和Michal Nazarewicz实现了一套全新的Contiguous Memory Allocator. 通过这套机制, 我们可以做到不预留内存，这些内存平时是可用的，只有当需要的时候才被分配给Camera，HDMI等设备. 参照[宋宝华--Linux内核最新的连续内存分配器(CMA)——避免预留大块内存](http://21cnbao.blog.51cto.com/109393/898846/), 内核为此提供了函数is_migrate_cma来检测当前类型是否为MIGRATE_CMA, 该函数定义在[include/linux/mmzone.h?v=4.7, line 69](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L69)
+
+```cpp
+/* In mm/page_alloc.c; keep in sync also with show_migration_types() there */
+extern char * const migratetype_names[MIGRATE_TYPES];
+
+#ifdef CONFIG_CMA
+#  define is_migrate_cma(migratetype) unlikely((migratetype) == MIGRATE_CMA)
+#else
+#  define is_migrate_cma(migratetype) false
+#endif
+```
+
+```cpp
+#define for_each_migratetype_order(order, type) \
+        for (order = 0; order < MAX_ORDER; order++) \
+                for (type = 0; type < MIGRATE_TYPES; type++)
+
+extern int page_group_by_mobility_disabled;
+
+#define NR_MIGRATETYPE_BITS (PB_migrate_end - PB_migrate + 1)
+#define MIGRATETYPE_MASK ((1UL << NR_MIGRATETYPE_BITS) - 1)
+
+#define get_pageblock_migratetype(page)                                 \
+        get_pfnblock_flags_mask(page, page_to_pfn(page),                \
+                        PB_migrate_end, MIGRATETYPE_MASK)
+```
+
+
+对伙伴系统数据结构的主要调整, 是将空闲列表分解为MIGRATE_TYPE个列表. 
+
+```cpp
+struct free_area {
+	struct list_head        free_list[MIGRATE_TYPES];
+unsigned long           nr_free;
+};
+```
+
+
+
+
+
+
+
+
 
 #	分配器API
 -------
