@@ -15,8 +15,11 @@ Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该�
 伙伴系统是一个结合了2的方幂个分配器和空闲缓冲区合并计技术的内存分配方案, 其基本思想很简单. 内存被分成含有很多页面的大块, 每一块都是2个页面大小的方幂. 如果找不到想要的块, 一个大块会被分成两部分, 这两部分彼此就成为伙伴. 其中一半被用来分配, 而另一半则空闲. 这些块在以后分配的过程中会继续被二分直至产生一个所需大小的块. 当一个块被最终释放时, 其伙伴将被检测出来, 如果伙伴也空闲则合并两者.
 
 *	内核如何记住哪些内存块是空闲的
+
 *	分配空闲页面的方法
+
 *	影响分配器行为的众多标识位
+
 *	内存碎片的问题和分配器如何处理碎片
 
 
@@ -592,11 +595,11 @@ not_early:
 总而言之, 这种做法避免了启动期间内核分配的内存(经常在系统的整个运行时间都不释放)散布到物理内存各处, 从而使其他类型的内存分配免受碎片的干扰，这也是页可移动性分组框架的最重要的目标之一.
 
 
-#	分配器API
+#4	分配器API
 -------
 
 
-## 分配内存的接口
+##4.1	分配内存的接口
 -------
 
 就伙伴系统的接口而言, NUMA或UMA体系结构是没有差别的, 二者的调用语法都是相同的.
@@ -636,7 +639,9 @@ not_early:
 | [free_page(struct page *)](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L520)<br>[free_pages(struct page *, order)](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3918) | 用于将一个或2order页返回给内存管理子系统。内存区的起始地址由指向该内存区的第一个page实例的指针表示 |
 | [__free_page(addr)](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L519)<br>[__free_pages(addr, order)](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3906) | 类似于前两个函数，但在表示需要释放的内存区时，使用了虚拟内存地址而不是page实例 |
 
-##分配掩码
+
+
+##4.2	分配掩码
 -------
 
 
@@ -663,13 +668,19 @@ not_early:
 #define __GFP_HIGHMEM   ((__force gfp_t)___GFP_HIGHMEM)
 #define __GFP_DMA32     ((__force gfp_t)___GFP_DMA32)
 #define __GFP_MOVABLE   ((__force gfp_t)___GFP_MOVABLE)  /* ZONE_MOVABLE allowed */
+#define GFP_ZONEMASK    (__GFP_DMA|__GFP_HIGHMEM|__GFP_DMA32|__GFP_MOVABLE)
 
 // line 194 ~ line 260
+#define GFP_DMA         __GFP_DMA
+#define GFP_DMA32       __GFP_DMA32
 ```
+
+
 其中GFP缩写的意思为获取空闲页(get free page), __GFP_MOVABLE不表示物理内存域, 但通知内核应在特殊的虚拟内存域ZONE_MOVABLE进行相应的分配.
 
 
-我们从注释中找到这样的信息
+我们从注释中找到这样的信息, 可以作为参考
+
 ```cpp
 bit       result
 =================
@@ -693,9 +704,11 @@ bit       result
 GFP_ZONES_SHIFT must be <= 2 on 32 bit platforms.
 ```
 
+
+
 很有趣的一点是，没有\__GFP_NORMAL常数，而内存分配的主要负担却落到ZONE_NORMAL内存域
 
-内核考虑到这一点, 提供了一个函数gfp_zone来计算与给定分配标志兼容的最高内存域. 那么内存分配可以从该内存域或更低的内存域进行, 该函数定义在[](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L394)
+内核考虑到这一点, 提供了一个函数gfp_zone来计算与给定分配标志兼容的最高内存域. 那么内存分配可以从该内存域或更低的内存域进行, 该函数定义在[include/linux/gfp.h?v=4.7, line 394](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L394)
 
 ```cpp
 static inline enum zone_type gfp_zone(gfp_t flags)
@@ -710,5 +723,75 @@ static inline enum zone_type gfp_zone(gfp_t flags)
 }
 ```
 
+其中GFP_ZONES_SHIFT的定义如下, 在[include/linux/gfp.h?v=4.7, line 337](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L337)
+
+
+```cpp
+#if defined(CONFIG_ZONE_DEVICE) && (MAX_NR_ZONES-1) <= 4
+/* ZONE_DEVICE is not a valid GFP zone specifier */
+#define GFP_ZONES_SHIFT 2
+#else
+#define GFP_ZONES_SHIFT ZONES_SHIFT
+#endif
+
+#if 16 * GFP_ZONES_SHIFT > BITS_PER_LONG
+#error GFP_ZONES_SHIFT too large to create GFP_ZONE_TABLE integer
+#endif
+```
+
+
+由于内存域修饰符的解释方式不是那么直观, 表3-7给出了该函数结果的一个例子, 其中DMA和DMA32内存域相同. 假定在下文中没有设置\__GFP_MOVABLE修饰符.
+
+| 修饰符 | 扫描的内存域 |
+|:-------:|:--------------:|
+| 无 | ZONE_NORMAL、ZONE_DMA |
+| \__GFP_DMA | ZONE_DMA |
+| \__GFP_DMA & \__GFP_HIGHMEM | ZONE_DMA |
+| \__GFP_HIGHMEM | ZONE_HIGHMEM、ZONE_NORMAL、ZONE_DMA |
+
+*	如果\__GFP_DMA和\__GFP_HIGHMEM都没有设置, 则首先扫描ZONE_NORMAL, 后面是ZONE_DMA
+
+*	如果设置了\__GFP_HIGHMEM没有设置__GFP_DMA，则结果是从ZONE_HIGHMEM开始扫描所有3个内存域。=
+
+*	如果设置了__GFP_DMA，那么\__GFP_HIGHMEM设置与否没有关系. 只有ZONE_DMA用于3种情形. 这是合理的, 因为同时使用\__GFP_HIGHMEM和__GFP_DMA没有意义. 高端内存从来都不适用于DMA
+
+
+设置\__GFP_MOVABLE不会影响内核的决策，除非它与\__GFP_HIGHMEM同时指定. 在这种情况下, 会使用特殊的虚拟内存域ZONE_MOVABLE满足内存分配请求. 对前文描述的内核的反碎片策略而言, 这种行为是必要的.
+
+除了内存域修饰符之外, 掩码中还可以设置一些标志. 
+
+下图中给出了掩码的布局，以及与各个比特位置关联的常数. \__GFP_DMA32出现了几次，因为它可能位于不同的地方.
+
+
+![GFP掩码的布局](../images/gfp_flag_mask.png)
+
+
+
+与内存域修饰符相反, 这些额外的标志并不限制从哪个物理内存段分配内存, 但确实可以改变分配器的行为. 例如, 它们可以修改查找空闲内存时的积极程度. 内核源代码中定义的下列标志, 定义在[include/linux/gfp.h?v=4.7, line 23](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L23)
+
+
+```cpp
+#define ___GFP_HIGH             0x20u		/* 应该访问紧急分配池？ */
+#define ___GFP_IO               0x40u		/* 可以启动物理IO？ */
+#define ___GFP_FS               0x80u		/* 可以调用底层文件系统？ */
+#define ___GFP_COLD             0x100u	   /* 需要非缓存的冷页 */
+#define ___GFP_NOWARN           0x200u	   /* 禁止分配失败警告 */
+#define ___GFP_REPEAT           0x400u	   /* 重试分配，可能失败 */
+#define ___GFP_NOFAIL           0x800u	   /* 一直重试，不会失败 */
+#define ___GFP_NORETRY          0x1000u	  /* 不重试，可能失败 */
+#define ___GFP_MEMALLOC         0x2000u  	/* 不使用紧急分配链表 */
+#define ___GFP_COMP             0x4000u
+#define ___GFP_ZERO             0x8000u
+#define ___GFP_NOMEMALLOC       0x10000u
+#define ___GFP_HARDWALL         0x20000u
+#define ___GFP_THISNODE         0x40000u	 /* 没有备用结点，没有策略 */
+#define ___GFP_ATOMIC           0x80000u
+#define ___GFP_ACCOUNT          0x100000u
+#define ___GFP_NOTRACK          0x200000u
+#define ___GFP_DIRECT_RECLAIM   0x400000u
+#define ___GFP_OTHER_NODE       0x800000u
+#define ___GFP_WRITE            0x1000000u
+#define ___GFP_KSWAPD_RECLAIM   0x2000000u
+```
 
 

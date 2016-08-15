@@ -89,7 +89,7 @@ start_kernel()
           |     区别:
           |         散列度变化了（14 - PAGE_SHIFT）;
           |         传入alloc_large_system_hash的最后参数值为0;
-          |解buddy的内部机理, 
+          |解buddy的内部机理,
 
 ```
 
@@ -102,8 +102,10 @@ start_kernel()
 *	各结点页帧的分配情况，保存在全局变量early_node_map中
 
 
+
 ##1.2	内存节点的初始化
 -------
+
 
 
 
