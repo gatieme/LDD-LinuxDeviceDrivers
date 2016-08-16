@@ -650,12 +650,15 @@ not_early:
 我们知道Linux将内存划分为内存域. 内核提供了所谓的内存域修饰符(zone modifier)(在掩码的最低4个比特位定义), 来指定从哪个内存域分配所需的页.
 
 
-参见[include/linux/gfp.h?v=4.7, line 12~374](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L12)
+内核使用宏的方式定义了这些掩码, 一个掩码的定义被划分为3个部分进行定义, 我们会逐步展开来讲解, 参见[include/linux/gfp.h?v=4.7, line 12~374](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L12), 共计26个掩码信息, 因此后面__GFP_BITS_SHIFT =  26.
 
 ```cpp
 //  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7
 
-//  line 12 ~ line 44
+/*  line 12 ~ line 44  第一部分
+ *  定义可掩码所在位的信息, 每个掩码对应一位为1
+ *  定义形式为  #define	___GFP_XXX		0x01u
+ */
 /* Plain integer GFP bitmasks. Do not use this directly. */
 #define ___GFP_DMA              0x01u
 #define ___GFP_HIGHMEM          0x02u
@@ -663,14 +666,20 @@ not_early:
 #define ___GFP_MOVABLE          0x08u
 /*  ......  */
 
-// line 46 ~ line 192
+/*  line 46 ~ line 192  第二部分
+ *  定义掩码和MASK信息, 第二部分的某些宏可能是第一部分一个或者几个的组合
+ *  定义形式为  #define	__GFP_XXX		 ((__force gfp_t)___GFP_XXX)
+ */
 #define __GFP_DMA       ((__force gfp_t)___GFP_DMA)
 #define __GFP_HIGHMEM   ((__force gfp_t)___GFP_HIGHMEM)
 #define __GFP_DMA32     ((__force gfp_t)___GFP_DMA32)
 #define __GFP_MOVABLE   ((__force gfp_t)___GFP_MOVABLE)  /* ZONE_MOVABLE allowed */
 #define GFP_ZONEMASK    (__GFP_DMA|__GFP_HIGHMEM|__GFP_DMA32|__GFP_MOVABLE)
 
-// line 194 ~ line 260
+/*  line 194 ~ line 260  第三部分
+ *  定义掩码
+ *  定义形式为  #define	GFP_XXX		 __GFP_XXX
+ */
 #define GFP_DMA         __GFP_DMA
 #define GFP_DMA32       __GFP_DMA32
 ```
@@ -678,8 +687,289 @@ not_early:
 
 其中GFP缩写的意思为获取空闲页(get free page), __GFP_MOVABLE不表示物理内存域, 但通知内核应在特殊的虚拟内存域ZONE_MOVABLE进行相应的分配.
 
+##4.2.1	定义掩码位
+-------
 
-我们从注释中找到这样的信息, 可以作为参考
+
+我们首先来看**第一部分**, 内核源代码中定义在[include/linux/gfp.h?v=4.7, line 18 ~ line 44](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L17), 共计26个掩码信息, 
+
+
+```cpp
+/* Plain integer GFP bitmasks. Do not use this directly. */
+#define ___GFP_DMA              0x01u
+#define ___GFP_HIGHMEM          0x02u
+#define ___GFP_DMA32            0x04u
+#define ___GFP_MOVABLE          0x08u	    /* 页是可移动的 */
+#define ___GFP_RECLAIMABLE      0x10u	    /* 页是可回收的 */
+#define ___GFP_HIGH             0x20u		/* 应该访问紧急分配池？ */
+#define ___GFP_IO               0x40u		/* 可以启动物理IO？ */
+#define ___GFP_FS               0x80u		/* 可以调用底层文件系统？ */
+#define ___GFP_COLD             0x100u	   /* 需要非缓存的冷页 */
+#define ___GFP_NOWARN           0x200u	   /* 禁止分配失败警告 */
+#define ___GFP_REPEAT           0x400u	   /* 重试分配，可能失败 */
+#define ___GFP_NOFAIL           0x800u	   /* 一直重试，不会失败 */
+#define ___GFP_NORETRY          0x1000u	  /* 不重试，可能失败 */
+#define ___GFP_MEMALLOC         0x2000u  	/* 使用紧急分配链表 */
+#define ___GFP_COMP             0x4000u	  /* 增加复合页元数据 */
+#define ___GFP_ZERO             0x8000u	  /* 成功则返回填充字节0的页 */
+#define ___GFP_NOMEMALLOC       0x10000u	 /* 不使用紧急分配链表 */
+#define ___GFP_HARDWALL         0x20000u	 /* 只允许在进程允许运行的CPU所关联的结点分配内存 */
+#define ___GFP_THISNODE         0x40000u	 /* 没有备用结点，没有策略 */
+#define ___GFP_ATOMIC           0x80000u 	/* 用于原子分配，在任何情况下都不能中断  */
+#define ___GFP_ACCOUNT          0x100000u
+#define ___GFP_NOTRACK          0x200000u
+#define ___GFP_DIRECT_RECLAIM   0x400000u
+#define ___GFP_OTHER_NODE       0x800000u
+#define ___GFP_WRITE            0x1000000u
+#define ___GFP_KSWAPD_RECLAIM   0x2000000u
+```
+
+###4.2.2	定义掩码
+-------
+
+然后**第二部分**, 相对而言每一个宏又被重新定义如下, 参见[include/linux/gfp.h?v=4.7, line 46 ~ line 192](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L46)
+
+```cpp
+/*
+* Physical address zone modifiers (see linux/mmzone.h - low four bits)
+*
+* Do not put any conditional on these. If necessary modify the definitions
+* without the underscores and use them consistently. The definitions here may
+* be used in bit comparisons.
+*/
+#define __GFP_DMA       ((__force gfp_t)___GFP_DMA)
+#define __GFP_HIGHMEM   ((__force gfp_t)___GFP_HIGHMEM)
+#define __GFP_DMA32     ((__force gfp_t)___GFP_DMA32)
+#define __GFP_MOVABLE   ((__force gfp_t)___GFP_MOVABLE)  /* ZONE_MOVABLE allowed */
+#define GFP_ZONEMASK    (__GFP_DMA|__GFP_HIGHMEM|__GFP_DMA32|__GFP_MOVABLE)
+
+/*
+* Page mobility and placement hints
+*
+* These flags provide hints about how mobile the page is. Pages with similar
+* mobility are placed within the same pageblocks to minimise problems due
+* to external fragmentation.
+*
+* __GFP_MOVABLE (also a zone modifier) indicates that the page can be
+*   moved by page migration during memory compaction or can be reclaimed.
+*
+* __GFP_RECLAIMABLE is used for slab allocations that specify
+*   SLAB_RECLAIM_ACCOUNT and whose pages can be freed via shrinkers.
+*
+* __GFP_WRITE indicates the caller intends to dirty the page. Where possible,
+*   these pages will be spread between local zones to avoid all the dirty
+*   pages being in one zone (fair zone allocation policy).
+*
+* __GFP_HARDWALL enforces the cpuset memory allocation policy.
+*
+* __GFP_THISNODE forces the allocation to be satisified from the requested
+*   node with no fallbacks or placement policy enforcements.
+*
+* __GFP_ACCOUNT causes the allocation to be accounted to kmemcg (only relevant
+*   to kmem allocations).
+*/
+#define __GFP_RECLAIMABLE ((__force gfp_t)___GFP_RECLAIMABLE)
+#define __GFP_WRITE     ((__force gfp_t)___GFP_WRITE)
+#define __GFP_HARDWALL   ((__force gfp_t)___GFP_HARDWALL)
+#define __GFP_THISNODE  ((__force gfp_t)___GFP_THISNODE)
+#define __GFP_ACCOUNT   ((__force gfp_t)___GFP_ACCOUNT)
+
+/*
+* Watermark modifiers -- controls access to emergency reserves
+*
+* __GFP_HIGH indicates that the caller is high-priority and that granting
+*   the request is necessary before the system can make forward progress.
+*   For example, creating an IO context to clean pages.
+*
+* __GFP_ATOMIC indicates that the caller cannot reclaim or sleep and is
+*   high priority. Users are typically interrupt handlers. This may be
+*   used in conjunction with __GFP_HIGH
+ *
+ * __GFP_MEMALLOC allows access to all memory. This should only be used when
+ *   the caller guarantees the allocation will allow more memory to be freed
+ *   very shortly e.g. process exiting or swapping. Users either should
+ *   be the MM or co-ordinating closely with the VM (e.g. swap over NFS).
+ *
+ * __GFP_NOMEMALLOC is used to explicitly forbid access to emergency reserves.
+ *   This takes precedence over the __GFP_MEMALLOC flag if both are set.
+ */
+#define __GFP_ATOMIC    ((__force gfp_t)___GFP_ATOMIC)
+#define __GFP_HIGH      ((__force gfp_t)___GFP_HIGH)
+#define __GFP_MEMALLOC  ((__force gfp_t)___GFP_MEMALLOC)
+#define __GFP_NOMEMALLOC ((__force gfp_t)___GFP_NOMEMALLOC)
+
+/*
+ * Reclaim modifiers
+ *
+ * __GFP_IO can start physical IO.
+ *
+ * __GFP_FS can call down to the low-level FS. Clearing the flag avoids the
+ *   allocator recursing into the filesystem which might already be holding
+ *   locks.
+ *
+ * __GFP_DIRECT_RECLAIM indicates that the caller may enter direct reclaim.
+ *   This flag can be cleared to avoid unnecessary delays when a fallback
+ *   option is available.
+ *
+ * __GFP_KSWAPD_RECLAIM indicates that the caller wants to wake kswapd when
+ *   the low watermark is reached and have it reclaim pages until the high
+ *   watermark is reached. A caller may wish to clear this flag when fallback
+ *   options are available and the reclaim is likely to disrupt the system. The
+ *   canonical example is THP allocation where a fallback is cheap but
+ *   reclaim/compaction may cause indirect stalls.
+ *
+ * __GFP_RECLAIM is shorthand to allow/forbid both direct and kswapd reclaim.
+ *
+ * __GFP_REPEAT: Try hard to allocate the memory, but the allocation attempt
+ *   _might_ fail.  This depends upon the particular VM implementation.
+ *
+ * __GFP_NOFAIL: The VM implementation _must_ retry infinitely: the caller
+ *   cannot handle allocation failures. New users should be evaluated carefully
+ *   (and the flag should be used only when there is no reasonable failure
+ *   policy) but it is definitely preferable to use the flag rather than
+ *   opencode endless loop around allocator.
+ *
+ * __GFP_NORETRY: The VM implementation must not retry indefinitely and will
+ *   return NULL when direct reclaim and memory compaction have failed to allow
+ *   the allocation to succeed.  The OOM killer is not called with the current
+ *   implementation.
+ */
+#define __GFP_IO        ((__force gfp_t)___GFP_IO)
+#define __GFP_FS        ((__force gfp_t)___GFP_FS)
+#define __GFP_DIRECT_RECLAIM    ((__force gfp_t)___GFP_DIRECT_RECLAIM) /* Caller can reclaim */
+#define __GFP_KSWAPD_RECLAIM    ((__force gfp_t)___GFP_KSWAPD_RECLAIM) /* kswapd can wake */
+#define __GFP_RECLAIM ((__force gfp_t)(___GFP_DIRECT_RECLAIM|___GFP_KSWAPD_RECLAIM))
+#define __GFP_REPEAT    ((__force gfp_t)___GFP_REPEAT)
+#define __GFP_NOFAIL    ((__force gfp_t)___GFP_NOFAIL)
+#define __GFP_NORETRY   ((__force gfp_t)___GFP_NORETRY)
+
+/*
+ * Action modifiers
+ *
+ * __GFP_COLD indicates that the caller does not expect to be used in the near
+ *   future. Where possible, a cache-cold page will be returned.
+ *
+ * __GFP_NOWARN suppresses allocation failure reports.
+ *
+ * __GFP_COMP address compound page metadata.
+ *
+ * __GFP_ZERO returns a zeroed page on success.
+ *
+ * __GFP_NOTRACK avoids tracking with kmemcheck.
+ *
+ * __GFP_NOTRACK_FALSE_POSITIVE is an alias of __GFP_NOTRACK. It's a means of
+ *   distinguishing in the source between false positives and allocations that
+ *   cannot be supported (e.g. page tables).
+ *
+ * __GFP_OTHER_NODE is for allocations that are on a remote node but that
+ *   should not be accounted for as a remote allocation in vmstat. A
+ *   typical user would be khugepaged collapsing a huge page on a remote
+ *   node.
+ */
+#define __GFP_COLD      ((__force gfp_t)___GFP_COLD)
+#define __GFP_NOWARN    ((__force gfp_t)___GFP_NOWARN)
+#define __GFP_COMP      ((__force gfp_t)___GFP_COMP)
+#define __GFP_ZERO      ((__force gfp_t)___GFP_ZERO)
+#define __GFP_NOTRACK   ((__force gfp_t)___GFP_NOTRACK)
+#define __GFP_NOTRACK_FALSE_POSITIVE (__GFP_NOTRACK)
+#define __GFP_OTHER_NODE ((__force gfp_t)___GFP_OTHER_NODE)
+
+/* Room for N __GFP_FOO bits */
+#define __GFP_BITS_SHIFT 26
+#define __GFP_BITS_MASK ((__force gfp_t)((1 << __GFP_BITS_SHIFT) - 1))
+```
+给出的常数，其中一些很少使用，因此我不会讨论。其中最重要的一些常数语义如下所示
+
+
+/*	\__GFP_WAIT表示分配内存的请求可以中断。也就是说，调度器在该请求期间可随意选择另一个过程执行，或者该请求可以被另一个更重要的事件中断. 分配器还可以在返回内存之前, 在队列上等待一个事件(相关进程会进入睡眠状态).
+
+>虽然名字相似，但__GFP_HIGH与__GFP_HIGHMEM毫无关系，请不要弄混这两者\
+
+| 宏 | 描述 |
+|:---:|:----:|
+| \__GFP_RECLAIMABLE<br>\__GFP_MOVABLE | 是页迁移机制所需的标志. 顾名思义，它们分别将分配的内存标记为可回收的或可移动的。这影响从空闲列表的哪个子表获取内存 |
+| \___GFP_HIGH | 如果请求非常重要, 则设置\__GFP_HIGH，即内核急切地需要内存时。在分配内存失败可能给内核带来严重后果时(比如威胁到系统稳定性或系统崩溃), 总是会使用该标志 |
+| \___GFP_IO |说明在查找空闲内存期间内核可以进行I/O操作. 实际上, 这意味着如果内核在内存分配期间换出页, 那么仅当设置该标志时, 才能将选择的页写入硬盘 |
+| \___GFP_FS |允许内核执行VFS操作. 在与VFS层有联系的内核子系统中必须禁用, 因为这可能引起循环递归调用. |
+| \___GFP_COLD | 如果需要分配不在CPU高速缓存中的“冷”页时，则设置\__GFP_COLD |
+| \___GFP_NOWARN | 在分配失败时禁止内核故障警告。在极少数场合该标志有用 |
+| \___GFP_REPEAT | 在分配失败后自动重试，但在尝试若干次之后会停止 |
+| \___GFP_NOFAIL | 在分配失败后一直重试，直至成功 |
+| \___GFP_NORETRY |  在分配失败后不重试，因此可能分配失败 |
+| \___GFP_ZERO | 在分配成功时，将返回填充字节0的页 |
+| \__GFP_HARDWALL | 只在NUMA系统上有意义. 它限制只在分配到当前进程的各个CPU所关联的结点分配内存。如果进程允许在所有CPU上运行（默认情况），该标志是无意义的。只有进程可以运行的CPU受限时，该标志才有效果 |
+| \__GFP_THISNODE | 也只在NUMA系统上有意义。如果设置该比特位，则内存分配失败的情况下不允许使用其他结点作为备用，需要保证在当前结点或者明确指定的结点上成功分配内存 |
+
+
+其次还定义了我们程序和函数中所需要的掩码MASK的信息, 由于其中__GFP_DMA, __GFP_DMA32, __GFP_HIGHMEM, __GFP_MOVABLE是在内存中分别有对应的内存域信息, 因此我们定义了内存域的掩码GFP_ZONEMASK, 参见[include/linux/gfp.h?v=4.7, line 57](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L57)
+
+```cpp
+#define GFP_ZONEMASK    (__GFP_DMA|__GFP_HIGHMEM|__GFP_DMA32|__GFP_MOVABLE)
+```
+
+那自然还有__GFP_BITS_SHIFT来表示我们所有的掩码位, 由于我们共计26个掩码位
+
+```cpp
+/* Room for N __GFP_FOO bits */
+#define __GFP_BITS_SHIFT 26
+#define __GFP_BITS_MASK ((__force gfp_t)((1 << __GFP_BITS_SHIFT) - 1))
+```
+
+###4.2.3	掩码分组
+-------
+
+
+最后来看**第三部分**, 由于这些标志几乎总是组合使用，内核作了一些分组，包含了用于各种标准情形的适当的标志.
+
+如果有可能的话，在内存管理子系统之外，总是把下列分组之一用于内存分配. 在内核源代码中，双下划线通常用于内部数据和定义。而这些预定义的分组名没有双下划线前缀，这一点从侧面验证了上述说法.
+
+```cpp
+#define GFP_ATOMIC      (__GFP_HIGH|__GFP_ATOMIC|__GFP_KSWAPD_RECLAIM)
+#define GFP_KERNEL      (__GFP_RECLAIM | __GFP_IO | __GFP_FS)
+#define GFP_KERNEL_ACCOUNT (GFP_KERNEL | __GFP_ACCOUNT)
+#define GFP_NOWAIT      (__GFP_KSWAPD_RECLAIM)
+#define GFP_NOIO        (__GFP_RECLAIM)
+#define GFP_NOFS        (__GFP_RECLAIM | __GFP_IO)
+#define GFP_TEMPORARY   (__GFP_RECLAIM | __GFP_IO | __GFP_FS | \
+                         __GFP_RECLAIMABLE)
+#define GFP_USER        (__GFP_RECLAIM | __GFP_IO | __GFP_FS | __GFP_HARDWALL)
+#define GFP_DMA         __GFP_DMA
+#define GFP_DMA32       __GFP_DMA32
+#define GFP_HIGHUSER    (GFP_USER | __GFP_HIGHMEM)
+#define GFP_HIGHUSER_MOVABLE    (GFP_HIGHUSER | __GFP_MOVABLE)
+#define GFP_TRANSHUGE   ((GFP_HIGHUSER_MOVABLE | __GFP_COMP | \
+                         __GFP_NOMEMALLOC | __GFP_NORETRY | __GFP_NOWARN) & \
+                         ~__GFP_RECLAIM)
+
+/* Convert GFP flags to their corresponding migrate type */
+#define GFP_MOVABLE_MASK (__GFP_RECLAIMABLE|__GFP_MOVABLE)
+#define GFP_MOVABLE_SHIFT 3
+```
+
+| 掩码组 | 描述 |
+|:-------:|:-----:|
+| GFP_ATOMIC | 用于原子分配，在任何情况下都不能中断, 可能使用紧急分配链表中的内存 |
+| GFP_NOIO<br>GFP_NOFS | 分别明确禁止I/O操作和访问VFS层, 但同时设置了\__GFP_RECLAIM，因此可以被回收 |
+| GFP_KERNEL<br>GFP_USER | 分别是内核和用户分配的默认设置。二者的失败不会立即威胁系统稳定性, GFP_KERNEL绝对是内核源代码中最常使用的标志 |
+| GFP_HIGHUSER | 是GFP_USER的一个扩展, 也用于用户空间. 它允许分配无法直接映射的高端内存. 使用高端内存页是没有坏处的，因为用户过程的地址空间总是通过非线性页表组织的 |
+| GFP_HIGHUSER_MOVABLE |用途类似于GFP_HIGHUSER，但分配将从虚拟内存域ZONE_MOVABLE进行 |
+| GFP_DMA<br>GFP_DMA32 | 用于分配适用于DMA的内存, 当前是\__GFP_DMA的同义词, GFP_DMA32也是\__GFP_GMA32的同义词 |
+
+
+最后内核设置了碎片管理的可移动依据组织页的MASK信息GFP_MOVABLE_MASK, 参见[include/linux/gfp.h?v=4.7, line 262](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L262)
+
+```cpp
+/* Convert GFP flags to their corresponding migrate type */
+#define GFP_MOVABLE_MASK (__GFP_RECLAIMABLE|__GFP_MOVABLE)
+#define GFP_MOVABLE_SHIFT 3
+```
+
+
+
+###4.2.4	总结
+-------
+
+我们从注释中找到这样的信息, 可以作为参考[]()
 
 ```cpp
 bit       result
@@ -767,31 +1057,105 @@ static inline enum zone_type gfp_zone(gfp_t flags)
 
 
 
-与内存域修饰符相反, 这些额外的标志并不限制从哪个物理内存段分配内存, 但确实可以改变分配器的行为. 例如, 它们可以修改查找空闲内存时的积极程度. 内核源代码中定义的下列标志, 定义在[include/linux/gfp.h?v=4.7, line 23](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L23)
+与内存域修饰符相反, 这些额外的标志并不限制从哪个物理内存段分配内存, 但确实可以改变分配器的行为. 例如, 它们可以修改查找空闲内存时的积极程度.
+
+
+
+##4.3	内存分配统一到alloc_pages接口
+-------
+
+通过使用标志、内存域修饰符和各个分配函数，内核提供了一种非常灵活的内存分配体系.尽管如此, 所有接口函数都可以追溯到一个简单的基本函数(alloc_pages_node)
+
+分配单页的函数[`alloc_page`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483)和[`__get_free_page`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L500), 还有[`__get_dma_pages`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L503)是借助于宏定义的
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483
+#define alloc_page(gfp_mask) alloc_pages(gfp_mask, 0)
+
+//  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L500
+#define __get_free_page(gfp_mask) \
+	__get_free_pages((gfp_mask), 0)`
+
+//  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L503
+#define __get_dma_pages(gfp_mask, order) \
+	__get_free_pages((gfp_mask) | GFP_DMA, (order))
+```
+
+[`get_zeroed_page`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3900)的实现也没什么困难, 对__get_free_pages使用__GFP_ZERO标志，即可分配填充字节0的页. 再返回与页关联的内存区地址即可.
 
 
 ```cpp
-#define ___GFP_HIGH             0x20u		/* 应该访问紧急分配池？ */
-#define ___GFP_IO               0x40u		/* 可以启动物理IO？ */
-#define ___GFP_FS               0x80u		/* 可以调用底层文件系统？ */
-#define ___GFP_COLD             0x100u	   /* 需要非缓存的冷页 */
-#define ___GFP_NOWARN           0x200u	   /* 禁止分配失败警告 */
-#define ___GFP_REPEAT           0x400u	   /* 重试分配，可能失败 */
-#define ___GFP_NOFAIL           0x800u	   /* 一直重试，不会失败 */
-#define ___GFP_NORETRY          0x1000u	  /* 不重试，可能失败 */
-#define ___GFP_MEMALLOC         0x2000u  	/* 不使用紧急分配链表 */
-#define ___GFP_COMP             0x4000u
-#define ___GFP_ZERO             0x8000u
-#define ___GFP_NOMEMALLOC       0x10000u
-#define ___GFP_HARDWALL         0x20000u
-#define ___GFP_THISNODE         0x40000u	 /* 没有备用结点，没有策略 */
-#define ___GFP_ATOMIC           0x80000u
-#define ___GFP_ACCOUNT          0x100000u
-#define ___GFP_NOTRACK          0x200000u
-#define ___GFP_DIRECT_RECLAIM   0x400000u
-#define ___GFP_OTHER_NODE       0x800000u
-#define ___GFP_WRITE            0x1000000u
-#define ___GFP_KSWAPD_RECLAIM   0x2000000u
+//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3900
+unsigned long get_zeroed_page(gfp_t gfp_mask)
+{
+        return __get_free_pages(gfp_mask | __GFP_ZERO, 0);
+}
+EXPORT_SYMBOL(get_zeroed_page);
 ```
 
 
+[`__get_free_pages`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)调用alloc_pages完成内存分配, 而alloc_pages又借助于alloc_pages_node
+
+[`__get_free_pages`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)函数的定义在[mm/page_alloc.c?v=4.7, line 3883](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)
+
+```cpp
+//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883
+unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
+{
+    struct page *page;
+
+    /*
+     * __get_free_pages() returns a 32-bit address, which cannot represent
+     * a highmem page
+     */
+    VM_BUG_ON((gfp_mask & __GFP_HIGHMEM) != 0);
+
+    page = alloc_pages(gfp_mask, order);
+    if (!page)
+        return 0;
+    return (unsigned long) page_address(page);
+}
+EXPORT_SYMBOL(__get_free_pages);
+```
+
+在这种情况下， 使用了一个普通函数而不是宏， 因为alloc_pages返回的page实例需要使用辅助
+函数page_address转换为内存地址. 在这里，只要知道该函数可根据page实例计算相关页的线性内存地址即可. 对高端内存页这是有问题的
+
+alloc_pages_node函数的定义是依赖于NUMA或者UMA架构的, 定义如下
+
+```cpp
+#ifdef CONFIG_NUMA
+
+//  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L465
+static inline struct page *
+alloc_pages(gfp_t gfp_mask, unsigned int order)
+{
+        return alloc_pages_current(gfp_mask, order);
+}
+
+#else
+
+//  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L476
+#define alloc_pages(gfp_mask, order) \
+                alloc_pages_node(numa_node_id(), gfp_mask, order)
+#endif
+```
+
+<font color = 0x00ffff>
+这样, 就完成了所有分配内存的API函数到公共的基础函数alloc_pages的统一
+</font>
+
+![伙伴系统中各个分配函数之间的关系](../images/alloc_pages.png)
+
+
+所有体系结构都必须实现的标准函数clear_page，可帮助alloc_pages对页填充字节0, 实现如下表所示
+
+| x86 | arm |
+|:----:|:-----:|
+| [arch/x86/include/asm/page_32.h?v=4.7, line 24](http://lxr.free-electrons.com/source/arch/x86/include/asm/page_32.h?v=4.7#L24) | [arch/arm/include/asm/page.h?v=4.7#L14](http://lxr.free-electrons.com/source/arch/arm/include/asm/page.h?v=4.7#L142)<br>[arch/arm/include/asm/page-nommu.h](http://lxr.free-electrons.com/source/arch/arm/include/asm/page-nommu.h?v=4.7#L20) |
+
+##4.4	__free_pages
+
+
+类似地，内存释放函数也可以归约到一个主要的函数（__free_pages），只是用不同的参数调
+用而已：
