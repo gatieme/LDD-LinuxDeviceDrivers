@@ -628,6 +628,8 @@ not_early:
 还有一组kmalloc类型的函数, 用于分配小于一整页的内存区. 其实现
 将在本章后续的几节分别讨论。
 
+
+
 ## 释放函数
 -------
 
@@ -1060,13 +1062,16 @@ static inline enum zone_type gfp_zone(gfp_t flags)
 与内存域修饰符相反, 这些额外的标志并不限制从哪个物理内存段分配内存, 但确实可以改变分配器的行为. 例如, 它们可以修改查找空闲内存时的积极程度.
 
 
+##4.3	分配页
+-------
 
-##4.3	内存分配统一到alloc_pages接口
+
+###4.3.1	内存分配统一到alloc_pages接口
 -------
 
 通过使用标志、内存域修饰符和各个分配函数，内核提供了一种非常灵活的内存分配体系.尽管如此, 所有接口函数都可以追溯到一个简单的基本函数(alloc_pages_node)
 
-分配单页的函数[`alloc_page`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483)和[`__get_free_page`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L500), 还有[`__get_dma_pages`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L503)是借助于宏定义的
+分配单页的函数[`alloc_page`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483)和[`__get_free_page`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L500), 还有[`__get_dma_pages`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L503)是借助于宏定义的.
 
 ```cpp
 //  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483
@@ -1081,7 +1086,7 @@ static inline enum zone_type gfp_zone(gfp_t flags)
 	__get_free_pages((gfp_mask) | GFP_DMA, (order))
 ```
 
-[`get_zeroed_page`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3900)的实现也没什么困难, 对__get_free_pages使用__GFP_ZERO标志，即可分配填充字节0的页. 再返回与页关联的内存区地址即可.
+[`get_zeroed_page`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3900)的实现也没什么困难, 对`__get_free_pages`使用`__GFP_ZERO`标志，即可分配填充字节0的页. 再返回与页关联的内存区地址即可.
 
 
 ```cpp
@@ -1094,7 +1099,7 @@ EXPORT_SYMBOL(get_zeroed_page);
 ```
 
 
-[`__get_free_pages`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)调用alloc_pages完成内存分配, 而alloc_pages又借助于alloc_pages_node
+[`__get_free_pages`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)调用`alloc_pages`完成内存分配, 而alloc_pages又借助于alloc_pages_node
 
 [`__get_free_pages`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)函数的定义在[mm/page_alloc.c?v=4.7, line 3883](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)
 
@@ -1118,10 +1123,34 @@ unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
 EXPORT_SYMBOL(__get_free_pages);
 ```
 
-在这种情况下， 使用了一个普通函数而不是宏， 因为alloc_pages返回的page实例需要使用辅助
-函数page_address转换为内存地址. 在这里，只要知道该函数可根据page实例计算相关页的线性内存地址即可. 对高端内存页这是有问题的
+在这种情况下， 使用了一个普通函数而不是宏， 因为`alloc_pages`返回的`page`实例需要使用辅助
 
-alloc_pages_node函数的定义是依赖于NUMA或者UMA架构的, 定义如下
+函数`page_address`转换为内存地址. 在这里，只要知道该函数可根据`page`实例计算相关页的线性内存地址即可. 对高端内存页这是有问题的
+
+
+<font color = 0x00ffff>
+这样, 就完成了所有分配内存的API函数到公共的基础函数`alloc_pages`的统一
+</font>
+
+![伙伴系统中各个分配函数之间的关系](../images/alloc_pages.png)
+
+
+所有体系结构都必须实现的标准函数`clear_page`, 可帮助alloc_pages对页填充字节0, 实现如下表所示
+
+| x86 | arm |
+|:----:|:-----:|
+| [arch/x86/include/asm/page_32.h?v=4.7, line 24](http://lxr.free-electrons.com/source/arch/x86/include/asm/page_32.h?v=4.7#L24) | [arch/arm/include/asm/page.h?v=4.7#L14](http://lxr.free-electrons.com/source/arch/arm/include/asm/page.h?v=4.7#L142)<br>[arch/arm/include/asm/page-nommu.h](http://lxr.free-electrons.com/source/arch/arm/include/asm/page-nommu.h?v=4.7#L20) |
+
+
+###4.3.2	alloc_pages函数分配页
+-------
+
+
+既然所有的内存分配API函数都可以追溯掉`alloc_page`函数, 从某种意义上说，该函数是伙伴系统主要实现的"发射台".
+
+
+`alloc_pages`函数的定义是依赖于NUMA或者UMA架构的, 定义如下
+
 
 ```cpp
 #ifdef CONFIG_NUMA
@@ -1141,21 +1170,225 @@ alloc_pages(gfp_t gfp_mask, unsigned int order)
 #endif
 ```
 
-<font color = 0x00ffff>
-这样, 就完成了所有分配内存的API函数到公共的基础函数alloc_pages的统一
-</font>
 
-![伙伴系统中各个分配函数之间的关系](../images/alloc_pages.png)
+UMA结构下的`alloc_pages`是通过`alloc_pages_node`函数实现的, 下面我们看看`alloc_pages_node`函数的定义, 在[include/linux/gfp.h?v=4.7, line 448](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L448)
 
 
-所有体系结构都必须实现的标准函数clear_page，可帮助alloc_pages对页填充字节0, 实现如下表所示
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L448
+/*
+ * Allocate pages, preferring the node given as nid. When nid == NUMA_NO_NODE,
+ * prefer the current CPU's closest node. Otherwise node must be valid and
+ * online.
+ */
+static inline struct page *alloc_pages_node(int nid, gfp_t gfp_mask,
+                        unsigned int order)
+{
+    if (nid == NUMA_NO_NODE)
+        nid = numa_mem_id();
 
-| x86 | arm |
-|:----:|:-----:|
-| [arch/x86/include/asm/page_32.h?v=4.7, line 24](http://lxr.free-electrons.com/source/arch/x86/include/asm/page_32.h?v=4.7#L24) | [arch/arm/include/asm/page.h?v=4.7#L14](http://lxr.free-electrons.com/source/arch/arm/include/asm/page.h?v=4.7#L142)<br>[arch/arm/include/asm/page-nommu.h](http://lxr.free-electrons.com/source/arch/arm/include/asm/page-nommu.h?v=4.7#L20) |
+    return __alloc_pages_node(nid, gfp_mask, order);
+}
+````
+
+它只是执行了一个简单的检查, 如果指定负的结点ID(不存在, 即[NUMA_NO_NODE = -1](http://lxr.free-electrons.com/source/include/linux/numa.h?v=4.7#L13)), 内核自动地使用当前执行CPU对应的结点nid = [numa_mem_id();](http://lxr.free-electrons.com/source/include/linux/topology.h?v=4.7#L137), 然后调用`__alloc_pages_node`函数进行了内存分配
+
+
+
+`__alloc_pages_node`函数定义在[include/linux/gfp.h?v=4.7, line 435)](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L435), 如下所示
+
+```cpp
+// http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L435
+/*
+ * Allocate pages, preferring the node given as nid. The node must be valid and
+ * online. For more general interface, see alloc_pages_node().
+ */
+static inline struct page *
+__alloc_pages_node(int nid, gfp_t gfp_mask, unsigned int order)
+{
+    VM_BUG_ON(nid < 0 || nid >= MAX_NUMNODES);
+    VM_WARN_ON(!node_online(nid));
+
+    return __alloc_pages(gfp_mask, order, node_zonelist(nid, gfp_mask));
+}
+```
+
+内核假定传递给改alloc_pages_node函数的结点nid是被激活, 即online的.但是为了安全它还是检查并警告内存结点不存在的情况. 接下来的工作委托给__alloc_pages, 只需传递一组适当的参数, 其中包括节点nid的备用内存域列表zonelist.
+
+
+现在`__alloc_pages`函数没什么特别的, 它直接将自己的所有信息传递给`__alloc_pages_nodemask`来完成内存的分配
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428
+static inline struct page *
+__alloc_pages(gfp_t gfp_mask, unsigned int order,
+        struct zonelist *zonelist)
+{
+    return __alloc_pages_nodemask(gfp_mask, order, zonelist, NULL);
+}
+```
+
+###4.3.3	伙伴系统的心脏__alloc_pages_nodemask
+-------
+
+内核源代码将`__alloc_pages`称之为"伙伴系统的心脏"(`the 'heart' of the zoned buddy allocator``), 因为它处理的是实质性的内存分配.
+
+由于"心脏"的重要性, 我将在下文详细介绍该函数.
+
+`__alloc_pages`函数定义在[include/linux/gfp.h?v=4.7#L428](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428)
+
+
+
+```cpp
+//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3779
+/*
+ * This is the 'heart' of the zoned buddy allocator.
+ */
+struct page *
+__alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order,
+            struct zonelist *zonelist, nodemask_t *nodemask)
+{
+    struct page *page;
+    unsigned int cpuset_mems_cookie;
+    unsigned int alloc_flags = ALLOC_WMARK_LOW|ALLOC_FAIR;
+    gfp_t alloc_mask = gfp_mask; /* The gfp_t that was actually used for allocation */
+    struct alloc_context ac = {
+        .high_zoneidx = gfp_zone(gfp_mask),
+        .zonelist = zonelist,
+        .nodemask = nodemask,
+        .migratetype = gfpflags_to_migratetype(gfp_mask),
+    };
+
+    if (cpusets_enabled()) {
+        alloc_mask |= __GFP_HARDWALL;
+        alloc_flags |= ALLOC_CPUSET;
+        if (!ac.nodemask)
+            ac.nodemask = &cpuset_current_mems_allowed;
+    }
+
+    gfp_mask &= gfp_allowed_mask;
+
+    lockdep_trace_alloc(gfp_mask);
+
+    might_sleep_if(gfp_mask & __GFP_DIRECT_RECLAIM);
+
+    if (should_fail_alloc_page(gfp_mask, order))
+        return NULL;
+
+    /*
+     * Check the zones suitable for the gfp_mask contain at least one
+     * valid zone. It's possible to have an empty zonelist as a result
+     * of __GFP_THISNODE and a memoryless node
+     */
+    if (unlikely(!zonelist->_zonerefs->zone))
+        return NULL;
+
+    if (IS_ENABLED(CONFIG_CMA) && ac.migratetype == MIGRATE_MOVABLE)
+        alloc_flags |= ALLOC_CMA;
+
+retry_cpuset:
+    cpuset_mems_cookie = read_mems_allowed_begin();
+
+    /* Dirty zone balancing only done in the fast path */
+    ac.spread_dirty_pages = (gfp_mask & __GFP_WRITE);
+
+    /*
+     * The preferred zone is used for statistics but crucially it is
+     * also used as the starting point for the zonelist iterator. It
+     * may get reset for allocations that ignore memory policies.
+     */
+    ac.preferred_zoneref = first_zones_zonelist(ac.zonelist,
+                    ac.high_zoneidx, ac.nodemask);
+    if (!ac.preferred_zoneref) {
+        page = NULL;
+        goto no_zone;
+    }
+
+    /* First allocation attempt */
+    page = get_page_from_freelist(alloc_mask, order, alloc_flags, &ac);
+    if (likely(page))
+        goto out;
+
+    /*
+     * Runtime PM, block IO and its error handling path can deadlock
+     * because I/O on the device might not complete.
+     */
+    alloc_mask = memalloc_noio_flags(gfp_mask);
+    ac.spread_dirty_pages = false;
+
+    /*
+     * Restore the original nodemask if it was potentially replaced with
+     * &cpuset_current_mems_allowed to optimize the fast-path attempt.
+     */
+    if (cpusets_enabled())
+        ac.nodemask = nodemask;
+    page = __alloc_pages_slowpath(alloc_mask, order, &ac);
+
+no_zone:
+    /*
+     * When updating a task's mems_allowed, it is possible to race with
+     * parallel threads in such a way that an allocation can fail while
+     * the mask is being updated. If a page allocation is about to fail,
+     * check if the cpuset changed during allocation and if so, retry.
+     */
+    if (unlikely(!page && read_mems_allowed_retry(cpuset_mems_cookie))) {
+        alloc_mask = gfp_mask;
+        goto retry_cpuset;
+    }
+
+out:
+    if (kmemcheck_enabled && page)
+        kmemcheck_pagealloc_alloc(page, order, gfp_mask);
+
+    trace_mm_page_alloc(page, order, alloc_mask, ac.migratetype);
+
+    return page;
+}
+EXPORT_SYMBOL(__alloc_pages_nodemask);
+```
 
 ##4.4	__free_pages
 
 
-类似地，内存释放函数也可以归约到一个主要的函数（__free_pages），只是用不同的参数调
-用而已：
+类似地，内存释放函数也可以归约到一个主要的函数(\__free_pages), 只是用不同的参数调用而已
+
+前面我们讲过内核释放的两个主要函数有\__free_page和free_page, 它们的定义在[include/linux/gfp.h?v=4.7#L519](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L519)
+
+
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L519
+#define __free_page(page) __free_pages((page), 0)
+#define free_page(addr) free_pages((addr), 0)
+```
+
+而free_pages是通过__free_pages来完成内存释放的, 参见[mm/page_alloc.c?v=4.7#L3918](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3918)
+
+
+
+```cpp
+void free_pages(unsigned long addr, unsigned int order)
+{
+    if (addr != 0) {
+        VM_BUG_ON(!virt_addr_valid((void *)addr));
+        __free_pages(virt_to_page((void *)addr), order);
+    }
+}
+```
+
+
+`free_pages`和`__free_pages`之间的关系通过函数而不是宏建立, 因为首先必须将虚拟地址转换为指向`struct page`的指针
+
+
+
+`virt_to_page`将虚拟内存地址转换为指向page实例的指针. 基本上, 这是讲解内存分配函数时介绍的page_address辅助函数的逆过程.
+
+
+下图以图形化方式综述了各个内存释放函数之间的关系
+
+
+![伙伴系统各个内存释放函数之间的关系](../images/__free_pages.png)
+
+
+
+
