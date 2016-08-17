@@ -225,123 +225,15 @@ __alloc_pages(gfp_t gfp_mask, unsigned int order,
 ##2.3	伙伴系统的心脏__alloc_pages_nodemask
 -------
 
-内核源代码将`__alloc_pages`称之为"伙伴系统的心脏"(`the 'heart' of the zoned buddy allocator``), 因为它处理的是实质性的内存分配.
+内核源代码将`__alloc_pages_nodemask`称之为"伙伴系统的心脏"(`the 'heart' of the zoned buddy allocator``), 因为它处理的是实质性的内存分配.
 
 由于"心脏"的重要性, 我将在下文详细介绍该函数.
 
 
 
-`__alloc_pages`函数定义在[include/linux/gfp.h?v=4.7#L428](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428)
+`__alloc_pages_nodemask`函数定义在[include/linux/gfp.h?v=4.7#L428](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428)
 
 
-
-```cpp
-//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3779
-/*
- * This is the 'heart' of the zoned buddy allocator.
- */
-struct page *
-__alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order,
-            struct zonelist *zonelist, nodemask_t *nodemask)
-{
-    struct page *page;
-    unsigned int cpuset_mems_cookie;
-    unsigned int alloc_flags = ALLOC_WMARK_LOW|ALLOC_FAIR;
-    gfp_t alloc_mask = gfp_mask; /* The gfp_t that was actually used for allocation */
-    struct alloc_context ac = {
-        .high_zoneidx = gfp_zone(gfp_mask),
-        .zonelist = zonelist,
-        .nodemask = nodemask,
-        .migratetype = gfpflags_to_migratetype(gfp_mask),
-    };
-
-    if (cpusets_enabled()) {
-        alloc_mask |= __GFP_HARDWALL;
-        alloc_flags |= ALLOC_CPUSET;
-        if (!ac.nodemask)
-            ac.nodemask = &cpuset_current_mems_allowed;
-    }
-
-    gfp_mask &= gfp_allowed_mask;
-
-    lockdep_trace_alloc(gfp_mask);
-
-    might_sleep_if(gfp_mask & __GFP_DIRECT_RECLAIM);
-
-    if (should_fail_alloc_page(gfp_mask, order))
-        return NULL;
-
-    /*
-     * Check the zones suitable for the gfp_mask contain at least one
-     * valid zone. It's possible to have an empty zonelist as a result
-     * of __GFP_THISNODE and a memoryless node
-     */
-    if (unlikely(!zonelist->_zonerefs->zone))
-        return NULL;
-
-    if (IS_ENABLED(CONFIG_CMA) && ac.migratetype == MIGRATE_MOVABLE)
-        alloc_flags |= ALLOC_CMA;
-
-retry_cpuset:
-    cpuset_mems_cookie = read_mems_allowed_begin();
-
-    /* Dirty zone balancing only done in the fast path */
-    ac.spread_dirty_pages = (gfp_mask & __GFP_WRITE);
-
-    /*
-     * The preferred zone is used for statistics but crucially it is
-     * also used as the starting point for the zonelist iterator. It
-     * may get reset for allocations that ignore memory policies.
-     */
-    ac.preferred_zoneref = first_zones_zonelist(ac.zonelist,
-                    ac.high_zoneidx, ac.nodemask);
-    if (!ac.preferred_zoneref) {
-        page = NULL;
-        goto no_zone;
-    }
-
-    /* First allocation attempt */
-    page = get_page_from_freelist(alloc_mask, order, alloc_flags, &ac);
-    if (likely(page))
-        goto out;
-
-    /*
-     * Runtime PM, block IO and its error handling path can deadlock
-     * because I/O on the device might not complete.
-     */
-    alloc_mask = memalloc_noio_flags(gfp_mask);
-    ac.spread_dirty_pages = false;
-
-    /*
-     * Restore the original nodemask if it was potentially replaced with
-     * &cpuset_current_mems_allowed to optimize the fast-path attempt.
-     */
-    if (cpusets_enabled())
-        ac.nodemask = nodemask;
-    page = __alloc_pages_slowpath(alloc_mask, order, &ac);
-
-no_zone:
-    /*
-     * When updating a task's mems_allowed, it is possible to race with
-     * parallel threads in such a way that an allocation can fail while
-     * the mask is being updated. If a page allocation is about to fail,
-     * check if the cpuset changed during allocation and if so, retry.
-     */
-    if (unlikely(!page && read_mems_allowed_retry(cpuset_mems_cookie))) {
-        alloc_mask = gfp_mask;
-        goto retry_cpuset;
-    }
-
-out:
-    if (kmemcheck_enabled && page)
-        kmemcheck_pagealloc_alloc(page, order, gfp_mask);
-
-    trace_mm_page_alloc(page, order, alloc_mask, ac.migratetype);
-
-    return page;
-}
-EXPORT_SYMBOL(__alloc_pages_nodemask);
-```
 
 #3	选择页
 -------
@@ -617,7 +509,18 @@ struct alloc_context {
 | preferred_zone | 表示从high_zoneidx后找到的合适的zone，一般会从该zone分配；分配失败的话，就会在zonelist再找一个preferred_zone = 合适的zone |
 | migratetype | 迁移类型，在zone->free_area.free_list[XXX] 作为分配下标使用，这个是用来反碎片化的，修改了以前的free_area结构体，在该结构体中再添加了一个数组，该数组以迁移类型为下标，每个数组元素都挂了对应迁移类型的页链表 |
 | high_zoneidx | 是表示该分配时，所能分配的最高zone，一般从high-->normal-->dma 内存越来越昂贵，所以一般从high到dma分配依次分配 |
+| spread_dirty_pages | |
 
+
+zonelist是指向备用列表的指针. 在预期内存域没有空闲空间的情况下, 该列表确定了扫描系统其他内存域(和结点)的顺序.
+
+随后的for循环所作的基本上与直觉一致, 遍历备用列表的所有内存域，用最简单的方式查找一个适当的空闲内存块
+
+*	首先，解释ALLOC_*标志(\__cpuset_zone_allowed_softwall是另一个辅助函数, 用于检查给定内存域是否属于该进程允许运行的CPU).
+
+*	zone_watermark_ok接下来检查所遍历到的内存域是否有足够的空闲页，并试图分配一个连续内存块。如果两个条件之一不能满足，即或者没有足够的空闲页，或者没有连续内存块可满足分配请求，则循环进行到备用列表中的下一个内存域，作同样的检查. 直到找到一个合适的页面, 在进行try_this_node进行内存分配
+
+*	如果内存域适用于当前的分配请求, 那么buffered_rmqueue试图从中分配所需数目的页
 
 ```cpp
 /*
@@ -761,3 +664,130 @@ reset_fair:
     return NULL;
 }
 ```
+
+
+#4	分配控制
+-------
+
+如前所述, `__alloc_pages_nodemask`是伙伴系统的心脏. 我们已经处理了所有的准备工作并描述了所有可能的标志, 现在我们把注意力转向相对复杂的部分 : 函数`__alloc_pages_nodemask`的实现, 这也是内核中比较冗长的部分
+之一. 特别是在可用内存太少或逐渐用完时, 函数就会比较复杂. 如果可用内存足够，则必要的工作会很快完成，就像下述代码
+
+##4.1	函数源代码注释
+-------
+
+`__alloc_pages_nodemask`函数定义在[include/linux/gfp.h?v=4.7#L428](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428)
+
+
+
+
+```cpp
+//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3779
+/*
+ * This is the 'heart' of the zoned buddy allocator.
+ */
+struct page *
+__alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order,
+            struct zonelist *zonelist, nodemask_t *nodemask)
+{
+    struct page *page;
+    unsigned int cpuset_mems_cookie;
+    unsigned int alloc_flags = ALLOC_WMARK_LOW|ALLOC_FAIR;
+    gfp_t alloc_mask = gfp_mask; /* The gfp_t that was actually used for allocation */
+    struct alloc_context ac = {
+        .high_zoneidx = gfp_zone(gfp_mask),
+        .zonelist = zonelist,
+        .nodemask = nodemask,
+        .migratetype = gfpflags_to_migratetype(gfp_mask),
+    };
+
+    if (cpusets_enabled()) {
+        alloc_mask |= __GFP_HARDWALL;
+        alloc_flags |= ALLOC_CPUSET;
+        if (!ac.nodemask)
+            ac.nodemask = &cpuset_current_mems_allowed;
+    }
+
+    gfp_mask &= gfp_allowed_mask;
+
+    lockdep_trace_alloc(gfp_mask);
+
+    might_sleep_if(gfp_mask & __GFP_DIRECT_RECLAIM);
+
+    if (should_fail_alloc_page(gfp_mask, order))
+        return NULL;
+
+    /*
+     * Check the zones suitable for the gfp_mask contain at least one
+     * valid zone. It's possible to have an empty zonelist as a result
+     * of __GFP_THISNODE and a memoryless node
+     */
+    if (unlikely(!zonelist->_zonerefs->zone))
+        return NULL;
+
+    if (IS_ENABLED(CONFIG_CMA) && ac.migratetype == MIGRATE_MOVABLE)
+        alloc_flags |= ALLOC_CMA;
+
+retry_cpuset:
+    cpuset_mems_cookie = read_mems_allowed_begin();
+
+    /* Dirty zone balancing only done in the fast path */
+    ac.spread_dirty_pages = (gfp_mask & __GFP_WRITE);
+
+    /*
+     * The preferred zone is used for statistics but crucially it is
+     * also used as the starting point for the zonelist iterator. It
+     * may get reset for allocations that ignore memory policies.
+     */
+    ac.preferred_zoneref = first_zones_zonelist(ac.zonelist,
+                    ac.high_zoneidx, ac.nodemask);
+    if (!ac.preferred_zoneref) {
+        page = NULL;
+        goto no_zone;
+    }
+
+    /* First allocation attempt */
+    page = get_page_from_freelist(alloc_mask, order, alloc_flags, &ac);
+    if (likely(page))
+        goto out;
+
+    /*
+     * Runtime PM, block IO and its error handling path can deadlock
+     * because I/O on the device might not complete.
+     */
+    alloc_mask = memalloc_noio_flags(gfp_mask);
+    ac.spread_dirty_pages = false;
+
+    /*
+     * Restore the original nodemask if it was potentially replaced with
+     * &cpuset_current_mems_allowed to optimize the fast-path attempt.
+     */
+    if (cpusets_enabled())
+        ac.nodemask = nodemask;
+    page = __alloc_pages_slowpath(alloc_mask, order, &ac);
+
+no_zone:
+    /*
+     * When updating a task's mems_allowed, it is possible to race with
+     * parallel threads in such a way that an allocation can fail while
+     * the mask is being updated. If a page allocation is about to fail,
+     * check if the cpuset changed during allocation and if so, retry.
+     */
+    if (unlikely(!page && read_mems_allowed_retry(cpuset_mems_cookie))) {
+        alloc_mask = gfp_mask;
+        goto retry_cpuset;
+    }
+
+out:
+    if (kmemcheck_enabled && page)
+        kmemcheck_pagealloc_alloc(page, order, gfp_mask);
+
+    trace_mm_page_alloc(page, order, alloc_mask, ac.migratetype);
+
+    return page;
+}
+EXPORT_SYMBOL(__alloc_pages_nodemask);
+```
+
+最简单的情形中, 分配空闲内存区只涉及调用一次`get_page_from_freelist`, 然后返回所需数目的页(由标号got_pg处的代码处理).
+
+第一次内存分配尝试不会特别积极. 如果在某个内存域中无法找到空闲内存, 则意味着内存没剩下多少了, 内核需要增加较多的工作量才能找到更多内存("重型武器"稍后才会出现).
