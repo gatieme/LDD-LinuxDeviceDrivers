@@ -476,7 +476,7 @@ static inline int allocflags_to_migratetype(gfp_t gfp_flags)
     return (((gfp_flags & __GFP_MOVABLE) != 0) << 1) |
         ((gfp_flags & __GFP_RECLAIMABLE) != 0);
 }
-````
+```
 
 如果停用了页面迁移特性, 则所有的页都是不可移动的. 否则. 该函数的返回值可以直接用作free_area.free_list的数组索引.
 
@@ -643,9 +643,12 @@ not_early:
 
 
 
-##4.2	分配掩码
+##4.2	分配掩码(gfp_mask标志)
 -------
 
+
+###4.2.1	分配掩码
+-------
 
 前述所有函数中强制使用的mask参数，到底是什么语义?
 
@@ -653,6 +656,29 @@ not_early:
 
 
 内核使用宏的方式定义了这些掩码, 一个掩码的定义被划分为3个部分进行定义, 我们会逐步展开来讲解, 参见[include/linux/gfp.h?v=4.7, line 12~374](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L12), 共计26个掩码信息, 因此后面__GFP_BITS_SHIFT =  26.
+
+
+###4.2.2	掩码分类
+-------
+
+
+Linux中这些掩码标志`gfp_mask`分为3种类型 :
+
+
+| 类型 | 描述 |
+|:-----:|:-----:|
+| 区描述都符 | 内核把物理内存分为多个区, 每个区用于不同的目的, 区描述符指明到底从这些区中的哪一区进行分配 |
+| 行为修饰符 | 表示内核应该如何分配所需的内存. 在某些特定情况下, 只能使用某些特定的方法分配内存 |
+| 类型标志 | 组合了行为修饰符和区描述符, 将这些可能用到的组合归纳为不同类型 |
+
+
+
+
+
+###4.2.3	内核中掩码的定义
+-------
+
+**内核中的定义方式**
 
 ```cpp
 //  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7
@@ -689,18 +715,21 @@ not_early:
 
 其中GFP缩写的意思为获取空闲页(get free page), __GFP_MOVABLE不表示物理内存域, 但通知内核应在特殊的虚拟内存域ZONE_MOVABLE进行相应的分配.
 
-##4.2.1	定义掩码位
--------
+
+**定义掩码位**
 
 
-我们首先来看**第一部分**, 内核源代码中定义在[include/linux/gfp.h?v=4.7, line 18 ~ line 44](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L17), 共计26个掩码信息, 
+我们首先来看**第一部分**, 内核源代码中定义在[include/linux/gfp.h?v=4.7, line 18 ~ line 44](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L17), 共计26个掩码信息.
 
 
 ```cpp
 /* Plain integer GFP bitmasks. Do not use this directly. */
+//  区域修饰符
 #define ___GFP_DMA              0x01u
 #define ___GFP_HIGHMEM          0x02u
 #define ___GFP_DMA32            0x04u
+
+//  行为修饰符
 #define ___GFP_MOVABLE          0x08u	    /* 页是可移动的 */
 #define ___GFP_RECLAIMABLE      0x10u	    /* 页是可回收的 */
 #define ___GFP_HIGH             0x20u		/* 应该访问紧急分配池？ */
@@ -714,6 +743,7 @@ not_early:
 #define ___GFP_MEMALLOC         0x2000u  	/* 使用紧急分配链表 */
 #define ___GFP_COMP             0x4000u	  /* 增加复合页元数据 */
 #define ___GFP_ZERO             0x8000u	  /* 成功则返回填充字节0的页 */
+//  类型修饰符
 #define ___GFP_NOMEMALLOC       0x10000u	 /* 不使用紧急分配链表 */
 #define ___GFP_HARDWALL         0x20000u	 /* 只允许在进程允许运行的CPU所关联的结点分配内存 */
 #define ___GFP_THISNODE         0x40000u	 /* 没有备用结点，没有策略 */
@@ -726,8 +756,8 @@ not_early:
 #define ___GFP_KSWAPD_RECLAIM   0x2000000u
 ```
 
-###4.2.2	定义掩码
--------
+**定义掩码**
+
 
 然后**第二部分**, 相对而言每一个宏又被重新定义如下, 参见[include/linux/gfp.h?v=4.7, line 46 ~ line 192](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L46)
 
@@ -738,6 +768,7 @@ not_early:
 * Do not put any conditional on these. If necessary modify the definitions
 * without the underscores and use them consistently. The definitions here may
 * be used in bit comparisons.
+* 定义区描述符
 */
 #define __GFP_DMA       ((__force gfp_t)___GFP_DMA)
 #define __GFP_HIGHMEM   ((__force gfp_t)___GFP_HIGHMEM)
@@ -880,34 +911,64 @@ not_early:
 #define __GFP_BITS_SHIFT 26
 #define __GFP_BITS_MASK ((__force gfp_t)((1 << __GFP_BITS_SHIFT) - 1))
 ```
+
+
 给出的常数，其中一些很少使用，因此我不会讨论。其中最重要的一些常数语义如下所示
 
 
-/*	\__GFP_WAIT表示分配内存的请求可以中断。也就是说，调度器在该请求期间可随意选择另一个过程执行，或者该请求可以被另一个更重要的事件中断. 分配器还可以在返回内存之前, 在队列上等待一个事件(相关进程会进入睡眠状态).
+其中在开始的位置定义了对应的**区修饰符**, 定义在[include/linux/gfp.h?v=4.7, line 46 ~ line 57](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L46)
 
->虽然名字相似，但__GFP_HIGH与__GFP_HIGHMEM毫无关系，请不要弄混这两者\
 
-| 宏 | 描述 |
-|:---:|:----:|
-| \__GFP_RECLAIMABLE<br>\__GFP_MOVABLE | 是页迁移机制所需的标志. 顾名思义，它们分别将分配的内存标记为可回收的或可移动的。这影响从空闲列表的哪个子表获取内存 |
-| \___GFP_HIGH | 如果请求非常重要, 则设置\__GFP_HIGH，即内核急切地需要内存时。在分配内存失败可能给内核带来严重后果时(比如威胁到系统稳定性或系统崩溃), 总是会使用该标志 |
-| \___GFP_IO |说明在查找空闲内存期间内核可以进行I/O操作. 实际上, 这意味着如果内核在内存分配期间换出页, 那么仅当设置该标志时, 才能将选择的页写入硬盘 |
-| \___GFP_FS |允许内核执行VFS操作. 在与VFS层有联系的内核子系统中必须禁用, 因为这可能引起循环递归调用. |
-| \___GFP_COLD | 如果需要分配不在CPU高速缓存中的“冷”页时，则设置\__GFP_COLD |
-| \___GFP_NOWARN | 在分配失败时禁止内核故障警告。在极少数场合该标志有用 |
-| \___GFP_REPEAT | 在分配失败后自动重试，但在尝试若干次之后会停止 |
-| \___GFP_NOFAIL | 在分配失败后一直重试，直至成功 |
-| \___GFP_NORETRY |  在分配失败后不重试，因此可能分配失败 |
-| \___GFP_ZERO | 在分配成功时，将返回填充字节0的页 |
-| \__GFP_HARDWALL | 只在NUMA系统上有意义. 它限制只在分配到当前进程的各个CPU所关联的结点分配内存。如果进程允许在所有CPU上运行（默认情况），该标志是无意义的。只有进程可以运行的CPU受限时，该标志才有效果 |
-| \__GFP_THISNODE | 也只在NUMA系统上有意义。如果设置该比特位，则内存分配失败的情况下不允许使用其他结点作为备用，需要保证在当前结点或者明确指定的结点上成功分配内存 |
-
+| 区修饰符标志 | 描述 |
+|:--------------:|:-----:|
+| \__GFP_DMA | 从ZONE_DMA中分配内存 |
+| \__GFP_HIGHMEM | 从ZONE_HIGHMEM活ZONE_NORMAL中分配内存 |
+| \__GFP_DMA32 | 从ZONE_DMA32中分配内存 |
+| \__GFP_MOVABLE | 从__GFP_MOVABLE中分配内存 |
 
 其次还定义了我们程序和函数中所需要的掩码MASK的信息, 由于其中__GFP_DMA, __GFP_DMA32, __GFP_HIGHMEM, __GFP_MOVABLE是在内存中分别有对应的内存域信息, 因此我们定义了内存域的掩码GFP_ZONEMASK, 参见[include/linux/gfp.h?v=4.7, line 57](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L57)
 
 ```cpp
 #define GFP_ZONEMASK    (__GFP_DMA|__GFP_HIGHMEM|__GFP_DMA32|__GFP_MOVABLE)
 ```
+
+
+接着内核定义了**行为修饰符**
+
+/*	\__GFP_WAIT表示分配内存的请求可以中断。也就是说，调度器在该请求期间可随意选择另一个过程执行，或者该请求可以被另一个更重要的事件中断. 分配器还可以在返回内存之前, 在队列上等待一个事件(相关进程会进入睡眠状态).
+
+>虽然名字相似，但__GFP_HIGH与__GFP_HIGHMEM毫无关系，请不要弄混这两者\
+
+| 行为修饰符 | 描述 |
+|:---:|:----:|
+| \__GFP_RECLAIMABLE<br>\__GFP_MOVABLE | 是页迁移机制所需的标志. 顾名思义，它们分别将分配的内存标记为可回收的或可移动的。这影响从空闲列表的哪个子表获取内存 |
+| \__GFP_WRITE | |
+| \__GFP_HARDWALL | 只在NUMA系统上有意义. 它限制只在分配到当前进程的各个CPU所关联的结点分配内存。如果进程允许在所有CPU上运行（默认情况），该标志是无意义的。只有进程可以运行的CPU受限时，该标志才有效果 |
+| \__GFP_THISNODE | 也只在NUMA系统上有意义。如果设置该比特位，则内存分配失败的情况下不允许使用其他结点作为备用，需要保证在当前结点或者明确指定的结点上成功分配内存 |
+| \__GFP_ACCOUNT | |
+|--------|--------|
+| \__GFP_ATOMIC | |
+| \__GFP_HIGH | 如果请求非常重要, 则设置\__GFP_HIGH，即内核急切地需要内存时。在分配内存失败可能给内核带来严重后果时(比如威胁到系统稳定性或系统崩溃), 总是会使用该标志 |
+| \__GFP_MEMALLOC | |
+| \__GFP_NOMEMALLOC | |
+|--------|--------|
+| \__GFP_IO |说明在查找空闲内存期间内核可以进行I/O操作. 实际上, 这意味着如果内核在内存分配期间换出页, 那么仅当设置该标志时, 才能将选择的页写入硬盘 |
+| \__GFP_FS |允许内核执行VFS操作. 在与VFS层有联系的内核子系统中必须禁用, 因为这可能引起循环递归调用. |
+| \__GFP_DIRECT_RECLAIM | |
+| \__GFP_KSWAPD_RECLAIM | |
+| \__GFP_RECLAIM | |
+| \__GFP_REPEAT | 在分配失败后自动重试，但在尝试若干次之后会停止 |
+| \__GFP_NOFAIL | 在分配失败后一直重试，直至成功 |
+| \__GFP_NORETRY |  在分配失败后不重试，因此可能分配失败 |
+|--------|--------|
+| \__GFP_COLD | 如果需要分配不在CPU高速缓存中的“冷”页时，则设置\__GFP_COLD |
+| \__GFP_NOWARN | 在分配失败时禁止内核故障警告。在极少数场合该标志有用 |
+| \__GFP_COMP | 添加混合页元素, 在hugetlb的代码内部使用 |
+| \__GFP_ZERO | 在分配成功时，将返回填充字节0的页 |
+| \__GFP_NOTRACK | |
+| \__GFP_NOTRACK_FALSE_POSITIVE<BR>\__GFP_NOTRACK | |
+| \__GFP_OTHER_NODE | |
+
 
 那自然还有__GFP_BITS_SHIFT来表示我们所有的掩码位, 由于我们共计26个掩码位
 
@@ -917,13 +978,25 @@ not_early:
 #define __GFP_BITS_MASK ((__force gfp_t)((1 << __GFP_BITS_SHIFT) - 1))
 ```
 
-###4.2.3	掩码分组
--------
+可以同时指定这些分配标志, 例如
+
+```cpp
+ptr = kmalloc(size, __GFP_IO | __GFP_FS);
+```
+
+说明页分配器(最终会调用alloc_page)在分配时可以执行I/O, 在必要时还可以执行文件系统操作. 这就让内核有很大的自由度, 以便它尽可能找到空闲的内存来满足分配请求. 大多数分配器都会执行这些修饰符, 但一般不是这样直接指定, 而是将这些行为描述符标志进行分组, 即**类型标志**
 
 
-最后来看**第三部分**, 由于这些标志几乎总是组合使用，内核作了一些分组，包含了用于各种标准情形的适当的标志.
 
-如果有可能的话，在内存管理子系统之外，总是把下列分组之一用于内存分配. 在内核源代码中，双下划线通常用于内部数据和定义。而这些预定义的分组名没有双下划线前缀，这一点从侧面验证了上述说法.
+**掩码分组**
+
+
+
+最后来看**第三部分**, 由于这些标志几乎总是组合使用，内核作了一些分组，包含了用于各种标准情形的适当的标志. 称之为**类型标志**, 定义在[include/linux/gfp.h?v=4.7, lien 194 ~ line 258](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L245)
+
+类型标志指定所需的行为和区描述符以安城特殊类型的处理, 正因为这一点, 内核总是趋于使用正确的类型标志, 而不是一味地指定它可能用到的多种描述符. 这么做既简单又不容易出错误.
+
+如果有可能的话, 在内存管理子系统之外, 总是把下列分组之一用于内存分配. 在内核源代码中, 双下划线通常用于内部数据和定义. 而这些预定义的分组名没有双下划线前缀, 点从侧面验证了上述说法.
 
 ```cpp
 #define GFP_ATOMIC      (__GFP_HIGH|__GFP_ATOMIC|__GFP_KSWAPD_RECLAIM)
@@ -950,13 +1023,23 @@ not_early:
 
 | 掩码组 | 描述 |
 |:-------:|:-----:|
-| GFP_ATOMIC | 用于原子分配，在任何情况下都不能中断, 可能使用紧急分配链表中的内存 |
-| GFP_NOIO<br>GFP_NOFS | 分别明确禁止I/O操作和访问VFS层, 但同时设置了\__GFP_RECLAIM，因此可以被回收 |
-| GFP_KERNEL<br>GFP_USER | 分别是内核和用户分配的默认设置。二者的失败不会立即威胁系统稳定性, GFP_KERNEL绝对是内核源代码中最常使用的标志 |
+| GFP_ATOMIC | 用于原子分配，在任何情况下都不能中断, 可能使用紧急分配链表中的内存, 这个标志用在中断处理程序, 下半部, 持有自旋锁以及其他不能睡眠的地方 |
+| GFP_KERNEL | 这是一种常规的分配方式, 可能会阻塞. 这个标志在睡眠安全时用在进程的长下文代码中. 为了获取调用者所需的内存, 内核会尽力而为. 这个标志应该是首选标志 |
+| GFP_KERNEL_ACCOUNT | |
+| GFP_NOWAIT | 与GFP_ATOMIC类似, 不同之处在于, 调用不会退给紧急内存池, 这就增加了内存分配失败的可能性 |
+| GFP_NOIO | 这种分配可以阻塞, 但不会启动磁盘I/O, 这个标志在不能引发更多的磁盘I/O时阻塞I/O代码, 这可能导致令人不愉快的递归 |
+| GFP_NOFS | 这种分配在必要时可以阻塞, 但是也可能启动磁盘, 但是不会启动文件系统操作, 这个标志在你不鞥在启动另一个文件系统操作时, 用在文件系统部分的代码中 |
+| GFP_TEMPORARY | |
+| GFP_USER | 这是一种常规的分配方式, 可能会阻塞. 这个标志用于为用户空间进程分配内存时使用 |
+| GFP_DMA<br>GFP_DMA32 | 用于分配适用于DMA的内存, 当前是\__GFP_DMA的同义词, GFP_DMA32也是\__GFP_GMA32的同义词 |
 | GFP_HIGHUSER | 是GFP_USER的一个扩展, 也用于用户空间. 它允许分配无法直接映射的高端内存. 使用高端内存页是没有坏处的，因为用户过程的地址空间总是通过非线性页表组织的 |
 | GFP_HIGHUSER_MOVABLE |用途类似于GFP_HIGHUSER，但分配将从虚拟内存域ZONE_MOVABLE进行 |
-| GFP_DMA<br>GFP_DMA32 | 用于分配适用于DMA的内存, 当前是\__GFP_DMA的同义词, GFP_DMA32也是\__GFP_GMA32的同义词 |
+| GFP_TRANSHUGE | |
 
+
+*	其中GFP_NOIO和GFP_NOFS, 分别明确禁止I/O操作和访问VFS层, 但同时设置了\__GFP_RECLAIM，因此可以被回收
+
+*	而GFP_KERNEL和GFP_USER. 分别是内核和用户分配的默认设置。二者的失败不会立即威胁系统稳定性, GFP_KERNEL绝对是内核源代码中最常使用的标志 |
 
 最后内核设置了碎片管理的可移动依据组织页的MASK信息GFP_MOVABLE_MASK, 参见[include/linux/gfp.h?v=4.7, line 262](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L262)
 
@@ -966,9 +1049,20 @@ not_early:
 #define GFP_MOVABLE_SHIFT 3
 ```
 
+在你编写的绝大多数代码中, 用么用到的是GFP_KERNEL, 要么是GFP_ATOMIC, 当然各个类型标志也均有其应用场景
+
+| 情形 | 相应标志 |
+|:-----:|:----------:|
+| 进程上下文, 可以睡眠 | 使用GFP_KERNEL |
+| 进程上下文, 不可以睡眠 | 使用GFP_KERNEL, 在你睡眠之前或之后以GFP_KERNEL执行内存分配 |
+| 中断处理程序 | 使用GFP_ATMOIC |
+| 软中断 | 使用GFP_ATMOIC |
+| tasklet | 使用GFP_ATMOIC |
+| 需要用于DMA的内存, 可以睡眠 | 使用(GFP_DMA GFP_KERNEL) |
+| 需要用于DMA的内存, 不可以睡眠 | 使用(GFP_DMA GFP_ATOMIC), 或在你睡眠之前执行内存分配 |
 
 
-###4.2.4	总结
+###4.2.5	总结
 -------
 
 我们从注释中找到这样的信息, 可以作为参考[]()

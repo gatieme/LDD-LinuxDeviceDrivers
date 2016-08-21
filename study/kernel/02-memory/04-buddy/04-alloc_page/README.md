@@ -183,7 +183,7 @@ static inline struct page *alloc_pages_node(int nid, gfp_t gfp_mask,
 
     return __alloc_pages_node(nid, gfp_mask, order);
 }
-````
+```
 
 它只是执行了一个简单的检查, 如果指定负的结点ID(不存在, 即[NUMA_NO_NODE = -1](http://lxr.free-electrons.com/source/include/linux/numa.h?v=4.7#L13)), 内核自动地使用当前执行CPU对应的结点nid = [numa_mem_id();](http://lxr.free-electrons.com/source/include/linux/topology.h?v=4.7#L137), 然后调用`__alloc_pages_node`函数进行了内存分配
 
