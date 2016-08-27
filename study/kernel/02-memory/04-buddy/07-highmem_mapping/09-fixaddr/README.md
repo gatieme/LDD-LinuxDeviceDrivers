@@ -153,114 +153,21 @@ enum fixed_addresses {
 };
 ```
 
-
 ##2.2	固定映射
 -------
-
 
 `ioremap`的作用是将`IO`和`BIOS`以及物理地址空间映射到在896M至1G的128M的地址空间内, 使得kernel能够访问该空间并进行相应的读写操作。
 
 
 >start_kernel()->setup_arch()->early_ioremap_init()
 
-然后arm和arm64上`early_ioremap_init`又是`early_ioremap_setup`的前端
+然后arm和arm64上early_ioremap_init又是early_ioremap_setup的前端
 
 | 函数 | x86 |arm | arm64 |
 |:-----:|:----:|:----:|:--------:|
-| early_ioremap_init | [arch/x86/mm/ioremap.c?v=4.7, line 445](http://lxr.free-electrons.com/source/arch/x86/mm/ioremap.c?v=4.7#L445) | [arch/arm/mm/ioremap.c?v=4.7, line 489](http://lxr.free-electrons.com/source/arch/arm/mm/ioremap.c?v=4.7#L489) | [arch/arm64/mm/ioremap.c?v=4.7, line 110](http://lxr.free-electrons.com/source/arch/arm64/mm/ioremap.c?v=4.7#L110) |
-| early_ioremap_setup | [mm/early_ioremap.c?v=4.7, line 67](http://lxr.free-electrons.com/source/mm/early_ioremap.c?v=4.7#L67) | 体系结构无关 |  体系结构无关 |
+| early_ioremap_init | [arch/x86/mm/ioremap.c?v=4.7, line 445](http://lxr.free-electrons.com/source/arch/x86/mm/ioremap.c?v=4.7#L445) | [arch/arm/mm/ioremap.c?v=4.7, line 489](http://lxr.free-electrons.com/source/arch/arm/mm/ioremap.c?v=4.7#L489) | [arch/arm64/mm/ioremap.c?v=4.7, line 110](http://lxr.free-electrons.com/source/arch/arm64/mm/ioremap.c?v=4.7#L110)
+| early_ioremap_setup | 
 
-其中arm和arm64架构下的`early_ioremap_init`函数实现比较简单, 都是直接的`early_ioremap_setup`函数的前端
-
-
-```cpp
-/*
- * Must be called after early_fixmap_init
- */
-void __init early_ioremap_init(void)
-{
-    early_ioremap_setup();
-}
-```
-
-但是arm和arm64下的setup_arch函数则会先调用`early_fixmap_init`函数来填充`fixmap`. 参见[arch/arm/kernel/setup.c?v=4.7, line 1058](http://lxr.free-electrons.com/source/arch/arm/kernel/setup.c?v=4.7#L1058)和[arch/arm64/kernel/setup.c?v=4.7, line 229](http://lxr.free-electrons.com/source/arch/arm64/kernel/setup.c?v=4.7#L229).
-
-```cpp
-void __init setup_arch(char **cmdline_p)
-{
-	early_fixmap_init();
-	early_ioremap_init();
-}
-```
-
-`early_fixmap_init`函数的定义在
-
-| arm | arm64 |
-|:------:|:------:|
-| [arch/arm/mm/mmu.c?v=4.7, line 385](http://lxr.free-electrons.com/source/arch/arm/mm/mmu.c?v=4.7#L385) | [arch/arm64/mm/mmu.c?v=4.7, line 676](http://lxr.free-electrons.com/source/arch/arm64/mm/mmu.c?v=4.7#L676) |
-
-
-其中arm架构的定义如下所示, 在[arch/arm/mm/mmu.c?v=4.7, line 385](http://lxr.free-electrons.com/source/arch/arm/mm/mmu.c?v=4.7#L385)
-
-```cpp
-void __init early_fixmap_init(void)
-{
-    pmd_t *pmd;
-
-    /*
-     * The early fixmap range spans multiple pmds, for which
-     * we are not prepared:
-     */
-    BUILD_BUG_ON((__fix_to_virt(__end_of_early_ioremap_region) >> PMD_SHIFT)
-             != FIXADDR_TOP >> PMD_SHIFT);
-
-    /*得到固定映射区的pmd
-    ，此pmd为虚拟地址转换为物理地址的pmd*/
-    pmd = fixmap_pmd(FIXADDR_TOP);
-     /*将bm_pte页表设置为固定映射区开始地址的pmd的第一个页表；*/
-    pmd_populate_kernel(&init_mm, pmd, bm_pte);
-
-    pte_offset_fixmap = pte_offset_early_fixmap;
-}
-```
-
-随后`setup_arch`中调用`early_ioremap_setup`函数将`fixed_address`里的索引的虚拟地址放入`slot_virt`, 参见[mm/early_ioremap.c?v=4.7, line 63](http://lxr.free-electrons.com/source/mm/early_ioremap.c?v=4.7#L63)
-
-```cpp
-static void __iomem *prev_map[FIX_BTMAPS_SLOTS] __initdata;
-static unsigned long prev_size[FIX_BTMAPS_SLOTS] __initdata;
-static unsigned long slot_virt[FIX_BTMAPS_SLOTS] __initdata;
-
-void __init early_ioremap_setup(void)
-{
-    int i;
-
-    for (i = 0; i < FIX_BTMAPS_SLOTS; i++)
-        if (WARN_ON(prev_map[i]))
-            break;
-	/*  将fixed_address里的索引的虚拟地址放入slot_virt
-         从代码里面可以看出，放入slot_virt中得虚拟地址为1M  */
-    for (i = 0; i < FIX_BTMAPS_SLOTS; i++)
-        slot_virt[i] = __fix_to_virt(FIX_BTMAP_BEGIN - NR_FIX_BTMAPS*i);
-}
-```
-
-而x86下的没有定义early_fixmap_init函数, 因此在`early_ioremap_init`函数中完成了fixmap的初始化工作, 定义在[arch/x86/mm/ioremap.c?v=4.7, line 445](http://lxr.free-electrons.com/source/arch/x86/mm/ioremap.c?v=4.7#L445)
-
-
-
-##2.3	ioremap函数
--------
-
-
-对于`ioremap`的使用需要通过`early_memremap`和`early_iounmap`进行.
-
-由于对应于`ioremap`的内存空间是有限的, 所以对于`ioremap`空间的使用遵照使用结束马上释放的原则. 这就是说`early_memremap`和`early_iounmap`必须配对使用并且访问结束必须马上执行`unmap`
-
-
-```cpp
-
-```
 
 
 #3	临时内核映射
@@ -363,5 +270,5 @@ do {                                \
 } while (0)
 ```
 
-这个函数也不会阻塞. 在很多体系结构中, 除非激活了内核抢占, 否则`kunmap_atomic`根本无事可做, 因为只有在下一个临时映射到来前上一个临时映射才有效. 因此, 内核完全可以"忘掉"kmap_atomic映射, kunmap_atomic也无需做什么实际的事情. 下一个原子映射将自动覆盖前一个映射.
+这个函数也不会阻塞. 在很多体系结构中, 除非激活了内核抢占, 否则kunmap_atomic根本无事可做, 因为只有在下一个临时映射到来前上一个临时映射才有效. 因此, 内核完全可以"忘掉"kmap_atomic映射, kunmap_atomic也无需做什么实际的事情. 下一个原子映射将自动覆盖前一个映射.
 
