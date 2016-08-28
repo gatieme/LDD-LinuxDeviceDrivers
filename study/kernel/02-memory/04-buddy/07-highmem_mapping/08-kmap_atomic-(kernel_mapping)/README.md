@@ -258,9 +258,7 @@ void __init early_ioremap_setup(void)
 由于对应于`ioremap`的内存空间是有限的, 所以对于`ioremap`空间的使用遵照使用结束马上释放的原则. 这就是说`early_memremap`和`early_iounmap`必须配对使用并且访问结束必须马上执行`unmap`
 
 
-```cpp
 
-```
 
 
 #3	临时内核映射
