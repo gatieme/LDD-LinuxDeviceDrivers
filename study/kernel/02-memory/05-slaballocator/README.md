@@ -157,9 +157,12 @@ slab分配器还有两个更进一步的好处
 
 ![slab缓存的精细结构](./images/slab_struct.png)
 
+
 缓存结构指向一个数组, 其中包含了与系统CPU数目相同的数组项. 每个元素都是一个指针，指向一个进一步的结构称之为数组缓存(array cache), 其中包含了对应于特定系统CPU的管理数据(就总体来看，不是用于缓存). 管理性数据之后的内存区包含了一个指针数组，各个数组项指向slab中未使用的对象.
 
+
 为最好地利用CPU高速缓存, 这些per-CPU指针是很重要的。在分配和释放对象时，采用后进先出原理(LIFO，last in first out). 内核假定刚释放的对象仍然处于CPU高速缓存中，会尽快再次分配它(响应下一个分配请求). 仅当per-CPU缓存为空时，才会用slab中的空闲对象重新填充它们.
+
 
 这样，对象分配的体系就形成了一个三级的层次结构，分配成本和操作对CPU高速缓存和TLB的负面影响逐级升高.
 
@@ -171,50 +174,68 @@ slab分配器还有两个更进一步的好处
 
 ![slab缓存的精细结构](./images/slab_struct2.png)
 
+
 ##3.2	slab的精细结构
 -------
 
+
 对象在slab中并非连续排列，而是按照一个相当复杂的方案分布。图3-46说明了相关细节.
 
+
 用于每个对象的长度并不反映其确切的大小. 相反, 长度已经进行了舍入，以满足某些对齐方式的要求. 有两种可用的备选对齐方案.
+
 
 *	slab创建时使用标志SLAB_HWCACHE_ALIGN，slab用户可以要求对象按硬件缓存行对齐. 那么会按照cache_line_size的返回值进行对齐，该函数返回特定于处理器的L1缓存大小。
 如果对象小于缓存行长度的一半，那么将多个对象放入一个缓存行。
 
+
 *	如果不要求按硬件缓存行对齐，那么内核保证对象按BYTES_PER_WORD对齐，该值是表示`void`指针所需字节的数目.
+
 
 在32位处理器上，`void`指针需要4个字节。因此，对有6个字节的对象，则需要8 = 2×4个字节, 15个字节的对象需要16=4×4个字节。多余的字节称为填充字节.
 
+
 填充字节可以加速对slab中对象的访问。如果使用对齐的地址, 那么在几乎所有的体系结构上, 内存访问都会更快. 这弥补了使用填充字节必然导致需要更多内存的不利情况.
+
 
 管理结构位于每个slab的起始处，保存了所有的管理数据（和用于连接缓存链表的链表元素).
 
+
 其后面是一个数组，每个（整数）数组项对应于slab中的一个对象。只有在对象没有分配时，相应的数组项才有意义。在这种情况下，它指定了下一个空闲对象的索引。由于最低编号的空闲对象的编号还保存在slab起始处的管理结构中，内核无需使用链表或其他复杂的关联机制，即可轻松找到当前可用的所有对象。 数组的最后一项总是一个结束标记，值为BUFCTL_END.
+
 
 ![slab缓存的精细结构](./images/slab_free_manage.png)
 
+
 大多数情况下, slab内存区的长度(减去了头部管理数据)是不能被（可能填补过的）对象长度整除的。因此，内核就有了一些多余的内存，可以用来以偏移量的形式给slab"着色", 如上文所述.
+
 
 缓存的各个slab成员会指定不同的偏移量，以便将数据定位到不同的缓存行，因而slab开始和结束处的空闲内存是不同的。在计算偏移量时，内核必须考虑其他的对齐因素. 
 
+
 例如，L1高速缓存中数据的对齐(下文讨论).
+
 
 管理数据可以放置在slab自身，也可以放置到使用kmalloc分配的不同内存区中. 内核如何选择, 取决于slab的长度和已用对象的数量。相应的选择标准稍后讨论。管理数据和slab内存之间的关联很容易建立，因为slab头包含了一个指针，指向slab数据区的起始处(无论管理数据是否在slab上).
 
-图3-48给出了管理数据不在slab自身（按图3-46的式样），而位于另一内存区的情形.
 
 ![slab缓存的精细结构](./images/slab_head.png)
 
 
 最后，内核需要一种方法, 通过对象自身即可识别slab(以及对象驻留的缓存). 根据对象的物理内存地址, 可以找到相关的页, 因此可以在全局mem_map数组中找到对应的page实例.
 
+
 我们已经知道，page结构包括一个链表元素，用于管理各种链表中的页。对于slab缓存中的页而言, 该指针是不必要的，可用于其他用途.
+
 
 *	page->lru.next指向页驻留的缓存的管理结构
 
+
 *	page->lru.prev指向保存该页的slab的管理结构
 
+
 设置或读取slab信息分别由`set_page_slab`和`get_page_slab`函数完成，带有`_cache`后缀的函数则处理缓存信息的设置和读取.
+
 
 ```cpp
 mm/slab.c
@@ -223,6 +244,7 @@ struct kmem_cache *page_get_cache(struct page *page)
 void page_set_slab(struct page *page, struct slab *slab)
 struct slab *page_get_slab(struct page *page)
 ```
+
 
 此外，内核还对分配给`slab`分配器的每个物理内存页都设置标志`PG_SLAB`.
 
@@ -369,11 +391,13 @@ struct kmem_cache {
 | list | 是一个标准链表元素 |
 
 
+
 这个冗长的结构分为多个部分，如源代码中的注释所示.
 
 
 ###4.1.1	per-cpu数据(第0~1部分)
 -------
+
 
 开始的几个成员涉及每次分配期间内核对特定于CPU数据的访问，在本节稍后讨论。
 
@@ -426,7 +450,123 @@ struct array_cache {
 
 *	`num`保存了可以放入slab的对象的最大数目
 
-*	free_limit指定了缓存在收缩之后空闲对象数的上限(如果在正常运行期间无需收缩缓存, 那么空闲对象的数目可能超出该值). 用于管理slab链表的表头保存在一个独立的数据结构中，定义如下：
+kmem_cache_node定义在[mm/slab.h?v=4.7, line 417](http://lxr.free-electrons.com/source/mm/slab.h?v=4.7#L417)
+
+
+```cpp
+/*
+ * The slab lists for all objects.
+ */
+struct kmem_cache_node {
+    spinlock_t list_lock;
+
+#ifdef CONFIG_SLAB
+    struct list_head slabs_partial; /* partial list first, better asm code */
+    struct list_head slabs_full;
+    struct list_head slabs_free;
+    unsigned long free_objects;
+    unsigned int free_limit;
+    unsigned int colour_next;       /* Per-node cache coloring */
+    struct array_cache *shared;     /* shared per node */
+    struct alien_cache **alien;     /* on other nodes */
+    unsigned long next_reap;    /* updated without locking */
+    int free_touched;           /* updated without locking */
+#endif
+
+#ifdef CONFIG_SLUB
+    unsigned long nr_partial;
+    struct list_head partial;
+#ifdef CONFIG_SLUB_DEBUG
+    atomic_long_t nr_slabs;
+    atomic_long_t total_objects;
+    struct list_head full;
+#endif
+#endif
+
+};
+```
+
+
+#5	slab系统初始化
+-------
+
+
+初看起来, `slab`系统的初始化不是特别麻烦，因为伙伴系统已经完全启用,  内核没有受到其他特别的限制. 尽管如此, 由于`slab`分配器的结构所致, 这里有一个鸡与蛋的问题.
+
+为初始化`slab`数据结构, 内核需要若干远小于一整页的内存块, 这些最适合由`kmalloc`分配. 这里是关键所在 : 只在`slab`系统已经启用之后，才能使用`kmalloc`.
+
+更确切地说, 该问题涉及`kmalloc`的`per-CPU`缓存的初始化. 在这些缓存能够初始化之前, `kmalloc`必须可以用来分配所需的内存空间, 而`kmalloc`自身也正处于初始化的过程中. 换句话说, `kmalloc`只能在`kmalloc`已经初始化之后初始化，这是个不可能的场景. 因此内核必须借助一些技巧.
+
+
+
+
+我们之前提到过系统是从start_kernel开始的, 完成了分页机制和内存基本数据结构的初始化, 并将内存管理从bootmem/memblock慢慢迁移到了buddy系统.
+
+
+```cpp
+start_kernel()
+    |---->page_address_init()
+    | 
+    |---->setup_arch(&command_line);
+    |
+    |---->setup_per_cpu_areas();
+    |
+    |---->build_all_zonelist()
+    |
+    |---->page_alloc_init()
+    |
+    |---->pidhash_init()
+    |
+    |---->vfs_caches_init_early()
+    |
+    |---->mm_init()
+```
+
+在完成后, 内核通过[mm_init](http://lxr.free-electrons.com/source/init/main.c?v=4.7#L464)完成了buddy伙伴系统, 该函数定义在[init/main.c?v=4.7, line 464](http://lxr.free-electrons.com/source/init/main.c?v=4.7#L464)
+
+
+```cpp
+static void __init mm_init(void)
+{
+    /*
+     * page_ext requires contiguous pages,
+     * bigger than MAX_ORDER unless SPARSEMEM.
+     */
+    page_ext_init_flatmem();
+    mem_init();
+    kmem_cache_init();
+    percpu_init_late();
+    pgtable_init();
+    vmalloc_init();
+    ioremap_huge_init();
+}
+```
+
+内核通过函数`mem_init`完成了`bootmem/memblock`的释放工作, 从而将内存管理迁移到了`buddy`, 随后就通过`kmem_cache_init`完成了slab初始化分配器
+
+`kmem_cache_init`函数用于初始化`slab`分配器. 它在内核初始化阶段(`start_kernel`)、伙伴系统启用之后调用. 但在多处理器系统上，启动`CPU`此时正在运行, 而其他`CPU`尚未初始化.
+
+`kmem_cache_init`采用了一个多步骤过程，逐步激活slab分配器。
+
+1.	`kmem_cache_init`创建系统中的第一个`slab`缓存, 以便为`kmem_cache`的实例提供内存. 为此, 内核使用的主要是在编译时创建的静态数据. 实际上, 一个静态数据结构(`initarray_cache`)用作`per-CPU`数组. 该缓存的名称是`cache_cache`.
+
+2.	`kmem_cache_init`接下来初始化一般性的缓存, 用作`kmalloc`内存的来源. 为此, 针对所需的各个缓存长度, 分别调用`kmem_cache_create`. 该函数起初只需要`cache_cache`缓存已经建立. 但在初始化`per-CPU`缓存时，该函数必须借助于`kmalloc`, 这尚且不可能.
+
+为解决该问题, 内核使用了g_cpucache_up变量，可接受以下4个值（NONE、PARTIAL_AC、
+PARTIAL_L3、FULL），以反映kmalloc初始化的状态。
+最初内核的状态是NONE。在最小的kmalloc缓存（在4 KiB内存页的计算机上提供32字节内存块，
+在其他页长度的情况下提供64字节内存块。现有各种分配长度的定义请参见3.6.5节）初始化时，再次
+将一个静态变量用于per-CPU的缓存数据。
+g_cpucache_up中的状态接下来设置为PARTIAL_AC，意味着array_cache实例可以立即分配。
+
+
+不仅slab, 每个内核分配器都应该提供一个`kmem_cache_init`函数.
+
+| kmem_cache_init | slab | slob | slub |
+|:-------------------:|:-----:|:-----:|:-----:|
+| 初始化slab分配器 | [mm/slab.c?v=4.7, line 1298](http://lxr.free-electrons.com/source/mm/slab.c?v=4.7#L1298) | [mm/slob.c?v=4.7, line 649](http://lxr.free-electrons.com/source/mm/slob.c?v=4.7#L649) | [mm/slub.c?v=4.7, line 3913](http://lxr.free-electrons.com/source/mm/slub.c?v=4.7#L3913) |
+
+
 
 http://guojing.me/linux-kernel-architecture/posts/slab-structure/
 
