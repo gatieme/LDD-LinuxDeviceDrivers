@@ -125,6 +125,8 @@ slab分配器还有两个更进一步的好处
 
 在实际实现中，上文中的`slab`分配器和缓存之间的差异迅速消失，以至于本书后文中将这两个名词用作同义词。在讨论slab分配器的实现之后
 
+
+
 #3	slab分配的原理
 -------
 
@@ -139,8 +141,10 @@ slab分配器还有两个更进一步的好处
 另外，系统中所有的缓存都保存在一个双链表中。这使得内核有机会依次遍历所有的缓存。这是有必要的，例如在即将发生内存不足时，内核可能需要缩减分配给缓存的内存数量.
 
 
+
 ##3.1	缓存的精细结构
 -------
+
 
 如果我们更仔细地研究缓存的结构，就可以注意到一些更重要的细节。图3-45给出了缓存各组成部分的概述.
 除了管理性数据（如已用和空闲对象或标志寄存器的数目），缓存结构包括两个特别重要的成员.
@@ -226,7 +230,7 @@ struct slab *page_get_slab(struct page *page)
 #4	实现
 -------
 
-为实现如上所述的`slab`分配器, 使用了各种数据结构. 尽管看上去并不困难，相关的代码并不总是容易阅读或理解. 这是因为许多内存区需要使用指针运算和类型转换进行操作, 这些可不是C语言中以清晰简明著称的领域。由于slab系统带有大量调试选项，所以代码中遍布着预处理器语句. 
+为实现如上所述的`slab`分配器, 使用了各种数据结构. 尽管看上去并不困难，相关的代码并不总是容易阅读或理解. 这是因为许多内存区需要使用指针运算和类型转换进行操作, 这些可不是C语言中以清晰简明著称的领域。由于slab系统带有大量调试选项，所以代码中遍布着预处理器语句.
 
 其中一些如下列出.
 
@@ -241,6 +245,191 @@ struct slab *page_get_slab(struct page *page)
 ##4.1	数据结构
 -------
 
-每个缓存由`kmem_cache`结构的一个实例表示, 该结构在`mm/slab.c`中定义. 该结构在内核中其他地方是不可见的, 因为它定义在一个.c文件中，而不是头文件。这是因为，缓存的用户无须详细了解缓存是如何实现的。将slab缓存视为通过一组标准函数来高效地创建和释放特定类型对象的机制，就足够了
+每个缓存由`kmem_cache`结构的一个实例表示, 将slab缓存视为通过一组标准函数来高效地创建和释放特定类型对象的机制
 
-该结构的内容如下
+该结构定义在[mm/slab.h?v=4.7, line 19](http://lxr.free-electrons.com/source/mm/slab.h?v=4.7#L19), 内容如下
+
+
+| kmem_cache | slab | slob | slub |
+|:--------------:|:-----:|:-----:|:-----:|
+| [dent?i=kmem_cache](http://lxr.free-electrons.com/ident?v=4.7;i=kmem_cache) | [include/linux/slab_def.h?v=4.7, line 10](http://lxr.free-electrons.com/source/include/linux/slab_def.h?v=4.7#L10) | [mm/slab.h?v=4.7, line 19](http://lxr.free-electrons.com/source/mm/slab.h?v=4.7#L19) | [include/linux/slub_def.h?v=4.7, line 62](http://lxr.free-electrons.com/source/include/linux/slub_def.h?v=4.7#L62) |
+
+
+```cpp
+/*
+ * Definitions unique to the original Linux SLAB allocator.
+ */
+
+struct kmem_cache {
+    //  per-CPU数据，在每次分配/释放期间都会访问
+    struct array_cache __percpu *cpu_cache;
+
+/* 1) Cache tunables. Protected by slab_mutex
+ *    可调整的缓存参数。由cache_chain_mutex保护  */
+    //  要转移本地高速缓存的大批对象的数量
+    unsigned int batchcount;
+    unsigned int limit;
+    //  本地高速缓存中空闲对象的最大数目
+    unsigned int shared;
+    //  高速缓存的大小
+    unsigned int size;
+    struct reciprocal_value reciprocal_buffer_size;
+
+/* 2) touched by every alloc & free from the backend
+ *    后端每次分配和释放内存时都会访问 */
+    //  描述高速缓存永久属性的一组标志
+    unsigned int flags;         /* constant flags */
+    //  封装在一个单独slab中的对象个数
+    unsigned int num;           /* # of objs per slab */
+
+/* 3) cache_grow/shrink
+ *    缓存的增长/缩减  */
+    /* order of pgs per slab (2^n) 一个单独slab中包含的连续页框数目的对数*/
+    unsigned int gfporder;
+
+    /* force GFP flags, e.g. GFP_DMA   强制的GFP标志，例如GFP_DMA  */
+    gfp_t allocflags;
+
+    size_t colour;          /* cache colouring range 缓存着色范围  */
+    unsigned int colour_off;    /* colour offset slab中的着色偏移 */
+    struct kmem_cache *freelist_cache;
+    unsigned int freelist_size;
+
+    /* constructor func 构造函数  */
+    void (*ctor)(void *obj);
+
+/* 4) cache creation/removal
+ *    缓存创建/删除 */
+    const char *name;   //  存放高速缓存名字的字符数组
+    struct list_head list;  //  高速缓存描述符双向链表使用的指针
+    int refcount;
+    int object_size;
+    int align;
+
+/* 5) statistics
+ *    统计量 */
+#ifdef CONFIG_DEBUG_SLAB
+    unsigned long num_active;
+    unsigned long num_allocations;
+    unsigned long high_mark;
+    unsigned long grown;
+    unsigned long reaped;
+    unsigned long errors;
+    unsigned long max_freeable;
+    unsigned long node_allocs;
+    unsigned long node_frees;
+    unsigned long node_overflow;
+    atomic_t allochit;
+    atomic_t allocmiss;
+    atomic_t freehit;
+    atomic_t freemiss;
+#ifdef CONFIG_DEBUG_SLAB_LEAK
+    atomic_t store_user_clean;
+#endif
+
+    /*
+     * If debugging is enabled, then the allocator can add additional
+     * fields and/or padding to every object. size contains the total
+     * object size including these internal fields, the following two
+     * variables contain the offset to the user object and its size.
+     */
+    int obj_offset;
+#endif /* CONFIG_DEBUG_SLAB */
+
+#ifdef CONFIG_MEMCG
+    struct memcg_cache_params memcg_params;
+#endif
+#ifdef CONFIG_KASAN
+    struct kasan_cache kasan_info;
+#endif
+
+#ifdef CONFIG_SLAB_FREELIST_RANDOM
+    void *random_seq;
+#endif
+
+    struct kmem_cache_node *node[MAX_NUMNODES];
+};
+```
+
+`kmem_cache`是`Linux`内核提供的快速内存缓冲接口, 这些内存块要求是大小相同的, 因为分配出的内存在接口释放时并不真正释放, 而是作为缓存保留, 下一次请求分配时就可以直接使用, 省去了各种内存块初始化或释放的操作, 因此分配速度很快, 通常用于大数量的内存块分配的情况, 如`inode`节点, `skbuff`头, `netfilter`的连接等, 其实`kmalloc`也是从`kmem_cache`中分配的，可通过`/proc/slabinfo`文件直接读取`cache`分配情况.
+
+
+| 字段 | 说明 |
+|:-----:|:-----:|
+| cpu_cache | 是一个指向数组的指针，每个数组项都对应于系统中的一个CPU，每个数组项都包含了另一个指针，指向下文讨论的array_cache结构的实例 |
+| batchcount | 指定了在per-CPU列表为空的情况下，从缓存的slab中获取对象的数目，它还表示在缓存增长时分配的对象数目 |
+| limit | 指定了per-CPU列表中保存的对象的最大数目。如果超出了这个值，内核会将batchcount个对象返回到slab |
+| size | 指定了缓存中管理的对象的长度1 |
+| gfporder | 指定了slab包含的页数目以2为底的对数，简而言之，slab包含2^gfporder页 |
+| colorur | 指定了颜色的最大数目 |
+| colour_off | 基本偏移量乘以颜色值获得的绝对偏移量 |
+| dflags | 另一标志集合，描述slab的动态性质 |
+| ctor | 一个指针，指向在对象创建时调用的构造函数 |
+| name | 一个字符串，表示缓存的名称 |
+| list | 是一个标准链表元素 |
+
+
+这个冗长的结构分为多个部分，如源代码中的注释所示.
+
+
+###4.1.1	per-cpu数据(第0~1部分)
+-------
+
+开始的几个成员涉及每次分配期间内核对特定于CPU数据的访问，在本节稍后讨论。
+
+*	cpu_cache是一个指向数组的指针，每个数组项都对应于系统中的一个CPU。每个数组项都包含了另一个指针，指向下文讨论的array_cache结构的实例。
+
+*	batchcount指定了在per-CPU列表为空的情况下，从缓存的slab中获取对象的数目。它还表示在缓存增长时分配的对象数目。
+
+*	limit指定了per-CPU列表中保存的对象的最大数目。如果超出该值，内核会将batchcount个对象返回到slab（如果接下来内核缩减缓存，则释放的内存从slab返回到伙伴系统）
+
+
+内核对每个系统处理器都提供了一个`array_cache`实例. 该结构定义如下
+
+```cpp
+struct array_cache {
+    unsigned int avail;
+    unsigned int limit;
+    unsigned int batchcount;
+    unsigned int touched;
+    void *entry[];  /*
+             * Must have this definition in here for the proper
+             * alignment of array_cache. Also simplifies accessing
+             * the entries.
+             */
+};
+```
+
+
+*	`batchcount`和`limit`的语义已经在上文给出, `kmem_cache_s`的值用作（通常不修改）`per-CPU`值的默认值，用于缓存的重新填充或清空.
+
+*	`avail`保存了当前可用对象的数目.
+
+*	在从缓存移除一个对象时，将`touched`设置为1，而缓存收缩时, 则将`touched`设置为0。这使得内核能够确认在缓存上一次收缩之后是否被访问过，也是缓存重要性的一个标志。
+
+*	最后一个成员`entry`是一个伪数组, 其中并没有数组项, 只是为了便于访问内存中`array_cache`实例之后缓存中的各个对象而已.
+
+
+###4.1.2	基本数据变量
+-------
+
+
+*	kmem_cache的第2、第3部分包含了管理slab所需的全部变量，在填充或清空per-CPU缓存时需要访问这两部分.
+
+*	node[MAX_NUMNODES];是一个数组，每个数组项对应于系统中一个可能的内存结点。每个数组项都包含kmem_cache_node的一个实例，该结构中有3个slab列表（完全用尽、空闲、部分空闲），在下文讨论
+
+该成员必须置于结构的末尾, 尽管它在形式上总是有MAX_NUMNODES项, 但在NUMA计算机上实际可用的结点数目可能会少一些。因而该数组需要的项数也会变少，内核在运行时对该结构分配比理论上更少的内存，就可以缩减该数组的项数。如果nodelists放置在该结构中间，就无法做到这一点.
+
+在UMA计算机上，这称不上问题，因为只有一个可用结点.
+
+*	flags是一个标志寄存器，定义缓存的全局性质。当前只有一个标志位。如果管理结构存储在slab外部，则置位CFLGS_OFF_SLAB
+
+*	`num`保存了可以放入slab的对象的最大数目
+
+*	free_limit指定了缓存在收缩之后空闲对象数的上限(如果在正常运行期间无需收缩缓存, 那么空闲对象的数目可能超出该值). 用于管理slab链表的表头保存在一个独立的数据结构中，定义如下：
+
+http://guojing.me/linux-kernel-architecture/posts/slab-structure/
+
+http://blog.chinaunix.net/uid-24178783-id-370321.html
+
+http://www.cnblogs.com/openix/p/3351656.html
