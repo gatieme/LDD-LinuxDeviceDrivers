@@ -96,6 +96,7 @@ slab分配器还有两个更进一步的好处
 
 输出的各列除了包含用于标识各个缓存的字符串名称(也确保不会创建相同的缓存)之外, 还包含下列信息.
 
+
 *	缓存中活动对象的数量。
 
 *	缓存中对象的总数（已用和未用）。
@@ -264,8 +265,11 @@ struct slab *page_get_slab(struct page *page)
 
 为简明起见，我们把注意力集中在整体而不是细节上。我们在下文不使用上述选项，只讲解一个"纯粹"的slab分配器.
 
+
+
 ##4.1	数据结构
 -------
+
 
 每个缓存由`kmem_cache`结构的一个实例表示, 将slab缓存视为通过一组标准函数来高效地创建和释放特定类型对象的机制
 
@@ -440,7 +444,7 @@ struct array_cache {
 
 *	kmem_cache的第2、第3部分包含了管理slab所需的全部变量，在填充或清空per-CPU缓存时需要访问这两部分.
 
-*	node[MAX_NUMNODES];是一个数组，每个数组项对应于系统中一个可能的内存结点。每个数组项都包含kmem_cache_node的一个实例，该结构中有3个slab列表（完全用尽、空闲、部分空闲），在下文讨论
+*	node[MAX_NUMNODES];是一个数组，每个数组项对应于系统中一个可能的内存结点. 每个数组项都包含kmem_cache_node的一个实例, 该结构中有3个slab列表（完全用尽、空闲、部分空闲）
 
 该成员必须置于结构的末尾, 尽管它在形式上总是有MAX_NUMNODES项, 但在NUMA计算机上实际可用的结点数目可能会少一些。因而该数组需要的项数也会变少，内核在运行时对该结构分配比理论上更少的内存，就可以缩减该数组的项数。如果nodelists放置在该结构中间，就无法做到这一点.
 
@@ -486,8 +490,14 @@ struct kmem_cache_node {
 };
 ```
 
+每个数组项都包含kmem_cache_node的一个实例, 该结构中有3个slab列表(完全用尽slabs_full、空闲slabs_free、部分空闲slabs_partial).
 
-#5	slab系统初始化
+kmem_cache_node作为早期内核中slab描述符struct slab结构的替代品, 要么放在slab自身开始的地方. 如果slab很小或者slab内部有足够的空间容纳slab描述符, 那么描述符就存放在slab里面.
+
+slab分配器可以创建新的slab, 这是通过kmem_getpages
+
+
+##4.2	slab系统初始化
 -------
 
 
@@ -498,6 +508,8 @@ struct kmem_cache_node {
 更确切地说, 该问题涉及`kmalloc`的`per-CPU`缓存的初始化. 在这些缓存能够初始化之前, `kmalloc`必须可以用来分配所需的内存空间, 而`kmalloc`自身也正处于初始化的过程中. 换句话说, `kmalloc`只能在`kmalloc`已经初始化之后初始化，这是个不可能的场景. 因此内核必须借助一些技巧.
 
 
+###4.2.1	slab分配器的初始化过程
+-------
 
 
 我们之前提到过系统是从start_kernel开始的, 完成了分页机制和内存基本数据结构的初始化, 并将内存管理从bootmem/memblock慢慢迁移到了buddy系统.
@@ -542,7 +554,12 @@ static void __init mm_init(void)
 }
 ```
 
-内核通过函数`mem_init`完成了`bootmem/memblock`的释放工作, 从而将内存管理迁移到了`buddy`, 随后就通过`kmem_cache_init`完成了slab初始化分配器
+内核通过函数`mem_init`完成了`bootmem/memblock`的释放工作, 从而将内存管理迁移到了`buddy`, 随后就通过`kmem_cache_init`完成了slab初始化分配器.
+
+
+###4.2.2	kmem_cache_init函数初始化slab分配器
+-------
+
 
 `kmem_cache_init`函数用于初始化`slab`分配器. 它在内核初始化阶段(`start_kernel`)、伙伴系统启用之后调用. 但在多处理器系统上，启动`CPU`此时正在运行, 而其他`CPU`尚未初始化.
 
@@ -566,6 +583,316 @@ g_cpucache_up中的状态接下来设置为PARTIAL_AC，意味着array_cache实�
 |:-------------------:|:-----:|:-----:|:-----:|
 | 初始化slab分配器 | [mm/slab.c?v=4.7, line 1298](http://lxr.free-electrons.com/source/mm/slab.c?v=4.7#L1298) | [mm/slob.c?v=4.7, line 649](http://lxr.free-electrons.com/source/mm/slob.c?v=4.7#L649) | [mm/slub.c?v=4.7, line 3913](http://lxr.free-electrons.com/source/mm/slub.c?v=4.7#L3913) |
 
+```cpp
+/*
+ * Initialisation.  Called after the page allocator have been initialised and
+ * before smp_init().
+ */
+void __init kmem_cache_init(void)
+{
+    int i;
+
+    BUILD_BUG_ON(sizeof(((struct page *)NULL)->lru) <
+                    sizeof(struct rcu_head));
+    kmem_cache = &kmem_cache_boot;
+
+    if (!IS_ENABLED(CONFIG_NUMA) || num_possible_nodes() == 1)
+        use_alien_caches = 0;
+
+    for (i = 0; i < NUM_INIT_LISTS; i++)
+        kmem_cache_node_init(&init_kmem_cache_node[i]);
+
+    /*
+     * Fragmentation resistance on low memory - only use bigger
+     * page orders on machines with more than 32MB of memory if
+     * not overridden on the command line.
+     */
+    if (!slab_max_order_set && totalram_pages > (32 << 20) >> PAGE_SHIFT)
+        slab_max_order = SLAB_MAX_ORDER_HI;
+
+    /* Bootstrap is tricky, because several objects are allocated
+     * from caches that do not exist yet:
+     * 1) initialize the kmem_cache cache: it contains the struct
+     *    kmem_cache structures of all caches, except kmem_cache itself:
+     *    kmem_cache is statically allocated.
+     *    Initially an __init data area is used for the head array and the
+     *    kmem_cache_node structures, it's replaced with a kmalloc allocated
+     *    array at the end of the bootstrap.
+     * 2) Create the first kmalloc cache.
+     *    The struct kmem_cache for the new cache is allocated normally.
+     *    An __init data area is used for the head array.
+     * 3) Create the remaining kmalloc caches, with minimally sized
+     *    head arrays.
+     * 4) Replace the __init data head arrays for kmem_cache and the first
+     *    kmalloc cache with kmalloc allocated arrays.
+     * 5) Replace the __init data for kmem_cache_node for kmem_cache and
+     *    the other cache's with kmalloc allocated memory.
+     * 6) Resize the head arrays of the kmalloc caches to their final sizes.
+     */
+
+    /* 1) create the kmem_cache */
+
+    /*
+     * struct kmem_cache size depends on nr_node_ids & nr_cpu_ids
+     */
+    create_boot_cache(kmem_cache, "kmem_cache",
+        offsetof(struct kmem_cache, node) +
+                  nr_node_ids * sizeof(struct kmem_cache_node *),
+                  SLAB_HWCACHE_ALIGN);
+    list_add(&kmem_cache->list, &slab_caches);
+    slab_state = PARTIAL;
+
+    /*
+     * Initialize the caches that provide memory for the  kmem_cache_node
+     * structures first.  Without this, further allocations will bug.
+     */
+    kmalloc_caches[INDEX_NODE] = create_kmalloc_cache("kmalloc-node",
+                kmalloc_size(INDEX_NODE), ARCH_KMALLOC_FLAGS);
+    slab_state = PARTIAL_NODE;
+    setup_kmalloc_cache_index_table();
+
+    slab_early_init = 0;
+
+    /* 5) Replace the bootstrap kmem_cache_node */
+    {
+        int nid;
+
+        for_each_online_node(nid) {
+            init_list(kmem_cache, &init_kmem_cache_node[CACHE_CACHE + nid], nid);
+
+            init_list(kmalloc_caches[INDEX_NODE],
+                      &init_kmem_cache_node[SIZE_NODE + nid], nid);
+        }
+    }
+
+    create_kmalloc_caches(ARCH_KMALLOC_FLAGS);
+}
+```
+
+`kmem_cache_init`用来初始化`cache`, 在初始化阶段使用了全局静态变量`struct kmem_cache *kmem_cache`
+
+```cpp
+//  http://lxr.free-electrons.com/source/mm/slab.c?v=4.7#L1304
+kmem_cache = &kmem_cache_boot;
+```
+
+
+这个变量是用来管理所有`cache`的`kmem_cache`的, 也就是说, 在初始化阶段, 将会创建一个`slab`, 用来存放所有`cache`的`kmem_cache`, 而创建`kmem_cache`是通过`kmem_cache_create`来创建的.
+
+```cpp
+#define BOOT_CPUCACHE_ENTRIES   1
+/* internal cache of cache description objs */
+static struct kmem_cache kmem_cache_boot = {
+    .batchcount = 1,
+    .limit = BOOT_CPUCACHE_ENTRIES,
+    .shared = 1,
+    .size = sizeof(struct kmem_cache),
+    .name = "kmem_cache",
+};
+```
+
+kmem_cache_init可以分为六个阶段
+
+| 阶段 | 描述 |
+|:-----:|:-----:|
+| 第一个阶段 | 是根据kmem_cache来设置cache_cache的字段值 |
+| 第二个阶段 | 首先是创建arraycache_init对应的高速缓存，同时也是在这个kmem_cache_create的调用过程中，创建了用于保存cache的kmem_cache的slab，并初始化了slab中的各个对象 |
+| 第三个阶段 | 创建kmem_list3对应的高速缓存，在这里要注意的一点是，如果sizeof(arraycache_t)和sizeof(kmem_list3)的大小一样大，那么就不再使用kmem_cache_create来为kmem_list3创建cache了，因为如果两者相等的话，两者就可以使用同一个cache |
+| 第四个阶段 | 创建并初始化所有的通用cache和dma cache |
+| 第五个阶段 | 创建两个arraycache_init对象，分别取代cache_cache中的array字段和malloc_sizes[INDEX_AC].cs_cachep->array字段 |
+| 第六个阶段 | 创建两个kmem_list3对象，取代cache_cache中的kmem_list3字段和malloc_sizes[INDEX_AC].cs_cachep->nodelist3字段.如此一来，经过上面的六个阶段后，所有的初始化工作基本完成了 |
+
+>关于kmem_cache_init函数参见
+>
+>[Linux内存管理Slab分配器](http://www.uml.org.cn/embeded/201210165.asp)
+>
+>[linux内存管理之kmem_cache_init ](http://blog.chinaunix.net/xmlrpc.php?r=blog/article&uid=20786208&id=4831194)
+>
+>[Linux 内存管理：Kmem_cache_init](http://blog.jobbole.com/91883/)
+>
+>[ kmem_cache_init初始化文字解析](http://blog.chinaunix.net/uid-20729583-id-1884621.html)
+
+##4.3	创建缓存
+-------
+
+创建新的`slab`缓存必须调用`kmem_cache_create`. 该函数需要很多参数
+
+```cpp
+mm/slab.c
+struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align, unsigned long flags, void (*ctor)(void *))
+```
+
+除了可读的`name`随后会出现在`/proc/slabinfo`以外, 该函数需要被管理对象以字节计的长度, 在对齐数据时使用的偏移量(`align`, 几乎所有的情形下都是0），flags中是一组标志，而ctor是构造函数.
+
+该函数定义在[mm/slab_common.c?v=4.7, line 388](http://lxr.free-electrons.com/source/mm/slab_common.c?v=4.7#L388)
+
+##4.4	分配对象
+-------
+
+
+`kmem_cache_alloc`用于从特定的缓存获取对象. 类似于所有的`malloc`函数, 其结果可能是指向分配内存区的指针, 也可能分配失败, 返回`NULL`指针. 
+
+该函数需要两个参数 : 用于获取对象的缓存, 以及精确描述分配特征的标志变量. 之前提到的任何GFP_值都可以用于指定标志
+
+```cpp
+/**
+ * kmem_cache_alloc - Allocate an object
+ * @cachep: The cache to allocate from.
+ * @flags: See kmalloc().
+ *
+ * Allocate an object from this cache.  The flags are only relevant
+ * if the cache has no available objects.
+ */
+void *kmem_cache_alloc(struct kmem_cache *cachep, gfp_t flags)
+{
+    void *ret = slab_alloc(cachep, flags, _RET_IP_);
+
+    kasan_slab_alloc(cachep, ret, flags);
+    trace_kmem_cache_alloc(_RET_IP_, ret,
+                   cachep->object_size, cachep->size, flags);
+
+    return ret;
+}
+EXPORT_SYMBOL(kmem_cache_alloc);
+```
+
+
+##4.5	缓存的增长
+-------
+
+给出了cache_grow的代码流程图
+
+
+##4.6	释放对象
+-------
+
+
+如果一个分配的对象已经不再需要, 那么必须使用`kmem_cache_free`返回给`slab`分配器.
+
+
+每一个分配器都应该实现一个`kmem_cache_free`函数
+
+
+| kmem_cache_free | slab | slob | slub |
+|:--------------------:|:-----:|:-----:|:-----:|
+| 释放对象 | [mm/slab.c?v=4.7, line 3800](http://lxr.free-electrons.com/source/mm/slab.c?v=4.7#L3800) | [mm/slob.c?v=4.7, line 598](http://lxr.free-electrons.com/source/mm/slob.c?v=4.7#L598) | [mm/slub.c?v=4.7, line 2814](http://lxr.free-electrons.com/source/mm/slub.c?v=4.7#L2814) |
+
+
+`slab`分配器的`kmem_cache_free`函数定义在[mm/slab.c?v=4.7#L3800](http://lxr.free-electrons.com/source/mm/slab.c?v=4.7#L3800)
+
+
+`kmem_cache_free`立即调用了`__cache_free`, 参数直接传递过去。其原因也是防止kfree实现中.
+
+类似于分配，根据per-CPU缓存的状态不同，有两种可选的操作流程。如果per-CPU缓存中的对象数目低于允许的限制，则在其中存储一个指向缓存中对象的指针.
+
+
+
+```cpp
+792 /**
+ * kmem_cache_free - Deallocate an object
+ * @cachep: The cache the allocation was from.
+ * @objp: The previously allocated object.
+ *
+ * Free an object which was previously allocated from this
+ * cache.
+ */
+void kmem_cache_free(struct kmem_cache *cachep, void *objp)
+{
+    unsigned long flags;
+    cachep = cache_from_obj(cachep, objp);
+    if (!cachep)
+        return;
+
+    local_irq_save(flags);
+    debug_check_no_locks_freed(objp, cachep->object_size);
+    if (!(cachep->flags & SLAB_DEBUG_OBJECTS))
+        debug_check_no_obj_freed(objp, cachep->object_size);
+    __cache_free(cachep, objp, _RET_IP_);
+    local_irq_restore(flags);
+
+    trace_kmem_cache_free(_RET_IP_, objp);
+}
+EXPORT_SYMBOL(kmem_cache_free);
+```
+
+##4.7	销毁缓存
+-------
+
+
+如果要销毁只包含未使用对象的一个缓存, 则必须调用`kmem_cache_destroy`函数.
+
+该函数主要在删除模块时调用, 此时需要将分配的内存都释放.
+
+由于该函数的实现没什么新东西, 下面我们只是概述一下删除缓存的主要步骤.
+
+*	依次扫描`slabs_free`链表上的`slab`. 首先对每个`slab`上的每个对象调用析构器函数，然后将slab的内存空间返回给伙伴系统.
+
+*	释放用于`per-CPU`缓存的内存空间。
+
+*	从`cache_cache`链表移除相关数据。
+
+
+slab分配器中该函数定义在[mm/slab_common.c?v=4.7, line 706](http://lxr.free-electrons.com/source/mm/slab_common.c?v=4.7#L706)
+
+```cpp
+void kmem_cache_destroy(struct kmem_cache *s)
+{
+    LIST_HEAD(release);
+    bool need_rcu_barrier = false;
+    int err;
+
+    if (unlikely(!s))
+        return;
+
+    get_online_cpus();
+    get_online_mems();
+
+    kasan_cache_destroy(s);
+    mutex_lock(&slab_mutex);
+
+    s->refcount--;
+    if (s->refcount)
+        goto out_unlock;
+
+    err = shutdown_memcg_caches(s, &release, &need_rcu_barrier);
+    if (!err)
+        err = shutdown_cache(s, &release, &need_rcu_barrier);
+
+    if (err) {
+        pr_err("kmem_cache_destroy %s: Slab cache still has objects\n",
+               s->name);
+        dump_stack();
+    }
+out_unlock:
+    mutex_unlock(&slab_mutex);
+
+    put_online_mems();
+    put_online_cpus();
+
+    release_caches(&release, need_rcu_barrier);
+}
+EXPORT_SYMBOL(kmem_cache_destroy);
+```
+
+
+##5	通用缓存
+-------
+
+如果不涉及对象缓存, 而是传统意义上的分配/释放内存, 则必须调用`kmalloc`和`kfree`函数. 这两个函数, 相当于用户空间中C标准库`malloc`和`free`函数的内核等价物.
+
+
+我已经提过几次, `kmalloc`和`kfree`实现为`slab`分配器的前端, 其语义尽可能地模仿malloc/free.
+
+因此我们只简单讨论一下其实现
+
+
+##5.1	kmalloc函数的实现
+-------
+
+`kmalloc`的基础是一个数组, 其中是一些分别用于不同内存长度的`slab`缓存.
+数组项是`cache_sizes`的实例, 该数据结构定义如下:
+
+
 
 
 http://guojing.me/linux-kernel-architecture/posts/slab-structure/
@@ -573,3 +900,5 @@ http://guojing.me/linux-kernel-architecture/posts/slab-structure/
 http://blog.chinaunix.net/uid-24178783-id-370321.html
 
 http://www.cnblogs.com/openix/p/3351656.html
+
+http://www.cnblogs.com/openix/p/3352652.html
