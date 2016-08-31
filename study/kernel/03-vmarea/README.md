@@ -7,7 +7,7 @@
 
 
 
-#1	虚拟地址空间
+#1	虚拟地址空间概述
 -------
 
 用户层进程的虚拟地址空间是Linux的一个重要抽象 : 它向每个运行进程提供了同样的系统视图, 这使得多个进程可以同时运行, 而不会干扰到其他进程内存中的内容. 此外, 它容许使用各种高级的程序设计技术，如内存映射
@@ -26,7 +26,258 @@ mapping)* ***技术有助于从虚拟内存页跟踪到对应的物理内存页,
 
 *	fork-exec模型在UNIX操作系统下用于产生新进程. 如果实现得较为粗劣, 该模型的功能并不强大。因此内核必须借助于一些技巧，来尽可能高效地管理用户地址空间
 
+#2	进程虚拟地址空间
+-------
 
-各个进程的虚拟地址空间起始于地址0，延伸到TASK_SIZE - 1，其上是内核地址空间。在IA-32
-系统上地址空间的范围可达232 = 4 GiB，总的地址空间通常按3:1比例划分，我们在下文中将关注该划
+##2.1	进程虚拟地址空间
+-------
 
+各个进程的虚拟地址空间起始于地址0, 延伸到TASK_SIZE - 1, 其上是内核地址空间。 在IA-32系统上地址空间的范围可达$2^{32} = 4GB$, 总的地址空间通常按3:1比例划分,我们在下文中将关注该划分. 内核分配了1GB, 而各个用户空间进程可用的部分为3GB. 其他的划分比例也是可能的, 但正
+如前文的讨论, 只能在非常特定的配置和某些工作负荷下才有用.
+
+与系统完整性相关的非常重要的一方面是, 用户程序只能访问整个地址空间的下半部分,不能访问内核部分. 如果没有预先达成"协议", 用户进程也不可能操作另一个进程的地址空间,因为后者的地址空间对前者不可见.
+
+无论当前哪个用户进程处于活动状态, 虚拟地址空间内核部分的内容总是同样的. 取决于具体的硬件, 这可能是通过操作各用户进程的页表, 使得虚拟地址空间的上半部看上去总是相同的. 也可能是指示处理器为内核提供一个独立的地址空间, 映射在各个用户地址空间之上. 读者可以回想一下图1-3, 其中给出了相关的图示.
+
+虚拟地址空间由许多不同长度的段组成, 用于不同的目的, 必须分别处理.
+
+例如在大多数情况下, 不允许修改text段, 但必须可以执行其内容. 另一方面,必须可以修改映射到地址空间中的文本文件
+内容,而不能允许执行其内容. 因为这没有意义,文件的内容只是数据,并非机器代码.
+
+##2.2	进程地址空间的布局
+-------
+
+虚拟地址空间中包含了若干区域. 其分布方式是特定于体系结构的,但所有方法都有下列共同成分.
+
+*	当前运行代码的二进制代码. 该代码通常称之为text,所处的虚拟内存区域称之为text段.
+
+*	程序使用的动态库的代码
+
+*	存储全局变量和动态产生的数据的堆
+
+*	用于保存局部变量和实现函数/过程调用的栈。
+
+*	环境变量和命令行参数的段。
+
+*	将文件内容映射到虚拟地址空间中的内存映射
+
+系统中的各个进程都具有一个`struct mm_struct`的实例,可以通过`task_struct`访问. 这个实例保存了进程的内存管理信息, 定义在[`include/linux/mm_types.h?v=4.7, line 395`](http://lxr.free-electrons.com/source/include/linux/mm_types.h?v=4.7#L395)
+
+```cpp
+struct mm_struct {
+    struct vm_area_struct *mmap;        /* list of VMAs */
+    struct rb_root mm_rb;
+    u32 vmacache_seqnum;           /* per-thread vmacache */
+#ifdef CONFIG_MMU
+    unsigned long (*get_unmapped_area) (struct file *filp,
+                unsigned long addr, unsigned long len,
+                unsigned long pgoff, unsigned long flags);
+#endif
+    unsigned long mmap_base;        /* base of mmap area */
+    unsigned long mmap_legacy_base;     /* base of mmap area in bottom-up allocations */
+    unsigned long task_size;        /* size of task vm space */
+    unsigned long highest_vm_end;       /* highest vma end address */
+    pgd_t * pgd;
+    atomic_t mm_users;              /* How many users with user space? */
+    atomic_t mm_count;              /* How many references to "struct mm_struct" (users count as 1) */
+    atomic_long_t nr_ptes;          /* PTE page table pages */
+#if CONFIG_PGTABLE_LEVELS > 2
+    atomic_long_t nr_pmds;          /* PMD page table pages */
+#endif
+    int map_count;              /* number of VMAs */
+
+    spinlock_t page_table_lock;         /* Protects page tables and some counters */
+    struct rw_semaphore mmap_sem;
+
+    struct list_head mmlist;        /* List of maybe swapped mm's.  These are globally strung
+                         * together off init_mm.mmlist, and are protected
+                         * by mmlist_lock
+                         */
+
+
+    unsigned long hiwater_rss;      /* High-watermark of RSS usage */
+    unsigned long hiwater_vm;       /* High-water virtual memory usage */
+
+    unsigned long total_vm;     /* Total pages mapped */
+    unsigned long locked_vm;    /* Pages that have PG_mlocked set */
+    unsigned long pinned_vm;    /* Refcount permanently increased */
+    unsigned long data_vm;      /* VM_WRITE & ~VM_SHARED & ~VM_STACK */
+    unsigned long exec_vm;      /* VM_EXEC & ~VM_WRITE & ~VM_STACK */
+    unsigned long stack_vm;     /* VM_STACK */
+    unsigned long def_flags;
+    unsigned long start_code, end_code, start_data, end_data;
+    unsigned long start_brk, brk, start_stack;
+    unsigned long arg_start, arg_end, env_start, env_end;
+
+    unsigned long saved_auxv[AT_VECTOR_SIZE]; /* for /proc/PID/auxv */
+
+    /*
+     * Special counters, in some configurations protected by the
+     * page_table_lock, in other configurations by being atomic.
+     */
+    struct mm_rss_stat rss_stat;
+
+    struct linux_binfmt *binfmt;
+
+    cpumask_var_t cpu_vm_mask_var;
+
+    /* Architecture-specific MM context */
+    mm_context_t context;
+
+    unsigned long flags; /* Must use atomic bitops to access the bits */
+
+    struct core_state *core_state; /* coredumping support */
+#ifdef CONFIG_AIO
+    spinlock_t              ioctx_lock;
+    struct kioctx_table __rcu       *ioctx_table;
+#endif
+#ifdef CONFIG_MEMCG
+    /*
+     * "owner" points to a task that is regarded as the canonical
+     * user/owner of this mm. All of the following must be true in
+     * order for it to be changed:
+     *
+     * current == mm->owner
+     * current->mm != mm
+     * new_owner->mm == mm
+     * new_owner->alloc_lock is held
+     */
+    struct task_struct __rcu *owner;
+#endif
+
+    /* store ref to file /proc/<pid>/exe symlink points to */
+    struct file __rcu *exe_file;
+#ifdef CONFIG_MMU_NOTIFIER
+    struct mmu_notifier_mm *mmu_notifier_mm;
+#endif
+#if defined(CONFIG_TRANSPARENT_HUGEPAGE) && !USE_SPLIT_PMD_PTLOCKS
+    pgtable_t pmd_huge_pte; /* protected by page_table_lock */
+#endif
+#ifdef CONFIG_CPUMASK_OFFSTACK
+    struct cpumask cpumask_allocation;
+#endif
+#ifdef CONFIG_NUMA_BALANCING
+    /*
+     * numa_next_scan is the next time that the PTEs will be marked
+     * pte_numa. NUMA hinting faults will gather statistics and migrate
+     * pages to new nodes if necessary.
+     */
+    unsigned long numa_next_scan;
+
+    /* Restart point for scanning and setting pte_numa */
+    unsigned long numa_scan_offset;
+
+    /* numa_scan_seq prevents two threads setting pte_numa */
+    int numa_scan_seq;
+#endif
+#if defined(CONFIG_NUMA_BALANCING) || defined(CONFIG_COMPACTION)
+    /*
+     * An operation with batched TLB flushing is going on. Anything that
+     * can move process memory needs to flush the TLB when moving a
+     * PROT_NONE or PROT_NUMA mapped page.
+     */
+    bool tlb_flush_pending;
+#endif
+    struct uprobes_state uprobes_state;
+#ifdef CONFIG_X86_INTEL_MPX
+    /* address of the bounds directory */
+    void __user *bd_addr;
+#endif
+#ifdef CONFIG_HUGETLB_PAGE
+    atomic_long_t hugetlb_usage;
+#endif
+#ifdef CONFIG_MMU
+    struct work_struct async_put_work;
+#endif
+};
+```
+
+**可执行代码**占用的虚拟地址空间区域, 其开始和结束分别通过 `start_code`和`end_code`标记. 
+
+
+类似地, `start_data`和`end_data`标记了包含**已初始化数据的区域**. 请注意, 在`ELF`二进制文件映射到地址空间中之后,这些区域的长度不再改变.
+
+**堆**的起始地址保存在`start_brk`, `brk`表示堆区域当前的结束地址. 尽管堆的起始地址在进程生命周期中是不变的, 但堆的长度会发生变化,因而`brk`的值也会变.
+
+**参数列表**和**环境变量**的位置分别由`arg_start`和 `arg_end`、`env_start`和`env_end`描述. 两个区域
+都位于栈中最高的区域.
+
+[`mmap_base`](http://lxr.free-electrons.com/source/include/linux/mm_types.h?v=4.7#L404)表示虚拟地址空间中用于内存映射的起始地址, 可调用`get_unmapped_area`在`mmap`
+区域中为新映射找到适当的位置.
+
+`task_size`, 顾名思义, 存储了对应进程的地址空间长度. 对本机应用程序来说, 该值通常是`TASK_SIZE`. 但64位体系结构与前辈处理器通常是二进制兼容的. 如果在64位计算机上执行32位二进制代码, 则`task_size`描述了该二进制代码实际可见的地址空间长度.
+
+各个体系结构可以通过几个配置选项影响虚拟地址空间的布局。
+
+*	如果体系结构想要在不同`mmap`区域布局之间作出选择, 则需要设置`HAVE_ARCH_PICK_MMAP_LAYOUT`, 并提供`arch_pick_mmap_layout`函数.
+
+*	在创建新的内存映射时, 除非用户指定了具体的地址, 否则内核需要找到一个适当的位置. 如果体系结构自身想要选择合适的位置,则必须设置预处理器符号`HAVE_ARCH_UNMAPPED_AREA`, 并相应地定义`arch_get_unmapped_area`函数。
+
+*	在寻找新的内存映射低端内存位置时, 通常从较低的内存位置开始, 逐渐向较高的内存地址搜索. 内核提供了默认的函数`arch_get_unmapped_area_topdown`用于搜索, 但如果某个体系结构想要提供专门的实现, 则需要设置预处理器符号`HAVE_ARCH_GET_UNMAPPED_AREA`.
+
+*	通常, 栈自顶向下增长. 具有不同处理方式的体系结构需要设置配置选项`CONFIG_STACK_GROWSUP`
+
+最后, 我们需要考虑进程标志`PF_RANDOMIZE`. 如果设置了该标志, 则内核不会为栈和内存映射的起点选择固定位置,而是在每次新进程启动时随机改变这些值的设置. 这引入了一些复杂性, 例如, 使得攻击因缓冲区溢出导致的安全漏洞更加困难. 如果攻击者无法依靠固定地址找到栈,那么想要构
+建恶意代码, 通过缓冲器溢出获得栈内存区域的访问权, 而后恶意操纵栈的内容,将会困难得多.
+
+
+下图说明了前述的各个部分在大多数体系结构的虚拟地址空间中的分布情况.
+
+`text`段如何映射到虚拟地址空间中由ELF标准确定(有关该二进制格式的更多信息,请参见), 每个体系结构都指定了一个特定的起始地址 : IA-32系统起始于0x08048000, 在text段的起始地址与最低的可用地址之间有大约128 MiB的间距,用于捕获NULL指针. 其他体系结构也有类似的缺口 : `UltraSparc`计算机使用0x100000000作为text段的起始点, 而AMD64使用0x0000000000400000. 堆紧接着text段开始, 向上增长. 栈起始于STACK_TOP, 如果设置了 `PF_RANDOMIZE`, 则起始点会减少一个小的随机量. 每个体系结构都必须定义`STACK_TOP`, 大多数都设置为 `TASK_SIZE`, 即用户地址空间中最高的可用地址. 进程
+的参数列表和环境变量都是栈的初始数据.
+
+用于内存映射的区域起始于`mm_struct->mmap_base`, 通常设置为`TASK_UNMAPPED_BASE`, 每个体系结构都需要定义. 几乎所有的情况下, 其值都是`TASK_SIZE/3`. 要注意,如果使用内核的默认配置, 则`mmap`区域的起始点不是随机的.
+
+
+![进程的线性地址空间的组成]()
+
+如果计算机提供了巨大的虚拟地址空间, 那么使用上述的地址空间布局会工作得非常好. 但在32位计算机上可能会出现问题. 考虑IA-32的情况 : 虚拟地址空间从0到0xC0000000 , 每个用户进程有3GB可用. `TASK_UNMAPPED_BASE`起始于0x4000000, 即1GB处. 糟糕的是, 这意味着堆只有1GB
+空间可供使用, 继续增长则会进入到`mmap`区域, 这显然不是我们想要的.
+
+问题在于, 内存映射区域位于虚拟地址空间的中间. 这也是在内核版本2.6.7开发期间为IA-32计算机引入一个新的虚拟地址空间布局的原因(经典布局仍然可以使用).
+
+![mmap区域自顶向下扩展时,IA-32计算机上虚拟地址空间的布局]()
+
+
+其想法在于使用固定值限制栈的最大长度. 由于栈是有界的, 因此安置内存映射的区域可以在栈末端的下方立即开始. 与经典方法相反, 该区域现在是自顶向下扩展. 由于堆仍然位于虚拟地址空间中较低的区域并向上增长, 因此`mmap`区域和堆可以相对扩展, 直至耗尽虚拟地址空间中剩余的区域.
+
+为确保栈与`mmap`区域不发生冲突,两者之间设置了一个安全隙.
+
+
+##2.3	建立布局
+-------
+
+在使用`load_elf_binary`装载一个ELF二进制文件时,将创建进程的地址空间, 而`exec`系统调用.
+
+刚好使用了该函数. 加载`ELF`文件涉及大量纷繁复杂的技术细节, 与我们的主旨关系不大, 因此图4-3给出的代码流程图主要关注建立虚拟内存区域所需的各个步骤.
+
+
+![图4-3 load_elf_binary 的代码流程图]()
+
+
+如果全局变量`randomize_va_space`设置为1, 则启用地址空间随机化机制. 通常情况下都是启用的, 但在`Transmeta CPU`上会停用,因为该设置会降低此类计算机的速度. 此外,用户可以通过`/proc/sys/kernel/randomize_va_space`停用该特性
+
+![cat](./images/cat_proc_sys_kernel_randomize_va_space.png)
+
+
+
+选择布局的工作由`arch_pick_mmap_layout`完成. 如果对应的体系结构没有提供一个具体的函数, 则使用内核的默认例程, 按如图4-1所示建立地址空间. 但我们更感兴趣的是, IA-32如何在经典布局和新的布局之间选择
+
+```cpp
+arch_pick_mmap_layout
+```
+
+
+如果用户通过`/proc/sys/kernel/legacy_va_layout `给出明确的指示, 或者要执行为不同的UNIX变体编译、需要旧的布局的二进制文件, 或者栈可以无限增长(最重要的一点),则系统会选择旧的布局. 这使得很难确定栈的下界, 亦即`mmap`区域的上界.
+
+在经典的配置下, `mmap`区域的起始点是`TASK_UNMAPPED_BASE`, 其值为0x4000000, 而标准函数`arch_get_unmapped_area`(其名称虽然带有`arch` , 但该函数不一定是特定于体系结构的, 内核也提供了一个标准实现)用于自下而上地创建新的映射.
+
+在使用新布局时, 内存映射自顶向下增长.
+
+标准函数 `arch_get_unmapped_area_topdown`(我不会详细描述)负责该工作. 更有趣的问题是如何选择内存映射的基地址:
+
+```cpp
+arch/x86/mm/mmap_32.c
+#define MIN_GAP (128*1024*1024)
+#define MAX_GAP (TASK_SIZE/6*5)
+```
