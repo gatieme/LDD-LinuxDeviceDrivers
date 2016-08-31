@@ -3,7 +3,7 @@
 
 | 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
 | ------- |:-------:|:-------:|:-------:|:-------:|:-------:|
-| 2016-06-14 | [Linux-4.7](http://lxr.free-electrons.com/source/?v=4.7) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux内存管理](http://blog.csdn.net/gatieme/article/category/6225543) |
+| 2016-06-14 | [Linux-4.7](http://lxr.free-electrons.com/source/?v=4.7) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/02-memory/01-description/03-zone) | [Linux内存管理](http://blog.csdn.net/gatieme/article/category/6225543) |
 
 
 
@@ -128,7 +128,7 @@ Linux使用enum zone_type来标记内核所支持的所有内存区域
 
 zone_type结构定义在[include/linux/mmzone.h](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L267), 其基本信息如下所示
 
-```c
+```cpp
 enum zone_type
 {
 #ifdef CONFIG_ZONE_DMA
@@ -704,7 +704,7 @@ enum zone_stat_item
 
 struct zone中实现了一个等待队列, 可用于等待某一页的进程, 内核将进程排成一个列队, 等待某些条件. 在条件变成真时, 内核会通知进程恢复工作.
 
-```c
+```cpp
 struct zone
 {
 	wait_queue_head_t       *wait_table;
@@ -730,13 +730,13 @@ struct zone
 也可以有一种可能，就是struct zone中只有一个队列，但是这就意味着，当一个page unlock的时候，访问这个zone里内存page的所有休眠的进程将都被唤醒，这样就会出现拥堵（thundering herd）的问题。建立一个哈希表管理多个等待队列，能解决这个问题，zone->wait_table就是这个哈希表。哈希表的方法可能还是会造成一些进程不必要的唤醒。但是这种事情发生的机率不是很频繁的。下面这个图就是进程及等待队列的运行关系：
 
 
-等待队列的哈希表的分配和建立在free_area_init_core()函数中进行。哈希表的表项的数量在wait_table_size() 函数中计算，并且保持在zone->wait_table_size成员中。最大4096个等待队列。最小是NoPages / PAGES_PER_WAITQUEUE的2次方，NoPages是zone管理的page的数量，PAGES_PER_WAITQUEUE被定义256。（原文：For smaller tables， the size of the table is the minimum power of 2 required to store NoPages / PAGES PER WAITQUEUE number of queues， where NoPages is the number of pages in the zone and PAGE PER WAITQUEUE is defined to be 256.）
-下面这个公式可以用于计算这个值：
+等待队列的哈希表的分配和建立在`free_area_init_core`函数中进行。哈希表的表项的数量在wait_table_size() 函数中计算，并且保持在zone->wait_table_size成员中。最大4096个等待队列。最小是NoPages / PAGES_PER_WAITQUEUE的2次方，NoPages是zone管理的page的数量，PAGES_PER_WAITQUEUE被定义256
 
-zone->wait_table_bits用于计算：根据page 地址得到需要使用的等待队列在哈希表中的索引的算法因子。page_waitqueue()函数负责返回zone中page所对应等待队列。它用一个基于struct page虚拟地址的简单的乘法哈希算法来确定等待队列的。
+`zone->wait_table_bits`用于计算：根据page 地址得到需要使用的等待队列在哈希表中的索引的算法因子. page_waitqueue()函数负责返回zone中page所对应等待队列。它用一个基于struct page虚拟地址的简单的乘法哈希算法来确定等待队列的.
+
 page_waitqueue()函数用GOLDEN_RATIO_PRIME的地址和“右移zone→wait_table_bits一个索引值”的一个乘积来确定等待队列在哈希表中的索引的。
-Zone的初始化
-在kernel page table通过paging_init()函数完全建立起z来以后，zone被初始化。下面章节将描述这个。当然不同的体系结构这个过程肯定也是不一样的，但它们的目的却是相同的：确定什么参数需要传递给free_area_init()函数（对于UMA体系结构）或者free_area_init_node()函数（对于NUMA体系结构）。这里省略掉NUMA体系结构的说明。
+
+Zone的初始化, 在kernel page table通过paging_init()函数完全建立起z来以后，zone被初始化。下面章节将描述这个。当然不同的体系结构这个过程肯定也是不一样的，但它们的目的却是相同的：确定什么参数需要传递给free_area_init()函数（对于UMA体系结构）或者free_area_init_node()函数（对于NUMA体系结构）。这里省略掉NUMA体系结构的说明。
 free_area_init()函数的参数：
 unsigned long *zones_sizes: 系统中每个zone所管理的page的数量的数组。这个时候，还没能确定zone中那些page是可以分配使用的（free）。这个信息知道boot memory allocator完成之前还无法知道。
 来源： http://www.uml.org.cn/embeded/201208071.asp
@@ -976,6 +976,7 @@ struct zonelist {
 
 而struct zoneref结构的定义如下[include/linux/mmzone.h?v=4.7, line 583](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L583)
 
+```cpp
 /*
  * This struct contains information about a zone in a zonelist. It is stored
  * here to avoid dereferences into large structures and lookups of tables
@@ -984,7 +985,7 @@ struct zoneref {
     struct zone *zone;      /* Pointer to actual zone */
     int zone_idx;       /* zone_idx(zoneref->zone) */
 };
-
+```
 
 ##6.3	内存域的排列方式
 -------
@@ -996,18 +997,18 @@ NUMA系统中存在多个节点, 每个节点对应一个`struct pglist_data`结
 
 *	Legacy方式, 每个节点只排列自己的zone；
 
-![Legacy方式](../images/legacy-order.jpg)
+![Legacy方式](./images/legacy-order.jpg)
 
 *	Node方式, 按节点顺序依次排列，先排列本地节点的所有zone，再排列其它节点的所有zone。
 
 
-![Node方式](../images/node-order.jpg)
+![Node方式](./images/node-order.jpg)
 
 
 *	Zone方式, 按zone类型从高到低依次排列各节点的同相类型zone
 
 
-![Zone方式](../images/zone-order.jpg)
+![Zone方式](./images/zone-order.jpg)
 
 
 
@@ -1028,7 +1029,7 @@ NUMA系统中存在多个节点, 每个节点对应一个`struct pglist_data`结
 
 
 
-全局的current_zonelist_order变量标识了系统中的当前使用的内存域排列方式, 默认配置为ZONELIST_ORDER_DEFAULT, 参见[mm/page_alloc.c?v=4.7, line 4564](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4564)
+全局的`current_zonelist_order`变量标识了系统中的当前使用的内存域排列方式, 默认配置为`ZONELIST_ORDER_DEFAULT`, 参见[`mm/page_alloc.c?v=4.7, line 4564`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L4564)
 
 
 ```cpp
