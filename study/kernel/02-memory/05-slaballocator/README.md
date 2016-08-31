@@ -921,10 +921,100 @@ out_unlock:
 EXPORT_SYMBOL(kmem_cache_destroy);
 ```
 
-##4.7
+##4.7	slab分配器的使用实例
 -------
 
-我们来讲解一个slab分配器使用的鲜活的例子. 这个例子创建了task_struct结构, 取自kernel/fork.c
+我们来讲解一个slab分配器使用的鲜活的例子. 这个例子创建了task_struct结构, 取自`kernel/fork.c`
+
+首先, 内核用一个全局变量存放指向`task_struct`高速缓存的指针`task_struct_cachep`. 定义在[`kernel/fork.c, line 1733`](http://lxr.free-electrons.com/source/kernel/fork.c?v=4.7#L1733)
+
+
+```cpp
+#ifndef CONFIG_ARCH_TASK_STRUCT_ALLOCATOR
+static struct kmem_cache *task_struct_cachep;
+
+static inline struct task_struct *alloc_task_struct_node(int node)
+{
+    return kmem_cache_alloc_node(task_struct_cachep, GFP_KERNEL, node);
+}
+
+static inline void free_task_struct(struct task_struct *tsk)
+{
+    kmem_cache_free(task_struct_cachep, tsk);
+}
+#endif
+```
+
+在内核的初始化期间, 在定义`kernel/fork.c`的fork_init中会创建高速缓存, 参见[`kernel/fork.c?v=4.7, line 312·](http://lxr.free-electrons.com/source/kernel/fork.c?v=4.7#L312)
+
+```cpp
+void __init fork_init(void)
+{
+#ifndef CONFIG_ARCH_TASK_STRUCT_ALLOCATOR
+
+#ifndef ARCH_MIN_TASKALIGN
+	#define ARCH_MIN_TASKALIGN      L1_CACHE_BYTES
+#endif
+
+	/* create a slab on which task_structs can be allocated */
+    task_struct_cachep = kmem_cache_create("task_struct",
+            arch_task_struct_size, ARCH_MIN_TASKALIGN,
+            SLAB_PANIC|SLAB_NOTRACK|SLAB_ACCOUNT, NULL);
+#endif
+	/*  ......  */
+}
+```
+
+这样就创建了一个名为`task_struct`的高速缓存, 其中存放的就是类型为`struct task_struct`的对象. 该对象创建后存放在slab中偏移量为`ARCH_MIN_TASKALIGN`个字节的地方. `ARCH_MIN_TASKALIGN`的预定值与[体系结构相关](http://lxr.free-electrons.com/ident?i=L1_CACHE_BYTES), 通常将它定义为`L1_CACHE_BYTES`, 即L1高速缓存的字节大小. 没有构造函数或析构函数. 注意不同检查返回值是否为失败标记`NULL`. 因为`SLAB_PANIC`已经被设置了. 如果分配失败, `slab`分配器就调用`panic()`函数. 如果没有提供`SLAB_PANIC`标志, 就必须自己检查返回值. `SLAB_PANIC`标志用在这儿是因为这是系统操作必不可少的高速缓存(没有进程描述符, 机器自然不能正常运行).
+
+每当进程调用`fork`函数时, 一定会创建一个新的进程描述符. 这是在`dup_task_struct`中通过`alloc_task_struct_node`完成的, 而前者则会被_do_fork函数调用, 参见[kernel/fork.c?v=4.7, line 351](http://lxr.free-electrons.com/source/kernel/fork.c?v=4.7#L351)
+
+```cpp
+static struct task_struct *dup_task_struct(struct task_struct *orig, int node)
+{
+    struct task_struct *tsk;
+	/*  ......  */
+    tsk = alloc_task_struct_node(node);
+    if (!tsk)
+        return NULL;
+	/*  ......  */
+}
+```
+
+同样进程执行完后, 如果没有子进程在等待的话, 它的进程描述符就会被释放, 并返回个`task_structcachep`的`slab`高速缓存. 这是在`free_task_struct`中通过`kmem_cache_free`完成的.
+
+
+`alloc_task_struct_node`和`free_task_struct`函数分别用来分配和释放进程描述符
+
+
+| 函数 | 功能 | 定义 | 调用流程 |
+|:-----:|:-----:|:-----:|:---------:|
+| alloc_task_struct_node | 从task_struct_cachep slab高速缓存中分配一个进程描述符 | [kernel/fork.c?v=4.7, line 140](http://lxr.free-electrons.com/source/kernel/fork.c?v=4.7#L140) |  [_do_fork](http://lxr.free-electrons.com/source/kernel/fork.c?v=4.7#L1762)<br>[copy_process](http://lxr.free-electrons.com/source/kernel/fork.c?v=4.7#L1339)<br>[dup_task_struct](http://lxr.free-electrons.com/source/kernel/fork.c?v=4.7#L355)<br>[alloc_task_struct_node](http://lxr.free-electrons.com/source/kernel/fork.c?v=4.7#L142) |
+| free_task_struct | 释放进程描述符, 并返回给从task_struct_cachep slab高速缓存 | [kernel/fork.c?v=4.7, line 145](http://lxr.free-electrons.com/source/kernel/fork.c?v=4.7#L145) |  [free_task](http://lxr.free-electrons.com/source/kernel/fork.c?v=4.7#L240)<br>[free_task_struct](http://lxr.free-electrons.com/source/kernel/fork.c?v=4.7#L145)
+
+
+这两个函数定义在[kernel/fork.c?v=4.7, line 140](http://lxr.free-electrons.com/source/kernel/fork.c?v=4.7#L140)
+
+
+```cpp
+#ifndef CONFIG_ARCH_TASK_STRUCT_ALLOCATOR
+static struct kmem_cache *task_struct_cachep;
+
+static inline struct task_struct *alloc_task_struct_node(int node)
+{
+    return kmem_cache_alloc_node(task_struct_cachep, GFP_KERNEL, node);
+}
+
+static inline void free_task_struct(struct task_struct *tsk)
+{
+    kmem_cache_free(task_struct_cachep, tsk);
+}
+#endif
+```
+
+由于进程描述符是内核的核心组成部分, 时刻都要用到, 因此`task_struct_cachep`高速缓存绝不会被撤销掉. 即使真能撤销, 我们也要铜鼓下列函数阻止其被撤销.
+
+
 
 
 
