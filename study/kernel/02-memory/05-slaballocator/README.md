@@ -719,18 +719,55 @@ kmem_cache_init可以分为六个阶段
 
 ```cpp
 mm/slab.c
-struct kmem_cache *kmem_cache_create(const char *name, size_t size, size_t align, unsigned long flags, void (*ctor)(void *))
+struct kmem_cache *kmem_cache_create(const char *name,
+									 size_t size,
+                                     size_t align,
+                                     unsigned long flags,
+                                     void (*ctor)(void *))
 ```
 
 除了可读的`name`随后会出现在`/proc/slabinfo`以外, 该函数需要被管理对象以字节计的长度, 在对齐数据时使用的偏移量(`align`, 几乎所有的情形下都是0），flags中是一组标志，而ctor是构造函数.
 
+
+
 该函数定义在[mm/slab_common.c?v=4.7, line 388](http://lxr.free-electrons.com/source/mm/slab_common.c?v=4.7#L388)
 
-##4.4	分配对象
+| 参数 | 描述 |
+|:-----:|:-----:|
+| name | 存放着告诉缓存的名字 |
+| size | 告诉缓存中每个元素的大小 |
+| align | slab内第一个对象的偏移, 用来确保在页内进行特定的对齐, 通常情况下为0, 即标准对齐 |
+| flags |配置项, 用来控制告诉缓存的行为. |
+| ctor | 高速缓存的构造函数. 只有在新的页追加到高速缓存时, 构造函数才被调用 |
+
+flags参数是可选的配置项, 用来控制高速缓存的行为. 它可以为0, 表示没有特殊的行为, 或者与以下标志中的一个或多个"或"运算.
+
+| flags标志 | 描述 |
+|:----------:|:-----:|
+| SLAB_HWCACHE_ALIGN | |
+| SLAB_POISON | |
+| SLAB_RED_ZONE | |
+| SLAB_PANIC | |
+| SLAB_CACHE_DMA | |
+
+
+关于最后一个参数ctor是告诉缓存的构造函数. 只有在新的页追加到高速缓存时, 构造函数才被调用. 实际上, Linux内核的高速缓存不使用构造函数. 事实上这里曾经还有过一个析构函数参数, 但是由于内核代码不使用它, 因此已经被抛弃了. 你可以将ctor参数赋值为NULL.
+
+`kmem_cache_create`在成功时返回一个指向所构造的高速缓存的针; 否则, 返回NULL. 注意该函数可能会睡眠, 因此不能再中断上下文中调用.
+
+
+
+##4.4	分配对象kmem_cache_alloc
 -------
 
 
-`kmem_cache_alloc`用于从特定的缓存获取对象. 类似于所有的`malloc`函数, 其结果可能是指向分配内存区的指针, 也可能分配失败, 返回`NULL`指针. 
+`kmem_cache_alloc`用于从特定的缓存获取对象. 类似于所有的`malloc`函数, 其结果可能是指向分配内存区的指针, 也可能分配失败, 返回`NULL`指针.
+
+
+>void *kmem_cache_alloc(struct kmem_cache *cachep, gfp_t flags)
+
+
+该函数从给定的高速缓存cachep中返回一个指向对象的指针. 如果高速缓存中的所有slab中没有空闲的对象, 那么slab层就必须通过kmem_getpages获取新的页, flags的值传递给__get_free_pages函数. 这与我们之前所看到的标志相同. 你用到的应该是GFP_KERNEL或GFP_ATOMIC。
 
 该函数需要两个参数 : 用于获取对象的缓存, 以及精确描述分配特征的标志变量. 之前提到的任何GFP_值都可以用于指定标志
 
@@ -757,17 +794,18 @@ EXPORT_SYMBOL(kmem_cache_alloc);
 ```
 
 
-##4.5	缓存的增长
--------
 
 给出了cache_grow的代码流程图
 
 
-##4.6	释放对象
+##4.5	释放对象kmem_cache_free
 -------
 
 
-如果一个分配的对象已经不再需要, 那么必须使用`kmem_cache_free`返回给`slab`分配器.
+如果一个分配的对象已经不再需要, 那么必须使用`kmem_cache_free`将对象释放, 并返回给`slab`分配器. 这样就能把cachep中的对象标记为空闲.
+
+>void kmem_cache_free(struct kmem_cache *cachep, void *objp)
+
 
 
 每一个分配器都应该实现一个`kmem_cache_free`函数
@@ -788,7 +826,7 @@ EXPORT_SYMBOL(kmem_cache_alloc);
 
 
 ```cpp
-792 /**
+/**
  * kmem_cache_free - Deallocate an object
  * @cachep: The cache the allocation was from.
  * @objp: The previously allocated object.
@@ -815,7 +853,7 @@ void kmem_cache_free(struct kmem_cache *cachep, void *objp)
 EXPORT_SYMBOL(kmem_cache_free);
 ```
 
-##4.7	销毁缓存
+##4.6	销毁缓存
 -------
 
 
@@ -830,6 +868,15 @@ EXPORT_SYMBOL(kmem_cache_free);
 *	释放用于`per-CPU`缓存的内存空间。
 
 *	从`cache_cache`链表移除相关数据。
+
+
+与kmem_cache_create类似, 不能在中断上下文中调用这个函数. 因为它也可能睡眠. 调用该函数之前必须确保一下两个条件
+
+*	告诉缓存中所有slab都必须是NULL, 其实, 不管哪个slab中, 只要还有一个对象被分配出去并正在使用, 那么就不能撤销该告诉缓存
+
+*	在调用`kmem_cache_destroy`过程中, 不再访问这个高速缓存. 调用者必须确保这种同步.
+
+该函数在成功时返回0, 否则返回非0.
 
 
 slab分配器中该函数定义在[mm/slab_common.c?v=4.7, line 706](http://lxr.free-electrons.com/source/mm/slab_common.c?v=4.7#L706)
@@ -873,6 +920,13 @@ out_unlock:
 }
 EXPORT_SYMBOL(kmem_cache_destroy);
 ```
+
+##4.7
+-------
+
+我们来讲解一个slab分配器使用的鲜活的例子. 这个例子创建了task_struct结构, 取自kernel/fork.c
+
+
 
 
 ##5	通用缓存
