@@ -247,9 +247,11 @@ struct mm_struct {
 ##2.3	建立布局
 -------
 
-在使用`load_elf_binary`装载一个ELF二进制文件时,将创建进程的地址空间, 而`exec`系统调用.
+在使用`load_elf_binary`装载一个ELF二进制文件时,将创建进程的地址空间, 而`exec`系统调用. 该函数定义在[fs/binfmt_elf.c?v=4.7, line 666](http://lxr.free-electrons.com/source/fs/binfmt_elf.c?v=4.7#L666)
+
 
 刚好使用了该函数. 加载`ELF`文件涉及大量纷繁复杂的技术细节, 与我们的主旨关系不大, 因此图4-3给出的代码流程图主要关注建立虚拟内存区域所需的各个步骤.
+
 
 
 ![图4-3 load_elf_binary 的代码流程图]()
@@ -261,10 +263,32 @@ struct mm_struct {
 
 
 
-选择布局的工作由`arch_pick_mmap_layout`完成. 如果对应的体系结构没有提供一个具体的函数, 则使用内核的默认例程, 按如图4-1所示建立地址空间. 但我们更感兴趣的是, IA-32如何在经典布局和新的布局之间选择
+选择布局的工作由`arch_pick_mmap_layout`完成. 如果对应的体系结构没有提供一个具体的函数, 则使用内核的默认例程, 按如图4-1所示建立地址空间. 但我们更感兴趣的是, IA-32如何在经典布局和新的布局之间选择. 该函数定义在[/arch/对应架构/mm/mmap.c](http://lxr.free-electrons.com/ident?v=4.7;i=arch_pick_mmap_layout)
+
+
+| arch_pick_mmap_layout | x86 | arm | arm64 |
+|:---------------------:|:---:|:---:|:-----:|
+| 设置进程的虚拟内存布局 | [arch/x86/mm/mmap.c?v=4.7, line 100](http://lxr.free-electrons.com/source/arch/x86/mm/mmap.c?v=4.7#L100) | [arch/arm/mm/mmap.c?v=4.7, line 181](http://lxr.free-electrons.com/source/arch/arm/mm/mmap.c?v=4.7#L181) | [arch/arm64/mm/mmap.c?v=4.7, line 79](http://lxr.free-electrons.com/source/arch/arm64/mm/mmap.c?v=4.7#L79) |
+
+
+参见arm下arch_pick_mmap_layout函数的实现, 定义在[arch/arm/mm/mmap.c?v=4.7, line 181](http://lxr.free-electrons.com/source/arch/arm/mm/mmap.c?v=4.7#L181)
 
 ```cpp
-arch_pick_mmap_layout
+void arch_pick_mmap_layout(struct mm_struct *mm)
+{
+    unsigned long random_factor = 0UL;
+
+    if (current->flags & PF_RANDOMIZE)
+        random_factor = arch_mmap_rnd();
+
+    if (mmap_is_legacy()) {
+        mm->mmap_base = TASK_UNMAPPED_BASE + random_factor;
+        mm->get_unmapped_area = arch_get_unmapped_area;
+    } else {
+        mm->mmap_base = mmap_base(random_factor);
+        mm->get_unmapped_area = arch_get_unmapped_area_topdown;
+    }
+}
 ```
 
 
@@ -274,10 +298,81 @@ arch_pick_mmap_layout
 
 在使用新布局时, 内存映射自顶向下增长.
 
-标准函数 `arch_get_unmapped_area_topdown`(我不会详细描述)负责该工作. 更有趣的问题是如何选择内存映射的基地址:
+标准函数 `arch_get_unmapped_area_topdown`(我不会详细描述)负责该工作.
+
+|  | x86 | arm | arm64 |
+|:---------------:|:---:|:---:|:-----:|
+| MIN_GAP/MAX_GAP | [arch/x86/mm/mmap.c?v=4.7, line 54](http://lxr.free-electrons.com/source/arch/x86/mm/mmap.c?v=4.7#L54) | [arch/arm/mm/mmap.c?v=4.7, line 19](http://lxr.free-electrons.com/source/arch/arm/mm/mmap.c?v=4.7#L19) | [arch/arm64/mm/mmap.c?v=4.7, line 36](http://lxr.free-electrons.com/source/arch/arm64/mm/mmap.c?v=4.7#L36) |
+| mmap_is_legacy | [arch/x86/mm/mmap.c?v=4.7, line 57](http://lxr.free-electrons.com/source/arch/x86/mm/mmap.c?v=4.7#L57) | [arch/arm/mm/mmap.c?v=4.7, line 22](http://lxr.free-electrons.com/source/arch/arm/mm/mmap.c?v=4.7#L22) | [arch/arm64/mm/mmap.c?v=4.7, line 39](http://lxr.free-electrons.com/source/arch/arm64/mm/mmap.c?v=4.7#L39) |
+| arch_mmap_rnd | [arch/x86/mm/mmap.c?v=4.7, line 68](http://lxr.free-electrons.com/source/arch/x86/mm/mmap.c?v=4.7#L68) | [arch/arm/mm/mmap.c?v=4.7, line 172](http://lxr.free-electrons.com/source/arch/arm/mm/mmap.c?v=4.7#L172) | [arch/arm64/mm/mmap.c?v=4.7, line 50](http://lxr.free-electrons.com/source/arch/arm64/mm/mmap.c?v=4.7#L50) |
+|  mmap_base | [arch/x86/mm/mmap.c?v=4.7, line 84](http://lxr.free-electrons.com/source/arch/x86/mm/mmap.c?v=4.7#L84) | [arch/arm/mm/mmap.c?v=4.7, line 33](http://lxr.free-electrons.com/source/arch/arm/mm/mmap.c?v=4.7#L33) | [arch/arm64/mm/mmap.c?v=4.7, line 63](http://lxr.free-electrons.com/source/arch/arm64/mm/mmap.c?v=4.7#L63) |
+
 
 ```cpp
-arch/x86/mm/mmap_32.c
+//  http://lxr.free-electrons.com/source/arch/x86/mm/mmap.c?v=4.7#L54
 #define MIN_GAP (128*1024*1024)
 #define MAX_GAP (TASK_SIZE/6*5)
+
+//  http://lxr.free-electrons.com/source/arch/arm/mm/mmap.c?v=4.7#L19
+/* gap between mmap and stack */
+#define MIN_GAP (128*1024*1024UL)
+#define MAX_GAP ((TASK_SIZE)/6*5)
+
+//  http://lxr.free-electrons.com/source/arch/arm64/mm/mmap.c?v=4.7#L36
+/*
+ * Leave enough space between the mmap area and the stack to honour ulimit in
+ * the face of randomisation.
+ */
+#define MIN_GAP (SZ_128M + ((STACK_RND_MASK << PAGE_SHIFT) + 1))
+#define MAX_GAP (STACK_TOP/6*5)
 ```
+
+
+更有趣的问题是如何选择内存映射的基地址, 该工作由`mmap_base`来完成, arm架构下该函数定义在[`arch/arm/mm/mmap.c?v=4.7, line 19`](http://lxr.free-electrons.com/source/arch/arm/mm/mmap.c?v=4.7#L19)
+
+```cpp
+static unsigned long mmap_base(unsigned long rnd)
+{
+    unsigned long gap = rlimit(RLIMIT_STACK);
+
+    if (gap < MIN_GAP)
+        gap = MIN_GAP;
+    else if (gap > MAX_GAP)
+        gap = MAX_GAP;
+
+    return PAGE_ALIGN(TASK_SIZE - gap - rnd);
+}
+```
+
+
+可以根据栈的最大长度, 来计算栈最低的可能位置, 用作`mmap`区域的起始点. 但内核会确保栈至少跨越128MB的空间. 另外, 如果指定的栈界限非常巨大, 那么内核会保证至少有一小部分地址空间不被栈占据.
+
+如果要求使用地址空间随机化机制, 上述位置会减去一个随机的偏移量,最大为1MB.
+
+另外, 内核会确保该区域对齐到页帧, 这是体系结构的要求.
+
+初看起来, 读者可能认为64位体系结构的情况会好一点, 因为不需要在不同的地址空间布局中进行选择. 虚拟地址空间是如此巨大, 以至于堆和`mmap`区域的碰撞几乎不可能.
+
+
+
+但从AMD64体系结构的`arch_pick_mmap_layout`定义来看,此中会出现另一个复杂情况:
+
+```cpp
+arch_pick_mmap_layout
+```
+
+
+如果启用对32位应用程序的二进制仿真,任何以兼容模式运行的进程都应该看到与原始计算机上相同的地址空间。因此, ia32_pick_mmap_layout 用于为32位应用程序布置地址空间。该函数实际上是IA-32系统上arch_pick_mmap_layout 的一个相同副本,前文已经讨论过.
+
+
+AMD64系统上对虚拟地址空间总是使用经典布局,因此无需区分各种选项。如果设置了PF_RANDOMIZE标志,则进行地址空间随机化,变动原本固定的mmap_base.
+
+我们回到load_elf_binary. 该函数最后需要在适当的位置创建栈:
+
+```cpp
+load_elf_binary
+```
+
+标准函数setup_arg_pages即用于该目的. 因为该函数只是技术性的,我不会详细讨论.
+
+该函数需要栈顶的位置作为参数. 栈顶由特定于体系结构的常数STACK_TOP给出, 而后调用randomize_stack_top, 确保在启用地址空间随机化的情况下,对该地址进行随机偏移.
