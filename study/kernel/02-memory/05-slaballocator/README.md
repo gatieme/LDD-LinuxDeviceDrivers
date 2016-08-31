@@ -91,7 +91,13 @@ slab分配器还有两个更进一步的好处
 
 所有活动缓存的列表保存在`/proc/slabinfo`中(为节省空间，下文的输出省去了不重要的部分).
 
-![cat /proc/slabinfo]()
+![cat /proc/slabinfo](./images/cat_procinfo.png)
+
+<br>我们可以从其中检索到一些特定的高速缓存的信息, 比如task_struct, mm_struct等.
+
+<br>
+
+![cat /proc/slabinfo](./images/cat_procinfo_task_struct.png)
 
 
 输出的各列除了包含用于标识各个缓存的字符串名称(也确保不会创建相同的缓存)之外, 还包含下列信息.
