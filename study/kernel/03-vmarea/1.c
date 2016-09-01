@@ -1,13 +1,14 @@
+```cpp
 struct mm_struct {
-    struct vm_area_struct *mmap;        /* list of VMAs */
-    struct rb_root mm_rb;
+    struct vm_area_struct *mmap;        /* list of VMAs  内存区域链表  */
+    struct rb_root mm_rb;               /*  VMA形成的红黑树  */
     u32 vmacache_seqnum;           /* per-thread vmacache */
 #ifdef CONFIG_MMU
     unsigned long (*get_unmapped_area) (struct file *filp,
                 unsigned long addr, unsigned long len,
                 unsigned long pgoff, unsigned long flags);
 #endif
-    unsigned long mmap_base;        /* base of mmap area */
+    unsigned long mmap_base;        /* base of mmap area mmap的基地址  */
     unsigned long mmap_legacy_base;     /* base of mmap area in bottom-up allocations */
     unsigned long task_size;        /* size of task vm space */
     unsigned long highest_vm_end;       /* highest vma end address */
@@ -124,3 +125,4 @@ struct mm_struct {
     struct work_struct async_put_work;
 #endif
 };
+```
