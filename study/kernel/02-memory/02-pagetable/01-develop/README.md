@@ -1,9 +1,10 @@
-服务器体系与共享存储器架构
+Linux分页机制之概述--Linux内存管理(六)
 =======
 
 | 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
 | ------- |:-------:|:-------:|:-------:|:-------:|:-------:|
-| 2016-06-14 | [Linux-4.7](http://lxr.free-electrons.com/source/?v=4.7) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux内存管理](http://blog.csdn.net/gatieme/article/category/6225543) |
+| 2016-09-01 | [Linux-4.7](http://lxr.free-electrons.com/source/?v=4.7) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux内存管理](http://blog.csdn.net/gatieme/article/details/52384791) |
+
 
 
 
@@ -106,10 +107,7 @@
 | 页内偏移   | Page Offset		     |
 
 
-Linux不同于其他的操作系统, 它把计算机分成独立层(体系结构无关)/依赖层(体系结构相关)两个层次. 对于页面的映射和管理也是如此. 页表管理分为两个部分, 第一个部分依赖于体系结构, 第二个部分是体系结构无关的. 所有数据结构几乎都定义在特定体系结构的文件中. 这些数据结构的定义可以在头文件`arch/对应体系/include/asm/page.h`
-和`arch/对应体系/include/asm/pgtable.h`中找到. 但是对于AMD64和IA-32已经统一为一个体系结构. 但是在处理页表方面仍然有很多的区别, 因为相关的定义分为两个不同的文件`arch/x86/include/asm/page_32.h`
-和`arch/x86/include/asm/page_64.h`
-, 类似的也有`pgtable_xx.h` .
+Linux不同于其他的操作系统, 它把计算机分成独立层(体系结构无关)/依赖层(体系结构相关)两个层次. 对于页面的映射和管理也是如此. 页表管理分为两个部分, 第一个部分依赖于体系结构, 第二个部分是体系结构无关的. 所有数据结构几乎都定义在特定体系结构的文件中. 这些数据结构的定义可以在头文件`arch/对应体系/include/asm/page.h`和`arch/对应体系/include/asm/pgtable.h`中找到. 但是对于AMD64和IA-32已经统一为一个体系结构. 但是在处理页表方面仍然有很多的区别, 因为相关的定义分为两个不同的文件`arch/x86/include/asm/page_32.h`和`arch/x86/include/asm/page_64.h`, 类似的也有`pgtable_xx.h` .
 
 
 
