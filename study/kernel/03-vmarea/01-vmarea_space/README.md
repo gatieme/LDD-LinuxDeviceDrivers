@@ -69,13 +69,33 @@ mapping)* ***技术有助于从虚拟内存页跟踪到对应的物理内存页,
 
 进程的虚拟地址空间中的任何有效地址都只能位于唯一的区域, 这些内存区域不能相互覆盖. 可以看到, 在执行的进程中, 每个不同的内存片段都对应一个独立的内存区域 : 栈, 对象代码, 全局变量, 被映射的文件等.
 
+
+一个进程的虚拟地址空间主要由两个数据结来描述
+
+*	一个是最高层次的 ： `mm_struct`
+
+*	一个是较高层次的 ： `vm_area_structs`
+
+最高层次的`mm_struct`结构描述了一个进程的整个虚拟地址空间。较高层次的结构`vm_area_truct`描述了虚拟地址空间的一个区间(简称虚拟区).
+
+每个进程只有一个mm_struct结构, 在每个进程的`task_struct`结构中, 有一个指向该进程的结构, 参见task_struct的定义[include/linux/sched.h?v=4.7, line 1457](http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.7#L1457)
+
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/sched.h?v=4.7#L1457
+struct task_struct
+{
+	struct mm_struct *mm, *active_mm;
+};
+```
+可以说, `mm_struct`结构是对整个用户空间的描述. `mm_strcut`用来描述一个进程的虚拟地址空间.
+
+
 ##2.3	内存描述符`mm_struct`
 -------
 
 内核使用内存描述符结构体`struct mm_struct`表示进程的地址空间, 该结构体包含了和进程地址空间相关的全部信息
 
-##2.3.1	内存描述符`mm_struct`
--------
 
 系统中的各个进程都具有一个`struct mm_struct`的实例,可以通过`task_struct`访问. 这个实例保存了进程的内存管理信息, 定义在[`include/linux/mm_types.h?v=4.7, line 395`](http://lxr.free-electrons.com/source/include/linux/mm_types.h?v=4.7#L395)
 
@@ -120,6 +140,8 @@ mapping)* ***技术有助于从虚拟内存页跟踪到对应的物理内存页,
 
 ![进程的线性地址空间的组成]()
 
+
+
 如果计算机提供了巨大的虚拟地址空间, 那么使用上述的地址空间布局会工作得非常好. 但在32位计算机上可能会出现问题. 考虑IA-32的情况 : 虚拟地址空间从0到0xC0000000 , 每个用户进程有3GB可用. `TASK_UNMAPPED_BASE`起始于0x4000000, 即1GB处. 糟糕的是, 这意味着堆只有1GB
 空间可供使用, 继续增长则会进入到`mmap`区域, 这显然不是我们想要的.
 
@@ -133,32 +155,69 @@ mapping)* ***技术有助于从虚拟内存页跟踪到对应的物理内存页,
 为确保栈与`mmap`区域不发生冲突,两者之间设置了一个安全隙.
 
 
-##2.3.2	分配内存描述符
--------
+另外, 它还包括下列成员,用于管理用户进程在虚拟地址空间中的所有内存区域.
 
+```cpp
+<mm_types.h>
+struct mm_struct {
+	struct vm_area_struct * mmap;	/* 虚拟内存区域列表 */
+	struct rb_root mm_rb;			/* 虚拟内存区域的红黑树  */
+	/*  ......  */
+};
+```
 
-##2.3.3	撤销内存描述符
--------
+每个区域都通过一个`vm_area_struct`实例描述, 进程的各区域按两种方法排序.
+
+1.	在一个单链表上(开始于`mm_struct->mmap`
+
+2.	在一个红黑树中,根结点位于`mm_struct->mm_rb`
+
+用户虚拟地址空间中的每个区域由开始和结束地址描述. 现存的区域按起始地址以递增次序被归入链表中. 扫描链表找到与特定地址关联的区域, 在有大量区域时是非常低效的操作(数据密集型的应用程序就是这样). 因此`vm_area_struct`的各个实例还通过红黑树(由mm_struct->mm_rb来标识)管理, 可以显著加快扫描速度.
+
+增加新区域时, 内核首先搜索红黑树, 找到刚好在新区域之前的区域. 因此, 内核可以向树和线性链表添加新的区域, 而无需扫描链表.
+
 
 
 ##2.4	虚拟内存区域`vm_area_struct`
 -------
 
+`vm_area_struct结构体描述了指定地址空间内连续区间上的一个独立内存范围. 内核将每个内存区域作为一个单独的内存对象管理, 每个内存区域都拥有一致的属性, 比如访问权限等. 另外相应的操作也都一致. 按照这样的方式, 每一个VMA就可以代表不同类型的内存区域(比如内存映射文件或者进程用户空间栈). 这种管理方式类似于使用CFS层面向对象的方法.
+
+每个区域表示为`vm_area_struct`的一个实例, 其定义在[`include/linux/mm_types.h?v=4.7, line 299`](http://lxr.free-electrons.com/source/include/linux/mm_types.h?v=4.7#L299)
 
 
-###2.4.1	虚拟内存区域`vm_area_struct`
--------
+```cpp
+struct vm_area_struct {
+    /* The first cache line has the info for VMA tree walking. */
+
+    unsigned long vm_start;     /* Our start address within vm_mm. */
+    unsigned long vm_end;       /* The first byte after our end address
+                       within vm_mm. */
+
+    /* linked list of VM areas per task, sorted by address */
+    struct vm_area_struct *vm_next, *vm_prev;
+
+    struct rb_node vm_rb;
 
 
-###2.4.2	VMA标志
--------
+    struct mm_struct *vm_mm;    /* The address space we belong to. */
+```
 
 
-###2.4.3	VMA操作
--------
+每个内存描述符都对应于进程地址空间上的唯一区间. `vm_start`指向区间的首地址(最低地址). `vm_end`指向了区域的尾地址(最高地址)之后的第一个字节. 也就是说, `vm_start`是内存区间的开始地址(它本身在区间内), 而`vm_end`是内存区间的结束地址(它本身在区间外). 因此, `vm_end - vm_start`的大小便是区间的长度. 即内存区域就在[vm_start, vm_end]之中. 注意, 在同一个地址空间内的不同内存区域不能重叠.
+
+所有的内存域组织在链表和红黑树中, 因此`vm_next`和`vm_prev`就指向了该虚拟内存区域在链表中的后继和前驱. `vm_rb`则作为内置的红黑树节点.
 
 
-##2.3	建立布局
+`vm_mm`域指向和VMA相关的`mm_struct`结构体. 注意, 每个VMA对其相关`mm_struct`结构体都是唯一的.
+
+*	即使两个独立的进程将同一个文件映射到各自的地址空间, 他们非别都会有一个vm_area_struct结构体来标志自己的内存区域.
+
+*	反过来, 如果两个线程共享一个地址空间, 那么他们也会同时共享其中所有的vm_area_struct结构体.
+
+
+
+##2.5	建立布局
 -------
 
 在使用`load_elf_binary`装载一个ELF二进制文件时,将创建进程的地址空间, 该函数定义在[fs/binfmt_elf.c?v=4.7, line 666](http://lxr.free-electrons.com/source/fs/binfmt_elf.c?v=4.7#L666)
