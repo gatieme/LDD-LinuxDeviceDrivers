@@ -10,6 +10,8 @@
 #1	虚拟地址空间概述
 -------
 
+
+
 用户层进程的虚拟地址空间是Linux的一个重要抽象 : 它向每个运行进程提供了同样的系统视图, 这使得多个进程可以同时运行, 而不会干扰到其他进程内存中的内容. 此外, 它容许使用各种高级的程序设计技术，如内存映射
 
 从今天开始, 我将讨论内核是如何实现这些概念的. 这同样需要考察可用物理内存中的页帧与所有的进程虚拟地址空间中的页之间的关联 : **逆向映射(reverse
@@ -232,7 +234,7 @@ struct vm_area_struct {
 
 如果全局变量`randomize_va_space`设置为1, 则启用地址空间随机化机制. 通常情况下都是启用的, 但在`Transmeta CPU`上会停用,因为该设置会降低此类计算机的速度. 此外,用户可以通过`/proc/sys/kernel/randomize_va_space`停用该特性
 
-![cat](./images/cat_proc_sys_kernel_randomize_va_space.png)
+![cat](../images/cat_proc_sys_kernel_randomize_va_space.png)
 
 
 
