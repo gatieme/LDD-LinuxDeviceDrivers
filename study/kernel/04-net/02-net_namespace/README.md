@@ -375,7 +375,7 @@ void net_drop_ns(void *p)
 *	网络命名空间定义了2个链表, `pernet_list`和`net_namespace_list`
 
     `init_net`会被链接到`net_namespace_list`这个双向链表上
-	`pernet_operations`结构将被链接到`pernet_list`这个双向链表上
+	`pernet_operations`结构将被链接到`first_device = pernet_list`这个双向链表上
 
 *	如果没自定义网络命名空间的话，所有想用网络命名空间时都将利用默认的`init_net`
 
