@@ -431,7 +431,7 @@ struct net_device
 
 
 
-###2.2.3	header_ops
+###2.2.3	header_ops操作硬件首部
 -------
 
 
@@ -460,12 +460,12 @@ struct header_ops {
 
 *	header_ops->parse(通常由eth_header_parse实现)获取给定的分组的源硬件地址.
 
-##2.2	注册网络设备
+##2.3	注册网络设备
 -------
 
 每个网络设备都按照如下过程注册.
 
-1.	`alloc_netdev`分配一个新的`struct net_device`实例,一个特定于协议的函数用典型值填充该结构。对于以太网设备,该函数是`ether_setup`. 其他的协议(这里不详细介绍)会使用形如`XXX_setup`的函数, 其中 XXX可以是`fddi(fiber distributed data interface`, 光纤分布式数据接口)、tr
+1.	`alloc_netdev`分配一个新的`struct net_device`实例,一个特定于协议的函数用典型值填充该结构. 对于以太网设备,该函数是`ether_setup`. 其他的协议(这里不详细介绍)会使用形如`XXX_setup`的函数, 其中 XXX可以是`fddi(fiber distributed data interface`, 光纤分布式数据接口)、tr
 (`token ring`,令牌环网)、 `ltalk`(指`Apple LocalTalk`)、 `hippi`(`high-performance parallel interface`, 高性能并行接口)或`fc` (`fiber channel`, 光纤通道)
 
 	内核中的一些伪设备在不绑定到硬件的情况下实现了特定的接口,它们也使用了`net_device`框架. 例如, ppp_setup 根据PPP协议初始化设备。内核源代码中还可以找到几个 XXX_setup 函数
