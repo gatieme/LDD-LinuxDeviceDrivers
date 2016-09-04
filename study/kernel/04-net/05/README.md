@@ -41,53 +41,145 @@
 
 不心使用显式的锁机制来保护等待队列免受并发访问, 因为每个CPU都只修改自身的队列, 不会干扰其他CPU的工作. 下文将忽略多处理器相关内容, 只考虑单"softnet_data等待队列", 避免过度复杂化.
 
-目前只对该数据结构的一个成员感兴趣:
+
+定义[`include/linux/netdevice.h?v=4.7, line 2719`](http://lxr.free-electrons.com/source/include/linux/netdevice.h?v=4.7#L2719)
+
 
 ```cpp
-<netdevice.h>
-struct softnet_data
-{
-...
-struct sk_buff_head input_pkt_queue;
-...
+//  http://lxr.free-electrons.com/source/include/linux/netdevice.h#L2719
+/*
+ * Incoming packets are placed on per-CPU queues
+ */
+struct softnet_data {
+    struct list_head    poll_list;
+    struct sk_buff_head     process_queue;
+
+    /* stats */
+    unsigned int        processed;
+    unsigned int        time_squeeze;
+    unsigned int        received_rps;
+#ifdef CONFIG_RPS
+    struct softnet_data     *rps_ipi_list;
+#endif
+#ifdef CONFIG_NET_FLOW_LIMIT
+    struct sd_flow_limit __rcu *flow_limit;
+#endif
+    struct Qdisc        *output_queue;
+    struct Qdisc        **output_queue_tailp;
+    struct sk_buff      *completion_queue;
+
+#ifdef CONFIG_RPS
+    /* input_queue_head should be written by cpu owning this struct,
+     * and only read by other cpus. Worth using a cache line.
+     */
+    unsigned int        input_queue_head ____cacheline_aligned_in_smp;
+
+    /* Elements below can be accessed between CPUs for RPS/RFS */
+    struct call_single_data csd ____cacheline_aligned_in_smp;
+    struct softnet_data     *rps_ipi_next;
+    unsigned int        cpu;
+    unsigned int        input_queue_tail;
+#endif
+    unsigned int        dropped;
+    struct sk_buff_head     input_pkt_queue;
+    struct napi_struct      backlog;
+
 };
 ```
 
-`input_pkt_queue`使用上文提到的`sk_buff_head`表头, 对所有进入的分组建立一个链表.
+目前只对该数据结构的一个成员`input_pkt_queue`感兴趣:
 
-`netif_rx`在结束工作之前将软中断`NET_RX_SOFTIRQ`标记为即将执行, 然后退出中断上下文.
 
-`net_rx_action`用作该软中断的处理程序. 其代码流程图在图12-11给出. 请记住, 这里描述的是一个简化的版本. 完整版包含了对高速网络适配器引入的新方法, 将在下文介绍.
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/netdevice.h?v=4.7#L2753
+struct softnet_data {
+       struct sk_buff_head     input_pkt_queue;
+}
+```
+
+*	`input_pkt_queue`使用上文提到的`sk_buff_head`表头, 对所有进入的分组建立一个链表.
+
+*	[`netif_rx`](http://lxr.free-electrons.com/source/net/core/dev.c?v=4.7#L3830)在结束工作之前将软中断`NET_RX_SOFTIRQ`标记为即将执行, 然后退出中断上下文.
+
+*	[`net_rx_action`](http://lxr.free-electrons.com/source/net/core/dev.c?v=4.7#L5177)用作该软中断的处理程序. 其代码流程图在图12-11给出. 请记住, 这里描述的是一个简化的版本. 完整版包含了对高速网络适配器引入的新方法, 将在下文介绍.
 
 
 ![图12-11 net_rx_action 的代码流程图]()
 
 
-在一些准备任务之后,工作转移到`process_backlog`, 该函数在循环中执行下列步骤. 为简化描述, 假定循环一直进行, 直至所有的待决分组都处理完成,不会被其他情况中断.
+在一些准备任务之后,工作转移到[`process_backlog`](http://lxr.free-electrons.com/source/net/core/dev.c?v=4.7#L4809), 该函数在循环中执行下列步骤. 为简化描述, 假定循环一直进行, 直至所有的待决分组都处理完成,不会被其他情况中断.
 
-1.	`__skb_dequeue`从等待队列移除一个套接字缓冲区, 该缓冲区管理着一个接收到的分组.
+1.	[`__skb_dequeue`](http://lxr.free-electrons.com/source/include/linux/skbuff.h?v=4.7#L1741)从等待队列移除一个套接字缓冲区, 该缓冲区管理着一个接收到的分组.
 
-2.	由`netif_receive_skb`函数分析分组类型, 以便根据分组类型将分组传递给网络层的接收函数(即传递到网络系统的更高一层). 为此, 该函数遍历所有可能负责当前分组类型的所有网络层函数, 一一调用`deliver_skb`.
+2.	由[`netif_receive_skb`](http://lxr.free-electrons.com/source/net/core/dev.c?v=4.7#L4290)函数分析分组类型, 以便根据分组类型将分组传递给网络层的接收函数(即传递到网络系统的更高一层). 为此, 该函数遍历所有可能负责当前分组类型的所有网络层函数, 一一调用[`deliver_skb`](http://lxr.free-electrons.com/source/net/core/dev.c?v=4.7#L1807).
 
-接下来`deliver_skb`函数使用一个特定于分组类型的处理程序`func`, 承担对分组的更高层(例如互联网络层)的处理.
+接下来[`deliver_skb`](http://lxr.free-electrons.com/source/net/core/dev.c?v=4.7#L1807)函数使用一个特定于分组类型的处理程序[`func`](http://lxr.free-electrons.com/source/include/linux/netdevice.h?v=4.7#L2131), 承担对分组的更高层(例如互联网络层)的处理.
 
-`netif_receive_skb`也处理诸如桥接之类的专门特性, 但讨论这些边角情况是不必要的, 至少在平均水准的系统中, 此类特性都属于边缘情况.
+[`netif_receive_skb`](http://lxr.free-electrons.com/source/net/core/dev.c?v=4.7#L4290)也处理诸如桥接之类的专门特性, 但讨论这些边角情况是不必要的, 至少在平均水准的系统中, 此类特性都属于边缘情况.
 
-所有用于从底层的网络访问层接收数据的网络层函数都注册在一个散列表中, 通过全局数组`ptype_base`实现.
+所有用于从底层的网络访问层接收数据的网络层函数都注册在一个散列表中, 通过全局数组[`ptype_base`](http://lxr.free-electrons.com/source/net/core/dev.c?v=4.7#L153)实现.
 
-新的协议通过`dev_add_pack`增加. 各个数组项的类型为`struct packet_type`, 定义如下:
+新的协议通过[`dev_add_pack`](http://lxr.free-electrons.com/source/net/core/dev.c?v=4.7#L397)增加. 各个数组项的类型为[`struct packet_type`](http://lxr.free-electrons.com/source/include/linux/netdevice.h?v=4.7#L2128), 定义如下:
 
 ```cpp
-<netdevice.h>
+//  http://lxr.free-electrons.com/source/include/linux/netdevice.h?v=4.7#L2128
 struct packet_type {
-__be16
-struct net_device
-int
+    __be16          type;   /* This is really htons(ether_type). */
+    struct net_device       *dev;   /* NULL is wildcarded here       */
+    int             (*func) (struct sk_buff *,
+                     struct net_device *,
+                     struct packet_type *,
+                     struct net_device *);
+    bool            (*id_match)(struct packet_type *ptype,
+                        struct sock *sk);
+    void            *af_packet_priv;
+    struct list_head    list;
+};
 ```
 
-type 指定了协议的标识符,处理程序会使用该标识符。 dev 将一个协议处理程序绑定到特定的网卡
-( NULL 指针表示该处理程序对系统中所有网络设备都有效)
-。
-func 是该结构的主要成员。它是一个指向网络层函数的指针,如果分组的类型适当,将其传递给
-该函数。其中一个处理程序就是 ip_rcv ,用于基于IPv4的协议,在下文讨论。
-netif_receive_skb 对给定的套接字缓冲区查找适当的处理
+| 字段 | 描述 |
+|:---:|:----:|
+| type | 指定了协议的标识符,处理程序会使用该标识符 |
+| dev | 将一个协议处理程序绑定到特定的网卡(NULL 指针表示该处理程序对系统中所有网络设备都有效) |
+| func | 是该结构的主要成员。它是一个指向网络层函数的指针,如果分组的类型适当,将其传递给该函数. 其中一个处理程序就是 ip_rcv ,用于基于IPv4的协议,在下文讨论 |
+
+`netif_receive_skb`对给定的套接字缓冲区查找适当的处理程序, 并调用其`func`函数, 将处理分组的职责委托给网络层, 这是网络实现中更高的一层.
+
+
+
+##2.2	对高速接口的支持
+-------
+
+如果设备不支持过高的传输率, 那么此前讨论的旧式方法可以很好地将分组从网络设备传输到内核的更高层. 每次一个以太网帧到达时, 都使用一个IRQ来通知内核.
+
+这里暗含着"快"和"慢"的概念. 对低速设备来说, 在下一个分组到达之前, IRQ的处理通常已经结束. 由于下一个分组也通过IRQ通知, 如果前一个分组的IRQ尚未处理完成, 则会导致问题, 高速设备通常就是这样. 现代以太网卡的运作高达`10000 Mbit/s`, 如果使用旧式方法来驱动此类设备, 将造成所谓的"中断风暴". 如果在分组等待处理时接收到新的IRQ, 内核不会收到新的信息 : 在分组进入处理过程之前, 内核是可以接收IRQ的, 在分组的处理结束后, 内核也可以接收IRQ, 这些不过是"旧闻"而已. 为解决该问题, NAPI使用了IRQ和轮询的组合.
+
+假定某个网络适配器此前没有分组到达, 但从现在开始, 分组将以高频率频繁到达. 这就是NAPI设备的情况, 如下所述.
+
+1.	第一个分组将导致网络适配器发出IRQ. 为防止进一步的分组导致发出更多的IRQ, 驱动程序会关闭该适配器的Rx IRQ. 并将该适配器放置到一个轮询表上.
+
+2.	只要适配器上还有分组需要处理, 内核就一直对轮询表上的设备进行轮询.
+
+3.	重新启用Rx中断.
+
+
+如果在新的分组到达时, 旧的分组仍然处于处理过程中, 工作不会因额外的中断而减速. 虽然对设备驱动程序(和一般意义上的内核代码)来说轮询通常是一个很差的方法, 但在这里该方法没有什么不利之处:在没有分组还需要处理时,将停止轮询,设备将回复到通常的IRQ驱动的运行方式. 在没有中断支持的情况下, 轮询空的接收队列将不必要地浪费时间, 但NAPI并非如此.
+
+NAPI的另一个优点是可以高效地丢弃分组. 如果内核确信因为有很多其他工作需要处理, 而导致无法处理任何新的分组,那么网络适配器可以直接丢弃分组,无须复制到内核.
+
+只有设备满足如下两个条件时,才能实现NAPI方法。
+
+1.	设备必须能够保留多个接收的分组,例如保存到DMA环形缓冲区中. 下文将该缓冲区称为Rx缓冲区.
+
+2.	该设备必须能够禁用用于分组接收的IRQ. 而且, 发送分组或其他可能通过IRQ进行的操作, 都仍然必须是启用的。
+
+如果系统中有多个设备, 会怎么样呢? 这是通过循环轮询各个设备来解决的. 图12-12概述了这种情况.
+
+![图12-12 NAPI机制和循环轮询表概览]()
+
+
+回想前文提到的, 如果一个分组到达一个空的Rx缓冲区, 则将相应的设备置于轮询表中. 由于链表本身的性质, 轮询表可以包含多个设备.
+
+内核以循环方式处理链表上的所有设备 : 内核依次轮询各个设备, 如果已经花费了一定的时间来处理某个设备, 则选择下一个设备进行处理. 此外, 某个设备都带有一个相对权重, 表示与轮询表中其他设备相比, 该设备的相对重要性. 较快的设备权重较大,较慢的设备权重较小. 由于权重指定了在一个轮询的循环中处理多少分组, 这确保了内核将更多地注意速度较快的设备.
+
+现在我们已经弄清楚了NAPI的基本原理, 接下来将讨论其实现细节. 与旧的API相比, 关键性的变化在于, 支持NAPI的设备必须提供一个 poll函数. 该方法是特定于设备的, 在用`netif_napi_add`注册网卡时指定. 调用该函数注册, 表明设备可以且必须用新方法处理.
