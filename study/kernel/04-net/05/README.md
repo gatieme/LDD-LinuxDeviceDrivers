@@ -183,3 +183,33 @@ NAPI的另一个优点是可以高效地丢弃分组. 如果内核确信因为�
 内核以循环方式处理链表上的所有设备 : 内核依次轮询各个设备, 如果已经花费了一定的时间来处理某个设备, 则选择下一个设备进行处理. 此外, 某个设备都带有一个相对权重, 表示与轮询表中其他设备相比, 该设备的相对重要性. 较快的设备权重较大,较慢的设备权重较小. 由于权重指定了在一个轮询的循环中处理多少分组, 这确保了内核将更多地注意速度较快的设备.
 
 现在我们已经弄清楚了NAPI的基本原理, 接下来将讨论其实现细节. 与旧的API相比, 关键性的变化在于, 支持NAPI的设备必须提供一个 poll函数. 该方法是特定于设备的, 在用`netif_napi_add`注册网卡时指定. 调用该函数注册, 表明设备可以且必须用新方法处理.
+
+```CPP
+<netdevice.h>
+static inline void netif_napi_add(struct net_device *dev,
+struct napi_struct *napi,
+int (*poll)(struct napi_struct *, int),
+int weight);
+```
+
+| 参数 | 描述 |
+|:----:|:----:|
+| dev | 指向所述设备的`net_device`实例 |
+| poll | 指定了在IRQ禁用时用来轮询设备的函数 |
+| weight | 指定了设备接口的相对权重。实际上可以对 weight 指定任意整数值。通常10/100 Mbit网卡的驱动程序
+指定为16,而1 000/10 000 Mbit网卡的驱动程序指定为64。无论如何,权重都不能超过该设备可以在
+Rx缓冲区中存储的分组的数目。
+netif_napi_add 还需要另一个参数,是一个指向 struct napi_struct 实例的指针。该结构用于
+管理轮询表上的设备。其定义如下:
+<netdevice.h>
+struct napi_struct {
+struct list_head poll_list;
+};
+unsigned long state;
+int weight;
+int (*poll)(struct napi_struct *, int);
+轮询表通过一个标准的内核双链表实现, poll_list 用作链表元素。 weight 和 poll 的语义同上文
+所述。 state 可以是 NAPI_STATE_SCHED 或 NAPI_STATE_DISABLE ,前者表示设备将在内核的下一次循
+环时被轮询,后者表示轮询已经结束且没有更多的分组等待处理,但设备尚未从轮询表移除。
+请注意, struct napi_struct 经常嵌入到一个更大的结构中,后者包含了与网卡有关的、特定
+于驱动程序的数据。这样在内核使用 poll 函数轮询网卡时,可用 container_of 机制获得相关信息

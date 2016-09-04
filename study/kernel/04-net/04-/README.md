@@ -348,7 +348,7 @@ struct net_device {
 
 
 
-ip_ptr 、 ip6_ptr 、 atalk_ptr 等指针指向特定于协议的数据,通用代码不会操作这些数据, 他们定义在[include/linux/netdevice.h?v=4.7, line 1721](http://lxr.free-electrons.com/source/include/linux/netdevice.h?v=4.7#L1721)
+`ip_ptr`、 `ip6_ptr`、 `atalk_ptr`等指针指向特定于协议的数据,通用代码不会操作这些数据, 他们定义在[`include/linux/netdevice.h?v=4.7, line 1721`](http://lxr.free-electrons.com/source/include/linux/netdevice.h?v=4.7#L1721)
 
 ```cpp
 struct net_device
@@ -456,12 +456,14 @@ struct header_ops {
 
 其中最重要的是`header_ops->create`和`header_ops->parse`, 前者创建一个新的硬件首部, 后者分析一个给定的硬件首部
 
-*	header_ops->create 的默认实现是`eth_header`该函数为现存的分组数据生成网络访问层首部.
+*	`header_ops->create`的默认实现是`eth_header`该函数为现存的分组数据生成网络访问层首部.
 
-*	header_ops->parse(通常由eth_header_parse实现)获取给定的分组的源硬件地址.
+*	`header_ops->parse`, 通常由eth_header_parse实现)获取给定的分组的源硬件地址.
+
 
 ##2.3	注册网络设备
 -------
+
 
 每个网络设备都按照如下过程注册.
 
@@ -484,6 +486,7 @@ struct header_ops {
 
 如果`net_device->init`提供了特定于设备的初始化函数,那么内核在进一步处理之前, 将先调用该函数.
 
-由`dev_new_index`生成在所属命名空间中唯一标识该设备的接口索引。该索引保存在	net_device->ifindex`中. 在确保所选择的名称尚未使用, 而且没有指定自相矛盾的设备特性(所支持特性的列表, 请参见`<netdevice.h>`中的 NETIF_F_* )后, 用`netdev_register_kobject`将新设备添加到通用内核对象模型中. 该函数还会创建上文提到的sysfs项. 最后,该设备集成到特定命名空间的链表中, 以及以设备名和接口索引为散列键的两个散列表中.
+由`dev_new_index`生成在所属命名空间中唯一标识该设备的接口索引。该索引保存在`net_device->ifindex`中. 在确保所选择的名称尚未使用, 而且没有指定自相矛盾的设备特性(所支持特性的列表, 请参见`<netdevice.h>`中的`NETIF_F_*`后, 用`netdev_register_kobject`将新设备添加到通用内核对象模型中. 该函数还会创建上文提到的sysfs项. 最后,该设备集成到特定命名空间的链表中, 以及以设备名和接口索引为散列键的两个散列表中.
+
 
 
