@@ -173,7 +173,8 @@ struct packet_type {
 
 NAPI的另一个优点是可以高效地丢弃分组. 如果内核确信因为有很多其他工作需要处理, 而导致无法处理任何新的分组,那么网络适配器可以直接丢弃分组,无须复制到内核.
 
-只有设备满足如下两个条件时,才能实现NAPI方法。
+
+只有设备满足如下两个条件时,才能实现NAPI方法.
 
 1.	设备必须能够保留多个接收的分组,例如保存到DMA环形缓冲区中. 下文将该缓冲区称为Rx缓冲区.
 
@@ -188,8 +189,10 @@ NAPI的另一个优点是可以高效地丢弃分组. 如果内核确信因为�
 
 内核以循环方式处理链表上的所有设备 : 内核依次轮询各个设备, 如果已经花费了一定的时间来处理某个设备, 则选择下一个设备进行处理. 此外, 某个设备都带有一个相对权重, 表示与轮询表中其他设备相比, 该设备的相对重要性. 较快的设备权重较大,较慢的设备权重较小. 由于权重指定了在一个轮询的循环中处理多少分组, 这确保了内核将更多地注意速度较快的设备.
 
+
 ###2.2.2	napi机制的实现细节
 -------
+
 
 现在我们已经弄清楚了NAPI的基本原理, 接下来将讨论其实现细节. 与旧的API相比, 关键性的变化在于, 支持NAPI的设备必须提供一个 poll函数. 该方法是特定于设备的, 在用`netif_napi_add`注册网卡时指定. 调用该函数注册, 表明设备可以且必须用新方法处理.
 
@@ -292,7 +295,85 @@ static int hyper_card_poll(struct napi_struct *napi, int budget)
 
 *	已经完全用掉了预算，但仍然有更多的分组需要处理。设备仍然留在轮询表上，不启用中断.
 
+
 ###2.2.4	实现IRQ处理程序
 -------
 
 NAPI也需要对网络设备的IRQ处理程序做一些改动. 这里仍然不求助于任何具体的硬件, 而介绍针对虚构设备的代码:
+
+
+```cpp
+static irqreturn_t e100_intr(int irq, void *dev_id)
+{
+    struct net_device *netdev = dev_id;
+    struct nic *nic = netdev_priv(netdev);
+    u8 stat_ack = ioread8(&nic->csr->scb.stat_ack);
+
+    netif_printk(nic, intr, KERN_DEBUG, nic->netdev,
+             "stat_ack = 0x%02X\n", stat_ack);
+
+    if (stat_ack == stat_ack_not_ours ||    /* Not our interrupt */
+       stat_ack == stat_ack_not_present)    /* Hardware is ejected */
+        return IRQ_NONE;
+
+    /* Ack interrupt(s) */
+    iowrite8(stat_ack, &nic->csr->scb.stat_ack);
+
+    /* We hit Receive No Resource (RNR); restart RU after cleaning */
+    if (stat_ack & stat_ack_rnr)
+        nic->ru_running = RU_SUSPENDED;
+
+    if (likely(napi_schedule_prep(&nic->napi))) {
+        e100_disable_irq(nic);
+        __napi_schedule(&nic->napi);
+    }
+
+    return IRQ_HANDLED;
+}
+```
+
+
+假定特定于接口的数据保存在`net_device->private`中, 这是大多数网卡驱动程序使用的方法.
+
+使用辅助函数`netdev_priv`访问该字段.
+
+现在需要通知内核有新的分组可用. 这需要如下二阶段的方法.
+
+1.	`netif_rx_schedule_prep`准备将设备放置到轮询表上. 本质上, 这会安置`napi_struct->flags`中的`NAPI_STATE_SCHED`标志.
+
+2.	如果设置该标志成功(仅当NAPI已经处于活跃状态时, 才会失败), 驱动程序必须用特定于设备的适当方法来禁用相应的IRQ. 调用`__netif_rx_schedule`将设备的`napi_struct`添加到轮询表, 并引发软中断`NET_RX_SOFTIRQ`. 这通知内核在`net_rx_action`中开始轮询.
+
+
+###2.2.5	处理Rx软中断
+-------
+
+在讨论了为支持NAPI驱动程序需要做哪些改动之后, 我们来考察一下内核需要承担的职责.
+
+`net_rx_action`依旧是软中断`NET_RX_SOFTIRQ`的处理程序. 在前一节给出了该函数的一个简化版本.
+
+随着有关NAPI的更多细节尘埃落定, 现在可以讨论该函数的所有细节了.
+
+![图12-13给出了其代码流程图](../images/net_rx_action.png)
+
+
+本质上, 内核通过依次调用各个设备特定的poll方法, 处理轮询表上当前的所有设备. 设备的权重用作该设备本身的预算, 即轮询的一步中可能处理的分组数目.
+
+必须确保在这个软中断的处理程序中, 不会花费过多时间. 如果如下两个条件成立, 则放弃处理.
+
+1.	处理程序已经花费了超出一个jiffie的时间.
+
+2.	所处理分组的总数, 已经超过了`netdev_budget`指定的预算总值. 通常, 总值设置为300, 但可以通过`/proc/sys/net/core/netdev_budget`修改.
+
+这个预算不能与各个网络设备本身的预算混淆! 在每个轮询步之后, 都从全局预算中减去处理的分组数目, 如果该预算值下降到0, 则退出软中断处理程序.
+
+在轮询了一个设备之后, 内核会检查所处理的分组数目, 与该设备的预算是否相等.
+
+如果相等, 那么尚未获得该设备上所有等待的分组, 即代码流程图中`work == weight`所表示的情况. 内核接下来将该设备移动到轮询表末尾, 在链表中所有其他设备都处理过之后, 继续轮询该设备. 显然, 这实现了网络设备之间的循环调度.
+
+###2.2.6	在NAPI之上实现旧式API
+-------
+
+
+最后, 请注意旧的API是如何在NAPI上实现的. 内核的常规行为, 由一个与`softnet`队列关联的伪网络设备控制, `net/core/dev.c`中的`process_backlog`标准函数用作poll方法. 如果没有网络适配器将其自身添加到该队列的轮询表, 其中只包含这个伪适配器, 那么net_rx_action的行为就是通过对`process_backlog`的单一调用来处理队列中的分组, 而不管分组的来源设备.
+
+
