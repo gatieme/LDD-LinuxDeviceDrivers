@@ -262,4 +262,37 @@ struct napi_struct {
 -------
 
 
-`poll`函数需要两个参数 : 一个指向`napi_struct`实例的指针和一个指定了"预算"的整数, 预算表示内核允许驱动程序处理的分组数目. 我们并不打算处理真实网卡的可能的奇异之处, 因此讨论一个伪函数, 该函数用于一个需要`NAPI`的超高速适配器 :
+`poll`函数需要两个参数 : 一个指向`napi_struct`实例的指针和一个指定了"预算"的整数, 预算表示内核允许驱动程序处理的分组数目.
+
+我们并不打算处理真实网卡的可能的奇异之处, 因此讨论一个伪函数, 该函数用于一个需要`NAPI`的超高速适配器 :
+
+
+```cpp
+static int hyper_card_poll(struct napi_struct *napi, int budget)
+{
+	struct nic *nic = container_of(napi, struct nic, napi);
+	struct net_device *netdev = nic->netdev;
+	int work_done;
+	work_done = hyper_do_poll(nic, budget);
+	if (work_done < budget) 
+    {
+		netif_rx_complete(netdev, napi);
+		hcard_reenable_irq(nic);
+	}
+	return work_done;
+}
+```
+
+
+在从`napi_struct`的容器获得特定于设备的信息之后, 调用一个特定于硬件的方法(这里是`hyper_do_poll`)来执行所需要的底层操作从网络适配器获取分组, 并使用像此前那样使用`netif_receive_skb`将分组传递到网络实现中更高的层.
+
+`hyper_do_poll`最多允许处理`budget`个分组. 该函数返回实际上处理的分组的数目. 必须区分以下两种情况.
+
+*	如果处理分组的数目小于预算, 那么没有更多的分组, Rx缓冲区为空, 否则, 肯定还需要处理剩余的分组(亦即，返回值不可能小于预算). 因此，netif_rx_complete将该情况通知内核，内核将从轮询表移除该设备。接下来，驱动程序必须通过特定于硬件的适当方法来重新启用IRQ.
+
+*	已经完全用掉了预算，但仍然有更多的分组需要处理。设备仍然留在轮询表上，不启用中断.
+
+###2.2.4	实现IRQ处理程序
+-------
+
+NAPI也需要对网络设备的IRQ处理程序做一些改动. 这里仍然不求助于任何具体的硬件, 而介绍针对虚构设备的代码:
