@@ -60,32 +60,95 @@
 
 ![图 2. Linux 高级网络栈架构](../images/advance_network_stack_layout.gif)
 
+
+
 最上面是用户空间层，或称为<font color = 0x00ffff>**应用层(Application layout)**</font>，其中定义了网络栈的用户
 
-底部是<font color = 0x00ffff>**物理设备(Physical device hardware)**</font>, 提供了对网络的连接能力(串口或诸如以太网之类的高速网络). 中间是内核空间, 即网络子系统, 也是本文介绍的重点. 流经网络栈内部的是socket缓冲区(sk_buffs), 它负责在源和汇点之间传递报文数据.
+底部是<font color = 0x00ffff>**物理设备(Physical device hardware)**</font>, 提供了对网络的连接能力(串口或诸如以太网之类的高速网络). 
 
-首先，让我们来快速浏览一下<font color = 0x00ffff>**Linux网络子系统的核心元素**</font>, 后续章节中会更详细进行介绍.
+中间是内核空间, 即<font color = 0x00ffff>**网络子系统**</font>, 也是本文介绍的重点. 流经网络栈内部的是socket缓冲区(sk_buffs), 它负责在源和汇点之间传递报文数据.
 
-顶部是**系统调用接口(System call interface)**, 它简单地为用户空间的应用程序提供了一种访问内核网络子系统的方法
+| 层次 | 名称 |描述 |
+|:-----:|:-----:|:----:|
+| Application layout | 应用层 | 网络栈的用户, 即使用网络的各个应用程序 |
+| Kernel Space | 内核空间的网络子系统 | 它简单地为用户空间的应用程序提供了一种访问内核网络子系统的方法<br>流经网络栈内部的是socket缓冲区(sk_buffs), 它负责在源和汇点之间传递报文数据 |
+| Physical device hardware | 物理设备 | 提供了对网络的连接能力(串口或诸如以太网之类的高速网络).  |
 
-位于其下面的是一个**协议无关层(Protocol agnostic interface)**, 它提供了一种通用方法来使用底层传输层协议
+<br>
+>*	内核在应用程序与网络物理设备之间插入了一个内核空间
+>
+>*	内核空间为驱动着网络设备的正常运转, 同时又为应用程序提供可供使用的接口
+<br>
 
-然后是**实际协议(Network protocols)** , 在 Linux中包括内嵌的协议TCP、UDP, 当然还有IP.
 
-然后是另外一个**协议无关层(Device agnostic interface)**, 提供了与各个设备驱动程序通信的通用接口
+首先，让我们来快速浏览一下<font color = 0xaaff00>**Linux网络子系统的核心元素**</font>, 后续章节中会更详细进行介绍.
 
-最下面是**设备驱动程序(Device driders)**本身.
+顶部是<font color = 0xaaff00>**系统调用接口(System call interface)**</font>, 它简单地为用户空间的应用程序提供了一种访问内核网络子系统的方法
+
+位于其下面的是一个<font color = 0xaaff00>**协议无关层(Protocol agnostic interface)**</font>, 它提供了一种通用方法来使用底层传输层协议
+
+然后是<font color = 0xaaff00>**实际协议(Network protocols)**</font> , 在 Linux中包括内嵌的协议TCP、UDP, 当然还有IP.
+
+然后是另外一个<font color = 0xaaff00>**设备无关层(Device agnostic interface)**</font>, 提供了与各个设备驱动程序通信的通用接口
+
+最下面是<font color = 0xaaff00>**设备驱动程序(Device driders)**</font>本身.
+
+如下所示
+
+| 内核空间层次 | 名称 |描述 |
+|:--------------:|:-----:|:----:|
+| System call interface | 系统调用接口 | 它简单地为用户空间的应用程序提供了一种访问内核网络子系统的方法 |
+| Protocol agnostic interface | 协议无关层 | 它提供了一种通用方法来使用底层传输层协议 |
+| Network protocols | 实际协议 | 在 Linux中包括内嵌的协议TCP、UDP, 当然还有IP |
+| Device agnostic interface | 设备无关层 | 提供了与各个设备驱动程序通信的通用接口 |
+| Device driders | 设备驱动程序 | 提供了网络硬件设备的基础驱动 |
+
+<br>
+>内核并没有简单的为内核网络子系统实现常规的系统调用接口, 协议层和设备驱动层次3个简单的层次, Linux内核必须支持各种不同的协议和不同的设备, 没有什么问题是通过一个虚拟层无法实现的, 因此内核在不同的层次之间插入了一个协议或者设备无关的层次
+>
+>*	系统调用接口和实际协议层之间插入了一个协议无关层
+>
+>*	实际协议层与设备驱动程序之间插入了一个设备无关层
+<br>
 
 
 ##3.1	系统调用接口
 -------
 
 
-系统调用接口可以从两个角度进行描述. 用户发起网络调用时, 通过系统调用接口进入内核的过程应该是多路的. 最后调用`net/socket.c`中的`sys_socketcall` 结束该过程, 然后进一步将调用分路发送到指定目标.
+系统调用接口可以从两个角度进行描述. 用户发起网络调用时, 通过系统调用接口进入内核的过程应该是多路的. 最后调用[`net/socket.c`](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2315)中的[`sys_socketcall` ](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2340)结束该过程, 然后进一步将调用分路发送到指定目标.
 
-系统调用接口的另一种描述是使用普通文件操作作为网络I/O. 例如, 典型的读写操作可以在网络`socket`上执行(`socket`使用一个文件描述符表示, 与一个普通文件一样). 因此, 尽管有很多操作是网络专用的(使用`socket`调用创建一个 `socket`, 使用`connect`调用连接一个收信方, 等等), 但是也有一些标准的文件操作可以应用于网络对象, 就像操作普通文件一样. 
+系统调用接口的另一种描述是使用普通文件操作作为网络I/O. 例如, 典型的读写操作可以在网络`socket`上执行(`socket`使用一个文件描述符表示, 与一个普通文件一样). 因此, 尽管有很多操作是网络专用的(使用`socket`调用创建一个 `socket`, 使用`connect`调用连接一个收信方, 等等), 但是也有一些标准的文件操作可以应用于网络对象, 就像操作普通文件一样.
 
 最后, 系统调用接口提供了在用户空间应用程序和内核之间转移控制的方法.
+
+
+| 系统调用 | 宏 |描述 |
+|:---------:|:------:|
+| socketcall | []() | socket系统调用 |
+| socket | [SYS_SOCKET](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2341) | 建立socket |
+| bind | [SYS_BIND](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2345) | 绑定socket到端口 |
+| connect | [SYS_CONNECT](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2347) |连接远程主机 |
+| listen | [SYS_LISTEN](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2350) | 监听socket端口 |
+| accept | [SYS_ACCEPT](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2353) | 响应socket连接请求 |
+| getsockname | [SYS_GETSOCKNAME](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2357) | 取得本地socket名字 |
+| getpeername | [SYS_GETPEERNAME](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2362) | 获取通信对方的socket名字 |
+| socketpair | [SYS_SOCKETPAIR](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2367) | 创建一对已联接的无名socket |
+| send | [SYS_SEND](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2370) | 通过socket发送信息 |
+| sendto | [SYS_SENDTO](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2373) | 发送UDP信息 |
+| recv | [SYS_RECV](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2377) | 通过socket接收信息 |
+| recvfrom | [SYS_RECVFROM](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2380) | 接收UDP信息 |
+| recvmsg | 参见recv |
+| select | 对多路同步I/O进行轮询 |
+| shutdown | [SYS_SHUTDOWN](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2385) | 关闭socket上的连接 |
+| getsockopt | [SYS_GETSOCKOPT](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2391) | 取端口设置 |
+| setsockopt | [SYS_SETSOCKOPT](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2388) | 设置端口参数 |
+| sendmsg | [SYS_SENDMSG](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2396) | 参见send |
+| sendmmesg | [SYS_SENDMMSG](http://lxr.free-electrons.com/source/net/socket.c?v=4.7#L2399) | |
+| | SYS_RECVMSG | |
+| | SYS_RECVMMSG | |
+| | SYS_ACCEPT4 | |
+| sendfile | 在文件或端口间传输数据 |
 
 
 ##3.2	协议无关接口
@@ -177,8 +240,7 @@
 
 后来, 内核中引入了一种新的应用程序编程接口(NAPI), 该接口允许驱动程序与设备无关层(dev)进行交互. 有些驱动程序使用的是NAPI, 但是大多数驱动程序仍然在使用老式的帧接收接口(比例大约是6比1). NAPI在高负载的情况下可以产生更好的性能, 它避免了为每个传入的帧都产生中断.
 
-
-`netif_rx_schedule`这个函数, 取而代之的是`__napi_schedule`, 可以到[`LXR?v=2.6.30;i=netif_rx_schedule`](http://lxr.free-electrons.com/ident?v=2.6.30;i=netif_rx_schedule)查证.
+加入了NAPI后, `netif_rx_schedule`这个函数从内核中删除, 取而代之的是`__napi_schedule`, 可以到[`LXR?v=2.6.30;i=netif_rx_schedule`](http://lxr.free-electrons.com/ident?v=2.6.30;i=netif_rx_schedule)查证.
 
 
 ##3.5	设备驱动程序
