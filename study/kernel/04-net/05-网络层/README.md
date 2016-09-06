@@ -28,10 +28,10 @@ IP在1981年正式定义(在RFC791中), 现在已经进入暮年
 -------
 
 
-IP分组使用的协议首部如图12-14所示.
+IP分组使用的协议首部如下图所示.
 
 
-![图12-14 IP首部的结构](../images/)
+![图12-14 IP首部的结构](./images/ip_header.png)
 
 
 | 字段 | 描述 |
@@ -87,9 +87,28 @@ struct iphdr {
 
 `ip_rcv`函数是网络层的入口点. 分组向上穿过内核的路线如下图所示
 
-![图12-15 分组穿过互联网络层的路线](../images/)
+
+![图12-15 分组穿过互联网络层的路线](./images/route.png)
 
 
+该函数定义在[`net/ipv4/ip_input.c?v=4.7, line 405`](http://lxr.free-electrons.com/source/net/ipv4/ip_input.c?v=4.7#L405)
+
+
+| 函数 | 功能 | 定义 |
+|:-----:|:-----:|:-----:|
+| ip_rcv | 对驱动送上来的数据报文进行ip头的合法性检查, 并调用netfilter过滤器上NF_INET_PRE_ROUTING | [net/ipv4/ip_input.c?v=4.7, line 405](http://lxr.free-electrons.com/source/net/ipv4/ip_input.c?v=4.7#L405) |
+| ip_local_deliver |  | [net/ipv4/ip_input.c?v=4.7, line 192](http://lxr.free-electrons.com/source/net/ipv4/ip_input.c?v=4.7#L192) |
+
+<br>
+
+| 函数 | 功能 | 定义 |
+|:-----:|:-----:|:-----:|
+| ip_queue_xmit | | [net/ipv4/ip_output.c?v=4.7, line 376](http://lxr.free-electrons.com/source/net/ipv4/ip_output.c?v=4.7#L376) |
+| ip_output | | [net/ipv4/ip_output.c?v=4.7, line 346](http://lxr.free-electrons.com/source/net/ipv4/ip_output.c?v=4.7#L346) |
+
+```cpp
+
+```
 
 发送和接收操作的程序流程并不总是分离的, 如果分组只通过当前计算机转发, 那么发送和接收操作是交织的. 这种分组不会传递到更高的协议层(或应用程序), 而是立即离开计算机, 发往新的目的地.
 
@@ -99,7 +118,7 @@ struct iphdr {
 -------
 
 
-在分组（以及对应的套接字缓冲区，其中的指针已经设置了适当的值）转发到ip_rcv之后， 必须检查接收到的信息， 确保它是正确的。 主要检查计算的校验和与首部中存储的校验和是否一致.
+在分组（以及对应的套接字缓冲区, 其中的指针已经设置了适当的值)转发到ip_rcv之后,  必须检查接收到的信息,  确保它是正确的. 主要检查计算的校验和与首部中存储的校验和是否一致.
 
 其他的检查包括分组是否达到了IP首部的最小长度，分组的协议是否确实是IPv4（IPv6的接收例程是另一个).
 

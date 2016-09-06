@@ -262,17 +262,91 @@ struct sk_buff
 ![套接字缓冲区在各个协议层之间传递时，对缓冲区的操作](../images/trans_data.png)
 
 
-在字长32位的系统上，数据类型sk_buff_data_t用来表示各种类型为简单指针的数据, 定义在[`include/linux/skbuff.h?v=4.7, line 626`](http://lxr.free-electrons.com/source/include/linux/skbuff.h?v=4.7#L626), 在64位 CPU上, 可使用一点小技巧来节省一些空间。sk_buff_data_t的定义改为整型变量
+
+
+
+内核实现了一些宏用来获取缓冲区数据段的结束位置. 这些函数定义在[`include/linux/skbuff.h?v=4.7, line 1165`](http://lxr.free-electrons.com/source/include/linux/skbuff.h?v=4.7#L1165)
+
+
 
 ```cpp
 #ifdef NET_SKBUFF_DATA_USES_OFFSET
-typedef unsigned int sk_buff_data_t;
+static inline unsigned char *skb_end_pointer(const struct sk_buff *skb)
+{
+    return skb->head + skb->end;
+}
+
+static inline unsigned int skb_end_offset(const struct sk_buff *skb)
+{
+    return skb->end;
+}
 #else
-typedef unsigned char *sk_buff_data_t;
+static inline unsigned char *skb_end_pointer(const struct sk_buff *skb)
+{
+    return skb->end;
+}
+
+static inline unsigned int skb_end_offset(const struct sk_buff *skb)
+{
+    return skb->end - skb->head;
+}
 #endif
 ```
 
-套接字缓冲区需要很多指针来表示缓冲区中内容的不同部分. 由于网络子系统必须保证较低的内存占用和较高的处理速度, 因而对struct sk_buff来说，我们需要保持该结构的长度尽可能小.
+内核实现了一些宏用来获取协议数据区域的结束的结束位置tail的函数. 这些函数定义在[`include/linux/skbuff.h?v=4.7, line 1849`](http://lxr.free-electrons.com/source/include/linux/skbuff.h?v=4.7#L1849)
+
+```cpp
+#ifdef NET_SKBUFF_DATA_USES_OFFSET	/*  64 bit  */
+static inline unsigned char *skb_tail_pointer(const struct sk_buff *skb)
+{
+    return skb->head + skb->tail;
+}
+
+static inline void skb_reset_tail_pointer(struct sk_buff *skb)
+{
+    skb->tail = skb->data - skb->head;
+}
+
+static inline void skb_set_tail_pointer(struct sk_buff *skb, const int offset)
+{
+    skb_reset_tail_pointer(skb);
+    skb->tail += offset;
+}
+
+#else /* NET_SKBUFF_DATA_USES_OFFSET */
+static inline unsigned char *skb_tail_pointer(const struct sk_buff *skb)
+{
+    return skb->tail;
+}
+
+static inline void skb_reset_tail_pointer(struct sk_buff *skb)
+{
+    skb->tail = skb->data;
+}
+
+static inline void skb_set_tail_pointer(struct sk_buff *skb, const int offset)
+{
+    skb->tail = skb->data + offset;
+}
+
+#endif /* NET_SKBUFF_DATA_USES_OFFSET */
+```
+
+在字长32位的系统上，数据类型sk_buff_data_t用来表示各种类型为简单指针的数据(`char *`), 定义在[`include/linux/skbuff.h?v=4.7, line 487`](http://lxr.free-electrons.com/source/include/linux/skbuff.h?v=4.7#L487), 在64位 CPU上, 可使用一点小技巧来节省一些空间. `sk_buff_data_t`的定义改为整型变量
+
+```cpp
+#if BITS_PER_LONG > 32  /*  64位的linux系统中long是8个字节 > 4  */
+#define NET_SKBUFF_DATA_USES_OFFSET 1
+#endif
+
+#ifdef NET_SKBUFF_DATA_USES_OFFSET		/*  64位系统  */
+typedef unsigned int sk_buff_data_t;				/*  4个字节  */
+#else											   /*  32位系统  */
+typedef unsigned char *sk_buff_data_t;			  /*  4个字节  */
+#endif
+```
+
+套接字缓冲区需要很多指针来表示缓冲区中内容的不同部分. 由于网络子系统必须保证较低的内存占用和较高的处理速度, 因而对`struct sk_buff`来说，我们需要保持该结构的长度尽可能小.
 
 
 
@@ -447,3 +521,50 @@ struct sk_buff_head {
 分组通常放置在等待队列中，例如分组等待处理时，或需要重新组合已经分析过的分组时.
 
 ![通过双链表管理套接字缓冲区](../images/dou_link.png)
+
+
+
+##4.3.3	skb_shared_info结构体
+-------
+
+
+内核`skb_shared_info`结构体该类型用来管理数据包分片信息, 该结构定义在[`include/linux/skbuff.h?v=4.7, line 408`](http://lxr.free-electrons.com/source/include/linux/skbuff.h?v=4.7#L408)
+
+```cpp
+/* This data is invariant across clones and lives at
+ * the end of the header data, ie. at skb->end.
+ */
+struct skb_shared_info {
+    unsigned char   nr_frags;
+    __u8        tx_flags;
+    unsigned short  gso_size;		/*  尺寸  */
+    /* Warning: this field is not always filled in (UFO)! */
+    unsigned short  gso_segs;		/*  顺序  */
+    unsigned short  gso_type;
+    struct sk_buff  *frag_list;
+    struct skb_shared_hwtstamps hwtstamps;		/*  硬件时间戳  */
+    u32         tskey;
+    __be32      ip6_frag_id;
+
+    /*
+     * Warning : all fields before dataref are cleared in __alloc_skb()
+     */
+    atomic_t    dataref;			/*  使用计数  */
+
+    /* Intermediate layers must ensure that destructor_arg
+     * remains valid until skb destructor */
+    void *      destructor_arg;
+
+    /* must be last field, see pskb_expand_head() */
+    skb_frag_t      frags[MAX_SKB_FRAGS];
+};
+```
+
+
+ 通过宏可以表示与skb的关系
+
+
+```cpp
+/* Internal */
+#define skb_shinfo(SKB) ((struct skb_shared_info *)(skb_end_pointer(SKB)))
+```
