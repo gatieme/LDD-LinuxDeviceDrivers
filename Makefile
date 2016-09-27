@@ -6,7 +6,7 @@ GITHUB_COMMIT := $(COMMIT)
 
 
 ifeq ($(COMMIT), )
-	GITHUB_COMMIT="..."
+	GITHUB_COMMIT="增加了cgroup的学习文档..."
 endif
 
 
