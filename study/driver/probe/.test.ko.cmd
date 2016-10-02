@@ -1,1 +1,0 @@
-cmd_/home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/probe/test.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/probe/test.ko /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/probe/test.o /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/driver/probe/test.mod.o
