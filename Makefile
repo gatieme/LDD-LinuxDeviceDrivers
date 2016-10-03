@@ -6,7 +6,7 @@ GITHUB_COMMIT := $(COMMIT)
 
 
 ifeq ($(COMMIT), )
-	GITHUB_COMMIT="增加了kprobe的学习代码..."
+	GITHUB_COMMIT="内核锁与进程间通信..."
 endif
 
 
