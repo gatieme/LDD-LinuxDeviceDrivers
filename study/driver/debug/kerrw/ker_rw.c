@@ -8,13 +8,18 @@
 #include <asm/irq.h>
 #include <asm/io.h>
 #include <linux/device.h>
-#if 0
-#include <mach/gpio.h>
-#endif
+
+
 #include <linux/sched.h>
 #include <linux/interrupt.h>
 #include <linux/poll.h>
 #include <linux/spinlock.h>
+
+
+#if 0
+#include <mach/gpio.h>
+#endif
+
 
 #define KER_RW_R8      100
 #define KER_RW_R16     101  /* 切记！cmd命令值不能乱定义 */

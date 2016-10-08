@@ -6,7 +6,7 @@ GITHUB_COMMIT := $(COMMIT)
 
 
 ifeq ($(COMMIT), )
-	GITHUB_COMMIT="内核锁与进程间通信..."
+	GITHUB_COMMIT="Linux下查看寄存器的值..."
 endif
 
 

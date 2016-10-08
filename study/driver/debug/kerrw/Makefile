@@ -35,6 +35,10 @@ ifneq ($(KERNELRELEASE),)
 
 obj-m := $(MODULE_NAME).o #print_vmarea.o
 
+
+
+
+
 else
 
 KERNELDIR ?= /lib/modules/$(shell uname -r)/build
@@ -63,11 +67,13 @@ rmmod:
 	sudo rmmod $(MODULE_NAME)
 
 test :
-	sudo ../injector/memInjector -l stack -m random -t word_0 --time 1 --timeout 3 -p 1
+	$(CC) regeditor.c -o regeditort -Wall -std=gnu99
 
 clean:
 	make -C $(KERNELDIR) M=$(PWD) clean
-	rm -f modules.order Module.symvers Module.markers
+	rm -rf modules.order Module.symvers Module.markers
+	rm -rf regeditort #regeditort.o
+
 
 .PHNOY:
 	modules modules_install clean
@@ -75,4 +81,3 @@ clean:
 
 
 endif
-
