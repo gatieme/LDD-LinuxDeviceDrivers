@@ -6,7 +6,7 @@ GITHUB_COMMIT := $(COMMIT)
 
 
 ifeq ($(COMMIT), )
-	GITHUB_COMMIT="Linux下查看寄存器的值..."
+	GITHUB_COMMIT="linux-cpu变频节能子系统cpufreq..."
 endif
 
 

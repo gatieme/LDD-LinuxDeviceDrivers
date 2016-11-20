@@ -16,81 +16,167 @@ AderXCoding
 
 http://blog.csdn.net/droidphone/article/details/9346981
 
-#1	sysfs接口
+#1	cpufreq调频系统
 -------
 
 
-我们先从 `CPUFreq` 提供的 `sysfs` 接口入手, 直观地看看它提供了那些功能. 以下是我的电脑输出的结果 :
+##1.1	cpufreq调频系统介绍
+-------
 
-```cpp
-cd /sys/devices/system/cpu
-```
+现在的 `CPU` 耗电很大, 按需调节 `CPU` 频率对普通桌面及移动设备节能有重要的意义, 目前多数Linux发行版都已经默认启用了这个功能, 但在一些像数据库, 集群系统等特别需要 `CPU` 高性能的服务器环境中, `Linux` 提供的这种对 `CPU` 频率调节的功能对 `CPU` 性能使用受到一些限制, 不利于系统性能的更好发挥.
 
+为此需要 `Linux` 系统管理员进行必要相关参数优化及设置来确保`CPU` 性能最大化. 本文将针对应用中常见的 `RedHat` 系列及`Debian/Ubuntu `系列中 `CPU` 频率调整工具的使用进行描述, 以方便 `Linux` 用户进行该方面工作的优化.
+
+在 `Linux` 中, 内核的开发者定义了一套框架模型来完成 `CPU` 频率动态调整这一目的, 它就是 `CPU Freq` 系统. 尽管在各个 `Linux` 发行版中, 前端软件稍有差异, 但其最终都会通过 `Linux` 内核的 `CPU Freq` 系统来实现 `CPU` 频率动态调整的功能.
+
+
+
+##1.2	cpu节能模式
+-------
+
+
+这些软件都会提供如下 `CPU` 模式(`governor`参数)
+
+
+| 模式 | 名称 | 描述 |
+|:---:|:---:|
+| `ondemand` | 系统默认的超频模式, 按需调节 | 内核提供的功能, 不是很强大, 但有效实现了动态频率调节, 平时以低速方式运行, 当系统负载提高时候自动提高频率. 以这种模式运行不会因为降频造成性能降低, 同时也能节约电能和降低温度. 一般官方内核默认的方式都是 `ondemand` |
+| `interactive` | 交互模式 | 直接上最高频率, 然后看 `CPU` 负荷慢慢降低, 比较耗电. `Interactive` 是以 `CPU` 排程数量而调整频率, 从而实现省电. `InteractiveX` 是以 `CPU` 负载来调整 `CPU` 频率, 不会过度把频率调低. 所以比 `Interactive` 反应好些, 但是省电的效果一般 |
+| `conservative` | 保守模式 | 类似于 `ondemand`, 但调整相对较缓, 想省电就用他吧. `Google`官方内核, `kang`内核默认模式 |
+| `smartass` | 聪明模式 | 是 `I` 和 `C` 模式的升级, 该模式在比 `interactive` 模式不差的响应的前提下会做到了更加省电 |
+| `performance` | 性能模式 | 只有最高频率, 从来不考虑消耗的电量, 性能没得说, 但是耗电量 |
+| powersave | 省电模式 | 通常以最低频率运行 |
+| userspace | 用户自定义模式 | 系统将变频策略的决策权交给了用户态应用程序, 并提供了相应的接口供用户态应用程序调节CPU 运行频率使用. 也就是长期以来都在用的那个模式. 可以通过手动编辑配置文件进行配置 |
+| Hotplug | 热插拔模式 | 类似于ondemand, 但是cpu会在关屏下尝试关掉一个cpu, 并且带有deep sleep, 比较省电. |
+
+
+#2	使用接口
+-------
+
+##2.1	sysfs接口
+-------
+
+
+我们先从 `CPUFreq` 提供的 `sysfs` 接口入手, 直观地看看它提供了那些功能.
+
+*	`/sys/devices/system/cpu` 总目录
 
 所有与 `CPUFreq` 相关的 `sysfs` 接口都位于 : `/sys/devices/system/cpu` 下面
 
-
-我们可以看到, 8个cpu分别建立了一个自己的目录, 从cpu0到cpu7, 我们再看看offline和online以及present的内容：
-
+以下是我的电脑输出的结果
 
 ```cpp
-droidphone@990:/sys/devices/system/cpu$ cat online  
-0-7  
-droidphone@990:/sys/devices/system/cpu$ cat offline  
-8-15  
-droidphone@990:/sys/devices/system/cpu$ cat present  
-0-7  
+cd /sys/devices/system/cpu
+ls
 ```
 
-| 接口文件 | 描述 |
-|:----------:|:-----:|
-| online | 代表目前正在工作的cpu |
-| offline | 代表目前被关掉的cpu |
-| present | 则表示主板上已经安装的cpu |
+![接口都位于 : `/sys/devices/system/cpu` 下面](ls-sys-devices-system-cpu.png)
 
-接着往下看：
+
+
+
+我们可以看到, 4个 `cpu` 分别建立了一个自己的目录, 从 `cpu0` 到 `cpu3`, 我们再看看 `offline` 和 `online` 以及present的内容：
+
+![内核对 `cpu` 的限制](online-offline-present.png)
+
+| 接口文件 | 描述 | 我的输出 |
+|:------:|:----:|:-------:|
+| possible | 代表主板支持的cpu | 0-7, 表示主板有8个cpu插槽,  支持8个cpu, 编号0-7 |
+| present | 则表示主板上已经安装的cpu | 0-3, 表示当前主板上安装了4个cpu, 编号0-3 |
+| online | 代表目前正在工作的cpu | 0-3, 表示系统中有4个cpu在工作, 编号0~3 |
+| offline | 代表目前被关掉的cpu | 并停掉没有工作的 `cpu`, 包括 `hotplug` 的 `cpu` 和未安装的 `cpu` |
+| kernel_max | 代表内核支持的最大cpu数目 | 255, 系统最大支持255个cpu |
+
+
+我们接着往下看 :
+
+*	cpufreq/policyx 与 cpux/cpufreq
+
+子目录 `cpufreq` 就是调频子系统的接口目录, 对应每个cpu单独有一个 `policyx` 的子目录, 其对应了编号为 `x` 的 `cpu` 的变频设置
 
 ```cpp
-droidphone@990:/sys/devices/system/cpu/cpu0$ ls  
-cache    cpuidle      microcode  power      thermal_throttle  uevent  
-cpufreq  crash_notes  node0      subsystem  topology  
-droidphone@990:/sys/devices/system/cpu/cpu0$ cd cpufreq/  
-droidphone@990:/sys/devices/system/cpu/cpu0/cpufreq$ ls  
-affected_cpus               related_cpus                   scaling_max_freq  
-bios_limit                  scaling_available_frequencies  scaling_min_freq  
-cpuinfo_cur_freq            scaling_available_governors    scaling_setspeed  
-cpuinfo_max_freq            scaling_cur_freq               stats  
-cpuinfo_min_freq            scaling_driver  
-cpuinfo_transition_latency  scaling_governor  
-droidphone@990:/sys/devices/system/cpu/cpu0/cpufreq$  
+#-------
+ls cpufreq
+ls cpufreq/policy*
+
+#-------
+tree cpufreq
 ```
-在我的电脑上, 部分的值如下：
-cpuinfo_cur_freq:   1600000
 
-cpuinfo_max_freq:  3401000
+![`cpufreq` 子系统](ls-cpufreq.png)
 
-cpuinfo_min_freq:   1600000
+同时每个安装的 `cpu` 都有一个单独的目录 `cpux`, `cpux`中存储了编号为 `x` 的 `cpu` 的所有信息. 其中其子目录 `cpufreq` 存储了其 `CPU-Freq` 变频的信息, 它是一个链接文件, 指向了我们之前提到的 `../cpufreq/policyx`
 
-scaling_cur_freq:    1600000
 
-scaling_max_freq:  3401000
+![`cpux` 的变频子系统](ls-cpux.png)
 
-scaling_min_freq:   1600000
-所以, 我的cpu0的最低运行频率是1.6GHz, 最高是3.4GHz, 目前正在运行的频率是1.6GHz, 前缀cpuinfo代表的是cpu硬件上支持的频率, 而scaling前缀代表的是可以通过CPUFreq系统用软件进行调节时所支持的频率. cpuinfo_cur_freq代表通过硬件实际上读到的频率值, 而scaling_cur_freq则是软件当前的设置值, 多数情况下这两个值是一致的, 但是也有可能因为硬件的原因, 有微小的差异. scaling_available_frequencies会输出当前软件支持的频率值, 看看我的cpu支持那些频率：
 
-[plain] view plain copy
-droidphone@990:/sys/devices/system/cpu/cpu0/cpufreq$ cat scaling_available_frequencies   
-3401000 3400000 3000000 2800000 2600000 2400000 2200000 2000000 1800000 1600000   
-droidphone@990:/sys/devices/system/cpu/cpu0/cpufreq$   
-Oh, 从1.6GHz到3.4GHz, 一共支持10挡的频率可供选择. scaling_available_governors则会输出当前可供选择的频率调节策略：
-[plain] view plain copy
-conservative ondemand userspace powersave performance  
-一共有5中策略供我们选择, 那么当前系统选用那种策略？让我们看看：
-[plain] view plain copy
-dong@dong-990:/sys/devices/system/cpu/cpu0/cpufreq$ cat scaling_governor  
-ondemand  
-OK, 我的系统当前选择ondemand这种策略, 这种策略的主要思想是：只要cpu的负载超过某一个阀值, cpu的频率会立刻提升至最高, 然后再根据实际情况降到合适的水平. 详细的情况我们留在后面的章节中讨论. scaling_driver则会输出当前使用哪一个驱动来设置cpu的工作频率. 
-当我们选择userspace作为我们的调频governor时, 我们可以通过scaling_setspeed手工设置需要的频率. powersave则简单地使用最低的工作频率进行运行, 而performance则一直选择最高的频率进行运行. 
+下面我们选择一个 `cpu` 的 `cpufreq` 目录进入, 比如 `cpu0`, 其目录路径如下
+```cpp
+/sys/devices/system/cpu/cpufreq/policy0
+
+OR
+
+/sys/devices/system/cpu/cpu0/cpufreq
+```
+
+这个目录下通常应该存在的文件, 以及他们在我的电脑上的值如下表所示
+
+| 变量 | 值 |
+|:---:|:--:|
+| affected_cpus |  需要软件协调频率的 `CPU` 列表 | 0 |
+| related_cpus | 需要软件或者硬件来协调频率的 `CPU` 列表 | 我的笔记本无此文件 |
+| `scaling_available_frequencies` | 当前软件支持的频率值, 看看当前 `cpu` 支持那些频率 | 我的笔记本无此文件 |
+| scaling_driver | 该 `CPU` 正在使用何种 `cpufreq driver`, 完成 `cpufreq` 控制的硬件驱动 |intel_pstate |
+| scaling_setspeed |  如果用户选择了 `userspace` 作为当前的 `cpufreq` 策略 `governor`, 那么可以设置 `cpu` 工作主频率到某一个指定值. 只需要这个值在 `scaling_min_freq` 和 `scaling_max_freq` 之间即可 | _<unsupported_> |
+| scaling_governor | 当前处理器的 变频策略 `governor` 类型 | powersave |
+| scaling_available_governors | 当前内核中支持的所有 `cpufreq governor` 类型 | performance powersave |
+| scaling_min_freq | 被 `governor` 和 `cpufreq` 核决定的当前 `CPU` 的最低工作频率, 该频率是内核认定的该 `CPU` 理论上的最低运行频率 | 800000 |
+| scaling_curr_freq |  被 `governor` 和 `cpufreq` 核决定的当前 `CPU` 工作频率, 该频率是内核认定的该 `CPU` 理论上运行的主频率 |837656 |
+| scaling_max_freq | 被 `governor` 和 `cpufreq` 核决定的当前 `CPU` 工作频率, 该频率是内核认定的该 `CPU` 理论上的最大运行频率 | 3000000 |
+| cpuinfo_transition_latency | 定义了处理器在两个不同频率之间切换时所需要的时间(单位 : 纳秒) | 4294967295 |
+| cpuinfo_min_freq | 通过硬件实际读取到的`cpu` 的最低运行频率 | 800000 |
+| cpuinfo_cur_freq | 通过硬件实际读取到的`cpu` 的当前运行频率 | 837656 |
+| cpuinfo_max_freq | 通过硬件实际读取到的`cpu` 的最高运行频率 | 3000000 |
+
+
+![`cpu0` 的 `CPU-FREQ` 策略信息](cat-cpu0-freq.png)
+
+所以, 我的 `cpu0` 的最低运行频率是$800000 = 800MHz$, 最高是$3000000 = 3.0GHz$, 目前正在运行的频率是$837656=837.656MHz$
+
+
+*	前缀 `cpuinfo` 代表的是cpu硬件上支持的频率, 而 `scaling` 前缀代表的是可以通过 `CPUFreq` 系统用软件进行调节时所支持的频率.
+
+*	`cpuinfo_cur_freq` 代表通过硬件实际上读到的频率值, 而 `scaling_cur_freq` 则是软件当前的设置值, 多数情况下这两个值是一致的, 但是也有可能因为硬件的原因, 有微小的差异. 因为`cat scaling_xxx_freq` 需要通过系统软件读取硬件的信息, 因此需要 `root` 权限
+
+![ `cpuinfo_xxx_freq` 和 `scaling_xxx_freq` 的信息](cpu0-cpuinfo-scaling-freq.png)
+
+
+*	`scaling_driver` 则会输出当前使用哪一个驱动来设置 `cpu` 的工作频率.
+
+*	`scaling_available_governors` 则会输出当前可供选择的频率调节策略
+
+*	当前系统选用 `CPU-FREQ` 策略用 `scaling_governor` 来表示
+
+![`cpu0` 的频率调整策略 ](cpu-scaling_governor.png)
+
+
+我们的系统中当前仅支持两个变频策略 高性能 `performance` 和 节能 `powersave`. 而当前使用的策略是 节能 `powersave`.
+
+
+
+*	当我们选择 `userspace` 作为我们的调频 `governor` 时, 我们可以通过 `scaling_setspeed` 手工设置需要的频率. 
+
+`powersave` 则简单地使用较低的工作频率进行运行 
+
+
+![`powersave` 下 `cpu` 保持低频率运行 ](powersave-cpufreq.png)
+
+`performance` 则一直选择较高的频率进行运行.
+
+
+![`performance` 下 `cpu` 一直选择较高的频率运行](performance-cpufreq.png)
+
 2.  软件架构
 通过上一节的介绍, 我们可以大致梳理出CPUFreq系统的构成和工作方式. 首先, CPU的硬件特性决定了这个CPU的最高和最低工作频率, 所有的频率调整数值都必须在这个范围内, 它们用cpuinfo_xxx_freq来表示. 然后, 我们可以在这个范围内再次定义出一个软件的调节范围, 它们用scaling_xxx_freq来表示, 同时, 根据具体的硬件平台的不同, 我们还需要提供一个频率表, 这个频率表规定了cpu可以工作的频率值, 当然这些频率值必须要在cpuinfo_xxx_freq的范围内. 有了这些频率信息, CPUFreq系统就可以根据当前cpu的负载轻重状况, 合理地从频率表中选择一个合适的频率供cpu使用, 已达到节能的目的. 至于如何选择频率表中的频率, 这个要由不同的governor来实现, 目前的内核版本提供了5种governor供我们选择. 选择好适当的频率以后, 具体的频率调节工作就交由scaling_driver来完成. CPUFreq系统把一些公共的逻辑和接口代码抽象出来, 这些代码与平台无关, 也与具体的调频策略无关, 内核的文档把它称为CPUFreq Core（/Documents/cpufreq/core.txt）. 另外一部分, 与实际的调频策略相关的部分被称作cpufreq_policy, cpufreq_policy又是由频率信息和具体的governor组成, governor才是具体策略的实现者, 当然governor需要我们提供必要的频率信息, governor的实现最好能做到平台无关, 与平台相关的代码用cpufreq_driver表述, 它完成实际的频率调节工作. 最后, 如果其他内核模块需要在频率调节的过程中得到通知消息, 则可以通过cpufreq notifiers来完成. 由此, 我们可以总结出CPUFreq系统的软件结构如下：
 
