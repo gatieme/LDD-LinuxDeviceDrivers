@@ -59,7 +59,8 @@ http://blog.csdn.net/droidphone/article/details/9346981
 
 我们先从 `CPUFreq` 提供的 `sysfs` 接口入手, 直观地看看它提供了那些功能.
 
-*	`/sys/devices/system/cpu` 总目录
+###2.1.1	`/sys/devices/system/cpu` 总目录
+-------
 
 所有与 `CPUFreq` 相关的 `sysfs` 接口都位于 : `/sys/devices/system/cpu` 下面
 
@@ -90,7 +91,8 @@ ls
 
 我们接着往下看 :
 
-*	cpufreq/policyx 与 cpux/cpufreq
+###2.1.2	单个cpu的freq策略 cpufreq/policyx 与 cpux/cpufreq
+-------
 
 子目录 `cpufreq` 就是调频子系统的接口目录, 对应每个cpu单独有一个 `policyx` 的子目录, 其对应了编号为 `x` 的 `cpu` 的变频设置
 
@@ -177,9 +179,194 @@ OR
 
 ![`performance` 下 `cpu` 一直选择较高的频率运行](performance-cpufreq.png)
 
-2.  软件架构
-通过上一节的介绍, 我们可以大致梳理出CPUFreq系统的构成和工作方式. 首先, CPU的硬件特性决定了这个CPU的最高和最低工作频率, 所有的频率调整数值都必须在这个范围内, 它们用cpuinfo_xxx_freq来表示. 然后, 我们可以在这个范围内再次定义出一个软件的调节范围, 它们用scaling_xxx_freq来表示, 同时, 根据具体的硬件平台的不同, 我们还需要提供一个频率表, 这个频率表规定了cpu可以工作的频率值, 当然这些频率值必须要在cpuinfo_xxx_freq的范围内. 有了这些频率信息, CPUFreq系统就可以根据当前cpu的负载轻重状况, 合理地从频率表中选择一个合适的频率供cpu使用, 已达到节能的目的. 至于如何选择频率表中的频率, 这个要由不同的governor来实现, 目前的内核版本提供了5种governor供我们选择. 选择好适当的频率以后, 具体的频率调节工作就交由scaling_driver来完成. CPUFreq系统把一些公共的逻辑和接口代码抽象出来, 这些代码与平台无关, 也与具体的调频策略无关, 内核的文档把它称为CPUFreq Core（/Documents/cpufreq/core.txt）. 另外一部分, 与实际的调频策略相关的部分被称作cpufreq_policy, cpufreq_policy又是由频率信息和具体的governor组成, governor才是具体策略的实现者, 当然governor需要我们提供必要的频率信息, governor的实现最好能做到平台无关, 与平台相关的代码用cpufreq_driver表述, 它完成实际的频率调节工作. 最后, 如果其他内核模块需要在频率调节的过程中得到通知消息, 则可以通过cpufreq notifiers来完成. 由此, 我们可以总结出CPUFreq系统的软件结构如下：
+###2.1.3	sys接口的软件架构
+-------
 
+
+通过上一节的介绍, 我们可以大致梳理出 `CPUFreq` 系统的构成和工作方式.
+
+*	首先, `CPU` 的硬件特性决定了这个CPU的最高和最低工作频率, 所有的频率调整数值都必须在这个范围内, 它们用 `cpuinfo_xxx_freq`来表示.
+
+*	然后, 我们可以在这个范围内再次定义出一个软件的调节范围, 它们用 `scaling_xxx_freq` 来表示
+
+*	同时, 根据具体的硬件平台的不同, 我们还需要提供一个频率表, 这个频率表规定了 `cpu` 可以工作的频率值, 当然这些频率值必须要在 `cpuinfo_xxx_freq` 的范围内. 有了这些频率信息, 
+
+*	`CPUFreq` 系统就可以根据当前 `cpu` 的负载轻重状况, 合理地从频率表中选择一个合适的频率供 `cpu` 使用, 已达到节能的目的. 至于如何选择频率表中的频率, 这个要由不同的 `governor` 来实现, 目前的内核版本提供了多种 `governor` 供我们选择. 选择好适当的频率以后, 具体的频率调节工作就交由 `scaling_driver` 来完成.
+
+*	`CPUFreq` 系统把一些公共的逻辑和接口代码抽象出来, 这些代码与平台无关, 也与具体的调频策略无关, 内核的文档把它称为[`CPUFreq Core`(/Documents/cpufreq/core.txt)](https://www.kernel.org/doc/Documentation/cpu-freq/core.txt). 另外一部分, 与实际的调频策略相关的部分被称作 `cpufreq_policy`, `cpufreq_policy` 又是由频率信息和具体的 `governor` 组成, `governor` 才是具体策略的实现者, 当然 `governor` 需要我们提供必要的频率信息, `governor` 的实现最好能做到平台无关, 与平台相关的代码用 `cpufreq_driver` 表述, 它完成实际的频率调节工作.
+
+*	最后, 如果其他内核模块需要在频率调节的过程中得到通知消息, 则可以通过cpufreq notifiers来完成. 由此, 我们可以总结出CPUFreq系统的软件结构
+
+
+`cpufreq` 在设计上主要分为以下三个模块：
+
+
+![`cpufreq` 架构设计](arch.jpg)
+
+`Cpufreq` 模块(`cpufreq module`)对如何在底层控制各种不同 `CPU` 所支持的变频技术以及如何在上层根据系统负载动态选择合适的运行频率进行了封装和抽象, 并在二者之间定义了清晰的接口, 从而在设计上完成了前文所提到的对 `mechanism` 与 `policy` 的分离.
+
+在 `cpufreq` 模块的底层, 各个 `CPU` 生产厂商只需根据其变频技术的硬件实现和使用方法提供与其 `CPU` 相关的变频驱动程序(`CPU-specific drivers`)，例如 `Intel` 需要提供支持 `Enhanced SpeedStep` 技术的 `CPU` 驱动程序, 而 `AMD` 则需要提供支持 `PowerNow` 技术的 `CPU` 驱动程序.
+
+在 `cpufreq` 模块的上层, `governor` 作为选择合适的目标运行频率的决策者, 根据一定的标准在适当的时刻选择出 `CPU` 适合的运行频率, 并通过 `cpufreq` 模块定义的接口操作底层与 `CPU` 相关的变频驱动程序, 将 `CPU` 设置运行在选定的运行频率上. 目前最新的 `Linux` 内核中提供了 `performance`, `powersave`, `userspace`, `conservative` 和 `ondemand` 五种 `governors` 供用户选择使用, 它们在选择 `CPU` 合适的运行频率时使用的是各自不同的标准并分别适用于不同的应用场景. 用户在同一时间只能选择其中一个 `governor` 使用, 但是可以在系统运行过程中根据应用需求的变化而切换使用另一个 `governor`.
+
+这种设计带来的好处是使得 `governor` 和 `CPU` 相关的变频驱动程序的开发可以相互独立进行, 并在最大限度上实现代码重用, 内核开发人员在编写和试验新的 `governor` 时不会再陷入到某款特定 `CPU` 的变频技术的硬件实现细节中去, 而 `CPU` 生产厂商在向 `Linux` 内核中添加支持其特定的 `CPU` 变频技术的代码时只需提供一个相对来说简单了很多的驱动程序, 而不必考虑在各种不同的应用场景中如何选择合适的运行频率这些复杂的问题.
+
+内核中的 `cpufreq` 子系统通过 `sysfs` 文件系统向上层应用提供了用户接口, 对于系统中的每一个 `CPU` 而言, 其 `cpufreq` 的 `sysfs` 用户接口位于 `/sys/devices/system/cpu/cpuX/cpufreq/` 目录下，其中 `X` 代表 `processor id`, 与 `/proc/cpuinfo` 中的信息相对应。
+
+
+#2.2	proc文件接口
+-------
+
+##2.3	应用接口
+-------
+
+
+
+
+注意, 只支持某些可调节频率的`cpu`, 如intel的笔记本 `cpu`. 可能可以超频, 没敢实验, 那位试试看好了.
+
+| 软件包 | 文件列表 | 提供命令 |
+|:-----:|:-------:|:-------:|
+| [gnome-applets](http://packages.ubuntu.com/trusty/gnome-applets) | [文件列表](http://packages.ubuntu.com/trusty/amd64/gnome-applets/filelist) | cpufreq-applet |
+| [indicator-cpufreq](http://packages.ubuntu.com/trusty/indicator-cpufreq) | [文件列表](http://packages.ubuntu.com/trusty/all/indicator-cpufreq/filelist)| indicator-cpufreq, indicator-cpufreq-selector |
+| [cpufrequtils](http://packages.ubuntu.com/trusty/cpufrequtils) | [文件列表](http://packages.ubuntu.com/trusty/amd64/cpufrequtils/filelist)| cpufreq-aperf, cpufreq-info, cpufreq-set|
+
+
+###2.3.1	cpufrequtils
+-------
+
+我们需要安装 `cpufrequtils`. 此软件是查看 `cpu` 当前频率以及修改频率、选择`cpu`、选择`cpu`运行方式的
+
+```cpp
+sudo apt-get install cpufrequtils
+```
+
+
+
+提供的命令和应用
+
+| 命令 | 功能 |
+|:---:|:----:|
+| cpufreq-info | 查看 `cpu` 类型、当前频率、支持频率、运行模式等 |
+| cpufreq-set | 设置制定 `cpu` 的当前频率、支持频率、运行模式等 |
+| cpufreq-aperf | |
+
+具体用法可以看 `man`, 或者在命令后加 `-h`, 比如
+
+```cpp
+man cpufreq-info
+```
+
+或者
+
+```cpp
+cpufreq-info -h
+```
+
+*	查看 `cpu`类型、当前频率、支持频率、运行模式等
+
+```
+cpufreq-info -h
+```
+
+![`cpufreq-info -h` 的帮助信息](pufreq-info-help.png)
+
+这是我的cpu在powersave模式下的情况
+
+
+
+```cpp
+cpufrequtils 008: cpufreq-info (C) Dominik Brodowski 2004-2009
+Report errors and bugs to cpufreq@vger.kernel.org, please.
+analyzing CPU 0:
+  driver: intel_pstate
+  CPUs which run at the same hardware frequency: 0
+  CPUs which need to have their frequency coordinated by software: 0
+  maximum transition latency: 0.97 ms.
+  hardware limits: 800 MHz - 3.00 GHz
+  available cpufreq governors: performance, powersave
+  current policy: frequency should be within 800 MHz and 3.00 GHz.
+                  The governor "powersave" may decide which speed to use
+                  within this range.
+  current CPU frequency is 2.44 GHz.
+```
+
+
+*	调整cpu频率
+sudo cpufreq-set -f 你所需要的频率
+注意, 此处的频率必须是以`KHz`为单位, 并且是可以达到的频率(也就是用 `cpufreq-info` 查看到的各个频率), `cpu`频率 = 倍频 x 外频`
+
+
+
+*	调整cpu频率上下限
+
+```cpp
+sudo cpufreq-set -d 频率下限
+sudo cpufreq-set -u 频率上限
+```
+
+因此, 可能可以对 `cpu` 进行降频或者超频.
+
+*	调整cpu运行模式
+
+```cpp
+suod cpufreq-set -g 模式
+```
+
+这里, 模式就是执行 `cpufreq-info` 后看到的所支持的模式. 比如 : powersave, userspace, ondemand, conservative, performance.
+
+　　powersave，是无论如何都只会保持最低频率的所谓“省电”模式；
+    userspace，是自定义频率时的模式，这个是当你设定特定频率时自动转变的；
+    ondemand，默认模式。一有cpu计算量的任务，就会立即达到最大频率运行，等执行完毕就立即回到最低频率；
+    conservative，翻译成保守（中庸）模式，会自动在频率上下限调整，和ondemand的区别在于它会按需分配频率，而不是一味追求最高频率；
+    performance，顾名思义只注重效率，无论如何一直保持以最大频率运行。
+
+*	添加cpu监视器
+
+监视 `cpu` 频率的系统就有, 右键单击面板, 选择"添加到面板", 里面找到"cpu频率范围监视器".
+
+另外，如果嫌命令行麻烦，可以这么做
+
+```cpp
+ sudo chmod +s /usr/bin/cpufreq-selector
+```
+
+然后, `cpu` 频率范围监视器的首选项里就会多出一个“频率选择器”, 显示菜单选择“频率和调速器”. 鼠标左键单击 `cpu` 频率范围监视器, 会发现“频率”和“调速器”两个菜单，就可以随便调了
+
+监视温度的需要自己安装，
+
+```cpp
+sudo apt-get install sensors-applet
+```
+然后也是这样添加到面板, 名字叫"Hardware sensors monitor".
+
+
+###2.3.2	Indicator-CPUfreq
+-------
+
+Indicator-CPUfreq是一个控制面板的小工具, 提供了一键切换 `cpufreq` 的功能
+
+```cpp
+sudo apt-get install indicator-cpufreq
+```
+
+
+
+`Indicator-CPUfreq` 是一个 `Gnome Indicator applet`, 用于监视和即时改变 `CPU` 的速率, 它提供了多 种模式，分别为 `conservative` (保守), `Ondemand` (按需), `Performance` (性能)及 `Powersave` (省电).
+
+这个小工具对于笔记本用户来说应该有一定的用处，可以通过它来随时改变 CPU 速率，以便延长电池续航时间。
+
+
+###2.3.3	gnome-applets
+-------
+
+
+###2.3.4	cpufreqd
+-------
+
+
+#3	内核的 `cpufreq` 实现
+-------
 3.  cpufreq_policy
 一种调频策略的各种限制条件的组合称之为policy, 代码中用cpufreq_policy这一数据结构来表示：
 
