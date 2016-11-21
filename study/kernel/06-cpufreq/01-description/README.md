@@ -167,7 +167,7 @@ OR
 
 
 
-*	当我们选择 `userspace` 作为我们的调频 `governor` 时, 我们可以通过 `scaling_setspeed` 手工设置需要的频率. 
+*	当我们选择 `userspace` 作为我们的调频 `governor` 时, 我们可以通过 `scaling_setspeed` 手工设置需要的频率.
 
 `powersave` 则简单地使用较低的工作频率进行运行 
 
@@ -214,8 +214,19 @@ OR
 内核中的 `cpufreq` 子系统通过 `sysfs` 文件系统向上层应用提供了用户接口, 对于系统中的每一个 `CPU` 而言, 其 `cpufreq` 的 `sysfs` 用户接口位于 `/sys/devices/system/cpu/cpuX/cpufreq/` 目录下，其中 `X` 代表 `processor id`, 与 `/proc/cpuinfo` 中的信息相对应。
 
 
-#2.2	proc文件接口
+#2.2	`proc` 文件接口
 -------
+
+
+`/proc/cpuinfo` 文件与系统中 `/sys/devices/system/cpu/cpuX/cpufreq/` 的信息一致, 只不过 `/proc/cpuinfo` 只提供了基本的信息
+
+```cpp
+cat /proc/cpuinfo
+```
+
+![`/proc/cpuinfo` 文件](cat-proc-cpuinfo.png)
+
+
 
 ##2.3	应用接口
 -------
@@ -235,7 +246,12 @@ OR
 ###2.3.1	cpufrequtils
 -------
 
+`cpufrequtils` 是内核中内置的 `cpufreq` 接口工具, 其代码位于[内核源代码目录tools/power/cpupower](带添加信息), 包括 性能评测工具 `bench`, 底层运行库 `lib`, 上层应用框架 `utils`.
+
+
 我们需要安装 `cpufrequtils`. 此软件是查看 `cpu` 当前频率以及修改频率、选择`cpu`、选择`cpu`运行方式的
+
+
 
 ```cpp
 sudo apt-get install cpufrequtils
@@ -251,6 +267,8 @@ sudo apt-get install cpufrequtils
 | cpufreq-set | 设置制定 `cpu` 的当前频率、支持频率、运行模式等 |
 | cpufreq-aperf | |
 
+
+*	查看 `cpu`类型、当前频率、支持频率、运行模式等
 具体用法可以看 `man`, 或者在命令后加 `-h`, 比如
 
 ```cpp
@@ -263,15 +281,10 @@ man cpufreq-info
 cpufreq-info -h
 ```
 
-*	查看 `cpu`类型、当前频率、支持频率、运行模式等
 
-```
-cpufreq-info -h
-```
+![`cpufreq-info -h` 的帮助信息](cpufreq-info-help.png)
 
-![`cpufreq-info -h` 的帮助信息](pufreq-info-help.png)
-
-这是我的cpu在powersave模式下的情况
+这是我的 `cpu` 在 `powersave` 模式下的情况
 
 
 
@@ -313,15 +326,21 @@ sudo cpufreq-set -u 频率上限
 suod cpufreq-set -g 模式
 ```
 
-这里, 模式就是执行 `cpufreq-info` 后看到的所支持的模式. 比如 : powersave, userspace, ondemand, conservative, performance.
 
-　　powersave，是无论如何都只会保持最低频率的所谓“省电”模式；
-    userspace，是自定义频率时的模式，这个是当你设定特定频率时自动转变的；
-    ondemand，默认模式。一有cpu计算量的任务，就会立即达到最大频率运行，等执行完毕就立即回到最低频率；
-    conservative，翻译成保守（中庸）模式，会自动在频率上下限调整，和ondemand的区别在于它会按需分配频率，而不是一味追求最高频率；
-    performance，顾名思义只注重效率，无论如何一直保持以最大频率运行。
+这里, 模式就是执行 `cpufreq-info` 后看到的所支持的模式. 比如 : `powersave`, `userspace`, `ondemand`, `conservative`, `performance`.
+
+
+| 策略 | 描述 |
+|:---:|:----:|
+| powersave | 是无论如何都只会保持最低频率的所谓“省电”模式 |
+| userspace | 是自定义频率时的模式，这个是当你设定特定频率时自动转变的 |
+| ondemand | 默认模式。一有cpu计算量的任务，就会立即达到最大频率运行，等执行完毕就立即回到最低频率 |
+| conservative | 翻译成保守（中庸）模式，会自动在频率上下限调整，和ondemand的区别在于它会按需分配频率，而不是一味追求最高频率 |
+| performance | 顾名思义只注重效率，无论如何一直保持以最大频率运行 |
+
 
 *	添加cpu监视器
+
 
 监视 `cpu` 频率的系统就有, 右键单击面板, 选择"添加到面板", 里面找到"cpu频率范围监视器".
 
@@ -338,13 +357,15 @@ suod cpufreq-set -g 模式
 ```cpp
 sudo apt-get install sensors-applet
 ```
+
 然后也是这样添加到面板, 名字叫"Hardware sensors monitor".
 
 
 ###2.3.2	Indicator-CPUfreq
 -------
 
-Indicator-CPUfreq是一个控制面板的小工具, 提供了一键切换 `cpufreq` 的功能
+
+`Indicator-CPUfreq` 是一个控制面板的小工具, 提供了一键切换 `cpufreq` 的功能
 
 ```cpp
 sudo apt-get install indicator-cpufreq
@@ -354,16 +375,30 @@ sudo apt-get install indicator-cpufreq
 
 `Indicator-CPUfreq` 是一个 `Gnome Indicator applet`, 用于监视和即时改变 `CPU` 的速率, 它提供了多 种模式，分别为 `conservative` (保守), `Ondemand` (按需), `Performance` (性能)及 `Powersave` (省电).
 
-这个小工具对于笔记本用户来说应该有一定的用处，可以通过它来随时改变 CPU 速率，以便延长电池续航时间。
+这个小工具对于笔记本用户来说应该有一定的用处，可以通过它来随时改变 `CPU` 速率，以便延长电池续航时间。
 
 
 ###2.3.3	gnome-applets
 -------
 
+```cpp
+sudo apt-get install gnome-applets
+```
 
 ###2.3.4	cpufreqd
 -------
 
+```cpp
+sudo apt-get install cpufreqd
+```
+
+###2.3.5	gkrellm系统监控插件
+-------
+
+
+```cpp
+sudo apt-get install gkrellm gkrellm-cpufreq
+```
 
 #3	内核的 `cpufreq` 实现
 -------
