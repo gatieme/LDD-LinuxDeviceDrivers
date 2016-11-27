@@ -246,7 +246,7 @@ cat /proc/cpuinfo
 ###2.3.1	cpufrequtils
 -------
 
-`cpufrequtils` 是内核中内置的 `cpufreq` 接口工具, 其代码位于[内核源代码目录tools/power/cpupower](带添加信息), 包括 性能评测工具 `bench`, 底层运行库 `lib`, 上层应用框架 `utils`.
+`cpufrequtils` 是内核中内置的 `cpufreq` 接口工具, 其代码位于[内核源代码目录tools/power/cpupower](http://lxr.free-electrons.com/source/tools/power/cpupower/lib/cpufreq.h?v=4.8#L23), 包括 性能评测工具 `bench`, 底层运行库 `lib`, 上层应用框架 `utils`.
 
 
 我们需要安装 `cpufrequtils`. 此软件是查看 `cpu` 当前频率以及修改频率、选择`cpu`、选择`cpu`运行方式的
@@ -402,48 +402,59 @@ sudo apt-get install gkrellm gkrellm-cpufreq
 
 #3	内核的 `cpufreq` 实现
 -------
-3.  cpufreq_policy
+
+
+##3.1	cpufreq_policy
+-------
+
 一种调频策略的各种限制条件的组合称之为policy, 代码中用cpufreq_policy这一数据结构来表示：
 
-[cpp] view plain copy
-struct cpufreq_policy {  
-          
-        cpumask_var_t           cpus;     
-        cpumask_var_t           related_cpus;   
-  
-        unsigned int            shared_type;   
-                                                  
-        unsigned int            cpu;      
-        unsigned int            last_cpu;   
-                                            
-        struct cpufreq_cpuinfo  cpuinfo;  
-  
-        unsigned int            min;    /* in kHz */  
-        unsigned int            max;    /* in kHz */  
-        unsigned int            cur;      
-                                           
-        unsigned int            policy;   
-        struct cpufreq_governor *governor;   
-        void                    *governor_data;  
-  
-        struct work_struct      update;   
-                                           
-  
-        struct cpufreq_real_policy      user_policy;  
-  
-        struct kobject          kobj;  
-        struct completion       kobj_unregister;  
-};  
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/cpufreq.h?v=4.8#L65
+```
+
 其中的各个字段的解释如下：
-cpus和related_cpus    这两个都是cpumask_var_t变量, cpus表示的是这一policy控制之下的所有还出于online状态的cpu, 而related_cpus则是online和offline两者的合集. 主要是用于多个cpu使用同一种policy的情况, 实际上, 我们平常见到的大多数系统中都是这种情况：所有的cpu同时使用同一种policy. 我们需要related_cpus变量指出这个policy所管理的所有cpu编号. 
-cpu和last_cpu    虽然一种policy可以同时用于多个cpu, 但是通常一种policy只会由其中的一个cpu进行管理, cpu变量用于记录用于管理该policy的cpu编号, 而last_cpu则是上一次管理该policy的cpu编号（因为管理policy的cpu可能会被plug out, 这时候就要把管理工作迁移到另一个cpu上）. 
-cpuinfo    保存cpu硬件所能支持的最大和最小的频率以及切换延迟信息. 
-min/max/cur  该policy下的可使用的最小频率, 最大频率和当前频率. 
-policy    该变量可以取以下两个值：CPUFREQ_POLICY_POWERSAVE和CPUFREQ_POLICY_PERFORMANCE, 该变量只有当调频驱动支持setpolicy回调函数的时候有效, 这时候由驱动根据policy变量的值来决定系统的工作频率或状态. 如果调频驱动（cpufreq_driver）支持target回调, 则频率由相应的governor来决定. 
-governor和governor_data    指向该policy当前使用的cpufreq_governor结构和它的上下文数据. governor是实现该policy的关键所在, 调频策略的逻辑由governor实现. 
-update    有时在中断上下文中需要更新policy, 需要利用该工作队列把实际的工作移到稍后的进程上下文中执行. 
-user_policy    有时候因为特殊的原因需要修改policy的参数, 比如溫度过高时, 最大可允许的运行频率可能会被降低, 为了在适当的时候恢复原有的运行参数, 需要使用user_policy保存原始的参数（min, max, policy, governor）. 
-kobj    该policy在sysfs中对应的kobj的对象. 
+
+| 字段 | 描述 |
+|:---:|:----:|
+| cpus, related_cpus和real_cpus | 这三个都是 `cpumask_var_t` 变量<br>`cpus`表示的是这一`policy`控制之下的所有还处于online状态的`cpu`;<br>`related_cpus`则是`online`和`offline`两者的合集;<br>`real_cpus`则是与当前策略相关的所有的被安装CPU的合集;<br><br>主要是用于多个`cpu`使用同一种`policy`的情况, 实际上, 我们平常见到的大多数系统中都是这种情况 : 所有的`cpu`同时使用同一种`policy`. 我们需要`related_cpus`变量指出这个`policy`所管理的所有`cpu`编号. |
+| shared_type | ACPI: ANY or ALL affected CPUs should set cpufreq |
+| cpu和last_cpu | 虽然一种`policy`可以同时用于多个`cpu`, 但是通常一种`policy`只会由其中的一个`cpu`进行管理, `cpu`变量用于记录用于管理该`policy`的`cpu`编号, 而`last_cpu`则是上一次管理该`policy`的`cpu`编号(因为管理`policy`的`cpu`可能会被`plug out`, 这时候就要把管理工作迁移到另一个`cpu`上). |
+| clk |	|
+| cpuinfo | 保存cpu硬件所能支持的最大和最小的频率以及切换延迟信息. |
+| min/max/cur | 该policy下的可使用的最小频率, 最大频率和当前频率 |
+| resort_freq | |
+| suspend_freq | |
+| policy和last_policy | |
+| governor, governor_data和last_governor |指向该policy当前使用的cpufreq_governor结构和它的上下文数据. governor是实现该policy的关键所在, 调频策略的逻辑由governor实现.last_governor则缓存了之前所使用的策略信息 |
+| update |有时在中断上下文中需要更新policy, 需要利用该工作队列把实际的工作移到稍后的进程上下文中执行. |
+| user_policy | 有时候因为特殊的原因需要修改policy的参数, 比如溫度过高时, 最大可允许的运行频率可能会被降低, 为了在适当的时候恢复原有的运行参数, 需要使用user_policy保存原始的参数(min, max, policy, governor). |
+| freq_table |
+| freq_table_sorted |
+| policy_list |
+| kobj |该policy在sysfs中对应的kobj的对象. |
+| kobj_unregister | |
+| rwsem | |
+| fast_switch_possible和 fast_switch_enabled |
+|
+| transition_ongoing | |
+| transition_lock | |
+| transition_wait | |
+| transition_task | |
+| stats | |
+| driver_data | |
+
+
+该变量可以取以下两个值, 该变量只有当调频驱动支持`setpolicy`回调函数的时候有效, 这时候由驱动根据`policy`变量的值来决定系统的工作频率或状态. 如果调频驱动(`cpufreq_driver`)支持`target`回调, 则频率由相应的`governor`来决定.
+
+
+| 值 | 描述 |
+|:--:|:---:|
+| CPUFREQ_POLICY_POWERSAVE | |
+| CPUFREQ_POLICY_PERFORMANCE | |
+
+
 4.  cpufreq_governor
 所谓的governor, 我把它翻译成：调节器. governor负责检测cpu的使用状况, 从而在可用的范围中选择一个合适的频率, 代码中它用cpufreq_governor结构来表示：
 
