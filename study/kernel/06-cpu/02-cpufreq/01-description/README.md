@@ -455,84 +455,101 @@ sudo apt-get install gkrellm gkrellm-cpufreq
 | CPUFREQ_POLICY_PERFORMANCE | |
 
 
-4.  cpufreq_governor
-所谓的governor, 我把它翻译成：调节器. governor负责检测cpu的使用状况, 从而在可用的范围中选择一个合适的频率, 代码中它用cpufreq_governor结构来表示：
+##3.2	cpufreq_governor
+-------
 
-[cpp] view plain copy
-struct cpufreq_governor {  
-        char    name[CPUFREQ_NAME_LEN];  
-        int     initialized;  
-        int     (*governor)     (struct cpufreq_policy *policy,  
-                                 unsigned int event);  
-        ssize_t (*show_setspeed)        (struct cpufreq_policy *policy,  
-                                         char *buf);  
-        int     (*store_setspeed)       (struct cpufreq_policy *policy,  
-                                         unsigned int freq);  
-        unsigned int max_transition_latency; /* HW must be able to switch to 
-                        next freq faster than this value in nano secs or we 
-                        will fallback to performance governor */  
-        struct list_head        governor_list;  
-        struct module           *owner;  
-};  
+
+所谓的`governor`, 我把它翻译成：调节器.
+
+`governor`负责检测`cpu`的使用状况, 从而在可用的范围中选择一个合适的频率, 代码中它用`cpufreq_governor`结构来表示：
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/cpufreq.h?v4.8#L491
+```
 
 其中的各个字段的解释如下：
-name    该governor的名字. 
-initialized    初始化标志. 
-governor    指向一个回调函数, CPUFreq Core会在不同的阶段调用该回调函数, 用于该governor的启动、停止、初始化、退出动作. 
-list_head    所有注册的governor都会利用该字段链接在一个全局链表中, 以供系统查询和使用. 
-5.  cpufreq_driver
-上一节提到的gonvernor只是负责计算并提出合适的频率, 但是频率的设定工作是平台相关的, 这需要cpufreq_driver驱动来完成, cpufreq_driver的结构如下：
 
-[cpp] view plain copy
-struct cpufreq_driver {  
-        struct module           *owner;  
-        char                    name[CPUFREQ_NAME_LEN];  
-        u8                      flags;  
-       
-        bool                    have_governor_per_policy;  
-  
-        /* needed by all drivers */  
-        int     (*init)         (struct cpufreq_policy *policy);  
-        int     (*verify)       (struct cpufreq_policy *policy);  
-  
-        /* define one out of two */  
-        int     (*setpolicy)    (struct cpufreq_policy *policy);  
-        int     (*target)       (struct cpufreq_policy *policy,  
-                                 unsigned int target_freq,  
-                                 unsigned int relation);  
-  
-        /* should be defined, if possible */  
-        unsigned int    (*get)  (unsigned int cpu);  
-  
-        /* optional */  
-        unsigned int (*getavg)  (struct cpufreq_policy *policy,  
-                                 unsigned int cpu);  
-        int     (*bios_limit)   (int cpu, unsigned int *limit);  
-  
-        int     (*exit)         (struct cpufreq_policy *policy);  
-        int     (*suspend)      (struct cpufreq_policy *policy);  
-        int     (*resume)       (struct cpufreq_policy *policy);  
-        struct freq_attr        **attr;  
-};  
+| 字段 | 描述 |
+|:----:|:---:|
+| name | 该`governor`的名字. |
+| initialized | 初始化标志. |
+| governor | 指向一个回调函数, CPUFreq Core会在不同的阶段调用该回调函数, 用于该governor的启动、停止、初始化、退出动作. |
+| governor_list | 所有注册的governor都会利用该字段链接在一个全局链表中, 以供系统查询和使用. |
+| owner | |
+
+
+
+##3.3	cpufreq_driver
+-------
+
+上一节提到的`gonvernor`只是负责计算并提出合适的频率, 但是频率的设定工作是平台相关的, 这需要`cpufreq_driver`驱动来完成, `cpufreq_driver`的结构如下：
+
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/cpufreq.h?v4.8#L254
+```
+
 
 相关的字段的意义解释如下：
-name    该频率驱动的名字. 
-init    回调函数, 该回调函数必须实现, CPUFreq Core会通过该回调函数对该驱动进行必要的初始化工作. 
-verify    回调函数, 该回调函数必须实现, CPUFreq Core会通过该回调函数检查policy的参数是否被驱动支持. 
-setpolicy/target    回调函数, 驱动必须实现这两个函数中的其中一个, 如果不支持通过governor选择合适的运行频率, 则实现setpolicy回调函数, 这样系统只能支持CPUFREQ_POLICY_POWERSAVE和CPUFREQ_POLICY_PERFORMANCE这两种工作策略. 反之, 实现target回调函数, 通过target回调设定governor所需要的频率. 
-get    回调函数, 用于获取cpu当前的工作频率. 
-getavg    回调函数, 用于获取cpu当前的平均工作频率. 
-6.  cpufreq notifiers
-CPUFreq的通知系统使用了内核的标准通知接口. 它对外提供了两个通知事件：policy通知和transition通知. 
 
-policy通知用于通知其它模块cpu的policy需要改变, 每次policy改变时, 该通知链上的回调将会用不同的事件参数被调用3次, 分别是：
 
-CPUFREQ_ADJUST    只要有需要, 所有的被通知者可以在此时修改policy的限制信息, 比如温控系统可能会修改在大允许运行的频率. 
-CPUFREQ_INCOMPATIBLE    只是为了避免硬件错误的情况下, 可以在该通知中修改policy的限制信息. 
-CPUFREQ_NOTIFY    真正切换policy前, 该通知会发往所有的被通知者. 
-transition通知链用于在驱动实施调整cpu的频率时, 用于通知相关的注册者. 每次调整频率时, 该通知会发出两次通知事件：
-CPUFREQ_PRECHANGE    调整前的通知. 
-CPUFREQ_POSTCHANGE    完成调整后的通知. 
+| 字段 | 描述 |
+|:----:|:---:|
+| name | 该频率驱动的名字. |
+| init | 回调函数, 该回调函数必须实现, CPUFreq Core会通过该回调函数对该驱动进行必要的初始化工作. |
+| verify | 回调函数, 该回调函数必须实现, CPUFreq Core会通过该回调函数检查policy的参数是否被驱动支持. |
+| setpolicy/target | 回调函数, 驱动必须实现这两个函数中的其中一个, 如果不支持通过governor选择合适的运行频率, 则实现setpolicy回调函数, 这样系统只能支持CPUFREQ_POLICY_POWERSAVE和CPUFREQ_POLICY_PERFORMANCE这两种工作策略. 反之, 实现target回调函数, 通过target回调设定governor所需要的频率. |
+| get | 回调函数, 用于获取cpu当前的工作频率. |
+| getavg |回调函数, 用于获取cpu当前的平均工作频率. |
+
+
+##3.4	cpufreq notifiers
+-------
+
+`CPUFreq`的通知系统使用了内核的标准通知接口. 它对外提供了两个通知事件：`policy`通知和`transition`通知.
+
+```cpp
+http://lxr.free-electrons.com/source/include/linux/cpufreq.h?v4.8#L404
+#define CPUFREQ_TRANSITION_NOTIFIER     (0)
+#define CPUFREQ_POLICY_NOTIFIER         (1)
+```
+
+`policy`通知用于通知其它模块`cpu`的`policy`需要改变, 每次`policy`改变时, 该通知链上的回调将会用不同的事件参数被调用3次, 分别是：
+
+| 字段 | 描述 |
+|:----:|:---:|
+| CPUFREQ_ADJUST | 只要有需要, 所有的被通知者可以在此时修改policy的限制信息, 比如温控系统可能会修改在大允许运行的频率. |
+| CPUFREQ_INCOMPATIBLE |只是为了避免硬件错误的情况下, 可以在该通知中修改policy的限制信息. |
+| CPUFREQ_NOTIFY |真正切换policy前, 该通知会发往所有的被通知者. |
+
+
+```cpp
+//  http://lxr.free-electrons.com/source/include/linux/cpufreq.h?v4.8#L411
+/* Policy Notifiers  */
+#define CPUFREQ_ADJUST                  (0)
+#define CPUFREQ_NOTIFY                  (1)
+#define CPUFREQ_START                   (2)
+#define CPUFREQ_CREATE_POLICY           (3)
+#define CPUFREQ_REMOVE_POLICY           (4)
+```
+
+`transition`通知链用于在驱动实施调整`cpu`的频率时, 用于通知相关的注册者. 每次调整频率时, 该通知会发出两次通知事件：
+
+
+
+| 字段 | 描述 |
+|:----:|:---:|
+| CPUFREQ_PRECHANGE | 调整前的通知. |
+| CPUFREQ_POSTCHANGE | 完成调整后的通知. |
+
+```cpp
+http://lxr.free-electrons.com/source/include/linux/cpufreq.h?v4.8#L408
+/* Transition notifiers */
+#define CPUFREQ_PRECHANGE               (0)
+#define CPUFREQ_POSTCHANGE              (1)
+```
+
+
 当检测到因系统进入suspend而造成频率被改变时, 以下通知消息会被发出：
 CPUFREQ_RESUMECHANGE
 
