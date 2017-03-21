@@ -8,6 +8,7 @@
 #include <linux/mm_types.h>
 
 
+// [《深入理解Linux内核》内存寻址学习心得](http://blog.chinaunix.net/uid-27776472-id-4304663.html)
 MODULE_LICENSE("Dual BSD/GPL");
 
 
