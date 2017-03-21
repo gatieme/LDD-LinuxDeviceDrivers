@@ -1,7 +1,46 @@
 #include <linux/module.h>
+#include <linux/kernel.h>
 #include <linux/init.h>
+//#include <linux/moduleparam.h>
+#include <linux/sched.h>
+#include <linux/list.h>
+#include <linux/mm.h>
+#include <linux/mm_types.h>
+
 
 MODULE_LICENSE("Dual BSD/GPL");
+
+
+
+int print_bit(char *addr, int size)
+{
+
+    unsigned char *ptr  = (unsigned char *)addr;
+    int print_bytes     = 0;
+    int print_bits      = 7;
+
+    if(ptr == NULL)
+    {
+        return -1;
+    }
+
+    for(print_bytes = 0;
+        print_bytes < size;
+        print_bytes++, ptr++)
+    {
+        for(print_bits = 7;
+        print_bits >= 0;
+        print_bits--)
+        {
+            printk("%d", ((*ptr >> print_bits) & 1));
+        }
+
+    }
+    printk("\n");
+    return print_bytes;
+}
+
+
 
 /*
  * print the module information
@@ -20,13 +59,57 @@ static void print_module(void)
 }
 
 
-static void print_vmarea()
+static void print_vmarea(void)
 {
-    printf("---------------------\n");
-    printf("TASK_SIZE = %p\n", TASK_SIZE);
-    printf("---------------------\n");
-    printf("STACK_TOP = %p\n", STACK_TOP);
+    printk("---------------------\n");
+    printk("TASK_SIZE = %p\n", TASK_SIZE);
+    printk("---------------------\n");
+    printk("STACK_TOP = %p\n", STACK_TOP);
     //printf("MMAP_BASE = %p\n", TASK_UNMAPPED_SIZE);
+}
+
+// http://lxr.free-electrons.com/source/arch/x86/include/asm/segment.h#L123
+static void print_segment(void)
+{
+    long data = 0;
+
+    /*
+
+        -----------------------------------------------------------------
+        |                         |       INDEX               | T1| RPL |
+        -----------------------------------------------------------------
+        __KERNEL_CS = 0x0010 =    B 0 0 0 0 0 0 0 0 0 0 0 1 0 | 0 | 0 0 |
+        -----------------------------------------------------------------
+        __KERNEL_DS = 0x0018 =    B 0 0 0 0 0 0 0 0 0 0 0 1 0 | 1 | 0 0 |
+        -----------------------------------------------------------------
+        __USER_DS   = 0x0033 =    B 0 0 0 0 0 0 0 0 0 0 1 1 0 | 0 | 1 1 |
+        -----------------------------------------------------------------
+        __USER_DS   = 0x0028 =    B 0 0 0 0 0 0 0 0 0 0 1 0 0 | 1 | 0 0 |
+        -----------------------------------------------------------------
+
+        LITTLE_                |  低字节 -=>  高字节  |
+        __KERNEL_CS = 0x0010 = | 00010000    00000000 |
+        __KERNEL_DS = 0x0018 = | 00011000    00000000 |
+        __USER_DS   = 0x0033 = | 00110011    00000000 |
+        __USER_DS   = 0x002B = | 00101011    00000000 |
+     */
+    data = __KERNEL_CS;
+    printk("__KERNEL_CS = %0x\n", data);
+    print_bit(&data, 2);
+
+    data = __KERNEL_DS;
+    printk("__KERNEL_DS = %0x\n", data);
+    print_bit(&data, 2);
+
+    data = __USER_CS;
+    printk("__USER_CS   = %0x\n", data);
+    print_bit(&data, 2);
+
+    data = __USER_DS;
+    printk("__USER_DS   = %0x\n", data);
+    print_bit(&data, 2);
+    //printk("__ESPFIX_SS = %0x\n", __ESPFIX_SS);
+
 }
 
 
@@ -40,6 +123,8 @@ static int hello_init(void)
     printk(KERN_ALERT "PAGE_OFFSET : 0x%lx\n", PAGE_OFFSET);
 
     print_vmarea( );
+
+    print_segment( );
 
     return 0;
 }

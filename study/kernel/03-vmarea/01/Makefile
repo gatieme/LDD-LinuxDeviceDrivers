@@ -13,9 +13,6 @@
 # ------------------------------------------------------------------------------
 
 
-ROOT=..
-#PLATFORM=$(shell $(ROOT)/systype.sh)
-#include $(ROOT)/Make.defines.$(PLATFORM)
 
 #	my driver description
 DRIVER_VERSION := "1.0.0"
