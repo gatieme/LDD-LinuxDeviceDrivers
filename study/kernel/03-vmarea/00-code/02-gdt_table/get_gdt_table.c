@@ -16,6 +16,54 @@
 
 MODULE_LICENSE("Dual BSD/GPL");
 
+
+#define BitGet(number, pos) ((number) >> (pos) & 1)     /// 用宏得到某数的某位
+#define BitSet(number, pos) ((number) |= 1 << (pos))    /// 把某位置1
+#define BitClr(number, pos) ((number) &= ~(1 << (pos))) /// 把某位清0
+#define BitCpl(number, pos) ((number) ^= 1 << (pos))    /// 把number的POS位取反
+
+
+// http://lxr.free-electrons.com/source/arch/x86/include/asm/segment.h#L123
+static void print_segment(void)
+{
+    long data = 0;
+
+    /*
+
+        ---------------------------------------------------------------------------------------------
+        |                         |       INDEX               | TI| RPL |
+        ---------------------------------------------------------------------------------------------
+        __KERNEL_CS = 0x0010 =    B 0 0 0 0 0 0 0 0 0 0 0 1 0 | 0 | 0 0 | index = 2, TI = 0, RPL = 0
+        ---------------------------------------------------------------------------------------------
+        __KERNEL_DS = 0x0018 =    B 0 0 0 0 0 0 0 0 0 0 0 1 1 | 0 | 0 0 | index = 3, TI = 0, RPL = 0
+        ---------------------------------------------------------------------------------------------
+        __USER_DS   = 0x0033 =    B 0 0 0 0 0 0 0 0 0 0 1 1 0 | 0 | 1 1 | index = 6, TI = 0, RPL = 3
+        ---------------------------------------------------------------------------------------------
+        __USER_DS   = 0x002B =    B 0 0 0 0 0 0 0 0 0 0 1 0 1 | 0 | 1 1 | index = 5, TI = 0, RPL = 3
+        ---------------------------------------------------------------------------------------------
+
+        |   LE little-endian   |  低字节 -=>  高字节  |
+        ---------------------------------------------------------------------------------------------
+        __KERNEL_CS = 0x0010 = | 00010000    00000000 |
+        __KERNEL_DS = 0x0018 = | 00011000    00000000 |
+        __USER_DS   = 0x0033 = | 00110011    00000000 |
+        __USER_DS   = 0x002B = | 00101011    00000000 |
+     */
+    data = __KERNEL_CS;
+    printk("__KERNEL_CS = %0x\n", data);
+
+    data = __KERNEL_DS;
+    printk("__KERNEL_DS = %0x\n", data);
+
+    data = __USER_CS;
+    printk("__USER_CS   = %0x\n", data);
+
+    data = __USER_DS;
+    printk("__USER_DS   = %0x\n", data);
+
+}
+
+
 static void print_desc_struct(struct desc_struct *desc)
 {
 #if 0
