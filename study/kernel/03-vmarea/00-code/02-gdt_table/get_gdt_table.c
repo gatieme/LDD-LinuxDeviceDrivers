@@ -17,11 +17,14 @@
 MODULE_LICENSE("Dual BSD/GPL");
 
 
-#define BitGet(number, pos) ((number) >> (pos) & 1)     /// 用宏得到某数的某位
-#define BitSet(number, pos) ((number) |= 1 << (pos))    /// 把某位置1
-#define BitClr(number, pos) ((number) &= ~(1 << (pos))) /// 把某位清0
-#define BitCpl(number, pos) ((number) ^= 1 << (pos))    /// 把number的POS位取反
+#define bit_get(number, pos) ((number) >> (pos) & 1)     /// 用宏得到某数的某位
+#define bit_set(number, pos) ((number) |= 1 << (pos))    /// 把某位置1
+#define bit_clr(number, pos) ((number) &= ~(1 << (pos))) /// 把某位清0
+#define bit_cpl(number, pos) ((number) ^= 1 << (pos))    /// 把number的POS位取反
 
+#define get_segment_INDEX(n)    ((n) >> 3)
+#define get_segment_TI(n)       (((n) >> 2) & 0x01)
+#define get_segment_RPL(n)      ((n) & 0x03)
 
 // http://lxr.free-electrons.com/source/arch/x86/include/asm/segment.h#L123
 static void print_segment(void)
@@ -29,7 +32,6 @@ static void print_segment(void)
     long data = 0;
 
     /*
-
         ---------------------------------------------------------------------------------------------
         |                         |       INDEX               | TI| RPL |
         ---------------------------------------------------------------------------------------------
@@ -50,17 +52,28 @@ static void print_segment(void)
         __USER_DS   = 0x002B = | 00101011    00000000 |
      */
     data = __KERNEL_CS;
-    printk("__KERNEL_CS = %0x\n", data);
+    printk("__KERNEL_CS = %0x, index = %d, TI = %d, RPL = %d\n", data,
+            get_segment_INDEX(data),
+            get_segment_TI(data),
+            get_segment_RPL(data));
 
     data = __KERNEL_DS;
-    printk("__KERNEL_DS = %0x\n", data);
+    printk("__KERNEL_DS = %0x, index = %d, TI = %d, RPL = %d\n", data,
+            get_segment_INDEX(data),
+            get_segment_TI(data),
+            get_segment_RPL(data));
 
     data = __USER_CS;
-    printk("__USER_CS   = %0x\n", data);
+    printk("__USER_CS   = %0x, index = %d, TI = %d, RPL = %d\n", data,
+            get_segment_INDEX(data),
+            get_segment_TI(data),
+            get_segment_RPL(data));
 
     data = __USER_DS;
-    printk("__USER_DS   = %0x\n", data);
-
+    printk("__USER_DS   = %0x, index = %d, TI = %d, RPL = %d\n", data,
+            get_segment_INDEX(data),
+            get_segment_TI(data),
+            get_segment_RPL(data));
 }
 
 
@@ -106,10 +119,11 @@ static void print_cpu_gdt_table(struct desc_struct *desc, int size)
 static int hello_init(void)
 {
     printk("GDT_ENTRIES = %d\n", GDT_ENTRIES);
-    struct desc_struct *gdt_table = get_cpu_gdt_table(0);
+    struct desc_struct *gdt_table = get_cpu_gdt_table(1);
 
     print_cpu_gdt_table(gdt_table, GDT_ENTRIES);
 
+    print_segment();
     return 0;
 }
 

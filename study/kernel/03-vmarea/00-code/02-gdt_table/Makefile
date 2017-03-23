@@ -22,6 +22,7 @@ DRIVER_LICENSE := "Dual BSD/GPL"
 
 
 MODULE_NAME := get_gdt_table
+MODCFLAGS:=-O6 -Wall -DMODULE -D__KERNEL__ -DLINUX -std=c99
 
 ifneq ($(KERNELRELEASE),)
 
