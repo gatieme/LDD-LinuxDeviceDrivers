@@ -1,3 +1,11 @@
+#module
+*.cmd
+*.mod
+*.symvers
+*.order
+*.mod.c
+
+
 # Object files
 *.o
 *.ko
