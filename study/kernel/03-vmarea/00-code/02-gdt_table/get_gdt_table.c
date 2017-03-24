@@ -180,7 +180,6 @@ static void print_segment_desc(unsigned long seg)
  */
 static void print_segment(void)
 {
-    long                data        = 0;
     struct desc_struct *gdt_table   = get_cpu_gdt_table(1);
 
 
