@@ -19,8 +19,8 @@ books--一些书中的源码和示例
 |:------:|:------:|
 | [21cnbao](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/books/21cnbao)    | [宋宝华-Linux设备驱动开发详解](http://21cnbao.blog.51cto.com)                            |
 | [fengguojin](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/books/fengguojin) | [冯国进--Linux驱动程序开发实例](http://book.51cto.com/art/201205/337656.htm)   |
-|  [ldd](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/books/ldd)           | [LINUX设备驱动程序]()                  |
-
+|  [ldd](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/books/ldd)           | [LINUX设备驱动程序]() |
+| [kernelsample](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/books/kernelsample) | kernel内核中的示例代码 |
 
 
 #2  其他链接
