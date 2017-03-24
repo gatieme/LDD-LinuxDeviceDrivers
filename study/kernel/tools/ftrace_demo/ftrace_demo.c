@@ -1,5 +1,7 @@
  /*                                                     
  * ftrace_demo.c 
+ * http://www.ibm.com/developerworks/cn/linux/l-cn-ftrace3/
+ * http://lxr.free-electrons.com/source/include/trace/events/context_tracking.h 貌似没实现
  */                                                    
  #include <linux/init.h> 
  #include <linux/module.h> 
