@@ -63,7 +63,7 @@ static int __init mydebugfs_init(void)
 
         printk(KERN_INFO "mydebugfs_init\n");
 
-	my_debugfs_root = debugfs_create_dir("mydebug", NULL);
+	my_debugfs_root = debugfs_create_dir("gatieme_mydebug", NULL);
 	if (!my_debugfs_root)
 		return -ENOENT;
 
