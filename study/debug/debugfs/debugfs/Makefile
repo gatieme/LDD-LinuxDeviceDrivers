@@ -66,7 +66,9 @@ rmmod:
 	sudo rmmod $(MODULE_NAME)
 
 test :
-	sudo ../injector/memInjector -l stack -m random -t word_0 --time 1 --timeout 3 -p 1
+	cat /sys/kernel/debug/mydebug/a
+	cat /sys/kernel/debug/mydebug/b
+	cat /sys/kernel/debug/mydebug/subdir/c
 
 clean:
 	make -C $(KERNELDIR) M=$(PWD) clean
