@@ -21,9 +21,11 @@ DRIVER_LICENSE := "Dual BSD/GPL"
 
 
 MODULE_NAME := trace-events-sample
-MODCFLAGS:=-O6 -Wall -DMODULE -D__KERNEL__ -DLINUX -std=c99
-CFG_FLAGS += -O2  -I./
-EXTRA_CFLAGS  += $(C_FLAGS) $(CFG_INC) $(CFG_INC)
+#MODCFLAGS:=-O2 -Wall -DMODULE -D__KERNEL__ -DLINUX -std=c99
+SRC	:= /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/debug/trace/trace-events-sample
+EXTRA_CFLAGS  += -I$(SRC)
+
+
 
 
 
