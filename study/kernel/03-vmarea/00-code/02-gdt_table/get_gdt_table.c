@@ -27,10 +27,15 @@ MODULE_LICENSE("Dual BSD/GPL");
 /*
  * 打印段描述符的数据
  * desc 指向GDT的指针
+ * http://lxr.free-electrons.com/source/arch/x86/include/asm/desc.h?v=4.10#L226
  */
 static void print_desc_struct(struct desc_struct *desc)
 {
 #if 0
+    printk("base = 0x%0x", get_desc_base(desc);
+    printk("limit = 0x%0x", get_desc_limit(desc);
+
+
     printk("limit0 = %0x, ", desc->limit0);
     printk("base0 = %0x, ", desc->base0);
 
@@ -253,7 +258,7 @@ static void print_segment(void)
     printk("=====================\n\n");
 }
 
-static int hello_init(void)
+static int get_cpu_gdt_table_init(void)
 {
 
     print_cpu_gdt_table(0);
@@ -266,10 +271,10 @@ static int hello_init(void)
 
 
 
-static void hello_exit(void)
+static void get_cpu_gdt_table_exit(void)
 {
 }
 
 
-module_init(hello_init);
-module_exit(hello_exit);
+module_init(get_cpu_gdt_table_init);
+module_exit(get_cpu_gdt_table_exit);
