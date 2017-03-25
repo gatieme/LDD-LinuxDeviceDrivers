@@ -4,6 +4,8 @@
 #include <linux/debugfs.h>
 #include <asm/uaccess.h>
 
+//  http://files.cnblogs.com/wwang/debugfs.zip
+
 struct dentry *my_debugfs_root;
 
 u8                          a           = 0;
