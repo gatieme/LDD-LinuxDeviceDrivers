@@ -87,16 +87,16 @@ static void print_desc_struct(struct desc_struct *desc)
 #define get_desc_struct_BASE1(gdt)   (((gdt) >> 32) & 0xff)
 #define get_desc_struct_BASE2(gdt)   (((gdt) >> 56) & 0xff)
 #define get_desc_struct_BASE(gdt)                  \
-            ((get_desc_struct_BASE0(gdt) << 16)    \
-        |   (get_desc_struct_BASE1(gdt) << 8)      \
-        |   (get_desc_struct_BASE2(gdt)))
+            ((get_desc_struct_BASE2(gdt) << 24)    \
+        |   (get_desc_struct_BASE1(gdt) << 16)     \
+        |   (get_desc_struct_BASE0(gdt)))
 
 
 #define get_desc_struct_LIMIT0(gdt)  ((gdt) & 0xffff)
 #define get_desc_struct_LIMIT1(gdt)  (((gdt) >> 48) & 0x0f)
 #define get_desc_struct_LIMIT(gdt)                 \
-            ((get_desc_struct_LIMIT0(gdt) << 4)   \
-        |   (get_desc_struct_LIMIT1(gdt)))
+            ((get_desc_struct_LIMIT1(gdt) << 16)   \
+        |   (get_desc_struct_LIMIT0(gdt)))
 
 #define get_desc_struct_G(gdt)           (((gdt) >> 55) & 0x01)     /*  55  */
 #define get_desc_struct_D_or_B(gdt)      (((gdt) >> 54) & 0x01)     /*  54  */
@@ -114,10 +114,17 @@ static void print_desc_struct(struct desc_struct *desc)
     printk("0x%08x, 0x%08x | 0x%x  |  %d  | %d |\n",
             desc->b, desc->a, desc->type, desc->dpl, desc->s);
     unsigned long data = *((unsigned long *)desc);
-    printk("base = 0x%0x, limit = 0x%0x,  P = %d, DPL = %d, type = %d%d%d%d\n",
+    printk("base = 0x%0x, limit = 0x%0x\n"
+           "G = %d, D/B = %d, O = %d, AV = %d\n"
+           "P = %d, DPL = %d, S = %d, type = %d%d%d%d\n",
             get_desc_struct_BASE(data), get_desc_struct_LIMIT(data),
+
+            get_desc_struct_G(data), get_desc_struct_D_or_B(data),
+            get_desc_struct_O(data), get_desc_struct_AV(data),
+
             get_desc_struct_P(data), get_desc_struct_DPL(data),
-            get_desc_struct_S(data), get_desc_struct_ED_or_C(data),
+            get_desc_struct_S(data),
+            get_desc_struct_E(data), get_desc_struct_ED_or_C(data),
             get_desc_struct_R_or_W(data), get_desc_struct_A(data));
 }
 
@@ -132,8 +139,10 @@ static void print_cpu_gdt_table(unsigned int cpu)
     int                 i           = 0;
     struct desc_struct *gdt_table   = get_cpu_gdt_table(cpu);
 
-
     printk("GDT_ENTRIES = %d\n", GDT_ENTRIES);
+    printk("GDT_ENTRY_TLS_MIN  = %d\n", GDT_ENTRY_TLS_MIN);
+    printk("GDT_ENTRY_TLS_ENTRIES = %d\n", GDT_ENTRY_TLS_ENTRIES);
+
     printk("-----------------------------------\n");
     printk("|\t\t\t\t| type | dpl | s |\n");
     for(i = 0; i < GDT_ENTRIES; i++)
