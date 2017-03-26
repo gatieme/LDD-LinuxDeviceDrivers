@@ -18,6 +18,16 @@ cat /sys/kernel/debug/tracing/available_events | grep sample-trace
 cd /sys/kernel/debug/tracing/events/sample-trace
 
 
+#3  列出所有的events
+-------
+
+find /sys/kernel/debug/tracing/events -type d
+
+cat /sys/kernel/debug/tracing/available_events
+
+trace-cmd list
+
+perf list 2>&1 | grep Tracepoint
 
 #3  trace-cmd
 -------
