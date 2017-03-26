@@ -38,3 +38,9 @@ sudo trace-cmd record -e sample-trace:foo_with_template_print
 
 sudo trace-cmd report
 
+
+#文档中的错误
+-------
+
+http://lxr.free-electrons.com/source/Documentation/trace/events.txt?v=4.10#L278
+all events but those that have not a prev_pid field retain their old filters
