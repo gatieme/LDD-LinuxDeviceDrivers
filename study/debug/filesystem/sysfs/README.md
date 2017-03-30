@@ -1,0 +1,1 @@
+[用户空间与内核空间数据交换的方式(4)------relayfs](http://www.cnblogs.com/hoys/archive/2011/04/10/2011270.html)
