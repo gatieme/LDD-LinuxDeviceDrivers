@@ -208,10 +208,8 @@ extern int console_printk[];
 #define default_console_loglevel (console_printk[3])
 ```
 
-
-
-
 没有指定日志级别的 `printk` 语句默认采用的级别是 `DEFAULT_ MESSAGE_LOGLEVEL`(这个默认级别一般为 `4`, 即与`KERN_WARNING` 在一个级别上), 其定义在linux26/kernel/printk.c中可以找到, 可以通过编译时配置 `CONFIG_MESSAGE_LOGLEVEL_DEFAULT` 变量来修改
+
 
 
 
@@ -242,6 +240,19 @@ extern int console_printk[];
 如果 `klogd` 没有运行, 消息不会传递到用户空间, 只能查看 `/proc/kmsg`.
 
 变量 `console_loglevel` 的初始值是 `DEFAULT_CONSOLE_LOGLEVEL`, 可以通过 `sys_syslog` 系统调用进行修改. 调用 `klogd` 时可以指定 `-c` 开关选项来修改这个变量. 如果要修改它的当前值, 必须先杀掉 `klogd`, 再加 `-c` 选项重新启动它.
+
+
+在控制台（这里指的是虚拟终端  Ctrl+Alt+(F1~F6)）加载模块以后，控制台给出的信息为
+6~9行中要求输出的信息，我们在伪终端（如果对伪终端不是很清楚可以看相关的内容）上运行命令tail -n 10 /var/log/messages查看日志文件刚才得到的运行记录
+可以发现messages中的值为KERN_WARNING级别之后所要求输出到信息值。而如果我们在文件syslog和kern-log中查看系统日志文件，一般情况下可以得到所有的输出信息
+即一般情况下, `syslog` 和 `kern.log` 两个文件中记录的内容从编程这个角度来看是基本一致的。
+在目录/var/log/下有一下四个文件可以查看日志
+syslog ，kern.log，messages ，DEBUG 。   
+syslog和kern.log一般情况下可以得到所有的系统输出值，而messages得到的是比控制台日志级别低的输出值，DEBUG得到的仅仅是DEBUG级别的
+输出值。
+一般情况下，优先级高于控制台日志级别的消息将被打印到控制台。优先级低于控制台日志级别的消息将被打印到messages日志文件中，而在伪终端下不打印任何的信息。
+我们在进行有关编程的时候，若使用到printk()这个函数，一般查看信息是在messages和虚拟终端下进行查看，而对于syslog和kern.log下是用来检验所有信息的输出情况。
+
 
 通过读写 `/proc/sys/kernel/printk`文件可读取和修改控制台的日志级别.
 
