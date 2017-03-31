@@ -196,6 +196,18 @@ mount -t sysfs sysfs /sysfs
 #3  printk
 -------
 
+在内核调试技术之中, 最简单的就是 `printk` 的使用了, 它的用法和C语言应用程序中的 `printf` 使用类似, 在应用程序中依靠的是 `stdio.h` 中的库, 而在 `linux` 内核中没有这个库, 所以在 `linux` 内核中, 实现了自己的一套库函数, `printk` 就是标准的输出函数
+
+
+[linux内核调试技术之printk](http://www.cnblogs.com/veryStrong/p/6218383.html)
+
+
+[调整内核printk的打印级别](http://blog.csdn.net/tonywgx/article/details/17504001)
+
+
+[ linux设备驱动学习笔记--内核调试方法之printk](http://blog.csdn.net/itsenlin/article/details/43205983)
+
+
 
 #4	ftrace && trace-cmd
 -------
@@ -255,7 +267,7 @@ mount -t sysfs sysfs /sysfs
 
 
 
-##4.2   trace-cmd
+##4.2   ftrace前端工具trace-cmd
 -------
 
 *	trace-cmd 介绍
@@ -284,7 +296,7 @@ sudo trace-cmd reord subsystem:tracing
 #5	Kprobe && systemtap
 -------
 
-##5.1   kprobe
+##5.1   内核kprobe机制
 -------
 
 
@@ -312,7 +324,7 @@ sudo trace-cmd reord subsystem:tracing
 
 
 
-##5.2   systemtap
+##5.2   前端工具systemtap
 -------
 
 
