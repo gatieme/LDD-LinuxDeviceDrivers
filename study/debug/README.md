@@ -10,13 +10,16 @@ Linux内核调试的方式以及工具集锦
 本作品采用<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议</a>进行许可, 转载请注明出处, 谢谢合作
 <br>
 
-#1	内核调试以及工具总结
--------
+
 
 ```cpp
 "调试难度本来就是写代码的两倍. 因此, 如果你写代码的时候聪明用尽, 根据定义, 你就没有能耐去调试它了."
 		--Brian Kernighan
 ```
+
+#1	内核调试以及工具总结
+-------
+
 
 内核总是那么捉摸不透, 内核也会犯错, 但是调试却不能像用户空间程序那样, 为此内核开发者为我们提供了一系列的工具和系统来支持内核的调试.
 
@@ -205,7 +208,7 @@ mount -t sysfs sysfs /sysfs
 [调整内核printk的打印级别](http://blog.csdn.net/tonywgx/article/details/17504001)
 
 
-[ linux设备驱动学习笔记--内核调试方法之printk](http://blog.csdn.net/itsenlin/article/details/43205983)
+[linux设备驱动学习笔记--内核调试方法之printk](http://blog.csdn.net/itsenlin/article/details/43205983)
 
 
 
