@@ -242,16 +242,20 @@ extern int console_printk[];
 变量 `console_loglevel` 的初始值是 `DEFAULT_CONSOLE_LOGLEVEL`, 可以通过 `sys_syslog` 系统调用进行修改. 调用 `klogd` 时可以指定 `-c` 开关选项来修改这个变量. 如果要修改它的当前值, 必须先杀掉 `klogd`, 再加 `-c` 选项重新启动它.
 
 
-在控制台（这里指的是虚拟终端  Ctrl+Alt+(F1~F6)）加载模块以后，控制台给出的信息为
-6~9行中要求输出的信息，我们在伪终端（如果对伪终端不是很清楚可以看相关的内容）上运行命令tail -n 10 /var/log/messages查看日志文件刚才得到的运行记录
-可以发现messages中的值为KERN_WARNING级别之后所要求输出到信息值。而如果我们在文件syslog和kern-log中查看系统日志文件，一般情况下可以得到所有的输出信息
-即一般情况下, `syslog` 和 `kern.log` 两个文件中记录的内容从编程这个角度来看是基本一致的。
-在目录/var/log/下有一下四个文件可以查看日志
-syslog ，kern.log，messages ，DEBUG 。   
-syslog和kern.log一般情况下可以得到所有的系统输出值，而messages得到的是比控制台日志级别低的输出值，DEBUG得到的仅仅是DEBUG级别的
-输出值。
-一般情况下，优先级高于控制台日志级别的消息将被打印到控制台。优先级低于控制台日志级别的消息将被打印到messages日志文件中，而在伪终端下不打印任何的信息。
-我们在进行有关编程的时候，若使用到printk()这个函数，一般查看信息是在messages和虚拟终端下进行查看，而对于syslog和kern.log下是用来检验所有信息的输出情况。
+在控制台(这里指的是虚拟终端 `Ctrl+Alt+(F1~F6)` )加载模块以后, 我们在伪终端(如果对伪终端不是很清楚可以看相关的内容)上运行命令 `dmesg` 查看日志文件刚才得到的运行记录
+
+可以发现 `messages` 中的值为 `KERN_WARNING` 级别之后所要求输出到信息值. 而如果我们在文件 `syslog` 和 `kern-log` 中查看系统日志文件，一般情况下可以得到所有的输出信息
+即一般情况下, `syslog` 和 `kern.log` 两个文件中记录的内容从编程这个角度来看是基本一致的.
+
+在目录 `/var/log/` 下有一下四个文件可以查看日志
+`syslog`, `kern.log`, `messages`, `DEBUG`.
+
+`syslog` 和 `kern.log` 一般情况下可以得到所有的系统输出值, 而 `messages` 得到的是比控制台日志级别低的输出值, `DEBUG` 得到的仅仅是 `DEBUG` 级别的输出值.
+
+
+一般情况下, 优先级高于控制台日志级别的消息将被打印到控制台. 优先级低于控制台日志级别的消息将被打印到`messages` 日志文件中, 而在伪终端下不打印任何的信息.
+
+我们在进行有关编程的时候, 若使用到 `printk` 这个函数, 一般查看信息是在 `messages` 和虚拟终端下进行查看, 而对于 `syslog` 和 `kern.log` 下是用来检验所有信息的输出情况.
 
 
 
@@ -279,9 +283,19 @@ syslog和kern.log一般情况下可以得到所有的系统输出值，而messag
 
 [linux设备驱动学习笔记--内核调试方法之printk](http://blog.csdn.net/itsenlin/article/details/43205983)
 
+[内核日志及printk结构浅析 ](http://blog.chinaunix.net/uid-26993600-id-3252420.html)
+
+[驱动程序调试方法之printk——printk的原理与直接使用](http://www.cnblogs.com/lidabo/p/5414007.html)
 
 
+[Linux内核调试方法总结](https://my.oschina.net/fgq611/blog/113249)
 
+[掌握 Linux 调试技术](https://www.ibm.com/developerworks/cn/linux/sdk/l-debug/index.html#resources)
+
+
+[Linux内核调试技术之printk](http://sanwen.net/a/yqiuxqo.html)
+
+[Linux内核调拭之printk用法](https://www.zhukun.net/archives/6667)
 
 <br>
 

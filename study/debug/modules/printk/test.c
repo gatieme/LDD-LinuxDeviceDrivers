@@ -29,6 +29,7 @@ static void print_loginfo(void)
 
 static int book_init(void)
 {
+    printk("Book module init\n");
     //print_loglevel();
     print_loginfo();
     return 0;
