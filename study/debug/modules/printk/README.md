@@ -162,10 +162,10 @@ EXPORT_SYMBOL(printk);
 ```cpp
 //  http://lxr.free-electrons.com/source/kernel/printk/printk.c?v=4.10#L59
 int console_printk[4] = {
-        CONSOLE_LOGLEVEL_DEFAULT,       /* console_loglevel, 默认控制台日志级别 */
+        CONSOLE_LOGLEVEL_DEFAULT,       /* console_loglevel, 控制台日志级别 */
         MESSAGE_LOGLEVEL_DEFAULT,       /* default_message_loglevel, 默认日志级别 */
         CONSOLE_LOGLEVEL_MIN,           /* minimum_console_loglevel, 最低的控制台日志级别 */
-         CONSOLE_LOGLEVEL_DEFAULT,       /* default_console_loglevel, 默认的 */
+         CONSOLE_LOGLEVEL_DEFAULT,       /* default_console_loglevel, 默认控制台日志级别 */
 };
 ```
 
@@ -254,10 +254,15 @@ syslog和kern.log一般情况下可以得到所有的系统输出值，而messag
 我们在进行有关编程的时候，若使用到printk()这个函数，一般查看信息是在messages和虚拟终端下进行查看，而对于syslog和kern.log下是用来检验所有信息的输出情况。
 
 
-通过读写 `/proc/sys/kernel/printk`文件可读取和修改控制台的日志级别.
+
 
 ##3.2	修改日志级别
 -------
+
+通过读写 `/proc/sys/kernel/printk`文件可读取和修改控制台的日志级别.
+
+![日志运行级别](cat_proc_sys_kernel_printk.png)
+
 
 
 [linux内核printk调试](http://blog.csdn.net/catamout/article/details/5380562)
