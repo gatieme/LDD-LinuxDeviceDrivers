@@ -225,16 +225,12 @@ extern int console_printk[];
 
 使用 `ps -aux | grep -E "syslogd|klogd"`, 查看系统日志服务是否运行
 
-![服务是否运行]()
 
 
-可以查看系统的日志文件, `Ubuntu` 系统中 `/var/log/kern`
 
-![查看日志]()
+可以查看系统的日志文件, `Ubuntu` 系统中 `/var/log/kern`, 或者直接使用 `dmesg` 查看
 
-或者直接使用 `dmesg` 查看
 
-![`dmesg`查看日志]()
 
 
 如果 `klogd` 没有运行, 消息不会传递到用户空间, 只能查看 `/proc/kmsg`.
@@ -244,16 +240,25 @@ extern int console_printk[];
 
 在控制台(这里指的是虚拟终端 `Ctrl+Alt+(F1~F6)` )加载模块以后, 我们在伪终端(如果对伪终端不是很清楚可以看相关的内容)上运行命令 `dmesg` 查看日志文件刚才得到的运行记录
 
-可以发现 `messages` 中的值为 `KERN_WARNING` 级别之后所要求输出到信息值. 而如果我们在文件 `syslog` 和 `kern-log` 中查看系统日志文件，一般情况下可以得到所有的输出信息
-即一般情况下, `syslog` 和 `kern.log` 两个文件中记录的内容从编程这个角度来看是基本一致的.
+可以发现 `messages` 中的值为 `KERN_WARNING` 级别之后所要求输出到信息值. 而如果我们在文件 `syslog` 和 `kern-log` 中查看系统日志文件，一般情况下可以得到所有的输出信息, 即一般情况下, `syslog` 和 `kern.log` 两个文件中记录的内容从编程这个角度来看是基本一致的.
+
+
 
 在目录 `/var/log/` 下有一下四个文件可以查看日志
-`syslog`, `kern.log`, `messages`, `DEBUG`.
+`syslog`, `kern.log`, `messages`, `debug`.
 
-`syslog` 和 `kern.log` 一般情况下可以得到所有的系统输出值, 而 `messages` 得到的是比控制台日志级别低的输出值, `DEBUG` 得到的仅仅是 `DEBUG` 级别的输出值.
+| 日志文件 | 描述 |
+|:------:|:----:|
+| syslog, kern.log | 一般情况下可以得到所有的系统输出值 |
+| messages | 得到的是比控制台日志级别低的输出值 |
+| debug | 得到的仅仅是 `debug` 级别的输出值. |
+
+`syslog` 和 `kern.log` 一般情况下可以得到所有的系统输出值, 而 `messages` 得到的是比控制台日志级别低的输出值, `debug` 得到的仅仅是 `debug` 级别的输出值.
 
 
 一般情况下, 优先级高于控制台日志级别的消息将被打印到控制台. 优先级低于控制台日志级别的消息将被打印到`messages` 日志文件中, 而在伪终端下不打印任何的信息.
+
+> 关于系统中日志文件的用途, 请参见[ubuntu /var/log/下各个日志文件描述及修复无message文件和debug文件](http://blog.csdn.net/gatieme/article/details/68951962), 如果系统中没有message, debug 日志文件也请参见[ubuntu /var/log/下各个日志文件描述及修复无message文件和debug文件](http://blog.csdn.net/gatieme/article/details/68951962)
 
 我们在进行有关编程的时候, 若使用到 `printk` 这个函数, 一般查看信息是在 `messages` 和虚拟终端下进行查看, 而对于 `syslog` 和 `kern.log` 下是用来检验所有信息的输出情况.
 
@@ -265,14 +270,86 @@ extern int console_printk[];
 
 通过读写 `/proc/sys/kernel/printk`文件可读取和修改控制台的日志级别.
 
+![权限信息](cat_proc_sys_kernel_printk.png)
+
+
 ![日志运行级别](cat_proc_sys_kernel_printk.png)
 
+
+内容依次分别为, 控制台日志级别 `console_loglevel`, 默认消息级别 `default_message_loglevel`, 控制台最小的日志级别 `minimum_console_loglevel`, 默认的控制台日志级别 `default_console_loglevel`
+
+可以看到控制台日志级别为4, 对应的是 `KERN_WARNING`, 也就是说优先级别比`KERN_WARNING`的内容都会显示`messaging`, 而`KERN_DEBUG`的内容会显示在`debug`中
+
+
+我们通过一个例子来展示
+
+```cpp
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/printk.h>
+
+MODULE_LICENSE("Dual BSD/GPL");
+
+
+
+
+static void print_loginfo(void)
+{
+
+    printk(KERN_EMERG   "EMERG  = %s\n", KERN_EMERG);
+    printk(KERN_ALERT   "ALERT  = %s\n", KERN_ALERT);
+    printk(KERN_CRIT    "CRIT   = %s\n", KERN_CRIT);
+    printk(KERN_ERR     "ERR    = %s\n", KERN_ERR);
+    printk(KERN_WARNING "WARNING= %s\n", KERN_WARNING);
+    printk(KERN_NOTICE  "NOTICE = %s\n", KERN_NOTICE);
+    printk(KERN_INFO    "INFO   = %s\n", KERN_INFO);
+    printk(KERN_DEBUG   "DEBUG  = %s\n", KERN_DEBUG);
+}
+
+
+static int book_init(void)
+{
+    printk("Book module init\n");
+
+    print_loginfo();
+
+	return 0;
+}
+
+static void book_exit(void)
+{
+    printk(KERN_ALERT "Book module exit\n");
+}
+
+
+module_init(book_init);
+module_exit(book_exit);
+```
+
+
+查看日志的信息 `dmesg` 或者 `cat /var/log/syslog  `
+
+![查看日志的信息 `dmesg` ](cat_var_log_syslog.png)
+
+查看 `message` 信息, 或者 `cat /var/log/syslog`
+
+
+![查看 `message` 信息](cat_var_log_messages.png)
+
+查看 `debug` 信息
+
+
+![查看 `debug` 信息](cat_var_log_debug.png)
+
+
+
+#4	参考
+-------
 
 
 [linux内核printk调试](http://blog.csdn.net/catamout/article/details/5380562)
 
 
-在内核文件中 `printk.c (kernel)` 中初始化这个 `console_loglevel` 的级别为 `7`.
 
 
 [linux内核调试技术之printk](http://www.cnblogs.com/veryStrong/p/6218383.html)
