@@ -1,7 +1,8 @@
 //  http://blog.csdn.net/tommy_wxie/article/details/12521535
 //  http://blog.chinaunix.net/uid-20651662-id-1906954.html
 //
-#include <linux/kerel.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
 #include <linux/module.h>
 
 static int __init hello_init(void)
