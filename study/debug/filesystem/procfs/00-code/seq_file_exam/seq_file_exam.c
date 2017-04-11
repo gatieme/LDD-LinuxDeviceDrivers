@@ -7,10 +7,12 @@
 
 #include <linux/percpu.h>
 #include <linux/sched.h>
-
+#include <linux/version.h>
 
 
 static struct proc_dir_entry *entry;
+#define PROC_NAME   "exam_seq_file"
+
 
 static void *l_start(struct seq_file *m, loff_t * pos)
 {
@@ -71,17 +73,29 @@ static struct file_operations exam_seq_fops = {
 
 static int __init exam_seq_init(void)
 {
-
-    entry = create_proc_entry("exam_esq_file", 0666, NULL);
-    if (entry)
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,4,0))
+    entry = proc_create(PROC_NAME, 0, NULL, &exam_seq_fops);
+#else
+    entry = create_proc_entry(PROC_NAME, 0666, NULL);
+    if (entry != NULL)
         entry->proc_fops = &exam_seq_fops;
+#endif
+
+    if(entry == NULL)
+    {
+        remove_proc_entry(PROC_NAME, NULL);
+        printk(KERN_DEBUG "Error: Could not initialize /proc/%s\n", PROC_NAME);
+        return -ENOMEM;
+    }
 
     return 0;
 }
 
 static void __exit exam_seq_exit(void)
 {
-    remove_proc_entry("exam_esq_file", NULL);
+    remove_proc_entry(PROC_NAME, NULL);
+    printk(KERN_DEBUG "/proc/%s removed\n", PROC_NAME);
+
 }
 
 module_init(exam_seq_init);
