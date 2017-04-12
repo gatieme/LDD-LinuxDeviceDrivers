@@ -15,3 +15,4 @@ http://www.ibm.com/developerworks/cn/linux/l-cn-systemtap3/
 [Systemtap-Documentation](https://sourceware.org/systemtap/documentation.html)
 [Language Reference](https://sourceware.org/systemtap/langref/)
 [IBM RedBook Systemtap](http://www.redbooks.ibm.com/abstracts/redp4469.html)
+[Debian Systemtap Package](https://packages.qa.debian.org/s/systemtap.html)
