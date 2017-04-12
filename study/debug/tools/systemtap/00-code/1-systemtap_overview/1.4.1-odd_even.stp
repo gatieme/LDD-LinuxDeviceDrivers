@@ -1,0 +1,36 @@
+# 1.4.1 Basic SystemTap syntax and control structures
+#
+# https://sourceware.org/systemtap/langref/SystemTap_overview.html#SECTION00024100000000000000
+#
+
+global odds, evens
+
+probe begin 
+{
+    # "no" and "he" are local integers  
+    for(i = 0; i < 10; i++)
+    {
+        if (i % 2)          # 奇数odd 
+            odds[no++] = i
+        else                # 偶数 even
+            evens[ne++] = i
+    }
+
+    delete odds[2]
+    delete evens[3]
+    exit()
+}
+
+
+probe end
+{
+    foreach (x+ in odds)
+    {
+        printf ("odds[%d] = %d\n", x, odds[x])
+    }
+     
+    foreach (x in evens-)
+    {
+        printf ("evens[%d] = %d\n", x, evens[x])
+    }
+}

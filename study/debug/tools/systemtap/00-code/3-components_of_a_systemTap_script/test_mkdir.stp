@@ -1,0 +1,20 @@
+
+probe kernel.function("sys_mkdir").call
+{
+	printf("enter %s\n", $pathname);
+}
+
+probe kernel.function("sys_mkdir").return
+{
+	printf("exit %s\n", $pathname);
+}
+
+probe begin
+{
+	printf("test mkdir begin\n");
+}
+
+probe end
+{
+	printf("test mkdir end\n");
+}

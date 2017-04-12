@@ -1,0 +1,41 @@
+#1.4.2 Primes between 0 and 49
+#
+#
+#https://sourceware.org/systemtap/langref/SystemTap_overview.html#SECTION00024200000000000000
+#
+#
+
+function isprime (x)
+{
+    if (x < 2) 
+    {
+        return 0
+    }
+     
+    for (i = 2; i < x; i++)
+    {
+        if (x % i == 0) 
+        {
+            return 0
+        }
+            
+        if (i * i > x)
+        {
+            break
+        }
+    }
+    
+    return 1
+}
+
+probe begin
+{
+    for (i = 0; i < 50; i++)
+    {
+        if (isprime (i)) 
+        {
+            printf("%d\n", i)
+        }
+    }
+    exit()
+}

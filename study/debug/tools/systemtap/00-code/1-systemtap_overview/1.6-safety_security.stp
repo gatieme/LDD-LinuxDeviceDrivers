@@ -1,0 +1,13 @@
+#1.6 Safety and security
+#
+#https://sourceware.org/systemtap/langref/SystemTap_overview.html#SECTION00026000000000000000
+#
+#
+
+probe begin
+{
+	printf("MAXENSTING = %d\n", MAXNESTING);
+	printf("MAXSTRINGLEN= %d\n", MAXSTRINGLEN);
+	exit( );
+}
+

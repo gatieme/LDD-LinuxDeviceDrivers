@@ -1,0 +1,33 @@
+#1.4.2 Primes between 0 and 49
+#
+#https://sourceware.org/systemtap/langref/SystemTap_overview.html#SECTION00024300000000000000
+#
+#
+
+function fibonacci(i)
+{
+	if (i < 1)
+	{
+		error ("bad number");
+	}
+	
+	if (i == 1)
+	{
+		return 1;
+	}
+	if (i == 2) 
+	{
+		return 2;
+	}
+
+	return fibonacci (i - 1) + fibonacci (i - 2);
+}
+
+probe begin
+{
+	for(i = 1; i <= 11; i++)
+	{
+		printf ("%2dth fibonacci number: %4d\n", i, fibonacci(i));
+	}
+	exit()
+}

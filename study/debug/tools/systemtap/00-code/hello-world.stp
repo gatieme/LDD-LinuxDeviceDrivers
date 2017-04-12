@@ -1,6 +1,6 @@
 probe begin
 {
-    print("Hello Wordl\n")
+    print("Hello World\n")
     exit()
 }
 
