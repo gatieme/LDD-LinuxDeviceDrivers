@@ -1,12 +1,18 @@
 
 probe kernel.function("sys_mkdir").call
 {
-	printf("enter %s\n", $pathname);
+	log("enter");
 }
 
 probe kernel.function("sys_mkdir").return
 {
-	printf("exit %s\n", $pathname);
+	log("exit\n\n");
+}
+
+
+probe syscall.mkdir
+{
+	printf ("%s(%d) mkdir (%s)\n", execname( ), pid( ), argstr)
 }
 
 probe begin
