@@ -13,6 +13,10 @@
 # ------------------------------------------------------------------------------
 
 
+ROOT=..
+#PLATFORM=$(shell $(ROOT)/systype.sh)
+#include $(ROOT)/Make.defines.$(PLATFORM)
+
 #	my driver description
 DRIVER_VERSION := "1.0.0"
 DRIVER_AUTHOR  := "Gatieme @ AderStep Inc..."
@@ -21,32 +25,26 @@ DRIVER_LICENSE := "Dual BSD/GPL"
 
 
 MODULE_NAME := trace-events-sample
-#MODCFLAGS:=-O2 -Wall -DMODULE -D__KERNEL__ -DLINUX -std=c99
-SRC	:= /home/gatieme/Work/GitHub/LDD-LinuxDeviceDrivers/study/debug/trace/trace-events-sample
-EXTRA_CFLAGS  += -I$(SRC)
 
 
 
 
+ifneq ($(KERNELRELEASE),) 	# kernelspace
 
-ifneq ($(KERNELRELEASE),)
+obj-m := $(MODULE_NAME).o
+EXTRA_CFLAGS  += -g -O2 -I$(PWD)
+
+else						# userspace
 
 
-
-
-obj-m := $(MODULE_NAME).o #print_vmarea.o
-
-else
-
-KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-
-PWD := $(shell pwd)
+LINUX_KERNEL ?= $(shell uname -r)
+LINUX_KERNEL_PATH ?= /lib/modules/$(LINUX_KERNEL)/build
 
 modules:
-	make -C $(KERNELDIR) M=$(PWD) modules
+	make -C $(LINUX_KERNEL_PATH) M=$(PWD) modules
 
 modules_install:
-	make -C $(KERNELDIR) M=$(PWD) modules_install
+	make -C $(LINUX_KERNEL_PATH) M=$(PWD) modules_install
 
 
 
@@ -64,12 +62,10 @@ rmmod:
 	sudo rmmod $(MODULE_NAME)
 
 test :
-	cat /sys/kernel/debug/mydebug/a
-	cat /sys/kernel/debug/mydebug/b
-	cat /sys/kernel/debug/mydebug/subdir/c
+	sudo ../injector/memInjector -l stack -m random -t word_0 --time 1 --timeout 3 -p 1
 
 clean:
-	make -C $(KERNELDIR) M=$(PWD) clean
+	make -C $(LINUX_KERNEL_PATH) M=$(PWD) clean
 	rm -f modules.order Module.symvers Module.markers
 
 .PHNOY:
