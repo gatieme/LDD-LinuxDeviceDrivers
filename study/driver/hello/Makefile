@@ -25,30 +25,29 @@ DRIVER_LICENSE := "Dual BSD/GPL"
 
 
 MODULE_NAME := hello
-MODCFLAGS:=-O6 -Wall -DMODULE -D__KERNEL__ -DLINUX -std=c99
+#MODCFLAGS:=-O2 -Wall -DMODULE -D__KERNEL__ -DLINUX -std=c99
+#EXTRA_CFLAGS  += $(MODULE_FLAGS) $(CFG_INC) $(CFG_INC)
 
 
 
-ifneq ($(KERNELRELEASE),)
+ifneq ($(KERNELRELEASE),) 	# kernelspace
 
-#CFG_FLAGS += -O2  -I./
-#EXTRA_CFLAGS  += $(C_FLAGS) $(CFG_INC) $(CFG_INC)
+obj-m := $(MODULE_NAME).o
+
+else						# userspace
 
 
+CURRENT_PATH ?= $(shell pwd)
+LINUX_KERNEL ?= $(shell uname -r)
+LINUX_KERNEL_PATH ?= /lib/modules/$(LINUX_KERNEL)/build
 
-obj-m := $(MODULE_NAME).o #print_vmarea.o
-
-else
-
-KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-
-PWD := $(shell pwd)
+CURRENT_PATH := $(shell pwd)
 
 modules:
-	make -C $(KERNELDIR) M=$(PWD) modules
+	make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) modules
 
 modules_install:
-	make -C $(KERNELDIR) M=$(PWD) modules_install
+	make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) modules_install
 
 
 
@@ -69,7 +68,7 @@ test :
 	sudo ../injector/memInjector -l stack -m random -t word_0 --time 1 --timeout 3 -p 1
 
 clean:
-	make -C $(KERNELDIR) M=$(PWD) clean
+	make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) clean
 	rm -f modules.order Module.symvers Module.markers
 
 .PHNOY:
