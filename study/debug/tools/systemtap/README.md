@@ -12,5 +12,6 @@ http://www.ibm.com/developerworks/cn/linux/l-cn-systemtap3/
 [Systemtap语言详解](http://blog.csdn.net/linyt/article/category/645022)
 
 [Systemtap-Wiki](https://sourceware.org/systemtap/wiki)
-
+[Systemtap-Documentation](https://sourceware.org/systemtap/documentation.html)
 [Language Reference](https://sourceware.org/systemtap/langref/)
+[IBM RedBook Systemtap](http://www.redbooks.ibm.com/abstracts/redp4469.html)
