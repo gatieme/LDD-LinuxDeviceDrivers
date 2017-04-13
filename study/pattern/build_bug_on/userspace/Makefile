@@ -1,5 +1,5 @@
 CFLAGS = -std=gnu99
-target=not_power_of_2 zero
+target=not_power_of_2 zero null
 
 all:$(target)
 
@@ -12,19 +12,19 @@ zero : build_bug_on_zero.o
 	@echo "BUILD_BUG_ON_ZERO..."
 
 
-SCClient : SCClient.o
+null : build_bug_on_null.o
 	$(CC) $^ -o $@ $(LDFLAGS) -lpthread
-	@echo "简单的模拟高并发的客户端..."
+	@echo "BUILD_BUG_ON_NULL..."
 
-SCMClient : SCMClient.o
+invalid : build_bug_on_invalid.o
 	$(CC) $^ -o $@ $(LDFLAGS) -lpthread
-	@echo "带线程锁的模拟高并发的客户端..."
+	@echo "BUILD_BUG_ON_INVALID..."
 
 %.o : %.c
-	-$(CC) -c $^ -o $@  $(CFLAGS) $(DEFINES)
+	$(CC) -c $^ -o $@  $(CFLAGS) $(DEFINES)
 
 %.o	: %.cpp
-	-$(CXX) -c $^ -o $@  $(CFLAGS) $(DEFINES)
+	$(CXX) -c $^ -o $@  $(CFLAGS) $(DEFINES)
 
 clean :
 	rm -rf *.o

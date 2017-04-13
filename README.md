@@ -24,5 +24,11 @@ LDD-LinuxDeviceDrivers
 
 
 
+#3  TODOLIST--目前在完成的工作
+-------
 
-
+| 任务 | 描述 |
+|:----:|:----:|
+| study/debug                   | 内核调试工具集锦, 包括debugfs, trace, gdb, systemtap 的介绍和使用     |
+| study/pattern                 | 内核设计的奇技淫巧, 介绍内核中使用的一些高级语法技巧和设计思路        |
+| study/kernel/data_structure   | 介绍内核中提供的数据结构的用法                                        |
