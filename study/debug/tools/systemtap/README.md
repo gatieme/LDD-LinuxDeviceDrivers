@@ -19,3 +19,5 @@ http://www.ibm.com/developerworks/cn/linux/l-cn-systemtap3/
 
 [使用systemtap调试Linux内核](http://www.tuicool.com/articles/a6fYnyY)
 http://www.aikaiyuan.com/8862.html
+
+[centos7 systemtap 介绍](http://www.fx114.net/qa-131-159851.aspx)
