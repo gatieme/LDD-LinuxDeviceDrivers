@@ -16,3 +16,6 @@ http://www.ibm.com/developerworks/cn/linux/l-cn-systemtap3/
 [Language Reference](https://sourceware.org/systemtap/langref/)
 [IBM RedBook Systemtap](http://www.redbooks.ibm.com/abstracts/redp4469.html)
 [Debian Systemtap Package](https://packages.qa.debian.org/s/systemtap.html)
+
+[使用systemtap调试Linux内核](http://www.tuicool.com/articles/a6fYnyY)
+http://www.aikaiyuan.com/8862.html
