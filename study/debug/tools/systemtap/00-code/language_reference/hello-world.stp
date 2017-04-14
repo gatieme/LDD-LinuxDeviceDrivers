@@ -1,0 +1,15 @@
+#  http://blog.csdn.net/justlinux2010/article/details/10050265
+function print_value()
+{
+    printf("probefunc = %s, ppfunc = %s", probefunc( ), ppfunc( ));
+    printf("pid = %d, tid = %d, common = %s\n", pid( ), tid( ), execname( ));
+    printf("cpu = %d, probefunc = %s", cpu( ), probefunc( ));
+    
+}
+
+probe begin
+{
+    print("Hello World\n")
+    exit()
+}
+

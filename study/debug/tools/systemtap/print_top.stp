@@ -1,0 +1,29 @@
+#!/usr/bin/env stap    #Systemtap脚本的标志
+#
+#  显示在最后5秒内调用最后10个系统调用
+#  display the top 10 syscalls called in last 5 seconds
+#
+global syscalls         #  定义全局变量
+function print_top( )    #  定义函数
+{
+        cnt = 0         #  局部变量
+        log ("SYSCALL\t\t\t\tCOUNT")      #  打印表头标题“SYSCALL COUNT”
+
+        foreach ([name] in syscalls-) {   #  查询每个系统调用的计数值
+                printf("%-20s\t\t%5d\n",name, syscalls[name])  #  按格式打印
+                if (cnt++ == 10)
+                        break
+        }
+        printf("--------------------------------------\n")
+        delete syscalls                 #删除全局变量
+}
+
+probe syscall.*     #  在系统调用探测点
+{
+        syscalls[probefunc( )]++      #  系统调用计数
+}
+
+probe timer.ms(5000)
+{
+    print_top( )         #调用函数
+}

@@ -1,8 +1,7 @@
-http://www.cnblogs.com/hazir/p/systemtap_introduction.html
-
 http://ddebs.ubuntu.com/pool/main/l/linux/
-
 http://www.ibm.com/developerworks/cn/linux/l-cn-systemtap3/
+https://www.ibm.com/developerworks/cn/linux/l-systemtap/
+
 
 [内核探测工具systemtap简介](http://www.cnblogs.com/hazir/p/systemtap_introduction.html)
 
@@ -26,3 +25,7 @@ http://blog.csdn.net/trochiluses/article/details/9698449
 
 [如何在ubuntu上基于自定义内核安装systemtap](http://blog.csdn.net/trochiluses/article/details/9698449)
 [Optional: Installing on a custom kernel](https://www.ibm.com/support/knowledgecenter/linuxonibm/liaai.systemTap/liaaisystapcustom.htm)
+
+
+[SystemTap----常用变量、宏、函数和技巧](http://blog.csdn.net/justlinux2010/article/details/10050265)
+[systemtap常用内置函数](http://zhengheng.me/2015/02/11/systemtap-useful-functions/)
