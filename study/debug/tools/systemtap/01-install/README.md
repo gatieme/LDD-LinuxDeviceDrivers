@@ -132,10 +132,6 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-5
 ```cpp
 debuinfo-install kernel-debuginfo-`uname -r`
 
-```
-
-
-`
 
 ##1.2	Ubuntu安装 `kernel-debuginfo`
 -------
@@ -191,6 +187,10 @@ sudo apt-get install linux-image-`uname -r`-dbgsym
 
 
 
+```
+
+http://www.domaigne.com/blog/random/getting-debug-kernel-on-ubuntu/
+`
 
 下载对应内核版本的 `debug-info package`
 
