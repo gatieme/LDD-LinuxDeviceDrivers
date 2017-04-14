@@ -21,3 +21,8 @@ http://www.ibm.com/developerworks/cn/linux/l-cn-systemtap3/
 http://www.aikaiyuan.com/8862.html
 
 [centos7 systemtap 介绍](http://www.fx114.net/qa-131-159851.aspx)
+http://blog.csdn.net/trochiluses/article/details/9698449
+
+
+[如何在ubuntu上基于自定义内核安装systemtap](http://blog.csdn.net/trochiluses/article/details/9698449)
+[Optional: Installing on a custom kernel](https://www.ibm.com/support/knowledgecenter/linuxonibm/liaai.systemTap/liaaisystapcustom.htm)
