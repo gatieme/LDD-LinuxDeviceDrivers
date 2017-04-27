@@ -481,6 +481,18 @@ KGTP在Linux内核 2.6.18到upstream 上都被测试过。
 
 [Linux内核调试方法](http://www.cnblogs.com/shineshqw/articles/2359114.html)
 
+http://blog.csdn.net/bob_fly1984/article/details/51405856
+http://www.verydemo.com/demo_c167_i62250.html
+http://www.oschina.net/translate/dynamic-debug-howto?print
+https://my.oschina.net/fgq611/blog/113249
+http://www.fx114.net/qa-171-140555.aspx
+http://www.fx114.net/qa-40-147583.aspx
+http://www.fx114.net/qa-48-128913.aspx
+https://my.oschina.net/fgq611/blog/113249
+http://www.fx114.net/qa-120-128312.aspx
+http://www.fx114.net/qa-259-116990.aspx
+
+
 <br>
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a>
 本作品采用<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议</a>进行许可, 转载请注明出处, 谢谢合作
