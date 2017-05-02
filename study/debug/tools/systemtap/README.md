@@ -45,3 +45,6 @@ https://lists.linux-foundation.org/pipermail/ksummit-2008-discuss/2008-June/0001
 http://dtrace.org/blogs/ahl/2011/10/05/dtrace-for-linux-2/
 
 http://redmonk.com/sogrady/2008/07/01/dtrace-vs-systemtap-redux/
+
+
+[使用systemtap调试Linux内核](http://www.lenky.info/archives/2013/02/2209)
