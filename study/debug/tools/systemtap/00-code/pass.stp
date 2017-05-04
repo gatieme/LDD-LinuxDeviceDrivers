@@ -1,0 +1,21 @@
+# usage stap $0 '2+3' '5+5'
+
+probe begin
+{
+%( $# == 2 %?
+    printf("%d, %d\n", $1, $2)
+    printf("%s, %s\n", @1, @2)
+%)
+    if ($# == 2)
+    {
+        printf("%d, %d\n", $1, $2)
+        printf("%s, %s\n", @1, @2)
+    }
+
+    exit();
+}
+
+probe end
+{
+    printf("END\n")
+}

@@ -1,0 +1,20 @@
+#5.9.1 Local macros
+#
+#  @define NAME %( BODY %)
+#  @define NAME(PARAM_1, PARAM_2, ...) %( BODY %)
+
+
+@define foo %( x %)
+@define add(a, b) %( ((@a) + (@b)) %)
+
+probe begin
+{
+    @foo = @add(4, 5)
+    printf("%d\n", @foo)
+    exit()
+}
+
+probe end
+{
+    printf("END")
+}

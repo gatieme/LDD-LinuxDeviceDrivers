@@ -433,15 +433,18 @@ stap -ve 'probe begin { log("hello world") exit() }'
 -------
 
 
->参考
->
->[发行版本内核上system的安装与使用](http://sourceware.org/systemtap/wiki/SystemtapOnUbuntu)
->
->[unbuntu下自定义内核上systemtap的安装](http://blog.chinaunix.net/uid-7427553-id-2627651.html)
->
->[如何在ubuntu上基于自定义内核安装systemtap](http://blog.csdn.net/trochiluses/article/details/9698449)
->
->[Optional: Installing on a custom kernel](https://www.ibm.com/support/knowledgecenter/linuxonibm/liaai.systemTap/liaaisystapcustom.htm)
+参考
+
+[发行版本内核上system的安装与使用](http://sourceware.org/systemtap/wiki/SystemtapOnUbuntu)
+
+[unbuntu下自定义内核上systemtap的安装](http://blog.chinaunix.net/uid-7427553-id-2627651.html)
+
+[如何在ubuntu上基于自定义内核安装systemtap](http://blog.csdn.net/trochiluses/article/details/9698449)
+
+[Optional: Installing on a custom kernel](https://www.ibm.com/support/knowledgecenter/linuxonibm/liaai.systemTap/liaaisystapcustom.htm)
+
+[SystemTap 学习笔记 - 安装篇](https://segmentfault.com/a/1190000000671438)
+
 
 
 <br>

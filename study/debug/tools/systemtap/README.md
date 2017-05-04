@@ -2,6 +2,9 @@ http://ddebs.ubuntu.com/pool/main/l/linux/
 http://www.ibm.com/developerworks/cn/linux/l-cn-systemtap3/
 https://www.ibm.com/developerworks/cn/linux/l-systemtap/
 
+[SystemTap知识（一）](http://www.cnblogs.com/yjf512/p/3286429.html)
+[内核探测工具systemtap简介](http://www.cnblogs.com/hazir/p/systemtap_introduction.html)
+
 
 [内核探测工具systemtap简介](http://www.cnblogs.com/hazir/p/systemtap_introduction.html)
 

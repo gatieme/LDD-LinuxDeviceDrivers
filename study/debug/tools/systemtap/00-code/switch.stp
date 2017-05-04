@@ -1,0 +1,37 @@
+#! /usr/bin/env stap
+#
+#
+
+global csw_count
+global idle_count
+
+probe scheduler.cpu_off {
+  csw_count[task_prev, task_next]++
+  idle_count+=idle
+}
+
+
+function fmt_task(task_prev, task_next)
+{
+   return sprintf("%s(%d)->%s(%d)",
+                                task_execname(task_prev),
+                                task_pid(task_prev),
+                                task_execname(task_next),
+                                task_pid(task_next))
+}
+
+function print_cswtop () {
+  printf ("%45s %10s\n", "Context switch", "COUNT")
+  foreach ([task_prev, task_next] in csw_count- limit 20) {
+    printf("%45s %10d\n", fmt_task(task_prev, task_next), csw_count[task_prev, task_next])
+  }
+  printf("%45s %10d\n", "idle", idle_count)
+
+  delete csw_count
+  delete idle_count
+}
+
+probe timer.s($1) {
+  print_cswtop ()
+  printf("--------------------------------------------------------------\n")
+}
