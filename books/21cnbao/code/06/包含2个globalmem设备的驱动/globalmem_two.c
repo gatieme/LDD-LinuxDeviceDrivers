@@ -1,8 +1,8 @@
 /*======================================================================
     A globalmem driver as an example of char device drivers
-    There are two same globalmems in this driver  
+    There are two same globalmems in this driver
     This example is to introduce the function of file->private_data
-    
+
     The initial developer of the original code is Baohua Song
     <author@linuxdriver.cn>. All Rights Reserved.
 ======================================================================*/
@@ -15,7 +15,7 @@
 #include <linux/init.h>
 #include <linux/cdev.h>
 #include <asm/io.h>
-#include <asm/system.h>
+//#include <asm/system.h>
 #include <asm/uaccess.h>
 
 #define GLOBALMEM_SIZE	0x1000	/*全局内存最大4K字节*/
@@ -24,10 +24,10 @@
 
 static globalmem_major = GLOBALMEM_MAJOR;
 /*globalmem设备结构体*/
-struct globalmem_dev                                     
-{                                                        
-  struct cdev cdev; /*cdev结构体*/                       
-  unsigned char mem[GLOBALMEM_SIZE]; /*全局内存*/        
+struct globalmem_dev
+{
+  struct cdev cdev; /*cdev结构体*/
+  unsigned char mem[GLOBALMEM_SIZE]; /*全局内存*/
 };
 
 struct globalmem_dev *globalmem_devp; /*设备结构体指针*/
@@ -36,9 +36,9 @@ int globalmem_open(struct inode *inode, struct file *filp)
 {
   /*将设备结构体指针赋值给文件私有数据指针*/
   struct globalmem_dev *dev;
-  
-  dev = container_of(inode->i_cdev,struct globalmem_dev,cdev);  
-  filp->private_data = dev;  
+
+  dev = container_of(inode->i_cdev,struct globalmem_dev,cdev);
+  filp->private_data = dev;
   return 0;
 }
 /*文件释放函数*/
@@ -56,7 +56,7 @@ static int globalmem_ioctl(struct inode *inodep, struct file *filp, unsigned
   switch (cmd)
   {
     case MEM_CLEAR:
-      memset(dev->mem, 0, GLOBALMEM_SIZE);      
+      memset(dev->mem, 0, GLOBALMEM_SIZE);
       printk(KERN_INFO "globalmem is set to zero\n");
       break;
 
@@ -90,7 +90,7 @@ static ssize_t globalmem_read(struct file *filp, char __user *buf, size_t size,
   {
     *ppos += count;
     ret = count;
-    
+
     printk(KERN_INFO "read %d bytes(s) from %d\n", count, p);
   }
 
@@ -105,13 +105,13 @@ static ssize_t globalmem_write(struct file *filp, const char __user *buf,
   unsigned int count = size;
   int ret = 0;
   struct globalmem_dev *dev = filp->private_data; /*获得设备结构体指针*/
-  
+
   /*分析和获取有效的写长度*/
   if (p >= GLOBALMEM_SIZE)
     return count ?  - ENXIO: 0;
   if (count > GLOBALMEM_SIZE - p)
     count = GLOBALMEM_SIZE - p;
-    
+
   /*用户空间->内核空间*/
   if (copy_from_user(dev->mem + p, buf, count))
     ret =  - EFAULT;
@@ -119,7 +119,7 @@ static ssize_t globalmem_write(struct file *filp, const char __user *buf,
   {
     *ppos += count;
     ret = count;
-    
+
     printk(KERN_INFO "written %d bytes(s) from %d\n", count, p);
   }
 
@@ -205,10 +205,10 @@ int globalmem_init(void)
   {
     result = alloc_chrdev_region(&devno, 0, 2, "globalmem");
     globalmem_major = MAJOR(devno);
-  }  
+  }
   if (result < 0)
     return result;
-    
+
   /* 动态申请2个设备结构体的内存*/
   globalmem_devp = kmalloc(2*sizeof(struct globalmem_dev), GFP_KERNEL);
   if (!globalmem_devp)    /*申请失败*/
@@ -217,7 +217,7 @@ int globalmem_init(void)
     goto fail_malloc;
   }
   memset(globalmem_devp, 0, 2*sizeof(struct globalmem_dev));
-  
+
   globalmem_setup_cdev(&globalmem_devp[0], 0);
   globalmem_setup_cdev(&globalmem_devp[1], 1);
   return 0;
@@ -229,7 +229,7 @@ int globalmem_init(void)
 /*模块卸载函数*/
 void globalmem_exit(void)
 {
-  cdev_del(&(globalmem_devp[0].cdev));   
+  cdev_del(&(globalmem_devp[0].cdev));
   cdev_del(&(globalmem_devp[1].cdev));   /*注销cdev*/
   kfree(globalmem_devp);     /*释放设备结构体内存*/
   unregister_chrdev_region(MKDEV(globalmem_major, 0), 2); /*释放设备号*/
