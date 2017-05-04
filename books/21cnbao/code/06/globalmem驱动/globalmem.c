@@ -65,6 +65,7 @@ int globalmem_release(struct inode *inode, struct file *filp)
     return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36)
 /* ioctl设备控制函数 */
 static int globalmem_ioctl(
         struct inode *inodep,
@@ -72,6 +73,18 @@ static int globalmem_ioctl(
         unsigned int cmd,
         unsigned long arg)
 {
+#else
+//long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
+//long (*compat_ioctl) (struct file *file, unsigned int cmd, unsigned long arg)
+static long globalmem_compat_ioctl(
+        struct file *filp,
+        unsigned int cmd,
+        unsigned long arg)
+{
+    //struct inode *inode = file->f_dentry->d_inode;
+    struct inode *inode = inode = file_inode(filp);
+#endif
+
     struct globalmem_dev *dev = filp->private_data;/*获得设备结构体指针*/
 
     switch (cmd)
@@ -99,15 +112,26 @@ static ssize_t globalmem_read(
         size_t      size,
         loff_t      *ppos)
 {
-    unsigned long           p =  *ppos;                /*   文件指针偏移*/
-    unsigned int            count = size;
+    unsigned long           p =  *ppos;                /*   文件指针偏移 once = 0, twice = GLOBALMEM_SIZE  */
+    unsigned int            count = size;              /*   GLOBALMEM_SIZE */
     int                     ret = 0;
     struct globalmem_dev    *dev = filp->private_data; /*获得设备结构体指针*/
 
     /*  分析和获取有效的写长度  */
     if (p >= GLOBALMEM_SIZE)
     {
-        return count ?  - ENXIO: 0;
+        printk("*ppos = %d\n", p);
+        /*
+         * https://zhidao.baidu.com/question/136829890072623445.html
+         * Fix bug when `cat /dev/ XXX`
+         *
+         * return count ? 0 : -ENXIO;  条件满足返回-ENXIO, 即No such device or address
+         *
+         * 首先cat命令read设备内容, 当返回值是大于0的时候,
+         * cat会继续在open设备, 然后进行read操作(每次读4096字节)
+         * 程序例子中第一次
+         */
+        return count ? 0 : -ENXIO;
     }
 
     if (count > GLOBALMEM_SIZE - p)
@@ -235,11 +259,11 @@ static const struct file_operations globalmem_fops =
     .read = globalmem_read,
     .write = globalmem_write,
 
-#if LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 36)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36)
     .ioctl = globalmem_ioctl,
 #else
-    .unlocked_ioctl = globalmem_ioctl,
-    .compat_ioctl = globalmem_ioctl,
+    //.unlocked_ioctl = globalmem_ioctl,
+    .compat_ioctl = globalmem_compat_ioctl,
 #endif
 
     .open = globalmem_open,
