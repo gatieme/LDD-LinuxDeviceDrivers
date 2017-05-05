@@ -27,6 +27,7 @@ DRIVER_LICENSE := "Dual BSD/GPL"
 MODULE_NAME := force_rmmod
 #MODCFLAGS:=-O2 -Wall -DMODULE -D__KERNEL__ -DLINUX -std=c99
 #EXTRA_CFLAGS  += $(MODULE_FLAGS) $(CFG_INC) $(CFG_INC)
+EXTRA_CFLAGS  += -g -std=gnu99
 
 
 

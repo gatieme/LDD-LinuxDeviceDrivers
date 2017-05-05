@@ -19,13 +19,12 @@ static int __init mymod_init(void)
     {
         if(strcmp(mod->name,"hello")==0)
         {
-            mod = list_mod'
+            mod = list_mod;
         }
     }
 
     // 打印target的模块名、模块状态、引用计数
     printk(KERN_ALERT"name:%s state:%d refcnt:%u ",mod->name,mod->state,module_refcount(mod));
-
 
 
     // 打印出所有依赖target的模块名
@@ -45,7 +44,8 @@ static int __init mymod_init(void)
     for_each_possible_cpu(cpu)
     {
         //local_set(__module_ref_addr(mod,cpu),0);
-        mod->ref[i].count=*(local_t *)&zero;
+        //mod->ref[i].count=*(local_t *)&zero;
+        atomic_set(&mod->refcnt, 0);
     }
 
     // 再看看target的名称、状态、引用计数
