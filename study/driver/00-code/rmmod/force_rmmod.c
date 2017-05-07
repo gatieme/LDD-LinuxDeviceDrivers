@@ -19,9 +19,9 @@
  *  #perm   访问权限
  *
  * */
-static char *string = NULL;
-module_param(string, charp, 0644);
-MODULE_PARM_DESC(string, "Get an string(char *) value from user...\n");
+static char *modname = NULL;
+module_param(modname, charp, 0644);
+MODULE_PARM_DESC(modname, "The name of module you want do clean or delete...\n");
 
 
 /*
@@ -35,7 +35,7 @@ static void force_exit_module(void)
     int symbol_addr;
 
     printk("XXXXXX, force!\n");
-    symbol_addr = kallsyms_lookup_name(string);
+    symbol_addr = kallsyms_lookup_name(modname);
 
     platform_device_unregister((struct platform_device*)(*(int*)symbol_addr));
 }
@@ -57,7 +57,7 @@ static int force_cleanup_module(char *del_mod_name)
     /*  如果未找到 del_mod_name 则直接退出  */
     if(mod == NULL)
     {
-        printk("[%s] module %s not found\n", THIS_MODULE->name, string);
+        printk("[%s] module %s not found\n", THIS_MODULE->name, modname);
         return -1;
     }
 
@@ -105,22 +105,22 @@ static int __init force_rmmod_init(void)
     /*  打印内核模块的信息*/
     printk("=======name : %s, state : %d INIT=======\n", THIS_MODULE->name, THIS_MODULE->state);
 
-    if(string == NULL)
+    if(modname == NULL)
     {
         printk("[%s] module_name (NULL)\n", THIS_MODULE->name);
         return 0;
     }
 
     /*  打印内核模块的地址  */
-    if((symbol_addr = kallsyms_lookup_name(string)) == NULL)
+    if((symbol_addr = kallsyms_lookup_name(modname)) == NULL)
     {
-        printk("[%s] %s symbol_addr : (null)\n", THIS_MODULE->name, string);
+        printk("[%s] %s symbol_addr : (null)\n", THIS_MODULE->name, modname);
         return 0;
     }
-    printk("[%s] %s symbol_addr : 0x%x\n", THIS_MODULE->name, string, symbol_addr);
+    printk("[%s] %s symbol_addr : 0x%x\n", THIS_MODULE->name, modname, symbol_addr);
 
 
-    return force_cleanup_module(string);
+    return force_cleanup_module(modname);
 }
 
 
