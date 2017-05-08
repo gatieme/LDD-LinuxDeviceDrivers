@@ -73,7 +73,7 @@ static int VirtualDisk_ioctl(
 #else
 //long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
 //long (*compat_ioctl) (struct file *file, unsigned int cmd, unsigned long arg)
-static long VirtualDisk_compat_ioctl(
+static long VirtualDisk_unlocked_ioctl(
         struct file *filp,
         unsigned int cmd,
         unsigned long arg)
@@ -110,7 +110,7 @@ static ssize_t VirtualDisk_read(struct file *filp, char __user *buf, size_t size
   int ret = 0;/*返回值*/
   struct VirtualDisk *devp = filp->private_data; /*获得设备结构体指针*/
 
-  printk("p = %d\n", p);
+  printk("p = %ld\n", p);
   /*分析和获取有效的读长度*/
   if (p >= VIRTUALDISK_SIZE)  /*要读取的偏移大于设备的内存空间*/
     return count ?  - ENXIO: 0;/*读取地址错误*/
@@ -208,7 +208,7 @@ static const struct file_operations VirtualDisk_fops =
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36)
   .ioctl = VirtualDisk_ioctl,/*控制函数*/
 #else
-  .compat_ioctl = VirtualDisk_compat_ioctl,
+  .compat_ioctl = VirtualDisk_unlocked_ioctl,
 #endif
   .open = VirtualDisk_open,/*打开设备函数*/
   .release = VirtualDisk_release,/*释放设备函数*/
