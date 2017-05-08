@@ -5,7 +5,8 @@
 
 | CSDN | GitHub |
 |:----:|:------:|
-| [RHEL/CentOS/Fedora各种源(EPEL、Remi、RPMForge、RPMFusion)配置](http://blog.csdn.net/gatieme/article/details/71056309) | [`AderXCoding/system/tools/yum`](https://github.com/gatieme/AderXCoding/tree/master/system/tools/yum) |
+| [内核新的ioctl方式--unlocked_ioctl和compat_ioctl<br>解决error:unknown field 'ioctl' specified in initializer](http://blog.csdn.net/gatieme/article/details/71437163) | [`LDD/problem/port/ioctl`](https://github.com/gatieme/LDD-LinuxDeviceDrivers/study/problem/port/ioctl) |
+
 
 
 
