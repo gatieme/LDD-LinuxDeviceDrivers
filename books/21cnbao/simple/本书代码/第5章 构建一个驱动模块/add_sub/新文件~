@@ -1,0 +1,54 @@
+[root@tom add_sub]# cat Module.symvers 
+0x00000000	sub_integer	/driver-test/chapter5/add_sub/add_sub/add_sub	EXPORT_SYMBOL
+0x00000000	add_integer	/driver-test/chapter5/add_sub/add_sub/add_sub	EXPORT_SYMBOL
+
+
+[root@tom test]# insmod test.ko
+insmod: error inserting 'test.ko': -1 Unknown symbol in module
+
+dmesg 
+test: Unknown symbol add_integer
+test: Unknown symbol sub_integer
+
+
+test init
+The Add result is 2
+
+
+[root@tom test]# insmod test.ko a=3,b=2
+insmod: error inserting 'test.ko': -1 Invalid parameters
+[root@tom test]# insmod test.ko a=3L,b=2L
+insmod: error inserting 'test.ko': -1 Invalid parameters
+[root@tom test]# insmod test.ko a=3,b=2,AddOrSub=2
+insmod: error inserting 'test.ko': -1 Invalid parameters
+
+
+fuse            nf_conntrack     snd_mixer_oss       yenta_socket
+[root@tom module]# tree -a test
+test
+|-- holders
+|-- initstate
+|-- notes
+|   `-- .note.gnu.build-id
+|-- parameters
+|   |-- AddOrSub
+|   |-- a
+|   `-- b
+|-- refcnt
+|-- sections
+|   |-- .bss
+|   |-- .data
+|   |-- .gnu.linkonce.this_module
+|   |-- .note.gnu.build-id
+|   |-- .rodata
+|   |-- .rodata.str1.1
+|   |-- .strtab
+|   |-- .symtab
+|   |-- .text
+|   `-- __param
+|-- srcversion
+`-- version
+
+4 directories, 18 files
+
+

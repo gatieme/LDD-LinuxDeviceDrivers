@@ -1,0 +1,363 @@
+[root@tom chapter6]# gcc open.c
+open.c: In function ‘main’:
+open.c:30: warning: incompatible implicit declaration of built-in function ‘printf’
+[root@tom chapter6]# ./a.out
+Linux Programmer!
+
+
+[root@tom chapter6]# gedit copyfile.c
+[root@tom chapter6]# gcc copyfile.c -g
+[root@tom chapter6]# ./a.out copyfile.c cc
+copy file1 to file2 success
+[root@tom chapter6]# ls
+11     cc          copyfile.c~  lseek.c~   open.c   virtual
+a.out  copyfile.c  lseek.c      new file~  open.c~  VirtualDiskTest.c
+[root@tom chapter6]# gedit cc
+
+
+
+[root@tom chapter18]# make
+make -C /linux-2.6.29.4/linux-2.6.29.4 M=/driver-test/chapter18 modules
+make[1]: Entering directory `/linux-2.6.29.4/linux-2.6.29.4'
+  CC [M]  /driver-test/chapter18/Virtual_blkdev.o
+  Building modules, stage 2.
+  MODPOST 1 modules
+  CC      /driver-test/chapter18/Virtual_blkdev.mod.o
+  LD [M]  /driver-test/chapter18/Virtual_blkdev.ko
+make[1]: Leaving directory `/linux-2.6.29.4/linux-2.6.29.4'
+
+
+[root@tom chapter18]# ls -l /dev
+
+brw-r-----  1 root disk    72,   0 2009-12-24 07:25 Virtual_blkdev
+crw-r--r--  1 root root   200,   0 2009-12-23 12:37 VirtualDisk
+drwx------  2 root root         80 2009-12-23 00:14 VolGroup00
+lrwxrwxrwx  1 root root          4 2009-12-23 00:14 X0R -> null
+lrwxrwxrwx  1 root root          4 2009-12-23 00:14 XOR -> null
+crw-rw-rw-  1 root root     1,   5 2009-12-23 00:14 zero
+[root@tom chapter18]# mknod /dev/Virtual_blkdev b 77 0
+mknod: `/dev/Virtual_blkdev': File exists
+[root@tom chapter18]# ls -l /dev/Virtual_blkdev 
+brw-r----- 1 root disk 72, 0 2009-12-24 07:25 /dev/Virtual_blkdev
+
+[root@tom chapter18]# ls
+Makefile        modules.order     Virtual_blkdev.c~     Virtual_blkdev.mod.o
+Makefile~       Module.symvers    Virtual_blkdev.ko     Virtual_blkdev.o
+Module.markers  Virtual_blkdev.c  Virtual_blkdev.mod.c
+[root@tom chapter18]# insmod Virtual_blkdev.ko
+[root@tom chapter18]# lsmod
+Module                  Size  Used by
+Virtual_blkdev       8390464  0 
+VirtualDisk             2868  0 
+bridge                 39920  0 
+stp                     2000  1 bridge
+bnep                   10676  2 
+rfcomm                 29644  4 
+l2cap                  17192  16 bnep,rfcomm
+bluetooth              43188  5 bnep,rfcomm,l2cap
+fuse                   46020  2 
+sunrpc                144484  1 
+ipt_REJECT              2616  2 
+nf_conntrack_ipv4       7020  2 
+nf_defrag_ipv4          1684  1 nf_conntrack_ipv4
+iptable_filter          2388  1 
+ip_tables               9384  1 iptable_filter
+ip6t_REJECT             3316  2 
+xt_tcpudp               2660  2 
+nf_conntrack_ipv6      10980  2 
+xt_state                1904  4 
+nf_conntrack           48636  3 nf_conntrack_ipv4,nf_conntrack_ipv6,xt_state
+ip6table_filter         2300  1 
+ip6_tables             10352  1 ip6table_filter
+x_tables               11592  6 ipt_REJECT,ip_tables,ip6t_REJECT,xt_tcpudp,xt_state,ip6_tables
+loop                   12608  0 
+dm_multipath           13012  0 
+ipv6                  210036  16 ip6t_REJECT,nf_conntrack_ipv6
+ppdev                   6240  0 
+sr_mod                 12868  0 
+cdrom                  28660  1 sr_mod
+snd_ens1371            19304  3 
+gameport                9256  1 snd_ens1371
+snd_rawmidi            18448  1 snd_ens1371
+snd_ac97_codec         92292  1 snd_ens1371
+ac97_bus                1504  1 snd_ac97_codec
+snd_seq_dummy           2556  0 
+snd_seq_oss            27760  0 
+snd_seq_midi_event      5668  1 snd_seq_oss
+snd_seq                46744  5 snd_seq_dummy,snd_seq_oss,snd_seq_midi_event
+snd_seq_device          5968  4 snd_rawmidi,snd_seq_dummy,snd_seq_oss,snd_seq
+floppy                 47932  0 
+snd_pcm_oss            37896  0 
+pcspkr                  2220  0 
+snd_mixer_oss          12920  1 snd_pcm_oss
+snd_pcm                60476  3 snd_ens1371,snd_ac97_codec,snd_pcm_oss
+parport_pc             21940  0 
+snd_timer              17340  2 snd_seq,snd_pcm
+ata_generic             4428  0 
+parport                27048  2 ppdev,parport_pc
+snd                    47660  17 snd_ens1371,snd_rawmidi,snd_ac97_codec,snd_seq_dummy,snd_seq_oss,snd_seq,snd_seq_device,snd_pcm_oss,snd_mixer_oss,snd_pcm,snd_timer
+pata_acpi               3704  0 
+pcnet32                29428  0 
+soundcore               5028  1 snd
+mii                     4084  1 pcnet32
+snd_page_alloc          7504  1 snd_pcm
+ac                      4060  0 
+ata_piix               21340  0 
+i2c_piix4               8548  0 
+button                  5928  0 
+libata                138108  3 ata_generic,pata_acpi,ata_piix
+i2c_core               17568  1 i2c_piix4
+sg                     25840  0 
+dm_snapshot            16900  0 
+dm_zero                 1376  0 
+dm_mirror              12380  0 
+dm_region_hash          8120  1 dm_mirror
+dm_log                  7760  2 dm_mirror,dm_region_hash
+dm_mod                 45136  11 dm_multipath,dm_snapshot,dm_zero,dm_mirror,dm_log
+mptspi                 15236  2 
+mptscsih               27172  1 mptspi
+mptbase                69516  2 mptspi,mptscsih
+scsi_transport_spi     18180  1 mptspi
+sd_mod                 23452  3 
+scsi_mod              125520  7 sr_mod,libata,sg,mptspi,mptscsih,scsi_transport_spi,sd_mod
+ext3                  105040  2 
+jbd                    33352  1 ext3
+mbcache                 5468  1 ext3
+uhci_hcd               18952  0 
+ohci_hcd               20036  0 
+ehci_hcd               30164  0 
+[root@tom chapter18]# 
+
+
+
+
+
+[root@tom chapter18]# mkfs.ext2 /dev/Virtual_blkdev
+mke2fs 1.40.8 (13-Mar-2008)
+Filesystem label=
+OS type: Linux
+Block size=1024 (log=0)
+Fragment size=1024 (log=0)
+2048 inodes, 8192 blocks
+409 blocks (4.99%) reserved for the super user
+First data block=1
+Maximum filesystem blocks=8388608
+1 block group
+8192 blocks per group, 8192 fragments per group
+2048 inodes per group
+
+Writing inode tables: done                            
+Writing superblocks and filesystem accounting information: done
+
+This filesystem will be automatically checked every 34 mounts or
+180 days, whichever comes first.  Use tune2fs -c or -i to override.
+
+
+[root@tom chapter18]# cd /mnt
+[root@tom mnt]# ls
+temp1
+[root@tom mnt]# mkdir /temp
+mkdir: cannot create directory `/temp': File exists
+[root@tom mnt]# mkdir temp
+[root@tom mnt]# ls temp
+[root@tom mnt]# ls -la temp
+total 8
+drwxr-xr-x 2 root root 4096 2009-12-24 07:41 .
+drwxr-xr-x 4 root root 4096 2009-12-24 07:41 ..
+[root@tom mnt]# 
+
+
+[root@tom mnt]# cp /etc/mail/* /mnt/temp
+[root@tom mnt]# cd temp
+[root@tom temp]# ls
+access          helpfile          Makefile     submit.mc
+access.db       local-host-names  sendmail.cf  trusted-users
+domaintable     mailertable       sendmail.mc  virtusertable
+domaintable.db  mailertable.db    submit.cf    virtusertable.db
+[root@tom temp]# 
+
+
+
+180 days, whichever comes first.  Use tune2fs -c or -i to override.
+[root@tom chapter18]# cd /mnt
+[root@tom mnt]# ls
+temp1
+[root@tom mnt]# mkdir /temp
+mkdir: cannot create directory `/temp': File exists
+[root@tom mnt]# mkdir temp
+[root@tom mnt]# ls temp
+[root@tom mnt]# ls -la temp
+total 8
+drwxr-xr-x 2 root root 4096 2009-12-24 07:41 .
+drwxr-xr-x 4 root root 4096 2009-12-24 07:41 ..
+[root@tom mnt]# cp /etc/mail/* /mnt/temp
+[root@tom mnt]# cd temp
+[root@tom temp]# ls
+access          helpfile          Makefile     submit.mc
+access.db       local-host-names  sendmail.cf  trusted-users
+domaintable     mailertable       sendmail.mc  virtusertable
+domaintable.db  mailertable.db    submit.cf    virtusertable.db
+[root@tom temp]# df
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/mapper/VolGroup00-LogVol00
+                      16771948  12413504   3506476  78% /
+/dev/sda1               194442     29886    154517  17% /boot
+tmpfs                   161996        48    161948   1% /dev/shm
+df: `/root/.gvfs': Transport endpoint is not connected
+[root@tom temp]# rm -f *
+[root@tom temp]# ls
+[root@tom temp]# mount /dev/Virtual_blkdev /mnt/temp
+[root@tom temp]# ls
+[root@tom temp]# df
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/mapper/VolGroup00-LogVol00
+                      16771948  12413312   3506668  78% /
+/dev/sda1               194442     29886    154517  17% /boot
+tmpfs                   161996        48    161948   1% /dev/shm
+df: `/root/.gvfs': Transport endpoint is not connected
+/dev/Virtual_blkdev       7931        45      7477   1% /mnt/temp
+[root@tom temp]# cp /etc/mail/* /mnt/temp
+[root@tom temp]# ls
+[root@tom temp]# ls
+[root@tom temp]# df
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/mapper/VolGroup00-LogVol00
+                      16771948  12413316   3506664  78% /
+/dev/sda1               194442     29886    154517  17% /boot
+tmpfs                   161996        48    161948   1% /dev/shm
+df: `/root/.gvfs': Transport endpoint is not connected
+/dev/Virtual_blkdev       7931       189      7333   3% /mnt/temp
+[root@tom temp]# ls -l
+total 0
+[root@tom temp]# pwd
+/mnt/temp
+[root@tom temp]# ls
+[root@tom temp]# cp /etc/mail/* /mnt/temp
+cp: overwrite `/mnt/temp/access'? 
+cp: overwrite `/mnt/temp/access.db'? 
+cp: overwrite `/mnt/temp/domaintable'? 
+cp: overwrite `/mnt/temp/domaintable.db'? 
+cp: overwrite `/mnt/temp/helpfile'? 
+cp: overwrite `/mnt/temp/local-host-names'? 
+cp: overwrite `/mnt/temp/mailertable'? 
+cp: overwrite `/mnt/temp/mailertable.db'? 
+cp: overwrite `/mnt/temp/Makefile'? 
+cp: overwrite `/mnt/temp/sendmail.cf'? 
+cp: overwrite `/mnt/temp/sendmail.mc'? 
+cp: overwrite `/mnt/temp/submit.cf'? 
+cp: overwrite `/mnt/temp/submit.mc'? 
+cp: overwrite `/mnt/temp/trusted-users'? 
+cp: overwrite `/mnt/temp/virtusertable'? 
+cp: overwrite `/mnt/temp/virtusertable.db'? 
+[root@tom temp]# 
+[root@tom temp]# 
+[root@tom temp]# ls
+[root@tom temp]# ls -l
+total 0
+[root@tom temp]# df
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/mapper/VolGroup00-LogVol00
+                      16771948  12413316   3506664  78% /
+/dev/sda1               194442     29886    154517  17% /boot
+tmpfs                   161996        48    161948   1% /dev/shm
+df: `/root/.gvfs': Transport endpoint is not connected
+/dev/Virtual_blkdev       7931       189      7333   3% /mnt/temp
+[root@tom temp]# rm -rf /mnt/temp/*
+[root@tom temp]# df
+Filesystem           1K-blocks      Used Available Use% Mounted on
+/dev/mapper/VolGroup00-LogVol00
+                      16771948  12413316   3506664  78% /
+/dev/sda1               194442     29886    154517  17% /boot
+tmpfs                   161996        48    161948   1% /dev/shm
+df: `/root/.gvfs': Transport endpoint is not connected
+/dev/Virtual_blkdev       7931        33      7489   1% /mnt/temp
+[root@tom temp]# ls /mnt/temp
+[root@tom temp]# unmount /mnt/temp
+bash: unmount: command not found
+[root@tom temp]# umount /mnt/temp
+[root@tom temp]# lsmod
+Module                  Size  Used by
+ext2                   54240  0 
+Virtual_blkdev       8390464  0 
+VirtualDisk             2868  0 
+bridge                 39920  0 
+stp                     2000  1 bridge
+bnep                   10676  2 
+rfcomm                 29644  4 
+l2cap                  17192  16 bnep,rfcomm
+bluetooth              43188  5 bnep,rfcomm,l2cap
+fuse                   46020  2 
+sunrpc                144484  1 
+ipt_REJECT              2616  2 
+nf_conntrack_ipv4       7020  2 
+nf_defrag_ipv4          1684  1 nf_conntrack_ipv4
+iptable_filter          2388  1 
+ip_tables               9384  1 iptable_filter
+ip6t_REJECT             3316  2 
+xt_tcpudp               2660  2 
+nf_conntrack_ipv6      10980  2 
+xt_state                1904  4 
+nf_conntrack           48636  3 nf_conntrack_ipv4,nf_conntrack_ipv6,xt_state
+ip6table_filter         2300  1 
+ip6_tables             10352  1 ip6table_filter
+x_tables               11592  6 ipt_REJECT,ip_tables,ip6t_REJECT,xt_tcpudp,xt_state,ip6_tables
+loop                   12608  0 
+dm_multipath           13012  0 
+ipv6                  210036  16 ip6t_REJECT,nf_conntrack_ipv6
+ppdev                   6240  0 
+sr_mod                 12868  0 
+cdrom                  28660  1 sr_mod
+snd_ens1371            19304  3 
+gameport                9256  1 snd_ens1371
+snd_rawmidi            18448  1 snd_ens1371
+snd_ac97_codec         92292  1 snd_ens1371
+ac97_bus                1504  1 snd_ac97_codec
+snd_seq_dummy           2556  0 
+snd_seq_oss            27760  0 
+snd_seq_midi_event      5668  1 snd_seq_oss
+snd_seq                46744  5 snd_seq_dummy,snd_seq_oss,snd_seq_midi_event
+snd_seq_device          5968  4 snd_rawmidi,snd_seq_dummy,snd_seq_oss,snd_seq
+floppy                 47932  0 
+snd_pcm_oss            37896  0 
+pcspkr                  2220  0 
+snd_mixer_oss          12920  1 snd_pcm_oss
+snd_pcm                60476  3 snd_ens1371,snd_ac97_codec,snd_pcm_oss
+parport_pc             21940  0 
+snd_timer              17340  2 snd_seq,snd_pcm
+ata_generic             4428  0 
+parport                27048  2 ppdev,parport_pc
+snd                    47660  17 snd_ens1371,snd_rawmidi,snd_ac97_codec,snd_seq_dummy,snd_seq_oss,snd_seq,snd_seq_device,snd_pcm_oss,snd_mixer_oss,snd_pcm,snd_timer
+pata_acpi               3704  0 
+pcnet32                29428  0 
+soundcore               5028  1 snd
+mii                     4084  1 pcnet32
+snd_page_alloc          7504  1 snd_pcm
+ac                      4060  0 
+ata_piix               21340  0 
+i2c_piix4               8548  0 
+button                  5928  0 
+libata                138108  3 ata_generic,pata_acpi,ata_piix
+i2c_core               17568  1 i2c_piix4
+sg                     25840  0 
+dm_snapshot            16900  0 
+dm_zero                 1376  0 
+dm_mirror              12380  0 
+dm_region_hash          8120  1 dm_mirror
+dm_log                  7760  2 dm_mirror,dm_region_hash
+dm_mod                 45136  11 dm_multipath,dm_snapshot,dm_zero,dm_mirror,dm_log
+mptspi                 15236  2 
+mptscsih               27172  1 mptspi
+mptbase                69516  2 mptspi,mptscsih
+scsi_transport_spi     18180  1 mptspi
+sd_mod                 23452  3 
+scsi_mod              125520  7 sr_mod,libata,sg,mptspi,mptscsih,scsi_transport_spi,sd_mod
+ext3                  105040  2 
+jbd                    33352  1 ext3
+mbcache                 5468  2 ext2,ext3
+uhci_hcd               18952  0 
+ohci_hcd               20036  0 
+ehci_hcd               30164  0 
+[root@tom temp]# rmmod Virtual_blkdev
+[root@tom temp]# 
+
+

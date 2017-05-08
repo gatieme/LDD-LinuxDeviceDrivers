@@ -24,30 +24,28 @@ DRIVER_DESC    := "Linux input module for Elo MultiTouch(MT) devices"
 DRIVER_LICENSE := "Dual BSD/GPL"
 
 
-#MODCFLAGS:=-O2 -Wall -DMODULE -D__KERNEL__ -DLINUX -std=c99
-#EXTRA_CFLAGS  += $(MODULE_FLAGS) $(CFG_INC) $(CFG_INC)
+MODULE_NAME := VirtualDisk
+
+ifneq ($(KERNELRELEASE),)
+
+#CFG_FLAGS += -O2  -I./
+#EXTRA_CFLAGS  += $(C_FLAGS) $(CFG_INC) $(CFG_INC)
 
 
 
-ifneq ($(KERNELRELEASE),) 	# kernelspace
+obj-m := $(MODULE_NAME).o
 
-obj-m += add_sub.o
-obj-m += test.o
+else
 
-else						# userspace
+KERNELDIR ?= /lib/modules/$(shell uname -r)/build
 
-
-CURRENT_PATH ?= $(shell pwd)
-LINUX_KERNEL ?= $(shell uname -r)
-LINUX_KERNEL_PATH ?= /lib/modules/$(LINUX_KERNEL)/build
-
-CURRENT_PATH := $(shell pwd)
+PWD := $(shell pwd)
 
 modules:
-	make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) modules
+	make -C $(KERNELDIR) M=$(PWD) modules
 
 modules_install:
-	make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) modules_install
+	make -C $(KERNELDIR) M=$(PWD) modules_install
 
 
 
@@ -68,7 +66,7 @@ test :
 	sudo ../injector/memInjector -l stack -m random -t word_0 --time 1 --timeout 3 -p 1
 
 clean:
-	make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) clean
+	make -C $(KERNELDIR) M=$(PWD) clean
 	rm -f modules.order Module.symvers Module.markers
 
 .PHNOY:
@@ -77,4 +75,3 @@ clean:
 
 
 endif
-

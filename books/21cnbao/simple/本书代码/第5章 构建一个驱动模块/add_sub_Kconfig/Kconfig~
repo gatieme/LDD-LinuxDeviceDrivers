@@ -1,0 +1,19 @@
+#
+# add_sub configuration
+#
+menu "ADD_SUB"
+	comment "ADD_SUB"
+	help
+	  djfkdjkfjdkfj
+	  djfkdjfkdjkf
+
+config CONFIG_ADD_SUB
+	boolean "ADD_SUB support"
+	default y
+
+config CONFIG_TEST
+	tristate "ADD_SUB test support" 
+	depends on CONFIG_ADD_SUB
+	default y
+
+endmenu

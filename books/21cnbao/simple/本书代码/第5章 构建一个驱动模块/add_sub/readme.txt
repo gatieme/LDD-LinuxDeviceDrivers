@@ -1,0 +1,2 @@
+先到add_sub 模块下make编译模块add_sub
+然后在到test下编译test模块

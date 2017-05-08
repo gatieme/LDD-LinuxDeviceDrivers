@@ -24,5 +24,4 @@ http://download.csdn.net/detail/kyl282889543/3217595
 
 
 Linux设备驱动开发详解:基于最新的Linux4.0内核
-Linux驱动开发入门与实战
-
+Linux驱动开发入门与实战--simple
