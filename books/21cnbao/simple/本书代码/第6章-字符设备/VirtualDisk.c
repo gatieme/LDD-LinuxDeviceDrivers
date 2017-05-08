@@ -13,6 +13,9 @@
 #include <asm/io.h>
 //#include <asm/system.h>
 #include <asm/uaccess.h>
+#include <linux/slab.h>
+#include <linux/version.h>
+
 
 #define VIRTUALDISK_SIZE	0x2000	/*全局内存最大8K字节*/
 #define MEM_CLEAR 0x1  /*全局内存清零*/
@@ -41,10 +44,13 @@ struct VirtualDisk *Virtualdisk_devp; /*设备结构体指针*/
 /*文件打开函数*/
 int VirtualDisk_open(struct inode *inode, struct file *filp)
 {
+  struct VirtualDisk *devp = NULL;
+
   /*将设备结构体指针赋值给文件私有数据指针*/
   filp->private_data = Virtualdisk_devp;
-  struct VirtualDisk *devp = filp->private_data;/*获得设备结构体指针*/
+  devp = filp->private_data;/*获得设备结构体指针*/
   devp->count++;/*增加设备打开次数*/
+
   return 0;
 }
 /*文件释放函数*/
@@ -55,10 +61,26 @@ int VirtualDisk_release(struct inode *inode, struct file *filp)
   return 0;
 }
 
+
 /* ioctl设备控制函数 */
-static int VirtualDisk_ioctl(struct inode *inodep, struct file *filp, unsigned
-  int cmd, unsigned long arg)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36)
+static int VirtualDisk_ioctl(
+        struct inode *inodep,
+        struct file *filp,
+        unsigned int cmd,
+        unsigned long arg)
 {
+#else
+//long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
+//long (*compat_ioctl) (struct file *file, unsigned int cmd, unsigned long arg)
+static long VirtualDisk_compat_ioctl(
+        struct file *filp,
+        unsigned int cmd,
+        unsigned long arg)
+{
+  //struct inode *inode = filp->f_dentry->d_inode;
+  struct inode *inode = inode = file_inode(filp);
+#endif
   struct VirtualDisk *devp = filp->private_data;/*获得设备结构体指针*/
 
   switch (cmd)
@@ -88,6 +110,7 @@ static ssize_t VirtualDisk_read(struct file *filp, char __user *buf, size_t size
   int ret = 0;/*返回值*/
   struct VirtualDisk *devp = filp->private_data; /*获得设备结构体指针*/
 
+  printk("p = %d\n", p);
   /*分析和获取有效的读长度*/
   if (p >= VIRTUALDISK_SIZE)  /*要读取的偏移大于设备的内存空间*/
     return count ?  - ENXIO: 0;/*读取地址错误*/
@@ -102,7 +125,7 @@ static ssize_t VirtualDisk_read(struct file *filp, char __user *buf, size_t size
   {
     *ppos += count;
     ret = count;
-    printk(KERN_INFO "read %d bytes(s) from %d\n", count, p);
+    printk(KERN_INFO "read %d bytes(s) from %ld\n", count, p);
   }
   return ret;
 }
@@ -129,7 +152,7 @@ static ssize_t VirtualDisk_write(struct file *filp, const char __user *buf,
   {
     *ppos += count;/*增加偏移位置*/
     ret = count;/*返回实际的写入字节数*/
-    printk(KERN_INFO "written %d bytes(s) from %d\n", count, p);
+    printk(KERN_INFO "written %d bytes(s) from %ld\n", count, p);
   }
   return ret;
 }
@@ -182,7 +205,11 @@ static const struct file_operations VirtualDisk_fops =
   .llseek = VirtualDisk_llseek,/*定位偏移量函数*/
   .read = VirtualDisk_read,/*读设备函数*/
   .write = VirtualDisk_write,/*写设备函数*/
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36)
   .ioctl = VirtualDisk_ioctl,/*控制函数*/
+#else
+  .compat_ioctl = VirtualDisk_compat_ioctl,
+#endif
   .open = VirtualDisk_open,/*打开设备函数*/
   .release = VirtualDisk_release,/*释放设备函数*/
 };
@@ -191,11 +218,14 @@ static const struct file_operations VirtualDisk_fops =
 static void VirtualDisk_setup_cdev(struct VirtualDisk *dev, int minor)
 {
   int err;
-  devno = MKDEV(VirtualDisk_major, minor);/*构造设备号*/
+  dev_t devno = MKDEV(VirtualDisk_major, minor);/*构造设备号*/
+
   cdev_init(&dev->cdev, &VirtualDisk_fops);/*初始化cdev设备*/
   dev->cdev.owner = THIS_MODULE;/*使驱动程序属于该模块*/
   dev->cdev.ops = &VirtualDisk_fops;/*cdev连接file_operations指针*/
+
   err = cdev_add(&dev->cdev, devno, 1);/*将cdev注册到系统中*/
+
   if (err)
     printk(KERN_NOTICE "Error in cdev_add()\n");
 }

@@ -51,7 +51,9 @@ modules_install:
 
 insmod:
 	sudo insmod $(MODULE_NAME).ko
-
+	cat /proc/devices | grep VirtualDisk
+	sudo mknod /dev/gatieme  c 200 0
+	sudo chmod 666 /dev/gatieme
 reinsmod:
 	sudo rmmod $(MODULE_NAME)
 	sudo insmod $(MODULE_NAME).ko
@@ -61,7 +63,7 @@ github:
 
 rmmod:
 	sudo rmmod $(MODULE_NAME)
-
+	sudo rm /dev/gatieme
 test :
 	sudo ../injector/memInjector -l stack -m random -t word_0 --time 1 --timeout 3 -p 1
 

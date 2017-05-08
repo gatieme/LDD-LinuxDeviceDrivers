@@ -123,6 +123,8 @@ static ssize_t globalmem_read(
         printk("*ppos = %d\n", p);
         /*
          * https://zhidao.baidu.com/question/136829890072623445.html
+         * http://bbs.chinaunix.net/thread-1961861-1-1.html
+         * http://blog.csdn.net/qiaoliang328/article/details/4874238
          * Fix bug when `cat /dev/ XXX`
          *
          * return count ? 0 : -ENXIO;  条件满足返回-ENXIO, 即No such device or address
@@ -131,7 +133,7 @@ static ssize_t globalmem_read(
          * cat会继续在open设备, 然后进行read操作(每次读4096字节)
          * 程序例子中第一次
          */
-        return count ? 0 : -ENXIO;
+        return count ? -ENXIO : 0;
     }
 
     if (count > GLOBALMEM_SIZE - p)
