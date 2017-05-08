@@ -1,0 +1,16 @@
+
+
+probe syscall.mkdir
+{
+	printf("exit %s\n", argstr);
+}
+
+probe begin
+{
+	printf("test mkdir begin\n");
+}
+
+probe end
+{
+	printf("test mkdir end\n");
+}

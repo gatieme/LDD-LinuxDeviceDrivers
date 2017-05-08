@@ -6,6 +6,7 @@
 #include <linux/device.h>
 #include <asm/uaccess.h>
 #include <linux/slab.h>
+#include <linux/seq_file.h>
 
 #include "hello.h"
 
