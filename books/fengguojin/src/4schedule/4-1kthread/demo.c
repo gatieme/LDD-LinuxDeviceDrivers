@@ -1,4 +1,3 @@
-
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
@@ -12,7 +11,7 @@
 #include <linux/pagemap.h>
 #include <linux/delay.h>
 #include <linux/sched.h>
-#include <linux/kthread.h> 
+#include <linux/kthread.h>
 
 
 static struct task_struct *simple_thread;

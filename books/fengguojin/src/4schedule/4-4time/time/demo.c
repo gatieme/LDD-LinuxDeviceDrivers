@@ -2,7 +2,7 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
-#include <linux/slab.h>	
+#include <linux/slab.h>
 #include <linux/fs.h>
 #include <linux/errno.h>
 #include <linux/types.h>
@@ -25,34 +25,34 @@ MODULE_LICENSE("Dual BSD/GPL");
 
 struct simple_dev *simple_devices;
 static unsigned char simple_inc=0;
-struct timeval start,stop,diff; 
+struct timeval start,stop,diff;
 static struct timer_list simple_timer;
 static void simple_timer_handler(unsigned long data);
 
-int timeval_subtract(struct timeval* result, struct timeval* x, struct timeval* y) 
-{ 
-    if(x->tv_sec>y->tv_sec) 
-      return -1; 
-  
-    if((x->tv_sec==y->tv_sec)&&(x->tv_usec>y->tv_usec)) 
-      return -1; 
-  
-    result->tv_sec = ( y->tv_sec-x->tv_sec ); 
-    result->tv_usec = ( y->tv_usec-x->tv_usec ); 
-  
-    if(result->tv_usec<0) 
-    { 
-      result->tv_sec--; 
-      result->tv_usec+=1000000; 
-    } 
-    return 0; 
-} 
+int timeval_subtract(struct timeval* result, struct timeval* x, struct timeval* y)
+{
+    if(x->tv_sec>y->tv_sec)
+      return -1;
+
+    if((x->tv_sec==y->tv_sec)&&(x->tv_usec>y->tv_usec))
+      return -1;
+
+    result->tv_sec = ( y->tv_sec-x->tv_sec );
+    result->tv_usec = ( y->tv_usec-x->tv_usec );
+
+    if(result->tv_usec<0)
+    {
+      result->tv_sec--;
+      result->tv_usec+=1000000;
+    }
+    return 0;
+}
 
 static void simple_timer_handler( unsigned long data)
 {
-    do_gettimeofday(&stop); 
-    timeval_subtract(&diff,&start,&stop); 
-    printk("总计用时:%d 秒 %d 微秒\n",diff.tv_sec,diff.tv_usec); 
+    do_gettimeofday(&stop);
+    timeval_subtract(&diff,&start,&stop);
+    printk("总计用时:%d 秒 %d 微秒\n",diff.tv_sec,diff.tv_usec);
 	return ;
 }
 
@@ -88,7 +88,7 @@ void simple_cleanup_module(void)
 	dev_t devno = MKDEV(simple_MAJOR, simple_MINOR);
 
 	/* Get rid of our char dev entries */
-	if (simple_devices) 
+	if (simple_devices)
 	{
 		cdev_del(&simple_devices->cdev);
 		kfree(simple_devices);
@@ -105,13 +105,13 @@ int simple_init_module(void)
 
 	dev = MKDEV(simple_MAJOR, simple_MINOR);
 	result = register_chrdev_region(dev, 1, "DEMO");
-	if (result < 0) 
+	if (result < 0)
 	{
 		printk(KERN_WARNING "DEMO: can't get major %d\n", simple_MAJOR);
 		return result;
 	}
 
-	//allocate the devices 
+	//allocate the devices
 	simple_devices = kmalloc(sizeof(struct simple_dev), GFP_KERNEL);
 	if (!simple_devices)
 	{
@@ -120,7 +120,9 @@ int simple_init_module(void)
 	}
 	memset(simple_devices, 0, sizeof(struct simple_dev));
 
-	init_MUTEX(&simple_devices->sem);
+	//init_MUTEX(&simple_devices->sem);
+    sema_init(&simple_devices->sem, 1);
+
 	cdev_init(&simple_devices->cdev, &simple_fops);
 	simple_devices->cdev.owner = THIS_MODULE;
 	simple_devices->cdev.ops = &simple_fops;
@@ -136,7 +138,7 @@ int simple_init_module(void)
 	simple_timer.function = &simple_timer_handler;
 	simple_timer.expires = jiffies + SIMPLE_TIMER_DELAY;
 	add_timer (&simple_timer);
-	do_gettimeofday(&start); 
+	do_gettimeofday(&start);
 	return 0; /* succeed */
 fail:
 	simple_cleanup_module();

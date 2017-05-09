@@ -1,10 +1,14 @@
+#include <linux/init.h>
+#include <linux/module.h>
 #include <linux/sched.h>//wake_up_process()
 #include <linux/kthread.h>//kthread_create()¡¢kthread_run()
-#include <err.h>
+#include <linux/version.h>
+//#include <err.h>
 
-static struct task_struct * _task;
+static struct task_struct * _task1;
 static struct task_struct * _task2;
 static struct task_struct * _task3;
+
 static int thread_func(void *data)
 {
         int j,k;
@@ -20,20 +24,39 @@ static int thread_func(void *data)
         init_waitqueue_head(&timeout_wq);
         while(!kthread_should_stop())
         {
+/*
+ * http://stackoverflow.com/questions/30017344/moxa-realtty-module-compilation-error-on-linux-kernel-3-16
+ *
+ * Function interruptible_sleep_on_timeout has been removed in kernel version 3.15.
+ *
+ * The workaround for the missing function can be found in many patches,
+ *
+ * for example [this lm-sensors patch](http://lists.lm-sensors.org/pipermail/lm-sensors/2005-February/010415.html)
+
+ */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0)
+                /* http://www.codeweblog.com/interruptible_sleep_on_timeout-%E7%9D%A1%E7%9C%A0%E8%B6%85%E6%97%B6%E8%AE%BE%E5%AE%9A  */
                 interruptible_sleep_on_timeout(&timeout_wq, HZ);
+#else
+                DEFINE_WAIT(wait);
+                prepare_to_wait(&timeout_wq, &wait, TASK_INTERRUPTIBLE);
+                timeout = schedule_timeout(timeout);
+                finish_wait(&timeout_wq, &wait);
+#endif
                 printk("[%d]sleeping..%d\n", k, j++);
         }
         return 0;
-}   
-void my_start_thread(void)
+}
+
+static __init int my_start_thread(void)
 {
-           
+
         //_task = kthread_create(thread_func, NULL, "thread_func2");
         //wake_up_process(_task);
-        _task = kthread_run(thread_func, NULL, "thread_func1");
+        _task1 = kthread_run(thread_func, NULL, "thread_func1");
         _task2 = kthread_run(thread_func, NULL, "thread_func2");
         _task3 = kthread_run(thread_func, NULL, "thread_func3");
-        if (!IS_ERR(_task))
+        if (!IS_ERR(_task1))
         {
                 printk("kthread_create done\n");
         }
@@ -41,11 +64,14 @@ void my_start_thread(void)
         {
                 printk("kthread_create error\n");
         }
+
+        return 0;
 }
-void my_end_thread(void)
+
+static __exit void my_end_thread(void)
 {
         int ret = 0;
-        ret = kthread_stop(_task);
+        ret = kthread_stop(_task1);
         printk("end thread. ret = %d\n" , ret);
         ret = kthread_stop(_task2);
         printk("end thread. ret = %d\n" , ret);

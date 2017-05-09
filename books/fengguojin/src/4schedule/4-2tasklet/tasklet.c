@@ -1,4 +1,8 @@
-#include <linux/interrupt.h> 
+#include <linux/init.h>
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/interrupt.h>
+
 
 int myint_for_something=1;
 void tasklet_function(unsigned long);
@@ -16,17 +20,22 @@ void tasklet_function(unsigned long data)
 		now.tv_usec);
 }
 
-int init_module_task(void) 
+static __init int init_module_task(void)
 {
 	sprintf(tasklet_data,"%s\n",
 		"Linux tasklet called in init_module");
 	tasklet_schedule(&test_tasklet);
+
+    return 0;
 }
 
-void cleanup_moduletask(void)
+static __exit void cleanup_module_task(void)
 {
 	return ;
 }
 
 module_init(init_module_task);
-module_exit(cleanup_moduletask);
+module_exit(cleanup_module_task);
+
+
+MODULE_LICENSE("Dual BSD/GPL");
