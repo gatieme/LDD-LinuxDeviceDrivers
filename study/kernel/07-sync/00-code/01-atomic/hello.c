@@ -15,6 +15,7 @@ MODULE_DESCRIPTION("test atomic_t");
 
 atomic_t count = ATOMIC_INIT(1);
 
+
 static int hello_init(void)
 {
     printk("init : %d\n", atomic_read(count));
