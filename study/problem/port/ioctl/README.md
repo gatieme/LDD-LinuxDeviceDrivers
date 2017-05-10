@@ -41,13 +41,13 @@
 
 原先的, 参见[include/linux/fs.h, version 2.6.17, line 1015](http://elixir.free-electrons.com/linux/v2.6.17.14/source/include/linux/fs.h#L1015)
 
->int (*ioctl)(struct inode*, struct file*, unsigned int, unsigned long);
+>int (\*ioctl)(struct inode \*, struct file \*, unsigned int, unsigned long);
 
 被改为了, 参见[include/linux/fs.h, version 4.11, line 1654](http://elixir.free-electrons.com/linux/v4.11/source/include/linux/fs.h#L1654),
 
->long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
+>long (\*unlocked_ioctl) (struct file \*, unsigned int, unsigned long);
 >
->long (*compat_ioctl) (struct file *, unsigned int, unsigned long);
+>long (\*compat_ioctl) (struct file \*, unsigned int, unsigned long);
 
 
 具体 `file_operations` 的实现可以参见[include/linux/fs.h, version 4.11, line 1654](http://elixir.free-electrons.com/linux/v4.11/source/include/linux/fs.h#L1654), 
@@ -88,7 +88,7 @@ static inline struct inode *file_inode(const struct file *f)
 #if LINUX_VERSION_CODE < KERNEL_VERSION(2, 6, 36)
 static int XXX_ioctl(
 		struct inode *indoe,
-        struct file *file,
+        struct file *filp,
 		unsigned int cmd,
         unsigned long arg)
 {
@@ -96,13 +96,13 @@ static int XXX_ioctl(
 //long (*unlocked_ioctl) (struct file *, unsigned int, unsigned long);
 //long (*compat_ioctl) (struct file *file, unsigned int cmd, unsigned long arg)
 static long XXX_unlocked_ioctl(
-		struct file *file,
+		struct file *filp,
         unsigned int cmd,
         unsigned long arg)
 {
-    //struct inode *inode = file->f_dentry->d_inode;
-    //struct inode *inode = file->d_inode;
-    struct inode *inode = inode = file_inode(file);
+    //struct inode *inode = filp->f_dentry->d_inode;
+    //struct inode *inode = filp->d_inode;
+    struct inode *inode = inode = file_inode(filp);
 #endif
 	/*  此处是ioctl() 函数结构的具体实现  */
 }
