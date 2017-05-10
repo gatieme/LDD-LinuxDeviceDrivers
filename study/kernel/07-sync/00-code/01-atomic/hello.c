@@ -1,8 +1,9 @@
 #include <linux/module.h>
-#include <linux/kernel.h>
 #include <linux/init.h>
+#include <linux/kernel.h>
 #include <linux/sched.h>
 #include <linux/atomic.h>
+#include <asm/atomic.h>
 //#include <linux/list.h>
 //#include <linux/mm.h>
 //#include <linux/mm_types.h>
@@ -18,23 +19,23 @@ atomic_t count = ATOMIC_INIT(1);
 
 static int hello_init(void)
 {
-    printk("init : %d\n", atomic_read(count));
+    printk("init : %d\n", atomic_read(&count));
 
-    atomic_set(count, 2);
-    printk("set2 : %d\n", atomic_read(count));
+    atomic_set(&count, 2);
+    printk("set2 : %d\n", atomic_read(&count));
 
-    atomic_add(count, 3);
-    printk("add3 : %d\n", atomic_read(count));
+    atomic_add(3, &count);
+    printk("add3 : %d\n", atomic_read(&count));
 
-    atomic_sub(count);
-    printk("sub3 : %d\n", atomic_read(count));
+    atomic_sub(3, &count);
+    printk("sub3 : %d\n", atomic_read(&count));
 
 
-    atomic_inc(count);
-    printk("inc  : %d\n", atomic_read(count));
+    atomic_inc(&count);
+    printk("inc  : %d\n", atomic_read(&count));
 
-    atomic_dec(count);
-    printk("dev  : %d\n", atomic_read(count));
+    atomic_dec(&count);
+    printk("dev  : %d\n", atomic_read(&count));
 
     return 0;
 }
