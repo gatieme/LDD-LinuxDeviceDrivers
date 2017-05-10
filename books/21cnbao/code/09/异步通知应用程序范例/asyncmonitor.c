@@ -1,7 +1,7 @@
 /*======================================================================
     A test program to access /dev/second
-    This example is to help understand async IO 
-    
+    This example is to help understand async IO
+
     The initial developer of the original code is Baohua Song
     <author@linuxdriver.cn>. All Rights Reserved.
 ======================================================================*/

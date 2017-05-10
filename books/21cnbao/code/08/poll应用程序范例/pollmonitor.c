@@ -1,8 +1,8 @@
 /*======================================================================
-    A test program in userspace   
+    A test program in userspace
     This example is to introduce the ways to use "select"
-     and driver poll                 
-      
+     and driver poll
+
     The initial developer of the original code is Baohua Song
     <author@linuxdriver.cn>. All Rights Reserved.
 ======================================================================*/
@@ -20,7 +20,7 @@ main()
   int fd, num;
   char rd_ch[BUFFER_LEN];
   fd_set rfds,wfds;
-  
+
   /*以非阻塞方式打开/dev/globalmem设备文件*/
   fd = open("/dev/globalfifo", O_RDONLY | O_NONBLOCK);
   if (fd !=  - 1)
@@ -47,7 +47,7 @@ main()
       if (FD_ISSET(fd, &wfds))
       {
       	printf("Poll monitor:can be written\n");
-      }      
+      }
     }
   }
   else

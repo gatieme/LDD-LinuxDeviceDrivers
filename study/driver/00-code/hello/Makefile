@@ -31,12 +31,12 @@ obj-m := $(MODULE_NAME).o
 else						# userspace
 
 
-LINUX_KERNEL ?= $(shell uname -r)
-LINUX_KERNEL_PATH ?= /lib/modules/$(LINUX_KERNEL)/build
+LINUX_KERNEL := $(shell uname -r)
+LINUX_KERNEL_PATH := /lib/modules/$(LINUX_KERNEL)/build
 
-CURRENT_PATH ?= $(shell pwd)
-CFG_INC = $(CURRENT_PATH)
-MODCFLAGS:=-O2 -Wall -DMODULE -D__KERNEL__ -DLINUX -std=c99
+CURRENT_PATH := $(shell pwd)
+CFG_INC := $(CURRENT_PATH)
+MODCFLAGS := -O2 -Wall -DMODULE -D__KERNEL__ -DLINUX -std=c99
 EXTRA_CFLAGS  += $(MODULE_FLAGS) -I $(CFG_INC)
 
 

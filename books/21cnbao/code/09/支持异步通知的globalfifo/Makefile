@@ -20,7 +20,7 @@ DRIVER_DESC    := "Linux input module for Elo MultiTouch(MT) devices"
 DRIVER_LICENSE := "Dual BSD/GPL"
 
 
-MODULE_NAME := globalfifo
+MODULE_NAME := globalfifo_async
 
 
 
