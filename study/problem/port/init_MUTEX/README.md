@@ -56,7 +56,7 @@ static inline void sema_init(struct semaphore *sem, int val)
 
 ```cpp
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36) && !defined(init_MUTEX)
-    sema_init(&sem);
+    sema_init(&sem, 1);
 #else
     init_MUTEX(&sem);
 #endif
