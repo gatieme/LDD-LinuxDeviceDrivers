@@ -20,24 +20,26 @@
 //#include <asm/system.h>
 #include <asm/uaccess.h>
 
-#define GLOBALMEM_SIZE	0x1000	/*全局内存最大4K字节*/
-#define MEM_CLEAR       0x1     /*清0全局内存*/
-#define GLOBALMEM_MAJOR 300     /*预设的globalmem的主设备号*/
+#define GLOBALMEM_SIZE	    0x1000	/*全局内存最大4K字节*/
+#define MEM_CLEAR           0x1     /*清0全局内存*/
+#define GLOBALMEM_MAJOR     300     /*预设的globalmem的主设备号*/
 
 static int globalmem_major = GLOBALMEM_MAJOR;
 
 /*  globalmem设备结构体 */
 struct globalmem_dev
 {
-    struct cdev cdev;                   /*  cdev结构体  */
-    unsigned char mem[GLOBALMEM_SIZE];  /*  全局内存    */
-    struct semaphore sem;               /*  并发控制用的信号量  */
+    struct cdev         cdev;                       /*  cdev结构体  */
+    unsigned char       mem[GLOBALMEM_SIZE];        /*  全局内存    */
+    struct semaphore    sem;                        /*  并发控制用的信号量  */
 };
 
-struct globalmem_dev *globalmem_devp;   /*  设备结构体指针  */
+struct globalmem_dev    *globalmem_devp = NULL;     /*  设备结构体指针  */
 
 /*  文件打开函数  */
-int globalmem_open(struct inode *inode, struct file *filp)
+int globalmem_open(
+        struct inode *inode,
+        struct file *filp)
 {
     /*  将设备结构体指针赋值给文件私有数据指针  */
     filp->private_data = globalmem_devp;
@@ -68,8 +70,8 @@ static long globalmem_unlocked_ioctl(
         unsigned long arg)
 {
     struct inode *inode = inode = file_inode(filp);
-
 #endif
+
     struct globalmem_dev *dev = filp->private_data; /*获得设备结构体指针*/
 
     switch (cmd)

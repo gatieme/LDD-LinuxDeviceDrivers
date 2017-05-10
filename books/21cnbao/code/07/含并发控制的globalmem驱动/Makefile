@@ -59,7 +59,8 @@ github:
 	cd $(ROOT) && make github
 
 test :
-	sudo ../injector/memInjector -l stack -m random -t word_0 --time 1 --timeout 3 -p 1
+	echo "gatieme" > /dev/gatieme
+	cat /dev/gatieme
 
 clean:
 	make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) clean
