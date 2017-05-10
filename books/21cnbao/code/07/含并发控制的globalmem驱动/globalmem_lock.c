@@ -21,8 +21,8 @@
 #include <asm/uaccess.h>
 
 #define GLOBALMEM_SIZE	0x1000	/*全局内存最大4K字节*/
-#define MEM_CLEAR 0x1    /*清0全局内存*/
-#define GLOBALMEM_MAJOR 254      /*预设的globalmem的主设备号*/
+#define MEM_CLEAR       0x1     /*清0全局内存*/
+#define GLOBALMEM_MAJOR 300     /*预设的globalmem的主设备号*/
 
 static int globalmem_major = GLOBALMEM_MAJOR;
 
@@ -271,8 +271,12 @@ int globalmem_init(void)
 
     globalmem_setup_cdev(globalmem_devp, 0);
 //2.6.25
-    init_MUTEX(&globalfifo_devp->sem);   /*初始化信号量*/
-    //init_MUTEX(&globalfifo_devp->sem);   /*初始化信号量*/
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 36) && !defined(init_MUTEX)
+    sema_init(&(globalmem_devp->sem), 1);
+#else
+    init_MUTEX(&(globalmem_devp->sem));   /*初始化信号量*/
+#endif
+
     return 0;
 
     fail_malloc: unregister_chrdev_region(devno, 1);

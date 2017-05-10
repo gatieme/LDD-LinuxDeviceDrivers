@@ -47,17 +47,16 @@ modules_install:
 	make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) modules_install
 
 insmod:
-	sudo insmod $(MODULE_NAME).ko
-
-reinsmod:
-	sudo rmmod $(MODULE_NAME)
-	sudo insmod $(MODULE_NAME).ko
-
-github:
-	cd $(ROOT) && make github
+	sudo insmod $(MODULE_NAME).ko globalmem_major=0
+	sudo mknod /dev/gatieme c 242 0
+	sudo chmod 666 /dev/gatieme
 
 rmmod:
 	sudo rmmod $(MODULE_NAME)
+	sudo rm -rf /dev/gatieme
+
+github:
+	cd $(ROOT) && make github
 
 test :
 	sudo ../injector/memInjector -l stack -m random -t word_0 --time 1 --timeout 3 -p 1
