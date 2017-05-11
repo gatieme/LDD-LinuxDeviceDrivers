@@ -12,7 +12,7 @@ static struct task_struct * _task3;
 static int thread_func(void *data)
 {
         int j,k;
-        int timeout;
+        int timeout = HZ;
         wait_queue_head_t timeout_wq;
 		char * data1=(char*)data;
         static int i = 0;
@@ -36,7 +36,7 @@ static int thread_func(void *data)
  */
 #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0)
                 /* http://www.codeweblog.com/interruptible_sleep_on_timeout-%E7%9D%A1%E7%9C%A0%E8%B6%85%E6%97%B6%E8%AE%BE%E5%AE%9A  */
-                interruptible_sleep_on_timeout(&timeout_wq, HZ);
+                timeout = interruptible_sleep_on_timeout(&timeout_wq, HZ);
 #else
                 DEFINE_WAIT(wait);
                 prepare_to_wait(&timeout_wq, &wait, TASK_INTERRUPTIBLE);
