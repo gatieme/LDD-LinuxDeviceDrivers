@@ -13,7 +13,6 @@ kernel代码风格
 <br>
 
 
-[Linux 内核Coding Style整理](http://www.cnblogs.com/wang_yb/p/3532349.html)
 
 [linux内核代码风格（中文）](http://blog.csdn.net/chrisniu1984/article/details/6619723)
 
@@ -44,7 +43,21 @@ kernel代码风格
 
 [Linux内核代码风格 CodingStyle](http://blog.csdn.net/jiang_dlut/article/details/8163731)
 
+
 [Linux内核代码风格（K&R）](http://blog.csdn.net/u013014440/article/details/44337097)
+
+
+[基于linux内核代码风格的代码格式调整器](http://bbs.csdn.net/topics/390436961)
+
+
+[Linux 内核Coding Style整理](http://www.cnblogs.com/wang_yb/p/3532349.html)
+
+
+[内核工具 – Sparse 简介](http://www.cnblogs.com/wang_yb/p/3575039.html)
+
+
+[《Linux内核设计与实现》读书笔记 - 目录 （完结）](http://www.cnblogs.com/wang_yb/p/3514730.html)
+
 
 <br>
 
