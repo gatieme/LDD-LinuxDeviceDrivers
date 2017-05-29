@@ -14,6 +14,12 @@ AderXCoding
 http://www.linuxidc.com/Linux/2014-08/105510.htm
 http://www.dataguru.cn/thread-475271-1-1.html
 
+http://www.mamicode.com/info-detail-1705536.html
+
+[install arm-gdb error]
+trying to overwrite '/usr/share/man/man1/gdb.1.gz', which is also in package
+https://wiki.debian.org/EmdebianToolchain
+
 <br>
 
 *	本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作, 
