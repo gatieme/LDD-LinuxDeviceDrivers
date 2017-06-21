@@ -9,6 +9,8 @@
 <br>
 
 
+[根据内核Oops 定位代码工具使用— addr2line 、gdb、objdump](http://blog.csdn.net/u012719256/article/details/53365155)
+
 [转载_Linux内核OOPS调试](http://blog.csdn.net/tommy_wxie/article/details/12521535)
 
 
