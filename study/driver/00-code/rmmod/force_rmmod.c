@@ -110,16 +110,16 @@ static int __init force_rmmod_init(void)
         printk("[%s] module_name (NULL)\n", THIS_MODULE->name);
         return 0;
     }
-
     /*  打印内核模块的地址  */
     if((symbol_addr = kallsyms_lookup_name(modname)) == NULL)
     {
         printk("[%s] %s symbol_addr : (null)\n", THIS_MODULE->name, modname);
-        return 0;
+        //return 0;
     }
-    printk("[%s] %s symbol_addr : 0x%x\n", THIS_MODULE->name, modname, symbol_addr);
-
-
+    else
+    {
+        printk("[%s] %s symbol_addr : 0x%x\n", THIS_MODULE->name, modname, symbol_addr);
+    }
     return force_cleanup_module(modname);
 }
 
