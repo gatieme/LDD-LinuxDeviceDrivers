@@ -24,13 +24,8 @@ module_param(modname, charp, 0644);
 MODULE_PARM_DESC(modname, "The name of module you want do clean or delete...\n");
 
 
-/*
-static char buffer[20] = "gatieme";
-module_param_string(buffer, buffer, sizeof(buffer), 0644);
-MODULE_PARM_DESC(value_charp, "Get an string buffer from user...\n");
-*/
-
-static void force_exit_module(void)
+#ifdef CONFIG_REPLACE_EXIT_FUNCTION
+static void force_replace_exit_module_function(void)
 {
     int symbol_addr;
 
@@ -39,12 +34,16 @@ static void force_exit_module(void)
 
     platform_device_unregister((struct platform_device*)(*(int*)symbol_addr));
 }
+#endif  //  CONFIG_REPLACE_EXIT_FUNCTION
+
 
 static int force_cleanup_module(char *del_mod_name)
 {
-    struct module *list_mod, *mod, *relate;
-    int cpu;
-
+    struct module   *mod = NULL, *relate = NULL;
+    int              cpu;
+#if 0
+    //  方法一, 遍历内核模块树list_mod查询
+    struct module *list_mod = NULL;
     /*  遍历模块列表, 查找 del_mod_name 模块  */
     list_for_each_entry(list_mod, THIS_MODULE->list.prev, list)
     {
@@ -60,10 +59,23 @@ static int force_cleanup_module(char *del_mod_name)
         printk("[%s] module %s not found\n", THIS_MODULE->name, modname);
         return -1;
     }
+#endif
 
-    printk("[before] name:%s, state:%d, refcnt:%u\n",
-            mod->name ,mod->state, module_refcount(mod));
+    //  方法二, 通过find_mod函数查找
+    if((mod = find_module(del_mod_name)) == NULL)
+    {
+        printk("[%s] module %s not found\n", THIS_MODULE->name, del_mod_name);
+        return -1;
+    }
+    else
+    {
+        printk("[before] name:%s, state:%d, refcnt:%u\n",
+                mod->name ,mod->state, module_refcount(mod));
+    }
 
+    /////////////////////
+    //  如果有其他驱动依赖于当前驱动, 则退出卸载
+    /////////////////////
     /*  如果有其他模块依赖于 del_mod  */
     if (!list_empty(&mod->source_list))
     {
@@ -78,9 +90,13 @@ static int force_cleanup_module(char *del_mod_name)
         printk("No modules depond on %s...\n", del_mod_name);
     }
 
-    mod->state = 0;
-    //mod->exit = force;
+    /////////////////////
+    //  清除驱动的状态和引用计数
+    /////////////////////
+    //  修正驱动的状态为LIVE
+    mod->state = MODULE_STATE_LIVE;
 
+    //  清除驱动的引用计数
     for_each_possible_cpu(cpu)
     {
         local_set((local_t*)per_cpu_ptr(&(mod->refcnt), cpu), 0);
@@ -89,6 +105,13 @@ static int force_cleanup_module(char *del_mod_name)
         //module_put(mod);
     }
     atomic_set(&mod->refcnt, 1);
+
+#ifdef CONFIG_REPLACE_EXIT_FUNCTION
+    /////////////////////
+    //  重新注册驱动的exit函数
+    /////////////////////
+    mod->exit = force_replace_exit_module_function;
+#endif
 
     printk("[after] name:%s, state:%d, refcnt:%u\n",
             mod->name, mod->state, module_refcount(mod));
@@ -99,27 +122,6 @@ static int force_cleanup_module(char *del_mod_name)
 
 static int __init force_rmmod_init(void)
 {
-    int symbol_addr;
-    int ret;
-
-    /*  打印内核模块的信息*/
-    printk("=======name : %s, state : %d INIT=======\n", THIS_MODULE->name, THIS_MODULE->state);
-
-    if(modname == NULL)
-    {
-        printk("[%s] module_name (NULL)\n", THIS_MODULE->name);
-        return 0;
-    }
-    /*  打印内核模块的地址  */
-    if((symbol_addr = kallsyms_lookup_name(modname)) == NULL)
-    {
-        printk("[%s] %s symbol_addr : (null)\n", THIS_MODULE->name, modname);
-        //return 0;
-    }
-    else
-    {
-        printk("[%s] %s symbol_addr : 0x%x\n", THIS_MODULE->name, modname, symbol_addr);
-    }
     return force_cleanup_module(modname);
 }
 
