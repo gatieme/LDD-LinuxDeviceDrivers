@@ -1,0 +1,22 @@
+#!/usr/bin/stap
+
+probe begin
+{
+    log("begin to probe")
+}
+
+probe syscall.open
+{
+    printf("%s(%d) open (%s)\n", execname( ), pid( ), argstr)
+}
+
+# after 4 seconds
+probe timer.ms(4000)
+{
+    exit( )
+}
+
+probe end
+{
+    log("end to probe")
+}

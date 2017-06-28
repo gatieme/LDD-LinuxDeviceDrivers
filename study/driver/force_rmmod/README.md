@@ -261,7 +261,143 @@ static int try_stop_module(struct module *mod, int flags, int *forced)
 ##4.1	force_rmmod外部驱动模块强制卸载异常驱动
 -------
 
-##4.2	
+为此设计了 `force_rmmod` 外部模块用于卸载外部的驱动.
+
+
+##4.2	情形3--没有exit函数的异常模块
+-------
+
+没有 `exit` 函数的驱动是无法被卸载的, 如果我们设计的驱动没有 exit函数, 那么将导致驱动无法卸载.
+
+
+示例代码 `none_hello` 如下所示 :
+
+```cpp
+//  none_exit.c
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/init.h>
+
+
+MODULE_LICENSE("Dual BSD/GPL");
+MODULE_AUTHOR("Gatieme");
+MODULE_DESCRIPTION("none_exit world");
+
+
+
+static int none_exit_init(void)
+{
+    printk("none_exit init\n");
+    return 0;
+}
+module_init(none_exit_init);
+
+#if 0
+static void none_exit_exit(void)
+{
+    printk(KERN_ERR"exit");
+}
+module_exit(none_exit_exit);
+#endif
+```
+
+
+此时构建内核模块, 加载完成后, 发现内核模块 `none_exit` 加载成功, 但是却无法卸载.
+
+```cpp
+make # 构建驱动
+sudo insmod none_exit.ko  # 加载驱动
+dmesg | tail -l  # 查看日志信息, 发现驱动加载成功
+sudo rmmod none_exit
+```
+
+![无法卸载没有exit函数的驱动模块](none_exit_bug.png)
+
+`rmmod` 卸载驱动时, 提示
+
+```cpp
+rmmod: ERROR: ../libkmod/libkmod-module.c:769 kmod_module_remove_module() could not remove 'none_exit': Device or resource busy
+rmmod: ERROR: could not remove module none_exit: Device or resource busy
+```
+
+如果想要正常卸载此驱动模块, 可以通过外部注册 `exit` 函数的方式, 替换掉 `none_exit` 模块的 `exit`函数
+
+即基本流程如下
+
+1.	查找到 `none_exit` 模块的内核模块结构 `struct moudle`, 可以通过 `find_module` 函数查找到, 也可以参照 `find_module` 函数实现.
+
+    ```cpp
+    mod = find_module(del_mod_name)
+    ```
+
+2.	设计新的 `exit` 函数, 替代原来的 `exit` 函数
+
+    ```cpp
+    //  此处为外部注册的待卸载模块的exit函数
+    //  用于替代模块原来的exit函数
+    //  注意--此函数由于需要被待删除模块引用, 因此不能声明为static
+    /* static */ void force_replace_exit_module_function(void)
+    {
+        /////////////////////
+        //  此处完善待卸载驱动的 exit/cleanup 函数
+        /////////////////////
+
+        printk("module %s exit SUCCESS...\n", modname);
+    //    platform_device_unregister((struct platform_device*)(*(int*)symbol_addr));
+    }
+
+	/////////////////////
+    //  替换/重新注册驱动的exit函数
+    /////////////////////
+    mod->exit = force_replace_exit_module_function;
+    ```
+
+> **注意**
+>
+>  外部 `exit` 函数的设计依赖于原驱动模块的实现, 特别是 `init` 函数的设计, `exit` 函数必须释放掉驱动构建的数据结构和结点信息
+
+
+而此例子中, 我们用于演示的 `none_exit` 仅是一个简单的实例, 它没有那么多信息, 因此只需要一个简单的 `exit` 退出函数即可.
+
+
+可以使用 `force_rmmod` 驱动实现卸载 `none_exit`, 可以根据需要自行补充 `exit` 函数 `force_replace_exit_module_function` 的实现.
+
+编译时需要添加 `CONFIG_REPLACE_EXIT_FUNCTION` 宏, 可以通过
+
+*	在 `Makefile` 中制定 `-DCONFIG_REPLACE_EXIT_FUNCTION`
+
+或者
+
+*	在 force_rmmod 驱动源码中添加 `#define CONFIG_REPLACE_EXIT_FUNCTION`
+
+卸载 `none_exit` 的具体流程如下.
+
+```cpp
+#  通过 `modname` 制定待卸载驱动的信息
+sudo insmod force_rmmod.ko modname=none_exit
+#  查看是否加载成功, `exit` 函数是否正常替换
+dmesg | tail -l
+#  卸载 `none_exit` 驱动
+sudo rmmod none_exit
+#  卸载 `force_rmmod` 驱动
+sudo rmmod force_rmmod
+```
+
+![强制卸载](non_exit_resolve.png)
+
+可以看到驱动 `none_exit` 被正常卸载
+
+由于替换了 `none_exit` 驱动中的 `exit` 函数为 `force_rmmod` 驱动中的函数, 因此要首先卸载 `none_exit` 的时候, 再卸载 `force_rmmod`, 否则 `none_exit` 将同样卸载失败.
+
+
+##4.3	情形4--引用计数不为0的异常情形
+-------
+
+
+驱动异常, 或者
+
+
+
 
 #参考资料
 -------

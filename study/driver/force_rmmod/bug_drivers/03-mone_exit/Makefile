@@ -20,7 +20,7 @@ DRIVER_DESC    := "Linux input module for Elo MultiTouch(MT) devices"
 DRIVER_LICENSE := "Dual BSD/GPL"
 
 
-MODULE_NAME := hello
+MODULE_NAME := none_exit
 
 
 
@@ -49,26 +49,20 @@ modules_install:
 insmod:
 	sudo insmod $(MODULE_NAME).ko
 
-reinsmod:
-	sudo rmmod $(MODULE_NAME)
-	sudo insmod $(MODULE_NAME).ko
-
-github:
-	cd $(ROOT) && make github
-
-rmmod:
-	sudo rmmod $(MODULE_NAME)
-
-test :
-	sudo ../injector/memInjector -l stack -m random -t word_0 --time 1 --timeout 3 -p 1
-
-clean:
-	make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) clean
-	rm -f modules.order Module.symvers Module.markers
 
 .PHNOY:
 	modules modules_install clean
 
+reinsmod:
+	sudo rmmod $(MODULE_NAME)
+	sudo insmod $(MODULE_NAME).ko
+
+rmmod:
+	sudo rmmod $(MODULE_NAME)
+
+clean:
+	make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) clean
+	rm -f modules.order Module.symvers Module.markers
 
 
 endif

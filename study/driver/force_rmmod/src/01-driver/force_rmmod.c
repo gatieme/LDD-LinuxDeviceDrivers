@@ -6,6 +6,7 @@
 #include <asm-generic/local.h>
 #include <linux/platform_device.h>
 #include <linux/kallsyms.h>
+#include <linux/sched.h>
 
 
 /*
@@ -24,15 +25,20 @@ module_param(modname, charp, 0644);
 MODULE_PARM_DESC(modname, "The name of module you want do clean or delete...\n");
 
 
+#define CONFIG_REPLACE_EXIT_FUNCTION
+
 #ifdef CONFIG_REPLACE_EXIT_FUNCTION
-static void force_replace_exit_module_function(void)
+//  此处为外部注册的待卸载模块的exit函数
+//  用于替代模块原来的exit函数
+//  注意--此函数由于需要被待删除模块引用, 因此不能声明为static
+/* static */ void force_replace_exit_module_function(void)
 {
-    int symbol_addr;
+    /////////////////////
+    //  此处完善待卸载驱动的 exit/cleanup 函数
+    /////////////////////
 
-    printk("XXXXXX, force!\n");
-    symbol_addr = kallsyms_lookup_name(modname);
-
-    platform_device_unregister((struct platform_device*)(*(int*)symbol_addr));
+    printk("module %s exit SUCCESS...\n", modname);
+//    platform_device_unregister((struct platform_device*)(*(int*)symbol_addr));
 }
 #endif  //  CONFIG_REPLACE_EXIT_FUNCTION
 
@@ -41,6 +47,13 @@ static int force_cleanup_module(char *del_mod_name)
 {
     struct module   *mod = NULL, *relate = NULL;
     int              cpu;
+#ifdef CONFIG_REPLACE_EXIT_FUNCTION
+    void            *origin_exit_addr = NULL;
+#endif
+
+    /////////////////////
+    //  找到待删除模块的内核module信息
+    /////////////////////
 #if 0
     //  方法一, 遍历内核模块树list_mod查询
     struct module *list_mod = NULL;
@@ -74,7 +87,7 @@ static int force_cleanup_module(char *del_mod_name)
     }
 
     /////////////////////
-    //  如果有其他驱动依赖于当前驱动, 则退出卸载
+    //  如果有其他驱动依赖于当前驱动, 则不能强制卸载, 立刻退出
     /////////////////////
     /*  如果有其他模块依赖于 del_mod  */
     if (!list_empty(&mod->source_list))
@@ -104,13 +117,24 @@ static int force_cleanup_module(char *del_mod_name)
         //per_cpu_ptr(mod->refptr, cpu)->decs;
         //module_put(mod);
     }
-    atomic_set(&mod->refcnt, 1);
+    //atomic_set(&mod->refcnt, 1);
 
 #ifdef CONFIG_REPLACE_EXIT_FUNCTION
     /////////////////////
     //  重新注册驱动的exit函数
     /////////////////////
+    origin_exit_addr = mod->exit;
+    if (origin_exit_addr == NULL)
+    {
+        printk("module %s don't have exit function...\n", mod->name);
+    }
+    else
+    {
+        printk("module %s exit function address %p\n", mod->name, origin_exit_addr);
+    }
+
     mod->exit = force_replace_exit_module_function;
+    printk("replace module %s exit function address (%p -=> %p)\n", mod->name, origin_exit_addr, mod->exit);
 #endif
 
     printk("[after] name:%s, state:%d, refcnt:%u\n",
