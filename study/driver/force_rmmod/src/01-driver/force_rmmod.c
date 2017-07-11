@@ -25,7 +25,7 @@ module_param(modname, charp, 0644);
 MODULE_PARM_DESC(modname, "The name of module you want do clean or delete...\n");
 
 
-#define CONFIG_REPLACE_EXIT_FUNCTION
+//#define CONFIG_REPLACE_EXIT_FUNCTION
 
 #ifdef CONFIG_REPLACE_EXIT_FUNCTION
 //  此处为外部注册的待卸载模块的exit函数
@@ -117,7 +117,7 @@ static int force_cleanup_module(char *del_mod_name)
         //per_cpu_ptr(mod->refptr, cpu)->decs;
         //module_put(mod);
     }
-    //atomic_set(&mod->refcnt, 1);
+    atomic_set(&mod->refcnt, 1);
 
 #ifdef CONFIG_REPLACE_EXIT_FUNCTION
     /////////////////////

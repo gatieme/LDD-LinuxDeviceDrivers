@@ -19,11 +19,6 @@ AderXCoding
 
 就比如前面我们在博文 [Linux Kernel PANIC(三)--Soft Panic/Oops调试及实例分析](http://blog.csdn.net/gatieme/article/details/73715860) 中讲解调试内核 `OOPS` 时, 使用的有异常的驱动, `kerneloops` 或者 `createoops`, 他们在初始化函数 `init`中出现了 `NULL` 指针异常
 
-源码在
-
-*	[kerneloops](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/debug/modules/panic/03-soft_panic/kerneloops)
-
-*	[createoops](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/debug/modules/panic/03-soft_panic/createoop)
 
 
 我们以 `kerneloops` 为示例, 来进行演示.
@@ -394,12 +389,115 @@ sudo rmmod force_rmmod
 -------
 
 
-驱动异常, 或者
+驱动异常(比如段错误), 或者未正确初始化的时候(排除驱动被外部程序使用的情况, 这种情况属于正常情况, 并不是异常), 此时导致驱动无法被卸载.
+
+
+最常见的情况下, 驱动使用过程中出现段错误, 导致内核出现 `Soft Panic`, 即 `Oops`, 此时驱动无法被卸载. 比如之前讲解[Linux Kernel PANIC(三)–Soft Panic/Oops调试及实例分析](http://blog.csdn.net/gatieme/article/details/73715860)时, 使用的示例就属于这种情形.
+
+
+`kerneloops` 和 `createoops` 的情形均类似, 访问了 `NULL` 指针, 导致驱动段错误, 从而引起内核 `OOPS`.
+
+*	[kerneloops](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/debug/modules/panic/03-soft_panic/kerneloops)
+
+![`kerneloops` 异常](rmmod_kerneloops_error.png)
+
+*	[createoops](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/debug/modules/panic/03-soft_panic/createoop)
 
 
 
+![`createoops` 异常](rmmod_createoops_error.png)
 
-#参考资料
+
+`kerneloops` 的代码在[Linux Kernel PANIC(三)–Soft Panic/Oops调试及实例分析](http://blog.csdn.net/gatieme/article/details/73715860)中已经展示, 下面列出 `createoops` 为的代码
+```cpp
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/init.h>
+
+static void create_oops(void)
+{
+        *(int *)0 = 0;
+}
+
+static int __init my_oops_init(void)
+{
+        printk("oops from the module\n");
+        create_oops();
+       return (0);
+}
+
+static void __exit my_oops_exit(void)
+{
+        printk("Goodbye world\n");
+}
+
+module_init(my_oops_init);
+module_exit(my_oops_exit);
+```
+
+在代码第 `17` 行, 出现了一个段错误.
+
+
+他们在移除的过程中, 均提示
+
+```cpp
+rmmod: ERROR: Module XXX is in use
+```
+
+其本质就是模块的模块的引用计数不为 `0`, 要解决此类问题, 只需要将模块的引用计数强制置为 `0` 即可.
+
+1.	查找到 `none_exit` 模块的内核模块结构 `struct moudle`, 可以通过 `find_module` 函数查找到, 也可以参照 `find_module` 函数实现.
+
+2.	重置模块的引用计数
+
+	```cpp
+    //  清除驱动的引用计数
+    for_each_possible_cpu(cpu)
+    {
+        local_set((local_t*)per_cpu_ptr(&(mod->refcnt), cpu), 0);
+        //local_set(__module_ref_addr(mod, cpu), 0);
+        //per_cpu_ptr(mod->refptr, cpu)->decs;
+        //module_put(mod);
+    }
+    atomic_set(&mod->refcnt, 1);
+	```
+
+
+
+>**注意**
+>
+>  如果驱动是在 `exit` 函数中异常, 则我们同样需要替换其 `exit` 函数, 否则则不需要替换 `exit` 函数
+
+
+
+可以使用 `force_rmmod` 驱动实现卸载 `kerneloops` 和 `createoops`, 可以根据需要自行补充 `exit` 函数 `force_replace_exit_module_function` 的实现. 如果需要补充 `exit` 函数编译时需要添加 `CONFIG_REPLACE_EXIT_FUNCTION` 宏, 可以通过
+
+*	在 `Makefile` 中制定 `-DCONFIG_REPLACE_EXIT_FUNCTION`
+
+或者
+
+*	在 `force_rmmod` 驱动源码中添加 `#define CONFIG_REPLACE_EXIT_FUNCTION`
+
+卸载 `createoops` 的具体流程如下.
+
+```cpp
+#  通过 `modname` 制定待卸载驱动的信息
+sudo insmod force_rmmod.ko modname=createoops
+#  查看是否加载成功, `exit` 函数是否正常替换
+dmesg | tail -l
+#  卸载 `createoops` 驱动
+sudo rmmod createoops
+#  卸载 `force_rmmod` 驱动
+sudo rmmod force_rmmod
+```
+
+![强制卸载](createoops_resolve.png)
+
+可以看到驱动 `createoops` 被正常卸载
+
+
+
+#5	参考资料
 -------
 
 [强力卸载内核模块](http://blog.csdn.net/zhangskd/article/details/7945140)
