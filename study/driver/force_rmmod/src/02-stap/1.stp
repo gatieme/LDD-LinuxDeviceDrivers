@@ -1,0 +1,24 @@
+%{
+#include <linux/in.h>
+#include <linux/ip.h>
+%} /* <-- top level */
+
+function read_iphdr:long(skb:long) %{ /* pure */
+    struct iphdr *iph = ip_hdr((struct sk_buff *)STAP_ARG_skb);
+    STAP_RETVALUE = (long)iph;
+%} /* <-- function body */
+
+/* Determines whether an IP packet is TCP, based on the iphdr: */
+function is_tcp_packet:long(iphdr) {
+    protocol = @cast(iphdr, "iphdr")->protocol
+return (protocol == %{ IPPROTO_TCP %}) /* <-- expression */
+}
+
+probe begin {
+    printf("SystemTap start!\n");
+}
+
+probe kernel.function("ip_local_deliver") {
+    iph = read_iphdr(pointer_arg(1));
+    printf("tcp packet ? %s\n", is_tcp_packet(iph) ? "yes" : "no");
+}

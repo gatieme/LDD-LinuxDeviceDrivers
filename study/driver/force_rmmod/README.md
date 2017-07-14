@@ -1,9 +1,9 @@
-AderXCoding
+Linux强制卸载内核模块(由于驱动异常导致rmmod不能卸载)
 =======
 
 | CSDN | GitHub |
 |:----:|:------:|
-| [Aderstep--紫夜阑珊-青伶巷草](http://blog.csdn.net/gatieme) | [`AderXCoding/system/tools`](https://github.com/gatieme/AderXCoding/tree/master/system/tools) |
+| [Linux强制卸载内核模块(由于驱动异常导致rmmod不能卸载)](http://blog.csdn.net/gatieme/article/details/75108154) | [`LDD-LinuxDeviceDrivers/study/driver/force_rmmod`](https://github.com/gatieme/LDD-LinuxDeviceDrivers/blob/master/study/driver/force_rmmod) |
 
 
 <br>
@@ -240,6 +240,21 @@ static int try_stop_module(struct module *mod, int flags, int *forced)
 | 情况5 | 如果在执行 `exit` 函数时没有正常退出, 也将导致驱动无法正常卸载 | |
 
 其中情况 `3` 和情况 `5` 类似, 都是因为 `exit` 不正确(缺失或者异常), 导致的问题, 只能通过外部注册 `exit` 函数, 当然也可以特殊情况特殊考虑， 具体的做法根据驱动功能和实现的不同有所差异, 但是基本思想相同.
+
+
+>驱动模块有多种状态, 其中 LIVE 表示当前驱动模块正常运行.
+>
+>参见 [include/linux/module.h, line 277](http://elixir.free-electrons.com/linux/v4.12.1/source/include/linux/module.h#L277)
+>
+>```cpp
+enum module_state {
+	MODULE_STATE_LIVE,	/* Normal state. */
+	MODULE_STATE_COMING,	/* Full formed, running module_init. */
+	MODULE_STATE_GOING,	/* Going away. */
+	MODULE_STATE_UNFORMED,	/* Still setting it up. */
+};
+```
+
 
 #4	实例分析
 -------
@@ -497,8 +512,225 @@ sudo rmmod force_rmmod
 
 
 
-#5	参考资料
+#5	强制卸载驱动模块 `force_rmmod` 元吗
 -------
+
+
+最后附上 强制卸载驱动模块的简易版源码
+
+
+https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/driver/force_rmmod/src/01-driver
+
+源码 `force_rmmod.c`
+
+```cpp
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <linux/cpumask.h>
+#include <linux/list.h>
+#include <asm-generic/local.h>
+#include <linux/platform_device.h>
+#include <linux/kallsyms.h>
+#include <linux/sched.h>
+
+
+/*
+ *  加载模块的时候, 传递字符串到模块的一个全局字符数组里面
+ *
+ *  module_param_string(name, string, len, perm)
+ *
+ *  @name   在加载模块时，参数的名字
+ *  @string 模块内部的字符数组的名字
+ *  @len    模块内部的字符数组的大小
+ *  #perm   访问权限
+ *
+ * */
+static char *modname = NULL;
+module_param(modname, charp, 0644);
+MODULE_PARM_DESC(modname, "The name of module you want do clean or delete...\n");
+
+
+//#define CONFIG_REPLACE_EXIT_FUNCTION
+
+#ifdef CONFIG_REPLACE_EXIT_FUNCTION
+//  此处为外部注册的待卸载模块的exit函数
+//  用于替代模块原来的exit函数
+//  注意--此函数由于需要被待删除模块引用, 因此不能声明为static
+/* static */ void force_replace_exit_module_function(void)
+{
+    /////////////////////
+    //  此处完善待卸载驱动的 exit/cleanup 函数
+    /////////////////////
+
+    printk("module %s exit SUCCESS...\n", modname);
+//    platform_device_unregister((struct platform_device*)(*(int*)symbol_addr));
+}
+#endif  //  CONFIG_REPLACE_EXIT_FUNCTION
+
+
+static int force_cleanup_module(char *del_mod_name)
+{
+    struct module   *mod = NULL, *relate = NULL;
+    int              cpu;
+#ifdef CONFIG_REPLACE_EXIT_FUNCTION
+    void            *origin_exit_addr = NULL;
+#endif
+
+    /////////////////////
+    //  找到待删除模块的内核module信息
+    /////////////////////
+#if 0
+    //  方法一, 遍历内核模块树list_mod查询
+    struct module *list_mod = NULL;
+    /*  遍历模块列表, 查找 del_mod_name 模块  */
+    list_for_each_entry(list_mod, THIS_MODULE->list.prev, list)
+    {
+        if (strcmp(list_mod->name, del_mod_name) == 0)
+        {
+            mod = list_mod;
+        }
+    }
+    /*  如果未找到 del_mod_name 则直接退出  */
+    if(mod == NULL)
+    {
+        printk("[%s] module %s not found\n", THIS_MODULE->name, modname);
+        return -1;
+    }
+#endif
+
+    //  方法二, 通过find_mod函数查找
+    if((mod = find_module(del_mod_name)) == NULL)
+    {
+        printk("[%s] module %s not found\n", THIS_MODULE->name, del_mod_name);
+        return -1;
+    }
+    else
+    {
+        printk("[before] name:%s, state:%d, refcnt:%u\n",
+                mod->name ,mod->state, module_refcount(mod));
+    }
+
+    /////////////////////
+    //  如果有其他驱动依赖于当前驱动, 则不能强制卸载, 立刻退出
+    /////////////////////
+    /*  如果有其他模块依赖于 del_mod  */
+    if (!list_empty(&mod->source_list))
+    {
+        /*  打印出所有依赖target的模块名  */
+        list_for_each_entry(relate, &mod->source_list, source_list)
+        {
+            printk("[relate]:%s\n", relate->name);
+        }
+    }
+    else
+    {
+        printk("No modules depond on %s...\n", del_mod_name);
+    }
+
+    /////////////////////
+    //  清除驱动的状态和引用计数
+    /////////////////////
+    //  修正驱动的状态为LIVE
+    mod->state = MODULE_STATE_LIVE;
+
+    //  清除驱动的引用计数
+    for_each_possible_cpu(cpu)
+    {
+        local_set((local_t*)per_cpu_ptr(&(mod->refcnt), cpu), 0);
+        //local_set(__module_ref_addr(mod, cpu), 0);
+        //per_cpu_ptr(mod->refptr, cpu)->decs;
+        //module_put(mod);
+    }
+    atomic_set(&mod->refcnt, 1);
+
+#ifdef CONFIG_REPLACE_EXIT_FUNCTION
+    /////////////////////
+    //  重新注册驱动的exit函数
+    /////////////////////
+    origin_exit_addr = mod->exit;
+    if (origin_exit_addr == NULL)
+    {
+        printk("module %s don't have exit function...\n", mod->name);
+    }
+    else
+    {
+        printk("module %s exit function address %p\n", mod->name, origin_exit_addr);
+    }
+
+    mod->exit = force_replace_exit_module_function;
+    printk("replace module %s exit function address (%p -=> %p)\n", mod->name, origin_exit_addr, mod->exit);
+#endif
+
+    printk("[after] name:%s, state:%d, refcnt:%u\n",
+            mod->name, mod->state, module_refcount(mod));
+
+    return 0;
+}
+
+
+static int __init force_rmmod_init(void)
+{
+    return force_cleanup_module(modname);
+}
+
+
+static void __exit force_rmmod_exit(void)
+{
+    printk("=======name : %s, state : %d EXIT=======\n", THIS_MODULE->name, THIS_MODULE->state);
+}
+
+module_init(force_rmmod_init);
+module_exit(force_rmmod_exit);
+
+MODULE_LICENSE("GPL");
+```
+
+`Makefile` 信息
+
+```cpp
+MODULE_NAME := force_rmmod
+#MODCFLAGS:=-O2 -Wall -DMODULE -D__KERNEL__ -DLINUX -std=c99
+#EXTRA_CFLAGS  += $(MODULE_FLAGS) $(CFG_INC) $(CFG_INC)
+EXTRA_CFLAGS  += -g -std=gnu99  -Wfatal-errors 
+
+
+
+ifneq ($(KERNELRELEASE),) 	# kernelspace
+
+obj-m := $(MODULE_NAME).o
+
+else						# userspace
+
+
+CURRENT_PATH ?= $(shell pwd)
+LINUX_KERNEL ?= $(shell uname -r)
+LINUX_KERNEL_PATH ?= /lib/modules/$(LINUX_KERNEL)/build
+
+CURRENT_PATH := $(shell pwd)
+
+modules:
+	make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) modules
+
+modules_install:
+	make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) modules_install
+
+
+clean:
+	make -C $(LINUX_KERNEL_PATH) M=$(CURRENT_PATH) clean
+	rm -f modules.order Module.symvers Module.markers
+
+.PHNOY:
+	modules modules_install clean
+
+
+
+endif
+```
+
+#6	参考资料
+-------
+
 
 [强力卸载内核模块](http://blog.csdn.net/zhangskd/article/details/7945140)
 
@@ -510,9 +742,12 @@ sudo rmmod force_rmmod
 
 [linux内核模块的强制删除-结束rmmod这类disk sleep进程](http://blog.csdn.net/dog250/article/details/6430818)
 
-https://wenku.baidu.com/view/5c424561f5335a8102d22071.html
-http://bbs.chinaunix.net/thread-3619488-1-1.html
+[强力卸载内核模块(一)](https://wenku.baidu.com/view/5c424561f5335a8102d22071.html)
 
+[求助！！卸载驱动时，模块仍在使用中。module is in use ](http://bbs.chinaunix.net/thread-3619488-1-1.html)
+
+
+[Linux模块编程机制之hello kernel](http://blog.csdn.net/bullbat/article/details/7347874)
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a>
 <br>
 本作品采用<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议</a>进行许可

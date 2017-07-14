@@ -1,4 +1,4 @@
-probe begin 
+probe begin
 {
     log("begin to probe")
 }
@@ -9,13 +9,13 @@ probe syscall.open
     printf ("%s(%d) open (%s)\n", execname(), pid(), argstr)
 }
 
-        
+
 probe timer.ms(4000) # after 4 seconds
 {
     exit ()
 }
 
- 
+
 probe end
 {
     log("end to probe")

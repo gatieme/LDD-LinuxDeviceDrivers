@@ -1,0 +1,16 @@
+function getprocname:string(task:long)
+%{
+    struct task_struct *task = (struct task_struct *)STAP_ARG_task;
+    snprintf(STAP_RETVALUE, MAXSTRINGLEN, "pid: %d, comm: %s", task->pid, task->comm);
+%}
+
+function getprocid:long(task:long)
+%{
+    struct task_struct *task = (struct task_struct *)STAP_ARG_task;
+    STAP_RETURN(task->pid);
+%}
+
+probe kernel.function("copy_process").return
+{
+    printf("copy_process return: %p, pid: %d, getprocname: %s, getprocid: %d\n", $return, $return->pid, getprocname($return), getprocid($return));
+}
