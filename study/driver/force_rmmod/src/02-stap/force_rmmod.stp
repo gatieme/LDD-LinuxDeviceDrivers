@@ -1,0 +1,145 @@
+#!/usr/bin/stap
+%{
+#include <linux/module.h>
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <linux/cpumask.h>
+#include <linux/list.h>
+#include <asm-generic/local.h>
+#include <linux/platform_device.h>
+#include <linux/kallsyms.h>
+#include <linux/sched.h>
+
+/* 重新注册驱动的exit函数 */
+//#define CONFIG_REPLACE_EXIT_FUNCTION
+%}
+
+global del_mod_name, mod, depond
+
+probe begin
+{
+	log("begin to probe")
+
+	printf("start to force rmmod module:%s\n", @1)
+
+	del_mod_name = @1
+
+        // ==1==  查找到待删除驱动的结构信息
+	mod = find_module_addr(del_mod_name)
+
+        if (mod == -1) {
+		printf("==1==can't find module %s\n", del_mod_name)
+		exit()
+	} else {
+		printf("==1==find module %s success...\n", del_mod_name)
+	}
+
+	//  ==2==  检查是否有其他模块依赖于待删除驱动
+	depond = check_depond_modules(mod)
+	if (depond == -1) {
+		printf("==2==there are some modules depond on %s"
+                        ", we can't remove it...\n",
+		        del_mod_name)
+		exit()
+	} else {
+		printf("==2==no modules depond on %s...\n", del_mod_name)
+	}
+
+	//  ==3==  强制cleanup待删除驱动
+	printf("==3==cleanup module %s...\n", del_mod_name)
+	printf("start to cleanup module %s...\n", del_mod_name)
+	force_remove_module(mod)
+	printf("cleanup module %s success...\n", del_mod_name)
+
+	exit()
+}
+
+/////////////////////
+//  找到待删除模块的内核module信息
+/////////////////////
+function find_module_addr:long (del_mod_name:string)
+%{
+	struct module *mod = NULL;
+#if 0
+	//  方法一, 遍历内核模块树 list_mod 查询
+	struct module *list_mod = NULL;
+	/*  遍历模块列表, 查找 del_mod_name 模块  */
+	list_for_each_entry(list_mod, THIS_MODULE->list.prev, list) {
+		if (strcmp(list_mod->name, STAP_ARG_del_mod_name) == 0) {
+			mod = list_mod;
+		}
+	}
+#else
+	//  方法二, 通过 find_module 函数查找模块信息
+	mod = find_module(STAP_ARG_del_mod_name);
+#endif
+        if (mod == NULL) {
+		//printk("module %s not found\n", STAP_ARG_del_mod_name);
+		STAP_RETVALUE = (long)-1;
+	} else {
+		//printk("[before] name:%s, state:%d, refcnt:%u\n",
+		//        mod->name ,mod->state, module_refcount(mod));
+		STAP_RETVALUE = (long)mod;
+	}
+	//STAP_RETURN((long)mod);
+%}
+
+/////////////////////
+//  如果有其他驱动依赖于当前驱动, 则不能强制卸载, 立刻退出
+/////////////////////
+function check_depond_modules:long (del_mod:long)
+%{
+	struct module *mod = (struct module *)STAP_ARG_del_mod;
+
+	/////////////////////
+	//  如果有其他驱动依赖于当前驱动, 则不能强制卸载, 立刻退出
+	/////////////////////
+	/*  如果有其他模块依赖于 del_mod  */
+	if (!list_empty(&mod->source_list)) {
+		STAP_RETVALUE = (long)-1;
+	} else {
+		STAP_RETVALUE = (long)0;
+	}
+%}
+
+/////////////////////
+//  清除驱动的状态和引用计数
+/////////////////////
+function force_remove_module:long (del_mod:long)
+%{
+	struct module *mod = (struct module *)STAP_ARG_del_mod;
+	int cpu;
+
+	mod->state = MODULE_STATE_LIVE;
+
+	/*  清除驱动的引用计数  */
+	for_each_possible_cpu(cpu) {
+		local_set((local_t *) per_cpu_ptr(&(mod->refcnt), cpu), 0);
+	}
+	atomic_set(&mod->refcnt, 1);
+
+	/* 重新注册驱动的exit函数 */
+#ifdef CONFIG_REPLACE_EXIT_FUNCTION
+	mod->exit = force_replace_exit_module_function;
+#endif
+%}
+
+%{
+#ifdef CONFIG_REPLACE_EXIT_FUNCTION
+//  此处为外部注册的待卸载模块的exit函数
+//  用于替代模块原来的exit函数
+//  注意--此函数由于需要被待删除模块引用, 因此不能声明为static
+/* static */ void force_replace_exit_module_function(void)
+{
+	/////////////////////
+	//  此处完善待卸载驱动的 exit/cleanup 函数
+	/////////////////////
+	printk("module exit SUCCESS...\n");
+}
+#endif //  CONFIG_REPLACE_EXIT_FUNCTION
+%}
+
+probe end
+{
+	log("end to probe")
+}

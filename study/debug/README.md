@@ -32,13 +32,16 @@ Linux内核调试的方式以及工具集锦
 |:---:|:----:|
 | debugfs等文件系统 | 提供了 `procfs`, `sysfs`, `debugfs`以及 `relayfs` 来与用户空间进行数据交互, 尤其是 **`debugfs`**, 这是内核开发者们实现的专门用来调试的文件系统接口. 其他的工具或者接口, 多数都依赖于 `debugfs`. |
 | printk | 强大的输出系统, 没有什么逻辑上的`bug`是用`PRINT`解决不了的 |
-| ftrace以及其前端工具trace-cmd等 | **内核**提供了 **`ftrace`** 工具来实现检查点, 事件等的检测, 这一框架依赖于 `debugfs`, 他在 `debugfs` 中的 `tracing` 子系统中为用户提供了丰富的操作接口, 我们可以通过该系统对内核实现检测和分析. 功能虽然强大, 但是其操作并不是很简单, 因此**使用者们**为实现了 **`trace-cmd`** 等前端工具, 简化了 `ftrace` 的使用. |
+| ftrace以及其前端工具trace-cmd等 | **内核**提供了 **`ftrace`** 工具来实现检查点, 事件等的检测, 这一框架依赖于 `debugfs`, 他在 `debugfs` 中的 `tracing` 子系统中为用户提供了丰富的操作接口, 我们可以通过该系统对内核实现检测和分析. 功能虽然强大, 但是其操作并不是很简单, 因此使用者们为其实现了 **`trace-cmd`** 等前端工具, 简化了 `ftrace` 的使用. |
 | `kprobe`以及更强大的`systemtap` | 内核中实现的 `krpobe` 通过类似与代码劫持一样的技巧, 在内核的代码或者函数执行前后, 强制加上某些调试信息, 可以很巧妙的完成调试工作, 这是一项先进的调试技术, 但是仍然有觉得它不够好, 劫持代码需要用驱动的方式编译并加载, 能不能通过脚本的方式自动生成劫持代码并自动加载和收集数据, 于是`systemtap` 出现了. 通过 `systemtap` 用户只需要编写脚本, 就可以完成调试并动态分析内核 |
 | kgdb && kgtp | `KGDB` 是大名鼎鼎的内核调试工具, `KGTP`则通过驱动的方式强化了 `gdb`的功能, 诸如tracepoint, 打印内核变量等. |
 | perf | `erf Event`是一款随 `inux`内核代码一同发布和维护的性能诊断工具, 核社区维护和发展. `Perf` 不仅可以用于应用程序的性能统计分析, 也可以应用于内核代码的性能统计和分析. 得益于其优秀的体系结构设计, 越来越多的新功能被加入 `Perf`, 使其已经成为一个多功能的性能统计工具集 |
 | LTTng | `LTTng` 是一个 `Linux` 平台开源的跟踪工具, 是一套软件组件, 可允许跟踪 `Linux` 内核和用户程序, 并控制跟踪会话(开始/停止跟踪、启动/停止事件 等等). |
-
-
+| eBPF | eBPF(extended Berkeley Packet Filter) |
+| ktap | |
+| dtrace4linux | `Sun DTracer` 的 `Linux` 移植版 |
+| OL DTrace | `Oracle Linux DTracer` |
+| sysdig |
 
 #2  用户空间与内核空间数据交换的文件系统
 -------
@@ -479,7 +482,12 @@ KGTP在Linux内核 2.6.18到upstream 上都被测试过。
 
 [LTTng and LTTng project](http://blog.csdn.net/ganggexiongqi/article/details/6664331)
 
+#9	参考资料
+-------
+
 [Linux内核调试方法](http://www.cnblogs.com/shineshqw/articles/2359114.html)
+
+[choose-a-linux-traccer](http://www.brendangregg.com/blog/2015-07-08/choosing-a-linux-traccer.html), [中英文对照](http://www.oschina.net/translate/choossing-a-linux-tracer?cmp)
 
 http://blog.csdn.net/bob_fly1984/article/details/51405856
 http://www.verydemo.com/demo_c167_i62250.html
@@ -491,6 +499,7 @@ http://www.fx114.net/qa-48-128913.aspx
 https://my.oschina.net/fgq611/blog/113249
 http://www.fx114.net/qa-120-128312.aspx
 http://www.fx114.net/qa-259-116990.aspx
+
 
 
 <br>

@@ -445,6 +445,7 @@ stap -ve 'probe begin { log("hello world") exit() }'
 
 [SystemTap 学习笔记 - 安装篇](https://segmentfault.com/a/1190000000671438)
 
+[SystemTap使用技巧【一】](http://blog.csdn.net/wangzuxi/article/details/42849053)
 
 
 <br>
@@ -452,4 +453,3 @@ stap -ve 'probe begin { log("hello world") exit() }'
 <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a>
 本作品采用<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议</a>进行许可, 转载请注明出处, 谢谢合作
 因本人技术水平和知识面有限, 内容如有纰漏或者需要修正的地方, 欢迎大家指正, 也欢迎大家提供一些其他好的调试工具以供收录, 鄙人在此谢谢啦
-
