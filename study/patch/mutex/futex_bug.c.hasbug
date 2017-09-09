@@ -48,12 +48,10 @@ int main()
 
 
 
-
-	pthread_create(&tid[0], 0, work_thread, (void *)&ftx);
-	pthread_create(&tid[1], 0, work_thread, (void *)&ftx);
-
-	pthread_join(tid[0], 0);
-	pthread_join(tid[1], 0);
+	for(int i = 0; i < 2; ++i) {
+		pthread_create(&tid[i], 0, work_thread, (void *)&ftx);
+		pthread_join(tid[i], 0);
+	}
 	return 0;
 }
 
@@ -67,13 +65,13 @@ void *work_thread(void *p)
 	printf("%d\n", gettid( ));
 	for(;;) {
 		futex_wait(ftx);
-		//futex_lock(ftx);
+		futex_lock(ftx);
 
 		printf("tid = %d, count = %ld\n", gettid( ), count);
 		count++;
 		usleep(1000000);
 
-		//futex_unlock(ftx);
+		futex_unlock(ftx);
 		futex_wake(ftx);
 	}
 
