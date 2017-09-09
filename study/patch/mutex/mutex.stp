@@ -1,0 +1,44 @@
+
+probe begin
+{
+        printf("futex begin\n");
+}
+
+probe kernel.function("do_futex")
+{
+        if(pid( ) == target( ))
+        {
+                printf("[do_futex] : tid = %d\n", tid( ));
+        }
+}
+
+probe kernel.function("futex_wait")
+{
+        if(pid( ) == target( ))
+        {
+                printf("[futex_wait] : tid = %d\n", tid( ));
+        }
+}
+
+probe kernel.function("futex_wake")
+{
+        if(pid( ) == target( ))
+        {
+                printf("[futex_wake] : tid = %d\n", tid( ));
+        }
+}
+
+probe kernel.function("__schedule")
+{
+        if(pid( ) == target( ))
+        {
+                printf("[__schedule] : tid = %d\n", tid( ));
+
+        }
+}
+probe end
+{
+        printf("futex end\n");
+}
+
+
