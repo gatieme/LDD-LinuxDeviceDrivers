@@ -5,6 +5,7 @@
 // linux-2.6.XX/Document/
 // linux-2.6.xx/kernel/futex.c
 // http://blog.csdn.net/cybertan/article/details/8096863
+#define _GNU_SOURCE             /* See feature_test_macros(7) */
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -12,9 +13,11 @@
 #include <pthread.h>
 #include <errno.h>
 #include <linux/futex.h>
-#include <sys/syscall.h>
 
 
+
+
+#include <sched.h>
 #include <sys/syscall.h>
 
 #define  gettid( )    syscall(SYS_gettid)
@@ -35,8 +38,7 @@ inline static int futex_lock(futex_t *);
 inline static int futex_unlock(futex_t *);
 
 
-static void *work_thread(void *);
-static void *work_send(void *);
+void *print_msg(void *arg);
 
 
 int main()
@@ -47,37 +49,46 @@ int main()
 	futex_wake(&ftx);
 
 
-
-
-	pthread_create(&tid[0], 0, work_thread, (void *)&ftx);
-	pthread_create(&tid[1], 0, work_thread, (void *)&ftx);
+	pthread_create(&tid[0], 0, print_msg, (void *)&ftx);
+	pthread_create(&tid[1], 0, print_msg, (void *)&ftx);
 
 	pthread_join(tid[0], 0);
 	pthread_join(tid[1], 0);
 	return 0;
 }
 
-void *work_thread(void *p)
-{
-	struct futex_t *ftx = (struct futex_t *)p;
-	//sleep(2);
+void *print_msg(void *arg){
 
-	int count = 0;
+	struct futex_t *ftx = (struct futex_t *)arg;
+        unsigned long   count = 0;
+        struct args     *curr_arg = (struct args*)arg;
+        cpu_set_t       mask;
 
-	printf("%d\n", gettid( ));
-	for(;;) {
-		futex_wait(ftx);
-		//futex_lock(ftx);
+        printf("tid = %d(%ld) START\n", gettid( ), pthread_self( ));
 
-		printf("tid = %d, count = %ld\n", gettid( ), count);
-		count++;
-		usleep(1000000);
 
-		//futex_unlock(ftx);
-		futex_wake(ftx);
-	}
+        CPU_ZERO(&mask);
+        //CPU_SET(curr_arg->cpu, &mask);
+        CPU_SET(0, &mask);
 
-	return (void *)0;
+        if (pthread_setaffinity_np(pthread_self( ), sizeof(mask), &mask) < 0) {
+		perror("sched_setaffinity");
+        }
+        else
+        {
+                printf("tid = %d affine to CPU %d\n", gettid( ), 0);
+        }
+
+        while( 1 )
+        {
+                futex_wait(&ftx);
+
+                printf("tid = %d, count = %ld\n", gettid( ), count);
+                count++;
+                usleep(0);
+
+                futex_wake(&ftx);
+        }
 }
 
 

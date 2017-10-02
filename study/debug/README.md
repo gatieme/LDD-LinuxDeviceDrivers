@@ -137,9 +137,6 @@ mount -t sysfs sysfs /sysfs
 
 [Linux Debugfs文件系统介绍及使用](http://blog.sina.com.cn/s/blog_40d2f1c80100p7u2.html)
 
-
-[Linux内核里的DebugFS](http://www.cnblogs.com/wwang/archive/2011/01/17/1937609.html)
-
 [Debugging the Linux Kernel with debugfs](http://opensourceforu.com/2010/10/debugging-linux-kernel-with-debugfs/)
 
 [debugfs-seq_file](http://lxr.free-electrons.com/source/drivers/base/power/wakeup.c)

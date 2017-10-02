@@ -104,7 +104,7 @@ int main(int argc,char** argv){
         pthread_create(&id1, NULL, print_msg, &arg1);
         pthread_create(&id2, NULL, print_msg, &arg2);
 
-        pthread_join(id1, NULL);
+	pthread_join(id1, NULL);
         pthread_join(id2, NULL);
 
         LOCK_DESTROY( );
