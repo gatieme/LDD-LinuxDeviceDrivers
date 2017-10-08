@@ -92,14 +92,14 @@ int main(int argc,char** argv){
         pthread_t id1;
         pthread_t id2;
 
-        struct args arg1 = { .sleeptime = 1000000, .cpu = 0 };
-        struct args arg2 = { .sleeptime = 1000000, .cpu = 0 };
+        struct args arg1 = { .sleeptime = 10000000, .cpu = 0 };
+        struct args arg2 = { .sleeptime = 10000000, .cpu = 0 };
 
         LOCK_INIT( );
 
 
         printf("MAIN pid = %d\n", getpid( ));
-
+	getchar( );
 
         pthread_create(&id1, NULL, print_msg, &arg1);
         pthread_create(&id2, NULL, print_msg, &arg2);
