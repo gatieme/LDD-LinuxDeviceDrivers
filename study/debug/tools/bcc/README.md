@@ -126,7 +126,7 @@ Arch Linux - AUR
 bcc bcc-tools python-bcc python2-bcc
 如何在Linux系统中使用BCC工具
 所有BCC工具将被安装/usr/share/bcc/tools目录下。 但是，您可以替代地根据BCC Github上库运行它们/tools在那里他们有结束.py扩展。
-$ ls /usr/share/bcc/tools 
+$ ls /usr/share/bcc/tools
 argdist       capable     filetop         offwaketime  stackcount  vfscount
 bashreadline  cpudist     funccount       old          stacksnoop  vfsstat
 biolatency    dcsnoop     funclatency     oomkill      statsnoop   wakeuptime
@@ -140,7 +140,7 @@ cachetop      fileslower  offcputime      sslsniff     trace 我们应包括以�
 跟踪open()系统调用
 
 让我们通过追踪所有启动open()使用opensnoop系统调用。这使我们能够通过识别他们的数据文件，配置文件等等告诉我们各种应用程序如何工作：
-$ cd /usr/share/bcc/tools 
+$ cd /usr/share/bcc/tools
 $ sudo ./opensnoop
 PID    COMM               FD ERR PATH
 1      systemd            35   0 /proc/self/mountinfo
@@ -286,25 +286,25 @@ HITS   MISSES  DIRTIES  READ_HIT% WRITE_HIT%   BUFFERS_MB  CACHED_MB
 监测TCP连接，每秒使用tcpconnect。其输出包括源和目标地址以及端口号。此工具可用于跟踪意外的TCP连接，从而帮助我们识别应用程序配置或攻击者的低效率。
 $ sudo ./tcpconnect
 PID    COMM         IP SADDR            DADDR            DPORT
-15272  Socket Threa 4  10.0.2.15        91.189.89.240    80  
-15272  Socket Threa 4  10.0.2.15        216.58.199.142   443 
-15272  Socket Threa 4  10.0.2.15        216.58.199.142   80  
-15272  Socket Threa 4  10.0.2.15        216.58.199.174   443 
-15272  Socket Threa 4  10.0.2.15        54.200.62.216    443 
-15272  Socket Threa 4  10.0.2.15        54.200.62.216    443 
-15272  Socket Threa 4  10.0.2.15        117.18.237.29    80  
-15272  Socket Threa 4  10.0.2.15        216.58.199.142   80  
-15272  Socket Threa 4  10.0.2.15        216.58.199.131   80  
-15272  Socket Threa 4  10.0.2.15        216.58.199.131   443 
-15272  Socket Threa 4  10.0.2.15        52.222.135.52    443 
-15272  Socket Threa 4  10.0.2.15        216.58.199.131   443 
-15272  Socket Threa 4  10.0.2.15        54.200.62.216    443 
-15272  Socket Threa 4  10.0.2.15        54.200.62.216    443 
-15272  Socket Threa 4  10.0.2.15        216.58.199.132   443 
-15272  Socket Threa 4  10.0.2.15        216.58.199.131   443 
-15272  Socket Threa 4  10.0.2.15        216.58.199.142   443 
-15272  Socket Threa 4  10.0.2.15        54.69.17.198     443 
-15272  Socket Threa 4  10.0.2.15        54.69.17.198     443 
+15272  Socket Threa 4  10.0.2.15        91.189.89.240    80
+15272  Socket Threa 4  10.0.2.15        216.58.199.142   443
+15272  Socket Threa 4  10.0.2.15        216.58.199.142   80
+15272  Socket Threa 4  10.0.2.15        216.58.199.174   443
+15272  Socket Threa 4  10.0.2.15        54.200.62.216    443
+15272  Socket Threa 4  10.0.2.15        54.200.62.216    443
+15272  Socket Threa 4  10.0.2.15        117.18.237.29    80
+15272  Socket Threa 4  10.0.2.15        216.58.199.142   80
+15272  Socket Threa 4  10.0.2.15        216.58.199.131   80
+15272  Socket Threa 4  10.0.2.15        216.58.199.131   443
+15272  Socket Threa 4  10.0.2.15        52.222.135.52    443
+15272  Socket Threa 4  10.0.2.15        216.58.199.131   443
+15272  Socket Threa 4  10.0.2.15        54.200.62.216    443
+15272  Socket Threa 4  10.0.2.15        54.200.62.216    443
+15272  Socket Threa 4  10.0.2.15        216.58.199.132   443
+15272  Socket Threa 4  10.0.2.15        216.58.199.131   443
+15272  Socket Threa 4  10.0.2.15        216.58.199.142   443
+15272  Socket Threa 4  10.0.2.15        54.69.17.198     443
+15272  Socket Threa 4  10.0.2.15        54.69.17.198     443
 ... 以上所有的工具，也可以与各种选项一起使用，使一个给定的工具的帮助页面，利用的-h选项，例如：
 $ sudo ./tcpconnect -h
 usage: tcpconnect [-h] [-t] [-p PID] [-P PORT]
@@ -335,7 +335,7 @@ PID    COMM               FD ERR PATH
 15415  (ostnamed)         -1   2 /sys/fs/cgroup/memory/system.slice/systemd-hostnamed.service/cgroup.procs
 15415  (ostnamed)         -1   2 /sys/fs/cgroup/memory/system.slice/cgroup.procs
 15415  (ostnamed)         -1   2 /sys/fs/cgroup/pids/system.slice/systemd-hostnamed.service/cgroup.procs
-2548   compiz             -1   2 
+2548   compiz             -1   2
 15416  systemd-cgroups    -1   2 /run/systemd/container
 15416  systemd-cgroups    -1   2 /sys/fs/kdbus/0-system/bus
 15415  systemd-hostnam    -1   2 /run/systemd/container
@@ -387,10 +387,22 @@ BCC是各种系统管理任务，例如追踪系统性能监控，跟踪块设�
 
 [`GitHub-WiKi-INSTALL`](https://github.com/iovisor/bcc/blob/master/INSTALL.md)
 
+
+[BCC - 用于Linux性能监视，网络和更多的动态跟踪工具](https://www.howtoing.com/bcc-best-linux-performance-monitoring-tools/)
+
+[BCC – Dynamic Tracing Tools for Linux Performance Monitoring, Networking and More](https://www.tecmint.com/bcc-best-linux-performance-monitoring-tools/)
+
+[Installing eBPF tools, bcc and ply on CentOS 7](http://hydandata.org/installing-ebpf-tools-bcc-and-ply-on-centos-7)
+
+[[Centos7] bbc tools安装](http://blog.csdn.net/orangleliu/article/details/54099528)
+
+
+
 <br>
 
-*	本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作, 
+*	本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作,
 
 *	采用<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议</a>进行许可. 欢迎转载、使用、重新发布, 但务必保留文章署名[成坚gatieme](http://blog.csdn.net/gatieme) ( 包含链接: http://blog.csdn.net/gatieme ), 不得用于商业目的.
 
 *	基于本文修改后的作品务必以相同的许可发布. 如有任何疑问, 请与我联系.
+
