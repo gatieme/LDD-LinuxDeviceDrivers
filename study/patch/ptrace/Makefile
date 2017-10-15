@@ -10,12 +10,12 @@ INSTALL_HOME_DIR=home/chengjian
 
 ifeq ($(ARCH), arm64)
 	CROSS_COMPILE=/opt/arm/toolschain/linaro/gcc-linaro-7.1.1-2017.08-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-
-	ARCH_FILE_DIR=_install_x86
-else ifeq ($(TARGET_ARCH), arm)
-	CROSS_COMPILE=arm-linux-gnueabi-
 	ARCH_FILE_DIR=_install_arm64
-else	# ifeq ($(ARCH), x86_64)
+else ifeq ($(ARCH), arm32)
+	CROSS_COMPILE=arm-linux-gnueabi-
 	ARCH_FILE_DIR=_install_arm32
+else	# ifeq ($(ARCH), x86_64)
+	ARCH_FILE_DIR=_install_x86
 endif
 
 INSTALL_BIN_DIR=$(INSTALL_ROOT_DIR)/$(ARCH_FILE_DIR)/$(INSTALL_HOME_DIR)/ #$(CURRENT_BIN_DIR)
