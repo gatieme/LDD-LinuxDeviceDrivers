@@ -2,7 +2,7 @@
     > File Name: 1.c
     > Author: GatieMe
     > Mail: gatieme@163.com
-    > Created Time: Sun 15 Oct 2017 11:53:53 AM CST
+    > Created Time: Sun 15 Oct 2017 07:44:25 PM CST
  ************************************************************************/
 
 #include <stdio.h>
@@ -11,9 +11,4 @@
 
 int main(int argc, char *argv[])
 {
-
-
-	return EXIT_SUCCESS;
 }
-
-

@@ -2,7 +2,7 @@
 #http://blog.sina.com.cn/s/blog_694f2ae70101amh6.html
 #
 target=ptrace_singlestep ptrace_singlestep2	\
-       ptrace_peekuser a
+       ptrace_peekuser print nop
 
 CURRENT_BIN_DIR=ptrace_bug
 INSTALL_ROOT_DIR=~/Work/Kernel/runninglinuxkernel/filesystem
@@ -40,9 +40,13 @@ ptrace_peekuser:ptrace_peekuser.c
 	$(CC) $^ -o $@ $(LDFLAGS)
 	@echo "ptrace peekuser..."
 
-a:a.c
+print:print.c
 	$(CC) $^ -o $@ $(LDFLAGS)
-	@echo "ptrace process..."
+	@echo "ptrace process print something..."
+
+nop:nop.c
+	$(CC) $^ -o $@ $(LDFLAGS)
+	@echo "ptrace process do nothing..."
 
 
 #%.o : %.c
