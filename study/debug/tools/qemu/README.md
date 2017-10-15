@@ -13,7 +13,7 @@ AderXCoding
 
 http://www.linuxidc.com/Linux/2014-08/105510.htm
 http://www.dataguru.cn/thread-475271-1-1.html
-
+http://blog.csdn.net/jwq2011/article/details/54708529
 http://www.mamicode.com/info-detail-1705536.html
 
 [install arm-gdb error]
