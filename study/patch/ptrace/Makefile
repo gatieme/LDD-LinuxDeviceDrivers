@@ -4,7 +4,7 @@
 target=ptrace_singlestep ptrace_singlestep2	\
        ptrace_peekuser a
 
-CROSS_COMPILE=/opt/arm/toolschain/linaro/gcc-linaro-7.1.1-2017.08-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-
+#CROSS_COMPILE=/opt/arm/toolschain/linaro/gcc-linaro-7.1.1-2017.08-x86_64_aarch64-linux-gnu/bin/aarch64-linux-gnu-
 CC=${CROSS_COMPILE}gcc
 AS=${CROSS_COMPILE}as
 LD=${CROSS_COMPILE}ld
