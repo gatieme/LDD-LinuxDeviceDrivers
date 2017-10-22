@@ -3,7 +3,7 @@
 
 | CSDN | GitHub |
 |:----:|:------:|
-| [获得内核函数地址的四种方法](http://blog.csdn.net/gatieme) | [`LinuxDeviceDrivers/study/debug/filesystem/procfs/func_addr`](https://github.com/gatieme/LinuxDeviceDrivers/tree/master/study/debug/filesystem/procfs/func_addr) |
+| [获得内核函数地址的四种方法](http://blog.csdn.net/gatieme) | [`LinuxDeviceDrivers/study/debug/filesystem/procfs/func_addr`](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/debug/filesystem/procfs/func_addr) |
 
 <br>
 
