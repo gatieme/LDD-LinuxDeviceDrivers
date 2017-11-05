@@ -461,7 +461,8 @@ struct zone
 
 | 字段| 描述 |
 | :------- | ----: |
-| lowmem_reserve[MAX_NR_ZONES] | 为了防止一些代码必须运行在低地址区域，所以事先保留一些低地址区域的内存 |
+| watermark | 每个 zone 在系统启动时会计算出 `3` 个水位值, 分别为 `WMAKR_MIN`, `WMARK_LOW`, `WMARK_HIGH` 水位, 这在页面分配器和 `kswapd` 页面回收中会用到 |
+| lowmem_reserve[MAX_NR_ZONES] | `zone` 中预留的内存, 为了防止一些代码必须运行在低地址区域，所以事先保留一些低地址区域的内存 |
 | pageset | page管理的数据结构对象，内部有一个page的列表(list)来管理。每个CPU维护一个page list，避免自旋锁的冲突。这个数组的大小和NR_CPUS(CPU的数量）有关，这个值是编译的时候确定的 |
 | lock | 对zone并发访问的保护的自旋锁 |
 | free_area[MAX_ORDER] | 页面使用状态的信息，以每个bit标识对应的page是否可以分配 |
@@ -473,6 +474,14 @@ struct zone
 | name | zone的名字，字符串表示： "DMA"，"Normal" 和"HighMem" |
 | totalreserve_pages | 每个区域保留的不能被用户空间分配的页面数目 |
 | ZONE_PADDING | 由于自旋锁频繁的被使用，因此为了性能上的考虑，将某些成员对齐到cache line中，有助于提高执行的性能。使用这个宏，可以确定zone->lock，zone->lru_lock，zone->pageset这些成员使用不同的cache line. |
+| managed_pages | zone 中被伙伴系统管理的页面数量 |
+| spanned_pages | zone 中包含的页面数量 |
+| present_pages | zone 中实际管理的页面数量. 对一些体系结构来说, 其值和 spanned_pages 相等 |
+| lruvec | LRU 链表集合 |
+| vm_stat | zone 计数 |
+
+
+
 
 
 
@@ -481,6 +490,7 @@ struct zone
 
 该结构比较特殊的地方是它由ZONE_PADDING分隔的几个部分. 这是因为堆zone结构的访问非常频繁. 在多处理器系统中, 通常会有不同的CPU试图同时访问结构成员. 因此使用锁可以防止他们彼此干扰, 避免错误和不一致的问题. 由于内核堆该结构的访问非常频繁, 因此会经常性地获取该结构的两个自旋锁zone->lock和zone->lru_lock
 
+>由于 `struct zone` 结构经常被访问到, 因此这个数据结构要求以 `L1 Cache` 对齐. 另外, 这里的 `ZONE_PADDING( )` 让 `zone->lock` 和 `zone_lru_lock` 这两个很热门的锁可以分布在不同的 `Cahe Line` 中. 一个内存 `node` 节点最多也就几个 `zone`, 因此 `zone` 数据结构不需要像 `struct page` 一样关心数据结构的大小, 因此这里的 `ZONE_PADDING( )` 可以理解为用空间换取时间(性能). 在内存管理开发过程中, 内核开发者逐渐发现有一些自选锁竞争会非常厉害, 很难获取. 像 `zone->lock` 和 `zone->lru_lock` 这两个锁有时需要同时获取锁. 因此保证他们使用不同的 `Cache Line` 是内核常用的一种优化技巧.
 
 
 那么数据保存在CPU高速缓存中, 那么会处理得更快速. 高速缓冲分为行, 每一行负责不同的内存区. 内核使用ZONE_PADDING宏生成"填充"字段添加到结构中, 以确保每个自旋锁处于自身的缓存行中
