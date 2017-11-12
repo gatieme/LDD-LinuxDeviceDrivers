@@ -37,6 +37,7 @@ HOSTCFLAGS += -I$(srctree)/tools/lib/
 HOSTCFLAGS += -I$(srctree)/tools/include
 HOSTCFLAGS += -I$(srctree)/tools/include/uapi
 HOSTCFLAGS += -I$(srctree)/tools/perf
+HOSTCFLAGS += -I$(srctree)/samples/bpf
 
 HOSTCFLAGS_bpf_load.o += -I$(objtree)/usr/include -Wno-unused-variable
 HOSTCFLAGS_bpf.o += $(HOSTCFLAGS) -Wno-unused-variable
@@ -95,7 +96,7 @@ $(obj)/tracex5_kern.o: $(obj)/syscall_nrs.h
 # But, there is no easy way to fix it, so just exclude it since it is
 # useless for BPF samples.
 $(obj)/%.o: $(src)/%.c
-	$(CLANG) $(NOSTDINC_FLAGS) $(LINUXINCLUDE) $(EXTRA_CFLAGS) -I$(obj) \
+	$(Q)$(CLANG) $(NOSTDINC_FLAGS) $(LINUXINCLUDE) $(EXTRA_CFLAGS) -I$(obj) \
 		-I$(srctree)/tools/testing/selftests/bpf/ \
 		-D__KERNEL__ -D__ASM_SYSREG_H -Wno-unused-value -Wno-pointer-sign \
 		-Wno-compare-distinct-pointer-types \

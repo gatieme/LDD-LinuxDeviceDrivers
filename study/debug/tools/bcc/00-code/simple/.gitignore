@@ -9,6 +9,9 @@
 #
 # Normal rules
 #
+
+memcpy_kprobe
+memcpy_stat
 .*
 *.o
 *.o.*
