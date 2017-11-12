@@ -11,8 +11,12 @@ hostprogs-y += memcpy_kprobe
 hostprogs-y += memcpy_stat
 
 # Libbpf dependencies
-LIBBPF := ./bpf/bpf.o
-LIBBPF_LOAD := ./bpf_load.o
+# use the libbpf and libbpf_load in current direntory
+#LIBBPF := ./bpf/bpf.o
+#LIBBPF_LOAD := ./bpf_load.o
+# use the kernel libbpf and libbpf_load libraty 
+LIBBPF := ../../../../../../../../Kernel/linux/linux/tools/lib/bpf/bpf.o
+LIBBPF_LOAD := ../../../../../../../../Kernel/linux/linux/samples/bpf/bpf_load.o
 
 
 memcpy_kprobe-objs := $(LIBBPF) $(LIBBPF_LOAD) memcpy_kprobe_user.o
