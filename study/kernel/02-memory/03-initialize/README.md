@@ -370,7 +370,7 @@ static void * __initdata vmalloc_min =
 通常情况下, 内核的 `zone` 分为 `ZONE_DMA`, `ZONE_DMA32`, `ZONE_NORMAL` 和 `ZONE_HIGHMEM`. 在 `ARM Vexpress` 平台中, 没有定义 `CONFIG_ZONE_DMA` 和 `CONFIG_ZONE_DMA32`. 所以只有 `ZONE_NORMAL` 和 `ZONE_HIGHMEM` 两种. zone 类型的定义在 [`include/linux/mmzone.h`](http://elixir.free-electrons.com/linux/v4.13.11/source/include/linux/mmzone.h#L293) 文件中.
 
 `zone` 的初始化函数集中在 `bootmem_init( )` 中完成, 所以需要确定每个 `zone` 的范围. 在 `find_limits( )` 函数中会计算出 `min_low_pfn`, `max_low_pfn` 和 `max_pfn` 这 `3` 个值. 其中, `min_low_pfn` 是内存块开始地址的页帧号 (`0x60000`), `max_low_pfn(0x8f800)` 表示 `normal` 区域的结束页帧号, 它由 `arm_lowmem_limit` 这个变量得来, `max_pfn`(`0xa0000`) 是内存块结束地址的页帧号.
-
+如果没有配置
 
 ```cpp
 Memory: 1026280K/1048576K available (6144K kernel code, 402K rwdata, 1400K rodata, 4096K init, 170K bss, 22296K reserved, 0K cma-reserved)
@@ -386,3 +386,5 @@ Virtual kernel memory layout:
        .bss : 0x80d6bc1c - 0x80d964f4   ( 171 kB)
 SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=4, Nodes=1
 ```
+
+
