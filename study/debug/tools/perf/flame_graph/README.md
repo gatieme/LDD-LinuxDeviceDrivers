@@ -143,8 +143,6 @@ sudo perf report -n --stdio
 -------
 
 
-```
-
 首先用 `perf script` 工具对 `perf.data` 进行解析
 
 
