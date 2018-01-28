@@ -43,6 +43,7 @@
 | [`sysctl_sched_rt_runtime`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L84) | `/proc/sys/kernel/sched_rt_runtime_us` | `950000us` | 见上 `sysctl_sched_rt_period` 变量的解释 |
 | [`sysctl_sched_compat_yield`]() | `/proc/sys/kernel/sched_compat_yield` | 0 | 该参数可以让sched_yield()系统调用更加有效，让它使用更少的cpu，对于那些依赖sched_yield来获得更好性能的应用可以考虑设置它为1 | 
 
+
 ##1.3  全局参数
 -------
 
@@ -80,8 +81,10 @@ unsigned int normalized_sysctl_sched_min_granularity    = 750000ULL;
 ```
 
 
+
 ##2.2   `check_preempt_wakeup` 检查周期性抢占
 -------
+
 
 在每个时钟中断中都会触发周期性调度, 调用周期性调度器主函数 `scheduler_tick`, 但是并不是每次触发都会导致调度, 调度也是有开销的, 如果频繁的调度反而降低系统的性能. 因此内核设计了 [`sysctl_sched_min_granularity`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L75) 参数, 表示进程的最少运行时间, 只有进程时间超过这个时间才会设置调度标识, 这样内核将在下一次调度时机, 调度 scheduler 完成调度, 让当前进程让出 `CPU` 了,
 
@@ -180,6 +183,10 @@ static int max_sched_granularity_ns = NSEC_PER_SEC; /* 1 second */
     //......
 #endif
 ```
+
+
+待插入的测试的内容和图片
+
 
 #3  调度周期 `sysctl_sched_latency`
 -------
@@ -295,6 +302,12 @@ $$ \frac{sysctl_sched_latency + sysctl_sched_min_granularity - 1}{sysctl_sched_m
 那么这个参数直接影响的就是当进程数目较少时, 初始的调度周期.
 
 
+##3.3   `sysctl_sched_latency` 接口
+-------
+
+待插入的测试的内容和图片
+
+
 
 #4  `sysctl_sched_wakeup_granularity` 唤醒后抢占
 -------
@@ -313,16 +326,18 @@ $$ \frac{sysctl_sched_latency + sysctl_sched_min_granularity - 1}{sysctl_sched_m
 -------
 
 
-[`sysctl_sched_min_granularity`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L6087) 定义在[`sysctl_sched_min_granularity`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L98)
+[`sysctl_sched_min_granularity`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L6087) 定义在[`kernel/sched/fair.c, version v4.14.14, line 98`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L98)
 
 
 唤醒后抢占时间 `sysctl_sched_wakeup_granularity` 与 进程最小运行时间 `sysctl_sched_min_granularity` 的作用类似. 该变量表示进程被唤醒后至少应该运行的时间的基数, 它只是用来判断某个进程是否应该抢占当前进程，并不代表它能够执行的最小时间( `sysctl_sched_min_granularity`), 如果这个数值越小, 那么发生抢占的概率也就越高.
 
 
-##4.1   唤醒抢占
+
+##4.2   唤醒抢占
 -------
 
 当进程被唤醒的时候会调用 `check_preempt_wakeup` 检查被唤醒的进程是否可以抢占当前进程. 调用路径如下:
+
 
 ```cpp
 try_to_wake_up
@@ -335,7 +350,9 @@ try_to_wake_up
                             -=> wakeup_gran
 ```
 
+
 [`check_preempt_wakeup`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L6164) 函数被定义在 [`kernel/sched/fair.c, verion 4.14.14, line 6164`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L6164), 如下所示:
+
 
 ```cpp
 //  http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L6164
@@ -366,7 +383,11 @@ preempt:
 }
 ```
 
-函数 `wakeup_preempt_entity` 用来检查当前被唤醒的进程实体 `se` 能否抢占当前进程的调度实体 `curr`.
+
+[`check_preempt_wakeup`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L6164) 函数中通过 `wakeup_preempt_entity` 检查当前被唤醒的进程实体 `pse` 能否抢占当前进程的调度实体 `curr->se`. 如果发现可以抢占, 就通过 `resched_curr` 设置调度标记.
+
+
+`wakeup_preempt_entity` 函数定义在 [`kernel/sched/fair.c, version v4.14.14, line 6127`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L6127). 如下所示:
 
 
 ```cpp
@@ -394,8 +415,9 @@ wakeup_preempt_entity(struct sched_entity *curr, struct sched_entity *se)
     if (vdiff <= 0)
         return -1;
 
-    //  
+    //  计算当前进程 se 以 sysctl_sched_min_granularity 为基数的虚拟运行时间 gran
     gran = wakeup_gran(curr, se);
+    // 只有两者虚拟运行时间的差值大于 gran
     if (vdiff > gran)
         return 1;
 
@@ -403,6 +425,7 @@ wakeup_preempt_entity(struct sched_entity *curr, struct sched_entity *se)
 }
 
 //  http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L6087
+//  计算 `sysctl_sched_wakeup_granularity` 基数的虚拟运行时间值
 static unsigned long
 wakeup_gran(struct sched_entity *curr, struct sched_entity *se)
 {
@@ -423,10 +446,173 @@ wakeup_gran(struct sched_entity *curr, struct sched_entity *se)
      */
     return calc_delta_fair(gran, se);
 }
+
+
+//  http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L646
+//  计算进程实际运行 delta 时间的虚拟运行时间
+/*
+ * delta /= w
+ */
+static inline u64 calc_delta_fair(u64 delta, struct sched_entity *se)
+{
+    if (unlikely(se->load.weight != NICE_0_LOAD))
+        delta = __calc_delta(delta, NICE_0_LOAD, &se->load);
+
+    return delta;
+}
+```
+
+可以看出 `wakeup_preempt_entity` 函数中:
+
+
+
+`curr` 唤醒进程 `p`, 如果 `p` 可以抢占 `curr`, 则要求满足
+
+ 
+*   当前进程 `curr` 的虚拟运行时间不仅要比进程　`p` 的大, 还要大过 `calc_delta_fair(sysctl_sched_wakeup_granularity, p)`
+
+
+```cpp
+   curr->vruntime - p->vruntime > 0
+```
+
+否则 `wakeup_preempt_entity` 函数返回 `-1`.
+
+
+```cpp
+curr->vruntime - p->vruntime > calc_delta_fair(sysctl_sched_wakeup_granularity, p)
+```
+
+否则  `wakeup_preempt_entity` 函数返回 `0`.
+
+
+我们假设进程 `p` 刚好实际运行了唤醒后抢占时间基数 `sysctl_sched_wakeup_granularity`, 则其虚拟运行时间将增长 `gran`. 被唤醒的进程 `p` 要想抢占 `curr`, 则要求其虚拟运行时间比 `curr` 小 `gran`. 则保证理想情况下(没有其他进程干预和进程 `p` 睡眠等其他外因), 进程 `p` 可以至少运行 `sysctl_sched_wakeup_granularity` 时间.
+
+
+我们用一个图来表示:
+
+假设 `curr` 的虚拟运行时间位于图中的位置, 中间区间是一个 `gran` 长度
+
+
+*   那么当被唤醒的进程 `p` 虚拟运行时间位于区间 `-1` 的时候, `vdiff <= 0`, 不能被唤醒; (函数 `wakeup_preempt_entity` 返回 `-1`)
+
+
+*   那么当被唤醒的进程 `p` 虚拟运行时间位于区间 `0` 的时候, `0 <= vdiff <= gran`, 同样不能被唤醒; (函数 `wakeup_preempt_entity` 返回 `0`)
+
+
+*   那么当被唤醒的进程 `p` 虚拟运行时间位于区间 `1` 的时候, `vdiff > gran`, 不能被唤醒; (函数 `wakeup_preempt_entity` 返回 `1`)
+
+
+
+
+```cpp
+|----区间 1----|----区间 0----|----区间 -1----|
+|             -             curr   +
+--------------|--------------|--------------
+              |<----gran---->|
+              |              |                 
+ vdiff > gran |  vdiff > 0   |   vdiff < 0  
+      1       |       0      |      -1      
+              |              |              
+--------------|--------------|--------------
 ```
 
 
+##4.3   `sysctl_sched_wakeup_granularity` 接口
+-------
 
+待插入的测试的内容和图片
+
+
+
+#5  `sysctl_sched_child_runs_first` 
+-------
+
+
+| 内核参数 | 位置 | 内核默认值 | 描述 |
+|:------------:|:------:|:---------------:|:------:|
+| [`sysctl_sched_child_runs_first`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L87) | `/proc/sys/kernel/sched_child_runs_first` | 0 | 该变量表示在创建子进程的时候是否让子进程抢占父进程，即使父进程的vruntime小于子进程，这个会减少公平性，但是可以降低write_on_copy，具体要根据系统的应用情况来考量使用哪种方式（见task_fork_fair过程） |
+
+
+##5.1   参数背景
+-------
+
+
+一般来说, 通过父进程通过 `fork` 创建子进程的时候, 内核并不保证谁先运行, 但是有时候我们更希望约定父子进之间运行的顺序. 因此 `sysctl_sched_child_runs_first` 应运而生.
+
+
+该变量表示在创建子进程的时候是否让子进程抢占父进程，即使父进程的 `vruntime` 小于子进程，这个会减少公平性，但是可以降低 `write_on_copy`，具体要根据系统的应用情况来考量使用哪种方式（见 `task_fork_fair` 过程）
+
+
+##5.2   `sysctl_sched_child_runs_first` 保证子进程先运行
+-------
+
+
+[`sysctl_sched_child_runs_first`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L83) 定义在[`kernel/sched/fair.c, version v4.14.14, line 83`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L83)
+
+
+```cpp
+//  http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L83
+/*
+ * After fork, child runs first. If set to 0 (default) then
+ * parent will (try to) run first.
+ */
+unsigned int sysctl_sched_child_runs_first __read_mostly;
+```
+
+唤醒后抢占时间 `sysctl_sched_wakeup_granularity` 与 进程最小运行时间 `sysctl_sched_min_granularity` 的作用类似. 该变量表示进程被唤醒后至少应该运行的时间的基数, 它只是用来判断某个进程是否应该抢占当前进程，并不代表它能够执行的最小时间( `sysctl_sched_min_granularity`), 如果这个数值越小, 那么发生抢占的概率也就越高.
+
+
+当内核通过 `fork/clone` 创建子进程的时候, 在 `sched_fork` 中完成了调度信息的初始化, 此时会调用对应调度器类 `task_fork` 的初始化.
+
+
+```cpp
+_do_fork
+    -=> copy_process
+        -=> sched_fork
+            -=> p->sched_class->task_fork(p);
+```
+
+
+`CFS` 调度器的 `task_fork` 函数就是 `task_fork_fair`.
+
+```cpp
+/*
+ * called on fork with the child task as argument from the parent's context
+ *  - child not yet on the tasklist
+ *  - preemption disabled
+ */
+static void task_fork_fair(struct task_struct *p)
+{
+    struct cfs_rq *cfs_rq;
+    struct sched_entity *se = &p->se, *curr;
+    struct rq *rq = this_rq();
+    struct rq_flags rf;
+
+    rq_lock(rq, &rf);
+    update_rq_clock(rq);
+
+    cfs_rq = task_cfs_rq(current);
+    curr = cfs_rq->curr;
+    if (curr) {
+        update_curr(cfs_rq);
+        se->vruntime = curr->vruntime;
+    }
+    place_entity(cfs_rq, se, 1);
+
+    if (sysctl_sched_child_runs_first && curr && entity_before(curr, se)) {
+        /*
+         * Upon rescheduling, sched_class::put_prev_task() will place
+         * 'current' within the tree based on its new key value.
+         */
+        swap(curr->vruntime, se->vruntime);
+        resched_curr(rq);
+    }
+
+    se->vruntime -= cfs_rq->min_vruntime;
+    rq_unlock(rq, &rf);
+}
+```
 
 #2  调度器特性 features
 -------
