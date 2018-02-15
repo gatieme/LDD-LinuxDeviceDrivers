@@ -29,9 +29,9 @@
 | [`sysctl_sched_latency`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L54) | `/proc/sys/kernel/sched_latency_ns` | `20000000ns` | 表示一个运行队列所有进程运行一次的周期, 当前这个与运行队列的进程数有关, 如果进程数超过 `sched_nr_latency` (这个变量不能通过 `/proc` 设置, 它是由 `(sysctl_sched_latency+ sysctl_sched_min_granularity-1)/sysctl_sched_min_granularity` 确定的), 那么调度周期就是 `sched_min_granularity_ns*运行队列里的进程数`, 与 `sysctl_sched_latency` 无关; 否则队列进程数小于sched_nr_latency，运行周期就是sysctl_sched_latency。显然这个数越小，一个运行队列支持的sched_nr_latency越少，而且当sysctl_sched_min_granularity越小时能支持的sched_nr_latency越多，那么每个进程在这个周期内能执行的时间也就越少，这也与上面sysctl_sched_min_granularity变量的讨论一致。其实sched_nr_latency也可以当做我们cpu load的基准值，如果cpu的load大于这个值，那么说明cpu不够使用了 |
 | [`sysctl_sched_wakeup_granularity`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L98) | `/proc/sys/kernel/sched_wakeup_granularity_ns` | `4000000ns` | 该变量表示进程被唤醒后至少应该运行的时间的基数, 它只是用来判断某个进程是否应该抢占当前进程，并不代表它能够执行的最小时间(sysctl_sched_min_granularity), 如果这个数值越小, 那么发生抢占的概率也就越高(见wakeup_gran、wakeup_preempt_entity函数) |
 | [`sysctl_sched_child_runs_first`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L87) | `/proc/sys/kernel/sched_child_runs_first` | 0 | 该变量表示在创建子进程的时候是否让子进程抢占父进程，即使父进程的vruntime小于子进程，这个会减少公平性，但是可以降低write_on_copy，具体要根据系统的应用情况来考量使用哪种方式（见task_fork_fair过程） |
-| [`sysctl_sched_cfs_bandwidth_slice`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L124) | `/proc/sys/kernel/sched_cfs_bandwidth_slice_us` | 5000us | |
 | [`sysctl_sched_migration_cost`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L101) | `/proc/sys/kernel/sched_migration_cost` | `500000ns` | 该变量用来判断一个进程是否还是hot，如果进程的运行时间（now - p->se.exec_start）小于它，那么内核认为它的code还在cache里，所以该进程还是hot，那么在迁移的时候就不会考虑它 |
 | [`sysctl_sched_tunable_scaling`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L68) | `/proc/sys/kernel/sched_tunable_scaling` | 1 | 当内核试图调整sched_min_granularity，sched_latency和sched_wakeup_granularity这三个值的时候所使用的更新方法，0为不调整，1为按照cpu个数以2为底的对数值进行调整，2为按照cpu的个数进行线性比例的调整 |
+| [`sysctl_sched_cfs_bandwidth_slice`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L124) | `/proc/sys/kernel/sched_cfs_bandwidth_slice_us` | 5000us | |
 
 
 ##1.2 RT相关
@@ -613,6 +613,16 @@ static void task_fork_fair(struct task_struct *p)
     rq_unlock(rq, &rf);
 }
 ```
+
+
+如果参数 `sysctl_sched_child_runs_first` 被设置, 同时 `curr` 进程的虚拟运行时间比创建的子进程 `se`, 就交换它们的虚拟运行时间. 通过这种方式来保证子进程的虚拟运行时间比父进程的小, 从而保证子进程优先运行.
+
+
+##5.3 `sysctl_sched_child_runs_first` 接口
+-------
+
+
+#6  
 
 #2  调度器特性 features
 -------
