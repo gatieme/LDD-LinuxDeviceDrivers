@@ -525,7 +525,170 @@ curr->vruntime - p->vruntime > calc_delta_fair(sysctl_sched_wakeup_granularity, 
 
 
 
-#5  `sysctl_sched_child_runs_first` 
+
+#5  `sysctl_sched_tunable_scaling`
+-------
+
+
+| 内核参数 | 位置 | 内核默认值 | 描述 |
+|:------------:|:------:|:---------------:|:------:|
+| [`sysctl_sched_tunable_scaling`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L68) | `/proc/sys/kernel/sched_tunable_scaling` | 1 | 当内核试图调整sched_min_granularity，sched_latency和sched_wakeup_granularity这三个值的时候所使用的更新方法，0为不调整，1为按照cpu个数以2为底的对数值进行调整，2为按照cpu的个数进行线性比例的调整 |
+
+
+
+##5.1   参数背景
+-------
+
+内核中有有几个调度参数都是描述的进程运行时间
+
+
+*   进程最小运行时间 `sched_min_granularity`
+
+*   调度周期 `sched_latency`
+
+*   `sysctl_sched_wakeup_granularity` 唤醒后运行时间基数
+
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/include/linux/sched/sysctl.h#L27
+enum sched_tunable_scaling {
+    SCHED_TUNABLESCALING_NONE,
+    SCHED_TUNABLESCALING_LOG,
+    SCHED_TUNABLESCALING_LINEAR,
+    SCHED_TUNABLESCALING_END,
+};
+
+//  https://elixir.bootlin.com/linux/v4.16-rc1/source/kernel/sched/fair.c#L58 
+/*
+ * The initial- and re-scaling of tunables is configurable
+ *
+ * Options are:
+ *
+ *   SCHED_TUNABLESCALING_NONE - unscaled, always *1
+ *   SCHED_TUNABLESCALING_LOG - scaled logarithmical, *1+ilog(ncpus)
+ *   SCHED_TUNABLESCALING_LINEAR - scaled linear, *ncpus
+ *
+ * (default SCHED_TUNABLESCALING_LOG = *(1+ilog(ncpus))
+ */
+enum sched_tunable_scaling sysctl_sched_tunable_scaling = SCHED_TUNABLESCALING_LOG;
+```
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.16-rc1/source/kernel/sched/fair.c#L153
+/*
+ * Increase the granularity value when there are more CPUs,
+ * because with more CPUs the 'effective latency' as visible
+ * to users decreases. But the relationship is not linear,
+ * so pick a second-best guess by going with the log2 of the
+ * number of CPUs.
+ *
+ * This idea comes from the SD scheduler of Con Kolivas:
+ */
+static unsigned int get_update_sysctl_factor(void)
+{
+    unsigned int cpus = min_t(unsigned int, num_online_cpus(), 8);
+    unsigned int factor;
+
+    switch (sysctl_sched_tunable_scaling) {
+    case SCHED_TUNABLESCALING_NONE:
+        factor = 1;
+        break;
+    case SCHED_TUNABLESCALING_LINEAR:
+        factor = cpus;
+        break;
+    case SCHED_TUNABLESCALING_LOG:
+    default:
+        factor = 1 + ilog2(cpus);
+        break;
+    }
+
+    return factor;
+}
+
+static void update_sysctl(void)
+{
+    unsigned int factor = get_update_sysctl_factor();
+
+#define SET_SYSCTL(name) \
+    (sysctl_##name = (factor) * normalized_sysctl_##name)
+    SET_SYSCTL(sched_min_granularity);
+    SET_SYSCTL(sched_latency);
+    SET_SYSCTL(sched_wakeup_granularity);
+#undef SET_SYSCTL
+}
+```
+
+
+```
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L195
+void sched_init_granularity(void)
+{
+    update_sysctl();
+}
+
+
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L9024
+static void rq_online_fair(struct rq *rq)
+{
+    update_sysctl();
+
+    update_runtime_enabled(rq);
+}
+
+
+
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L9051
+static void rq_offline_fair(struct rq *rq)
+{
+    update_sysctl();
+
+    /* Ensure any throttled groups are reachable by pick_next_task */
+    unthrottle_offline_cfs_rqs(rq);
+}
+```
+
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.16-rc1/source/kernel/sched/fair.c#L154
+/**************************************************************
+ * Scheduling class statistics methods:
+ */
+int sched_proc_update_handler(struct ctl_table *table, int write,
+        void __user *buffer, size_t *lenp,
+        loff_t *ppos)
+{
+    int ret = proc_dointvec_minmax(table, write, buffer, lenp, ppos);
+    unsigned int factor = get_update_sysctl_factor();
+
+    if (ret || !write)
+        return ret;
+
+    sched_nr_latency = DIV_ROUND_UP(sysctl_sched_latency,
+                    sysctl_sched_min_granularity);
+
+#define WRT_SYSCTL(name) \
+    (normalized_sysctl_##name = sysctl_##name / (factor))
+    WRT_SYSCTL(sched_min_granularity);
+    WRT_SYSCTL(sched_latency);
+    WRT_SYSCTL(sched_wakeup_granularity);
+#undef WRT_SYSCTL
+
+    return 0;
+}
+```
+
+
+##5.2   参数详解
+-------
+
+
+##5.3   接口详解
+-------
+
+
+#6  `sysctl_sched_child_runs_first` 
 -------
 
 
@@ -534,7 +697,7 @@ curr->vruntime - p->vruntime > calc_delta_fair(sysctl_sched_wakeup_granularity, 
 | [`sysctl_sched_child_runs_first`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L87) | `/proc/sys/kernel/sched_child_runs_first` | 0 | 该变量表示在创建子进程的时候是否让子进程抢占父进程，即使父进程的vruntime小于子进程，这个会减少公平性，但是可以降低write_on_copy，具体要根据系统的应用情况来考量使用哪种方式（见task_fork_fair过程） |
 
 
-##5.1   参数背景
+##6.1   参数背景
 -------
 
 
@@ -544,7 +707,7 @@ curr->vruntime - p->vruntime > calc_delta_fair(sysctl_sched_wakeup_granularity, 
 该变量表示在创建子进程的时候是否让子进程抢占父进程，即使父进程的 `vruntime` 小于子进程，这个会减少公平性，但是可以降低 `write_on_copy`，具体要根据系统的应用情况来考量使用哪种方式（见 `task_fork_fair` 过程）
 
 
-##5.2   `sysctl_sched_child_runs_first` 保证子进程先运行
+##6.2   `sysctl_sched_child_runs_first` 保证子进程先运行
 -------
 
 
@@ -618,13 +781,285 @@ static void task_fork_fair(struct task_struct *p)
 如果参数 `sysctl_sched_child_runs_first` 被设置, 同时 `curr` 进程的虚拟运行时间比创建的子进程 `se`, 就交换它们的虚拟运行时间. 通过这种方式来保证子进程的虚拟运行时间比父进程的小, 从而保证子进程优先运行.
 
 
-##5.3 `sysctl_sched_child_runs_first` 接口
+##6.3 `sysctl_sched_child_runs_first` 接口
 -------
 
 
-#6  
+#7  `sysctl_sched_migration_cost`
+-------
 
-#2  调度器特性 features
+
+| 内核参数 | 位置 | 内核默认值 | 描述 |
+|:------------:|:------:|:---------------:|:------:|
+| [`sysctl_sched_migration_cost`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L101) | `/proc/sys/kernel/sched_migration_cost` | `500000ns` | 该变量用来判断一个进程是否还是 `hot`，如果进程的运行时间 (`now - p->se.exec_start`) 小于它，那么内核认为它的 `code` 还在 `cache` 里，所以该进程还是 `hot`，那么在迁移的时候就不会考虑它 |
+
+
+##7.1   参数背景
+-------
+
+
+`CPU` 负载平衡有两种方式 : `pull` 和 `push`, 即
+
+*   空闲 `CPU` 从其他忙的 `CPU` 队列中拉一个进程到当前 `CPU` 队列, 通过 `idle_balance` 完成;
+
+*   或者忙的CPU队列将一个进程推送到空闲的 `CPU` 队列中. 
+
+
+`idle_balance` 干的则是 `pull` 的事情, `idle_balance` 会 `for_each_domain(this_cpu, sd)` 则是遍历当前 `CPU`所在的调度域, 维持调度域内的核间平衡.
+
+但是负载平衡有一个矛盾就是 : 负载平衡的频度和 `CPU cache` 的命中率是矛盾的, `CPU` 调度域就是将各个 `CPU` 分成层次不同的组, 低层次搞定的平衡就绝不上升到高层次处理, 避免影响 `cache` 的命中率.
+
+
+*   调度器通过 `sysctl_sched_migration_cost` 这个 `proc` 阈值判断进程来判断进程是否是 `cache hot` 的, 如果是 `hot` 的则不会进行负载均衡迁移.
+
+*   同时通过该阈值控制当前 `CPU` 是否可以 `pull`. `sysctl_sched_migration_cost` 对应 `proc` 控制文件是 `/proc/sys/kernel/sched_migration_cost`, 开关代表如果 `CPU` 队列空闲了 `500000ns = 500us`(`sysctl_sched_migration_cost` 默认值) 以上, 则进行 `pull`, 否则则返回.
+
+
+##7.2   `sysctl_sched_migration_cost` 实现详解
+-------
+
+
+###7.2.1 判断进程是否是 `cache-hot`
+-------
+
+
+调度器通过 [`task_hot`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L6596) 函数检查一个进程是否是 `cache-hot` 的. 如果该进程还是 `cache-hot`，那么在迁移的时候就不会考虑它.
+
+
+*   如果 `sysctl_sched_migration_cost` 被设置为 `-1`, 则 `task_hot` 永远返回 `1`, 即认为进程永远是 `cache-hot` 的. 
+
+
+*   如果 `sysctl_sched_migration_cost` 被设置为 `0`, 则禁用了该配置, `task_hot` 永远返回 `0`.
+
+
+*   如果进程的运行时间 (`now - p->se.exec_start`) 小于 `sysctl_sched_migration_cost`，那么内核认为它的 `code` 还在 `cache` 里.
+
+
+
+```cpp
+//  http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L6596
+/*
+ * Is this task likely cache-hot:
+ */
+static int task_hot(struct task_struct *p, struct lb_env *env)
+{
+    //  ......
+
+    if (sysctl_sched_migration_cost == -1)
+        return 1;
+    if (sysctl_sched_migration_cost == 0)
+        return 0;
+
+    delta = rq_clock_task(env->src_rq) - p->se.exec_start;
+
+    return delta < (s64)sysctl_sched_migration_cost;
+}
+```
+
+注意
+
+`task_hot(cahce-hot)` 只是禁止进程迁移的充分条件, 而不是必要条件.
+
+具体的信息请参见 [`can_migrate_task`](https://elixir.bootlin.com/linux/latest/source/kernel/sched/fair.c#L7063) 函数.
+
+
+```cpp
+//  (https://elixir.bootlin.com/linux/latest/source/kernel/sched/fair.c#L7063
+/*
+ * can_migrate_task - may task p from runqueue rq be migrated to this_cpu?
+ */
+static
+int can_migrate_task(struct task_struct *p, struct lb_env *env)
+{
+    int tsk_cache_hot;
+
+    lockdep_assert_held(&env->src_rq->lock);
+
+    /*
+     * We do not migrate tasks that are:
+     * 1) throttled_lb_pair, or
+     * 2) cannot be migrated to this CPU due to cpus_allowed, or
+     * 3) running (obviously), or
+     * 4) are cache-hot on their current CPU.
+     */
+    if (throttled_lb_pair(task_group(p), env->src_cpu, env->dst_cpu))
+        return 0;
+
+    if (!cpumask_test_cpu(env->dst_cpu, &p->cpus_allowed)) {
+        //  ......
+        return 0;
+    }
+
+    /* Record that we found atleast one task that could run on dst_cpu */
+    env->flags &= ~LBF_ALL_PINNED;
+
+    if (task_running(env->src_rq, p)) {
+        //  ......
+        return 0;
+    }
+
+    /*
+     * Aggressive migration if:
+     * 1) destination numa is preferred
+     * 2) task is cache cold, or
+     * 3) too many balance attempts have failed.
+     */
+    tsk_cache_hot = migrate_degrades_locality(p, env);
+    if (tsk_cache_hot == -1)
+        tsk_cache_hot = task_hot(p, env);
+
+    if (tsk_cache_hot <= 0 ||
+        env->sd->nr_balance_failed > env->sd->cache_nice_tries) {
+        if (tsk_cache_hot == 1) {
+            schedstat_inc(env->sd->lb_hot_gained[env->idle]);
+            schedstat_inc(p->se.statistics.nr_forced_migrations);
+        }
+        return 1;
+    }
+
+    schedstat_inc(p->se.statistics.nr_failed_migrations_hot);
+    return 0;
+}
+```
+
+
+
+###7.2.2    `idle_balance` 是否需要 `pull`
+-------
+
+
+当一个 `CPU` 进入 `idle` 状态时, 将通过 `idle_balance` 从其他繁忙的 `CPU` 上 `pull` 一个进程下来.
+
+如果 `CPU` 的运行队列 `rq` 空闲时间超过 `sysctl_sched_migration_cost` 以上, 才会从其他 `CPU` 运行队列上 `pull`, 否则则返回, 不会进行 `pull` 操作.
+
+
+```cpp
+//  http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L8374
+/*
+ * idle_balance is called by schedule() if this_cpu is about to become
+ * idle. Attempts to pull tasks from other CPUs.
+ */
+static int idle_balance(struct rq *this_rq, struct rq_flags *rf)
+{
+    //  ......
+
+    /*
+     * This is OK, because current is on_cpu, which avoids it being picked
+     * for load-balance and preemption/IRQs are still disabled avoiding
+     * further scheduler activity on it and we're being very careful to
+     * re-start the picking loop.
+     */
+    rq_unpin_lock(this_rq, rf);
+
+    if (this_rq->avg_idle < sysctl_sched_migration_cost ||
+        !this_rq->rd->overload) {
+        rcu_read_lock();
+        sd = rcu_dereference_check_sched_domain(this_rq->sd);
+        if (sd)
+            update_next_balance(sd, &next_balance);
+        rcu_read_unlock();
+
+        goto out;
+    }
+    
+    //  ......
+
+out:
+    /* Move the next balance forward */
+    if (time_after(this_rq->next_balance, next_balance))
+        this_rq->next_balance = next_balance;
+
+    /* Is there a task of a high priority class? */
+    if (this_rq->nr_running != this_rq->cfs.h_nr_running)
+        pulled_task = -1;
+
+    if (pulled_task)
+        this_rq->idle_stamp = 0;
+
+    rq_repin_lock(this_rq, rf);
+
+    return pulled_task;
+}
+```
+
+
+##7.3   `sysctl_sched_migration_cost` 接口详解
+-------
+
+
+
+#8 sysctl_sched_rt_period 与 sysctl_sched_rt_runtime
+-------
+
+| 内核参数 | 位置 | 内核默认值 | 描述 |
+|:------------:|:------:|:---------------:|:------:|
+| [`sysctl_sched_rt_period`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L76) | `/proc/sys/kernel/sched_rt_period_us` | `1000000us` | 该参数与下面的sysctl_sched_rt_runtime一起决定了实时进程在以sysctl_sched_rt_period为周期的时间内，实时进程最多能够运行的总的时间不能超过sysctl_sched_rt_runtime（代码见sched_rt_global_constraints |
+| 内核参数 | 位置 | 内核默认值 | 描述 |
+|:------------:|:------:|:---------------:|:------:|
+| [`sysctl_sched_rt_runtime`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L84) | `/proc/sys/kernel/sched_rt_runtime_us` | `950000us` | 见上 `sysctl_sched_rt_period` 变量的解释 |
+
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/core.c#L72
+/*
+ * period over which we measure -rt task CPU usage in us.
+ * default: 1s
+ */
+unsigned int sysctl_sched_rt_period = 1000000;
+
+
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/core.c#L80
+/*
+ * part of the period that we allow rt tasks to run in us.
+ * default: 0.95s
+ */
+int sysctl_sched_rt_runtime = 950000;
+```
+
+
+#9  sysctl_sched_rt_runtime
+-------
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/sched.h#L1264
+static inline u64 global_rt_period(void)
+{
+    return (u64)sysctl_sched_rt_period * NSEC_PER_USEC;
+}
+
+static inline u64 global_rt_runtime(void)
+{
+    if (sysctl_sched_rt_runtime < 0)
+        return RUNTIME_INF;
+
+    return (u64)sysctl_sched_rt_runtime * NSEC_PER_USEC;
+}
+```
+
+
+#10     
+-------
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/rt.c#L12
+int sched_rr_timeslice = RR_TIMESLICE;
+int sysctl_sched_rr_timeslice = (MSEC_PER_SEC / HZ) * RR_TIMESLICE;
+```
+
+
+#10    sysctl_sched_compat_yield
+-------
+
+
+| 内核参数 | 位置 | 内核默认值 | 描述 |
+|:------------:|:------:|:---------------:|:------:|
+| [`sysctl_sched_compat_yield`]() | `/proc/sys/kernel/sched_compat_yield` | 0 | 该参数可以让 `sched_yield()` 系统调用更加有效，让它使用更少的cpu，对于那些依赖sched_yield来获得更好性能的应用可以考虑设置它为1 | 
+
+
+
+#11  调度器特性 features
 -------
 
 
@@ -662,7 +1097,11 @@ const_debug unsigned int sysctl_sched_features =
 
 #undef SCHED_FEAT
 ```
+
+
 首先定义了一个 `SCHED_FEAT` 宏, 然后定义并初始化 `sysctl_sched_features` 的时候通过包含 `features.h` 完成. 该头文件的定义在 [`kernel/sched/features.h, v4.14.14`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/features.h).
+
+
 
 ```cpp
 //  http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/features.h
@@ -733,6 +1172,7 @@ extern struct static_key sched_feat_keys[__SCHED_FEAT_NR];
 ##2.2    调度器特性 sched_features
 -------
 
+
 每个特性对应 `sysctl_sched_features` 中的一位, 通过 `__SCHED_FEAT_XXX` 宏定义
 
 
@@ -776,3 +1216,4 @@ extern struct static_key sched_feat_keys[__SCHED_FEAT_NR];
 
 *      基于本文修改后的作品务必以相同的许可发布. 如有任何疑问，请与我联系.
 
+`
