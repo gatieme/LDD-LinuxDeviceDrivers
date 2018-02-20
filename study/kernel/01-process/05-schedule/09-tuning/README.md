@@ -539,14 +539,103 @@ curr->vruntime - p->vruntime > calc_delta_fair(sysctl_sched_wakeup_granularity, 
 ##5.1   参数背景
 -------
 
-内核中有有几个调度参数都是描述的进程运行时间
+内核中有有几个调度参数都是描述的进程运行时间相关的信息.
+
+
+*   调度周期 `sched_latency`
 
 
 *   进程最小运行时间 `sched_min_granularity`
 
-*   调度周期 `sched_latency`
 
-*   `sysctl_sched_wakeup_granularity` 唤醒后运行时间基数
+*   唤醒后运行时间基数 `sched_wakeup_granularity`
+
+
+之前我们看到这些阈值定义的时候, 总有一个 `normalized_sysctl_XXX` 的阈值伴随着它们. 这个 `normalized_sysctl_XXX` 具体是用来做什么的呢 ?
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L841
+/*
+ * Targeted preemption latency for CPU-bound tasks:
+ *
+ * NOTE: this latency value is not the same as the concept of
+ * 'timeslice length' - timeslices in CFS are of variable length
+ * and have no persistent notion like in traditional, time-slice
+ * based scheduling concepts.
+ *
+ * (to see the precise effective timeslice length of your workload,
+ *  run vmstat and monitor the context-switches (cs) field)
+ *
+ * (default: 6ms * (1 + ilog(ncpus)), units: nanoseconds)
+ */
+unsigned int sysctl_sched_latency           = 6000000ULL;
+unsigned int normalized_sysctl_sched_latency        = 6000000ULL;
+```
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L70
+/*
+ * Minimal preemption granularity for CPU-bound tasks:
+ *
+ * (default: 0.75 msec * (1 + ilog(ncpus)), units: nanoseconds)
+ */
+unsigned int sysctl_sched_min_granularity       = 750000ULL;
+unsigned int normalized_sysctl_sched_min_granularity    = 750000ULL;
+
+/*
+ * This value is kept at sysctl_sched_latency/sysctl_sched_min_granularity
+ */
+static unsigned int sched_nr_latency = 8;
+```
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L89
+/*
+ * SCHED_OTHER wake-up granularity.
+ *
+ * This option delays the preemption effects of decoupled workloads
+ * and reduces their over-scheduling. Synchronous workloads will still
+ * have immediate wakeup/sleep latencies.
+ *
+ * (default: 1 msec * (1 + ilog(ncpus)), units: nanoseconds)
+ */
+unsigned int sysctl_sched_wakeup_granularity        = 1000000UL;
+unsigned int normalized_sysctl_sched_wakeup_granularity = 1000000UL;
+```
+
+
+通过注释我们可以看到一些端倪, 这些 `normalized_sysctl_XXX` 的变量用于计算 非 `normalized_sysctl` 的值. 默认的计算方式就是 :
+
+
+```cpp
+sysctl_sched_XXX = normalized_sysctl_XXX * (1 + ilog(ncpus))
+```
+
+那为什么需要这样计算呢 ?
+
+
+
+在 `SMP` 架构下, 随着 `CPU` 数量的增加, 程序的并行化增加. 用户可见的 "有效延迟" 降低. 但是这种关系并不是线性的, 所以调度器实现了几种计算方式, 就是在基础值 (`normalized_sysctl_XXX`) 的基础上乘上一个系数 `factor`. 内核提供了系数的多种计算方法.
+
+| 策略 | 系数 | 计算方法 |
+|:---:|:----:|:------:|
+| SCHED_TUNABLESCALING_NONE   | 1             | `sysctl_XXX = normalized_sysctl_XXX` |
+| SCHED_TUNABLESCALING_LOG    | 1+ilog(ncpus) | `sysctl_XXX = normalized_sysctl_XXX * (1+ilog(ncpus))` |
+| SCHED_TUNABLESCALING_LINEAR | ncpus         | `sysctl_XXX = normalized_sysctl_XXX * ncpus` |
+
+内核参数 [`sysctl_sched_tunable_scaling`](https://elixir.bootlin.com/linux/v4.16-rc1/source/kernel/sched/fair.c#L58) 就是内核用来控制调度器使用那种计算方法的. 默认值`SCHED_TUNABLESCALING_LOG` 标识用 `log2` 去做 `CPU` 数量. 这个想法来自 `Con Kolivas` 的 `SD` 调度器.
+
+
+
+##5.2   参数详解
+-------
+
+
+当CPU数量更多时，内核需要增加 `sched_min_granularity`，`sched_latency` 和 `sched_wakeup_granularity` 这几个内核参数的粒度值. 内核定义了一组基础值 `normalized_sysctl_XXX` 和一套校正系数 `fctor` 的计算方法, 在基础值的基础上乘以校正因子 `factor`, 作为内核最终采用的实际值 `sysctl_XXX`.
+
+关于校正因子的计算内核提供了多种计算方法, 由 `sched_tunable_scaling` 表示.
 
 
 
@@ -558,7 +647,14 @@ enum sched_tunable_scaling {
     SCHED_TUNABLESCALING_LINEAR,
     SCHED_TUNABLESCALING_END,
 };
+```
 
+
+内核参数 [`sysctl_sched_tunable_scaling`](https://elixir.bootlin.com/linux/v4.16-rc1/source/kernel/sched/fair.c#L58) 就是内核用来控制调度器使用那种计算方法的. 默认值`SCHED_TUNABLESCALING_LOG` 标识用 `log2` 去做 `CPU` 数量. 这个想法来自 `Con Kolivas` 的 `SD` 调度器.
+
+
+
+```cpp
 //  https://elixir.bootlin.com/linux/v4.16-rc1/source/kernel/sched/fair.c#L58 
 /*
  * The initial- and re-scaling of tunables is configurable
@@ -574,8 +670,12 @@ enum sched_tunable_scaling {
 enum sched_tunable_scaling sysctl_sched_tunable_scaling = SCHED_TUNABLESCALING_LOG;
 ```
 
+函数 [`get_update_sysctl_factor`](https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L153) 用来获取当前策略 `sysctl_sched_tunable_scaling` 下的 `factor` 系数.
+
+
+
 ```cpp
-//  https://elixir.bootlin.com/linux/v4.16-rc1/source/kernel/sched/fair.c#L153
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L153
 /*
  * Increase the granularity value when there are more CPUs,
  * because with more CPUs the 'effective latency' as visible
@@ -605,7 +705,20 @@ static unsigned int get_update_sysctl_factor(void)
 
     return factor;
 }
+```
 
+[`update_sysctl`](https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L183) 函数在系统启动和 `CPU` 上下线的时候设置 `sysctl_XXX` 的值.
+
+即 
+
+
+```cpp
+sysctl_sched_XXX = normalized_sysctl_XXX * factor
+```
+
+
+```
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L183
 static void update_sysctl(void)
 {
     unsigned int factor = get_update_sysctl_factor();
@@ -617,10 +730,8 @@ static void update_sysctl(void)
     SET_SYSCTL(sched_wakeup_granularity);
 #undef SET_SYSCTL
 }
-```
 
 
-```
 //  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L195
 void sched_init_granularity(void)
 {
@@ -649,9 +760,17 @@ static void rq_offline_fair(struct rq *rq)
 ```
 
 
+`sched_proc_update_handler` 函数则用于在用户通过 `procfs` 接口更新了 `sysctl_XXX` 的值之后, 同步更新 `normalized_sysctl_XXX`的值, 否则下一次通过 `update_sysctl` 转换的值将会有问题.
+
+即
 
 ```cpp
-//  https://elixir.bootlin.com/linux/v4.16-rc1/source/kernel/sched/fair.c#L154
+normalized_sysctl_XXX = sysctl_XXX / factor
+```
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L153
 /**************************************************************
  * Scheduling class statistics methods:
  */
@@ -677,12 +796,52 @@ int sched_proc_update_handler(struct ctl_table *table, int write,
 
     return 0;
 }
+
+
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sysctl.c#L313
+static struct ctl_table kern_table[] = {
+    //  ......
+#ifdef CONFIG_SCHED_DEBUG
+    {
+        .procname   = "sched_min_granularity_ns",
+        .data       = &sysctl_sched_min_granularity,
+        .maxlen     = sizeof(unsigned int),
+        .mode       = 0644,
+        .proc_handler   = sched_proc_update_handler,
+        .extra1     = &min_sched_granularity_ns,
+        .extra2     = &max_sched_granularity_ns,
+    },
+    {
+        .procname   = "sched_latency_ns",
+        .data       = &sysctl_sched_latency,
+        .maxlen     = sizeof(unsigned int),
+        .mode       = 0644,
+        .proc_handler   = sched_proc_update_handler,
+        .extra1     = &min_sched_granularity_ns,
+        .extra2     = &max_sched_granularity_ns,
+    },
+    {
+        .procname   = "sched_wakeup_granularity_ns",
+        .data       = &sysctl_sched_wakeup_granularity,
+        .maxlen     = sizeof(unsigned int),
+        .mode       = 0644,
+        .proc_handler   = sched_proc_update_handler,
+        .extra1     = &min_wakeup_granularity_ns,
+        .extra2     = &max_wakeup_granularity_ns,
+    },
+#ifdef CONFIG_SMP
+    {
+        .procname   = "sched_tunable_scaling",
+        .data       = &sysctl_sched_tunable_scaling,
+        .maxlen     = sizeof(enum sched_tunable_scaling),
+        .mode       = 0644,
+        .proc_handler   = sched_proc_update_handler,
+        .extra1     = &min_sched_tunable_scaling,
+        .extra2     = &max_sched_tunable_scaling,
+    },
+    // ......
+#endif
 ```
-
-
-##5.2   参数详解
--------
-
 
 ##5.3   接口详解
 -------
@@ -988,15 +1147,29 @@ out:
 
 
 
-#8 sysctl_sched_rt_period 与 sysctl_sched_rt_runtime
+#8 `sysctl_sched_rt_period` 与 `sysctl_sched_rt_runtime`
 -------
+
 
 | 内核参数 | 位置 | 内核默认值 | 描述 |
 |:------------:|:------:|:---------------:|:------:|
-| [`sysctl_sched_rt_period`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L76) | `/proc/sys/kernel/sched_rt_period_us` | `1000000us` | 该参数与下面的sysctl_sched_rt_runtime一起决定了实时进程在以sysctl_sched_rt_period为周期的时间内，实时进程最多能够运行的总的时间不能超过sysctl_sched_rt_runtime（代码见sched_rt_global_constraints |
-| 内核参数 | 位置 | 内核默认值 | 描述 |
-|:------------:|:------:|:---------------:|:------:|
+| [`sysctl_sched_rt_period`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L76) | `/proc/sys/kernel/sched_rt_period_us` | `1000000us` | 该参数与下面的 `sysctl_sched_rt_runtime` 一起决定了实时进程在以 `sysctl_sched_rt_period` 为周期的时间内，实时进程最多能够运行的总的时间, 不能超过 `sysctl_sched_rt_runtime`(代码见 `sched_rt_global_constraints`) |
 | [`sysctl_sched_rt_runtime`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L84) | `/proc/sys/kernel/sched_rt_runtime_us` | `950000us` | 见上 `sysctl_sched_rt_period` 变量的解释 |
+
+`RT` 实时进程有两种调度策略 : `FIFO`(先进先出) 和 `RR`(时间片轮转).
+
+相同优先级的 `FIFO` 实时进程和 `RR` 实时进程挂到同一个运行队列上, 他们的不同在于 `RR` 实时进程运行一段时间后(时间片耗尽), 重新挂到运行队列的尾部等待下一次运行. 而 `FIFO` 的实时进程一旦运行, 则会一直占据 `CPU` 直到更高优先级的 `FIFO` 或 `RR` 进程抢占, 或自己主动放弃 `CPU`. 这样子好像很不公平, 通常会把运行时间较短的进程设置为 `FIFO` 调度策略, 把运行时间较长的进程设置为 `RR` 调度策略.
+
+
+`RR` 实时进程是有时间片的, `FIFO` 实时进程是没有时间片. 但也有的说 `FIFO` 进程也有时间片, 从内核代码看, `FIFO` 实时进程也是有时间片的, 是为了在很多处理中不需要使用 `if` 语句区分这两种进程, 而在时钟中断中只会减少 `RR` 进程的时间片, 不会改变 `FIFO` 进程的时间片. `FIFO` 进程的时间片永远用不完, 使其时间片失去作用.
+
+不同优先级的实时进程间是基于优先级进行抢占的, 那实时进程也是完全抢占普通进程的吗 ?
+
+
+`RT` 调度类的优先级较高, 比普通进程 `CFS` 的优先级要高, 因此如果有实时进程在运行, 那么普通进程将无法获取到 `CPU` 运行时间. 即 `RT` 进程抢占 `CFS` 进程. 但是如果 `RT` 进程完全抢占 `CFS` 进程, 将导致普通进程得不到响应.
+
+
+因此内核提供了这两个 `RT` 参数用来限制 `RT` 进程的运行时间占比.
 
 
 
@@ -1018,9 +1191,15 @@ int sysctl_sched_rt_runtime = 950000;
 ```
 
 
+`sysctl_sched_rt_period` 表示实时进程运行周期为 `1s`，`sysctl_sched_rt_runtime` 表示在运行周期内, 实时进程最多运行 `0.95` 秒, 即 `CPU` 最多 `95%` 的时间片交给 `RT` 进程运行. 内核强制实时进程为普通进程预留出一定的运行时间. 当然可以把 `sysctl_sched_rt_runtime` 和 `sysctl_sched_rt_period` 设置成相同的数值, 即实时进程可以完全抢占普通进程。
+
+
 #9  sysctl_sched_rt_runtime
 -------
 
+
+
+    
 ```cpp
 //  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/sched.h#L1264
 static inline u64 global_rt_period(void)
@@ -1038,6 +1217,97 @@ static inline u64 global_rt_runtime(void)
 ```
 
 
+`RT` 调度器中使用了一个通用的结构 `rt_schedulable_data` 来表示这段限制. 
+
+通过 `to_ratio(period, runtime)` 检查 `RT` 进程的可运行时间比率.
+
+
+在 `tg_rt_schedulable` 中, 计算当前 `sched_group` 下进程的运行比率 (`runtime / period`) 之和.
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/latest/source/kernel/sched/rt.c#L2404
+struct rt_schedulable_data {
+    struct task_group *tg;
+    u64 rt_period;
+    u64 rt_runtime;
+};
+
+static int tg_rt_schedulable(struct task_group *tg, void *data)
+{
+    struct rt_schedulable_data *d = data;
+    struct task_group *child;
+    unsigned long total, sum = 0;
+    u64 period, runtime;
+
+    period = ktime_to_ns(tg->rt_bandwidth.rt_period);
+    runtime = tg->rt_bandwidth.rt_runtime;
+
+    if (tg == d->tg) {
+        period = d->rt_period;
+        runtime = d->rt_runtime;
+    }
+
+    /*
+     * Cannot have more runtime than the period.
+     */
+    if (runtime > period && runtime != RUNTIME_INF)
+        return -EINVAL;
+
+    /*
+     * Ensure we don't starve existing RT tasks.
+     */
+    if (rt_bandwidth_enabled() && !runtime && tg_has_rt_tasks(tg))
+        return -EBUSY;
+
+    total = to_ratio(period, runtime);
+
+    /*
+     * Nobody can have more than the global setting allows.
+     */
+    if (total > to_ratio(global_rt_period(), global_rt_runtime()))
+        return -EINVAL;
+
+    /*
+     * The sum of our children's runtime should not exceed our own.
+     */
+    list_for_each_entry_rcu(child, &tg->children, siblings) {
+        period = ktime_to_ns(child->rt_bandwidth.rt_period);
+        runtime = child->rt_bandwidth.rt_runtime;
+
+        if (child == d->tg) {
+            period = d->rt_period;
+            runtime = d->rt_runtime;
+        }
+
+        sum += to_ratio(period, runtime);
+    }
+
+    if (sum > total)
+        return -EINVAL;
+
+    return 0;
+}
+
+static int __rt_schedulable(struct task_group *tg, u64 period, u64 runtime)
+{
+    int ret;
+
+    struct rt_schedulable_data data = {
+        .tg = tg,
+        .rt_period = period,
+        .rt_runtime = runtime,
+    };
+
+    rcu_read_lock();
+    ret = walk_tg_tree(tg_rt_schedulable, tg_nop, &data);
+    rcu_read_unlock();
+
+    return ret;
+}
+```
+
+
 #10     
 -------
 
@@ -1049,16 +1319,6 @@ int sysctl_sched_rr_timeslice = (MSEC_PER_SEC / HZ) * RR_TIMESLICE;
 ```
 
 
-#10    sysctl_sched_compat_yield
--------
-
-
-| 内核参数 | 位置 | 内核默认值 | 描述 |
-|:------------:|:------:|:---------------:|:------:|
-| [`sysctl_sched_compat_yield`]() | `/proc/sys/kernel/sched_compat_yield` | 0 | 该参数可以让 `sched_yield()` 系统调用更加有效，让它使用更少的cpu，对于那些依赖sched_yield来获得更好性能的应用可以考虑设置它为1 | 
-
-
-
 #11  调度器特性 features
 -------
 
@@ -1068,7 +1328,8 @@ int sysctl_sched_rr_timeslice = (MSEC_PER_SEC / HZ) * RR_TIMESLICE;
 | [`sysctl_sched_features`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L52) | `/proc/sys/kernel/sched_features` | `3183d=110001101111b` | 该变量表示调度器支持的特性，如GENTLE_FAIR_SLEEPERS(平滑的补偿睡眠进程),START_DEBIT(新进程尽量的早调度),WAKEUP_PREEMPT(是否wakeup的进程可以去抢占当前运行的进程)等，所有的features见内核sech_features.h文件的定义 | 
 
 
-##2.1  `sched_features` 接口的设计
+
+##11.1  `sched_features` 接口的设计
 -------
 
 
@@ -1106,7 +1367,11 @@ const_debug unsigned int sysctl_sched_features =
 ```cpp
 //  http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/features.h
 SCHED_FEAT(GENTLE_FAIR_SLEEPERS, true)
+
 ......
+......
+......
+
 SCHED_FEAT(WA_BIAS, true)
 ```
 
@@ -1169,7 +1434,7 @@ extern struct static_key sched_feat_keys[__SCHED_FEAT_NR];
 ```
 
 
-##2.2    调度器特性 sched_features
+##11.2    调度器特性 `sched_features`
 -------
 
 
@@ -1180,10 +1445,27 @@ extern struct static_key sched_feat_keys[__SCHED_FEAT_NR];
 
 | 特性 | 默认值 | 描述 |
 |:---:|:-----:|:---:|
-| GENTLE_FAIR_SLEEPERS | true | 对于睡眠的进程, 投入运行时虚拟运行时间只补偿一半, 即保证能很快运行, 又防止睡眠后投入的进程长时间占用 CPU |
-| START_DEBIT | true | 
-| NEXT_BUDDY | false |
-
+| GENTLE_FAIR_SLEEPERS  | true | 对于睡眠的进程, 投入运行时虚拟运行时间只补偿一半, 即保证能很快运行, 又防止睡眠后投入的进程长时间占用 `CPU` |
+| START_DEBIT           | true  | 
+| NEXT_BUDDY            | false |
+| LAST_BUDDY            | true  |
+| CACHE_HOT_BUDDY       | true  |
+| WAKEUP_PREEMPTION     | true  |
+| HRTICK                | false |
+| DOUBLE_TICK           | false |
+| LB_BIAS               | true  |
+| NONTASK_CAPACITY      | true  |
+| TTWU_QUEUE            | true  |
+| SIS_AVG_CPU           | false |
+| SIS_PROP              | true  |
+| WARN_DOUBLE_CLOCK     | false |
+| RT_PUSH_IPI           | true  |
+| RT_RUNTIME_SHARE      | true  |
+| LB_MIN                | false |
+| ATTACH_AGE_LOAD       | true  |
+| WA_IDLE               | true  |
+| WA_WEIGHT             | true  |
+| WA_BIAS               | true  |
 
 ##2.3   GENTLE_FAIR_SLEEPERS
 -------
@@ -1199,12 +1481,112 @@ extern struct static_key sched_feat_keys[__SCHED_FEAT_NR];
 
 *   另外, 我们可以构造这样的进程, 创建后先睡眠一段时间, 然后开始持续执行, 在默认策略下, 也将长时间占有 `CPU`.
 
-所以对于睡眠后醒来并投入运行的进程，CFS 应当对其进行时间补偿. 但是可以从补偿方式上做些调整. 保证这些进程既可以很快投入运行, 又不会超额占有 `CPU`. 因此 `GENTLE_FAIR_SLEEPERS` 特性加入到调度器中.
+所以对于睡眠后醒来并投入运行的进程，`CFS` 应当对其进行时间补偿. 但是可以从补偿方式上做些调整. 保证这些进程既可以很快投入运行, 又不会超额占有 `CPU`. 因此 `GENTLE_FAIR_SLEEPERS` 特性加入到调度器中.
 
 如果进程是从 `sleep` 状态被唤醒的，而且 `GENTLE_FAIR_SLEEPERS` 属性的值为 `true`，则 `vruntime` 被设置为 `sched_latency_ns` 的一半和当前进程的 `vruntime` 值中比较大的那个.
 
 
-因为系统中这种调度补偿的存在，IO消耗型的进程总是可以更快的获得响应速度。这是CFS处理与人交互的进程时的策略，即：通过提高响应速度让人的操作感受更好。但是有时候也会因为这样的策略导致整体性能受损。在很多使用了多进程（线程）或select、poll、epoll的网络代理程序，一般是由多个进程组成的进程组进行工作，典型的如apche、nginx和php-fpm这样的处理程序。它们往往都是由一个或者多个进程使用nanosleep()进行周期性的检查是否有新任务，如果有责唤醒一个子进程进行处理，子进程的处理可能会消耗CPU，而父进程则主要是sleep等待唤醒。这个时候，由于系统对sleep进程的补偿策略的存在，新唤醒的进程就可能会打断正在处理的子进程的过程，抢占CPU进行处理。当这种打断很多很频繁的时候，CPU处理的过程就会因为频繁的进程上下文切换而变的很低效，从而使系统整体吞吐量下降。此时我们可以使用开关禁止唤醒抢占的特性。
+```cpp
+try_to_wake_up
+    -=> ttwu_queue(p, cpu, wake_flags);
+        -=>     ttwu_do_activate(rq, p, wake_flags, &rf);
+            -=>     ttwu_activate(rq, p, en_flags);
+                -=> activate_task(rq, p, en_flags);
+                    -=> enqueue_task(rq, p, flags);
+                        -=> p->sched_class->enqueue_task(rq, p, flags);
+                            -=> enqueue_entity(cfs_rq, se, flags);
+```
+
+
+睡眠补偿的操作是在 `place_entity` 函数中完成.
+
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/latest/source/kernel/sched/fair.c#L3920
+static void
+place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
+{
+    u64 vruntime = cfs_rq->min_vruntime;
+
+    /*
+     * The 'current' period is already promised to the current tasks,
+     * however the extra weight of the new task will slow them down a
+     * little, place the new task so that it fits in the slot that
+     * stays open at the end.
+     */
+    if (initial && sched_feat(START_DEBIT))
+        vruntime += sched_vslice(cfs_rq, se);
+
+    /* sleeps up to a single latency don't count. */
+    if (!initial) {
+        unsigned long thresh = sysctl_sched_latency;
+
+        /*
+         * Halve their sleep time's effect, to allow
+         * for a gentler effect of sleepers:
+         */
+        if (sched_feat(GENTLE_FAIR_SLEEPERS))
+            thresh >>= 1;
+
+        vruntime -= thresh;
+    }
+
+    /* ensure we never gain time by being placed backwards. */
+    se->vruntime = max_vruntime(se->vruntime, vruntime);
+}
+```
+
+
+
+*   当进程是因为被唤醒而 `enqueue_entity` 到 `CPU` 就绪队列的的(`ENQUEUE_WAKEUP` 被设置), 会调用 `place_entity` 完成睡眠补偿.
+    
+
+    ```cpp
+    //  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L3715
+    static void
+    enqueue_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int flags)
+    {
+        //  ......
+        if (flags & ENQUEUE_WAKEUP)
+            place_entity(cfs_rq, se, 0);
+        //  ......
+    }
+    ```
+
+    `try_to_wake_up` 和 `try_to_wake_up_local` 的时候都会设置 `ENQUEUE_WAKEUP` 标识.
+
+    ```cpp
+    try_to_wake_up
+    -=> ttwu_queue(p, cpu, wake_flags);
+        -=>     ttwu_do_activate(rq, p, wake_flags, &rf);
+            -=>     int en_flags = ENQUEUE_WAKEUP | ENQUEUE_NOCLOCK;
+            -=>     ttwu_activate(rq, p, en_flags);
+                -=> activate_task(rq, p, en_flags);
+                    -=> enqueue_task(rq, p, flags);
+                        -=> p->sched_class->enqueue_task(rq, p, flags);
+                            -=> enqueue_entity(cfs_rq, se, flags);
+
+
+    try_to_wake_up_local
+    -=> ttwu_activate(rq, p, ENQUEUE_WAKEUP | ENQUEUE_NOCLOCK);
+    ```
+
+
+*   当进程被创建的时候, 也会调用 `place_entity` 进行补偿.
+
+
+    ```cpp
+    //  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L9079
+    static void task_fork_fair(struct task_struct *p)
+    {
+        //  ......
+        place_entity(cfs_rq, se, 1);
+        //  ......
+    }
+```
+
+因为系统中这种调度补偿的存在, `IO` 消耗型的进程总是可以更快的获得响应速度. 这是 `CFS` 处理与人交互的进程时的策略, 即 : 通过提高响应速度让人的操作感受更好. 但是有时候也会因为这样的策略导致整体性能受损. 在很多使用了多进程(线程)或 `select`, `poll`, `epoll` 的网络代理程序, 一般是由多个进程组成的进程组进行工作, 典型的如 `apche`, `nginx` 和 `php-fpm` 这样的处理程序. 它们往往都是由一个或者多个进程使用 `nanosleep()` 进行周期性的检查是否有新任务, 如果有则唤醒一个子进程进行处理, 子进程的处理可能会消耗 `CPU`, 而父进程则主要是 `sleep` 等待唤醒. 这个时候, 由于系统对 `sleep` 进程的补偿策略的存在, 新唤醒的进程就可能会打断正在处理的子进程的过程, 抢占 `CPU` 进行处理. 当这种打断很多很频繁的时候, `CPU` 处理的过程就会因为频繁的进程上下文切换而变的很低效, 从而使系统整体吞吐量下降. 此时我们可以使用开关禁止唤醒抢占的特性.
 
 
 
