@@ -336,7 +336,7 @@ $$ \frac{sysctl_sched_latency + sysctl_sched_min_granularity - 1}{sysctl_sched_m
 ##4.2   唤醒抢占
 -------
 
-当进程被唤醒的时候会调用 `check_preempt_wakeup` 检查被唤醒的进程是否可以抢占当前进程. 调用路径如下:
+当进程被唤醒的时候会调用 `check_preempt_wakeup` 检查被唤醒的进程是否可以抢占当前进程. 调用路径如下 :
 
 
 ```cpp
@@ -348,6 +348,17 @@ try_to_wake_up
                     -=> check_preempt_wakeup
                         -=> wakeup_preempt_entity
                             -=> wakeup_gran
+```
+
+同样对于新创建的进程, 内核也将对其进行唤醒操作, 调用路径如下 : 
+
+```cpp
+do_fork
+    -=> wake_up_new_task
+        -=> check_preempt_curr
+            -=> check_preempt_wakeup
+                -=> wakeup_preempt_entity
+                    -=> wakeup_gran
 ```
 
 
@@ -469,21 +480,26 @@ static inline u64 calc_delta_fair(u64 delta, struct sched_entity *se)
 `curr` 唤醒进程 `p`, 如果 `p` 可以抢占 `curr`, 则要求满足
 
  
-*   当前进程 `curr` 的虚拟运行时间不仅要比进程　`p` 的大, 还要大过 `calc_delta_fair(sysctl_sched_wakeup_granularity, p)`
+当前进程 `curr` 的虚拟运行时间不仅要比进程　`p` 的大, 还要大过 `calc_delta_fair(sysctl_sched_wakeup_granularity, p)`
 
 
-```cpp
-   curr->vruntime - p->vruntime > 0
-```
+*   当前进程 `curr` 的虚拟运行时间要比进程　`p` 的大
 
-否则 `wakeup_preempt_entity` 函数返回 `-1`.
+    ```cpp
+       curr->vruntime - p->vruntime > 0
+    ```
+
+    否则 `wakeup_preempt_entity` 函数返回 `-1`.
 
 
-```cpp
-curr->vruntime - p->vruntime > calc_delta_fair(sysctl_sched_wakeup_granularity, p)
-```
+*   当前进程 `curr` 的虚拟运行时间比进程　`p` 的大 `calc_delta_fair`
 
-否则  `wakeup_preempt_entity` 函数返回 `0`.
+
+    ```cpp
+    curr->vruntime - p->vruntime > calc_delta_fair(sysctl_sched_wakeup_granularity, p)
+    ```
+
+    否则  `wakeup_preempt_entity` 函数返回 `0`.
 
 
 我们假设进程 `p` 刚好实际运行了唤醒后抢占时间基数 `sysctl_sched_wakeup_granularity`, 则其虚拟运行时间将增长 `gran`. 被唤醒的进程 `p` 要想抢占 `curr`, 则要求其虚拟运行时间比 `curr` 小 `gran`. 则保证理想情况下(没有其他进程干预和进程 `p` 睡眠等其他外因), 进程 `p` 可以至少运行 `sysctl_sched_wakeup_granularity` 时间.
@@ -500,7 +516,7 @@ curr->vruntime - p->vruntime > calc_delta_fair(sysctl_sched_wakeup_granularity, 
 *   那么当被唤醒的进程 `p` 虚拟运行时间位于区间 `0` 的时候, `0 <= vdiff <= gran`, 同样不能被唤醒; (函数 `wakeup_preempt_entity` 返回 `0`)
 
 
-*   那么当被唤醒的进程 `p` 虚拟运行时间位于区间 `1` 的时候, `vdiff > gran`, 不能被唤醒; (函数 `wakeup_preempt_entity` 返回 `1`)
+*   那么当被唤醒的进程 `p` 虚拟运行时间位于区间 `1` 的时候, `vdiff > gran`, 能被唤醒; (函数 `wakeup_preempt_entity` 返回 `1`)
 
 
 
@@ -1445,8 +1461,8 @@ extern struct static_key sched_feat_keys[__SCHED_FEAT_NR];
 
 | 特性 | 默认值 | 描述 |
 |:---:|:-----:|:---:|
-| GENTLE_FAIR_SLEEPERS  | true | 对于睡眠的进程, 投入运行时虚拟运行时间只补偿一半, 即保证能很快运行, 又防止睡眠后投入的进程长时间占用 `CPU` |
-| START_DEBIT           | true  | 
+| GENTLE_FAIR_SLEEPERS  | true | 对于睡眠的进程, 投入运行时虚拟运行时间只补偿一半(`vruntime -= sysctl_sched_latency >> 1`), 即保证能很快运行, 又防止睡眠后投入的进程长时间占用 `CPU` |
+| START_DEBIT           | true  | 为了防止进程通过 `fork` 盗取 `CPU` 时间. 对于新创建的子进程, 则将跳过子进程当前周期的运行(`vruntime += sched_vslice(cfs_rq, se)`) |
 | NEXT_BUDDY            | false |
 | LAST_BUDDY            | true  |
 | CACHE_HOT_BUDDY       | true  |
@@ -1472,7 +1488,7 @@ extern struct static_key sched_feat_keys[__SCHED_FEAT_NR];
 -------
 
 
-###11.3.1   `GENTLE_FAIR_SLEEPERS` 睡眠唤醒补偿
+###11.3.1   `GENTLE_FAIR_SLEEPERS` 平滑的补偿睡眠进程
 -------
 
 如果休眠进程的 `vruntime` 保持不变, 而其他运行进程的 `vruntime` 一直在推进, 那么等到休眠进程终于唤醒的时候, 它的 `vruntime` 比别人小很多, 会使它获得长时间抢占 `CPU` 的优势, 其他进程就要饿死了. 这显然是另一种形式的不公平. 但是不对休眠进程的 `vruntime` 进行补偿, 又是不公平的. 因此调度器有必要对休眠进程的 `vruntime` 进行恰到好处的补偿.
@@ -1604,6 +1620,12 @@ try_to_wake_up_local
 ####11.3.2.1  `START_DEBIT` 背景
 -------
 
+如果打开这个特性, 表示给新进程的 `vruntime` 初始值要设置得比默认值更大一些, 这样会推迟它的运行时间, 以防进程通过不停的 `fork` 来获得 `CPU` 时间片.
+
+
+>即如果设置了 `START_DEBIT` 位, 则规定新进程的第一次运行要有延迟.
+
+
 
 ####11.3.2.2   `START_DEBIT` 实现
 -------
@@ -1611,6 +1633,23 @@ try_to_wake_up_local
 
 与睡眠补偿类似, 新创建进程 `vruntime` 的设置和修正操作同样在进程入队(`CPU` 就绪队列) 时通过 `place_entity` 完成.
 
+
+
+当进程被创建的时候, 也会调用 `place_entity` 进行补偿. 此时传入 `initial` 为 `1`. 表示此时进程刚创建好.
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L9079
+static void task_fork_fair(struct task_struct *p)
+{
+    //  ......
+    place_entity(cfs_rq, se, 1);
+    //  ......
+}
+```
+
+
+此时如果同时 `START_DEBIT` 也被设置, 则新创建子进程的虚拟运行时间 `vrunime`, 会在 `CPU` 就绪队列的虚拟运行时间的基础上增加 `sched_vslice(cfs_rq, se)`, 该时间刚好是当前进程实体 `se` 在就绪队列 `cfs_rq` 上当前周期的理想运行时间. 即相当于跳过该新创建的进程当前周期的运行, 让其从下一个周期才可以投入运行.
 
 
 ```cpp
@@ -1636,18 +1675,35 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
 }
 ```
 
-当进程被创建的时候, 也会调用 `place_entity` 进行补偿. 此时传入 `initial` 为 `1`. 表示此时进程刚创建好.
+
+其中
+
+
+*   `sched_slice` 计算的就是进程实体 `se` 在 `CPU` 就绪队列上 `cfs_rq` 上当前周期的理想运行时间.
+
+
+*   `calc_delta_fair` 函数计算的就是进程实体 `se` 运行 `delta_exec` 的时间所应该推进的虚拟运行时间.
+
+
+*   则 `sched_vslice(cfs_rq, se)` 就是进程正好在当前周期运行完调度器分配给自己 `CPU` 时间(理想运行时间) 而应该增长的虚拟运行时间.
+
+
+*   那么新创建的进程 `vruntime += sched_vslice(cfs_rq, se)` 就是假定该子进程当前周期已经完整的运行过了, 那么调度器根据虚拟运行时间选择进程的时候, 将跳过新创建子进程第一个运行周期.
 
 
 ```cpp
-//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L9079
-static void task_fork_fair(struct task_struct *p)
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L698
+/*
+ * We calculate the vruntime slice of a to-be-inserted task.
+ *
+ * vs = s/w
+ */
+static u64 sched_vslice(struct cfs_rq *cfs_rq, struct sched_entity *se)
 {
-    //  ......
-    place_entity(cfs_rq, se, 1);
-    //  ......
+    return calc_delta_fair(sched_slice(cfs_rq, se), se);
 }
 ```
+
 
 ####11.3.2.3  `START_DEBIT` 接口
 -------
@@ -1703,6 +1759,350 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
 ```
 
 
+前面通过 `START_DEBIT` 和 `GENTLE_FAIR_SLEEPERS` 两个参数讲解了 `place_entity` 这个函数.
+
+
+*   如果是新创建的子进程, 则 `initial` 为 `1`. 如果 `sched_feat(START_DEBIT)` 被设置, 则将跳过子进程当前周期的运行.
+
+
+    ```cpp
+    vruntime += sched_vslice(cfs_rq, se);
+    ```
+
+
+*   如果是进程休眠后被唤醒, 入队标识 `ENQUEUE_WAKEUP` 被设置, 则需要对进程进行补偿.
+
+    1.  如果 `sched_feat(GENTLE_FAIR_SLEEPERS)` 没有被设置, 则 `vruntime -= sysctl_sched_latency`, 补偿进程一个调度周期
+
+    2.  如果 `sched_feat(GENTLE_FAIR_SLEEPERS)` 被设置, 则 `vruntime -= (sysctl_sched_latency >> 1)`, 补偿进程一个调度周期的一半.
+
+
+##11.4 唤醒抢占 `WAKEUP_PREEMPTION`
+-------
+
+
+##11.4.1  唤醒抢占标识 `WAKEUP_PREEMPTION` 背景
+-------
+
+
+该选项用于开启和关闭休眠进程的唤醒抢占. 如果开启了该选项则内核将在进程唤醒的时候检查是否可以进行进程抢占.
+
+
+##11.4.2  唤醒抢占标识 `WAKEUP_PREEMPTION` 实现
+-------
+
+
+前面提到唤醒进程的运行时间基数 `sysctl_sched_wakeup_granularity` 的时候已经讲过 `check_preempt_wakeup` 函数. 该函数用于检查唤醒抢占, 并设置抢占调度标识.
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L6164
+/*
+ * Preempt the current task with a newly woken task if needed:
+ */
+static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_flags)
+{
+    //  ......
+
+    /*
+     * Batch and idle tasks do not preempt non-idle tasks (their preemption
+     * is driven by the tick):
+     */
+    if (unlikely(p->policy != SCHED_NORMAL) || !sched_feat(WAKEUP_PREEMPTION))
+        return;
+
+    find_matching_se(&se, &pse);
+    update_curr(cfs_rq_of(se));
+    BUG_ON(!pse);
+    if (wakeup_preempt_entity(se, pse) == 1) {
+        // ......
+        goto preempt;
+    }
+
+    return;
+
+preempt:
+    resched_curr(rq);
+    
+    // ......
+}
+```
+
+可见只有开启了 `WAKEUP_PREEMPTION` 选项, 才会调用 `wakeup_preempt_entity` 检查唤醒抢占.
+
+>另外只有普通进程才会进行唤醒抢占
+>
+>即
+>
+>p->policy != SCHED_NORMAL
+
+
+##11.4.3  唤醒抢占标识 `WAKEUP_PREEMPTION` 接口
+-------
+
+
+
+##11.4  `NEXT_BUDDY` && `LAST_BUDDY`
+-------
+
+
+`CFS` 调度器通过虚拟运行时间来保证公平性, 不同权重和优先级的进程其虚拟运行时间按照不同的速度向前推进, 调度器每次选择虚拟运行时间最小的那个进程, 但是有时候也是需要一些外部干预的. 
+
+
+`CFS` 的就绪队列 `cfs_rq` 上通过 `curr` 指针记录了当前运行的进程实体, 同时还标记了其他进程实体的信息, 对应的就是 `next`, `last`, `skip` 几个指针. 他们标记了当前运行队列上的一些特殊进程, 他们通过对应的 `set_xxxx_buddy` 函数来设置. 通过 `__clear_buddies_xxxx` 和 `clear_buddies` 来清除.
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/sched.h#L432
+struct cfs_rq{
+    //  ......
+    /*
+     * 'curr' points to currently running entity on this cfs_rq.
+     * It is set to NULL otherwise (i.e when none are currently running).
+     */
+    struct sched_entity *curr, *next, *last, *skip;
+    //  ......
+};
+```
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L6134
+static void set_last_buddy(struct sched_entity *se)
+{
+    if (entity_is_task(se) && unlikely(task_of(se)->policy == SCHED_IDLE))
+        return;
+
+    for_each_sched_entity(se) {
+        if (SCHED_WARN_ON(!se->on_rq))
+            return;
+        cfs_rq_of(se)->last = se;
+    }
+}
+
+static void set_next_buddy(struct sched_entity *se)
+{
+    if (entity_is_task(se) && unlikely(task_of(se)->policy == SCHED_IDLE))
+        return;
+
+    for_each_sched_entity(se) {
+        if (SCHED_WARN_ON(!se->on_rq))
+            return;
+        cfs_rq_of(se)->next = se;
+    }
+}
+
+static void set_skip_buddy(struct sched_entity *se)
+{
+    for_each_sched_entity(se)
+        cfs_rq_of(se)->skip = se;
+}
+```
+
+###11.4.1 `NEXT_BUDDY` && `LAST_BUDDY` 背景
+-------
+
+
+###11.4.2 `NEXT_BUDDY` && `LAST_BUDDY` 实现
+-------
+
+####11.4.2.1  `LAST_BUDDY` 实现
+-------
+
+*   `xxxx_buddy` 的用途
+
+
+这些标记直接影响的就是 `pick_next_task_fair` 下一个投入运行的进程的选择, 调度器通过 `pick_next_entity` 选择出下一个调度实体.
+
+
+
+```cpp
+pick_next_task_fair
+    -=> pick_next_entity
+```
+
+[`pick_next_entity`](https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L3905) 的实现参见 [`kernel/sched/fair.c, version 4.14.14, line 3905`](https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L3905).
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L3905
+/*
+ * Pick the next process, keeping these things in mind, in this order:
+ * 1) keep things fair between processes/task groups
+ * 2) pick the "next" process, since someone really wants that to run
+ * 3) pick the "last" process, for cache locality
+ * 4) do not run the "skip" process, if something else is available
+ */
+static struct sched_entity *
+pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
+{
+    //  首先从 left 和 curr 中选出虚拟运行时间最小的那个, 记为 left
+    struct sched_entity *left = __pick_first_entity(cfs_rq);
+    struct sched_entity *se;
+
+    /*
+     * If curr is set we have to see if its left of the leftmost entity
+     * still in the tree, provided there was anything in the tree at all.
+     */
+    if (!left || (curr && entity_before(curr, left)))
+        left = curr;
+
+    se = left; /* ideally we run the leftmost entity */
+
+    //  如果 left 正好设置了被 skip, 则继续从 second 与 curr 中选择记为 second 
+    /*
+     * Avoid running the skip buddy, if running something else can
+     * be done without getting too unfair.
+     */
+    if (cfs_rq->skip == se) {
+        struct sched_entity *second;
+
+        if (se == curr) {  //  被 skip 的是 curr, 则直接选择最左节点(可能是NULL)即可
+            second = __pick_first_entity(cfs_rq);
+        } else {  //  被 skip 的是最左节点, 则从 second(可能是NULL) 和 curr 中选择最合适的
+            second = __pick_next_entity(se);
+            if (!second || (curr && entity_before(curr, second)))
+                second = curr;
+        }
+
+        //  如果 second 不可以唤醒 left
+        //  (second.vruntime - left.vruntiem < calc_delta_fair(sysctl_sched_wakeup_granularity, left))
+        if (second && wakeup_preempt_entity(second, left) < 1)
+            se = second;
+    }
+
+    /*
+     * Prefer last buddy, try to return the CPU to a preempted task.
+     */
+    if (cfs_rq->last && wakeup_preempt_entity(cfs_rq->last, left) < 1)
+        se = cfs_rq->last;
+
+    /*
+     * Someone really wants this to run. If it's not unfair, run it.
+     */
+    if (cfs_rq->next && wakeup_preempt_entity(cfs_rq->next, left) < 1)
+        se = cfs_rq->next;
+
+    clear_buddies(cfs_rq, se);
+
+    return se;
+}
+```
+
+
+
+1.  首先选择出红黑树上的最左进程(虚拟运行时间最小) `left`, `second`, 然后和 `curr` 比较. 选择出非 `skip` 的, 且虚拟运行时间最小的那个调度实体, 记为 `second'`, 而 `left`.(为什么需要在红黑树上看两个, 如果第一个进程被标记为 `skip`, 则需要去看 `second`).
+
+
+    *   首先选择出红黑树上的最左进程(虚拟运行时间最小) `left`, 然后和 `curr` 比较. 选择出虚拟运行时间最小的那个, 记为 `left'`.
+
+
+    *   如果 `left` 正好被设置了 `skip`, 则继续看次左节点 `second`, 从剩余的两者中选择最恰当的 : 如果 `skip == curr`, 则只需要选择 `left` ; 如果 `skip == left`, 此时选择 `second` 与 `curr` 中虚拟运行时间最小的. 记为 `second'`. 注意如果选择的节点是次左节点 `second`, 则需要满足 `second` 不能唤醒 `left'`.
+
+2.  如果运行队列 `cfs_rq` 的 `last` 指针被标记, 且 `last` 不能唤醒 `left'`, 则选择 `last` 调度实体, 
+
+
+3.  如果运行队列 `cfs_rq` 的 `next` 指针被标记, 且 `next` 不能唤醒 `left'`, 则选择 `next` 调度实体, 
+
+
+>  注意
+>
+>  如果 `last` 和 `next` 同时被设置且都满足唤醒条件, 那么将使用的是 `next` 指针指向的调度实体.
+>  
+>  可见如果内核希望某个进程实体 `se` 下一次立马投入运行的时候, 可以通过 `set_next_buddy(se)` 将其设置为 `next`, 这样 `CFS` 调度器在选择的时候会有限选择它投入运行, 但是前提是满足唤醒条件, 即当前 `se` 不能唤醒 `left'`（红黑树中最左节点和 `curr` 中虚拟运行时间最小的那个.）
+
+
+*   `xxxx_buddy` 的设置
+
+
+首先是 `last buddy` 的设置, 它标记的是当前 `CFS` 运行队列的上一个 `waker`. 因此需要在 `try_to_wake_up` 和 `try_to_wakeup_new` 唤醒抢占 `check_preempt_wakeup` 成功 (`resched_curr`) 后进行标识. 同样 `next` 在唤醒成功后也将标记
+
+
+```cpp
+/*
+ * Preempt the current task with a newly woken task if needed:
+ */
+static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_flags)
+{
+    struct task_struct *curr = rq->curr;
+    struct sched_entity *se = &curr->se, *pse = &p->se;
+    struct cfs_rq *cfs_rq = task_cfs_rq(curr);
+    int scale = cfs_rq->nr_running >= sched_nr_latency;
+    int next_buddy_marked = 0;
+
+    /*
+     * This is possible from callers such as attach_tasks(), in which we
+     * unconditionally check_prempt_curr() after an enqueue (which may have
+     * lead to a throttle).  This both saves work and prevents false
+     * next-buddy nomination below.
+     */
+    if (unlikely(throttled_hierarchy(cfs_rq_of(pse))))
+        return;
+
+    //  如果 NEXT_BUDDY 开启
+    //  同时运行队列上进程数超过 sched_nr_latency, 
+    //  wake_flags 不是 WF_FORK (对于新创建的进程wake_up_new_task时候将设置此标识)
+    if (sched_feat(NEXT_BUDDY) && scale && !(wake_flags & WF_FORK)) {
+        set_next_buddy(pse);
+        next_buddy_marked = 1;
+    }
+
+    /*
+     * We can come here with TIF_NEED_RESCHED already set from new task
+     * wake up path.
+     *
+     * Note: this also catches the edge-case of curr being in a throttled
+     * group (e.g. via set_curr_task), since update_curr() (in the
+     * enqueue of curr) will have resulted in resched being set.  This
+     * prevents us from potentially nominating it as a false LAST_BUDDY
+     * below.
+     */
+    if (test_tsk_need_resched(curr))
+        return;
+
+    //  ......
+
+    if (wakeup_preempt_entity(se, pse) == 1) {
+        /*
+         * Bias pick_next to pick the sched entity that is
+         * triggering this preemption.
+         */
+        if (!next_buddy_marked)
+            set_next_buddy(pse);
+        goto preempt;
+    }
+
+    return;
+
+preempt:
+    resched_curr(rq);
+    /*
+     * Only set the backward buddy when the current task is still
+     * on the rq. This can happen when a wakeup gets interleaved
+     * with schedule on the ->pre_schedule() or idle_balance()
+     * point, either of which can * drop the rq lock.
+     *
+     * Also, during early boot the idle thread is in the fair class,
+     * for obvious reasons its a bad idea to schedule back to it.
+     */
+    if (unlikely(!se->on_rq || curr == rq->idle))
+        return;
+
+    //  唤醒抢占成功后, 设置当前 waker 为 last
+    if (sched_feat(LAST_BUDDY) && scale && entity_is_task(se))
+        set_last_buddy(se);
+}
+```
+
+
+
+*   `xxxx_buddy` 的清除
+
+
+
+###11.4.3 `NEXT_BUDDY` && `LAST_BUDDY` 接口
+-------
+
+
 
 #   参考资料
 -------
@@ -1712,6 +2112,13 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
 [Linux 调度器 BFS 简介](https://www.ibm.com/developerworks/cn/linux/l-cn-bfs/)
 
 [从几个问题开始理解CFS调度器](http://ju.outofmemory.cn/entry/105407)
+
+
+> 关于 `waker` 和 `wakee`
+>
+>*  waker : The running process which try to wakeup an un-running process
+>
+>*  wakee : The un-running process to be wakeup
 
 
 <br>
