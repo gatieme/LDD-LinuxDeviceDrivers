@@ -2011,6 +2011,21 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 >  可见如果内核希望某个进程实体 `se` 下一次立马投入运行的时候, 可以通过 `set_next_buddy(se)` 将其设置为 `next`, 这样 `CFS` 调度器在选择的时候会有限选择它投入运行, 但是前提是满足唤醒条件, 即当前 `se` 不能唤醒 `left'`（红黑树中最左节点和 `curr` 中虚拟运行时间最小的那个.）
 
 
+从设置中可以看出一些端倪.
+
+1.  `last-buudy` 和 `next-buddy` 用来内核标记那些下一次调度时期望优先投入运行的进程, 通过这种方式内核将跳过通过检查虚拟运行时间最小进程的策略, 而优先选择他们(其中 `next-buddy` 的优先级最高)
+
+2.  `last-buudy` 和 `next-buddy` 投入运行是需要条件的, 那就是当前 `buddy` 不能唤醒 `left` 即 
+    ```cpp
+    wakeup_preempt_entity(buddy, left) < 1
+    等价于
+    buddy->vruntime - left.vrunime < calc_delta_fair(sysctl_sched_wakeup_granularity, left)
+    其中
+    left 是 curr 与红黑树最左节点中虚拟运行时间最小的那个进程实体
+    右值是 left 运行 sysctl_sched_wakeup_granularity 所应该增加的虚拟运行时间.
+    ```
+
+
 *   `xxxx_buddy` 的设置
 
 
@@ -2021,7 +2036,7 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 /*
  * Preempt the current task with a newly woken task if needed:
  */
-static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_flags)
+static void ·(struct rq *rq, struct task_struct *p, int wake_flags)
 {
     struct task_struct *curr = rq->curr;
     struct sched_entity *se = &curr->se, *pse = &p->se;
@@ -2093,6 +2108,88 @@ preempt:
 }
 ```
 
+
+设想一下, `waker` 唤醒了 `wakee` 进程, 那肯定是期望 `wakee` 能够立即投入运行的, 当然如果它不能立即投入运行的话, 那保守的策略也应该是恢复 `waker` 的运行, 因为它往往没有运行完自己的时间片, 而且总是 `cache-hot` 的.
+
+
+因此 `next-buddy` 和 `last-buddy` 就为了这样一个场景而设计.
+
+
+唤醒抢占成功检查后, 被唤醒的进程`wakee` 将被设置 `next-buddy`, 从而保证唤醒成功(即下次调度时只要满足要求即可被唤醒而投入运行), 同时如果 `LAST_BUDDY` 选项开启, 则 `last-buddy` 同时也被标记, 这样保证了如果 `next-buddy` 不满足要求, 不能立即运行的时候, 将选择对应的 `waker` 来运行.
+
+
+**LAST_BUDDY 选项的作用**
+
+
+如果可以进行唤醒抢占, 那么 `last-buddy` 将被设置为 `waker`(此时 `next-buddy` 将被设置为 `wakee`), 这样如果 `wakee` 因为某些原因没有真正被唤醒的时候(比如条件没有满足), 则将优先选择 `last-buddy`(waker) 作为下一个运行的进程.
+
+
+**NEXT_BUDDY 选项的作用**
+
+
+此外如果开启了 `NEXT_BUDDY` 选项, 那么无论是否可以唤醒抢占成功, 都会将 `wakee` 设置成 `next-buddy`. 但是调度标记 `TIF_NEED_RESCHED` 却只有唤醒抢占检查成功才会设置. 这样如果唤醒不成功, 只要 `next-buddy` 的设置没有被覆盖掉, 下次调度时将优先选择 `next-buddy`(wakee) 作为下一个进程.
+
+
+> 如果可以进行唤醒抢占, 设置调度标记 `TIF_NEED_RESCHED`, next-buddy = wakee, 同时如果设置了 `LAST_BUDDY`, last-buddy = waker, 
+>
+> 如果不可以进行唤醒抢占, 则只有在 NEXT_BUDDY 选项开启时, 才会设置 `next-buddy = wakee`, `last-buddy` 不必设置.
+
+
+另外还有一些场景下, 也需要直接设置 `next-buddy` 的.
+
+
+
+
+当进程 `CFS` 调度器通过 `dequeue_task_fair` 函数将进程 `p` 出队, 由于调度实体是一个层次结构的, 需要遍历该层次下的调度实体 `se` 将它们都出队, 在开启了组调度下, 该调度实体很有可能还有其他进程, 而且该调度实体(进程组)还没有用尽调度器分配给自己的 `CPU` 时间时, 说明该调度实体依旧是饥饿的, 则应该下一次优先调度该进程实体. 如下所示 :
+
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L5257
+/*
+ * The dequeue_task method is called before nr_running is
+ * decreased. We remove the task from the rbtree and
+ * update the fair scheduling stats:
+ */
+static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
+{
+    struct cfs_rq *cfs_rq;
+    struct sched_entity *se = &p->se;
+    int task_sleep = flags & DEQUEUE_SLEEP;
+
+    for_each_sched_entity(se) {
+        cfs_rq = cfs_rq_of(se);
+        dequeue_entity(cfs_rq, se, flags);
+
+        //  ......
+        
+        /* Don't dequeue parent if it has other entities besides us */
+        if (cfs_rq->load.weight) {
+            /* Avoid re-evaluating load for this entity: */
+            se = parent_entity(se);
+            /*
+             * Bias pick_next to pick a task from this cfs_rq, as
+             * p is sleeping when it is within its sched_slice.
+             */
+            if (task_sleep && se && !throttled_hierarchy(cfs_rq))
+                set_next_buddy(se);
+            break;
+        }
+        flags |= DEQUEUE_SLEEP;
+    }
+
+    // ......
+}
+```
+
+前面我们已经讲解了 `last-buddy` 和 `next-buddy` 的设置, 那 `skip-buddy` 什么时候设置的呢.
+
+而 `skip-buddy` 是啥时候设置的呢, 这就跟 `yield` 相关了. 当前运行的进程 `curr` 调用 `yield` 则尝试释放 `CPU` 给其他更饥饿的进程. 
+
+
+`yield()` 并没有指定当前进程要将执行权利移交给谁, 只是放弃运行权利, 至于下面由谁来运行, 完全看进程调度 `schedule`, 多用于 `I/O` 等待时, 进程短暂 `wait`, 但是并没有退出运行队列. 那么此时当前进程放弃 `CPU` 就可以通过 `set_skip_buddy` 设置为 `skip`, 调度器将自动跳过当前进程的运行周期. 参见 [`yield_task_fair`](https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L6390)
+
+`yeild_to()` 指定了执行权将要移交的进程 `p`, 则通过将当前进程设置为 `skip-buddy`, 而将执行权移交的进程设置为 `next-buddy` 来完成. 调度器将跳过 `curr` 当前周期的执行而将执行权交给指定的进程 `p`. 参见 [`yield_to_task_fair`](https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L6426)
 
 
 *   `xxxx_buddy` 的清除
