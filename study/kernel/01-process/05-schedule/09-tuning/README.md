@@ -41,7 +41,7 @@
 |:------------:|:------:|:---------------:|:------:|
 | [`sysctl_sched_rt_period`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L76) | `/proc/sys/kernel/sched_rt_period_us` | `1000000us` | 该参数与下面的sysctl_sched_rt_runtime一起决定了实时进程在以sysctl_sched_rt_period为周期的时间内, 实时进程最多能够运行的总的时间不能超过sysctl_sched_rt_runtime（代码见sched_rt_global_constraints |
 | [`sysctl_sched_rt_runtime`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L84) | `/proc/sys/kernel/sched_rt_runtime_us` | `950000us` | 见上 `sysctl_sched_rt_period` 变量的解释 |
-| [`sysctl_sched_compat_yield`]() | `/proc/sys/kernel/sched_compat_yield` | 0 | 该参数可以让sched_yield()系统调用更加有效, 让它使用更少的cpu, 对于那些依赖sched_yield来获得更好性能的应用可以考虑设置它为1 | 
+| [`sysctl_sched_compat_yield`]() | `/proc/sys/kernel/sched_compat_yield` | 0 | 该参数可以让sched_yield()系统调用更加有效, 让它使用更少的cpu, 对于那些依赖sched_yield来获得更好性能的应用可以考虑设置它为1 |
 
 
 ##1.3  全局参数
@@ -49,7 +49,7 @@
 
 | 内核参数 | 位置 | 内核默认值 | 描述 |
 |:------------:|:------:|:---------------:|:------:|
-| [`sysctl_sched_features`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L52) | `/proc/sys/kernel/sched_features` | `3183d=110001101111b` | 该变量表示调度器支持的特性, 如GENTLE_FAIR_SLEEPERS(平滑的补偿睡眠进程),START_DEBIT(新进程尽量的早调度),WAKEUP_PREEMPT(是否wakeup的进程可以去抢占当前运行的进程)等, 所有的features见内核sech_features.h文件的定义 | 
+| [`sysctl_sched_features`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L52) | `/proc/sys/kernel/sched_features` | `3183d=110001101111b` | 该变量表示调度器支持的特性, 如GENTLE_FAIR_SLEEPERS(平滑的补偿睡眠进程),START_DEBIT(新进程尽量的早调度),WAKEUP_PREEMPT(是否wakeup的进程可以去抢占当前运行的进程)等, 所有的features见内核sech_features.h文件的定义 |
 | [`sysctl_sched_nr_migrate`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L62) | `/proc/sys/kernel/sched_nr_migrate` | 32 | 在多CPU情况下进行负载均衡时, 一次最多移动多少个进程到另一个CPU上 |
 
 
@@ -263,7 +263,7 @@ static u64 __sched_period(unsigned long nr_running)
 调度周期与运行队列的进程数 `nr_running` 有关
 
 
-*   如果进程数超过 `sched_nr_latency`那么调度周期就是进程的最小运行时间 `sched_min_granularity_ns` * 运行队列里的进程数 `nr_running`,与 `sysctl_sched_latency` 无关; 此时调度周期就是假定每个进程刚好运行最小运行时间的总和. 
+*   如果进程数超过 `sched_nr_latency`那么调度周期就是进程的最小运行时间 `sched_min_granularity_ns` * 运行队列里的进程数 `nr_running`,与 `sysctl_sched_latency` 无关; 此时调度周期就是假定每个进程刚好运行最小运行时间的总和.
 
 
 *   否则队列进程数小于 `sched_nr_latency`, 运行周期就是 `sysctl_sched_latency`.
@@ -276,7 +276,7 @@ static u64 __sched_period(unsigned long nr_running)
 
 那进程数目阈值 `sched_nr_latency` 是怎么来的呢?
 
-这个变量不能通过 `proc` 文件系统设置, 它是由 
+这个变量不能通过 `proc` 文件系统设置, 它是由
 
 
 
@@ -350,7 +350,7 @@ try_to_wake_up
                             -=> wakeup_gran
 ```
 
-同样对于新创建的进程, 内核也将对其进行唤醒操作, 调用路径如下 : 
+同样对于新创建的进程, 内核也将对其进行唤醒操作, 调用路径如下 :
 
 ```cpp
 do_fork
@@ -479,7 +479,7 @@ static inline u64 calc_delta_fair(u64 delta, struct sched_entity *se)
 
 `curr` 唤醒进程 `p`, 如果 `p` 可以抢占 `curr`, 则要求满足
 
- 
+
 当前进程 `curr` 的虚拟运行时间不仅要比进程　`p` 的大, 还要大过 `calc_delta_fair(sysctl_sched_wakeup_granularity, p)`
 
 
@@ -526,10 +526,10 @@ static inline u64 calc_delta_fair(u64 delta, struct sched_entity *se)
 |             -             curr   +
 --------------|--------------|--------------
               |<----gran---->|
-              |              |                 
- vdiff > gran |  vdiff > 0   |   vdiff < 0  
-      1       |       0      |      -1      
-              |              |              
+              |              |
+ vdiff > gran |  vdiff > 0   |   vdiff < 0
+      1       |       0      |      -1
+              |              |
 --------------|--------------|--------------
 ```
 
@@ -671,7 +671,7 @@ enum sched_tunable_scaling {
 
 
 ```cpp
-//  https://elixir.bootlin.com/linux/v4.16-rc1/source/kernel/sched/fair.c#L58 
+//  https://elixir.bootlin.com/linux/v4.16-rc1/source/kernel/sched/fair.c#L58
 /*
  * The initial- and re-scaling of tunables is configurable
  *
@@ -725,7 +725,7 @@ static unsigned int get_update_sysctl_factor(void)
 
 [`update_sysctl`](https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L183) 函数在系统启动和 `CPU` 上下线的时候设置 `sysctl_XXX` 的值.
 
-即 
+即
 
 
 ```cpp
@@ -863,7 +863,7 @@ static struct ctl_table kern_table[] = {
 -------
 
 
-#6  `sysctl_sched_child_runs_first` 
+#6  `sysctl_sched_child_runs_first`
 -------
 
 
@@ -977,7 +977,7 @@ static void task_fork_fair(struct task_struct *p)
 
 *   空闲 `CPU` 从其他忙的 `CPU` 队列中拉一个进程到当前 `CPU` 队列, 通过 `idle_balance` 完成;
 
-*   或者忙的CPU队列将一个进程推送到空闲的 `CPU` 队列中. 
+*   或者忙的CPU队列将一个进程推送到空闲的 `CPU` 队列中.
 
 
 `idle_balance` 干的则是 `pull` 的事情, `idle_balance` 会 `for_each_domain(this_cpu, sd)` 则是遍历当前 `CPU`所在的调度域, 维持调度域内的核间平衡.
@@ -1001,7 +1001,7 @@ static void task_fork_fair(struct task_struct *p)
 调度器通过 [`task_hot`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/fair.c#L6596) 函数检查一个进程是否是 `cache-hot` 的. 如果该进程还是 `cache-hot`, 那么在迁移的时候就不会考虑它.
 
 
-*   如果 `sysctl_sched_migration_cost` 被设置为 `-1`, 则 `task_hot` 永远返回 `1`, 即认为进程永远是 `cache-hot` 的. 
+*   如果 `sysctl_sched_migration_cost` 被设置为 `-1`, 则 `task_hot` 永远返回 `1`, 即认为进程永远是 `cache-hot` 的.
 
 
 *   如果 `sysctl_sched_migration_cost` 被设置为 `0`, 则禁用了该配置, `task_hot` 永远返回 `0`.
@@ -1136,7 +1136,7 @@ static int idle_balance(struct rq *this_rq, struct rq_flags *rf)
 
         goto out;
     }
-    
+
     //  ......
 
 out:
@@ -1207,7 +1207,7 @@ int sysctl_sched_rt_runtime = 950000;
 ```
 
 
-`sysctl_sched_rt_period` 表示实时进程运行周期为 `1s`, `sysctl_sched_rt_runtime` 表示在运行周期内, 实时进程最多运行 `0.95` 秒, 即 `CPU` 最多 `95%` 的时间片交给 `RT` 进程运行. 内核强制实时进程为普通进程预留出一定的运行时间. 当然可以把 `sysctl_sched_rt_runtime` 和 `sysctl_sched_rt_period` 设置成相同的数值, 即实时进程可以完全抢占普通进程. 
+`sysctl_sched_rt_period` 表示实时进程运行周期为 `1s`, `sysctl_sched_rt_runtime` 表示在运行周期内, 实时进程最多运行 `0.95` 秒, 即 `CPU` 最多 `95%` 的时间片交给 `RT` 进程运行. 内核强制实时进程为普通进程预留出一定的运行时间. 当然可以把 `sysctl_sched_rt_runtime` 和 `sysctl_sched_rt_period` 设置成相同的数值, 即实时进程可以完全抢占普通进程.
 
 
 #9  sysctl_sched_rt_runtime
@@ -1215,7 +1215,7 @@ int sysctl_sched_rt_runtime = 950000;
 
 
 
-    
+
 ```cpp
 //  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/sched.h#L1264
 static inline u64 global_rt_period(void)
@@ -1233,7 +1233,7 @@ static inline u64 global_rt_runtime(void)
 ```
 
 
-`RT` 调度器中使用了一个通用的结构 `rt_schedulable_data` 来表示这段限制. 
+`RT` 调度器中使用了一个通用的结构 `rt_schedulable_data` 来表示这段限制.
 
 通过 `to_ratio(period, runtime)` 检查 `RT` 进程的可运行时间比率.
 
@@ -1324,7 +1324,7 @@ static int __rt_schedulable(struct task_group *tg, u64 period, u64 runtime)
 ```
 
 
-#10     
+#10
 -------
 
 
@@ -1341,7 +1341,7 @@ int sysctl_sched_rr_timeslice = (MSEC_PER_SEC / HZ) * RR_TIMESLICE;
 
 | 内核参数 | 位置 | 内核默认值 | 描述 |
 |:------------:|:------:|:---------------:|:------:|
-| [`sysctl_sched_features`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L52) | `/proc/sys/kernel/sched_features` | `3183d=110001101111b` | 该变量表示调度器支持的特性, 如GENTLE_FAIR_SLEEPERS(平滑的补偿睡眠进程),START_DEBIT(新进程尽量的早调度),WAKEUP_PREEMPT(是否wakeup的进程可以去抢占当前运行的进程)等, 所有的features见内核sech_features.h文件的定义 | 
+| [`sysctl_sched_features`](http://elixir.free-electrons.com/linux/v4.14.14/source/kernel/sched/core.c#L52) | `/proc/sys/kernel/sched_features` | `3183d=110001101111b` | 该变量表示调度器支持的特性, 如GENTLE_FAIR_SLEEPERS(平滑的补偿睡眠进程),START_DEBIT(新进程尽量的早调度),WAKEUP_PREEMPT(是否wakeup的进程可以去抢占当前运行的进程)等, 所有的features见内核sech_features.h文件的定义 |
 
 
 
@@ -1401,8 +1401,8 @@ SCHED_FEAT(WA_BIAS, true)
 | `SCHED_FEAT` 宏功能 | 定义方式 | 定义位置 |
 |:------------------:|:-------:|:------:|
 | \__SCHED_FEAT_XXX 特性宏的枚举定义 | `__SCHED_FEAT_##name ,` | |
-| `sysctl_sched_features` 的定义和初始化 | `(1UL << __SCHED_FEAT_##name) * enabled` | 
-| `sched_feat` 的函数的定义, 该函数用于判断某个特性是否开启 | 
+| `sysctl_sched_features` 的定义和初始化 | `(1UL << __SCHED_FEAT_##name) * enabled` |
+| `sched_feat` 的函数的定义, 该函数用于判断某个特性是否开启 |
 
 *   定义 `__SCHED_FEAT_XXX` 特性宏 和 `sched_feat` 函数
 
@@ -1509,7 +1509,7 @@ extern struct static_key sched_feat_keys[__SCHED_FEAT_NR];
 -------
 
 
-通常我们将进程划分为 `CPU` 密集型和 `I/O` 密集型, 后者的特点是基本不占用 `CPU`, 主要行为是在 `S` 状态等待响应. 典型的比如交互式进程( `vim`, `bash` 等), 以及一些压力不大的, 使用了多进程(线程)的或 `select`、`poll`、`epoll` 的网络代理程序等. 
+通常我们将进程划分为 `CPU` 密集型和 `I/O` 密集型, 后者的特点是基本不占用 `CPU`, 主要行为是在 `S` 状态等待响应. 典型的比如交互式进程( `vim`, `bash` 等), 以及一些压力不大的, 使用了多进程(线程)的或 `select`、`poll`、`epoll` 的网络代理程序等.
 
 
 如果 `CFS` 采用默认的策略处理这些程序的话, 相比 `CPU` 消耗程序来说, 这些应用由于绝大多数时间都处在 `sleep` 状态, 它们的 `vruntime` 时间基本是不变的, 而 `CPU` 密集型的进程 `vruntime` 却持续增长, 一旦这些 `I/O` 密集型进入了调度队列, 将会很快被选择调度执行. 对比 `O1` 调度算法, 这种行为相当于自然的提高了这些 `I/O` 密集型进程的优先级, 于是就不需要特殊对它们的优先级进行 "动态调整" 了.
@@ -1569,7 +1569,7 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
 ```
 
 当进程是因为被唤醒而 `enqueue_entity` 到 `CPU` 就绪队列的的(`ENQUEUE_WAKEUP` 被设置), 会调用 `place_entity` 完成睡眠补偿.
-    
+
 
 ```cpp
 //  https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L3715
@@ -1823,7 +1823,7 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 
 preempt:
     resched_curr(rq);
-    
+
     // ......
 }
 ```
@@ -1846,7 +1846,7 @@ preempt:
 -------
 
 
-`CFS` 调度器通过虚拟运行时间来保证公平性, 不同权重和优先级的进程其虚拟运行时间按照不同的速度向前推进, 调度器每次选择虚拟运行时间最小的那个进程, 但是有时候也是需要一些外部干预的. 
+`CFS` 调度器通过虚拟运行时间来保证公平性, 不同权重和优先级的进程其虚拟运行时间按照不同的速度向前推进, 调度器每次选择虚拟运行时间最小的那个进程, 但是有时候也是需要一些外部干预的.
 
 
 `CFS` 的就绪队列 `cfs_rq` 上通过 `curr` 指针记录了当前运行的进程实体, 同时还标记了其他进程实体的信息, 对应的就是 `next`, `last`, `skip` 几个指针. 他们标记了当前运行队列上的一些特殊进程, 他们通过对应的 `set_xxxx_buddy` 函数来设置. 通过 `__clear_buddies_xxxx` 和 `clear_buddies` 来清除.
@@ -1948,7 +1948,7 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 
     se = left; /* ideally we run the leftmost entity */
 
-    //  如果 left 正好设置了被 skip, 则继续从 second 与 curr 中选择记为 second 
+    //  如果 left 正好设置了被 skip, 则继续从 second 与 curr 中选择记为 second
     /*
      * Avoid running the skip buddy, if running something else can
      * be done without getting too unfair.
@@ -1998,16 +1998,16 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 
     *   如果 `left` 正好被设置了 `skip`, 则继续看次左节点 `second`, 从剩余的两者中选择最恰当的 : 如果 `skip == curr`, 则只需要选择 `left` ; 如果 `skip == left`, 此时选择 `second` 与 `curr` 中虚拟运行时间最小的. 记为 `second'`. 注意如果选择的节点是次左节点 `second`, 则需要满足 `second` 不能唤醒 `left'`.
 
-2.  如果运行队列 `cfs_rq` 的 `last` 指针被标记, 且 `last` 不能唤醒 `left'`, 则选择 `last` 调度实体, 
+2.  如果运行队列 `cfs_rq` 的 `last` 指针被标记, 且 `last` 不能唤醒 `left'`, 则选择 `last` 调度实体,
 
 
-3.  如果运行队列 `cfs_rq` 的 `next` 指针被标记, 且 `next` 不能唤醒 `left'`, 则选择 `next` 调度实体, 
+3.  如果运行队列 `cfs_rq` 的 `next` 指针被标记, 且 `next` 不能唤醒 `left'`, 则选择 `next` 调度实体,
 
 
 >  注意
 >
 >  如果 `last` 和 `next` 同时被设置且都满足唤醒条件, 那么将使用的是 `next` 指针指向的调度实体.
->  
+>
 >  可见如果内核希望某个进程实体 `se` 下一次立马投入运行的时候, 可以通过 `set_next_buddy(se)` 将其设置为 `next`, 这样 `CFS` 调度器在选择的时候会有限选择它投入运行, 但是前提是满足唤醒条件, 即当前 `se` 不能唤醒 `left'`（红黑树中最左节点和 `curr` 中虚拟运行时间最小的那个.）
 
 
@@ -2015,7 +2015,7 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 
 1.  `last-buudy` 和 `next-buddy` 用来内核标记那些下一次调度时期望优先投入运行的进程, 通过这种方式内核将跳过通过检查虚拟运行时间最小进程的策略, 而优先选择他们(其中 `next-buddy` 的优先级最高)
 
-2.  `last-buudy` 和 `next-buddy` 投入运行是需要条件的, 那就是当前 `buddy` 不能唤醒 `left` 即 
+2.  `last-buudy` 和 `next-buddy` 投入运行是需要条件的, 那就是当前 `buddy` 不能唤醒 `left` 即
     ```cpp
     wakeup_preempt_entity(buddy, left) < 1
     等价于
@@ -2054,7 +2054,7 @@ static void ·(struct rq *rq, struct task_struct *p, int wake_flags)
         return;
 
     //  如果 NEXT_BUDDY 开启
-    //  同时运行队列上进程数超过 sched_nr_latency, 
+    //  同时运行队列上进程数超过 sched_nr_latency,
     //  wake_flags 不是 WF_FORK (对于新创建的进程wake_up_new_task时候将设置此标识)
     if (sched_feat(NEXT_BUDDY) && scale && !(wake_flags & WF_FORK)) {
         set_next_buddy(pse);
@@ -2130,7 +2130,7 @@ preempt:
 此外如果开启了 `NEXT_BUDDY` 选项, 那么无论是否可以唤醒抢占成功, 都会将 `wakee` 设置成 `next-buddy`. 但是调度标记 `TIF_NEED_RESCHED` 却只有唤醒抢占检查成功才会设置. 这样如果唤醒不成功, 只要 `next-buddy` 的设置没有被覆盖掉, 下次调度时将优先选择 `next-buddy`(wakee) 作为下一个进程.
 
 
-> 如果可以进行唤醒抢占, 设置调度标记 `TIF_NEED_RESCHED`, next-buddy = wakee, 同时如果设置了 `LAST_BUDDY`, last-buddy = waker, 
+> 如果可以进行唤醒抢占, 设置调度标记 `TIF_NEED_RESCHED`, next-buddy = wakee, 同时如果设置了 `LAST_BUDDY`, last-buddy = waker,
 >
 > 如果不可以进行唤醒抢占, 则只有在 NEXT_BUDDY 选项开启时, 才会设置 `next-buddy = wakee`, `last-buddy` 不必设置.
 
@@ -2162,7 +2162,7 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
         dequeue_entity(cfs_rq, se, flags);
 
         //  ......
-        
+
         /* Don't dequeue parent if it has other entities besides us */
         if (cfs_rq->load.weight) {
             /* Avoid re-evaluating load for this entity: */
@@ -2184,7 +2184,7 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 
 前面我们已经讲解了 `last-buddy` 和 `next-buddy` 的设置, 那 `skip-buddy` 什么时候设置的呢.
 
-而 `skip-buddy` 是啥时候设置的呢, 这就跟 `yield` 相关了. 当前运行的进程 `curr` 调用 `yield` 则尝试释放 `CPU` 给其他更饥饿的进程. 
+而 `skip-buddy` 是啥时候设置的呢, 这就跟 `yield` 相关了. 当前运行的进程 `curr` 调用 `yield` 则尝试释放 `CPU` 给其他更饥饿的进程.
 
 
 `yield()` 并没有指定当前进程要将执行权利移交给谁, 只是放弃运行权利, 至于下面由谁来运行, 完全看进程调度 `schedule`, 多用于 `I/O` 等待时, 进程短暂 `wait`, 但是并没有退出运行队列. 那么此时当前进程放弃 `CPU` 就可以通过 `set_skip_buddy` 设置为 `skip`, 调度器将自动跳过当前进程的运行周期. 参见 [`yield_task_fair`](https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/fair.c#L6390)
