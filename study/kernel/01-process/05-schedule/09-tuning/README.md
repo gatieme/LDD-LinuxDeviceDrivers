@@ -2200,6 +2200,72 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 -------
 
 
+内核通过 `next_buddy` 和 `last_buddy` 标记了下次调度优先希望选择的进程实体.
+那么什么时候将这些 `buddys` 清除掉呢 ?
+
+```cpp
+dequeue_entity
+    -=> clear_buddies(cfs_rq, se);
+```
+
+
+`check_preempt_tick` 函数用来检查周期性调度.
+如果当前运行的进程 `curr` 的实际运行时间 `delta_exec` > 调度器分配的理想运行运行时间 `ideal_runtime`
+此时说明当前进程已经运行了很久, 应该被调度出去了. 这时候如果当前进程 `curr` 依旧被设置了 `buddies`,
+应该将其清除掉.
+
+
+```cpp
+//  https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L3833
+static void
+check_preempt_tick(struct cfs_rq *cfs_rq, struct sched_entity *curr)
+{
+        unsigned long ideal_runtime, delta_exec;
+        struct sched_entity *se;
+        s64 delta;
+
+        ideal_runtime = sched_slice(cfs_rq, curr);
+        delta_exec = curr->sum_exec_runtime - curr->prev_sum_exec_runtime;
+        if (delta_exec > ideal_runtime) {
+                resched_curr(rq_of(cfs_rq));
+                /*
+                 * The current task ran long enough, ensure it doesn't get
+                 * re-elected due to buddy favours.
+                 */
+                clear_buddies(cfs_rq, curr);
+                return;
+        }
+
+        // ......
+}
+```
+
+同样每次 `pick_next_entity` 选择完进程之后, 也应该将 `buddies` 清除掉.
+
+```cpp
+static struct sched_entity *
+pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
+{
+        //  ......
+
+        clear_buddies(cfs_rq, se);
+
+        return se;
+}
+```
+
+当前如果是通过 `yield` 放弃的 `CPU`, 则在设置下一个调度实体之前也要清除之前的 `buddies` 的设置.
+
+```cpp
+//  
+static void yield_task_fair(struct rq *rq)
+{
+        // ......
+        clear_buddies(cfs_rq, se);
+        // ......
+        set_skip_buddy(se);
+}
+```
 
 #   参考资料
 -------
