@@ -2194,6 +2194,30 @@ static void dequeue_task_fair(struct rq *rq, struct task_struct *p, int flags)
 
 *   `xxxx_buddy` 的清除
 
+[`clear_buddies`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L3764) 用来清除内核对调度实体 `se` 的 `buddy` 标记信息.
+
+```cpp
+static void clear_buddies(struct cfs_rq *cfs_rq, struct sched_entity *se)
+{
+	if (cfs_rq->last == se)
+		__clear_buddies_last(se);
+
+	if (cfs_rq->next == se)
+		__clear_buddies_next(se);
+	if (cfs_rq->skip == se)
+		__clear_buddies_skip(se);
+}
+```
+
+*	当内核 [`pick_next_entity`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L3958) 将调度实体 `se` 优选出来作为下一个进程的时候, 就需要清除之前对该实体的 `buddy` 标记. 
+因为该进程很有可能是因为自己是 `last-buddy` 或者 `next-buudy` 而优选出来的. 这时候清除 `buddy` 信息. 从而不会对下次优选
+在进行影响. 有利于调度器的公平性和正常运作.参见 [`pick_next_entity`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L3958)
+
+*	[`yield_task_fair`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L6395) 会强制将当前运行的调度实体 `curr->se` 让出 `CPU`.
+这个是通过将其设置为 `skip_buddy` 而实现的. 但是在设置之前很有可能当前实体被设置了其它 `buddy` 标记. 因此也需要清楚. 参见 [`yield_task_fair`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L6395)
+
+*	[`dequeue_entity`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L3799) 当进程入队的时候, 也是需要将进程的 `buddy` 清除掉的.
+因此进程很有可能之前是带着 `buddy` 标记睡眠或者让出 `CPU`，不清除 `buddy` 标记必然对下次调度的行为造成影响. 参见 [`dequeue_entity`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L3799)
 
 
 ###11.4.3 `NEXT_BUDDY` && `LAST_BUDDY` 接口
@@ -2266,6 +2290,16 @@ static void yield_task_fair(struct rq *rq)
         set_skip_buddy(se);
 }
 ```
+
+##11.5	`CACHE_HOT_BUDDY`
+-------
+
+###11.5.1	`CACHE_HOT_BUDDY`
+-------
+
+调度器调度和选核的时候有一项重要的参考就是 `cache-hot`
+
+
 
 #   参考资料
 -------
