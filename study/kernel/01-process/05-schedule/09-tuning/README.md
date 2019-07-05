@@ -2209,7 +2209,7 @@ static void clear_buddies(struct cfs_rq *cfs_rq, struct sched_entity *se)
 }
 ```
 
-*	当内核 [`pick_next_entity`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L3958) 将调度实体 `se` 优选出来作为下一个进程的时候, 就需要清除之前对该实体的 `buddy` 标记. 
+*	当内核 [`pick_next_entity`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L3958) 将调度实体 `se` 优选出来作为下一个进程的时候, 就需要清除之前对该实体的 `buddy` 标记.
 因为该进程很有可能是因为自己是 `last-buddy` 或者 `next-buudy` 而优选出来的. 这时候清除 `buddy` 信息. 从而不会对下次优选
 在进行影响. 有利于调度器的公平性和正常运作.参见 [`pick_next_entity`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L3958)
 
@@ -2281,7 +2281,7 @@ pick_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *curr)
 当前如果是通过 `yield` 放弃的 `CPU`, 则在设置下一个调度实体之前也要清除之前的 `buddies` 的设置.
 
 ```cpp
-//  
+//
 static void yield_task_fair(struct rq *rq)
 {
         // ......
@@ -2297,8 +2297,169 @@ static void yield_task_fair(struct rq *rq)
 ###11.5.1	`CACHE_HOT_BUDDY`
 -------
 
+
 调度器调度和选核的时候有一项重要的参考就是 `cache-hot`
 
+load_balance 在做负载均衡的时候, can_migrate_task 判断一个进程是否可以从 env->src
+迁移到 env->dst 的关键指标就是 task_hot.
+
+
+```cpp
+load_balance
+-=> detach_tasks
+	-=>can_migrate_task
+		-=>task_hot
+```
+
+
+关于 cache-hot 的判断, 最关键的指标是 `sysctl_sched_migration_cost`, 参照第 7 节的描述.
+但是如果开启了 CACHE_HOT_BUDDY, 那么调度器会认为 CFS_RQ 上 LAST_BUDDY 和 NEXT_BUDDY
+也是 cache-hot 的.
+
+```cpp
+/*
+ * Is this task likely cache-hot:
+ */
+static int task_hot(struct task_struct *p, struct lb_env *env)
+{
+	s64 delta;
+
+	lockdep_assert_held(&env->src_rq->lock);
+
+	if (p->sched_class != &fair_sched_class)
+		return 0;
+
+	if (unlikely(p->policy == SCHED_IDLE))
+		return 0;
+
+	/*
+	 * Buddy candidates are cache hot:
+	 */
+	if (sched_feat(CACHE_HOT_BUDDY) && env->dst_rq->nr_running &&
+			(&p->se == cfs_rq_of(&p->se)->next ||
+			 &p->se == cfs_rq_of(&p->se)->last))
+		return 1;
+
+	if (sysctl_sched_migration_cost == -1)
+		return 1;
+	if (sysctl_sched_migration_cost == 0)
+		return 0;
+
+	delta = rq_clock_task(env->src_rq) - p->se.exec_start;
+
+	return delta < (s64)sysctl_sched_migration_cost;
+}
+```
+
+##15.6	WAKEUP_PREEMPTION
+-------
+
+
+在前面讲唤醒抢占的时候, 我们了解了 wakeup_preempt_entity 唤醒成功设置抢占标记的条件.
+而 WAKEUP_PREEMPT 是唤醒抢占的开关, 如果不设置 WAKEUP_PREEMPTION, 那么将不进行唤醒抢占的检查.
+那么唤醒将只会将 wakee 进程设置为 RUNNING, 并加入到就绪队列中.
+
+
+```cpp
+/*
+ * Preempt the current task with a newly woken task if needed:
+ */
+static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_flags)
+{
+	// ......
+	/*
+	 * Batch and idle tasks do not preempt non-idle tasks (their preemption
+	 * is driven by the tick):
+	 */
+	if (unlikely(p->policy != SCHED_NORMAL) || !sched_feat(WAKEUP_PREEMPTION))
+		return;
+
+	find_matching_se(&se, &pse);
+	update_curr(cfs_rq_of(se));
+	BUG_ON(!pse);
+	if (wakeup_preempt_entity(se, pse) == 1) {
+		/*
+		 * Bias pick_next to pick the sched entity that is
+		 * triggering this preemption.
+		 */
+		if (!next_buddy_marked)
+			set_next_buddy(pse);
+		goto preempt;
+	}
+
+	return;
+
+	// ......
+}
+```
+
+
+##15.7	HRTICK
+-------
+
+
+##15.8	DOUBLE_TICK
+-------
+
+
+##15.9	LB_BIAS
+-------
+
+
+##15.10	NONTASK_CAPACITY
+-------
+
+##15.11	TTWU_QUEU
+-------
+
+
+##15.12	SIS_AVG_CPU
+-------
+
+##15.13	SIS_PROP
+-------
+
+##15.14	WARN_DOUBLE_CLOCK
+-------
+
+##15.15	RT_PUSH_IP
+-------
+
+##15.16	RT_RUNTIME_SHARE
+-------
+
+RT 线程的优先级是很高的, 如果 RT 线程一直运行, 则会把 COU 占满, 因此往往会通过 RT_BANDWIDTH 来限制 RT 的 CPU 使用率.
+
+调度器在检查一个调度实体运行时间是否超额时, 实际检查的是它所在的运行队列的 rt_rq[cpu]->rt_time 是否超过 rt_rq[cpu]->rt_runtime;
+
+但是 BANDWIDTH 都是一个整体的概念, 为了防止当前 CPU 上的线程负载很高被 throttled, 而其他核上 CPU 上线程负载却很低, 远没有
+到达要被 throttled 的水平线, 这样整体的 BANDWIDTH 其实没有超过限额. 因此一般调度器的 BANDWIDTH 都会实现一种 steal 机制或者 share
+机制. 就是 BANDWIDTH 的时间片是大家共享的. 如果一个线程超出了限制, 而同一个 BANDWIDTH 的其他进程有空闲的 CPU 时间,
+那么超出限额的进程可以尝试从空闲的 CPU 上窃取一部分运行时间.
+
+在 SMP系统中, 如果内核使能了 RT_RUNTIME_SHARE 特性, 如果运行队列的运行时间已经超额, 则会尝试去其他 CPU 上的 RT_RQ 队列中
+"借" 时间以扩张 rt_rq[cpu]->rt_runtime.
+
+
+在 RT_BANDWIDTH 中定时器处理函数中, 如果发现当前 RQ 被 throttled 了.
+则会调用 balance_runtime 窃取其他 RQ 的 CPU 时间.
+
+而 RT_RUNTIME_SHARE 就是 balance_runtime 的开关, 只有配置了 RT_RUNTIME_SHARE 才会做窃取.
+
+```cpp
+//https://elixir.bootlin.com/linux/v4.14.14/source/kernel/sched/rt.c#L795
+static void balance_runtime(struct rt_rq *rt_rq)
+{
+	if (!sched_feat(RT_RUNTIME_SHARE))
+		return;
+
+	if (rt_rq->rt_time > rt_rq->rt_runtime) {
+		raw_spin_unlock(&rt_rq->rt_runtime_lock);
+		do_balance_runtime(rt_rq);
+		raw_spin_lock(&rt_rq->rt_runtime_lock);
+	}
+}
+```
 
 
 #   参考资料

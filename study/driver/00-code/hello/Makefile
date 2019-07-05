@@ -32,7 +32,7 @@ else						# userspace
 
 
 LINUX_KERNEL := $(shell uname -r)
-LINUX_KERNEL_PATH := /lib/modules/$(LINUX_KERNEL)/build
+LINUX_KERNEL_PATH ?= /lib/modules/$(LINUX_KERNEL)/build
 
 CURRENT_PATH := $(shell pwd)
 CFG_INC := $(CURRENT_PATH)
