@@ -2409,7 +2409,7 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 ##15.10	NONTASK_CAPACITY
 -------
 
-##15.11	TTWU_QUEU
+##15.11	TTWU_QUEUE
 -------
 
 
@@ -2470,6 +2470,8 @@ static void balance_runtime(struct rt_rq *rt_rq)
 [Linux 调度器 BFS 简介](https://www.ibm.com/developerworks/cn/linux/l-cn-bfs/)
 
 [从几个问题开始理解CFS调度器](http://ju.outofmemory.cn/entry/105407)
+
+[内核参数说明](https://www.cnblogs.com/tolimit/p/5065761.html)
 
 
 > 关于 `waker` 和 `wakee`
