@@ -13,7 +13,10 @@ MODULE_DESCRIPTION("hello world");
 
 static int hello_init(void)
 {
-    return 0;
+	set_current_state(TASK_UNINTERRUPTIBLE);
+	schedule();
+
+	return 0;
 }
 
 
