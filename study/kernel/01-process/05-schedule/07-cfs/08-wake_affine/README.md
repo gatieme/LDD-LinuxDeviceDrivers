@@ -1,9 +1,9 @@
 Linux CFS调度器之唤醒WAKE_AFFINE 机制--Linux进程的管理与调度(三十一)
 =======
 
-| 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
+| 日期 | 内核版本 | 架构| 作者 | GitHub| KernelShow |
 | ------- |:-------:|:-------:|:-------:|:-------:|:-------:|
-| 2016-0729 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](https://blog.csdn.net/gatieme/article/details/106315848) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/07-cfs/08-wake_affine) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/details/51456569) |
+| 2016-0729 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme/article/details/51456569) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/07-cfs/08-wake_affine) | [Linux进程管理与调度](https://gatieme.github.io/2020/05/24/2020/05/0001-linux_cfs_scheduler_31_wake_affine/) |
 
 #1 wake_affine 机制
 -------
