@@ -16,7 +16,7 @@ va 接收待查询的虚拟地址
 #include <linux/printk.h>
 #include <linux/memblock.h>
 #include <linux/kallsyms.h>
-
+#include <asm/fixmap.h>
 
 MODULE_LICENSE("GPL");
 
@@ -39,11 +39,8 @@ void show_layout(void)
 #define MLM(b, t) b, t, ((t) - (b)) >> 20
 #define MLG(b, t) b, t, ((t) - (b)) >> 30
 #define MLK_ROUNDUP(b, t) b, t, DIV_ROUND_UP(((t) - (b)), SZ_1K)
-
+#if 0
 	pr_notice("Virtual kernel memory layout:\n");
-	pr_notice("    memory  : 0x%16lx - 0x%16lx   (%6ld MB)\n",
-		MLM((unsigned long)phys_to_virt(SYMS_FUN("memblock_start_of_DRAM")),
-		    (unsigned long)high_memory));
 #ifdef CONFIG_KASAN
 	pr_notice("    kasan   : 0x%16lx - 0x%16lx   (%6ld GB)\n",
 		MLG(KASAN_SHADOW_START, KASAN_SHADOW_END));
@@ -70,14 +67,17 @@ void show_layout(void)
 		MLM(PCI_IO_START, PCI_IO_END));
 #ifdef CONFIG_SPARSEMEM_VMEMMAP
 	pr_notice("    vmemmap : 0x%16lx - 0x%16lx   (%6ld GB maximum)\n",
-		MLG(VMEMMAP_START, VMEMMAP_START + VMEMMAP_SIZE));
+		MLG(SYMS_VAL("vmemmap"), SYMS_VAL("vmemmap") + VMEMMAP_SIZE));
 	pr_notice("              0x%16lx - 0x%16lx   (%6ld MB actual)\n",
 		MLM((unsigned long)phys_to_page(SYMS_FUN("memblock_start_of_DRAM")),
 		    (unsigned long)virt_to_page(high_memory)));
 #endif
-
+	pr_notice("    memory  : 0x%16lx - 0x%16lx   (%6ld MB)\n",
+		MLM((unsigned long)phys_to_virt(SYMS_FUN("memblock_start_of_DRAM")),
+		    (unsigned long)high_memory));
+#endif
+	//pr_notice("KIMAGE_VADDR: 0x%16lx\n", KIMAGE_VADDR);
 	pr_notice("PAGE_OFFSET : 0x%16lx\n", PAGE_OFFSET);
-	pr_notice("KIMAGE_VADDR: 0x%16lx\n", KIMAGE_VADDR);
 #undef MLK
 #undef MLM
 #undef MLK_ROUNDUP
