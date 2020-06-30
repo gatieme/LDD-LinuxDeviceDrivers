@@ -1459,7 +1459,7 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 **引用：**
 
 <div id="ref-anchor-1"></div>
-* [1] [Single UNIX Specification](https://link.zhihu.com/?target=https%3A//en.wikipedia.org/wiki/Single_UNIX_Specification%23Non-registered_Unix-like_systems)
+- \[1\] [Single UNIX Specification](https://link.zhihu.com/?target=https%3A//en.wikipedia.org/wiki/Single_UNIX_Specification%23Non-registered_Unix-like_systems)
 
 \[2\] POSIX 关于调度规范的文档: [http://nicolas.navet.eu/publi/SlidesPosixKoblenz.pdf](https://link.zhihu.com/?target=http%3A//nicolas.navet.eu/publi/SlidesPosixKoblenz.pdf)
 
