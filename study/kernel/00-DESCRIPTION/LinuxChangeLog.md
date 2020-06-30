@@ -503,7 +503,7 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 # 1	内存分配
 -------
 
-## 1.1	页分配器: 伙伴分配器[<sup>12<sup>](#ref-anchor-1)
+## 1.1	页分配器: 伙伴分配器[<sup>12<sup>](#ref-anchor-12)
 -------
 
 古老, 具体时间难考 , 应该是生而有之. orz...
@@ -1481,7 +1481,8 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 
 \[11\][进程的虚拟地址和内核中的虚拟地址有什么关系？ - 詹健宇的回答](http://www.zhihu.com/question/34787574/answer/60214771)
 
-\[12\][Physical Page Allocation](https://link.zhihu.com/?target=https%3A//www.kernel.org/doc/gorman/html/understand/understand009.html)
+<div id="ref-anchor-12"></div>
+- [12] [Physical Page Allocation](https://link.zhihu.com/?target=https%3A//www.kernel.org/doc/gorman/html/understand/understand009.html)
 
 \[13\][The SLUB allocator \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/229984/)
 
