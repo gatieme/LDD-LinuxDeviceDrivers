@@ -22,14 +22,11 @@
 因此, 我汇总分析一下从 2.6.12 (2005年6月发布, 也就是社区开始使用 git 进行管理后的第一个大版本）, 到 4.2 (2015年8月发布)这中间共 **51个大版本**, 时间跨度**10年**的主要大模块的一些重要的变革.
 
 
-![](https://pic2.zhimg.com/50/db55b324b618d42ad656e52f954cc7ec_hd.jpg)
-
-![](data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='468' height='279'></svg>)
+![Linux and 企鹅](https://pic2.zhimg.com/50/db55b324b618d42ad656e52f954cc7ec_hd.jpg)
 
 
 
-(感谢知友 [@costa](https://www.zhihu.com/people/78ceb98e7947731dc06063f682cf9640) 提供无水印题图 ;-) )
-
+>感谢知友 [@costa](https://www.zhihu.com/people/78ceb98e7947731dc06063f682cf9640) 提供无水印题图)
 
 
 预计内容目录:
@@ -52,7 +49,7 @@
 
 
 
-#1   调度子系统(scheduling)
+# 1   调度子系统(scheduling)
 -------
 
 **概述: **Linux 是一个遵循 POSIX 标准的类 Unix 操作系统(然而它并不是 Unix 系统[<sup>1</sup>](#refer-anchor-1)), POSIX 1003.1b 定义了调度相关的一个功能集合和 API 接口[<sup>2</sup>](#refer-anchor-2). 调度器的任务是分配 CPU 运算资源, 并以协调效率和公平为目的. **效率**可从两方面考虑: 1) 吞吐量(throughput) 2)延时(latency). 不做精确定义, 这两个有相互矛盾的衡量标准主要体现为两大类进程: 一是 CPU 密集型, 少量 IO 操作, 少量或无与用户交互操作的任务（强调吞吐量, 对延时不敏感, 如高性能计算任务 HPC), 另一则是 IO 密集型, 大量与用户交互操作的任务(强调低延时, 对吞吐量无要求, 如桌面程序). **公平**在于有区分度的公平, 多媒体任务和数值计算任务对延时和限定性的完成时间的敏感度显然是不同的.
