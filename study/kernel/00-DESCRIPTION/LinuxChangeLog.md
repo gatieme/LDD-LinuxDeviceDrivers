@@ -1,7 +1,5 @@
 \----------------------------------------------------------------------------------------------------------------
-
 因研究兴趣转移, 个人时间，精力，能力有限等原因, 本人不会再有更新, 请见谅。
-
 \-----------------------------------------------------------------------------------------------------------------
 
 
@@ -9,8 +7,7 @@
 这个问题挺大的。
 
 
-
-2.6 时代跨度非常大，从2.6.0 (2003年12月发布\[36\]) 到 2.6.39(2011年5月发布), 跨越了 40 个大版本。
+2.6 时代跨度非常大，从2.6.0 (2003年12月发布[36]) 到 2.6.39(2011年5月发布), 跨越了 40 个大版本。
 
 3.0(原计划的 2.6.40, 2011年7月发布) 到 3.19（2015年2月发布）。
 
@@ -42,9 +39,9 @@
 
 预计内容目录：
 
-*   **调度子系统(scheduling) \[已完成\]**
-*   **内存管理子系统(memory management) \[已完成\]**
-*   **中断与异常子系统(interrupt & exception)\[填坑中\]**
+*   **调度子系统(scheduling) [已完成]**
+*   **内存管理子系统(memory management) [已完成]**
+*   **中断与异常子系统(interrupt & exception)[填坑中]**
 *   **时间子系统(timer & timekeeping)**
 *   **同步机制子系统(synchronization)**
 *   **块层(block layer)**
@@ -164,7 +161,7 @@ O(1) 调度器存在一个比较严重的问题: 复杂的交互进程识别启�
 
 
 
-Con Kolivas (八卦：这家伙白天是个麻醉医生)为解决这个问题提出**RSDL（The Rotating Staircase Deadline Scheduler)**算法。该算法的亮点是对公平概念的重新思考: **交互式(A)**和批量式(B)进程应该是被完全公平对待的，对于两个动态优先级完全一样的 A, B 进程，**它们应该被同等地对待，至于它们是交互式与否(交互式的应该被更快调度),　应该从他们对分配给他们的时间片的使用自然地表现出来，而不是应该由调度器自作高明地根据他们的睡眠时间去猜测。**这个算法的核心是Rotating Staircase, 是一种衰减式的优先级调整，不同进程的时间片使用方式不同，会让它们以不同的速率衰减(在优先级队列数组中一级一级下降，这是下楼梯这名字的由来), 从而自然地区分开来进程是交互式的(间歇性的少量使用时间片)和批量式的(密集的使用时间片)。具体算法细节可看这篇文章:[The Rotating Staircase Deadline Scheduler \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/224865/)
+Con Kolivas (八卦：这家伙白天是个麻醉医生)为解决这个问题提出**RSDL（The Rotating Staircase Deadline Scheduler)**算法。该算法的亮点是对公平概念的重新思考: **交互式(A)**和批量式(B)进程应该是被完全公平对待的，对于两个动态优先级完全一样的 A, B 进程，**它们应该被同等地对待，至于它们是交互式与否(交互式的应该被更快调度),　应该从他们对分配给他们的时间片的使用自然地表现出来，而不是应该由调度器自作高明地根据他们的睡眠时间去猜测。**这个算法的核心是Rotating Staircase, 是一种衰减式的优先级调整，不同进程的时间片使用方式不同，会让它们以不同的速率衰减(在优先级队列数组中一级一级下降，这是下楼梯这名字的由来), 从而自然地区分开来进程是交互式的(间歇性的少量使用时间片)和批量式的(密集的使用时间片)。具体算法细节可看这篇文章:[The Rotating Staircase Deadline Scheduler [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/224865/)
 
 
 
@@ -224,7 +221,7 @@ CFS 的测试性能比 RSDS 好，并得到更多的开发者支持，所以它�
 
 
 
-更多可参看此文章：[Deadline scheduling: coming soon? \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/575497/)
+更多可参看此文章：[Deadline scheduling: coming soon? [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/575497/)
 
 
 
@@ -322,7 +319,7 @@ CFS 的测试性能比 RSDS 好，并得到更多的开发者支持，所以它�
 
 
 
-关于这方面，可以看这篇文章：[Scheduling domains \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/80911/)
+关于这方面，可以看这篇文章：[Scheduling domains [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/80911/)
 
 
 
@@ -360,15 +357,15 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 
 如果需要研究此功能的话，可参考以下几篇文章：
 
-－介绍 3.8 前两套竞争方案的文章：[A potential NUMA scheduling solution \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/522093/)
+－介绍 3.8 前两套竞争方案的文章：[A potential NUMA scheduling solution [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/522093/)
 
-\- 介绍 3.8 自动 NUMA 均衡 框架的文章：[NUMA in a hurry \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/524977/)
+\- 介绍 3.8 自动 NUMA 均衡 框架的文章：[NUMA in a hurry [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/524977/)
 
 \- 介绍 3.8 后进展的两篇文章，细节较多，建议对调度／内存代码有研究后才研读：
 
-[NUMA scheduling progress \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/568870/)
+[NUMA scheduling progress [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/568870/)
 
-[NUMA placement problems \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/591995/)
+[NUMA placement problems [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/591995/)
 
 
 
@@ -380,7 +377,7 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 
 
 
-在前不久，一个新的 patch 被提交到 Linux 内核开发邮件列表，这个问题也许有了新的眉目，到时再来更新此小节．可阅读此文章：[Steps toward power-aware scheduling \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/655479/)
+在前不久，一个新的 patch 被提交到 Linux 内核开发邮件列表，这个问题也许有了新的眉目，到时再来更新此小节．可阅读此文章：[Steps toward power-aware scheduling [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/655479/)
 
 
 
@@ -500,10 +497,10 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 
 
 
-# 1	内存分配
+# 1 内存分配
 -------
 
-## 1.1	页分配器: 伙伴分配器[<sup>12<sup>](#ref-anchor-12)
+## 1.1  页分配器: 伙伴分配器[<sup>12<sup>](#ref-anchor-12)
 -------
 
 古老, 具体时间难考 , 应该是生而有之. orz...
@@ -845,7 +842,7 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 
 
 
-那么问题来了, 每个设备的门槛怎么确定? 设备的写回能力有强有弱(SSD 的写回速度比硬盘快多了), 一个合理的做法是根据当前设备的写回速度分配给等比例的带宽(门槛). **这种动态根据速度调整的想法在数学上就是指数衰减[<sup>26</sup>](#refer-anchor-26)的理念:某个量的下降速度和它的值成比例.** 所以, 在这个改进里, 作者引入了一个叫"**浮动比例**"的库, 它的本质就是一个**根据写回速度进行指数衰减的级数**. (这个库跟内核具体的细节无关, 感兴趣的可以研究这个代码: [\[PATCH 19/23\] lib: floating proportions \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/245603/)). 然后, 使用这个库, 就可以"实时地"计算出每个设备的带宽(门槛).
+那么问题来了, 每个设备的门槛怎么确定? 设备的写回能力有强有弱(SSD 的写回速度比硬盘快多了), 一个合理的做法是根据当前设备的写回速度分配给等比例的带宽(门槛). **这种动态根据速度调整的想法在数学上就是指数衰减[<sup>26</sup>](#refer-anchor-26)的理念:某个量的下降速度和它的值成比例.** 所以, 在这个改进里, 作者引入了一个叫"**浮动比例**"的库, 它的本质就是一个**根据写回速度进行指数衰减的级数**. (这个库跟内核具体的细节无关, 感兴趣的可以研究这个代码: [[PATCH 19/23] lib: floating proportions [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/245603/)). 然后, 使用这个库, 就可以"实时地"计算出每个设备的带宽(门槛).
 
 
 
@@ -968,7 +965,7 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 
 
 
-它的实现是在系统启动时, 按照用户指定需求的最大大页个数, 每个页的大小. 预留如此多个数的大. . 用户在程序中可以使用 **mmap()** 系统调用或共享内存的方式访问这些大页, 例子网上很多, 或者参考官方文档:[hugetlbpage.txt \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/375098/) . 当然, 现在也存在一些用户态工具, 可以帮助用户更便捷地使用. 具体可参考此文章: [Huge pages part 2: Interfaces \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/375096/)
+它的实现是在系统启动时, 按照用户指定需求的最大大页个数, 每个页的大小. 预留如此多个数的大. . 用户在程序中可以使用 **mmap()** 系统调用或共享内存的方式访问这些大页, 例子网上很多, 或者参考官方文档:[hugetlbpage.txt [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/375098/) . 当然, 现在也存在一些用户态工具, 可以帮助用户更便捷地使用. 具体可参考此文章: [Huge pages part 2: Interfaces [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/375096/)
 
 
 
@@ -1202,9 +1199,9 @@ FRONTSWAP 对应的另一个后端叫 ZSWAP[<sup>35</sup>](#refer-anchor-35). ZS
 
 关于 tmem, lwn 上的两篇文章值得关注技术细节的人一读:
 
-[Transcendent memory in a nutshell \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/454795/)
+[Transcendent memory in a nutshell [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/454795/)
 
-[In-kernel memory compression \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/545244/)
+[In-kernel memory compression [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/545244/)
 
 
 
@@ -1412,7 +1409,7 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 
 
 
-\[一开始想把这节放在第12章"**内存管理调试支持**"中, 不过后来觉得这并非用于主动调试的功能, 所以还是放在此章. \]
+[一开始想把这节放在第12章"**内存管理调试支持**"中, 不过后来觉得这并非用于主动调试的功能, 所以还是放在此章. ]
 
 
 
@@ -1436,7 +1433,7 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 
 
 
-相关的文章介绍: \[47\].
+相关的文章介绍: [47].
 
 
 
@@ -1459,100 +1456,145 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 **引用：**
 
 <div id="ref-anchor-1"></div>
-[1] [Single UNIX Specification](https://en.wikipedia.org/wiki/Single_UNIX_Specification%23Non-registered_Unix-like_systems)
+- [1] [Single UNIX Specification](https://en.wikipedia.org/wiki/Single_UNIX_Specification%23Non-registered_Unix-like_systems)
 
-[2] [POSIX 关于调度规范的文档](http://nicolas.navet.eu/publi/SlidesPosixKoblenz.pdf)
+<div id="ref-anchor-2"></div>
+- [2] [POSIX 关于调度规范的文档](http://nicolas.navet.eu/publi/SlidesPosixKoblenz.pdf)
 
-\[3\][Towards Linux 2.6](https://link.zhihu.com/?target=http%3A//www.informatica.co.cr/linux-scalability/research/2003/0923.html)
+<div id="ref-anchor-3"></div>
+- [3] [Towards Linux 2.6](https://link.zhihu.com/?target=http%3A//www.informatica.co.cr/linux-scalability/research/2003/0923.html)
 
-\[4\][Linux内核发布模式与开发组织模式(1)](https://link.zhihu.com/?target=http%3A//larmbr.com/2013/11/02/Linux-kernel-release-process-and-development-dictator-%26-lieutenant-system_1/)
+<div id="ref-anchor-4"></div>
+- [4] [Linux内核发布模式与开发组织模式(1)](https://link.zhihu.com/?target=http%3A//larmbr.com/2013/11/02/Linux-kernel-release-process-and-development-dictator-%26-lieutenant-system_1/)
 
-\[5\] IBM developworks 上有一篇综述文章，值得一读 :[Linux 调度器发展简述](https://link.zhihu.com/?target=http%3A//www.ibm.com/developerworks/cn/linux/l-cn-scheduler/)
+<div id="ref-anchor-5"></div>
+- [5] IBM developworks 上有一篇综述文章，值得一读 :[Linux 调度器发展简述](https://link.zhihu.com/?target=http%3A//www.ibm.com/developerworks/cn/linux/l-cn-scheduler/)
 
-\[6\][CFS group scheduling \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/240474/)
+<div id="ref-anchor-6"></div>
+- [6] [CFS group scheduling [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/240474/)
 
-\[7\][http://lse.sourceforge.net/numa/](https://link.zhihu.com/?target=http%3A//lse.sourceforge.net/numa/)
+<div id="ref-anchor-7"></div>
+- [7] [http://lse.sourceforge.net/numa/](https://link.zhihu.com/?target=http%3A//lse.sourceforge.net/numa/)
 
-\[8\][CFS bandwidth control \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/428230/)
+<div id="ref-anchor-8"></div>
+- [8] [CFS bandwidth control [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/428230/)
 
-\[9\][kernel/git/torvalds/linux.git](https://link.zhihu.com/?target=https%3A//git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/%3Fid%3D5091faa449ee0b7d73bc296a93bca9540fc51d0a)
+<div id="ref-anchor-9"></div>
+- [9] [kernel/git/torvalds/linux.git](https://link.zhihu.com/?target=https%3A//git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/%3Fid%3D5091faa449ee0b7d73bc296a93bca9540fc51d0a)
 
-\[10\][DMA模式\_百度百科](https://link.zhihu.com/?target=http%3A//baike.baidu.com/view/196502.htm)
+<div id="ref-anchor-10"></div>
+- [10] [DMA模式\_百度百科](https://link.zhihu.com/?target=http%3A//baike.baidu.com/view/196502.htm)
 
-\[11\][进程的虚拟地址和内核中的虚拟地址有什么关系？ - 詹健宇的回答](http://www.zhihu.com/question/34787574/answer/60214771)
+<div id="ref-anchor-11"></div>
+- [11] [进程的虚拟地址和内核中的虚拟地址有什么关系？ - 詹健宇的回答](http://www.zhihu.com/question/34787574/answer/60214771)
 
 <div id="ref-anchor-12"></div>
 - [12] [Physical Page Allocation](https://link.zhihu.com/?target=https%3A//www.kernel.org/doc/gorman/html/understand/understand009.html)
 
-\[13\][The SLUB allocator \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/229984/)
+<div id="ref-anchor-13"></div>
+- [13] [The SLUB allocator [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/229984/)
 
-\[14\][Lumpy Reclaim V3 \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/211199/)
+<div id="ref-anchor-14"></div>
+- [14] [Lumpy Reclaim V3 [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/211199/)
 
-\[15\][Group pages of related mobility together to reduce external fragmentation v28 \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/224254/)
+<div id="ref-anchor-15"></div>
+- [15] [Group pages of related mobility together to reduce external fragmentation v28 [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/224254/)
 
-\[16\][Memory compaction \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/368869/)
+<div id="ref-anchor-16"></div>
+- [16] [Memory compaction [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/368869/)
 
-\[17\][kernel 3.10内核源码分析--TLB相关--TLB概念、flush、TLB lazy模式-humjb\_1983-ChinaUnix博客](https://link.zhihu.com/?target=http%3A//blog.chinaunix.net/uid-14528823-id-4808877.html)
+<div id="ref-anchor-17"></div>
+- [17] [kernel 3.10内核源码分析--TLB相关--TLB概念、flush、TLB lazy模式-humjb\_1983-ChinaUnix博客](https://link.zhihu.com/?target=http%3A//blog.chinaunix.net/uid-14528823-id-4808877.html)
 
-\[18\][Toward improved page replacement \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/226756/)
+<div id="ref-anchor-18"></div>
+- [18] [Toward improved page replacement[LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/226756/)
 
-\[19\][kernel/git/torvalds/linux.git](https://link.zhihu.com/?target=https%3A//git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/%3Fid%3D4f98a2fee8acdb4ac84545df98cccecfd130f8db)
+<div id="ref-anchor-19"></div>
+- [19] [kernel/git/torvalds/linux.git](https://link.zhihu.com/?target=https%3A//git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/%3Fid%3D4f98a2fee8acdb4ac84545df98cccecfd130f8db)
 
-\[20\][The state of the pageout scalability patches \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/286472/)
+<div id="ref-anchor-20"></div>
+- [20] [The state of the pageout scalability patches [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/286472/)
 
-\[21\][kernel/git/torvalds/linux.git](https://link.zhihu.com/?target=https%3A//git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/%3Fid%3D894bc310419ac95f4fa4142dc364401a7e607f65)
+<div id="ref-anchor-21"></div>
+- [21] [kernel/git/torvalds/linux.git](https://link.zhihu.com/?target=https%3A//git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/%3Fid%3D894bc310419ac95f4fa4142dc364401a7e607f65)
 
-\[22\][Being nicer to executable pages \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/333742/)
+<div id="ref-anchor-22"></div>
+- [22] [Being nicer to executable pages [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/333742/)
 
-\[23\][kernel/git/torvalds/linux.git](https://link.zhihu.com/?target=https%3A//git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/%3Fid%3D8cab4754d24a0f2e05920170c845bd84472814c6)
+<div id="ref-anchor-23"></div>
+- [23] [kernel/git/torvalds/linux.git](https://link.zhihu.com/?target=https%3A//git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/%3Fid%3D8cab4754d24a0f2e05920170c845bd84472814c6)
 
-\[24\][Better active/inactive list balancing \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/495543/)
+<div id="ref-anchor-24"></div>
+- [24] [Better active/inactive list balancing [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/495543/)
 
-\[25\][Smarter write throttling \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/245600/)
+<div id="ref-anchor-25"></div>
+- [25] [Smarter write throttling [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/245600/)
 
-\[26\][https://zh.wikipedia.org/wiki/%E6%8C%87%E6%95%B0%E8%A1%B0%E5%87%8F](https://link.zhihu.com/?target=https%3A//zh.wikipedia.org/wiki/%25E6%258C%2587%25E6%2595%25B0%25E8%25A1%25B0%25E5%2587%258F)
+<div id="ref-anchor-26"></div>
+- [26] [https://zh.wikipedia.org/wiki/%E6%8C%87%E6%95%B0%E8%A1%B0%E5%87%8F](https://link.zhihu.com/?target=https%3A//zh.wikipedia.org/wiki/%25E6%258C%2587%25E6%2595%25B0%25E8%25A1%25B0%25E5%2587%258F)
 
-\[27\][Flushing out pdflush \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/326552/)
+<div id="ref-anchor-27"></div>
+- [27] [Flushing out pdflush [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/326552/)
 
-\[28\][Dynamic writeback throttling \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/405076/)
+<div id="ref-anchor-28"></div>
+- [28] [Dynamic writeback throttling [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/405076/)
 
-\[29\][On-demand readahead \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/235164/)
+<div id="ref-anchor-29"></div>
+- [29] [On-demand readahead [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/235164/)
 
-\[30\][Transparent huge pages in 2.6.38 \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/423584/)
+<div id="ref-anchor-30"></div>
+- [30] [Transparent huge pages in 2.6.38 [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/423584/)
 
-\[31\][https://events.linuxfoundation.org/sites/events/files/lcjp13\_ishimatsu.pdf](https://link.zhihu.com/?target=https%3A//events.linuxfoundation.org/sites/events/files/lcjp13_ishimatsu.pdf)
+<div id="ref-anchor-31"></div>
+- [31] [https://events.linuxfoundation.org/sites/events/files/lcjp13\_ishimatsu.pdf](https://link.zhihu.com/?target=https%3A//events.linuxfoundation.org/sites/events/files/lcjp13_ishimatsu.pdf)
 
-\[32\][transcendent memory for Linux \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/338098/)
+<div id="ref-anchor-32"></div>
+- [32] [transcendent memory for Linux [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/338098/)
 
-\[33\][linux kernel monkey log](https://link.zhihu.com/?target=http%3A//www.kroah.com/log/linux/linux-staging-update.html)
+<div id="ref-anchor-33"></div>
+- [33] [linux kernel monkey log](https://link.zhihu.com/?target=http%3A//www.kroah.com/log/linux/linux-staging-update.html)
 
-\[34\][zcache: a compressed page cache \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/397574/)
+<div id="ref-anchor-34"></div>
+- [34] [zcache: a compressed page cache [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/397574/)
 
-\[35\][The zswap compressed swap cache \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/537422/)
+<div id="ref-anchor-35"></div>
+- [35] [The zswap compressed swap cache [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/537422/)
 
-\[36\][Linux-Kernel Archive: Linux 2.6.0](https://link.zhihu.com/?target=http%3A//lkml.iu.edu/hypermail/linux/kernel/0312.2/0348.html)
+<div id="ref-anchor-36"></div>
+- [36] [Linux-Kernel Archive: Linux 2.6.0](https://link.zhihu.com/?target=http%3A//lkml.iu.edu/hypermail/linux/kernel/0312.2/0348.html)
 
-\[37\]抢占支持的引入时间: [https://www.kernel.org/pub/linux/kernel/v2.5/ChangeLog-2.5.4](https://link.zhihu.com/?target=https%3A//www.kernel.org/pub/linux/kernel/v2.5/ChangeLog-2.5.4)
+<div id="ref-anchor-37"></div>
+- [37]抢占支持的引入时间: [https://www.kernel.org/pub/linux/kernel/v2.5/ChangeLog-2.5.4](https://link.zhihu.com/?target=https%3A//www.kernel.org/pub/linux/kernel/v2.5/ChangeLog-2.5.4)
 
-\[38\][RAM is 100 Thousand Times Faster than Disk for Database Access](https://link.zhihu.com/?target=http%3A//www.directionsmag.com/entry/ram-is-100-thousand-times-faster-than-disk-for-database-access/123964)
+<div id="ref-anchor-38"></div>
+- [38] [RAM is 100 Thousand Times Faster than Disk for Database Access](https://link.zhihu.com/?target=http%3A//www.directionsmag.com/entry/ram-is-100-thousand-times-faster-than-disk-for-database-access/123964)
 
-\[39\] [http://www.uefi.org/sites/default/files/resources/ACPI\_6.0.pdf](https://link.zhihu.com/?target=http%3A//www.uefi.org/sites/default/files/resources/ACPI_6.0.pdf)
+<div id="ref-anchor-39"></div>
+- [39] [http://www.uefi.org/sites/default/files/resources/ACPI\_6.0.pdf](https://link.zhihu.com/?target=http%3A//www.uefi.org/sites/default/files/resources/ACPI_6.0.pdf)
 
-\[40\][Injecting faults into the kernel \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/209257/)
+<div id="ref-anchor-40"></div>
+- [40] [Injecting faults into the kernel [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/209257/)
 
-\[41\][Detecting kernel memory leaks \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/187979/)
+<div id="ref-anchor-41"></div>
+- [41] [Detecting kernel memory leaks [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/187979/)
 
-\[42\][The kernel address sanitizer \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/612153/)
+<div id="ref-anchor-42"></div>
+- [42] [The kernel address sanitizer [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/612153/)
 
-\[43\][Linux Kernel Shared Memory 剖析](https://link.zhihu.com/?target=http%3A//www.ibm.com/developerworks/cn/linux/l-kernel-shared-memory/)
+<div id="ref-anchor-43"></div>
+- [43] [Linux Kernel Shared Memory 剖析](https://link.zhihu.com/?target=http%3A//www.ibm.com/developerworks/cn/linux/l-kernel-shared-memory/)
 
-\[44\][KSM tries again \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/330589/)
+<div id="ref-anchor-44"></div>
+- [44] [KSM tries again [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/330589/)
 
-\[45\][HWPOISON \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/348886/)
+<div id="ref-anchor-45"></div>
+- [45] [HWPOISON [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/348886/)
 
-\[46\][https://www.mcs.anl.gov/research/projects/mpi/](https://link.zhihu.com/?target=https%3A//www.mcs.anl.gov/research/projects/mpi/)
+<div id="ref-anchor-46"></div>
+- [46] [https://www.mcs.anl.gov/research/projects/mpi/](https://link.zhihu.com/?target=https%3A//www.mcs.anl.gov/research/projects/mpi/)
 
-\[47\][Fast interprocess messaging \[LWN.net\]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/405346/)
+<div id="ref-anchor-47"></div>
+- [47] [Fast interprocess messaging [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/405346/)
 
 
 
