@@ -177,7 +177,7 @@ Con Kolivas 的完全公平的想法启发了原 O(1) 调度器作者 Ingo Molna
 CFS 的测试性能比 RSDS 好, 并得到更多的开发者支持, 所以它最终替代了 RSDL 在 2.6.23 进入内核, 一直使用到现在. 可以八卦的是, Con Kolivas 因此离开了社区, 不过他本人否认是因为此事而心生龃龉. 后来, 2009 年, 他对越来越庞杂的 CFS 不满意, 认为 CFS 过分注重对大规模机器, 而大部分人都是使用少 CPU 的小机器, 开发了 BFS 调度器[<sup>48</sup>](#refer-anchor-48), 这个在 Android 中有使用, 没进入 Linux 内核.
 
 
-## 1.3 有空时再跑 SCHED\_IDLE
+## 1.2.4 不那么重要的进程 SCHED\_IDLE
 -------
 
 **2.6.23(2007年10月发布)**
@@ -192,20 +192,29 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 另一方面, SCHED_IDLE 是用户赋予的, 的确可以用 **sched\_setscheduler()** API 设置此策略
 
-使用了 SCHED_IDLE 策略, 这意味着这些进程是不重要的, 现在的矛盾在于：
+使用了 SCHED_IDLE 策略, 这意味着这些进程是不重要的, 但是 CFS 又号称完全公平, 这体现在哪些方面呢?
 
-唤醒完全idle的CPU, 保持SCHED_IDLE进程继续占有原来的CPU。
-抢占SCHED_IDLE进程, 保持完全idle的CPU继续idle。
-都有道理, 看你是为了节能, 还是为了均衡。
+- 首先设置了 SCHED_IDLE 策略的进程优先级(nice值)都很低, 这将影响到进程的时间片和负载信息
+- SCHED_IDLE 调度策略只在进行抢占处理的时候有一些特殊处理, 比如 check_preempt_curr() 中, 这里当前正在运行的如果是 SCHED_IDLE task 的话, 会马上被新唤醒的 SCHED_NORMAL task抢占, 即 SCHED_NORMAL 的进程可以抢占 SCHED_IDLE 的进程.
 
-其实, 在我看来, 专门为SCHED_IDLE进程新增一个调度类也不错, 暂且称作background调度类, 这样在选择idle的调度类之前, background可以兜底了。这样代码改动也不大, 如果非要将SCHED_IDLE融入CFS调度类, 那势必要在代码里多很多if-else。
-————————————————
-版权声明：本文为CSDN博主「dog250」的原创文章, 遵循CC 4.0 BY-SA版权协议, 转载请附上原文出处链接及本声明。
-原文链接：https://blog.csdn.net/dog250/article/details/103641002
+因此 Linux 社区里面并没有多少人会使用 SCHED_IDLE 调度策略, 因此自从Linux 2.6.23 引入之后, 就没人对它进行改进.
 
 
+注意, 在 select_task_rq() 调用中并没有针对 SCHED\_IDLE 调度策略的相应处理, 因此我们并没能做到尽量把新唤醒的 SCHED_NORMAL task 放到当前正在运行 SCHED_IDLE task 的 CPU 上去. 之前的 select_task_rq_fair() 中更倾向于寻找一个 IDLE 的 CPU.
 
-## 1.4 吭哧吭哧跑计算 SCHED\_BATCH
+那么这就有一个矛盾的地方了, 那就是在选核的时候, 如果当前 CPU 上正运行 SCHED_IDLE 的进程. 那么选择这样的 CPU 更合适, 还是继续往下寻找 idle 的 CPU 更合适?
+
+*   当前的策略是倾向于是唤醒完全 idle 的 CPU, 而保持 SCHED_IDLE 进程继续占有原来的CPU. 这显然与 SCHED_NORMAL 可以抢占 SCHED_IDLE 的初衷相违背. 这样的好处是系统会更加均衡一些, 但是另外一方面唤醒 idle 的 CPU 是有一定延迟的, 在当前的 CPU 上这样的操作往往可能耗时若干 ms 的时间, 远远比一次抢占的时间要长.
+
+*   另外一种策略就是抢占 SCHED_IDLE 进程, 这样可以保持完全 idle 的 CPU 继续 idle, 降低功耗;
+
+第二种策略虽然从负载均衡看来, 系统貌似不那么均衡了, 但是看起来有诸多的好处. 于是一组特性 [sched/fair: Fallback to sched-idle CPU in absence of idle CPUs](https://lwn.net/Articles/805317), [patchwork](https://lore.kernel.org/patchwork/cover/1094197), [lkml-2019-06-26](https://lkml.org/lkml/2019/6/26/16) 被提出, 并于 5.4-rc1 合入主线.
+
+
+
+
+
+## 1.2.5 吭哧吭哧跑计算 SCHED\_BATCH
 -------
 
 **2.6.16(2006年3月发布)**
@@ -218,7 +227,8 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 在引入该策略后, 原来的 SCHED\_OTHER 被改名为 SCHED\_NORMAL, 不过它的值不变, 因此保持 API 兼容, 之前的 SCHED\_OTHER 自动成为 SCHED\_NORMAL, 除非你设置 SCHED\_BATCH.
 
 
-## 1.5 十万火急, 限期完成 SCHED\_DEADLINE
+
+## 1.3 十万火急, 限期完成 SCHED\_DEADLINE
 -------
 
 **3.14(2014年3月发布)**
@@ -233,7 +243,14 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 更多可参看此文章: [Deadline scheduling: coming soon? [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/575497/)
 
 
+## 1.4 其他一些调度类的尝试
+-------
 
+
+业务场景中总存在一些对时延敏感但是负载很小的在线任务, 和一些时延不敏感但是负载很大的离线任务. 单独使用 isolation 等为时延敏感的业务分配 CPU 是比较浪费 CPU 资源的, 因此这些业务往往混部在一起. 然而, 现有的实现在混部后在线业务的服务质量下降严重.
+
+虽然内核提供了 SCHED_BATCH 和 SCHED_IDLE 两种优先级比较低的调度算法, 但它们仍然和CFS共用相同的实现, 尤其是在负载均衡时是未做区分的, 它们是没有完全的和CFS隔离开来, 所以效果上面介绍的通用方案存在类似的问题.
+其实, 在我看来, 专门为 SCHED_IDLE 进程新增一个调度类也不错, 暂且称作 background 调度类, 这样在选择 idle 的调度类之前, background 可以兜底了. 各个厂商也都做过类型的尝试. 比如腾讯曾经发往邮件列表的 [BT scheduling class](https://lore.kernel.org/patchwork/cover/1092086), 不过这个版本不完善, 存在诸多问题, 如果大家关注的话, 可以查考查阅 TencentOS-kernel 的 商用版本 [离线调度算法bt](https://github.com/Tencent/TencentOS-kernel#离线调度算法bt).
 
 
 ## 1.6 普通进程的组调度支持(Fair Group Scheduling)
