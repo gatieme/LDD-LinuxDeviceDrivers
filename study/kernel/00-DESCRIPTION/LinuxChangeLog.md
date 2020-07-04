@@ -177,7 +177,7 @@ Con Kolivas 的完全公平的想法启发了原 O(1) 调度器作者 Ingo Molna
 CFS 的测试性能比 RSDS 好, 并得到更多的开发者支持, 所以它最终替代了 RSDL 在 2.6.23 进入内核, 一直使用到现在. 可以八卦的是, Con Kolivas 因此离开了社区, 不过他本人否认是因为此事而心生龃龉. 后来, 2009 年, 他对越来越庞杂的 CFS 不满意, 认为 CFS 过分注重对大规模机器, 而大部分人都是使用少 CPU 的小机器, 开发了 BFS 调度器[<sup>48</sup>](#refer-anchor-48), 这个在 Android 中有使用, 没进入 Linux 内核.
 
 
-## 1.2.4 不那么重要的进程 SCHED\_IDLE
+### 1.2.4 不那么重要的进程 SCHED\_IDLE
 -------
 
 **2.6.23(2007年10月发布)**
@@ -214,7 +214,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 
 
-## 1.2.5 吭哧吭哧跑计算 SCHED\_BATCH
+### 1.2.5 吭哧吭哧跑计算 SCHED\_BATCH
 -------
 
 **2.6.16(2006年3月发布)**
@@ -325,8 +325,9 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 在一个 NUMA 机器上, 存在下列层级:
 
-> 1\. 每一个 NUMA node 是一个 CPU socket(你看主板上CPU位置上那一块东西就是一个 socket).
-> 2\. 每一个socket上, 可能存在两个核, 甚至四个核.> 3\. 每一个核上, 可以打开硬件多纯程(HyperThread).
+> 1. 每一个 NUMA node 是一个 CPU socket(你看主板上CPU位置上那一块东西就是一个 socket).
+> 2. 每一个socket上, 可能存在两个核, 甚至四个核.
+> 3. 每一个核上, 可以打开硬件多纯程(HyperThread).
 
 
 如果一个机器上同时存在这三人层级, 则对调度器来说, 它所见的一个逻辑 CPU其实是一人 HyperThread．处理同一个core 中的CPU , 可以共享L1, 乃至 L2 缓存, 不同的 core 间, 可以共享 L3 缓存(如果存在的话)．
@@ -440,16 +441,13 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 
 
 
-**- NUMA node(NUMA节点): ** NUMA 体系下, 一个 node 一般是一个CPU socket(一个 socket 里可能有多个核）及它可访问的本地内存的整体．
+**- NUMA node(NUMA节点):**  NUMA 体系下, 一个 node 一般是一个CPU socket(一个 socket 里可能有多个核）及它可访问的本地内存的整体．
 
 
 
 **- zone(内存区):** 一个 NUMA node 里的物理内存又被分为几个内存区(zone), 一个典型的 node 的内存区划分如下:
 
 ![](https://pic3.zhimg.com/50/b53313b9ef1f062460f90f56bcf6d0b7_hd.jpg)
-
-![](data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='237' height='157'></svg>)
-
 
 
 可以看到每个node里, 随着**物理内存地址**的增加, 典型地分为三个区:
