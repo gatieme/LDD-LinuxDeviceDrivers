@@ -253,6 +253,8 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 其实, 在我看来, 专门为 SCHED_IDLE 进程新增一个调度类也不错, 暂且称作 background 调度类, 这样在选择 idle 的调度类之前, background 可以兜底了. 各个厂商也都做过类型的尝试. 比如腾讯曾经发往邮件列表的 [BT scheduling class](https://lore.kernel.org/patchwork/cover/1092086), 不过这个版本不完善, 存在诸多问题, 如果大家关注的话, 可以查考查阅 TencentOS-kernel 的 商用版本 [离线调度算法bt](https://github.com/Tencent/TencentOS-kernel#离线调度算法bt).
 
 
+[sched: Add micro quanta scheduling class](https://lkml.org/lkml/2019/9/6/178) 也期望解决同样的问题.
+
 ## 1.6 普通进程的组调度支持(Fair Group Scheduling)
 -------
 
