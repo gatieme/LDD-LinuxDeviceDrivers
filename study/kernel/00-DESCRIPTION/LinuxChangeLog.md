@@ -308,7 +308,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 
 
-## 1.3.4 极大提高体验的自动组调度(Auto Group Scheduling)
+### 1.3.4 极大提高体验的自动组调度(Auto Group Scheduling)
 -------
 
 **2.6.38(2011年3月发布)**
