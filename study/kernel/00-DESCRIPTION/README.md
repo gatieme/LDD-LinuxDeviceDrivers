@@ -31,14 +31,17 @@
 
 预计内容目录:
 
-*   **调度子系统(scheduling) [已完成]**
-*   **内存管理子系统(memory management) [已完成]**
-*   **中断与异常子系统(interrupt & exception)[填坑中]**
-*   **时间子系统(timer & timekeeping)**
-*   **同步机制子系统(synchronization)**
-*   **块层(block layer)**
-*   **文件子系统(Linux 通用文件系统层VFS, various fs)**
-*   **网络子系统(networking)**
-*   **调试和追踪子系统(debugging, tracing)**
-*   **虚拟化子系统(kvm)**
-*   **控制组(cgroup)**
+
+| 内容 | GITHUB |
+|:---:|:------:|
+| **调度子系统(scheduling) [已完成]** | [`SCHEDULER`](https://github.com/gatieme/LDD-LinuxDeviceDrivers/blob/master/study/kernel/00-DESCRIPTION/SCHEDULER.md) |
+| **内存管理子系统(memory management) [已完成]** | [`MEMORY_MANAGER`](https://github.com/gatieme/LDD-LinuxDeviceDrivers/blob/master/study/kernel/00-DESCRIPTION/MEMORY_MANAGER.md) |
+| **中断与异常子系统(interrupt & exception)[填坑中]** | |
+| **时间子系统(timer & timekeeping)** | |
+| **同步机制子系统(synchronization)** | |
+| **块层(block layer)** | |
+| **文件子系统(Linux 通用文件系统层VFS, various fs)** | |
+| **网络子系统(networking)** | |
+| **调试和追踪子系统(debugging, tracing)** | |
+| **虚拟化子系统(kvm)** | |
+| **控制组(cgroup)** | |
