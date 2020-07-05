@@ -131,14 +131,17 @@ Linux 除了实现上述策略, 还额外支持以下策略:
 可抢占性, 对一个系统的调度延时具有重要意义. 2.6 之前, 一个进程进入内核态后, 别的进程无法抢占, 只能等其完成或退出内核态时才能抢占, 这带来严重的延时问题, 2.6 开始支持内核态抢占.
 
 
-## 1.2 普通进程调度器(SCHED\_OTHER)之纠极进化史
+## 1.2 进程调度类
+-------
+
+### 1.2.1 普通进程调度器(SCHED\_OTHER)之纠极进化史
 -------
 
 Linux 一开始, 普通进程和实时进程都是基于优先级的一个调度器, 实时进程支持 100 个优先级, 普通进程是优先级小于实时进程的一个静态优先级, 所有普通进程创建时都是默认此优先级, 但可通过 **nice()** 接口调整动态优先级(共40个). 实时进程的调度器比较简单, 而普通进程的调度器, 则历经变迁[<sup>5</sup>](#refer-anchor-5):
 
 
 
-### 1.2.1 O(1) 调度器:
+#### 1.2.1.1 O(1) 调度器:
 -------
 
 2.6 时代开始支持(2002年引入).
@@ -146,7 +149,7 @@ Linux 一开始, 普通进程和实时进程都是基于优先级的一个调度
 顾名思义, 此调度器为O(1)时间复杂度. 该调度器修正之前的O(n) 时间复杂度调度器, 以解决扩展性问题. 为每一个动态优先级维护队列, 从而能在常数时间内选举下一个进程来执行.
 
 
-### 1.2.2 夭折的 RSDL(The Rotating Staircase Deadline Scheduler)调度器
+#### 1.2.1.2 夭折的 RSDL(The Rotating Staircase Deadline Scheduler)调度器
 -------
 
 **2007 年 4 月提出, 预期进入 2.6.22, 后夭折.**
@@ -160,7 +163,7 @@ Con Kolivas (八卦: 这家伙白天是个麻醉医生)为解决这个问题提�
 
 
 
-### 1.2.3 完全公平的调度器(CFS)
+#### 1.2.1.3 完全公平的调度器(CFS)
 -------
 
 **2.6.23(2007年10月发布)**
@@ -177,7 +180,7 @@ Con Kolivas 的完全公平的想法启发了原 O(1) 调度器作者 Ingo Molna
 CFS 的测试性能比 RSDS 好, 并得到更多的开发者支持, 所以它最终替代了 RSDL 在 2.6.23 进入内核, 一直使用到现在. 可以八卦的是, Con Kolivas 因此离开了社区, 不过他本人否认是因为此事而心生龃龉. 后来, 2009 年, 他对越来越庞杂的 CFS 不满意, 认为 CFS 过分注重对大规模机器, 而大部分人都是使用少 CPU 的小机器, 开发了 BFS 调度器[<sup>48</sup>](#refer-anchor-48), 这个在 Android 中有使用, 没进入 Linux 内核.
 
 
-### 1.2.4 不那么重要的进程 SCHED\_IDLE
+#### 1.2.1.4 不那么重要的进程 SCHED\_IDLE
 -------
 
 **2.6.23(2007年10月发布)**
@@ -214,7 +217,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 
 
-### 1.2.5 吭哧吭哧跑计算 SCHED\_BATCH
+#### 1.2.1.5 吭哧吭哧跑计算 SCHED\_BATCH
 -------
 
 **2.6.16(2006年3月发布)**
@@ -228,7 +231,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 
 
-## 1.3 十万火急, 限期完成 SCHED\_DEADLINE
+### 1.2.2 十万火急, 限期完成 SCHED\_DEADLINE
 -------
 
 **3.14(2014年3月发布)**
@@ -243,23 +246,37 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 更多可参看此文章: [Deadline scheduling: coming soon? [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/575497/)
 
 
-## 1.4 其他一些调度类的尝试
+### 1.2.3  SCHED\_RT
+-------
+
+
+
+### 1.2.4 其他一些调度类的尝试
 -------
 
 
 业务场景中总存在一些对时延敏感但是负载很小的在线任务, 和一些时延不敏感但是负载很大的离线任务. 单独使用 isolation 等为时延敏感的业务分配 CPU 是比较浪费 CPU 资源的, 因此这些业务往往混部在一起. 然而, 现有的实现在混部后在线业务的服务质量下降严重.
 
 虽然内核提供了 SCHED_BATCH 和 SCHED_IDLE 两种优先级比较低的调度算法, 但它们仍然和CFS共用相同的实现, 尤其是在负载均衡时是未做区分的, 它们是没有完全的和CFS隔离开来, 所以效果上面介绍的通用方案存在类似的问题.
-其实, 在我看来, 专门为 SCHED_IDLE 进程新增一个调度类也不错, 暂且称作 background 调度类, 这样在选择 idle 的调度类之前, background 可以兜底了. 各个厂商也都做过类型的尝试. 比如腾讯曾经发往邮件列表的 [BT scheduling class](https://lore.kernel.org/patchwork/cover/1092086), 不过这个版本不完善, 存在诸多问题, 如果大家关注的话, 可以查考查阅 TencentOS-kernel 的 商用版本 [离线调度算法bt](https://github.com/Tencent/TencentOS-kernel#离线调度算法bt).
 
 
-[sched: Add micro quanta scheduling class](https://lkml.org/lkml/2019/9/6/178) 也期望解决同样的问题.
+其实, 在大家看来, 专门为这些应用新增一个调度类也是一个不错的想法, 通过各个调度类的优先级次序, 原生可以保证在线任务直接抢占离线任务, 保证在线任务的唤醒时延等.
 
-## 1.6 普通进程的组调度支持(Fair Group Scheduling)
+
+- 一种思路是为时延敏感的在线任务, 新增一个优先级比 CFS 高的调度类.
+
+    暂且称作 background 调度类, 这样在选择 idle 的调度类之前, background 可以兜底了. 各个厂商也都做过类型的尝试. 比如腾讯曾经发往邮件列表的 [BT scheduling class](https://lore.kernel.org/patchwork/cover/1092086), 不过这个版本不完善, 存在诸多问题, 如果大家关注的话, 可以查考查阅 TencentOS-kernel 的 商用版本 [离线调度算法bt](https://github.com/Tencent/TencentOS-kernel#离线调度算法bt).
+
+
+- 另外一种思路是为时延不敏感的离线任务, 新增一个优先级比 CFS 低的调度类.
+    
+    [sched: Add micro quanta scheduling class](https://lkml.org/lkml/2019/9/6/178) 在 RT 之后, CFS 之前实现了一个类似于 RT 的策略, 为在线任务提供服务, 来解决同样的问题.
+
+
+## 1.3 普通进程的组调度支持(Fair Group Scheduling)
 -------
 
 **2.6.24(2008年１月发布)**
-
 
 
 2.6.23 引入的 CFS 调度器对所有进程完全公平对待. 但这有个问题, 设想当前机器有２个用户, 有一个用户跑着 9个进程, 还都是 CPU 密集型进程；另一个用户只跑着一个 X 进程, 这是交互性进程. 从 CFS 的角度看, 它将平等对待这 10 个进程, 结果导致的是跑 X 进程的用户受到不公平对待, 他只能得到约 10% 的 CPU 时间, 让他的体验相当差.
@@ -271,7 +288,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 该功能是基于控制组(control group, cgroup)的概念, 需要内核开启 CGROUP 的支持才可使用. 关于 CGROUP , 以后可能会写.
 
 
-## 1.7 实时进程的组调度支持(RT Group Scheduling)
+### 1.3.1 实时进程的组调度支持(RT Group Scheduling)
 -------
 
 
@@ -280,7 +297,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 该功能同普通进程的组调度功能一样, 只不过是针对实时进程的.
 
 
-## 1.8 组调度带宽控制(CFS bandwidth control)** , **3.2(2012年1月发布)**
+### 1.3.2 组调度带宽控制(CFS bandwidth control)** , **3.2(2012年1月发布)**
 -------
 
 
@@ -288,7 +305,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 
 
-## 1.9 极大提高体验的自动组调度(Auto Group Scheduling)
+## 1.3.3 极大提高体验的自动组调度(Auto Group Scheduling)
 -------
 
 **2.6.38(2011年3月发布)**
@@ -313,7 +330,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 
 
-## 1.10 基于调度域的负载均衡
+## 1.4 基于调度域的负载均衡
 -------
 
 
@@ -352,7 +369,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 
 
-## 1.11 更精确的调度时钟(HRTICK), 2.6.25(2008年4月发布)**
+## 1.5 更精确的调度时钟(HRTICK), 2.6.25(2008年4月发布)**
 -------
 
 
@@ -368,7 +385,7 @@ CPU的周期性调度, 和基于时间片的调度, 是要基于时钟中断来�
 
 
 
-## 1.12 自动 NUMA 均衡(Automatic NUMA balancing)
+## 1.6 自动 NUMA 均衡(Automatic NUMA balancing)
 -------
 
 **3.8(2013年2月发布)**
@@ -399,7 +416,7 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 
 
 
-## 1.13 **CPU 调度与节能**
+## 1.7 **CPU 调度与节能**
 -------
 
 
