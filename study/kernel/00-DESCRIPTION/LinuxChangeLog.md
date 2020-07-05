@@ -273,7 +273,10 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
     [sched: Add micro quanta scheduling class](https://lkml.org/lkml/2019/9/6/178) 在 RT 之后, CFS 之前实现了一个类似于 RT 的策略, 为在线任务提供服务, 来解决同样的问题.
 
 
-## 1.3 普通进程的组调度支持(Fair Group Scheduling)
+## 1.3 组调度支持(Group Scheduling)
+-------
+
+### 1.3.1 普通进程的组调度支持(Fair Group Scheduling)
 -------
 
 **2.6.24(2008年１月发布)**
@@ -288,7 +291,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 该功能是基于控制组(control group, cgroup)的概念, 需要内核开启 CGROUP 的支持才可使用. 关于 CGROUP , 以后可能会写.
 
 
-### 1.3.1 实时进程的组调度支持(RT Group Scheduling)
+### 1.3.2 实时进程的组调度支持(RT Group Scheduling)
 -------
 
 
@@ -297,7 +300,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 该功能同普通进程的组调度功能一样, 只不过是针对实时进程的.
 
 
-### 1.3.2 组调度带宽控制(CFS bandwidth control)** , **3.2(2012年1月发布)**
+### 1.3.3 组调度带宽控制(CFS bandwidth control)** , **3.2(2012年1月发布)**
 -------
 
 
@@ -305,7 +308,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 
 
-## 1.3.3 极大提高体验的自动组调度(Auto Group Scheduling)
+## 1.3.4 极大提高体验的自动组调度(Auto Group Scheduling)
 -------
 
 **2.6.38(2011年3月发布)**
