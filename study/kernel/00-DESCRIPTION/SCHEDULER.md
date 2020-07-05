@@ -126,8 +126,35 @@ Con Kolivas 的完全公平的想法启发了原 O(1) 调度器作者 Ingo Molna
 至于这种算法如何区分交互式进程和批量式进程, 很简单. 交互式的进程大部分时间在睡眠, 因此它的实际运行时间很小, 而理想运行时间是随着时间的前进而增加的, 所以这两个时间的差值会变大. 与之相反, 批量式进程大部分时间在运行, 它的实际运行时间和理想运行时间的差距就较小. 因此, 这两种进程被区分开来.
 
 
-CFS 的测试性能比 RSDS 好, 并得到更多的开发者支持, 所以它最终替代了 RSDL 在 2.6.23 进入内核, 一直使用到现在. 可以八卦的是, Con Kolivas 因此离开了社区, 不过他本人否认是因为此事而心生龃龉. 后来, 2009 年, 他对越来越庞杂的 CFS 不满意, 认为 CFS 过分注重对大规模机器, 而大部分人都是使用少 CPU 的小机器, 开发了 BFS 调度器[<sup>48</sup>](#refer-anchor-48), 这个在 Android 中有使用, 没进入 Linux 内核.
+CFS 的测试性能比 RSDS 好, 并得到更多的开发者支持, 所以它最终替代了 RSDL 在 2.6.23 进入内核, 一直使用到现在.
 
+
+## 1.2.1.4 CK 的 BFS 和 MuQSS
+-------
+
+可以八卦的是, Con Kolivas 因此离开了社区, 不过他本人否认是因为此事而心生龃龉. 后来, 2009 年, 他对越来越庞杂的 CFS 不满意, 认为 CFS 过分注重对大规模机器, 而大部分人都是使用少 CPU 的小机器, 因此于 2009年8月31日发布了 BFS 调度器(Brain Fuck Scheduler)[<sup>48</sup>](#refer-anchor-48). 
+
+BFS调度器的原理十分简单，是为桌面交互式应用专门设计，使得用户的桌面环境更为流畅，早期使用CFS编译内核时，音讯视讯同时出现会出现严重的停顿（delay），而使用 BFS 则没有这些问题。【注意】
+
+BFS 的原理是将所有行程被安排到103组伫列(queue)之中。BFS本身是O(n)调度器，但大部份的时间比目前Linux上拥有O(log n)效能的主流调度器CFS还优异。[2]Con Kolivas 并没有打算将BFS应用在 mainline Linux[3]。他再度以 -ck 的补丁来维护这套原始码。
+
+Android 曾经在试验性的分支，使用 BFS 作为其操作系统排程器。但是经过测试发现对使用者并没有明显的改进，因此并未合入之后发表的正式版本. 初次之外当时很多人和厂商都做过 BFS 和 CFS 的对比测试.
+
+[Linux 调度器 BFS 简介](https://www.ibm.com/developerworks/cn/linux/l-cn-bfs)
+
+[BFS vs. mainline scheduler benchmarks and measurements](https://lwn.net/Articles/351058/)
+
+[BFS vs. CFS - Scheduler Comparison](https://www.cs.unm.edu/~eschulte/classes/cs587/data/bfs-v-cfs_groves-knockel-schulte.pdf)
+
+[bfs-faq](http://ck.kolivas.org/patches/bfs/bfs-faq.txt)
+
+https://lkml.org/lkml/2007/8/30/307
+https://www.wikiwand.com/zh-hans/腦殘排程器
+
+
+BFS 的最后版本是 2016 年 12 月发布的 v0.512, 基于 v4.8 内核.
+
+之后 CK 发布了更现代化的 MuQSS(多队列跳过列表调度程序) [The MuQSS CPU scheduler](https://lwn.net/Articles/720227), CK 称之为原始 BFS 调度程序基于 per-CPU 运行队列改进版. 截止目前 MuQSS 都在不断维护.
 
 ## 1.2.1.4 不那么重要的进程 SCHED\_IDLE
 -------
