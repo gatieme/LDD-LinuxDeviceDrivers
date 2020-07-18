@@ -1,11 +1,82 @@
-Linux CFS调度器之唤醒WAKE_AFFINE 机制--Linux进程的管理与调度(三十一)
-=======
+title: Linux CFS调度器之唤醒WAKE_AFFINE 机制--Linux进程的管理与调度(三十一)
+date: 2020-05-24 15:58
+author: gatieme
+tags: kernel
+categories:
+	- scheduler
+thumbnail:
+blogexcerpt: 在进程唤醒的过程中为进程选核时, wake_affine 倾向于将被唤醒进程尽可能安排在 waking CPU 上, 这样考虑的原因是, 有唤醒关系的进程是相互关联的, 尽可能地运行在具有 cache 共享的调度域中, 这样可以获得一些 chache-hit 带来的性能提升. 这时 wake_affine 的初衷, 但是这也是一把双刃剑.
 
-| 日期 | 内核版本 | 架构| 作者 | GitHub| KernelShow |
+---
+
+| 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
 | ------- |:-------:|:-------:|:-------:|:-------:|:-------:|
-| 2016-0729 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme/article/details/51456569) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/07-cfs/08-wake_affine) | [Linux进程管理与调度](https://gatieme.github.io/2020/05/24/2020/05/0001-linux_cfs_scheduler_31_wake_affine/) |
+| 2016-0729 | [Linux-4.6](http://lxr.free-electrons.com/source/?v=4.6) | X86 & arm | [gatieme](https://blog.csdn.net/gatieme/article/details/106315848) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/01-process/05-schedule/07-cfs/08-wake_affine) | [Linux进程管理与调度](http://blog.csdn.net/gatieme/article/details/51456569) |
+
+
+> 本文更新记录
+> 20200513 更新了前言背景内容, 引入 WAKE_AFFINE 机制. 让大家对 WAKE_AFFINE 的目的有一个清楚认识.
+
+
+
 
 #1 wake_affine 机制
+-------
+
+##1.1    引入 WAKE_AFFINE 的背景
+-------
+
+
+当进程被唤醒的时候（try_to_wake_up），需要用 select_task_rq_fair为该 task 选择一个合适的CPU(runqueue), 接着会通过 check_preempt_wakeup 去看被唤醒的进程是否要抢占所在 CPU 的当前进程.
+
+
+> 关于唤醒抢占的内容, 请参考 [Linux唤醒抢占----Linux进程的管理与调度(二十三）](https://blog.csdn.net/gatieme/article/details/51872831)
+>
+> 调度器对之前 SLEEP 的进程唤醒后重新入 RUNQ 的时候, 会对进程做一些补偿, 请参考 [Linux CFS调度器之唤醒补偿--Linux进程的管理与调度(三十）](https://blog.csdn.net/gatieme/article/details/52068061)
+
+
+这个选核的过程我们一般称之为 BALANCE_WAKE. 为了能清楚的描述这个场景，我们定义
+
+*    执行唤醒的那个进程是 waker
+*    而被唤醒的进程是 wakee
+
+Wakeup有两种，一种是sync wakeup，另外一种是non-sync wakeup。
+
+*    所谓 sync wakeup 就是 waker 在唤醒 wakee 的时候就已经知道自己很快就进入 sleep 状态，而在调用 try_to_wake_up 的时候最好不要进行抢占，因为 waker 很快就主动发起调度了。此外，一般而言，waker和wakee会有一定的亲和性（例如它们通过share memory进行通信），在SMP场景下，waker和wakee调度在一个CPU上执行的时候往往可以获取较佳的性能。而如果在try_to_wake_up的时候就进行调度，这时候wakee往往会调度到系统中其他空闲的CPU上去。这时候，通过sync wakeup，我们往往可以避免不必要的CPU bouncing。
+*    对于non-sync wakeup而言，waker和wakee没有上面描述的同步关系，waker在唤醒wakee之后，它们之间是独立运作，因此在唤醒的时候就可以尝试去触发一次调度。
+
+当然，也不是说sync wakeup就一定不调度，假设waker在CPU A上唤醒wakee，而根据wakee进程的cpus_allowed成员发现它根本不能在CPU A上调度执行，那么管他sync不sync，这时候都需要去尝试调度（调用reschedule_idle函数），反正waker和wakee命中注定是天各一方（在不同的CPU上执行）。
+
+
+select_task_rq_fair 的原型如下:
+``cpp
+int select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_flags)
+```
+
+在 try_to_wake_up 场景其中 p 是待唤醒进程, prev_cpu 是进程上次运行的 CPU, 一般 sd_flag 是 BALANCE_WAKE, 因此其实wakeup 的过程也可以理解为一次主动 BALANCE 的过程, 成为 WAKEUP BALANCE, 只不过只是为一个进程选择唤醒到的 CPU. wake_flags 用于表示是 sync wakeup 还是 non-sync wakeup.
+
+
+我们首先看看UP上的情况。这时候waker和wakee在同一个CPU上运行（当然系统中也只有一个CPU，哈哈），这时候谁能抢占CPU资源完全取决于waker和wakee的动态优先级(调度类优先级, 或者 CFS 的 vruntime 等, 依照进程的调度类而定)，如果wakee的动态优先级大于waker，那么就标记waker的need_resched标志，并在调度点到来的时候调用schedule函数进行调度。
+
+SMP情况下，由于系统的CPU资源比较多，waker和wakee没有必要争个你死我活，wakee其实也可以选择去其他CPU执行，但是这时候要做决策:
+
+*    因为跑到 prev_cpu 上, 那么之前如果 cache 还是 hot 的是很有意义的
+*    同时按照之前的假设 waker 和 wakee 之间有资源共享, 那么唤醒到 waker CPU 上也有好处
+*    如果 prev_cpu, waker cpu 都很忙, 那放上来可以并不一定好, 唤醒延迟之类的都是一个考量.
+
+
+
+那么这些都是一个综合权衡的过程, 我们要考虑的东西比较多
+
+*    wake_cpu，prev_cpu 到底该不该选择？
+*    选择的话选择哪个?
+*    它们都不合适的时候又要怎么去选择一个更合适的?
+
+
+内核需要一个简单有效的机制去做这个事情, 因此 WAKE_AFFINE 出现在内核中.
+
+
+##1.2	WAKE_AFFINE 机制简介
 -------
 
 [`select_task_rq_fair`]() 选核其实是一个优选的过程, 通常会有限选择一个 cache-miss 等开销最小的一个
