@@ -1,10 +1,48 @@
+---
+
+title: Systrace for Linux-使用 systrace 分析 linux & android 的调度问题
+date: 2020-11-21 20:22
+author: gatieme
+tags:
+	- scheduler
+	- linux
+	- debug
+categories:
+	- scheduler
+thumbnail:
+blogexcerpt: <br>笔者在日常内核性能优化的工作中, 主要涉及 终端(Android) 和 服务器(Server) 和 嵌入式 (RTOS) 等多个场景, 在终端场景下做内核开发和调度优化的时候, 经常会使用 atrace、systrace 等工具, 在惊叹于 google 的技术能力, 也时长在想这些工具是否可以用于服务器以及嵌入式领域.<br><br>使用 systrace 可以抓取到 sched、irq 以及帧的信息, 帧的信息我们服务器和嵌入式领域肯定是不会有的, 但是 sched、irq 等信息, 对于服务器领域也同样有意义. 如果能够在这些场景使用 systrace, 对于我们性能调优是有重大意义的.
+
+
+---
+
+
+| 日期 | 作者 | GitHub| CSDN | BLOG |
+| ------- |:-------:|:-------:|:-------:|:-------:|
+| 2020-11-21 | [gatieme](https://blog.csdn.net/gatieme) | [AderXCoding](https://github.com/gatieme/AderXCoding/tree/master/system/tools/glibc/001-version) | [Linux(Ubuntu/CentOS) 下查看 GLIBC 版本](https://blog.csdn.net/gatieme/article/details/108945425) | [Linux(Ubuntu/CentOS) 下查看 GLIBC 版本](https://oskernellab.com/2020/10/06/2020/1006-0001-Linux_get_glibc_version/)|
+
+
+<br>
+
+
+
+本作品采用<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议</a>进行许可, 转载请注明出处, 谢谢合作
+
+<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a>
+
+因本人技术水平和知识面有限, 内容如有纰漏或者需要修正的地方, 欢迎大家指正, 鄙人在此谢谢啦
+
+**转载请务必注明出处, 谢谢, 不胜感激**
+
+<br>
+
+
 # 1 问题来源
 -------
 
-笔者在日常内核性能优化的工作中, 主要涉及 终端(Android) 和 服务器(Server) 和 嵌入式 (RTOS) 等多个场景, 在终端场景下做内核开发和调度优化的时候, 经常会使用 atrace、systrace 等工具, 在惊叹于 google 的技术能力, 也时长在想这些工具是否可以用于服务器以及嵌入式领域. 
+笔者在日常内核性能优化的工作中, 主要涉及 终端(Android) 和 服务器(Server) 和 嵌入式 (RTOS) 等多个场景, 在终端场景下做内核开发和调度优化的时候, 经常会使用 atrace、systrace 等工具, 在惊叹于 google 的技术能力, 也时长在想这些工具是否可以用于服务器以及嵌入式领域.
 
 
- 
+
 使用 systrace 可以抓取到 sched、irq 以及帧的信息, 帧的信息我们服务器和嵌入式领域肯定是不会有的, 但是 sched、irq 等信息, 对于服务器领域也同样有意义. 如果能够在这些场景使用 systrace, 对于我们性能调优是有重大意义的.
 
 systrace 的一些信息如下图所示:
@@ -115,3 +153,16 @@ trace-viewer 上显示的是日志中以抓取开始时间点为基准的相对�
 [4.1C: Using the Systrace and dumpsys tools](https://google-developer-training.github.io/android-developer-advanced-course-practicals/unit-2-make-your-apps-fast-and-small/lesson-4-performance/4-1c-p-systrace-and-dumpsys/4-1c-p-systrace-and-dumpsys.html)
 
 [Ftrace 实现原理与开发实践](http://tinylab.org/ftrace-principle-and-practice)
+
+
+
+<br>
+
+*   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.
+
+*   采用<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议</a>进行许可. 欢迎转载、使用、重新发布, 但务必保留文章署名[成坚gatieme](http://blog.csdn.net/gatieme) ( 包含链接: http://blog.csdn.net/gatieme ), 不得用于商业目的.
+
+*   基于本文修改后的作品务必以相同的许可发布. 如有任何疑问，请与我联系.
+
+*   **转载请务必注明出处, 谢谢, 不胜感激**
+<br>

@@ -39,7 +39,6 @@ void show_layout(void)
 #define MLM(b, t) b, t, ((t) - (b)) >> 20
 #define MLG(b, t) b, t, ((t) - (b)) >> 30
 #define MLK_ROUNDUP(b, t) b, t, DIV_ROUND_UP(((t) - (b)), SZ_1K)
-#if 0
 	pr_notice("Virtual kernel memory layout:\n");
 #ifdef CONFIG_KASAN
 	pr_notice("    kasan   : 0x%16lx - 0x%16lx   (%6ld GB)\n",
@@ -75,7 +74,6 @@ void show_layout(void)
 	pr_notice("    memory  : 0x%16lx - 0x%16lx   (%6ld MB)\n",
 		MLM((unsigned long)phys_to_virt(SYMS_FUN("memblock_start_of_DRAM")),
 		    (unsigned long)high_memory));
-#endif
 	//pr_notice("KIMAGE_VADDR: 0x%16lx\n", KIMAGE_VADDR);
 	pr_notice("PAGE_OFFSET : 0x%16lx\n", PAGE_OFFSET);
 #undef MLK

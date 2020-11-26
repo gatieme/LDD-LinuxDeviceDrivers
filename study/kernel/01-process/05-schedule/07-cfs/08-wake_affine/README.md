@@ -1,7 +1,10 @@
 title: Linux CFS调度器之唤醒WAKE_AFFINE 机制--Linux进程的管理与调度(三十一)
 date: 2020-05-24 15:58
 author: gatieme
-tags: kernel
+tags:
+	- linux
+	- kernel
+	- scheduler
 categories:
 	- scheduler
 thumbnail:
