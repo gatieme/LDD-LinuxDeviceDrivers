@@ -15,9 +15,9 @@ blogexcerpt: <br>Perfetto 工具是 Android 下一代全新的统一的 trace �
 ---
 
 
-| CSDN | GitHub | Hexo |
+| CSDN | GitHub | Blog |
 |:----:|:------:|:----:|
-| [Aderstep--紫夜阑珊-青伶巷草](http://blog.csdn.net/gatieme) | [`AderXCoding/system/tools`](https://github.com/gatieme/AderXCoding/tree/master/system/tools) | [gatieme.github.io](https://gatieme.github.io) |
+| [Aderstep--紫夜阑珊-青伶巷草](http://blog.csdn.net/gatieme) | [`LDD-LinuxDeviceDrivers/study/debug/tools/perfetto`](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/debug/tools/perfetto) | [gatieme.github.io]() |
 
 <br>
 
@@ -35,10 +35,23 @@ blogexcerpt: <br>Perfetto 工具是 Android 下一代全新的统一的 trace �
 ## 1.1 为什么需要 Perfetto
 -------
 
-Perfetto 工具是 Android 下一代全新的统一的 trace 收集和分析框架, 在 Android 9.0(API级别28)或更高版本的设备上, 可以使用 System Tracing 的 System App 在设备上记录系统跟踪
-, 可以抓取平台和app的 trace 信息, 是用来取代 systrace 的, 但 systrace 由于历史原因也还会一直存在, 并且 Perfetto 抓取的 trace 文件也可以同样转换成 systrace 视图.
+Perfetto 工具是 Android 下一代全新的统一的 trace 收集和分析框架, 在 Android 9.0(API级别28)或更高版本的设备上, 可以使用 System Tracing 的 System App 在设备上记录系统跟踪, 可以抓取平台和app的 trace 信息
+
+
+![使用 prfetto UI 查看 trace 文件](https://raw.githubusercontent.com/gatieme/LDD-LinuxDeviceDrivers/master/study/debug/tools/perfetto/perfetto_ui_trace.png)
+
+
+
+虽然 Perfetto 是用来取代 systrace 的, 但 systrace 由于历史原因也还会一直存在, 并且 Perfetto 抓取的 trace 文件也可以同样转换成 systrace 视图.
 
 如果习惯用 systrace 的, 可以用 Perfetto UI 的 Open with legacy UI 转换成 systrace 视图来看
+
+
+![使用 prfetto legacy UI 查看 trace 文件](https://raw.githubusercontent.com/gatieme/LDD-LinuxDeviceDrivers/master/study/debug/tools/perfetto/perfetto_leggcy_ui.png)
+
+
+
+
 
 
 ## 1.2 Perfetto 优点
@@ -109,7 +122,7 @@ adb shell perfetto --config :test --out /data/misc/perfetto-traces/trace //使�
 -------
 
 
-##3.1 编译 perfetto
+## 3.1 编译 perfetto
 -------
 
 
@@ -150,6 +163,9 @@ perfetto 是一个命令行工具, 在shell环境下执行, 他依赖于系统�
 Android 通过启用 perfetto 服务来自动运行 traced(会话守护程序)和traced_probes(探测和ftrace-interop守护程序).
 但是 Linux 系统中我们必须手动将这两个服务启动起来.
 
+### 3.2.1 一键式 tmux 脚本
+-------
+
 perfetto 为我们提供了 tools/tmux 脚本来完成类似与 Android 上类似的工作, 帮我们启动服务进程, 并设置一个工作面板.
 
 
@@ -167,7 +183,7 @@ OUT=out/linux_clang_release CONFIG=test/configs/scheduling.cfg tools/tmux -n
 在最底下的 perfetto 工作面板中, 已经为我们预先填好了抓取 perfetto 的命令, 我们只需要回车就可以抓取 10S 调度日志.
 
 
-![使用 tmux 运行 perfetto](./perfetto_run_tmux.gif)
+![使用 tmux 运行 perfetto](https://raw.githubusercontent.com/gatieme/LDD-LinuxDeviceDrivers/master/study/debug/tools/perfetto/perfetto_run_tmux.gif)
 
 > 我们可以使用 Ctrl-B D 退出这个tmux会话
 > 也可以使用 tmux attach -t demo, 来重新连接大这个 tmux 会话.
@@ -176,6 +192,26 @@ OUT=out/linux_clang_release CONFIG=test/configs/scheduling.cfg tools/tmux -n
 > 注意请不要使用 tmux 这篇博客中提供的配置文件, 这篇博客中重新绑定了快捷键, 否则你可能需要重新修改 tmux 脚本或者配置文件.
 
 脚本会将跟踪到的日志信息以二进制的格式存在到的 protobuf 中, 参照 [TracePacket](https://perfetto.dev/docs/reference/trace-packet-proto)
+
+
+### 3.2.2 手动运行服务
+-------
+
+前面使用 tmux 运行了之后, 我们就清楚的知道启动了那些服务, 以及 perfetto 抓取的命令.
+
+手动将服务后台启起来, 然后运行 perfetto, 指定 config, 抓取 trace 日志.
+
+如下所示:
+
+```cpp
+cd out/linux_clang_release
+
+./traced_probes &
+
+./traced &
+
+./perfetto --txt -c ../../test/configs/scheduling.cfg  -o trace
+```
 
 
 # 4 perfetto 的一些技巧
@@ -190,7 +226,7 @@ OUT=out/linux_clang_release CONFIG=test/configs/scheduling.cfg tools/tmux -n
 选择想要的 tracepoints 之后 点击 Trace Command, 将命令内容拷贝出来直接在终端就可以执行.
 
 
-![自定义 config](./perfetto_trace_command.png)
+![自定义 config](https://raw.githubusercontent.com/gatieme/LDD-LinuxDeviceDrivers/master/study/debug/tools/perfetto/perfetto_trace_command.png)
 
 ## 4.2 使用 SQL 查询和分析日志
 -------
@@ -201,7 +237,7 @@ OUT=out/linux_clang_release CONFIG=test/configs/scheduling.cfg tools/tmux -n
 关于这部分的详细信息可以参照 [Quickstart: SQL-based analysis and trace-based metrics](https://perfetto.dev/docs/quickstart/trace-analysis)
 
 
-## 4.2 trace 格式转换工具
+## 4.3 trace 格式转换工具
 -------
 
 
@@ -213,6 +249,7 @@ Perfetto 提供了一个兼容的 UI 来打开 原来的 systrace, 参见 [catap
 *   提供的 traceconv 工具将 Perfetto 跟踪转换为其他跟踪格式.
 
 *   点击 Perfetto 界面的 Legacy UI, 就会把你的日志转换成 systrace 格式并用 catapult_trace_viewer 打开. 你可以点击 save 把你的 systrace 日志保存下来.
+
 
 
 
