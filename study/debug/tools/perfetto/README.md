@@ -14,10 +14,9 @@ blogexcerpt: <br>Perfetto 工具是 Android 下一代全新的统一的 trace �
 
 ---
 
-
 | CSDN | GitHub | Blog |
 |:----:|:------:|:----:|
-| [Aderstep--紫夜阑珊-青伶巷草](http://blog.csdn.net/gatieme) | [`LDD-LinuxDeviceDrivers/study/debug/tools/perfetto`](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/debug/tools/perfetto) | [gatieme.github.io]() |
+| [紫夜阑珊-青伶巷草](https://kernel.blog.csdn.net/article/details/110296324) | [`LDD-LinuxDeviceDrivers/study/debug/tools/perfetto`](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/debug/tools/perfetto) | [OS 内核实验室](https://gatieme.github.io/2020/11/21/2020/1121-0002-Perfetto_for_linux) |
 
 <br>
 
