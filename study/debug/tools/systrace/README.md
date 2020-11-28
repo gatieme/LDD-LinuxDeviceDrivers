@@ -18,7 +18,7 @@ blogexcerpt: <br>笔者在日常内核性能优化的工作中, 主要涉及 终
 
 | 日期 | 作者 | GitHub| CSDN | BLOG |
 | ------- |:-------:|:-------:|:-------:|:-------:|
-| 2020-11-21 | [gatieme](https://blog.csdn.net/gatieme) | [AderXCoding](https://github.com/gatieme/AderXCoding/tree/master/system/tools/glibc/001-version) | [Linux(Ubuntu/CentOS) 下查看 GLIBC 版本](https://blog.csdn.net/gatieme/article/details/108945425) | [Linux(Ubuntu/CentOS) 下查看 GLIBC 版本](https://oskernellab.com/2020/10/06/2020/1006-0001-Linux_get_glibc_version/)|
+| 2020-11-21 | [gatieme](https://blog.csdn.net/gatieme) | [AderXCoding](https://github.com/gatieme/AderXCoding/tree/master/system/tools/glibc/001-version) | [Linux(Ubuntu/CentOS) 下查看 GLIBC 版本](https://blog.csdn.net/gatieme/article/details/108945425) | [Systrace for Linux-使用 systrace 分析 linux & android 的调度问题](https://oskernellab.com/2020/11/21/2020/1121-0001-Systrace_for_linux)|
 
 
 <br>
@@ -84,6 +84,7 @@ systrace trace event format 请参照 [systrace trace event format](https://docs
 
 分析了 systrace 的原理我们就知道, 如果要在服务器上使用 systrace 是可以的. 因为 chrome 支持解析原生内核的 sched、irq 的 trace, 那么我们直接使用这些来分析调度的性能, 基本是满足要求的.
 那是否需要追加 trace_view 的头才能解析呢?
+
 这个我最早也是以为是需要的, 但是后来尝试了下, 原生的 trace buffer 扔给 chrome://tracing 就可以解析. 但是如果你想要直接双击或者右键用 chrome 打开就能解析, 是需要追加 HTML 头的.  systrace 追加的 HTML 头中包含了一些标记, 告诉 chrome 这个 html 其实是一个 systrace 文件, 要用 `trace-viewer` 来解析.
 
 那么我们现在我们要做的就只需要把我们需要的 trace event 打开, 然后把待测试完成后, 把 trace buffer dump 出来, 我们可以借助于 google systrace 工具来完成这个事情, 当然也可以选择手动写一些脚本来辅助我们工作.
@@ -142,7 +143,56 @@ trace-viewer 上显示的是日志中以抓取开始时间点为基准的相对�
 ![fix_time.png](https://raw.githubusercontent.com/gatieme/systrace/master/doc/fix_time.png)
 
 
+## 3.4 直接使用脚本抓取日志
+-------
 
+前面我们提到了, 原始的 trace 日志交给 trace_view 也是可以直接解析的.
+
+> 但是注意
+>
+> 原始的 trace 文件由于没有 HTML 头标记他是一个 systrace 格式的日志,
+> 因此不能保存成 html 文件后, 直接双击通过 chrome 打开
+> 必须主动通过 chrome://tracing 来加载才可以.
+
+最简单的抓取 trace 的脚本如下所示
+
+
+```cpp
+#!/bin/bash
+
+TRACING_PATH=/sys/kernel/debug/tracing
+
+get_systrace()
+{
+        local sleepTime=$1
+
+        rm -rf trace.html
+        echo > $TRACING_PATH/trace
+
+        echo 1 > $TRACING_PATH/events/sched/sched_wakeup/enable
+        echo 1 > $TRACING_PATH/events/sched/sched_wakeup_new/enable
+        echo 1 > $TRACING_PATH/events/sched/sched_switch/enable
+        echo 1 > $TRACING_PATH/events/irq/enable
+
+        echo 1 > $TRACING_PATH/tracing_on
+
+        sleep $sleepTime
+
+        echo 0 > $TRACING_PATH/tracing_on
+        echo 0 > $TRACING_PATH/events/enable
+
+        cat $TRACING_PATH/trace > trace.html
+        echo > $TRACING_PATH/trace
+}
+
+get_systrace $1
+```
+
+该脚本同样集成到了 github 仓库中, 可以使用如下命令直接抓取 10S 的日志信息.
+
+```cpp
+sh ./systrace.sh 10
+```
 
 # 4 参考资料
 -------
