@@ -16,9 +16,9 @@ blogexcerpt: <br>笔者在日常内核性能优化的工作中, 主要涉及 终
 ---
 
 
-| 日期 | 作者 | GitHub| CSDN | BLOG |
+| 日期 | 作者 | CSDN | GitHub | BLOG |
 | ------- |:-------:|:-------:|:-------:|:-------:|
-| 2020-11-21 | [gatieme](https://blog.csdn.net/gatieme) | [`LDD-LinuxDeviceDrivers/study/debug/tools/systrace`](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/debug/tools/systrace) | [Linux(Ubuntu/CentOS) 下查看 GLIBC 版本](https://blog.csdn.net/gatieme/article/details/108945425) | [Systrace for Linux-使用 systrace 分析 linux & android 的调度问题](https://oskernellab.com/2020/11/21/2020/1121-0001-Systrace_for_linux)|
+| 2020-11-21 | [gatieme](https://blog.csdn.net/gatieme) |  [Systrace for Linux-使用 systrace 分析 linux & android 的调度问题](https://kernel.blog.csdn.net/article/details/110296102) | [`LDD-LinuxDeviceDrivers/study/debug/tools/systrace`](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/debug/tools/systrace) | [OSKernelLAB](https://oskernellab.com/2020/11/21/2020/1121-0001-Systrace_for_linux)|
 
 
 <br>
