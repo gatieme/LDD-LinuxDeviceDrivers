@@ -85,7 +85,8 @@ Linux 除了实现上述策略, 还额外支持以下策略:
 | 2020/2/21 | [Introduce Thermal Pressure](https://lore.kernel.org/patchwork/cover/1198915) | 温控会限制 CPU 的最大频率, 进而影响 CPU capacity, 因此 PELT 负载跟踪时需要感知温控 | v10 ☑ 5.7-rc1 | [LWN](https://lwn.net/Articles/807428/), [PatchWork](https://lore.kernel.org/patchwork/cover/1198915), [lkml](https://lkml.org/lkml/2020/2/21/2138) |
 | 2020/2/24 | [Task latency-nice](https://lwn.net/Articles/820659) | 告诉调度器 per-task 的 latency 需求, 这个进程必须在预期 latency 之内赶快运行起来. | v4 ☐ | [Subhra Mazumdar](https://lore.kernel.org/patchwork/cover/1122405)<br>*-*-*-*-*-*-*-* <br>[LWN](https://lwn.net/Articles/798194), [PatchWork](https://lore.kernel.org/patchwork/cover/1199395), [lkml](https://lkml.org/lkml/2020/2/24/216) |
 | 2020/5/7 | [IDLE gating in presence of latency-sensitive tasks]() | 为 ltency-nice 所做的优化, 在 latency-nice 的基础上, 与 CPU_IDLE 结合, 当 CPU 上存在 latency-nice 的进程时, 则阻止 CPU 陷入更深层次的睡眠, 从而降低唤醒延迟. | RFC v1 ☐ | [LWN](https://lwn.net/Articles/819784), [PatchWork](https://lore.kernel.org/patchwork/cover/1237681), [lkml](https://lkml.org/lkml/2020/5/7/575) |
-| 2020/11/23 | [support "task_isolation" mode](https://lwn.net/Articles/816298) | NO_HZ_FULL 的进一步优化, 进一步降低 tick 等对隔离核的影响 | v5 ☐ | [2016 Chris Metcalf v16](https://lore.kernel.org/patchwork/cover/847460/)<br>*-*-*-*-*-*-*-* <br>Alex Belits 2020 [LWN](https://lwn.net/Articles/813804), [PatchWork](https://lore.kernel.org/patchwork/cover/1344134), [lkml](https://lkml.org/lkml/2020/11/23/1380) |
+| 2020/11/23 | [support "task_isolation" mode](https://lwn.net/Articles/816298) | NO_HZ_FULL 的进一步优化, 进一步降低 tick 等对隔离核的影响 | v5 ☐ | [2016 Chris Metcalf v16](https://lore.kernel.org/patchwork/cover/847460)<br>*-*-*-*-*-*-*-* <br>Alex Belits 2020 [LWN](https://lwn.net/Articles/813804), [PatchWork](https://lore.kernel.org/patchwork/cover/1344134), [lkml](https://lkml.org/lkml/2020/11/23/1380) |
+| 2020/12/14 | [select_idle_sibling() wreckage](https://lore.kernel.org/patchwork/cover/1353496) | 重构统一 select_idle_cpu 的逻辑, 降低搜索开销, 提升性能 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1353496), [lkml](https://lkml.org/lkml/2020/12/14/560) |
 
 
 
@@ -392,7 +393,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 ## 1.4.2 PELT
 -------
 
-从Arm的资源来看，这很像该公司意识到性能问题，并正在积极尝试改善PELT的行为以使其更接近WALT.
+从Arm的资源来看, 这很像该公司意识到性能问题, 并正在积极尝试改善 PELT 的行为以使其更接近 WALT.
 
 1.  一个重要的变化是称为 [util_est 利用率估计的特性](http://retis.santannapisa.it/~luca/ospm-summit/2017/Downloads/OSPM_PELT_DecayClampingVsUtilEst.pdf), [Utilization estimation (util_est) for FAIR tasks](https://lore.kernel.org/patchwork/cover/932237)
 
@@ -446,7 +447,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 | 2020/03/11 | [sched: Streamline select_task_rq() & select_task_rq_fair()](https://lore.kernel.org/patchwork/patch/1208449) | 选核流程上的重构和优化, 当然除此之外还做了其他操作, 比如清理了 sd->flags 信息, 甚至 sysfs 接口都变成只读了 | | |
 | 2019/07/08 | [Optimize the idle CPU search](https://lore.kernel.org/patchwork/patch/1098092) | 通过标记 idle_cpu 来降低 select_idle_sibling/select_idle_cpu 的搜索开销 | | |
 | 2020/12/03 | [Reduce time complexity of select_idle_sibling](https://lore.kernel.org/patchwork/cover/1348877) | 通过自己完善的 schedstat 的统计信息, 发现 select_idle_XXX 中不合理的地方, 降低搜索开销 | | |
-| 2020/12/08 | [Reduce scanning of runqueues in select_idle_sibling](https://lore.kernel.org/patchwork/cover/1350876) | 提高了p->recent_used_cpu的命中率. 以减少扫描开销, 同时如果在扫描a时发现了一个候选，那么补丁4将返回一个空闲的候选免费的核心 |
+| 2020/12/08 | [Reduce scanning of runqueues in select_idle_sibling](https://lore.kernel.org/patchwork/cover/1350876) | 提高了p->recent_used_cpu的命中率. 以减少扫描开销, 同时如果在扫描a时发现了一个候选, 那么补丁4将返回一个空闲的候选免费的核心 |
 
 
 # 1.6 基于调度域的负载均衡
@@ -619,9 +620,52 @@ ARM 的 Morten Rasmussen 一直致力于ANDROID 调度器优化的:
 [scheduler-driven cpu frequency selection](https://lwn.net/Articles/649593)
 
 
+# 1.10 实时性 linux PREEMPT_RT
+-------
+
+## 1.10.1 NO_HZ
+-------
 
 
-# 1.10 更精确的调度时钟(HRTICK), 2.6.25(2008年4月发布)**
+## 1.10.2 task/CPU 隔离
+-------
+
+| 2020/11/23 | [support "task_isolation" mode](https://lwn.net/Articles/816298) | NO_HZ_FULL 的进一步优化, 进一步降低 tick 等对隔离核的影响 | v5 ☐ | [2016 Chris Metcalf v16](https://lore.kernel.org/patchwork/cover/847460)<br>*-*-*-*-*-*-*-* <br>Alex Belits 2020 [LWN](https://lwn.net/Articles/813804), [PatchWork](https://lore.kernel.org/patchwork/cover/1344134), [lkml](https://lkml.org/lkml/2020/11/23/1380) |
+
+
+*   隔离 IRQD_AFFINITY_MANAGED 的中断
+
+设置了 IRQD_AFFINITY_MANAGED 的中断, 其亲和性将由内核自动管理, 用户无法通过 `/proc/irq/*` 接口改变中断的亲和性, 这会导致亲和性同时包含隔离核和非隔离核,
+有可能在隔离核触发造成干扰.
+
+[`sched/isolation: isolate from handling managed interrupt`](https://lore.kernel.org/patchwork/patch/1182228)
+
+1.  设置和还原中断亲和性的时候, 当设置的中断亲和性与隔离核的交集为空, 或者亲和性中的非隔离核均下线的时候, 不修改亲和性 mask. 否则与非隔离核掩码 housekeeping_mask 取交集.
+2.  亲和性中的非隔离核均下线的场景, 当其中某个非隔离核上线的时候, 中断会迁移到这个核上.
+3.  通过启动参数进行设置, isolcpus 中加上 managed_irq. 例如 isolacpus=domain, managed_irq, 10-19
+
+*   隔离内核线程
+
+内核线程默认的亲和性是所有 CPU, 有可能在隔离核上运行. 对隔离核上的进程产生干扰. 因此在配置了 nohz_full= 中, 新增了 HK_FLAG_KTHREAD.
+在 kthreadd 和 `__kthread_create_on_node` 中, 设置了内核进程的亲和性为非隔离核, 对绑定了 CPU 的内线程和 per-cpu 的内核线程实例无影响.
+设置方式, 启动参数配置 nohz_full=10-19.
+
+[affine kernel threads to nohz_full= cpumask (v4)](https://lore.kernel.org/patchwork/cover/1218793), [lkml](https://lkml.org/lkml/2020/4/1/459)
+
+*   Preventing job distribution to isolated CPUs
+
+[Preventing job distribution to isolated CPUs](https://lore.kernel.org/patchwork/cover/1264010)
+
+第一个补丁[lib: Restrict cpumask_local_spread to houskeeping CPUs](https://lore.kernel.org/patchwork/patch/1264008): cpumask_local_spread(int i, int node) 函数返回第 node 个 numa 节点上的第 i 个 CPU 的 CPU 号, 这个函数驱动中经常使用, 比如网卡驱动中设置中断亲和性时使用, 有可能选择到隔离核导致对隔离核上的进程有干扰, 因此修改为选择 CPU 时自动跳过隔离核. 通过启动参数打开此功能: isolcpus=domain,managed_irq,10-19
+
+第二个补丁 [PCI: Restrict probe functions to housekeeping CPUs](), pci_call_probe 中选择 probe 的时候也跳过隔离核. 防止后面的 kworker 固定在隔离核上, 从而对隔离核造成干扰.
+
+第三个补丁 [net: Restrict receive packets queuing to housekeeping CPUs](), 现有的 store_rps_map 机制会将报文发到其他 CPU 的 backlog 队列中接收, 无论该 COU 是否被隔离. 从而导致对隔离核造成干扰. 因此在选择 CPU 时, 只从非隔离核中选择. 使用启动参数开启此功能, isolcpus 和 nohz_full 均可.
+
+
+
+
+# 1.11 更精确的调度时钟(HRTICK), 2.6.25(2008年4月发布)**
 -------
 
 
