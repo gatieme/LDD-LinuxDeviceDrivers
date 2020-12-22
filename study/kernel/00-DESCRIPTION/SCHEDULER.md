@@ -97,26 +97,19 @@ Linux 除了实现上述策略, 还额外支持以下策略:
 **-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- 正文 -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**
 
 
-# 1.1 抢占支持(preemption)
+
+
+# 1.1 进程调度类
 -------
 
-**2.6 时代开始支持** (首次在2.5.4版本引入[<sup>37</sup>](#refer-anchor-37), 感谢知友 [@costa](https://www.zhihu.com/people/78ceb98e7947731dc06063f682cf9640) 考证! 关于 Linux 版本规则,  可看我文章[<sup>4</sup>](#refer-anchor-4).
-
-
-可抢占性, 对一个系统的调度延时具有重要意义. 2.6 之前, 一个进程进入内核态后, 别的进程无法抢占, 只能等其完成或退出内核态时才能抢占, 这带来严重的延时问题, 2.6 开始支持内核态抢占.
-
-
-# 1.2 进程调度类
--------
-
-## 1.2.1 普通进程调度器(SCHED\_OTHER)之纠极进化史
+## 1.1.1 普通进程调度器(SCHED\_OTHER)之纠极进化史
 -------
 
 Linux 一开始, 普通进程和实时进程都是基于优先级的一个调度器, 实时进程支持 100 个优先级, 普通进程是优先级小于实时进程的一个静态优先级, 所有普通进程创建时都是默认此优先级, 但可通过 **nice()** 接口调整动态优先级(共40个). 实时进程的调度器比较简单, 而普通进程的调度器, 则历经变迁[<sup>5</sup>](#refer-anchor-5):
 
 
 
-## 1.2.1.1 O(1) 调度器:
+## 1.1.1.1 O(1) 调度器:
 -------
 
 2.6 时代开始支持(2002年引入).
@@ -124,7 +117,7 @@ Linux 一开始, 普通进程和实时进程都是基于优先级的一个调度
 顾名思义, 此调度器为O(1)时间复杂度. 该调度器修正之前的O(n) 时间复杂度调度器, 以解决扩展性问题. 为每一个动态优先级维护队列, 从而能在常数时间内选举下一个进程来执行.
 
 
-## 1.2.1.2 夭折的 RSDL(The Rotating Staircase Deadline Scheduler)调度器
+## 1.1.1.2 夭折的 RSDL(The Rotating Staircase Deadline Scheduler)调度器
 -------
 
 **2007 年 4 月提出, 预期进入 2.6.22, 后夭折.**
@@ -138,7 +131,7 @@ Con Kolivas (八卦: 这家伙白天是个麻醉医生)为解决这个问题提�
 
 
 
-## 1.2.1.3 完全公平的调度器(CFS)
+## 1.1.1.3 完全公平的调度器(CFS)
 -------
 
 **2.6.23(2007年10月发布)**
@@ -155,7 +148,7 @@ Con Kolivas 的完全公平的想法启发了原 O(1) 调度器作者 Ingo Molna
 CFS 的测试性能比 RSDS 好, 并得到更多的开发者支持, 所以它最终替代了 RSDL 在 2.6.23 进入内核, 一直使用到现在.
 
 
-## 1.2.1.4 CK 的 BFS 和 MuQSS
+## 1.1.1.4 CK 的 BFS 和 MuQSS
 -------
 
 可以八卦的是, Con Kolivas 因此离开了社区, 不过他本人否认是因为此事而心生龃龉. 后来, 2009 年, 他对越来越庞杂的 CFS 不满意, 认为 CFS 过分注重对大规模机器, 而大部分人都是使用少 CPU 的小机器, 因此于 2009年8月31日发布了 BFS 调度器(Brain Fuck Scheduler)[<sup>48</sup>](#refer-anchor-48).
@@ -182,7 +175,7 @@ BFS 的最后版本是 2016 年 12 月发布的 v0.512, 基于 v4.8 内核.
 
 之后 CK 发布了更现代化的 MuQSS(多队列跳过列表调度程序) [The MuQSS CPU scheduler](https://lwn.net/Articles/720227), CK 称之为原始 BFS 调度程序基于 per-CPU 运行队列改进版. 截止目前 MuQSS 都在不断维护.
 
-## 1.2.1.4 不那么重要的进程 SCHED\_IDLE
+## 1.1.1.4 不那么重要的进程 SCHED\_IDLE
 -------
 
 **2.6.23(2007年10月发布)**
@@ -219,7 +212,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 
 
-## 1.2.1.5 吭哧吭哧跑计算 SCHED\_BATCH
+## 1.1.1.5 吭哧吭哧跑计算 SCHED\_BATCH
 -------
 
 **2.6.16(2006年3月发布)**
@@ -231,7 +224,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 在引入该策略后, 原来的 SCHED\_OTHER 被改名为 SCHED\_NORMAL, 不过它的值不变, 因此保持 API 兼容, 之前的 SCHED\_OTHER 自动成为 SCHED\_NORMAL, 除非你设置 SCHED\_BATCH.
 
-## 1.2.2  SCHED\_RT
+## 1.1.2  SCHED\_RT
 -------
 
 RT 有两种调度策略, SCHED_FIFO 先到先服务 和 SCHED_RR 时间片轮转
@@ -280,7 +273,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 
 
 
-## 1.2.3 十万火急, 限期完成 SCHED\_DEADLINE
+## 1.1.3 十万火急, 限期完成 SCHED\_DEADLINE
 -------
 
 **3.14(2014年3月发布)**
@@ -295,7 +288,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 更多可参看此文章: [Deadline scheduling: coming soon? [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/575497/)
 
 
-## 1.2.4 其他一些调度类的尝试
+## 1.1.4 其他一些调度类的尝试
 -------
 
 
@@ -321,10 +314,10 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
     特别是在之前提到的 [sched/fair: Fallback to sched-idle CPU in absence of idle CPUs](https://lore.kernel.org/patchwork/cover/1094197) 合入之后, SCHED_NORMAL 的时延已经很低, 其实可以理解为在 SCHED_NORMAL(CFS) 下面又添加了一层时延不敏感的离线任务, 只不过不是使用新增调度类的方式. 而是借助了 CFS 的框架和策略实现.
 
 
-# 1.3 组调度支持(Group Scheduling)
+# 1.2 组调度支持(Group Scheduling)
 -------
 
-## 1.3.1 普通进程的组调度支持(Fair Group Scheduling)
+## 1.2.1 普通进程的组调度支持(Fair Group Scheduling)
 -------
 
 **2.6.24(2008年１月发布)**
@@ -339,7 +332,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 该功能是基于控制组(control group, cgroup)的概念, 需要内核开启 CGROUP 的支持才可使用. 关于 CGROUP , 以后可能会写.
 
 
-## 1.3.2 实时进程的组调度支持(RT Group Scheduling)
+## 1.2.2 实时进程的组调度支持(RT Group Scheduling)
 -------
 
 
@@ -348,7 +341,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 该功能同普通进程的组调度功能一样, 只不过是针对实时进程的.
 
 
-## 1.3.3 组调度带宽控制(CFS bandwidth control)** , **3.2(2012年1月发布)**
+## 1.2.3 组调度带宽控制(CFS bandwidth control)** , **3.2(2012年1月发布)**
 -------
 
 
@@ -356,7 +349,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 
 
 
-## 1.3.4 极大提高体验的自动组调度(Auto Group Scheduling)
+## 1.2.4 极大提高体验的自动组调度(Auto Group Scheduling)
 -------
 
 **2.6.38(2011年3月发布)**
@@ -380,17 +373,17 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 该功能可以手动关闭.
 
 
-# 1.4 负载跟踪机制
+# 1.3 负载跟踪机制
 -------
 
-## 1.4.1 WALT
+## 1.3.1 WALT
 -------
 
 原谅我在这里跳过了主线默认强大的 PELT, 而先讲 WALT.
 
 [improving exynos 9810 galaxy s9](https://www.anandtech.com/show/12620/improving-the-exynos-9810-galaxy-s9-part-2)
 
-## 1.4.2 PELT
+## 1.3.2 PELT
 -------
 
 从Arm的资源来看, 这很像该公司意识到性能问题, 并正在积极尝试改善 PELT 的行为以使其更接近 WALT.
@@ -402,7 +395,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 
 
 
-# 1.5 select_task_rq
+# 1.4 select_task_rq
 -------
 
 调度器最核心的工作就两个内容 :
@@ -427,12 +420,12 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 
 
 
-## 1.5.1 机制的 WAKE_AFFINE
+## 1.4.1 机制的 WAKE_AFFINE
 -------
 
 | | [Reduce scheduler migrations due to wake_affine](https://lore.kernel.org/patchwork/cover/864391) | 优化 wake_affine 减少迁移次数 | | | |
 
-## 1.5.2 提升 CPU 的查找效率
+## 1.4.2 提升 CPU 的查找效率
 -------
 
 每次为进程选择一个合适的 CPU 的时候, 较好的情况可以通过 wake_affine 等走快速路径, 但是最坏的情况下, 却不得不遍历当前 SD 查找一个 IDLE CPU 或者负载较小的 CPU.
@@ -452,10 +445,10 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 | 2020/12/08 | | 跟上一个其实是一组补丁, 重构后改了名字. | | |
 | 2020/12/14 | [select_idle_sibling() wreckage](https://lore.kernel.org/patchwork/cover/1353496) | 重构 SIS_PROP 的逻辑, 重新计算 CPU 的扫描成本, 同时归一 select_idle_XXX 中对 CPU 的遍历, 统一选核的搜索逻辑来降低开销, 提升性能 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1353496), [LKML](https://lkml.org/lkml/2020/12/14/560) |
 
-# 1.6 基于调度域的负载均衡
+# 1.5 基于调度域的负载均衡
 -------
 
-## 1.6.1 负载均衡
+## 1.5.1 负载均衡
 -------
 
 
@@ -490,7 +483,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 关于这方面, 可以看这篇文章: [Scheduling domains [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/80911/)
 
 
-## 1.6.2 自动 NUMA 均衡(Automatic NUMA balancing)
+## 1.5.2 自动 NUMA 均衡(Automatic NUMA balancing)
 -------
 
 **3.8(2013年2月发布)**
@@ -519,7 +512,7 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 
 [NUMA placement problems [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/591995/)
 
-## 1.6.3 rework_load_balance
+## 1.5.3 rework_load_balance
 -------
 
 2019 年的 [Vincent Guittot](https://www.youtube.com/watch?v=cfv63BMnIug) 的 [sched/fair: rework the CFS load balance](https://lwn.net/Articles/793427) 是近几年特别有亮点的补丁.
@@ -553,12 +546,12 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 | 
 
 
-# 1.8 pick_next_task
+# 1.6 pick_next_task
 -------
 
 
 
-# 1.9 **调度与节能**
+# 1.7 **调度与节能**
 -------
 
 
@@ -569,7 +562,7 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 在前不久, 一个新的 patch 被提交到 Linux 内核开发邮件列表, 这个问题也许有了新的眉目, 到时再来更新此小节．可阅读此文章: [Steps toward power-aware scheduling [LWN.net]](https://lwn.net/Articles/655479/)
 
 
-## 1.9.1 小任务封包
+## 1.7.1 小任务封包
 -------
 
 小任务封包(Small Task Packing) 是内核调度特性中少数几个隔几年就会被人换个马甲发出来的特性之一.
@@ -580,7 +573,7 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 但是请大家记住这个特性, 这个特性将在后面的特性中不断被提及并实现. 它作为一个先驱者, 为终端功耗场景在调度领域做了最初的一次尝试. 自此开始调度领域一场旷日持久的性能 vs 功耗的战役被打响.
 
 
-## 1.9.2 能耗感知的调度器
+## 1.7.2 能耗感知的调度器
 -------
 
 在 Linaro 开发小任务封包的同时, 2012 年 Intel 的 Alex Shi 发起的讨论中, 提出了更高大上的概念[**能耗感知的调度器**](https://lkml.org/lkml/2012/8/13/139), 功耗和性能本身就是一个矛盾的统一体, 因此由于此特性节省的功耗和降低的性能不成正比, 因此在发到 v7 [PatchWork](https://lore.kernel.org/patchwork/cover/370834) 之后也寿终正寝.
@@ -599,7 +592,7 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 >
 >[Another attempt at power-aware scheduling](https://lwn.net/Articles/600419)
 
-## 1.9.3 IKS -> HMP -> EAS
+## 1.7.3 IKS -> HMP -> EAS
 -------
 
 
@@ -618,18 +611,28 @@ ARM 的 Morten Rasmussen 一直致力于ANDROID 调度器优化的:
 5.  EAS 带来了划时代的想法, 最终 [Quentin Perret](http://www.linux-arm.org/git?p=linux-qp.git;a=summary) 接手了 Morten Rasmussen 的工作, 最终在 2018/10/03 v10 版本将 EAS 合入主线 [https://lore.kernel.org/patchwork/cover/1020432/](https://lore.kernel.org/patchwork/cover/1020432)
 
 
-## 1.9.4
+## 1.7.4
 [scheduler-driven cpu frequency selection](https://lwn.net/Articles/649593)
 
 
-# 1.10 实时性 linux PREEMPT_RT
--------
-
-## 1.10.1 NO_HZ
+# 1.8 实时性 linux PREEMPT_RT
 -------
 
 
-## 1.10.2 task/CPU 隔离
+## 1.8.1 抢占支持(preemption)
+-------
+
+**2.6 时代开始支持** (首次在2.5.4版本引入[<sup>37</sup>](#refer-anchor-37), 感谢知友 [@costa](https://www.zhihu.com/people/78ceb98e7947731dc06063f682cf9640) 考证! 关于 Linux 版本规则,  可看我文章[<sup>4</sup>](#refer-anchor-4).
+
+
+可抢占性, 对一个系统的调度延时具有重要意义. 2.6 之前, 一个进程进入内核态后, 别的进程无法抢占, 只能等其完成或退出内核态时才能抢占, 这带来严重的延时问题, 2.6 开始支持内核态抢占.
+
+
+## 1.8.2 NO_HZ
+-------
+
+
+## 1.8.3 task/CPU 隔离
 -------
 
 | 2020/11/23 | [support "task_isolation" mode](https://lwn.net/Articles/816298) | NO_HZ_FULL 的进一步优化, 进一步降低 tick 等对隔离核的影响 | v5 ☐ | [2016 Chris Metcalf v16](https://lore.kernel.org/patchwork/cover/847460)<br>*-*-*-*-*-*-*-* <br>Alex Belits 2020 [LWN](https://lwn.net/Articles/813804), [PatchWork](https://lore.kernel.org/patchwork/cover/1344134), [lkml](https://lkml.org/lkml/2020/11/23/1380) |
@@ -667,7 +670,7 @@ ARM 的 Morten Rasmussen 一直致力于ANDROID 调度器优化的:
 
 
 
-# 1.11 更精确的调度时钟(HRTICK), 2.6.25(2008年4月发布)**
+## 1.8.4 更精确的调度时钟(HRTICK), 2.6.25(2008年4月发布)**
 -------
 
 
