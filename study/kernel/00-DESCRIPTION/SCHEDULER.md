@@ -86,7 +86,7 @@ Linux 除了实现上述策略, 还额外支持以下策略:
 | 2020/2/24 | [Task latency-nice](https://lwn.net/Articles/820659) | 告诉调度器 per-task 的 latency 需求, 这个进程必须在预期 latency 之内赶快运行起来. | v4 ☐ | [Subhra Mazumdar](https://lore.kernel.org/patchwork/cover/1122405)<br>*-*-*-*-*-*-*-* <br>[LWN](https://lwn.net/Articles/798194), [PatchWork](https://lore.kernel.org/patchwork/cover/1199395), [lkml](https://lkml.org/lkml/2020/2/24/216) |
 | 2020/5/7 | [IDLE gating in presence of latency-sensitive tasks]() | 为 ltency-nice 所做的优化, 在 latency-nice 的基础上, 与 CPU_IDLE 结合, 当 CPU 上存在 latency-nice 的进程时, 则阻止 CPU 陷入更深层次的睡眠, 从而降低唤醒延迟. | RFC v1 ☐ | [LWN](https://lwn.net/Articles/819784), [PatchWork](https://lore.kernel.org/patchwork/cover/1237681), [lkml](https://lkml.org/lkml/2020/5/7/575) |
 | 2020/11/23 | [support "task_isolation" mode](https://lwn.net/Articles/816298) | NO_HZ_FULL 的进一步优化, 进一步降低 tick 等对隔离核的影响 | v5 ☐ | [2016 Chris Metcalf v16](https://lore.kernel.org/patchwork/cover/847460)<br>*-*-*-*-*-*-*-* <br>Alex Belits 2020 [LWN](https://lwn.net/Articles/813804), [PatchWork](https://lore.kernel.org/patchwork/cover/1344134), [lkml](https://lkml.org/lkml/2020/11/23/1380) |
-| 2020/12/14 | [select_idle_sibling() wreckage](https://lore.kernel.org/patchwork/cover/1353496) | 重构统一 select_idle_cpu 的逻辑, 降低搜索开销, 提升性能 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1353496), [lkml](https://lkml.org/lkml/2020/12/14/560) |
+| 2020/12/14 | [select_idle_sibling() wreckage](https://lore.kernel.org/patchwork/cover/1353496) | 重构 SIS_PROP 的逻辑, 重新计算 CPU 的扫描成本, 同时归一 select_idle_XXX 中对 CPU 的遍历, 统一选核的搜索逻辑来降低开销, 提升性能 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1353496), [lkml](https://lkml.org/lkml/2020/12/14/560) |
 
 
 
@@ -438,6 +438,8 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 每次为进程选择一个合适的 CPU 的时候, 较好的情况可以通过 wake_affine 等走快速路径, 但是最坏的情况下, 却不得不遍历当前 SD 查找一个 IDLE CPU 或者负载较小的 CPU.
 这个查找是一项大工程, 在调度里面几乎是觉难以容忍的. 因此这里一直是性能优化的战场, 炮火味十足.
 
+2020 年 12 月 15 日, 调度的大 Maintainer Peter Zijlstra, 曾公开抨击选核的慢速流程里面[部分代码, "The thing is, the code as it exists today makes no sense what so ever. It's plain broken batshit."](https://lkml.org/lkml/2020/12/15/93).
+
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:------:|:---:|
 | 2018/05/30 | [select_idle_sibling rework](https://lore.kernel.org/patchwork/patch/911697) | 优化 select_idle_XXX 的性能 | RFC | [select_idle_sibling rework](https://lore.kernel.org/patchwork/patch/911697) |
@@ -446,9 +448,9 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 | 2019/1/21 | [sched/fair: Optimize select_idle_core](https://lore.kernel.org/patchwork/patch/1163807) | | | |
 | 2020/03/11 | [sched: Streamline select_task_rq() & select_task_rq_fair()](https://lore.kernel.org/patchwork/patch/1208449) | 选核流程上的重构和优化, 当然除此之外还做了其他操作, 比如清理了 sd->flags 信息, 甚至 sysfs 接口都变成只读了 | | |
 | 2019/07/08 | [Optimize the idle CPU search](https://lore.kernel.org/patchwork/patch/1098092) | 通过标记 idle_cpu 来降低 select_idle_sibling/select_idle_cpu 的搜索开销 | | |
-| 2020/12/03 | [Reduce time complexity of select_idle_sibling](https://lore.kernel.org/patchwork/cover/1348877) | 通过自己完善的 schedstat 的统计信息, 发现 select_idle_XXX 中不合理的地方, 降低搜索开销 | | |
-| 2020/12/08 | [Reduce scanning of runqueues in select_idle_sibling](https://lore.kernel.org/patchwork/cover/1350876) | 提高了p->recent_used_cpu的命中率. 以减少扫描开销, 同时如果在扫描a时发现了一个候选, 那么补丁4将返回一个空闲的候选免费的核心 |
-
+| 2020/12/03 | [Reduce time complexity of select_idle_sibling](https://lore.kernel.org/patchwork/cover/1348877) | 通过自己完善的 schedstat 的统计信息, 发现 select_idle_XXX 中不合理的地方(提高了p->recent_used_cpu的命中率. 以减少扫描开销, 同时如果在扫描a时发现了一个候选, 那么补丁4将返回一个空闲的候选免费的核心等), 降低搜索开销 | RFC v3 | 这组补丁其实有很多名字, 作者发了几版本之后, 不断重构, 也改了名字<br>*-*-*-*-*-*-*-* <br>2020/12/07 [Reduce scanning of runqueues in select_idle_sibling](https://lore.kernel.org/patchwork/cover/1350876)<br>*-*-*-*-*-*-*-* <br>2020/12/07 [Reduce worst-case scanning of runqueues in select_idle_sibling](https://lore.kernel.org/patchwork/patch/1350249)<br>*-*-*-*-*-*-*-* <br>2020/12/08 [Reduce scanning of runqueues in select_idle_sibling](https://lore.kernel.org/patchwork/patch/1350877)  |
+| 2020/12/08 | | 跟上一个其实是一组补丁, 重构后改了名字. | | |
+| 2020/12/14 | [select_idle_sibling() wreckage](https://lore.kernel.org/patchwork/cover/1353496) | 重构 SIS_PROP 的逻辑, 重新计算 CPU 的扫描成本, 同时归一 select_idle_XXX 中对 CPU 的遍历, 统一选核的搜索逻辑来降低开销, 提升性能 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1353496), [LKML](https://lkml.org/lkml/2020/12/14/560) |
 
 # 1.6 基于调度域的负载均衡
 -------
