@@ -423,6 +423,9 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 ## 1.4.1 机制的 WAKE_AFFINE
 -------
 
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:------:|:---:|
+| 2013/07/04 | [sched: smart wake-affine](https://lore.kernel.org/patchwork/cover/390846) | 引入wakee 翻转次数, 通过巧妙的启发式算法, 识别系统中 1:N/N:M 等唤醒模型, 作为是否进行 wake_affine 的依据 | V3 3.12-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/390846)<br>*-*-*-*-*-*-*-* <br>[commit 1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=62470419e993f8d9d93db0effd3af4296ecb79a5), [commit2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7d9ffa8961482232d964173cccba6e14d2d543b2) |
 | | [Reduce scheduler migrations due to wake_affine](https://lore.kernel.org/patchwork/cover/864391) | 优化 wake_affine 减少迁移次数 | | | |
 
 ## 1.4.2 提升 CPU 的查找效率
@@ -543,7 +546,7 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 |:----:|:----:|:---:|:------:|:---:|
 | 2020/03/11 | [sched: Streamline select_task_rq() & select_task_rq_fair()](https://lore.kernel.org/patchwork/patch/1208449) | 选核流程上的重构和优化, 当然除此之外还做了其他操作, 比如清理了 sd->flags 信息, 甚至 sysfs 接口都变成只读了 | | |
 | 2020/03/11 | [sched: Instrument sched domain flags](https://lore.kernel.org/patchwork/cover/1208463) | 基于上一组补丁, 重构了 SD_FLAGS 的定义 | | |
-| 
+ 
 
 
 # 1.6 pick_next_task
