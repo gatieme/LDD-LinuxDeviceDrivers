@@ -536,7 +536,7 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:------:|:---:|
 | 2019/10/18 | [Reconcile NUMA balancing decisions with the load balancer](https://linuxplumbersconf.org/event/4/contributions/480) | 重构 load balance | v4 ☑ | [LWN](https://lwn.net/Articles/793427), [PatchWork](https://lore.kernel.org/patchwork/cover/1199507), [lkml](https://lkml.org/lkml/2019/10/18/676) |
-| 2020/02/11 | [sched/numa: replace runnable_load_avg by load_avg](https://lore.kernel.org/patchwork/patch/1192634) | 优化补丁 | | |
+| 2020/2/21 | Vincent Guittot | [remove runnable_load_avg and improve group_classify](https://lore.kernel.org/patchwork/cover/1198654) | 重构组调度的 PELT 跟踪, 在每次更新平均负载的时候, 更新整个 CFS_RQ 的平均负载| V10 ☑ 5.7 | [PatchWork](https://lore.kernel.org/patchwork/cover/1198654), [lkml](https://lkml.org/lkml/2020/2/21/1386) |
 | | [Accumulated fixes for Load/NUMA Balancing reconcilation series](https://lore.kernel.org/patchwork/cover/1203922) | fix 补丁 | | |
 
 
