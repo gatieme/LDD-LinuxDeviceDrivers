@@ -739,9 +739,10 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:------:|:---:|
+| | [CFS load tracking trace events](https://lore.kernel.org/patchwork/cover/774154) | 增加 PELT 的跟踪点 | v1 | [PatchWork](https://lore.kernel.org/patchwork/cover/774154) |
 | 2019/06/04 | [sched: Add new tracepoints required for EAS testing](https://lore.kernel.org/patchwork/patch/1296761) | 增加 PELT 的跟踪点 | v3, 5.3-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1296761) |
 | 2020/06/19 | [Sched: Add a tracepoint to track rq->nr_running](https://lore.kernel.org/patchwork/patch/1258690) | 增加 nr_running 的跟踪点 | v1, 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1258690)<br>*-*-*-*-*-*-*-* <br>[FixPatch](https://lore.kernel.org/patchwork/patch/1284621) |
-| 2020/08/28 | [sched/debug: Add new tracepoint to track cpu_capacity](https://lore.kernel.org/patchwork/patch/1296761) | 增加 cpu_capacity 的跟踪点 |
+| 2020/08/28 | [sched/debug: Add new tracepoint to track cpu_capacity](https://lore.kernel.org/patchwork/patch/1296761) | 增加 cpu_capacity 的跟踪点 | [PatchWork](https://lore.kernel.org/patchwork/cover/1296761) |
 
 
 
