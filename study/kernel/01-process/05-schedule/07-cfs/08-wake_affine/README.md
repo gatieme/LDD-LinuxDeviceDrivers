@@ -23,14 +23,14 @@ blogexcerpt: 在进程唤醒的过程中为进程选核时, wake_affine 倾向�
 
 
 
-#1 wake_affine 机制
+# 1 wake_affine 机制
 -------
 
-##1.1    引入 WAKE_AFFINE 的背景
+## 1.1    引入 WAKE_AFFINE 的背景
 -------
 
 
-当进程被唤醒的时候（try_to_wake_up），需要用 select_task_rq_fair为该 task 选择一个合适的CPU(runqueue), 接着会通过 check_preempt_wakeup 去看被唤醒的进程是否要抢占所在 CPU 的当前进程.
+当进程被唤醒的时候（try_to_wake_up）, 需要用 select_task_rq_fair为该 task 选择一个合适的CPU(runqueue), 接着会通过 check_preempt_wakeup 去看被唤醒的进程是否要抢占所在 CPU 的当前进程.
 
 
 > 关于唤醒抢占的内容, 请参考 [Linux唤醒抢占----Linux进程的管理与调度(二十三）](https://blog.csdn.net/gatieme/article/details/51872831)
@@ -38,30 +38,31 @@ blogexcerpt: 在进程唤醒的过程中为进程选核时, wake_affine 倾向�
 > 调度器对之前 SLEEP 的进程唤醒后重新入 RUNQ 的时候, 会对进程做一些补偿, 请参考 [Linux CFS调度器之唤醒补偿--Linux进程的管理与调度(三十）](https://blog.csdn.net/gatieme/article/details/52068061)
 
 
-这个选核的过程我们一般称之为 BALANCE_WAKE. 为了能清楚的描述这个场景，我们定义
+这个选核的过程我们一般称之为 BALANCE_WAKE. 为了能清楚的描述这个场景, 我们定义
 
 *    执行唤醒的那个进程是 waker
 *    而被唤醒的进程是 wakee
 
-Wakeup有两种，一种是sync wakeup，另外一种是non-sync wakeup。
+Wakeup有两种, 一种是sync wakeup, 另外一种是non-sync wakeup。
 
-*    所谓 sync wakeup 就是 waker 在唤醒 wakee 的时候就已经知道自己很快就进入 sleep 状态，而在调用 try_to_wake_up 的时候最好不要进行抢占，因为 waker 很快就主动发起调度了。此外，一般而言，waker和wakee会有一定的亲和性（例如它们通过share memory进行通信），在SMP场景下，waker和wakee调度在一个CPU上执行的时候往往可以获取较佳的性能。而如果在try_to_wake_up的时候就进行调度，这时候wakee往往会调度到系统中其他空闲的CPU上去。这时候，通过sync wakeup，我们往往可以避免不必要的CPU bouncing。
-*    对于non-sync wakeup而言，waker和wakee没有上面描述的同步关系，waker在唤醒wakee之后，它们之间是独立运作，因此在唤醒的时候就可以尝试去触发一次调度。
+*    所谓 sync wakeup 就是 waker 在唤醒 wakee 的时候就已经知道自己很快就进入 sleep 状态, 而在调用 try_to_wake_up 的时候最好不要进行抢占, 因为 waker 很快就主动发起调度了。此外, 一般而言, waker和wakee会有一定的亲和性（例如它们通过share memory进行通信）, 在SMP场景下, waker和wakee调度在一个CPU上执行的时候往往可以获取较佳的性能。而如果在try_to_wake_up的时候就进行调度, 这时候wakee往往会调度到系统中其他空闲的CPU上去。这时候, 通过sync wakeup, 我们往往可以避免不必要的CPU bouncing。
+*    对于non-sync wakeup而言, waker和wakee没有上面描述的同步关系, waker在唤醒wakee之后, 它们之间是独立运作, 因此在唤醒的时候就可以尝试去触发一次调度。
 
-当然，也不是说sync wakeup就一定不调度，假设waker在CPU A上唤醒wakee，而根据wakee进程的cpus_allowed成员发现它根本不能在CPU A上调度执行，那么管他sync不sync，这时候都需要去尝试调度（调用reschedule_idle函数），反正waker和wakee命中注定是天各一方（在不同的CPU上执行）。
+当然, 也不是说sync wakeup就一定不调度, 假设waker在CPU A上唤醒wakee, 而根据wakee进程的cpus_allowed成员发现它根本不能在CPU A上调度执行, 那么管他sync不sync, 这时候都需要去尝试调度(调用reschedule_idle函数), 反正waker和wakee命中注定是天各一方(在不同的CPU上执行).
 
 
 select_task_rq_fair 的原型如下:
-``cpp
+
+```cpp
 int select_task_rq_fair(struct task_struct *p, int prev_cpu, int sd_flag, int wake_flags)
 ```
 
 在 try_to_wake_up 场景其中 p 是待唤醒进程, prev_cpu 是进程上次运行的 CPU, 一般 sd_flag 是 BALANCE_WAKE, 因此其实wakeup 的过程也可以理解为一次主动 BALANCE 的过程, 成为 WAKEUP BALANCE, 只不过只是为一个进程选择唤醒到的 CPU. wake_flags 用于表示是 sync wakeup 还是 non-sync wakeup.
 
 
-我们首先看看UP上的情况。这时候waker和wakee在同一个CPU上运行（当然系统中也只有一个CPU，哈哈），这时候谁能抢占CPU资源完全取决于waker和wakee的动态优先级(调度类优先级, 或者 CFS 的 vruntime 等, 依照进程的调度类而定)，如果wakee的动态优先级大于waker，那么就标记waker的need_resched标志，并在调度点到来的时候调用schedule函数进行调度。
+我们首先看看UP上的情况。这时候waker和wakee在同一个CPU上运行（当然系统中也只有一个CPU, 哈哈）, 这时候谁能抢占CPU资源完全取决于waker和wakee的动态优先级(调度类优先级, 或者 CFS 的 vruntime 等, 依照进程的调度类而定), 如果wakee的动态优先级大于waker, 那么就标记waker的need_resched标志, 并在调度点到来的时候调用schedule函数进行调度。
 
-SMP情况下，由于系统的CPU资源比较多，waker和wakee没有必要争个你死我活，wakee其实也可以选择去其他CPU执行，但是这时候要做决策:
+SMP情况下, 由于系统的CPU资源比较多, waker和wakee没有必要争个你死我活, wakee其实也可以选择去其他CPU执行, 但是这时候要做决策:
 
 *    因为跑到 prev_cpu 上, 那么之前如果 cache 还是 hot 的是很有意义的
 *    同时按照之前的假设 waker 和 wakee 之间有资源共享, 那么唤醒到 waker CPU 上也有好处
@@ -71,7 +72,7 @@ SMP情况下，由于系统的CPU资源比较多，waker和wakee没有必要争�
 
 那么这些都是一个综合权衡的过程, 我们要考虑的东西比较多
 
-*    wake_cpu，prev_cpu 到底该不该选择？
+*    wake_cpu, prev_cpu 到底该不该选择？
 *    选择的话选择哪个?
 *    它们都不合适的时候又要怎么去选择一个更合适的?
 
@@ -79,7 +80,7 @@ SMP情况下，由于系统的CPU资源比较多，waker和wakee没有必要争�
 内核需要一个简单有效的机制去做这个事情, 因此 WAKE_AFFINE 出现在内核中.
 
 
-##1.2	WAKE_AFFINE 机制简介
+## 1.2	WAKE_AFFINE 机制简介
 -------
 
 [`select_task_rq_fair`]() 选核其实是一个优选的过程, 通常会有限选择一个 cache-miss 等开销最小的一个
@@ -99,7 +100,7 @@ SMP情况下，由于系统的CPU资源比较多，waker和wakee没有必要争�
 因此后来 (COMMIT 62470419e993 "sched: Implement smarter wake-affine logic"), 实现了一种智能 wake-affine 的优化机制. 用于 wake_flips 的巧妙方式, 识别出 1:N 等复杂唤醒模型, 只有在认为 wake_affine 能提升性能时(want_affine)才进行 wake_affine.
 
 
-#2    wake_affine 机制分析
+# 2    wake_affine 机制分析
 -------
 
 根据 want_affine 变量选择调度域并确定 new_cpu
@@ -179,7 +180,7 @@ task p 可以在当前 CPU 上运行.
 
 *    wake_affine 则为目标进程选择最合适运行的 wake CPU.
 
-##2.1    want_affine
+## 2.1    want_affine
 -------
 
 有 wakeup 关系的进程都是相互关联的进程, 那么大概率 waker 和 wakee 之间有一些数据共享, 这些数据可能是 waker 进程刚刚准备好的, 还在 cache 里面, 那么把它唤醒到 waking CPU, 就能充分利用这些在 cache 中的数据. 但是另外一方面, waker 之前在  prev CPU 上运行, 那么也是 cache-hot 的, 把它迁移到 waking CPU 上, 那么 prev CPU 上那些 cache 就有可能失效, 因此如果 waker 和 wakee 之间没有数据共享或者共享的数据没那么多, 那么wake_affine 直接迁移到 waking CPU 上反而是不合适的.
@@ -187,7 +188,7 @@ task p 可以在当前 CPU 上运行.
 内核引入 wake_affine 的初衷就是识别什么时候要将 wakee 唤醒到 waking CPU, 什么时候不需要. 这个判断由 want_affine 通过 wake_cap() 和 wake_wide() 来完成.
 
 
-###2.2.1    record_wakee 与 wakee_flips
+### 2.2.1    record_wakee 与 wakee_flips
 -------
 
 >通过在 struct task_struct 中增加两个成员: 上次唤醒的进程 last_wakee, 和累积唤醒翻转计数器. 每当 waker 尝试唤醒 wakee 的时候, 就通过 record_wakee 来更新统计计数.
@@ -240,7 +241,7 @@ wakee_flips 有一定的衰减期, 如果过了 1S (即 1 个 HZ 的时间), 那
 
 
 
-###2.2.2    wake_wide
+### 2.2.2    wake_wide
 -------
 
 当前 current 正在为 wakeup p, 并为 p 选择一个合适的 CPU. 那么 wake_wide 就用来检查 current 和 p 之间是否适合 wake_affine 所关心的 waker/wakee 模型.
@@ -302,7 +303,7 @@ wake_affine 在决策的时候,  要参考 wakee_flips
 |:------:|:---------:|:----:|
 | [63b0e9edceec sched/fair: Beef up wake_wide](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=63b0e9edceec10fa41ec33393a1515a5ff444277) | https://lore.kernel.org/patchwork/patch/576823 | https://lkml.org/lkml/2015/7/8/40 |
 
-###2.2.3    wake_cap
+### 2.2.3    wake_cap
 -------
 
 由于目前有一些 CPU 都是属于性能异构的 CPU(比如 ARM64 的 big.LITTLE 等), 不同的核 capacity 会差很多. wake_cap 会先看待选择的进程是否
@@ -340,7 +341,7 @@ static int wake_cap(struct task_struct *p, int cpu, int prev_cpu)
 
 注意在 [sched/fair: Capacity aware wakeup rework](https://lkml.org/lkml/2020/2/6/680) 合入之后, 通过 select_idle_sibling-=>elect_idle_capacity 让 wakeup 感知了 capacity, 因此 原生的 wakeup 路径无需再做 capacity 相关的处理, 因此 wake_cap 就被干掉了. 参见[sched/fair: Remove wake_cap()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/kernel/sched/fair.c?id=000619680c3714020ce9db17eef6a4a7ce2dc28b)
 
-##2.3    wake_affine
+## 2.3    wake_affine
 -------
 
 如果 want_affine 发现对当前 wakee 进行 wake_affine 是有意义的, 那么就会为当前进程选择一个能尽快运行的 CPU. 它总是倾向于选择 waking CPU(this_cpu) 以及 prev_cpu.
@@ -387,7 +388,7 @@ static int wake_affine(struct sched_domain *sd, struct task_struct *p,
 ```
 
 
-###2.3.1    负载计算方式
+### 2.3.1    负载计算方式
 -------
 
 wake_affine 函数源码分析之前, 需要先知道三个load的计算方式如下:
@@ -450,7 +451,7 @@ static unsigned long weighted_cpuload(struct rq *rq)
 }
 ```
 
-###2.3.2    wake_affine_idle
+### 2.3.2    wake_affine_idle
 -------
 
 ```cpp
@@ -479,14 +480,14 @@ wake_affine_idle(int this_cpu, int prev_cpu, int sync)
 }
 ```
 
-如果 this_cpu 空闲, 则意味着唤醒来自中断上下文. 仅在 this_cpu 和 prev_cpu 有共享缓存时允许移动. 否则, 中断密集型工作负载可能会将所有任务强制到一个节点, 具体取决于IO拓扑或IRQ亲缘关系设置. 同时如果 this_cpu 也是空闲的, 优先 this_cpu.
+如果 this_cpu 空闲, 则意味着唤醒来自中断上下文. 仅在 this_cpu 和 prev_cpu 有共享缓存时允许移动. 否则, 中断密集型工作负载可能会将所有任务强制到一个节点, 具体取决于IO拓扑或IRQ亲缘关系设置. 同时如果 prev_cpu 也是空闲的, 优先 prev_cpu.
 
 另外没有证据保证来自中断的缓存热数据比 prev_cpu 上的缓存热数据更重要, 并且从cpufreq的角度来看, 最好在一个CPU上获得更高的利用率.
 
 
 
 
-###2.3.3    wake_affine_weight
+### 2.3.3    wake_affine_weight
 -------
 
 `wake_affine_weight` 会重新计算 `wakeup CPU` 和 `prev CPU` 的负载情况, 如果 `wakeup CPU` 的负载加上唤醒进程的负载比 `prev CPU` 的负载小, 那么 `wakeup CPU` 是可以唤醒进程.
@@ -553,11 +554,11 @@ $$
 wake_affine_weight 中负载比较的部分经历了很多次的修改.
 [eeb603986391 sched/fair: Defer calculation of 'prev_eff_load' in wake_affine_weight() until needed](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eeb60398639143c11ff2c8b509e3a471411bb5d3)
 [082f764a2f3f sched/fair: Do not migrate on wake_affine_weight() if weights are equal](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=082f764a2f3f2968afa1a0b04a1ccb1b70633844)
-[1c1b8a7b03ef sched/fair: Replace source_load() & target_load() with weighted_cpuload()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1c1b8a7b03ef50f80f5d0c871ee261c04a6c967e), 这个是 [sched: remove cpu_loads](https://lore.kernel.org/patchwork/patch/456549/) 中的一个补丁, 该补丁集删除了 cpu_load idx 干掉了 LB_BIAS 特性, 它指出 LB_BIAS 的设计本身是有问题的, 在负载均衡迁移时平滑两个 cpu_load 的过程中, 用 source_load/target_load 的方式在源 CPU 和目的 CPU 上用一个随机偏差的方式是错误的, 这个平衡偏差应该取决于cpu组之间的任务转移成本，而不是随机历史记录或即时负载。因为历史负载可能与实际负载相差很大，从而导致不正确的偏差.
-[11f10e5420f6c sched/fair: Use load instead of runnable load in wakeup path](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=11f10e5420f6cecac7d4823638bff040c257aba9) https://lore.kernel.org/patchwork/patch/1141693, 该补丁是 rework load balancce 的一个补丁, 之前唤醒路径用下的是 cpu_runnable_load, 现在修正为 cpu_load. cpu_load 对应的是 rq 的 load_avg, 代表就绪队列平均负载，其包含睡眠进程的负载贡献, cpu_runnable_load 则是 runnable_load_avg只包含就绪队列上所有可运行进程的负载贡献,  wakeup 的时候如果使用 cpu_runnable_load 则可能造成选核的时候选择到一个有很多 runnable 线程的 overloaded 的 CPU, 而不是一个有很多 blocked 线程, 但是还有很大空闲的 CPU. 因此使用 cpu_load 在 wakeup 的时候可能更好.
+[1c1b8a7b03ef sched/fair: Replace source_load() & target_load() with weighted_cpuload()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1c1b8a7b03ef50f80f5d0c871ee261c04a6c967e), 这个是 [sched: remove cpu_loads](https://lore.kernel.org/patchwork/patch/456549/) 中的一个补丁, 该补丁集删除了 cpu_load idx 干掉了 LB_BIAS 特性, 它指出 LB_BIAS 的设计本身是有问题的, 在负载均衡迁移时平滑两个 cpu_load 的过程中, 用 source_load/target_load 的方式在源 CPU 和目的 CPU 上用一个随机偏差的方式是错误的, 这个平衡偏差应该取决于cpu组之间的任务转移成本, 而不是随机历史记录或即时负载。因为历史负载可能与实际负载相差很大, 从而导致不正确的偏差.
+[11f10e5420f6c sched/fair: Use load instead of runnable load in wakeup path](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=11f10e5420f6cecac7d4823638bff040c257aba9) https://lore.kernel.org/patchwork/patch/1141693, 该补丁是 rework load balancce 的一个补丁, 之前唤醒路径用下的是 cpu_runnable_load, 现在修正为 cpu_load. cpu_load 对应的是 rq 的 load_avg, 代表就绪队列平均负载, 其包含睡眠进程的负载贡献, cpu_runnable_load 则是 runnable_load_avg只包含就绪队列上所有可运行进程的负载贡献,  wakeup 的时候如果使用 cpu_runnable_load 则可能造成选核的时候选择到一个有很多 runnable 线程的 overloaded 的 CPU, 而不是一个有很多 blocked 线程, 但是还有很大空闲的 CPU. 因此使用 cpu_load 在 wakeup 的时候可能更好.
 当前内核版本 5.6.13 中 wake_affine_weight 的实现[参见](https://elixir.bootlin.com/linux/v5.6.13/source/kernel/sched/fair.c#L5556), 跟我们前面将的思路没有太大变化, 但是没有了 LB_BIAS, 同时比较负载使用的是 cpu_load().
 
-##2.4    wake_affine 演进
+## 2.4    wake_affine 演进
 -------
 
 Michael Wang 实现了 Smart wake affine, 引入 wakee_flips 来识别 wake-affine 的场景. 然后 Peter 做了一个简单的优化, factor 使用了 sd->sd_llc_size 而不是直接获取所在NODE 的 CPU 数目. nr_cpus_node(cpu_to_node(smp_processor_id()));
@@ -596,7 +597,7 @@ Dietmar Eggemann 删除了 LB_BIAS 特性, 因此 wake-affine 的代码做了部
 | 1c1b8a7b03ef sched/fair: Replace source_load() & target_load() with weighted_cpuload() | 没有 LB_BIAS 之后, source_load/target_load 不再需要, 直接使用 weighted_cpuload 代替 |
 | a3df067974c5 sched/fair: Rename weighted_cpuload() to cpu_runnable_load() | weighted_cpuload 函数更名为 cpu_runnable_load, [patchwork](https://lore.kernel.org/patchwork/cover/1079333/)  |
 
-#3    wake_affine 对 select_task_rq_fair 的影响.
+# 3    wake_affine 对 select_task_rq_fair 的影响.
 -------
 
 在唤醒CFS 进程的时候通过 select_task_rq_fair 来为进程选择一个最适合的 CPU.
@@ -616,7 +617,7 @@ cpu = select_task_rq(p, p->wake_cpu, SD_BALANCE_WAKE, wake_flags);
 只要 wakeup 的时候, 会通过 wake_affine, 然后通过 select_idle_sibling 来选核.
 其他情况下, 都是找到满足 sd_flags 的最高层次 sd, 然后通过 find_idlest_cpu 在这个调度域 sd 中去选择一个最空闲的 CPU.
 
-#4    参考资料
+# 4    参考资料
 -------
 
 [`Reduce scheduler migrations due to wake_affine`](https://lwn.net/Articles/741726/)
