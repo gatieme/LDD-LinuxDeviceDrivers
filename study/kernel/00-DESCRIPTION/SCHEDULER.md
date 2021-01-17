@@ -711,6 +711,12 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 
 而 [schedutil 实现成一个 Governor 的形式](https://lkml.org/lkml/2016/3/29/1041), 通过 [utilization update callback 机制](https://lkml.org/lkml/2016/2/15/734), 在 CPU 使用率变化时的注册回调, 那么就调度器期望进行调频的时候, 就通过回调通知 CPUFREQ 来进行调频. 其实跟 cpufreq_sched 大同小异, 但是由于其合理的架构, 因此最终在 4.7 时合入主线.
 
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:------:|:---:|
+| 2016/02/23 | Steve Muckle 等 | [sched: scheduler-driven CPU frequency selection](https://lore.kernel.org/patchwork/cover/649930) | 调度器驱动的调频 cpufreq_sched | RFC v7 | [PatchWork](https://lore.kernel.org/patchwork/cover/649930), [lkml](https://lkml.org/lkml/2016/2/22/1037) |
+| 2016/03/22 | Rafael J. Wysocki | [cpufreq: schedutil governor](https://lore.kernel.org/patchwork/cover/660587) | 基于 utilization update callback callback 的 schedutil 的调频 governor | v6 ☑ 4.7-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/660587), (https://lkml.org/lkml/2016/3/29/1041) |
+
+
 # 1.8 实时性 linux PREEMPT_RT
 -------
 
@@ -857,12 +863,13 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 [`plot-nr-running`](https://github.com/jirvoz/plot-nr-running)
 
 
-| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:------:|:---:|
-| | [CFS load tracking trace events](https://lore.kernel.org/patchwork/cover/774154) | 增加 PELT 的跟踪点 | v1 | [PatchWork](https://lore.kernel.org/patchwork/cover/774154) |
-| 2019/06/04 | [sched: Add new tracepoints required for EAS testing](https://lore.kernel.org/patchwork/patch/1296761) | 增加 PELT 的跟踪点 | v3, 5.3-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1296761) |
-| 2020/06/19 | [Sched: Add a tracepoint to track rq->nr_running](https://lore.kernel.org/patchwork/patch/1258690) | 增加 nr_running 的跟踪点 | v1, 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1258690)<br>*-*-*-*-*-*-*-* <br>[FixPatch](https://lore.kernel.org/patchwork/patch/1284621) |
-| 2020/08/28 | [sched/debug: Add new tracepoint to track cpu_capacity](https://lore.kernel.org/patchwork/patch/1296761) | 增加 cpu_capacity 的跟踪点 | [PatchWork](https://lore.kernel.org/patchwork/cover/1296761) |
+| 时间  | 作者 |特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:--:|:----:|:---------:|:----:|
+| 2017/03/28 | Dietmar Eggemann | [CFS load tracking trace events](https://lore.kernel.org/patchwork/cover/774154) | 增加 PELT 的跟踪点 | v1 | [PatchWork](https://lore.kernel.org/patchwork/cover/774154) |
+| 2018/12/14 | Benjamin | [sched/debug: Add tracepoint for RT throttling](https://lore.kernel.org/patchwork/patch/1024902) | RT throttle 的 tracepoint | v1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1024902) |
+| 2019/06/04 | | [sched: Add new tracepoints required for EAS testing](https://lore.kernel.org/patchwork/patch/1296761) | 增加 PELT 的跟踪点 | v3, 5.3-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1296761) |
+| 2020/06/19 | | [Sched: Add a tracepoint to track rq->nr_running](https://lore.kernel.org/patchwork/patch/1258690) | 增加 nr_running 的跟踪点 | v1, 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1258690)<br>*-*-*-*-*-*-*-* <br>[FixPatch](https://lore.kernel.org/patchwork/patch/1284621) |
+| 2020/08/28 | | [sched/debug: Add new tracepoint to track cpu_capacity](https://lore.kernel.org/patchwork/patch/1296761) | 增加 cpu_capacity 的跟踪点 | [PatchWork](https://lore.kernel.org/patchwork/cover/1296761) |
 
 
 
