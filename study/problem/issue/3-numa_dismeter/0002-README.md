@@ -287,7 +287,7 @@ DOMAIN 2 这个层次, 所有的 NUMA 都有问题. 除了 SCHED_GROUP_SPAN 的�
 
 `Valentin Schneider` 在发现这个问题之后给出的解决方案 [`sched/topology: Fix overlapping sched_group build`](https://lore.kernel.org/patchwork/patch/1214752), 就是针对方法二的一次尝试.
 
-还记得前面根据 NUMA 距离阶梯, 算出来的各个 `NUMA NODE` 各个层级上的 `cpumask` 信息么
+以 NODE 1 为边缘节点的场景为例, 还记得前面根据 NUMA 距离阶梯, 算出来的各个 `NUMA NODE` 各个层级上的 `cpumask` 信息么
 
 | 距离 | CPU0/1 | CPU2/3 |  CPU4/5   |  CPU6/7   |
 |:---:|:------:|:------:|:---------:|:---------:|
@@ -366,8 +366,8 @@ DOMAIN 2 这个层次, 所有的 NUMA 都有问题. 除了 SCHED_GROUP_SPAN 的�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:--:|:----:|:---------:|:----:|
 | 2021/01/15 | Song Bao Hua (Barry Song) | [sched/fair: first try to fix the scheduling impact of NUMA diameter > 2 1366256 diffmboxseries](https://lore.kernel.org/patchwork/patch/1366256) | 尝试修复 3 跳问题导致的性能蜕化 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1366256) |
-| 2021/01/22 | Valentin Schneider | [sched/topology: NUMA distance deduplication](https://lore.kernel.org/patchwork/cover/1369363) | 修复 | v1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1369363), [LKML](https://lkml.org/lkml/2021/1/22/460) |
-| 2021/01/27 | Song Bao Hua (Barry Song) | [sched/topology: fix the issue groups don't span domain->span for NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1378144)| 修复 3 跳问题的拓扑构建 | v2 | [RFC v1](https://lore.kernel.org/patchwork/patch/1366256), [RFC v2](https://lore.kernel.org/patchwork/patch/1371875), [v1](https://lore.kernel.org/patchwork/cover/1373442), [v2](https://lore.kernel.org/patchwork/cover/1375012), [v3](https://lore.kernel.org/patchwork/cover/1378144) |
+| 2021/01/22 | Valentin Schneider | [sched/topology: NUMA distance deduplication](https://lore.kernel.org/patchwork/cover/1369363) | 修复 | v1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1369363), [LKML](https://lkml.org/lkml/2021/1/22/460) |2021/01/15 
+| 2021/01/27 | Song Bao Hua (Barry Song) | [sched/topology: fix the issue groups don't span domain->span for NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1378144)| 修复 3 跳问题的拓扑构建 | v2 | [2021/01/15 RFC v1](https://lore.kernel.org/patchwork/patch/1366256)<br>[2021/01/27 RFC v2](https://lore.kernel.org/patchwork/patch/1371875)<br>[2021/02/01 v1](https://lore.kernel.org/patchwork/cover/1373442)<br>[2021/02/03 v2](https://lore.kernel.org/patchwork/cover/1375012)<br>[2021/02/09 v3](https://lore.kernel.org/patchwork/cover/1378144) |
 | 2021/02/03 | Valentin Schneider | [sched/topology: Get rid of overlapping groups](https://lore.kernel.org/patchwork/cover/1375188) | 修复 3 跳问题 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1375188) |
 
  
