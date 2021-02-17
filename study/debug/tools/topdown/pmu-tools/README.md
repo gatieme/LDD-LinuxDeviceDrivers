@@ -8,7 +8,7 @@ tags:
         - linux
         - topdown
 categories:
-        - debug
+        - 技术积累
 
 thumbnail:
 blogexcerpt: 这篇文章旨在帮助希望更好地分析其应用程序中性能瓶颈的人们. 有许多现有的方法可以进行性能分析, 但其中没有很多方法既健壮又正式. 而 TOPDOWN 则为大家进行软硬协同分析提供了无限可能. 本文通过 pmu-tools 入手帮助大家进行 TOPDOWN 分析.

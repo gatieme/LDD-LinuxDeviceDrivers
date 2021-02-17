@@ -8,7 +8,7 @@ tags:
 	- linux
 	- debug
 categories:
-        - scheduler
+        - 内核探秘
 thumbnail:
 blogexcerpt: <br>Perfetto 工具是 Android 下一代全新的统一的 trace 收集和分析框架, 在 Android 9.0(API级别28)或更高版本的设备上, 可以使用 System Tracing 的 System App 在设备上记录系统跟踪, 可以抓取平台和app的 trace 信息, 是用来取代 systrace 的, 但 systrace 由于历史原因也还会一直存在, 并且 Perfetto 抓取的 trace 文件也可以同样转换成 systrace 视图.
 
