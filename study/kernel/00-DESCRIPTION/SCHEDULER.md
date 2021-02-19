@@ -360,7 +360,7 @@ core_scheduling 与 coscheduling
 
 *   core_scheduling 是近几年(笔者当前时间 2021 年 1 月)争议颇大的一个功能.
 
-随着 Intel CPU 漏洞的公布, 内核也开始关注之前硬件的一些设计所带来性能提升的同时, 引入的一些安全问题. SMT 超线程技术(simultaneous multi-threading, 或者"hyperthreading", 超线程）, 通过将一个物理 core 虚拟成2个或者多个 CPU thread(PE), 从而充分使用 CPU 的流水线技术, 为了提升性能, CPU 上进程运行时的数据不可避免会被加载到 cache 中, 由于这些 cpu thread 物理上是一个 core, 因此不能排除某些不怀好意的用户或者进程可以通过窥测的方式, 窥测同一个 core 上其他进程的隐私数据, 虽然这较难实施, 但是目前是不可屏蔽的. 这被称为 侧信道攻击.
+随着 Intel CPU 漏洞的公布, 内核也开始关注之前硬件的一些设计所带来性能提升的同时, 引入的一些安全问题. SMT 超线程技术(simultaneous multi-threading, 或者"hyperthreading", 超线程), 通过将一个物理 core 虚拟成2个或者多个 CPU thread(PE), 从而充分使用 CPU 的流水线技术, 为了提升性能, CPU 上进程运行时的数据不可避免会被加载到 cache 中, 由于这些 cpu thread 物理上是一个 core, 因此不能排除某些不怀好意的用户或者进程可以通过窥测的方式, 窥测同一个 core 上其他进程的隐私数据, 虽然这较难实施, 但是目前是不可屏蔽的. 这被称为 侧信道攻击.
 
 >  一个SMT 核包含两个或者更多的CPU(有时候也被称为"hardware threads")都共享很多底层硬件.  这里共享的包括一部分cache, 这样导致SMT可能会受基于cache进行的side-channel攻击.
 
@@ -368,8 +368,8 @@ Core scheduling 最开始的讨论来自 Julien Desfossez 和 Vineeth Remanan Pi
 
 Core scheduling 势必带来一些性能的下降, 但是理论上性能比开了 SMT 要差一些, 但是至少会比关掉 SMT 要好一些. 但是实施起来你会发现这只是大家一厢情愿了. 不同组之间相互是独占 CPU core 的, 那么不同组之间频繁争抢 CPU 资源和频繁开销所引入的影响, 在不同场景会被无限制放大. 而且不同组之间并没有优先级的概念, 因此混布场景性能下降最明显.
 
-> 对于担心这类攻击的服务器来说, 最好现在就把SMT关掉, 当然这会让一些workload（负载）的性能有不少下降. 
-> 在 2019 Linux Plumbers Conference 会议上至少有三个议题都提到了它. 其中主要的收获, 可能就是在最早的“防止side-channel attack”的目标之外, 又找到了其他一些应用场景. 
+> 对于担心这类攻击的服务器来说, 最好现在就把SMT关掉, 当然这会让一些workload(负载)的性能有不少下降.
+> 在 2019 Linux Plumbers Conference 会议上至少有三个议题都提到了它. 其中主要的收获, 可能就是在最早的“防止side-channel attack”的目标之外, 又找到了其他一些应用场景.
 
 *   coscheduling 近年来已经很少能看到调度里面 60 个补丁的大特性了
 
@@ -392,6 +392,9 @@ coscheduling 协同调度是为了解决云服务场景, 为不同用户提供�
 ## 1.2.1 普通进程的组调度支持(Fair Group Scheduling)
 -------
 
+### 1.2.1.1 CFS 组调度
+-------
+
 **2.6.24(2008年１月发布)**
 
 
@@ -400,8 +403,51 @@ coscheduling 协同调度是为了解决云服务场景, 为不同用户提供�
 
 基于此, 组调度的概念被引入[<sup>6</sup>](#refer-anchor-6). CFS 处理的不再是一个进程的概念, 而是调度实体(sched entity), 一个调度实体可以只包含一个进程, 也可以包含多个进程. 因此, 上述例子的困境可以这么解决: 分别为每个用户建立一个组, 组里放该用户所有进程, 从而保证用户间的公平性.
 
+该功能是基于控制组(control group, cgroup)的概念, 需要内核开启 CGROUP 的支持才可使用. 关于 CGROUP, 以后可能会写.
 
-该功能是基于控制组(control group, cgroup)的概念, 需要内核开启 CGROUP 的支持才可使用. 关于 CGROUP , 以后可能会写.
+
+### 1.2.1.2 CFS BANDWIDTH 带宽控制
+-------
+
+内核中的 `CFS BANDWIDTH Controller` 是控制每个 CGROUP 可以使用多少 CPU 时间的一种有效方式. 它可以避免某些进程消耗过多的 CPU 时间, 并确保所有需要 CPU 的进程都能拿到足够的时间.
+
+这个 bandwidth controller 提供了两个参数来管理针对各个 cgroup 的限制.
+
+| 参数 | 描述 |
+|:---:|:----:|
+| cpu.cfs_quota_us | 是这个 cgroup 在每个统计周期(accounting period)内可用的 CPU 时间(以微秒为单位).  |
+| cpu.cfs_period_us | 是统计周期的长度, 也是以微秒为单位 |
+
+因此, 假如我们将 cpu.cfs_quota_us 设置为 50000, cpu.cfs_period_us 设置为 100000, 将使该组在每 100ms 周期内消耗 50ms 的 CPU 时间. 将这些值减半(将 cpu.cfs_quota_us 设置为 25000, cpu.cfs_period_us 设置为 50000)的话, 就是每 50ms 消耗 25ms 的 CPU 时间. 在这两种情况下, 这个 cgroup 就被授权可以占用一个 CPU 的 50% 资源, 但在后一种设置下, 可供使用的 CPU 时间会来得更频繁, 更小块.
+
+这两种情况的区别很重要. 想象一下, 某个 cgroup 中只有一个进程, 需要运行 30ms. 在第一种情况下, 30ms 小于被授予的 50ms 时长, 所以进程能够完成任务, 不会被限制. 在第二种情况下, 进程在运行 25ms 后将被停止执行, 不得不等待下一个 50ms 周期再继续运行来完成工作. 如果 workload 对延迟敏感的话, 就需要仔细考虑 bandwidth controller 参数的设置.
+
+可以想象, Bandwidth Controller 并未完全满足每一个 workload 的全部需求. 这种机制对于那些需要持续执行特定 CPU 时长的工作负载来说效果相当不错. 不过, 对于突发性的工作负载, 会比较尴尬. 某个进程在大多数时间段内需要使用的时间可能远远少于它的配额(quota), 但偶尔会出现一个突发的工作, 此时它所需要用到的 CPU 时间可能又比配额要多. 在延迟问题并不敏感的情况下, 当然可以让该进程等待到下一个周期来完成它的工作, 但如果延迟问题确实影响很大的话, 那么我们不应该让它再等到下个周期.
+
+
+人们尝试了一些方法来解决这个问题.
+
+1.  大家都能想到的一种方法是直接给这个进程分配足够大的配额, 就可以处理这类突发事件了, 但这样做会使该进程总体上消耗更多的 CPU 时间. 系统管理员可能不喜欢这种做法, 尤其是如果用户只付费购买了一部分 CPU 时间的情况下, 系统管理员不希望给他分配更多时间.
+
+2.  另一种选择就是同时增加配额和周期, 但如果进程最终还是要等到下一个周期才能完成工作的话, 那也会导致延迟增加.
+
+
+社区提出的一组 patch 旨在让它更好地适用于突发的(bursty)、对延迟敏感(latency-sensitive)的 workload.
+
+Chang 的 patch set 采用了与之前不同的方法：允许 cgroup 将一些未使用的配额从一个周期转到下一个周期. 引入的新参数 cpu.cfs_burst_us 就设置了这种方式可以累积的时长上限. 举个例子, 继续讨论配额为 25ms, 周期为 50ms 的 cgroup 配置. 如果将 cpu.cfs_burst_us 设置为 40000(40ms), 那么这个 cgroup 中的进程在某个周期内最多可以运行 40ms, 但前提是它已经在之前的周期中省下了这次额外所需的 15ms. 这样一来, 这个 cgroup 就可以既满足它的突发性工作需求, 又能够在长时间的统计中保证它的 CPU 耗时仍然不超过配额上限.
+
+可以用另一种方式来解释这个做法, 当使用了 cpu.cfs_burst_us 的时候, 配额(quota)的定义就跟从前不一样了. 配额不再是绝对的数值上限, 而是在每个周期内向此 CPU 时间账户内存入的时长, cfs_burst_us 值就是这个账户的封顶值. 需要预先为突发事件做准备的 cgroup 就可以在该账户中来储蓄一些(有限的) CPU 时间, 在需要时使用.
+
+默认情况下, cpu.cfs_burst_us 为 0, 这就禁用了 burst 机制, 而遵照传统行为执行. 系统中有一个 sysctl 开关可以用来在整个系统中禁止使用 burst 方式. 还有另一个开关 (sysctl_sched_cfs_bw_burst_onset_percent), 用来每个周期开始时给每个组一个规定百分比的突发配额(burst quota), 不管以前的周期中是否积累出了这些时间.
+
+这组 patch set 附带了一些 benchmark 数据, 结果显示当使用 burstable controller 时, 最坏情况延迟数据有数量级的减少. 这个想法目前已经在 mailing list 上看到过好几次, 既有当前这个版本, 也有 Cong Wang 和 Konstantin Khlebnikov 独立实现的版本. 目前看来, 最大的障碍已经被克服了, 所以这个改动可能会在 5.13 合并窗口中进入 mainline.
+
+https://lore.kernel.org/lkml/20180522062017.5193-1-xiyou.wangcong@gmail.com/
+https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/02/21 | JHuaixin Chang | [[RFC,00/60] Coscheduling for Linux](https://lore.kernel.org/patchwork/cover/983568) | 突发任务的带宽控制优化, 通过临时之前剩余累计的配额, 使得突发进程在当前周期的配额突然用尽之后, 还可以临时使用之前累计的配额使用, 从而降级突发任务的时延. | RFC ☑ 5.9-rc1 | [ 2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1354613)<br>*-*-*-*-*-*-*-*<br>[2021/01/20 v2](https://lore.kernel.org/patchwork/cover/1368037)<br>*-*-*-*-*-*-*-*<br>[2021/01/21 v3](https://lore.kernel.org/patchwork/cover/1368747/)<br>*-*-*-*-*-*-*-*<br>[  2021-02-02 v4](https://lore.kernel.org/patchwork/cover/1374195) |
 
 
 ## 1.2.2 实时进程的组调度支持(RT Group Scheduling)
@@ -705,7 +751,7 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 
 一个是 ARM 和 Linaro 主导的项目 - cpufreq_sched, 属于 EAS 的一部分.
 
-而另外一个 Intel 主导的项目 - schedutil. 
+而另外一个 Intel 主导的项目 - schedutil.
 
 [cpufreq_sched](https://lkml.org/lkml/2016/2/22/1037) 本身逻辑比较简单, 当调度器发现进程运行时负载发生了变化, 就通过 update_cpu_capacity_request() 来更新当前 policy 下 CPU 的频率. 通过调度器直接更新频率, 自然响应速度快, 调频间隔短, 这固然是 cpufreq_sched 的优势, 但是把整个调频动作都放到调度器里做, 无疑会增加调度器的负担. 调度器代码路径变长, 也会增加调度器的延时. 如果某个平台的 cpufreq 驱动在设置 CPU 频率的时候会导致系统睡眠, 那么 cpufreq_sched 还需要在每一个 CPU 上额外开启一个线程, 防止对调度器造成影响. [scheduler-driven cpu frequency selection](https://lwn.net/Articles/649593)
 
@@ -830,7 +876,7 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 
 
 
-32 位的 linux 系统中可以使用 kmap 来映射高端内存, kmap() 函数本身, 会将一个 page 映射到内核的地址空间, 然后返回一个指针, 接下来就可以用这个指针来访问 page 的内容了. 不过, 用这种方式创建的映射开销是很大的. 它们会占用地址空间, 而且关于这个映射关系的改动必须要传播给系统的所有 CPU, 这个操作开销很大. 如果一个映射需要持续使用比较长的时间, 那么这项工作是必要的, 但是内核中的大部分 high memory 映射都是作为一个临时使用的映射, 短暂存在的, 并且只在一个地方来使用. 这种情况下, kmap()的开销中大部分都被浪费了. 
+32 位的 linux 系统中可以使用 kmap 来映射高端内存, kmap() 函数本身, 会将一个 page 映射到内核的地址空间, 然后返回一个指针, 接下来就可以用这个指针来访问 page 的内容了. 不过, 用这种方式创建的映射开销是很大的. 它们会占用地址空间, 而且关于这个映射关系的改动必须要传播给系统的所有 CPU, 这个操作开销很大. 如果一个映射需要持续使用比较长的时间, 那么这项工作是必要的, 但是内核中的大部分 high memory 映射都是作为一个临时使用的映射, 短暂存在的, 并且只在一个地方来使用. 这种情况下, kmap()的开销中大部分都被浪费了.
 
 因此, 人们加入了 kmap_atomic() API 作为避免这种开销的方法. 它也能做到将一个 high memory 的 page 映射到内核的地址空间中, 但是有一些不同. 它会从若干个 address slot 中挑一个进行映射, 而且这个映射只在创建它的 CPU 上有效. 这种设计意味着持有这种映射的代码必须在原子上下文中运行(因此叫 kmap_atomic()). 如果这部分代码休眠了, 或被移到另一个 CPU 上, 就肯定会出现混乱或者数据损坏了. 因此, 只要某一段在内核空间中运行的代码创建了一个 atomic mapping, 它就不能再被抢占或迁移, 也不允许睡眠, 直到所有的 atomic mapping 被释放. 为了支持这种功能, 内核需要提供 Migrate disable support. 在一些必要的路径上, 禁止进程进行迁移.
 
