@@ -21,5 +21,5 @@
 | 公司 | github | MAIN|
 |:-----:|:----------:|:-------:|
 | 华为| [openeuler](http://gitee.com/openeuler/kernel) | [openeuler](https://openeuler.org/zh) |
-| 阿里巴巴 | [alikernel](https://github.com/alibaba/alikernel) | [阿里云智能基础软件部-技术博客](https://kernel.taobao.org/) |
+| 阿里巴巴 | [alikernel](https://github.com/alibaba/alikernel) | [阿里云智能基础软件部-技术博客](https://kernel.taobao.org), [Alibaba Cloud Linux 2 DOC](https://help.aliyun.com/document_detail/154950.html?spm=a2c4g.11186623.3.3.37157594hOc6qA) |
 | 腾讯 | [TencentOS-kernel](https://github.com/Tencent/TencentOS-kernel) | NA |
