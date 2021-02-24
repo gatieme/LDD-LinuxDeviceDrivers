@@ -115,6 +115,16 @@
 内存管理实际上是一种关于权衡的零和游戏. 您可以开发一种使用少量内存进行管理的算法, 但是要花费更多时间来管理可用内存. 也可以开发一个算法来有效地管理内存, 但却要使用更多的内存. 最终, 特定应用程序的需求将促使对这种权衡作出选择. 
 
 
+ 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:------:|:---:|
+| 1991/01/01 | [示例 sched: Improve the scheduler]() | 此处填写描述【示例】 | ☑ ☒☐ v3/5.4-rc1 | [LWN](), [PatchWork](), [lkml]() |
+| 2016/06/27 | [mm: add page cache limit and reclaim feature](http://lore.kernel.org/patchwork/patch/473535) | Page Cache Limit | RFC v2 ☐  | [PatchWork](https://lore.kernel.org/patchwork/patch/473535) |
+| 2016/06/27 | [mm: mirrored memory support for page buddy allocations](http://lore.kernel.org/patchwork/patch/574230) | 内存镜像的功能 | RFC v2 ☐  | [PatchWork](https://lore.kernel.org/patchwork/patch/574230) |
+| 2018/05/17 | [Speculative page faults](http://lore.kernel.org/patchwork/patch/906210) | SPF | v11 ☐  | [PatchWork](https://lore.kernel.org/patchwork/patch/906210) |
+| 2018/07/09 | [Improve shrink_slab() scalability (old complexity was O(n^2), new is O(n))](http://lore.kernel.org/patchwork/patch/960597) | 内存镜像的功能 | RFC v2 ☐  | [PatchWork](https://lore.kernel.org/patchwork/patch/960597) |
+| 2020/02/24 | [Fine grained MM locking](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) | MM lockless | RFC ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com), [fine_grained_mm.pdf](https://linuxplumbersconf.org/event/4/contributions/556/attachments/304/509/fine_grained_mm.pdf) | 
+
+
 # 2.1 内存分配
 -------
 
