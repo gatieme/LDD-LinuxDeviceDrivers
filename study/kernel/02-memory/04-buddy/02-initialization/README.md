@@ -11,10 +11,12 @@
 ------
 
 
-##1.1	启动阶段的内存初始化
+##1.1	启动阶段的物理内存初始化
 -------
 
-之前我们讲解了系统内存管理初始化的第二阶段(buddy的初始化), 但是我们讲解的很粗糙, 我们仅仅讲解了内存管理的主要流程创建
+
+
+之前我们讲解了系统内存管理初始化的时候, 有简单提过第二阶段(buddy的初始化), 但是我们讲解的很粗糙, 我们仅仅讲解了内存管理的主要流程创建
 
 
 ```cpp
@@ -44,14 +46,20 @@ start_kernel()
                 |---->zone_sizes_init(min, max);
                     来初始化节点和管理区的一些数据项
                     |
-                    |---->free_area_init_node
-                    |   初始化内存节点
+                    |---->free_area_init
+                    |   初始系统的所有内存节点(依次遍历各个 MEM NODE)
                     |
-                        |---->free_area_init_core
-                            |	初始化zone
+                        ---->free_area_init_node(int nid)
+                            |	初始化当前 nid 的内存节点 
                             |
-                            |---->memmap_init
-                            |	初始化page页面
+                            |---->free_area_init_core(pgdat);
+                                 初始化当前节点的所有 ZONE(以此遍历各个 ZONE)
+                                 |
+                                 |---->usemap_size
+                                 |     分配当前 ZONE 的 pageblock_flags
+                                 |
+                                 |---->memmap_init
+                                 |	   初始化page页面
                 |
                 |---->memblock_dump_all();
                 |   初始化完成, 显示memblock的保留的所有内存信息
@@ -103,8 +111,64 @@ start_kernel()
 
 
 
+
 ##1.2	内存节点的初始化
 -------
+
+
+
+```cpp
+|---->free_area_init
+|   初始系统的所有内存节点(依次遍历各个 MEM NODE)
+|
+    ---->free_area_init_node(int nid)
+        | 初始化当前 nid 的内存节点 
+        |
+        |---->free_area_init_core(pgdat);
+             初始化当前节点的所有 ZONE(以此遍历各个 ZONE)
+             |
+             |---->usemap_size
+             |     分配当前 ZONE 的 pageblock_flags
+             |
+             |---->memmap_init
+             |     初始化page页面
+```
+
+## 1.3 ZONE 初始化
+-------
+
+free_area_init 中完成了系统内存的初始化操作.
+
+其中 zone 的初始化由 [`free_area_init_core()`, v5.10](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L6834) 完成.
+
+```cpp
+|---->free_area_init_core
+|     初始化当前节点的所有 ZONE(以此遍历各个 ZONE)
+    |
+    |---->memmap_pages = calc_memmap_size(size, freesize);
+    |       初始化当前 nid 的内存节点 
+    |
+    |---->zone_init_internals(zone, j, nid, freesize);
+    |       初始化当前节点的所有 ZONE(以此遍历各个 ZONE)
+    |
+    |---->set_pageblock_order();
+    |
+    |
+    |---->setup_usemap(pgdat, zone, zone_start_pfn, size);
+    |       初始化page页面
+    |
+    |---->init_currently_empty_zone(zone, zone_start_pfn, size);
+    |
+    |---->memmap_init(size, nid, j, zone_start_pfn);
+```
+
+* for (j = 0; j < MAX_NR_ZONES; j++) 依次遍历当前内存节点 pglist_data 的所有 ZONE
+
+* [`setup_usemap()`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L6688) 函数中通过 usemap_size() 计算存储 pageblock_flags 所需的内存大小 usemapsize, 并通过 memblock_alloc_node 为其分配空间. 其中 [`usemap_size()`, v5.10](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L6675)
+
+* [`init_currently_empty_zone()`, v5.10](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L6396) 函数完成了 ZONE 初始化的最后操作, 并将 zone->initialized 标记置为 1, 至此 ZONE 的初始化完成了, 其中通过 zone_init_free_lists() 将各个 ORDER 的各个 MIGRATE_TYPES 类型的 BUDDY 都进行了初始化, 将 `free_area->free_list[]` 置为空列表数组, nr_free 置为 0. 
+
+* [`memmap_init()`, v5.10](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L6188) 中通过 [`memmap_init_zone()`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L6051)->[`set_pageblock_migratetype()`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L572) 设置了每个页面的 MIGRATE_TYPE 类型为 MIGRATE_MOVABLE 可迁移类型.
 
 
 
@@ -112,4 +176,46 @@ start_kernel()
 ##1.3	今日内容(buddy的初始化)
 -------
 
+至此, 内存节点, ZONE, BUDDY 都已经初始化好了, 但是页面还没有加到伙伴系统 BUDDY 中, 此外可以发现初始化的时候系统所有的内存都是 MIGRATE_MOVABLE 可以迁移的.
 
+那么我们就很好奇了 :
+
+1.  BUDDY 伙伴系统的 `free_area->free_list[]` 被初始化为 `[]` 数组了, nr_free 也是 0, 那么物理页面怎么加进来呢 ?
+
+2.  系统初始化所有物理内存的迁移类型都是 MIGRATE_MOVABLE, 那如果想要分配 MIGRATE_UNMOVABLE 不可迁移的或者其他类型的内存, 该怎么搞 ?
+
+真正完成伙伴系统中 `free_list` 初始化工作的是在 `free_low_memory_core_early()` 中，其代码调用图如下 :
+
+
+```cpp
+arch_call_rest_init
+  rest_init()
+    kernel_init_freeable()
+      page_alloc_init_late
+        memblock_discard
+          __memblock_free_late
+            memblock_free_pages
+              __free_pages_core
+                __free_pages_ok
+free_one_page
+__free_one_page
+```
+
+```cpp
+mem_init
+memblock_free_all
+free_low_memory_core_early
+free_memory_core
+__free_pages_memory
+memblock_free_pages
+free_pages_core
+__free_pages_ok
+free_one_page
+__free_one_page
+```
+
+[`free_low_memory_core_early()`, v5.10](https://elixir.bootlin.com/linux/v5.10/source/mm/memblock.c#L1960) 就完成了两个工作:
+
+1.  [`reserve_bootmem_region()`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L1488) 把内核预留的内存 reserve 掉.
+
+2.  [`__free_memory_core()`](https://elixir.bootlin.com/linux/v5.10/source/mm/memblock.c#L1945) 通过释放页面的方式把页面归还到 BUDDY 伙伴系统中.
