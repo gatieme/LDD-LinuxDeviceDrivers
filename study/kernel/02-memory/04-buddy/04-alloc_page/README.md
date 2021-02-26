@@ -6,7 +6,11 @@
 | 2016-06-14 | [Linux-4.7](http://lxr.free-electrons.com/source/?v=4.7) | X86 & arm | [gatieme](http://blog.csdn.net/gatieme) | [LinuxDeviceDrivers](https://github.com/gatieme/LDD-LinuxDeviceDrivers) | [Linux内存管理](http://blog.csdn.net/gatieme/article/category/6393814) |
 
 
+# 1 页面分配
+-------
 
+## 1.1 页面分配概述
+-------
 
 在内核初始化完成之后, 内存管理的责任就由伙伴系统来承担. 伙伴系统基于一种相对简单然而令人吃惊的强大算法.
 
@@ -23,32 +27,28 @@ Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该�
 *	内存碎片的问题和分配器如何处理碎片
 
 
-
-#内存分配API
--------
-
-##2.1	内存分配器API
+## 1.2 内存分配 API
 -------
 
 
+就伙伴系统的接口而言, NUMA 或 UMA 体系结构是没有差别的, 二者的调用语法都是相同的.
 
-就伙伴系统的接口而言, NUMA或UMA体系结构是没有差别的, 二者的调用语法都是相同的.
+所有函数的一个共同点是 : 只能分配 2 的整数幂个页.
 
-所有函数的一个共同点是 : 只能分配2的整数幂个页.
-
-因此，接口中不像C标准库的malloc函数或bootmem和memblock分配器那样指定了所需内存大小作为参数. 相反, 必须指定的是分配阶, 伙伴系统将在内存中分配$2^order$页. 内核中细粒度的分配只能借助于slab分配器(或者slub、slob分配器), 后者基于伙伴系统
+因此, 接口中不像C标准库的 malloc 函数或 bootmem 和 memblock 分配器那样指定了所需内存大小作为参数. 相反, 必须指定的是分配阶, 伙伴系统将在内存中分配 $2^order$ 页. 内核中细粒度的分配只能借助于 slab 分配器(或者 slub、slob 分配器), 后者基于伙伴系统
 
 
 | 内存分配函数 | 功能 | 定义 |
 |:-----:|:-----:|
-| alloc_pages(mask, order) | 分配$2^order$页并返回一个struct page的实例，表示分配的内存块的起始页 | [NUMA-include/linux/gfp.h, line 466](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L466)<br>[UMA-include/linux/gfp.h?v=4.7, line 476](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L476) |
-| alloc_page(mask) | 是前者在order = 0情况下的简化形式，只分配一页 |  [include/linux/gfp.h?v=4.7, line 483](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483) |
-| get_zeroed_page(mask) | 分配一页并返回一个page实例，页对应的内存填充0（所有其他函数，分配之后页的内容是未定义的） | [mm/page_alloc.c?v=4.7, line 3900](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3900)| |
-| [__get_free_pages(mask, order)](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)<br>[__get_free_page(mask)](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L500) | 工作方式与上述函数相同，但返回分配内存块的虚拟地址，而不是page实例 |
-| get_dma_pages(gfp_mask, order) | 用来获得适用于DMA的页. | [include/linux/gfp.h?v=4.7, line 503](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L503) |
+| alloc_pages(mask, order) | 分配$2^order$ 个连续的物理页面, 并返回第一个页面的 struct page 的实例, 表示分配的内存块的起始页 | [NUMA-include/linux/gfp.h, line 466](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L466)<br>[UMA-include/linux/gfp.h?v=4.7, line 476](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L476) |
+| [`__get_free_pages(mask, order)`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)<br>[`__get_free_page(mask)`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L500) | 工作方式与上述函数相同, 但返回分配内存块的虚拟地址, 而不是page实例<br>32 位系统中, 该函数不会使用高端内存, 如果一定要使用高端内存, 最佳的办法是使用 alloc_pages 和 kmap 函数. |
+| alloc_page(mask) | 是前者在order = 0情况下的简化形式, 只分配一页 |  [include/linux/gfp.h?v=4.7, line 483](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483) |
+| `__get_free_page(gfp_mask)` | 是 `__get_free_pages` 在 `order = 0` 情况下的简化形式, 只分配一页 |  [include/linux/gfp.h?v=4.7, line 483](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483) |
+| get_zeroed_ page(mask) | 分配一页并返回一个page实例, 页对应的内存填充0（所有其他函数, 分配之后页的内容是未定义的） | [mm/page_alloc.c?v=4.7, line 3900](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3900)| |
+| get_dma_pages(gfp_mask, order) | 用来获得适用于DMA的页. | [`include/linux/gfp.h?v=4.7, line 503`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L503) |
 
 
-在空闲内存无法满足请求以至于分配失败的情况下，所有上述函数都返回空指针(比如alloc_pages和alloc_page)或者0(比如get_zeroed_page、__get_free_pages和__get_free_page).
+在空闲内存无法满足请求以至于分配失败的情况下, 所有上述函数都返回空指针(比如alloc_pages和alloc_page)或者0(比如 `get_zeroed_page`、 `__get_free_pages` 和 `__get_free_page`).
 
 因此内核在各次分配之后都必须检查返回的结果. 这种惯例与设计得很好的用户层应用程序没什么不同, 但在内核中忽略检查会导致严重得多的故障
 
@@ -57,13 +57,57 @@ Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该�
 
 还有一组kmalloc类型的函数, 用于分配小于一整页的内存区. 其实现将在以后分别讨论。
 
-
-
-##2.2	内存分配API统一到alloc_pages接口
+# 2 alloc_page
 -------
 
 
-通过使用标志、内存域修饰符和各个分配函数，内核提供了一种非常灵活的内存分配体系.尽管如此, 所有接口函数都可以追溯到一个简单的基本函数(alloc_pages_node)
+## 2.1 alloc_page 的流程
+-------
+
+
+
+##2.2   伙伴系统的心脏__alloc_pages_nodemask
+-------
+
+内核源代码将`__alloc_pages_nodemask`称之为"伙伴系统的心脏"(`the 'heart' of the zoned buddy allocator``), 因为它处理的是实质性的内存分配.
+
+由于"心脏"的重要性, 我将在下文详细介绍该函数.
+
+
+
+`__alloc_pages_nodemask`函数定义在[include/linux/gfp.h?v=4.7#L428](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428)
+
+
+通过使用标志、内存域修饰符和各个分配函数, 内核提供了一种非常灵活的内存分配体系.尽管如此, 所有接口函数都可以追溯到一个简单的基本函数(alloc_pages_node)
+
+
+```cpp
+#ifdef CONFIG_NUMA
+extern struct page *alloc_pages_current(gfp_t gfp_mask, unsigned order);
+
+static inline struct page *
+alloc_pages(gfp_t gfp_mask, unsigned int order)
+{
+    return alloc_pages_current(gfp_mask, order);
+}
+extern struct page *alloc_pages_vma(gfp_t gfp_mask, int order,
+            struct vm_area_struct *vma, unsigned long addr,
+            int node, bool hugepage);
+#define alloc_hugepage_vma(gfp_mask, vma, addr, order) \
+    alloc_pages_vma(gfp_mask, order, vma, addr, numa_node_id(), true)
+#else
+static inline struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
+{
+    return alloc_pages_node(numa_node_id(), gfp_mask, order);
+}
+#define alloc_pages_vma(gfp_mask, order, vma, addr, node, false)\
+    alloc_pages(gfp_mask, order)
+#define alloc_hugepage_vma(gfp_mask, vma, addr, order) \
+    alloc_pages(gfp_mask, order)
+#endif
+```
+
+
 
 分配单页的函数[`alloc_page`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483)和[`__get_free_page`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L500), 还有[`__get_dma_pages`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L503)是借助于宏定义的.
 
@@ -80,7 +124,7 @@ Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该�
 	__get_free_pages((gfp_mask) | GFP_DMA, (order))
 ```
 
-[`get_zeroed_page`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3900)的实现也没什么困难, 对`__get_free_pages`使用`__GFP_ZERO`标志，即可分配填充字节0的页. 再返回与页关联的内存区地址即可.
+[`get_zeroed_page`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3900)的实现也没什么困难, 对`__get_free_pages`使用`__GFP_ZERO`标志, 即可分配填充字节0的页. 再返回与页关联的内存区地址即可.
 
 
 ```cpp
@@ -117,9 +161,9 @@ unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
 EXPORT_SYMBOL(__get_free_pages);
 ```
 
-在这种情况下， 使用了一个普通函数而不是宏， 因为`alloc_pages`返回的`page`实例需要使用辅助
+在这种情况下,  使用了一个普通函数而不是宏,  因为`alloc_pages`返回的`page`实例需要使用辅助
 
-函数`page_address`转换为内存地址. 在这里，只要知道该函数可根据`page`实例计算相关页的线性内存地址即可. 对高端内存页这是有问题的
+函数`page_address`转换为内存地址. 在这里, 只要知道该函数可根据`page`实例计算相关页的线性内存地址即可. 对高端内存页这是有问题的
 
 
 <font color = 0x00ffff>
@@ -136,11 +180,15 @@ EXPORT_SYMBOL(__get_free_pages);
 | [arch/x86/include/asm/page_32.h?v=4.7, line 24](http://lxr.free-electrons.com/source/arch/x86/include/asm/page_32.h?v=4.7#L24) | [arch/arm/include/asm/page.h?v=4.7#L14](http://lxr.free-electrons.com/source/arch/arm/include/asm/page.h?v=4.7#L142)<br>[arch/arm/include/asm/page-nommu.h](http://lxr.free-electrons.com/source/arch/arm/include/asm/page-nommu.h?v=4.7#L20) |
 
 
-##2.2	alloc_pages函数分配页
+
+
+# 3	alloc_pages函数分配页
 -------
 
+## 3.1 alloc_pages 接口实现
+-------
 
-既然所有的内存分配API函数都可以追溯掉`alloc_page`函数, 从某种意义上说，该函数是伙伴系统主要实现的"发射台".
+既然所有的内存分配API函数都可以追溯掉`alloc_page`函数, 从某种意义上说, 该函数是伙伴系统主要实现的"发射台".
 
 
 `alloc_pages`函数的定义是依赖于NUMA或者UMA架构的, 定义如下
@@ -163,6 +211,19 @@ alloc_pages(gfp_t gfp_mask, unsigned int order)
                 alloc_pages_node(numa_node_id(), gfp_mask, order)
 #endif
 ```
+
+
+## 3.2 UMA
+-------
+
+```cpp
+alloc_pages
+alloc_pages_node
+__alloc_pages_node
+__alloc_pages
+__alloc_pages_nodemask
+```
+
 
 
 UMA结构下的`alloc_pages`是通过`alloc_pages_node`函数实现的, 下面我们看看`alloc_pages_node`函数的定义, 在[include/linux/gfp.h?v=4.7, line 448](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L448)
@@ -222,16 +283,18 @@ __alloc_pages(gfp_t gfp_mask, unsigned int order,
 }
 ```
 
-##2.3	伙伴系统的心脏__alloc_pages_nodemask
+
+## 3.3 NUMA 
 -------
 
-内核源代码将`__alloc_pages_nodemask`称之为"伙伴系统的心脏"(`the 'heart' of the zoned buddy allocator``), 因为它处理的是实质性的内存分配.
+```cpp
+alloc_pages
+alloc_pages_current
+alloc_page_interleave
+__alloc_pages_nodemask
+```
 
-由于"心脏"的重要性, 我将在下文详细介绍该函数.
 
-
-
-`__alloc_pages_nodemask`函数定义在[include/linux/gfp.h?v=4.7#L428](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428)
 
 
 
@@ -260,7 +323,7 @@ enum zone_watermarks {
 
 
 
-内核需要定义一些函数使用的标志，用于控制到达各个水印指定的临界状态时的行为, 这些标志用宏来定义, 定义在[mm/internal.h?v=4.7, line 453](http://lxr.free-electrons.com/source/mm/internal.h?v=4.7#L453)
+内核需要定义一些函数使用的标志, 用于控制到达各个水印指定的临界状态时的行为, 这些标志用宏来定义, 定义在[mm/internal.h?v=4.7, line 453](http://lxr.free-electrons.com/source/mm/internal.h?v=4.7#L453)
 
 ```cpp
 /* The ALLOC_WMARK bits are used as an index to zone->watermark */
@@ -361,7 +424,7 @@ bool __zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
         return true;
 
     /* For a high-order request, check at least one suitable page is free 
-     * 在下一阶，当前阶的页是不可用的  */
+     * 在下一阶, 当前阶的页是不可用的  */
     for (o = order; o < MAX_ORDER; o++) {
         struct free_area *area = &z->free_area[o];
         int mt;
@@ -396,7 +459,7 @@ bool __zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
 free_pages -= zone_page_state(z, NR_FREE_CMA_PAGES);
 ```
 
-在解释了`ALLOC_HIGH`和`ALLOC_HARDER`标志之后(将最小值标记降低到当前值的一半或四分之一，使得分配过程努力或更加努力), 
+在解释了`ALLOC_HIGH`和`ALLOC_HARDER`标志之后(将最小值标记降低到当前值的一半或四分之一, 使得分配过程努力或更加努力), 
 ```cpp
 if (alloc_flags & ALLOC_HIGH)
 	min -= min / 2;
@@ -443,7 +506,7 @@ for (o = order; o < MAX_ORDER; o++) {
 }
 ```
 
-如果内核遍历所有的低端内存域之后，发现内存不足, 则不进行内存分配.
+如果内核遍历所有的低端内存域之后, 发现内存不足, 则不进行内存分配.
 
 
 
@@ -454,7 +517,7 @@ for (o = order; o < MAX_ORDER; o++) {
 http://blog.csdn.net/yuzhihui_no1/article/details/50776826
 http://bbs.chinaunix.net/thread-3769001-1-1.html
 
-`get_page_from_freelist`是伙伴系统使用的另一个重要的辅助函数. 它通过标志集和分配阶来判断是否能进行分配。如果可以，则发起实际的分配操作. 该函数定义在[mm/page_alloc.c?v=4.7, line 2905](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L2905)
+`get_page_from_freelist`是伙伴系统使用的另一个重要的辅助函数. 它通过标志集和分配阶来判断是否能进行分配。如果可以, 则发起实际的分配操作. 该函数定义在[mm/page_alloc.c?v=4.7, line 2905](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L2905)
 
 这个函数的参数很有意思, 之前的时候这个函数的参数只能用复杂来形容
 
@@ -504,21 +567,21 @@ struct alloc_context {
 
 | 字段 | 描述 |
 |:-----:|:-----:|
-| zonelist | 当perferred_zone上没有合适的页可以分配时，就要按zonelist中的顺序扫描该zonelist中备用zone列表，一个个的试用 |
-| nodemask | 表示节点的mask，就是是否能在该节点上分配内存，这是个bit位数组 |
-| preferred_zone | 表示从high_zoneidx后找到的合适的zone，一般会从该zone分配；分配失败的话，就会在zonelist再找一个preferred_zone = 合适的zone |
-| migratetype | 迁移类型，在zone->free_area.free_list[XXX] 作为分配下标使用，这个是用来反碎片化的，修改了以前的free_area结构体，在该结构体中再添加了一个数组，该数组以迁移类型为下标，每个数组元素都挂了对应迁移类型的页链表 |
-| high_zoneidx | 是表示该分配时，所能分配的最高zone，一般从high-->normal-->dma 内存越来越昂贵，所以一般从high到dma分配依次分配 |
+| zonelist | 当perferred_zone上没有合适的页可以分配时, 就要按zonelist中的顺序扫描该zonelist中备用zone列表, 一个个的试用 |
+| nodemask | 表示节点的mask, 就是是否能在该节点上分配内存, 这是个bit位数组 |
+| preferred_zone | 表示从high_zoneidx后找到的合适的zone, 一般会从该zone分配；分配失败的话, 就会在zonelist再找一个preferred_zone = 合适的zone |
+| migratetype | 迁移类型, 在zone->free_area.free_list[XXX] 作为分配下标使用, 这个是用来反碎片化的, 修改了以前的free_area结构体, 在该结构体中再添加了一个数组, 该数组以迁移类型为下标, 每个数组元素都挂了对应迁移类型的页链表 |
+| high_zoneidx | 是表示该分配时, 所能分配的最高zone, 一般从high-->normal-->dma 内存越来越昂贵, 所以一般从high到dma分配依次分配 |
 | spread_dirty_pages | |
 
 
 zonelist是指向备用列表的指针. 在预期内存域没有空闲空间的情况下, 该列表确定了扫描系统其他内存域(和结点)的顺序.
 
-随后的for循环所作的基本上与直觉一致, 遍历备用列表的所有内存域，用最简单的方式查找一个适当的空闲内存块
+随后的for循环所作的基本上与直觉一致, 遍历备用列表的所有内存域, 用最简单的方式查找一个适当的空闲内存块
 
-*	首先，解释ALLOC_*标志(\__cpuset_zone_allowed_softwall是另一个辅助函数, 用于检查给定内存域是否属于该进程允许运行的CPU).
+*	首先, 解释ALLOC_*标志(\__cpuset_zone_allowed_softwall是另一个辅助函数, 用于检查给定内存域是否属于该进程允许运行的CPU).
 
-*	zone_watermark_ok接下来检查所遍历到的内存域是否有足够的空闲页，并试图分配一个连续内存块。如果两个条件之一不能满足，即或者没有足够的空闲页，或者没有连续内存块可满足分配请求，则循环进行到备用列表中的下一个内存域，作同样的检查. 直到找到一个合适的页面, 在进行try_this_node进行内存分配
+*	zone_watermark_ok接下来检查所遍历到的内存域是否有足够的空闲页, 并试图分配一个连续内存块。如果两个条件之一不能满足, 即或者没有足够的空闲页, 或者没有连续内存块可满足分配请求, 则循环进行到备用列表中的下一个内存域, 作同样的检查. 直到找到一个合适的页面, 在进行try_this_node进行内存分配
 
 *	如果内存域适用于当前的分配请求, 那么buffered_rmqueue试图从中分配所需数目的页
 
@@ -670,7 +733,7 @@ reset_fair:
 -------
 
 如前所述, `__alloc_pages_nodemask`是伙伴系统的心脏. 我们已经处理了所有的准备工作并描述了所有可能的标志, 现在我们把注意力转向相对复杂的部分 : 函数`__alloc_pages_nodemask`的实现, 这也是内核中比较冗长的部分
-之一. 特别是在可用内存太少或逐渐用完时, 函数就会比较复杂. 如果可用内存足够，则必要的工作会很快完成，就像下述代码
+之一. 特别是在可用内存太少或逐渐用完时, 函数就会比较复杂. 如果可用内存足够, 则必要的工作会很快完成, 就像下述代码
 
 ##4.1	函数源代码注释
 -------
