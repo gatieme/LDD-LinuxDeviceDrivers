@@ -273,3 +273,15 @@ static void __init __free_pages_memory(unsigned long start, unsigned long end)
 2.  从 start 入手, 这时候假设 end 无限大, 算出 [start, ∞) 能归还的最大的 order( start 高位的 1 出现的位置), 然后接着不断缩小 order, 保证 start + (1UL << order) 范围不超出 end.
 
 很明显, 内核使用的是第二种方式, 不管是那种方式, 其实算法思想是一样的, 都是贪心, 只是实现上不一样.
+
+这样通过 free 页面的方式就把页面归还到了伙伴系统, 每次归还总是尽可能归还当前能分离出的最大 ORDER, 这样大多数页面都是在 ORDER = 10 的列表中, 其他 ORDER 也会有一些零零碎碎的页面. 当然最理想的情况是所有页面都在 ORDER = 10 的列表中.
+
+
+可以启动后通过 `buddyinfo` 查看各个内存 NODE 各个 ZONE 上 BUDDY 伙伴系统不同 ORDER 的页面总数. 可以看到系统刚启动的时候, 基本上所有的页面都集中在 ORDER = 10 的列表中.
+
+![cat /proc/buddyinfo](./0001-cat_buddyinfo.png)
+
+可以通过 `proc/pagetypeinfo` 查看各个 migrate type 的页面, 可以看到系统刚启动的时候, 基本上所有的页面都是 Movable 类型的.
+
+
+![cat /proc/buddyinfo](./0002-cat_pagetypeinfo.png)
