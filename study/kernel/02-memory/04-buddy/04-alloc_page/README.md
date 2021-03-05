@@ -39,12 +39,12 @@ Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该�
 
 
 | 内存分配函数 | 功能 | 定义 |
-|:-----:|:-----:|
+|:----------:|:---:|:----:|
 | alloc_pages(mask, order) | 分配$2^order$ 个连续的物理页面, 并返回第一个页面的 struct page 的实例, 表示分配的内存块的起始页 | [NUMA-include/linux/gfp.h, line 466](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L466)<br>[UMA-include/linux/gfp.h?v=4.7, line 476](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L476) |
 | [`__get_free_pages(mask, order)`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)<br>[`__get_free_page(mask)`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L500) | 工作方式与上述函数相同, 但返回分配内存块的虚拟地址, 而不是page实例<br>32 位系统中, 该函数不会使用高端内存, 如果一定要使用高端内存, 最佳的办法是使用 alloc_pages 和 kmap 函数. |
 | alloc_page(mask) | 是前者在order = 0情况下的简化形式, 只分配一页 |  [include/linux/gfp.h?v=4.7, line 483](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483) |
-| `__get_free_page(gfp_mask)` | 是 `__get_free_pages` 在 `order = 0` 情况下的简化形式, 只分配一页 |  [include/linux/gfp.h?v=4.7, line 483](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483) |
-| get_zeroed_ page(mask) | 分配一页并返回一个page实例, 页对应的内存填充0（所有其他函数, 分配之后页的内容是未定义的） | [mm/page_alloc.c?v=4.7, line 3900](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3900)| |
+| `__get_free_page(gfp_mask)` | 是 `__get_free_pages` 在 `order = 0` 情况下的简化形式, 只分配一页 |  [include/linux/gfp.h?v=5.10, line 483](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483) |
+| get_zeroed_page(mask) | 分配一页并返回一个page实例, 页对应的内存填充0(所有其他函数, 分配之后页的内容是未定义的) | [mm/page_alloc.c?v=5.10, line 4996](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L4996)| |
 | get_dma_pages(gfp_mask, order) | 用来获得适用于DMA的页. | [`include/linux/gfp.h?v=4.7, line 503`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L503) |
 
 
@@ -66,10 +66,10 @@ Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该�
 
 
 
-##2.2   伙伴系统的心脏__alloc_pages_nodemask
+##2.2   伙伴系统的心脏 __alloc_pages_nodemask
 -------
 
-内核源代码将`__alloc_pages_nodemask`称之为"伙伴系统的心脏"(`the 'heart' of the zoned buddy allocator``), 因为它处理的是实质性的内存分配.
+内核源代码将`__alloc_pages_nodemask` 称之为"伙伴系统的心脏"(`the 'heart' of the zoned buddy allocator`), 因为它处理的是实质性的内存分配.
 
 由于"心脏"的重要性, 我将在下文详细介绍该函数.
 
