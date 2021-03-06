@@ -1,4 +1,4 @@
-服务器体系与共享存储器架构
+伙伴系统之页面分配
 =======
 
 | 日期 | 内核版本 | 架构| 作者 | GitHub| CSDN |
@@ -64,9 +64,7 @@ Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该�
 ## 2.1 alloc_page 的流程
 -------
 
-
-
-##2.2   伙伴系统的心脏 __alloc_pages_nodemask
+## 2.2   伙伴系统的心脏 `__alloc_pages_nodemask`
 -------
 
 内核源代码将`__alloc_pages_nodemask` 称之为"伙伴系统的心脏"(`the 'heart' of the zoned buddy allocator`), 因为它处理的是实质性的内存分配.
@@ -75,7 +73,7 @@ Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该�
 
 
 
-`__alloc_pages_nodemask`函数定义在[include/linux/gfp.h?v=4.7#L428](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428)
+`__alloc_pages_nodemask` 函数定义在 [include/linux/gfp.h?v=4.7#L428](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428)
 
 
 通过使用标志、内存域修饰符和各个分配函数, 内核提供了一种非常灵活的内存分配体系.尽管如此, 所有接口函数都可以追溯到一个简单的基本函数(alloc_pages_node)
@@ -181,8 +179,7 @@ EXPORT_SYMBOL(__get_free_pages);
 
 
 
-
-# 3	alloc_pages函数分配页
+# 3	alloc_pages 函数分配页
 -------
 
 ## 3.1 alloc_pages 接口实现
@@ -217,11 +214,16 @@ alloc_pages(gfp_t gfp_mask, unsigned int order)
 -------
 
 ```cpp
-alloc_pages
-alloc_pages_node
-__alloc_pages_node
-__alloc_pages
-__alloc_pages_nodemask
+|---->alloc_pages
+|
+     |---->alloc_pages_node
+     |    
+          |---->__alloc_pages_node
+          |
+               |---->__alloc_pages
+               |
+                   |---->__alloc_pages_nodemask
+                   |
 ```
 
 
@@ -253,7 +255,7 @@ static inline struct page *alloc_pages_node(int nid, gfp_t gfp_mask,
 `__alloc_pages_node`函数定义在[include/linux/gfp.h?v=4.7, line 435)](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L435), 如下所示
 
 ```cpp
-// http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L435
+// https://elixir.bootlin.com/linux/v5.10/source/include/linux/gfp.h#L519
 /*
  * Allocate pages, preferring the node given as nid. The node must be valid and
  * online. For more general interface, see alloc_pages_node().
@@ -262,9 +264,9 @@ static inline struct page *
 __alloc_pages_node(int nid, gfp_t gfp_mask, unsigned int order)
 {
     VM_BUG_ON(nid < 0 || nid >= MAX_NUMNODES);
-    VM_WARN_ON(!node_online(nid));
+    VM_WARN_ON((gfp_mask & __GFP_THISNODE) && !node_online(nid));
 
-    return __alloc_pages(gfp_mask, order, node_zonelist(nid, gfp_mask));
+    return __alloc_pages(gfp_mask, order, nid);
 }
 ```
 
@@ -274,12 +276,11 @@ __alloc_pages_node(int nid, gfp_t gfp_mask, unsigned int order)
 现在`__alloc_pages`函数没什么特别的, 它直接将自己的所有信息传递给`__alloc_pages_nodemask`来完成内存的分配
 
 ```cpp
-//  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428
+// https://elixir.bootlin.com/linux/v5.10/source/include/linux/gfp.h#L509
 static inline struct page *
-__alloc_pages(gfp_t gfp_mask, unsigned int order,
-        struct zonelist *zonelist)
+__alloc_pages(gfp_t gfp_mask, unsigned int order, int preferred_nid)
 {
-    return __alloc_pages_nodemask(gfp_mask, order, zonelist, NULL);
+    return __alloc_pages_nodemask(gfp_mask, order, preferred_nid, NULL);
 }
 ```
 

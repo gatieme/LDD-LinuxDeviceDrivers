@@ -76,14 +76,17 @@ start_kernel()
 
 ```cpp
     |---->page_alloc_init()
+    |
          |---->hotcpu_notifier(page_alloc_cpu_notifier, 0);
          |     不考虑热插拔CPU 
          |
     |---->pidhash_init()
+    |
     |     详见下文.
     |     根据低端内存页数和散列度，分配hash空间，并赋予pid_hash
     |
     |---->vfs_caches_init_early()
+    |
           |---->dcache_init_early()
           |     dentry_hashtable空间，d_hash_shift, h_hash_mask赋值；
           |     同pidhash_init();
