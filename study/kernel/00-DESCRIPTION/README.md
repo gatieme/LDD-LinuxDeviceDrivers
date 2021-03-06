@@ -56,6 +56,7 @@
 |:---:|:------:|
 | **调度子系统(scheduling) [已完成]** | [`SCHEDULER`](https://github.com/gatieme/LDD-LinuxDeviceDrivers/blob/master/study/kernel/00-DESCRIPTION/SCHEDULER.md) |
 | **内存管理子系统(memory management) [已完成]** | [`MEMORY_MANAGER`](https://github.com/gatieme/LDD-LinuxDeviceDrivers/blob/master/study/kernel/00-DESCRIPTION/MEMORY_MANAGER.md) |
+| **热补丁** | [填坑中] |
 | **中断与异常子系统(interrupt & exception)[填坑中]** | |
 | **时间子系统(timer & timekeeping)** | |
 | **同步机制子系统(synchronization)** | |
