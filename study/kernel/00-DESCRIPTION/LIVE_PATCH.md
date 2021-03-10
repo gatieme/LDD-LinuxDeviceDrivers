@@ -115,7 +115,11 @@
 ## 3.2 reliable stacktrace
 -------
 
-可靠栈检查则进一步对 per-task 的一致性模型做了补充. 他检查函数是否正在运行, 
+可靠栈检查则进一步对 per-task 的一致性模型做了补充. 他检查函数是否正在运行, [livepatch: change to a per-task consistency model](https://lore.kernel.org/patchwork/patch/760175)
+
+
+## 3.3 一致性总结
+-------
 
 
 # 4 重定位信息
