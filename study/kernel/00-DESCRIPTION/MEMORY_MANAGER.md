@@ -115,8 +115,8 @@
 内存管理实际上是一种关于权衡的零和游戏. 您可以开发一种使用少量内存进行管理的算法, 但是要花费更多时间来管理可用内存. 也可以开发一个算法来有效地管理内存, 但却要使用更多的内存. 最终, 特定应用程序的需求将促使对这种权衡作出选择. 
 
 
- 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:------:|:---:|
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----------:|:---:|
 | 1991/01/01 | [示例 sched: Improve the scheduler]() | 此处填写描述【示例】 | ☑ ☒☐ v3/5.4-rc1 | [LWN](), [PatchWork](), [lkml]() |
 | 2016/06/27 | [mm: add page cache limit and reclaim feature](http://lore.kernel.org/patchwork/patch/473535) | Page Cache Limit | RFC v2 ☐  | [PatchWork](https://lore.kernel.org/patchwork/patch/473535) |
 | 2016/06/27 | [mm: mirrored memory support for page buddy allocations](http://lore.kernel.org/patchwork/patch/574230) | 内存镜像的功能 | RFC v2 ☐  | [PatchWork](https://lore.kernel.org/patchwork/patch/574230) |
@@ -124,6 +124,19 @@
 | 2018/07/09 | [Improve shrink_slab() scalability (old complexity was O(n^2), new is O(n))](http://lore.kernel.org/patchwork/patch/960597) | 内存镜像的功能 | RFC v2 ☐  | [PatchWork](https://lore.kernel.org/patchwork/patch/960597) |
 | 2020/02/24 | [Fine grained MM locking](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) | MM lockless | RFC ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com), [fine_grained_mm.pdf](https://linuxplumbersconf.org/event/4/contributions/556/attachments/304/509/fine_grained_mm.pdf) | 
 
+
+*   关于碎片化
+
+内存按 chunk 分配, 每个程序保留的 chunk 的大小和时间都不同. 一个程序可以多次请求和释放 `memory chunk`. 程序一开始时, 空闲内存有很多并且连续, 随后大的连续的内存区域碎片化, 变成更小的连续区域, 最终程序无法获取大的连续的 memory chunk. 
+
+
+| 碎片化类型 | 描述 | 示例 |
+|:--------:|:----:|:---:|
+| 内碎片化(Internal fragmentation) | 分给程序的内存比它实际需要的多, 多分的内存被浪费. | 比如chunk一般是4, 8或16的倍数, 请求23字节的程序实际可以获得24字节的chunk, 未被使用的内存无法再被分配, 这种分配叫fixed partitions. 一个程序无论多么小, 都要占据一个完整的partition. 通常最好的解决方法是改变设计, 比如使用动态内存分配, 把内存空间的开销分散到大量的objects上, 内存池可以大大减少internal fragmentation. |
+| 外部碎片(External fragmentation) | 有足够的空闲内存, 但是没有足够的连续空闲内存供分配. | 因为都被分成了很小的pieces, 每个piece都不足以满足程序的要求. external指未使用的存储空间在已分配的区域外. 这种情况经常发生在频繁创建、更改(大小)、删除不同大小文件的文件系统中. 比起文件系统, 这种fragmentation在RAM上更是一个问题, 因为程序通常请求RAM分配一些连续的blocks, 而文件系统可以利用可用的blocks并使得文件逻辑上看上去是连续的. 所以对于文件系统来说, 有空闲空间就可以放新文件, 碎片化也没关系, 对内存来说, 程序请求连续blocks可能无法满足, 除非程序重新发出请求, 请求一些更小的分散的blocks. 解决方法一是compaction, 把所有已分配的内存blocks移到一块, 但是比较慢, 二是garbage collection, 收集所有无法访问的内存并把它们当作空闲内存, 三是paging, 把物理内存分成固定大小的frames, 用相同大小的逻辑内存pages填充, 逻辑地址不连续, 只要有可用内存, 进程就可以获得, 但是paging又会造成internal fragmentation. |
+| Data fragmentation. | 当内存中的一组数据分解为不连续且彼此不紧密的许多碎片时，会发生这种类型的碎片。如果我们试图将一个大对象插入已经遭受的内存中，则会发生外部碎片 。 | 通常发生在向一个已有external fragmentation的存储系统中插入一个大的object的时候, 操作系统找不到大的连续的内存区域, 就把一个文件不同的blocks分散放置, 放到可用的小的内存pieces中, 这样文件的物理存放就不连续, 读写就慢了, 这叫文件系统碎片. 消除碎片工具的主要工作就是重排block, 让每个文件的blocks都相邻. |
+
+参考 [Fragmentation in Operating System](https://www.includehelp.com/operating-systems/fragmentation.aspx)
 
 # 2.1 内存分配
 -------
@@ -176,7 +189,7 @@
 -------
 
 
-从2.6.32.25开始, linux在伙伴管理系统中引入迁移类型(migrate type)这么一个概念, 用于避免系统在长期运行过程中产生碎片. 
+从2.6.32.25开始, linux在伙伴管理系统中引入迁移类型(migrate type)这么一个概念, 用于避免系统在长期运行过程中产生外碎片. 
 
 为什么要引入迁移类型. 我们都知道伙伴系统是针对于解决外碎片的问题而提出的, 那么为什么还要引入这样一个概念来避免碎片呢?
 
@@ -186,6 +199,33 @@
 
 图中, 如果15对应的页是空闲的, 那么伙伴系统可以分配出连续的16个页框, 而由于15这一个页框被分配出去了, 导致最多只能分配出8个连续的页框. 假如这个页还会被回收回伙伴系统, 那么至少在这段时间内产生了碎片, 而如果更糟的, 如果这个页用来存储一些内核永久性的数据而不会被回收回来, 那么碎片将永远无法消除, 这意味着15这个页所处的最大内存块永远无法被连续的分配出去了. 假如上图中被分配出去的页都是不可移动的页, 那么就可以拿出一段内存, 专门用于分配不可移动页, 虽然在这段内存中有碎片, 但是避免了碎片散布到其他类型的内存中. 在系统中所有的内存都被标识为可移动的！也就是说一开始其他类型都没有属于自己的内存, 而当要分配这些类型的内存时, 就要从可移动类型的内存中夺取一部分过来, 这样可以根据实际情况来分配其他类型的内存.
 
+
+### 2.1.1.3 ALLOC_NOFRAGMENT 优化
+-------
+
+页面分配最容易出现的就是外碎片化问题, 因此主线进行了锲而不舍的优化, Mel Gorman 提出的 [Fragmentation avoidance improvements v5](https://lore.kernel.org/patchwork/cover/1016503) 是比较有特色的一组.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/11/23 | Mel Gorman | [Fragmentation avoidance improvements v5](https://lore.kernel.org/patchwork/cover/1016503) | 优化调度器的路径, 减少对 rq->lock 的争抢, 实现 lockless. | v5 ☑ 5.0-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/1016503) |
+
+
+在 `__alloc_pages_nodemas` 中. 页面分配器基于每个节点的 ZONE 迭代, 而没有考虑抗碎片化. 因此引入了一个新的选项 ALLOC_NOFRAGMENT, 来实现页面分配时候的抗外碎片化. 通常我们当发现某个 ZONE 上内存分配可能出现紧张的时候, 那么有两种选择: 
+
+| 方式 | 描述 | 注意 | 触发场景 |
+|:---:|:----:|:---:|:-------:|
+| 倾向于从当前 ZONE(比如 ZONE_NORMAL) 的低端 ZONE(比如 ZONE_DMA32) 中去分配, 这样可以防止分配内存时将当前 ZONE 做了分割, 久而久之就造成了碎片化 | 在 x86 上, 节点 0 可能有多个分区, 而其他节点只有一个分区. 这样造成的结果是, 运行在节点0上的任务可能会导致 ZONE_NORMAL 区域出现了碎片化, 但是其实 ZONE_DMA32 区域还有足够的空闲内存. 如果(此次分配采取其他方式)**将来会导致外部碎片问题**, 在分配器的快速路径, 这样它将尝试从较低的本地 ZONE (比如 ZONE_DMA32) 分配, 然后才会尝试去分割较高的区域(比如 ZONE_NORMAL). | 将 ZONE_DMA32 作为一个优选的区域来避免碎片的非常是微妙的. 如果首选的 ZONE 是高端的(比如 ZONE_NORMAL), 那么过早使用较低的低层次的 ZONE 可能会导致这些低层次的 ZONE 面临内存短缺的压力, 这通常比破碎化更严重. 特别的, 如果下一个区域是ZONE_DMA, 那么它可能太小了. 因此只有分散分配才能避免正常区域和DMA32区域之间的碎片化. 参见 alloc_flags_nofragment 及其函数注释 | 将来会导致外部碎片问题的事件 |
+| 倾向于从同 ZONE 的其他迁移类型的空闲链表中窃取内存过来 | 而**当发生了外碎片化的时候**, 则更倾向于从 ZONE_NORMAL 区域中其他迁移类型的空闲链表中多挪用一些空闲内存过来, 这比过早地使用低端 ZONE 区域的内存要很好多. | 理想情况下, 总是希望从其他迁移类型的空闲链表中至少挪用 2^pageblock_order 个空闲页面, 参见 __rmqueue_fallback 函数 | 已经发生了外碎片化 |
+
+
+补丁 1 [mm, page_alloc: spread allocations across zones before introducing fragmentation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6bb154504f8b496780ec53ec81aba957a12981fa) 在特殊的场景下, 倾向于有限分配较低 ZONE 区域的内存, 而不是对较高的区域做切片.
+
+补丁 2-4 [1c30844d2dfe mm: reclaim small amounts of memory when an external fragmentation event occurs
+](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1c30844d2dfe) 在外部碎片事件发生时暂时提高水印。kswapd唤醒以回收少量旧内存，然后在完成时唤醒kcompactd以稍微恢复系统。这在slowpath中引入了一些开销。提升的级别可以根据对碎片和分配延迟的容忍程度进行调整或禁用。
+
+补丁5暂停了一些可移动的分配请求，以让补丁4的kswapd取得一些进展。档位的持续时间很短，但是如果可以容忍更大的档位，则可以调整系统以避免碎片事件。
+
+在避免碎片化方面的大部分改进来自于补丁1-4，但补丁5可以处理罕见的特例，并为THP分配成功率提供调整系统的选项，以换取一些档位来控制碎片化。
 
 ## 2.1.2 内核级别的 malloc 分配器之-对象分配器(小内存分配)
 -------

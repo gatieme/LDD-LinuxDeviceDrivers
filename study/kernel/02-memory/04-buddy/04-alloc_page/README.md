@@ -45,7 +45,7 @@ Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该�
 | alloc_page(mask) | 是前者在order = 0情况下的简化形式, 只分配一页 |  [include/linux/gfp.h?v=4.7, line 483](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483) |
 | `__get_free_page(gfp_mask)` | 是 `__get_free_pages` 在 `order = 0` 情况下的简化形式, 只分配一页 |  [include/linux/gfp.h?v=5.10, line 483](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483) |
 | get_zeroed_page(mask) | 分配一页并返回一个page实例, 页对应的内存填充0(所有其他函数, 分配之后页的内容是未定义的) | [mm/page_alloc.c?v=5.10, line 4996](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L4996)| |
-| get_dma_pages(gfp_mask, order) | 用来获得适用于DMA的页. | [`include/linux/gfp.h?v=4.7, line 503`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L503) |
+| `__get_dma_pages(gfp_mask, order)` | 用来获得适用于DMA的页. | [`include/linux/gfp.h?v=5.10, line 578`](https://elixir.bootlin.com/linux/v5.10/source/include/linux/gfp.h#578) |
 
 
 在空闲内存无法满足请求以至于分配失败的情况下, 所有上述函数都返回空指针(比如alloc_pages和alloc_page)或者0(比如 `get_zeroed_page`、 `__get_free_pages` 和 `__get_free_page`).
@@ -57,57 +57,21 @@ Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该�
 
 还有一组kmalloc类型的函数, 用于分配小于一整页的内存区. 其实现将在以后分别讨论。
 
-# 2 alloc_page
+## 1.3 页面分配函数实现上之间的关系
 -------
 
+内核源代码将 `__alloc_pages_nodemask` 称之为"伙伴系统的心脏"(`the 'heart' of the zoned buddy allocator`), 因为它处理的是实质性的内存分配.
 
-## 2.1 alloc_page 的流程
--------
-
-## 2.2   伙伴系统的心脏 `__alloc_pages_nodemask`
--------
-
-内核源代码将`__alloc_pages_nodemask` 称之为"伙伴系统的心脏"(`the 'heart' of the zoned buddy allocator`), 因为它处理的是实质性的内存分配.
-
-由于"心脏"的重要性, 我将在下文详细介绍该函数.
-
-
-
-`__alloc_pages_nodemask` 函数定义在 [include/linux/gfp.h?v=4.7#L428](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428)
-
+由于"心脏"的重要性, 我将在后面详细介绍该函数. `__alloc_pages_nodemask` 函数定义在 [include/linux/gfp.h?v=4.7#L428](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428)
 
 通过使用标志、内存域修饰符和各个分配函数, 内核提供了一种非常灵活的内存分配体系.尽管如此, 所有接口函数都可以追溯到一个简单的基本函数(alloc_pages_node)
 
 
-```cpp
-#ifdef CONFIG_NUMA
-extern struct page *alloc_pages_current(gfp_t gfp_mask, unsigned order);
+分配单页的函数[`alloc_page`](https://elixir.bootlin.com/linux/v5.10/source/include/linux/gfp.h#L564)和[`__get_free_page`](https://elixir.bootlin.com/linux/v5.10/source/include/linux/gfp.h#L575) 是借助于 alloc_pages 直接分配一个 order 为 0 的页面.
 
-static inline struct page *
-alloc_pages(gfp_t gfp_mask, unsigned int order)
-{
-    return alloc_pages_current(gfp_mask, order);
-}
-extern struct page *alloc_pages_vma(gfp_t gfp_mask, int order,
-            struct vm_area_struct *vma, unsigned long addr,
-            int node, bool hugepage);
-#define alloc_hugepage_vma(gfp_mask, vma, addr, order) \
-    alloc_pages_vma(gfp_mask, order, vma, addr, numa_node_id(), true)
-#else
-static inline struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
-{
-    return alloc_pages_node(numa_node_id(), gfp_mask, order);
-}
-#define alloc_pages_vma(gfp_mask, order, vma, addr, node, false)\
-    alloc_pages(gfp_mask, order)
-#define alloc_hugepage_vma(gfp_mask, vma, addr, order) \
-    alloc_pages(gfp_mask, order)
-#endif
-```
+`__get_free_page` 同样分配一页, 但是返回了内存页的虚拟地址, 他是借助 `__get_free_pages` 直接分配一个 order 为 0 的页面.
 
-
-
-分配单页的函数[`alloc_page`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483)和[`__get_free_page`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L500), 还有[`__get_dma_pages`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L503)是借助于宏定义的.
+[`__get_dma_pages`](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L503) 也是借助于 `__get_free_pages` 使用 `GFP_DMA` 标记从 DMA 中分配页面.
 
 ```cpp
 //  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L483
@@ -115,11 +79,11 @@ static inline struct page *alloc_pages(gfp_t gfp_mask, unsigned int order)
 
 //  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L500
 #define __get_free_page(gfp_mask) \
-	__get_free_pages((gfp_mask), 0)`
+    __get_free_pages((gfp_mask), 0)`
 
 //  http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L503
 #define __get_dma_pages(gfp_mask, order) \
-	__get_free_pages((gfp_mask) | GFP_DMA, (order))
+    __get_free_pages((gfp_mask) | GFP_DMA, (order))
 ```
 
 [`get_zeroed_page`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3900)的实现也没什么困难, 对`__get_free_pages`使用`__GFP_ZERO`标志, 即可分配填充字节0的页. 再返回与页关联的内存区地址即可.
@@ -134,10 +98,10 @@ unsigned long get_zeroed_page(gfp_t gfp_mask)
 EXPORT_SYMBOL(get_zeroed_page);
 ```
 
+可以看到 `__get_free_page`, `__get_dma_pages`, `get_zeroed_page` 都是直接借助了 `__get_free_pages` 函数来实现的, 他们都是直接返回内存块的虚拟地址.
 
-[`__get_free_pages`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)调用`alloc_pages`完成内存分配, 而alloc_pages又借助于alloc_pages_node
 
-[`__get_free_pages`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)函数的定义在[mm/page_alloc.c?v=4.7, line 3883](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)
+[`__get_free_pages`](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883)调用 `alloc_pages` 完成内存分配. 然后通过 page_address 获取虚拟地址.
 
 ```cpp
 //  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3883
@@ -159,9 +123,9 @@ unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
 EXPORT_SYMBOL(__get_free_pages);
 ```
 
-在这种情况下,  使用了一个普通函数而不是宏,  因为`alloc_pages`返回的`page`实例需要使用辅助
+在这种情况下,  使用了一个普通函数而不是宏,  因为 `alloc_pages` 返回的 `page` 实例需要使用辅助
 
-函数`page_address`转换为内存地址. 在这里, 只要知道该函数可根据`page`实例计算相关页的线性内存地址即可. 对高端内存页这是有问题的
+函数 `page_address` 转换为内存地址. 在这里, 只要知道该函数可根据 `page` 实例计算相关页的线性内存地址即可. 对高端内存页这是有问题的
 
 
 <font color = 0x00ffff>
@@ -171,21 +135,15 @@ EXPORT_SYMBOL(__get_free_pages);
 ![伙伴系统中各个分配函数之间的关系](../images/alloc_pages.png)
 
 
-另外所有体系结构都必须实现的标准函数`clear_page`, 可帮助alloc_pages对页填充字节0, 实现如下表所示
-
-| x86 | arm |
-|:----:|:-----:|
-| [arch/x86/include/asm/page_32.h?v=4.7, line 24](http://lxr.free-electrons.com/source/arch/x86/include/asm/page_32.h?v=4.7#L24) | [arch/arm/include/asm/page.h?v=4.7#L14](http://lxr.free-electrons.com/source/arch/arm/include/asm/page.h?v=4.7#L142)<br>[arch/arm/include/asm/page-nommu.h](http://lxr.free-electrons.com/source/arch/arm/include/asm/page-nommu.h?v=4.7#L20) |
-
-
-
-# 3	alloc_pages 函数分配页
+# 2	alloc_pages 函数分配页
 -------
 
-## 3.1 alloc_pages 接口实现
+
+## 2.1 alloc_pages 接口实现
 -------
 
-既然所有的内存分配API函数都可以追溯掉`alloc_page`函数, 从某种意义上说, 该函数是伙伴系统主要实现的"发射台".
+
+既然所有的内存分配API函数都可以追溯掉 `alloc_page` 函数, 从某种意义上说, 该函数是伙伴系统主要实现的"发射台".
 
 
 `alloc_pages`函数的定义是依赖于NUMA或者UMA架构的, 定义如下
@@ -210,7 +168,7 @@ alloc_pages(gfp_t gfp_mask, unsigned int order)
 ```
 
 
-## 3.2 UMA
+## 2.2 UMA
 -------
 
 ```cpp
@@ -285,17 +243,68 @@ __alloc_pages(gfp_t gfp_mask, unsigned int order, int preferred_nid)
 ```
 
 
-## 3.3 NUMA 
+## 2.3 NUMA 
 -------
 
 ```cpp
-alloc_pages
-alloc_pages_current
-alloc_page_interleave
-__alloc_pages_nodemask
+|---->alloc_pages
+|
+     |---->alloc_pages_current
+     |
+          |---->alloc_page_interleave
+          |
+               |---->__alloc_pages_nodemask
+               |
 ```
 
+## 2.4 `__get_free_pages`
+-------
 
+```cpp
+#  https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L4985
+/*
+ * Common helper functions. Never use with __GFP_HIGHMEM because the returned
+ * address cannot represent highmem pages. Use alloc_pages and then kmap if
+ * you need to access high mem.
+ */
+unsigned long __get_free_pages(gfp_t gfp_mask, unsigned int order)
+{
+    struct page *page;
+
+    page = alloc_pages(gfp_mask & ~__GFP_HIGHMEM, order);
+    if (!page)
+        return 0;
+    return (unsigned long) page_address(page);
+}
+EXPORT_SYMBOL(__get_free_pages);
+```
+
+## 2.5 `__get_dma_pages`
+-------
+
+```cpp
+# https://elixir.bootlin.com/linux/v5.10/source/include/linux/gfp.h#578
+#define __get_dma_pages(gfp_mask, order) \
+        __get_free_pages((gfp_mask) | GFP_DMA, (order))
+```
+
+## 2.6 alloc_page 的流程
+-------
+
+```cpp
+# https://elixir.bootlin.com/linux/v5.10/source/include/linux/gfp.h#L564
+#define alloc_page(gfp_mask) alloc_pages(gfp_mask, 0)
+```
+
+# 3   伙伴系统的心脏 `__alloc_pages_nodemask`
+-------
+
+
+另外所有体系结构都必须实现的标准函数`clear_page`, 可帮助alloc_pages对页填充字节0, 实现如下表所示
+
+| x86 | arm |
+|:----:|:-----:|
+| [arch/x86/include/asm/page_32.h?v=4.7, line 24](http://lxr.free-electrons.com/source/arch/x86/include/asm/page_32.h?v=4.7#L24) | [arch/arm/include/asm/page.h?v=4.7#L14](http://lxr.free-electrons.com/source/arch/arm/include/asm/page.h?v=4.7#L142)<br>[arch/arm/include/asm/page-nommu.h](http://lxr.free-electrons.com/source/arch/arm/include/asm/page-nommu.h?v=4.7#L20) |
 
 
 
