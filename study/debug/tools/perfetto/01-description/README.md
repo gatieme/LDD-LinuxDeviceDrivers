@@ -28,6 +28,10 @@ blogexcerpt: <br>Perfetto 工具是 Android 下一代全新的统一的 trace �
 
 <br>
 
+| 日期 | 更新 |
+|:------:|:-----:|
+|2021/03/20 |  将 1.3 节 关于信息安全问题 展开讲解 |
+
 # 1 Perfetto 概述
 -------
 
@@ -102,7 +106,7 @@ The Perfetto UI works fully offline after it has been opened once. Traces opened
 
 详细信息参见: [Perfetto - System profiling, app tracing and trace analysis](https://perfetto.dev/docs/#trace-visualization).
 
-当然 perfetto 也为大家提供了自建服务的方式, 参见 [build-instructions](https://perfetto.dev/docs/contributing/build-instructions). 如果担心信息泄露, 建议还是使用自建的服务比较稳妥.
+当然 perfetto 也为大家提供了自建服务的方式, 参见 [build-instructions](https://perfetto.dev/docs/contributing/build-instructions). 如果担心信息泄露, 建议还是使用自建的服务比较稳妥. 后期我也考虑有时间就自建 peretto 服务写一篇技术分享.
 
 > 博主在此提醒, 如果因为不慎使用导致的问题, 本博主不承担任何责任.
 >
