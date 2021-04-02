@@ -55,7 +55,7 @@ Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该�
 
 内核除了伙伴系统函数之外, 还提供了其他内存管理函数. 它们以伙伴系统为基础, 但并不属于伙伴分配器自身. 这些函数包括vmalloc和vmalloc_32, 使用页表将不连续的内存映射到内核地址空间中, 使之看上去是连续的.
 
-还有一组kmalloc类型的函数, 用于分配小于一整页的内存区. 其实现将在以后分别讨论。
+还有一组kmalloc类型的函数, 用于分配小于一整页的内存区. 其实现将在以后分别讨论. 
 
 ## 1.3 页面分配函数实现上之间的关系
 -------
@@ -307,227 +307,146 @@ EXPORT_SYMBOL(__get_free_pages);
 | [arch/x86/include/asm/page_32.h?v=4.7, line 24](http://lxr.free-electrons.com/source/arch/x86/include/asm/page_32.h?v=4.7#L24) | [arch/arm/include/asm/page.h?v=4.7#L14](http://lxr.free-electrons.com/source/arch/arm/include/asm/page.h?v=4.7#L142)<br>[arch/arm/include/asm/page-nommu.h](http://lxr.free-electrons.com/source/arch/arm/include/asm/page-nommu.h?v=4.7#L20) |
 
 
-
-#3	选择页
+## 3.1  `__alloc_pages_nodemask` 如何分配内存
 -------
 
-我们先把注意力转向页面选择是如何工作的。
+如前所述, `__alloc_pages_nodemask` 是伙伴系统的心脏. 我们已经处理了所有的准备工作并描述了所有可能的标志, 现在我们把注意力转向相对复杂的部分 : 函数`__alloc_pages_nodemask`的实现, 这也是内核中比较冗长的部分
+之一. 特别是在可用内存太少或逐渐用完时, 函数就会比较复杂. 如果可用内存足够, 则必要的工作会很快完成, 就像下述代码
 
-##3.1	内存水印标志
+### 3.1.1   函数源代码注释
 -------
 
-还记得之前讲过的内存水印么
-
-```cpp
-enum zone_watermarks {
-        WMARK_MIN,
-        WMARK_LOW,
-        WMARK_HIGH,
-        NR_WMARK
-};
-
-#define min_wmark_pages(z) (z->watermark[WMARK_MIN])
-#define low_wmark_pages(z) (z->watermark[WMARK_LOW])
-#define high_wmark_pages(z) (z->watermark[WMARK_HIGH])
-````
+`__alloc_pages_nodemask` 函数定义在[include/linux/gfp.h?v=4.7#L428](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428)
 
 
 
-内核需要定义一些函数使用的标志, 用于控制到达各个水印指定的临界状态时的行为, 这些标志用宏来定义, 定义在[mm/internal.h?v=4.7, line 453](http://lxr.free-electrons.com/source/mm/internal.h?v=4.7#L453)
-
-```cpp
-/* The ALLOC_WMARK bits are used as an index to zone->watermark */
-#define ALLOC_WMARK_MIN         WMARK_MIN	/*  1 = 0x01, 使用pages_min水印  */
-#define ALLOC_WMARK_LOW         WMARK_LOW	/*  2 = 0x02, 使用pages_low水印  */
-#define ALLOC_WMARK_HIGH        WMARK_HIGH   /*  3 = 0x03, 使用pages_high水印  */
-#define ALLOC_NO_WATERMARKS     0x04 /* don't check watermarks at all  完全不检查水印 */
-
-/* Mask to get the watermark bits */
-#define ALLOC_WMARK_MASK        (ALLOC_NO_WATERMARKS-1)
-
-#define ALLOC_HARDER            0x10 /* try to alloc harder, 试图更努力地分配, 即放宽限制  */
-#define ALLOC_HIGH              0x20 /* __GFP_HIGH set, 设置了__GFP_HIGH */
-#define ALLOC_CPUSET            0x40 /* check for correct cpuset, 检查内存结点是否对应着指定的CPU集合 */
-#define ALLOC_CMA               0x80 /* allow allocations from CMA areas */
-#define ALLOC_FAIR              0x100 /* fair zone allocation */
-```
-
-前几个标志(`ALLOC_WMARK_MIN`, `ALLOC_WMARK_LOW`, `ALLOC_WMARK_HIGH`, `ALLOC_NO_WATERMARKS`)表示在判断页是否可分配时, 需要考虑哪些水印. 默认情况下(即没有因其他因素带来的压力而需要更多的内存), 只有内存域包含页的数目至少为zone->pages_high时, 才能分配页.这对应于`ALLOC_WMARK_HIGH`标志. 如果要使用较低(zone->pages_low)或最低(zone->pages_min)设置, 则必须相应地设置`ALLOC_WMARK_MIN`或`ALLOC_WMARK_LOW`. 而`ALLOC_NO_WATERMARKS`则通知内核在进行内存分配时不要考虑内存水印.
-
-
-`ALLOC_HARDER`通知伙伴系统在急需内存时放宽分配规则. 在分配高端内存域的内存时, `ALLOC_HIGH`进一步放宽限制. 
-
-`ALLOC_CPUSET`告知内核, 内存只能从当前进程允许运行的CPU相关联的内存结点分配, 当然该选项只对NUMA系统有意义.
-
-`ALLOC_CMA`通知伙伴系统从CMD区域中分配内存
-
-最后, `ALLOC_FAIR`则希望内核公平(均匀)的从内存域zone中进行内存分配
-
-
-
-##3.2	`zone_watermark_ok`函数检查标志
--------
-
-设置的标志在`zone_watermark_ok`函数中检查, 该函数根据设置的标志判断是否能从给定的内存域分配内存. 该函数定义在[mm/page_alloc.c?v=4.7, line 2820](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L2820)
 
 ```cpp
-//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L2820
-bool zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
-              int classzone_idx, unsigned int alloc_flags)
-{
-    return __zone_watermark_ok(z, order, mark, classzone_idx, alloc_flags,
-                    zone_page_state(z, NR_FREE_PAGES));
-}
-```
-
-而`__zone_watermark_ok`函数则完成了检查的工作, 该函数定义在[mm/page_alloc.c?v=4.7, line 2752](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L2752)
-
-```cpp
-// http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L2752
+//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3779
 /*
- * Return true if free base pages are above 'mark'. For high-order checks it
- * will return true of the order-0 watermark is reached and there is at least
- * one free page of a suitable size. Checking now avoids taking the zone lock
- * to check in the allocation paths if no pages are free.
+ * This is the 'heart' of the zoned buddy allocator.
  */
-bool __zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
-             int classzone_idx, unsigned int alloc_flags,
-             long free_pages)
+struct page *
+__alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order,
+            struct zonelist *zonelist, nodemask_t *nodemask)
 {
-    long min = mark;
-    int o;
-    const bool alloc_harder = (alloc_flags & ALLOC_HARDER);
+    struct page *page;
+    unsigned int cpuset_mems_cookie;
+    unsigned int alloc_flags = ALLOC_WMARK_LOW|ALLOC_FAIR;
+    gfp_t alloc_mask = gfp_mask; /* The gfp_t that was actually used for allocation */
+    struct alloc_context ac = {
+        .high_zoneidx = gfp_zone(gfp_mask),
+        .zonelist = zonelist,
+        .nodemask = nodemask,
+        .migratetype = gfpflags_to_migratetype(gfp_mask),
+    };
 
-    /* free_pages may go negative - that's OK
-     * free_pages可能变为负值, 没有关系 */
-    free_pages -= (1 << order) - 1;
+    if (cpusets_enabled()) {
+        alloc_mask |= __GFP_HARDWALL;
+        alloc_flags |= ALLOC_CPUSET;
+        if (!ac.nodemask)
+            ac.nodemask = &cpuset_current_mems_allowed;
+    }
 
-    if (alloc_flags & ALLOC_HIGH)
-        min -= min / 2;
+    gfp_mask &= gfp_allowed_mask;
+
+    lockdep_trace_alloc(gfp_mask);
+
+    might_sleep_if(gfp_mask & __GFP_DIRECT_RECLAIM);
+
+    if (should_fail_alloc_page(gfp_mask, order))
+        return NULL;
 
     /*
-     * If the caller does not have rights to ALLOC_HARDER then subtract
-     * the high-atomic reserves. This will over-estimate the size of the
-     * atomic reserve but it avoids a search.
+     * Check the zones suitable for the gfp_mask contain at least one
+     * valid zone. It's possible to have an empty zonelist as a result
+     * of __GFP_THISNODE and a memoryless node
      */
-    if (likely(!alloc_harder))
-        free_pages -= z->nr_reserved_highatomic;
-    else
-        min -= min / 4;
+    if (unlikely(!zonelist->_zonerefs->zone))
+        return NULL;
 
-#ifdef CONFIG_CMA
-    /* If allocation can't use CMA areas don't use free CMA pages */
-    if (!(alloc_flags & ALLOC_CMA))
-        free_pages -= zone_page_state(z, NR_FREE_CMA_PAGES);
-#endif
+    if (IS_ENABLED(CONFIG_CMA) && ac.migratetype == MIGRATE_MOVABLE)
+        alloc_flags |= ALLOC_CMA;
+
+retry_cpuset:
+    cpuset_mems_cookie = read_mems_allowed_begin();
+
+    /* Dirty zone balancing only done in the fast path */
+    ac.spread_dirty_pages = (gfp_mask & __GFP_WRITE);
 
     /*
-     * Check watermarks for an order-0 allocation request. If these
-     * are not met, then a high-order request also cannot go ahead
-     * even if a suitable page happened to be free.
+     * The preferred zone is used for statistics but crucially it is
+     * also used as the starting point for the zonelist iterator. It
+     * may get reset for allocations that ignore memory policies.
      */
-    if (free_pages <= min + z->lowmem_reserve[classzone_idx])
-        return false;
-
-    /* If this is an order-0 request then the watermark is fine */
-    if (!order)
-        return true;
-
-    /* For a high-order request, check at least one suitable page is free 
-     * 在下一阶, 当前阶的页是不可用的  */
-    for (o = order; o < MAX_ORDER; o++) {
-        struct free_area *area = &z->free_area[o];
-        int mt;
-
-        if (!area->nr_free)
-            continue;
-
-        if (alloc_harder)
-            return true;
-
-        /* 所需高阶空闲页的数目相对较少 */
-        for (mt = 0; mt < MIGRATE_PCPTYPES; mt++) {
-            if (!list_empty(&area->free_list[mt]))
-                return true;
-        }
-
-#ifdef CONFIG_CMA
-        if ((alloc_flags & ALLOC_CMA) &&
-            !list_empty(&area->free_list[MIGRATE_CMA])) {
-            return true;
-        }
-#endif
+    ac.preferred_zoneref = first_zones_zonelist(ac.zonelist,
+                    ac.high_zoneidx, ac.nodemask);
+    if (!ac.preferred_zoneref) {
+        page = NULL;
+        goto no_zone;
     }
-    return false;
+
+    /* First allocation attempt */
+    page = get_page_from_freelist(alloc_mask, order, alloc_flags, &ac);
+    if (likely(page))
+        goto out;
+
+    /*
+     * Runtime PM, block IO and its error handling path can deadlock
+     * because I/O on the device might not complete.
+     */
+    alloc_mask = memalloc_noio_flags(gfp_mask);
+    ac.spread_dirty_pages = false;
+
+    /*
+     * Restore the original nodemask if it was potentially replaced with
+     * &cpuset_current_mems_allowed to optimize the fast-path attempt.
+     */
+    if (cpusets_enabled())
+        ac.nodemask = nodemask;
+    page = __alloc_pages_slowpath(alloc_mask, order, &ac);
+
+no_zone:
+    /*
+     * When updating a task's mems_allowed, it is possible to race with
+     * parallel threads in such a way that an allocation can fail while
+     * the mask is being updated. If a page allocation is about to fail,
+     * check if the cpuset changed during allocation and if so, retry.
+     */
+    if (unlikely(!page && read_mems_allowed_retry(cpuset_mems_cookie))) {
+        alloc_mask = gfp_mask;
+        goto retry_cpuset;
+    }
+
+out:
+    if (kmemcheck_enabled && page)
+        kmemcheck_pagealloc_alloc(page, order, gfp_mask);
+
+    trace_mm_page_alloc(page, order, alloc_mask, ac.migratetype);
+
+    return page;
 }
+EXPORT_SYMBOL(__alloc_pages_nodemask);
 ```
 
+最简单的情形中, 分配空闲内存区只涉及调用一次 `get_page_from_freelist`, 然后返回所需数目的页(由标号got_pg处的代码处理).
 
-我们知道[`zone_per_state`](http://lxr.free-electrons.com/source/include/linux/vmstat.h?v=4.7#L130)用来访问每个内存域的统计量. 在上述代码中, 得到的是空闲页的数目.
-
-```cpp
-free_pages -= zone_page_state(z, NR_FREE_CMA_PAGES);
-```
-
-在解释了`ALLOC_HIGH`和`ALLOC_HARDER`标志之后(将最小值标记降低到当前值的一半或四分之一, 使得分配过程努力或更加努力), 
-```cpp
-if (alloc_flags & ALLOC_HIGH)
-	min -= min / 2;
-
-if (likely(!alloc_harder))
-	free_pages -= z->nr_reserved_highatomic;
-else
-	min -= min / 4;
-```
-
-
-该函数会检查空闲页的数目`free_pages`是否小于最小值与[`lowmem_reserve`](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L341)中指定的紧急分配值`min`之和.
-
-```cpp
-if (free_pages <= min + z->lowmem_reserve[classzone_idx])
-	return false;
-```
-
-如果不小于, 则代码遍历所有小于当前阶的分配阶, 其中nr_free记载的是当前分配阶的空闲页块数目.
-
-```cpp
-/* For a high-order request, check at least one suitable page is free */
-for (o = order; o < MAX_ORDER; o++) {
-    struct free_area *area = &z->free_area[o];
-    int mt;
-
-    if (!area->nr_free)
-        continue;
-
-    if (alloc_harder)
-        return true;
-
-    for (mt = 0; mt < MIGRATE_PCPTYPES; mt++) {
-        if (!list_empty(&area->free_list[mt]))
-            return true;
-    }
-
-#ifdef CONFIG_CMA
-    if ((alloc_flags & ALLOC_CMA) &&
-        !list_empty(&area->free_list[MIGRATE_CMA])) {
-        return true;
-    }
-#endif
-}
-```
-
-如果内核遍历所有的低端内存域之后, 发现内存不足, 则不进行内存分配.
+第一次内存分配尝试不会特别积极. 如果在某个内存域中无法找到空闲内存, 则意味着内存没剩下多少了, 内核需要增加较多的工作量才能找到更多内存("重型武器"稍后才会出现).
 
 
 
 
-##3.3	get_page_from_freelist函数
+
+## 3.2  快速路径 get_page_from_freelist 函数
 -------
 
 http://blog.csdn.net/yuzhihui_no1/article/details/50776826
 http://bbs.chinaunix.net/thread-3769001-1-1.html
 
-`get_page_from_freelist`是伙伴系统使用的另一个重要的辅助函数. 它通过标志集和分配阶来判断是否能进行分配。如果可以, 则发起实际的分配操作. 该函数定义在[mm/page_alloc.c?v=4.7, line 2905](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L2905)
+`get_page_from_freelist` 是伙伴系统使用的另一个重要的辅助函数. 它从伙伴系统的空闲页面链表中尝试分配物理页面. 它通过标志集和分配阶来判断是否能进行分配. 如果可以, 则发起实际的分配操作. 该函数定义在[mm/page_alloc.c?v=4.7, line 2905](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L2905)
+
+### 3.2.1 alloc_context
+-------
 
 这个函数的参数很有意思, 之前的时候这个函数的参数只能用复杂来形容
 
@@ -573,8 +492,6 @@ struct alloc_context {
 };
 ```
 
-
-
 | 字段 | 描述 |
 |:-----:|:-----:|
 | zonelist | 当perferred_zone上没有合适的页可以分配时, 就要按zonelist中的顺序扫描该zonelist中备用zone列表, 一个个的试用 |
@@ -587,13 +504,16 @@ struct alloc_context {
 
 zonelist是指向备用列表的指针. 在预期内存域没有空闲空间的情况下, 该列表确定了扫描系统其他内存域(和结点)的顺序.
 
-随后的for循环所作的基本上与直觉一致, 遍历备用列表的所有内存域, 用最简单的方式查找一个适当的空闲内存块
+### 3.2.2 get_page_from_freelist
+-------
 
-*	首先, 解释ALLOC_*标志(\__cpuset_zone_allowed_softwall是另一个辅助函数, 用于检查给定内存域是否属于该进程允许运行的CPU).
+for 循环所作的基本上与直觉一致, 遍历备用列表的所有内存域, 用最简单的方式查找一个适当的空闲内存块
 
-*	zone_watermark_ok接下来检查所遍历到的内存域是否有足够的空闲页, 并试图分配一个连续内存块。如果两个条件之一不能满足, 即或者没有足够的空闲页, 或者没有连续内存块可满足分配请求, 则循环进行到备用列表中的下一个内存域, 作同样的检查. 直到找到一个合适的页面, 在进行try_this_node进行内存分配
+*   首先, 解释ALLOC_*标志(\__cpuset_zone_allowed_softwall是另一个辅助函数, 用于检查给定内存域是否属于该进程允许运行的CPU).
 
-*	如果内存域适用于当前的分配请求, 那么buffered_rmqueue试图从中分配所需数目的页
+*   zone_watermark_ok接下来检查所遍历到的内存域是否有足够的空闲页, 并试图分配一个连续内存块. 如果两个条件之一不能满足, 即或者没有足够的空闲页, 或者没有连续内存块可满足分配请求, 则循环进行到备用列表中的下一个内存域, 作同样的检查. 直到找到一个合适的页面, 在进行try_this_node进行内存分配
+
+*   如果内存域适用于当前的分配请求, 那么buffered_rmqueue试图从中分配所需数目的页
 
 ```cpp
 /*
@@ -739,128 +659,214 @@ reset_fair:
 ```
 
 
-#4	分配控制
+
+## 3.3	水位控制
 -------
 
-如前所述, `__alloc_pages_nodemask`是伙伴系统的心脏. 我们已经处理了所有的准备工作并描述了所有可能的标志, 现在我们把注意力转向相对复杂的部分 : 函数`__alloc_pages_nodemask`的实现, 这也是内核中比较冗长的部分
-之一. 特别是在可用内存太少或逐渐用完时, 函数就会比较复杂. 如果可用内存足够, 则必要的工作会很快完成, 就像下述代码
+我们先把注意力转向页面选择是如何工作的. 
 
-##4.1	函数源代码注释
+### 3.3.1	内存水印标志
 -------
 
-`__alloc_pages_nodemask`函数定义在[include/linux/gfp.h?v=4.7#L428](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L428)
-
-
-
+还记得之前讲过的内存水印么
 
 ```cpp
-//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L3779
-/*
- * This is the 'heart' of the zoned buddy allocator.
- */
-struct page *
-__alloc_pages_nodemask(gfp_t gfp_mask, unsigned int order,
-            struct zonelist *zonelist, nodemask_t *nodemask)
-{
-    struct page *page;
-    unsigned int cpuset_mems_cookie;
-    unsigned int alloc_flags = ALLOC_WMARK_LOW|ALLOC_FAIR;
-    gfp_t alloc_mask = gfp_mask; /* The gfp_t that was actually used for allocation */
-    struct alloc_context ac = {
-        .high_zoneidx = gfp_zone(gfp_mask),
-        .zonelist = zonelist,
-        .nodemask = nodemask,
-        .migratetype = gfpflags_to_migratetype(gfp_mask),
-    };
+enum zone_watermarks {
+        WMARK_MIN,
+        WMARK_LOW,
+        WMARK_HIGH,
+        NR_WMARK
+};
 
-    if (cpusets_enabled()) {
-        alloc_mask |= __GFP_HARDWALL;
-        alloc_flags |= ALLOC_CPUSET;
-        if (!ac.nodemask)
-            ac.nodemask = &cpuset_current_mems_allowed;
-    }
+#define min_wmark_pages(z) (z->watermark[WMARK_MIN])
+#define low_wmark_pages(z) (z->watermark[WMARK_LOW])
+#define high_wmark_pages(z) (z->watermark[WMARK_HIGH])
+````
 
-    gfp_mask &= gfp_allowed_mask;
 
-    lockdep_trace_alloc(gfp_mask);
 
-    might_sleep_if(gfp_mask & __GFP_DIRECT_RECLAIM);
+内核需要定义一些函数使用的标志, 用于控制到达各个水印指定的临界状态时的行为, 这些标志用宏来定义, 定义在[mm/internal.h?v=4.7, line 453](http://lxr.free-electrons.com/source/mm/internal.h?v=4.7#L453)
 
-    if (should_fail_alloc_page(gfp_mask, order))
-        return NULL;
+```cpp
+/* The ALLOC_WMARK bits are used as an index to zone->watermark */
+#define ALLOC_WMARK_MIN         WMARK_MIN	/*  1 = 0x01, 使用pages_min水印  */
+#define ALLOC_WMARK_LOW         WMARK_LOW	/*  2 = 0x02, 使用pages_low水印  */
+#define ALLOC_WMARK_HIGH        WMARK_HIGH   /*  3 = 0x03, 使用pages_high水印  */
+#define ALLOC_NO_WATERMARKS     0x04 /* don't check watermarks at all  完全不检查水印 */
 
-    /*
-     * Check the zones suitable for the gfp_mask contain at least one
-     * valid zone. It's possible to have an empty zonelist as a result
-     * of __GFP_THISNODE and a memoryless node
-     */
-    if (unlikely(!zonelist->_zonerefs->zone))
-        return NULL;
+/* Mask to get the watermark bits */
+#define ALLOC_WMARK_MASK        (ALLOC_NO_WATERMARKS-1)
 
-    if (IS_ENABLED(CONFIG_CMA) && ac.migratetype == MIGRATE_MOVABLE)
-        alloc_flags |= ALLOC_CMA;
-
-retry_cpuset:
-    cpuset_mems_cookie = read_mems_allowed_begin();
-
-    /* Dirty zone balancing only done in the fast path */
-    ac.spread_dirty_pages = (gfp_mask & __GFP_WRITE);
-
-    /*
-     * The preferred zone is used for statistics but crucially it is
-     * also used as the starting point for the zonelist iterator. It
-     * may get reset for allocations that ignore memory policies.
-     */
-    ac.preferred_zoneref = first_zones_zonelist(ac.zonelist,
-                    ac.high_zoneidx, ac.nodemask);
-    if (!ac.preferred_zoneref) {
-        page = NULL;
-        goto no_zone;
-    }
-
-    /* First allocation attempt */
-    page = get_page_from_freelist(alloc_mask, order, alloc_flags, &ac);
-    if (likely(page))
-        goto out;
-
-    /*
-     * Runtime PM, block IO and its error handling path can deadlock
-     * because I/O on the device might not complete.
-     */
-    alloc_mask = memalloc_noio_flags(gfp_mask);
-    ac.spread_dirty_pages = false;
-
-    /*
-     * Restore the original nodemask if it was potentially replaced with
-     * &cpuset_current_mems_allowed to optimize the fast-path attempt.
-     */
-    if (cpusets_enabled())
-        ac.nodemask = nodemask;
-    page = __alloc_pages_slowpath(alloc_mask, order, &ac);
-
-no_zone:
-    /*
-     * When updating a task's mems_allowed, it is possible to race with
-     * parallel threads in such a way that an allocation can fail while
-     * the mask is being updated. If a page allocation is about to fail,
-     * check if the cpuset changed during allocation and if so, retry.
-     */
-    if (unlikely(!page && read_mems_allowed_retry(cpuset_mems_cookie))) {
-        alloc_mask = gfp_mask;
-        goto retry_cpuset;
-    }
-
-out:
-    if (kmemcheck_enabled && page)
-        kmemcheck_pagealloc_alloc(page, order, gfp_mask);
-
-    trace_mm_page_alloc(page, order, alloc_mask, ac.migratetype);
-
-    return page;
-}
-EXPORT_SYMBOL(__alloc_pages_nodemask);
+#define ALLOC_HARDER            0x10 /* try to alloc harder, 试图更努力地分配, 即放宽限制  */
+#define ALLOC_HIGH              0x20 /* __GFP_HIGH set, 设置了__GFP_HIGH */
+#define ALLOC_CPUSET            0x40 /* check for correct cpuset, 检查内存结点是否对应着指定的CPU集合 */
+#define ALLOC_CMA               0x80 /* allow allocations from CMA areas */
+#define ALLOC_FAIR              0x100 /* fair zone allocation */
 ```
 
-最简单的情形中, 分配空闲内存区只涉及调用一次`get_page_from_freelist`, 然后返回所需数目的页(由标号got_pg处的代码处理).
+前几个标志(`ALLOC_WMARK_MIN`, `ALLOC_WMARK_LOW`, `ALLOC_WMARK_HIGH`, `ALLOC_NO_WATERMARKS`)表示在判断页是否可分配时, 需要考虑哪些水印. 默认情况下(即没有因其他因素带来的压力而需要更多的内存), 只有内存域包含页的数目至少为zone->pages_high时, 才能分配页.这对应于`ALLOC_WMARK_HIGH`标志. 如果要使用较低(zone->pages_low)或最低(zone->pages_min)设置, 则必须相应地设置`ALLOC_WMARK_MIN`或`ALLOC_WMARK_LOW`. 而`ALLOC_NO_WATERMARKS`则通知内核在进行内存分配时不要考虑内存水印.
 
-第一次内存分配尝试不会特别积极. 如果在某个内存域中无法找到空闲内存, 则意味着内存没剩下多少了, 内核需要增加较多的工作量才能找到更多内存("重型武器"稍后才会出现).
+
+`ALLOC_HARDER`通知伙伴系统在急需内存时放宽分配规则. 在分配高端内存域的内存时, `ALLOC_HIGH`进一步放宽限制. 
+
+`ALLOC_CPUSET`告知内核, 内存只能从当前进程允许运行的CPU相关联的内存结点分配, 当然该选项只对NUMA系统有意义.
+
+`ALLOC_CMA`通知伙伴系统从CMD区域中分配内存
+
+最后, `ALLOC_FAIR`则希望内核公平(均匀)的从内存域zone中进行内存分配
+
+
+
+### 3.3.2	`zone_watermark_ok` 判定能否从给定域中分配内存
+-------
+
+设置的标志在`zone_watermark_ok`函数中检查, 该函数根据设置的标志判断是否能从给定的内存域分配内存. 该函数定义在[mm/page_alloc.c?v=4.7, line 2820](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L2820)
+
+```cpp
+//  http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L2820
+bool zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
+              int classzone_idx, unsigned int alloc_flags)
+{
+    return __zone_watermark_ok(z, order, mark, classzone_idx, alloc_flags,
+                    zone_page_state(z, NR_FREE_PAGES));
+}
+```
+
+而 `__zone_watermark_ok` 函数则完成了检查的工作, 该函数定义在[mm/page_alloc.c?v=4.7, line 2752](http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L2752)
+
+```cpp
+// http://lxr.free-electrons.com/source/mm/page_alloc.c?v=4.7#L2752
+/*
+ * Return true if free base pages are above 'mark'. For high-order checks it
+ * will return true of the order-0 watermark is reached and there is at least
+ * one free page of a suitable size. Checking now avoids taking the zone lock
+ * to check in the allocation paths if no pages are free.
+ */
+bool __zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
+             int classzone_idx, unsigned int alloc_flags,
+             long free_pages)
+{
+    long min = mark;
+    int o;
+    const bool alloc_harder = (alloc_flags & ALLOC_HARDER);
+
+    /* free_pages may go negative - that's OK
+     * free_pages可能变为负值, 没有关系 */
+    free_pages -= (1 << order) - 1;
+
+    if (alloc_flags & ALLOC_HIGH)
+        min -= min / 2;
+
+    /*
+     * If the caller does not have rights to ALLOC_HARDER then subtract
+     * the high-atomic reserves. This will over-estimate the size of the
+     * atomic reserve but it avoids a search.
+     */
+    if (likely(!alloc_harder))
+        free_pages -= z->nr_reserved_highatomic;
+    else
+        min -= min / 4;
+
+#ifdef CONFIG_CMA
+    /* If allocation can't use CMA areas don't use free CMA pages */
+    if (!(alloc_flags & ALLOC_CMA))
+        free_pages -= zone_page_state(z, NR_FREE_CMA_PAGES);
+#endif
+
+    /*
+     * Check watermarks for an order-0 allocation request. If these
+     * are not met, then a high-order request also cannot go ahead
+     * even if a suitable page happened to be free.
+     */
+    if (free_pages <= min + z->lowmem_reserve[classzone_idx])
+        return false;
+
+    /* If this is an order-0 request then the watermark is fine */
+    if (!order)
+        return true;
+
+    /* For a high-order request, check at least one suitable page is free 
+     * 在下一阶, 当前阶的页是不可用的  */
+    for (o = order; o < MAX_ORDER; o++) {
+        struct free_area *area = &z->free_area[o];
+        int mt;
+
+        if (!area->nr_free)
+            continue;
+
+        if (alloc_harder)
+            return true;
+
+        /* 所需高阶空闲页的数目相对较少 */
+        for (mt = 0; mt < MIGRATE_PCPTYPES; mt++) {
+            if (!list_empty(&area->free_list[mt]))
+                return true;
+        }
+
+#ifdef CONFIG_CMA
+        if ((alloc_flags & ALLOC_CMA) &&
+            !list_empty(&area->free_list[MIGRATE_CMA])) {
+            return true;
+        }
+#endif
+    }
+    return false;
+}
+```
+
+
+我们知道 [`zone_per_state`](http://lxr.free-electrons.com/source/include/linux/vmstat.h?v=4.7#L130)用来访问每个内存域的统计量. 在上述代码中, 得到的是空闲页的数目.
+
+```cpp
+free_pages -= zone_page_state(z, NR_FREE_CMA_PAGES);
+```
+
+在解释了`ALLOC_HIGH`和`ALLOC_HARDER`标志之后(将最小值标记降低到当前值的一半或四分之一, 使得分配过程努力或更加努力), 
+```cpp
+if (alloc_flags & ALLOC_HIGH)
+	min -= min / 2;
+
+if (likely(!alloc_harder))
+	free_pages -= z->nr_reserved_highatomic;
+else
+	min -= min / 4;
+```
+
+
+该函数会检查空闲页的数目`free_pages`是否小于最小值与[`lowmem_reserve`](http://lxr.free-electrons.com/source/include/linux/mmzone.h?v=4.7#L341)中指定的紧急分配值`min`之和.
+
+```cpp
+if (free_pages <= min + z->lowmem_reserve[classzone_idx])
+	return false;
+```
+
+如果不小于, 则代码遍历所有小于当前阶的分配阶, 其中nr_free记载的是当前分配阶的空闲页块数目.
+
+```cpp
+/* For a high-order request, check at least one suitable page is free */
+for (o = order; o < MAX_ORDER; o++) {
+    struct free_area *area = &z->free_area[o];
+    int mt;
+
+    if (!area->nr_free)
+        continue;
+
+    if (alloc_harder)
+        return true;
+
+    for (mt = 0; mt < MIGRATE_PCPTYPES; mt++) {
+        if (!list_empty(&area->free_list[mt]))
+            return true;
+    }
+
+#ifdef CONFIG_CMA
+    if ((alloc_flags & ALLOC_CMA) &&
+        !list_empty(&area->free_list[MIGRATE_CMA])) {
+        return true;
+    }
+#endif
+}
+```
+
+如果内核遍历所有的低端内存域之后, 发现内存不足, 则不进行内存分配.
+
