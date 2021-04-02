@@ -35,6 +35,12 @@ blogexcerpt: <br>笔者在日常内核性能优化的工作中, 主要涉及 终
 
 <br>
 
+博文更新日志
+
+| 日期 | 更新 |
+|:---:|:----:|
+| 2021/04/02 | 新增 3.5 节, 使用 record-tgid 显示进程运行信息 |
+
 
 # 1 问题来源
 -------
@@ -193,6 +199,38 @@ get_systrace $1
 ```cpp
 sh ./systrace.sh 10
 ```
+
+## 3.5 record-tgid 显示进程运行信息
+-------
+
+我们之前在 Android 上的 systrace 通常可以看到应用及其所有子线程(进程) 的运行情况.
+
+![systrace 中进程运行的信息](./tracing_tgid_info.png)
+
+但是我们在 linux 下抓取的 systrace 中却没有这样的信息. 有些时候不利于我们分析.
+
+![systrace 中没有进程运行的信息](./tracing_without_tgid.png)
+
+通过分析发现, 如果要显示进程的信息, 是需要让 systrace 知道你所在的主进程(tgid)的.
+
+trace-viewer 通过 tgid 讲一个应用下的多个线程放置在一起, 同时用不同颜色标记进程的运行状态.
+可以通过 `record-tgid` 接口显示进程的运行信息.
+
+```cpp
+echo 1 > /sys/kernel/debug/tracing/options/record-tgid
+```
+
+开启了 `record-tgid` 后, trace 文件中进程后面将新增一列 tgid 的信息.
+
+![开启 record-tgid 前后 trace 文件对比](./diff_tracing.png)
+
+进程运行状态的信息显示出来, 如下所示:
+
+![systrace 中的进程运行的信息](./tracing_with_tgid.png)
+
+
+
+
 
 # 4 参考资料
 -------
