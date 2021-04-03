@@ -507,34 +507,40 @@ zonelist是指向备用列表的指针. 在预期内存域没有空闲空间的�
 ### 3.2.2 get_page_from_freelist
 -------
 
-for 循环所作的基本上与直觉一致, 遍历备用列表的所有内存域, 用最简单的方式查找一个适当的空闲内存块
+for 循环所作的基本上与直觉一致(从高端向低端扫描), for_next_zone_zonelist_nodemask 遍历备用列表的所有内存域, 用最简单的方式查找一个适当的空闲内存块
 
-*   首先, 解释ALLOC_*标志(\__cpuset_zone_allowed_softwall是另一个辅助函数, 用于检查给定内存域是否属于该进程允许运行的CPU).
+*   首先, 如果使能了 CPUSET, 且内存分配附带了 ALLOC_CPUSET 标记, 则只能(从 CPUSET 限定的)该进程允许运行 CPU 的所属内存域去分配内存, 通过 `__cpuset_zone_allowed` 来检查.
 
-*   zone_watermark_ok接下来检查所遍历到的内存域是否有足够的空闲页, 并试图分配一个连续内存块. 如果两个条件之一不能满足, 即或者没有足够的空闲页, 或者没有连续内存块可满足分配请求, 则循环进行到备用列表中的下一个内存域, 作同样的检查. 直到找到一个合适的页面, 在进行try_this_node进行内存分配
+*   `zone_watermark_fast` 检测当前 `ZONE` 的水位情况, 检查是否能够满足当前多个页面的分配请求. 如果水位不足, 则会 `zone_reclaim` 尝试去回收内存. 如果没有正常回收, 或者回收的内存不够, 都将跳过从 ZONE 上分配内存, 回收完成后, 通过 `zone_watermark_ok` 当前 ZONE 是否(回收够了)足够的空闲页. 
 
-*   如果内存域适用于当前的分配请求, 那么buffered_rmqueue试图从中分配所需数目的页
+*   如果没有足够的空闲页, 或者没有连续内存块可满足分配请求, 则循环进行到备用列表中的下一个内存域, 作同样的检查. 直到找到一个合适的页面, 再进行 `try_this_node` 进行内存分配.
+
+*   如果内存域适用于当前的分配请求, 那么则通过 `rmqueue` 从伙伴系统中分配内存.
 
 ```cpp
+// https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L3788
 /*
  * get_page_from_freelist goes through the zonelist trying to allocate
  * a page.
  */
 static struct page *
-get_page_from_freelist(gfp_t gfp_mask, unsigned int order, int alloc_flags, const struct alloc_context *ac)
+get_page_from_freelist(gfp_t gfp_mask, unsigned int order, int alloc_flags,
+                        const struct alloc_context *ac)
 {
-    struct zoneref *z = ac->preferred_zoneref;
+    struct zoneref *z;
     struct zone *zone;
-    bool fair_skipped = false;
-    bool apply_fair = (alloc_flags & ALLOC_FAIR);
+    struct pglist_data *last_pgdat_dirty_limit = NULL;
+    bool no_fallback;
 
-zonelist_scan:
+retry:
     /*
      * Scan zonelist, looking for a zone with enough free.
      * See also __cpuset_node_allowed() comment in kernel/cpuset.c.
      */
-    for_next_zone_zonelist_nodemask(zone, z, ac->zonelist, ac->high_zoneidx,
-                                ac->nodemask) {
+    no_fallback = alloc_flags & ALLOC_NOFRAGMENT;
+    z = ac->preferred_zoneref;
+    for_next_zone_zonelist_nodemask(zone, z, ac->highest_zoneidx,
+                    ac->nodemask) {
         struct page *page;
         unsigned long mark;
 
@@ -543,77 +549,87 @@ zonelist_scan:
             !__cpuset_zone_allowed(zone, gfp_mask))
                 continue;
         /*
-         * Distribute pages in proportion to the individual
-         * zone size to ensure fair page aging.  The zone a
-         * page was allocated in should have no effect on the
-         * time the page has in memory before being reclaimed.
-         */
-        if (apply_fair) {
-            if (test_bit(ZONE_FAIR_DEPLETED, &zone->flags)) {
-                fair_skipped = true;
-                continue;
-            }
-            if (!zone_local(ac->preferred_zoneref->zone, zone)) {
-                if (fair_skipped)
-                    goto reset_fair;
-                apply_fair = false;
-            }
-        }
-        /*
          * When allocating a page cache page for writing, we
-         * want to get it from a zone that is within its dirty
-         * limit, such that no single zone holds more than its
+         * want to get it from a node that is within its dirty
+         * limit, such that no single node holds more than its
          * proportional share of globally allowed dirty pages.
-         * The dirty limits take into account the zone's
+         * The dirty limits take into account the node's
          * lowmem reserves and high watermark so that kswapd
          * should be able to balance it without having to
          * write pages from its LRU list.
          *
-         * This may look like it could increase pressure on
-         * lower zones by failing allocations in higher zones
-         * before they are full.  But the pages that do spill
-         * over are limited as the lower zones are protected
-         * by this very same mechanism.  It should not become
-         * a practical burden to them.
-         *
          * XXX: For now, allow allocations to potentially
-         * exceed the per-zone dirty limit in the slowpath
+         * exceed the per-node dirty limit in the slowpath
          * (spread_dirty_pages unset) before going into reclaim,
          * which is important when on a NUMA setup the allowed
-         * zones are together not big enough to reach the
+         * nodes are together not big enough to reach the
          * global limit.  The proper fix for these situations
-         * will require awareness of zones in the
+         * will require awareness of nodes in the
          * dirty-throttling and the flusher threads.
          */
-        if (ac->spread_dirty_pages && !zone_dirty_ok(zone))
-            continue;
+        if (ac->spread_dirty_pages) {
+            if (last_pgdat_dirty_limit == zone->zone_pgdat)
+                continue;
 
-        mark = zone->watermark[alloc_flags & ALLOC_WMARK_MASK];
+            if (!node_dirty_ok(zone->zone_pgdat)) {
+                last_pgdat_dirty_limit = zone->zone_pgdat;
+                continue;
+            }
+        }
+
+        if (no_fallback && nr_online_nodes > 1 &&
+            zone != ac->preferred_zoneref->zone) {
+            int local_nid;
+
+            /*
+             * If moving to a remote node, retry but allow
+             * fragmenting fallbacks. Locality is more important
+             * than fragmentation avoidance.
+             */
+            local_nid = zone_to_nid(ac->preferred_zoneref->zone);
+            if (zone_to_nid(zone) != local_nid) {
+                alloc_flags &= ~ALLOC_NOFRAGMENT;
+                goto retry;
+            }
+        }
+
+        mark = wmark_pages(zone, alloc_flags & ALLOC_WMARK_MASK);
         if (!zone_watermark_fast(zone, order, mark,
-                       ac_classzone_idx(ac), alloc_flags)) {
+                       ac->highest_zoneidx, alloc_flags,
+                       gfp_mask)) {
             int ret;
 
+#ifdef CONFIG_DEFERRED_STRUCT_PAGE_INIT
+            /*
+             * Watermark failed for this zone, but see if we can
+             * grow this zone if it contains deferred pages.
+             */
+            if (static_branch_unlikely(&deferred_pages)) {
+                if (_deferred_grow_zone(zone, order))
+                    goto try_this_zone;
+            }
+#endif
             /* Checked here to keep the fast path fast */
             BUILD_BUG_ON(ALLOC_NO_WATERMARKS < NR_WMARK);
             if (alloc_flags & ALLOC_NO_WATERMARKS)
                 goto try_this_zone;
 
-            if (zone_reclaim_mode == 0 ||
+            if (node_reclaim_mode == 0 ||
                 !zone_allows_reclaim(ac->preferred_zoneref->zone, zone))
                 continue;
 
-            ret = zone_reclaim(zone, gfp_mask, order);
+            ret = node_reclaim(zone->zone_pgdat, gfp_mask, order);
             switch (ret) {
-            case ZONE_RECLAIM_NOSCAN:
+            case NODE_RECLAIM_NOSCAN:
                 /* did not scan */
                 continue;
-            case ZONE_RECLAIM_FULL:
+            case NODE_RECLAIM_FULL:
                 /* scanned but unreclaimable */
                 continue;
             default:
                 /* did we reclaim enough */
                 if (zone_watermark_ok(zone, order, mark,
-                        ac_classzone_idx(ac), alloc_flags))
+                    ac->highest_zoneidx, alloc_flags))
                     goto try_this_zone;
 
                 continue;
@@ -621,7 +637,7 @@ zonelist_scan:
         }
 
 try_this_zone:
-        page = buffered_rmqueue(ac->preferred_zoneref->zone, zone, order,
+        page = rmqueue(ac->preferred_zoneref->zone, zone, order,
                 gfp_mask, alloc_flags, ac->migratetype);
         if (page) {
             prep_new_page(page, order, gfp_mask, alloc_flags);
@@ -634,30 +650,31 @@ try_this_zone:
                 reserve_highatomic_pageblock(page, zone, order);
 
             return page;
+        } else {
+#ifdef CONFIG_DEFERRED_STRUCT_PAGE_INIT
+            /* Try again if zone has deferred pages */
+            if (static_branch_unlikely(&deferred_pages)) {
+                if (_deferred_grow_zone(zone, order))
+                    goto try_this_zone;
+            }
+#endif
         }
     }
 
     /*
-     * The first pass makes sure allocations are spread fairly within the
-     * local node.  However, the local node might have free pages left
-     * after the fairness batches are exhausted, and remote zones haven't
-     * even been considered yet.  Try once more without fairness, and
-     * include remote zones now, before entering the slowpath and waking
-     * kswapd: prefer spilling to a remote zone over swapping locally.
+     * It's possible on a UMA machine to get through all zones that are
+     * fragmented. If avoiding fragmentation, reset and try again.
      */
-    if (fair_skipped) {
-reset_fair:
-        apply_fair = false;
-        fair_skipped = false;
-        reset_alloc_batches(ac->preferred_zoneref->zone);
-        z = ac->preferred_zoneref;
-        goto zonelist_scan;
+    if (no_fallback) {
+        alloc_flags &= ~ALLOC_NOFRAGMENT;
+        goto retry;
     }
 
     return NULL;
 }
 ```
 
+其中 zone_watermark_fast 函数检查当前 ZONE 中的水位情况
 
 
 ## 3.3	水位控制
@@ -870,3 +887,6 @@ for (o = order; o < MAX_ORDER; o++) {
 
 如果内核遍历所有的低端内存域之后, 发现内存不足, 则不进行内存分配.
 
+
+### 3.3.3 zone_watermark_fast
+-------
