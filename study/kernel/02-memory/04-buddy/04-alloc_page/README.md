@@ -176,20 +176,6 @@ alloc_pages(gfp_t gfp_mask, unsigned int order)
 ![alloc_pages for UMA](alloc_pages_uma.png)
 
 
-```cpp
-|---->alloc_pages
-|
-     |---->alloc_pages_node
-     |    
-          |---->__alloc_pages_node
-          |
-               |---->__alloc_pages
-               |
-                   |---->__alloc_pages_nodemask
-                   |
-```
-
-
 
 UMA结构下的`alloc_pages`是通过`alloc_pages_node`函数实现的, 下面我们看看`alloc_pages_node`函数的定义, 在[include/linux/gfp.h?v=4.7, line 448](http://lxr.free-electrons.com/source/include/linux/gfp.h?v=4.7#L448)
 
@@ -254,16 +240,6 @@ __alloc_pages(gfp_t gfp_mask, unsigned int order, int preferred_nid)
 
 ![alloc_pages for NUMA](alloc_pages_numa.png)
 
-```cpp
-|---->alloc_pages
-|
-     |---->alloc_pages_current
-     |
-          |---->alloc_page_interleave
-          |
-               |---->__alloc_pages_nodemask
-               |
-```
 
 ## 2.4 `__get_free_pages`
 -------
@@ -935,6 +911,9 @@ for (o = order; o < MAX_ORDER; o++) {
 
 ### 3.4.2   rmqueue_pcplist
 -------
+
+
+[`rmqueue_pcplist`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L3396) 从 Per CPU Pages 中分配物理页.
 
 ### 3.4.3   ` __rmqueue`
 -------
