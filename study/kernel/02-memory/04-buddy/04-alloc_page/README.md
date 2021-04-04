@@ -511,9 +511,14 @@ for 循环所作的基本上与直觉一致(从高端向低端扫描), for_next_
 
 *   首先, 如果使能了 CPUSET, 且内存分配附带了 ALLOC_CPUSET 标记, 则只能(从 CPUSET 限定的)该进程允许运行 CPU 的所属内存域去分配内存, 通过 `__cpuset_zone_allowed` 来检查.
 
-*   `zone_watermark_fast` 检测当前 `ZONE` 的水位情况, 检查是否能够满足当前多个页面的分配请求. 如果水位不足, 则会 `zone_reclaim` 尝试去回收内存. 如果没有正常回收, 或者回收的内存不够, 都将跳过从 ZONE 上分配内存, 回收完成后, 通过 `zone_watermark_ok` 当前 ZONE 是否(回收够了)足够的空闲页. 
+*   `zone_watermark_fast` 检测当前 `ZONE` 的水位情况, 检查是否能够满足当前多个页面的分配请求. 如果水位不足, 则会 `zone_reclaim` 尝试去回收内存. 如果没有正常回收, 或者回收的内存不够, 都将跳过从 ZONE 上分配内存, 回收完成后, 通过 `zone_watermark_ok` 再次检查 ZONE 的水位情况以及是否满足连续大内存块的分配需求. 
 
-*   如果没有足够的空闲页, 或者没有连续内存块可满足分配请求, 则循环进行到备用列表中的下一个内存域, 作同样的检查. 直到找到一个合适的页面, 再进行 `try_this_node` 进行内存分配.
+*   如果没有足够的空闲页, 或者没有连续内存块可满足分配请求, 则循环进行到备用列表中的下一个内存域, 继续同样的检查. 直到找到一个合适的页面, 再进行 `try_this_node` 进行内存分配. 请注意即使一切检查都成功了, 最终依然可能会分配失败. 这种情况可能是:
+
+    1.  外碎片化严重, 没有足够的连续内存页
+
+    2.  也可能是无法从 ZONE 内其他迁移类型中借用内存出来.
+
 
 *   如果内存域适用于当前的分配请求, 那么则通过 `rmqueue` 从伙伴系统中分配内存.
 
@@ -673,8 +678,6 @@ try_this_zone:
     return NULL;
 }
 ```
-
-其中 zone_watermark_fast 函数检查当前 ZONE 中的水位情况
 
 
 ## 3.3	水位控制
@@ -890,3 +893,47 @@ for (o = order; o < MAX_ORDER; o++) {
 
 ### 3.3.3 zone_watermark_fast
 -------
+
+
+## 3.4 rmqueue
+-------
+
+### 3.4.1 rmqueue 的基本流程
+
+![rmqueue 流程](./rmqueue.png)
+
+
+```cpp
+// https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L3421
+```
+
+1.  对于分配分配单页的情况(oder == 0), 则使用 [`rmqueue_pcplist`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L3396) 直接从冷热页缓存 PCP(Per Cpu Pages)中获取.
+
+2.  如果设置了 ALLOC_HARDER, 则说明是一次高优先级的分配, 就[从迁移类型为 MIGRATE_HIGHATOMIC 的内存中进行分配](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#3458). MIGRATE_HIGHATOMIC 类型的页用常用于于一些紧急情况下的内存分配.
+
+3.  常规模式下, 一般都是通过 [`__rmqueue`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2841) 从伙伴系统中指定迁移类型为 migratetype 的链表中获取.
+    
+    3.1 如果超过一半空闲内存位于 CMA 区域时, 则优先使用 [`__rmqueue_cma_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2348) 从 CMA 中分配
+
+    3.2 标准流程就是 [`__rmqueue_smallest`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2348) 从 各个 order 的空闲链表中获取, 首先从当前 order 的空闲链表中获取页面, 如果当前 order 页面不足, 则开始向高 order 的链表中切蛋糕.
+
+    3.3 如果切蛋糕也失败了, 说明空闲的页面已经不足以支撑此次分配, 则从 CMA 区域中预留的内存中进行分配.
+
+    3.4 如果前面流程都失败了, 那么说明当前 MIGRATE_TYPE 中已经没有足够的连续物理页面, 那么进入 fallback 流程, 尝试从其他 MIGRATE_TYPE 中窃取内存.
+
+
+4.  通过 [`check_new_pages`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2253) 检查获取到的内存页是否满足要求. 伙伴系统返回了所获取的的物理页面块第一个页面的 page 结构体, 而 [`check_new_pages`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2253) 则需要检查所有的页面.
+
+
+### 3.4.2   rmqueue_pcplist
+-------
+
+### 3.4.3   ` __rmqueue`
+-------
+
+
+### 3.4.4   `__rmqueue_smallest`
+-------
+
+
+### 3.4.5 __rmqueue_fallback
