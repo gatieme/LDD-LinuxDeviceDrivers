@@ -171,6 +171,11 @@ alloc_pages(gfp_t gfp_mask, unsigned int order)
 ## 2.2 UMA
 -------
 
+
+
+![alloc_pages for UMA](alloc_pages_uma.png)
+
+
 ```cpp
 |---->alloc_pages
 |
@@ -245,6 +250,9 @@ __alloc_pages(gfp_t gfp_mask, unsigned int order, int preferred_nid)
 
 ## 2.3 NUMA 
 -------
+
+
+![alloc_pages for NUMA](alloc_pages_numa.png)
 
 ```cpp
 |---->alloc_pages
