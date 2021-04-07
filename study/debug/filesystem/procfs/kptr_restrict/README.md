@@ -15,7 +15,7 @@ kptr_restrict 向用户空间内核中的指针(/proc/kallsyms-modules显示valu
 
 <br>
 
-#1	/proc/kallsyms显示value全部为0
+# 1	/proc/kallsyms显示value全部为0
 -------
 
 今天一个同事问我 `cat /proc/kallsyms` 显示 `value` 全部为 `0`. 我在手机端试了一下, 果然如此.
@@ -24,7 +24,7 @@ kptr_restrict 向用户空间内核中的指针(/proc/kallsyms-modules显示valu
 
 后来发现是系统为了保护这些符号地址泄露, 而用的一种保护手段, 从而使除 `root` 用户外的普通用户不能直接查看符号地址.
 
-#2	kptr_restrict 介绍
+# 2	kptr_restrict 介绍
 -------
 
 原因在于内核文件 [`kallsyms.c`](http://elixir.free-electrons.com/linux/v4.13.9/source/kernel/kallsyms.c#L583) 中的显示符号地址命令中做了如下限制.
@@ -93,11 +93,23 @@ When kptr_restrict is set to (2), kernel pointers printed using
 #3	kptr_restrict的设计
 -------
 
-`kptr_restrict` 在内核 [`commit 455cd5ab--kptr_restrict for hiding kernel pointers from unprivileged users`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=455cd5ab305c90ffc422dd2e0fb634730942b257), 具体实现源码位于 [`lib/vsprintf.c, line 1708`](http://elixir.free-electrons.com/linux/v4.13.9/source/lib/vsprintf.c#L1708)
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/09/17 | Dan Rosenberg <drosenberg@vsecurity.com> | [kptr_restrict for hiding kernel pointers from unprivileged users](https://lore.kernel.org/patchwork/cover/229987) | 引入 kptr_restrict 限制都内核指针的读取 | v7 ☑ 2.6.38-rc1| [v7 PatchWork](https://lore.kernel.org/patchwork/cover/228326)<br>*-*-*-*-*-*-*-* <br>[v7 PatchWork](https://lore.kernel.org/patchwork/cover/229987)<br>*-*-*-*-*-*-*-* <br>[commit 455cd5ab305c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=455cd5ab305c90ffc422dd2e0fb634730942b257)  |
+| 2017/11/19 | Tobin C. Harding <me@tobin.cc> | [hash addresses printed with %p](https://lore.kernel.org/patchwork/cover/856356) | 内核中 %p 打印的地址会暴露内核态地址信息, 是极其不安全的, 因此限制 %p 的打印信息, 它将打印一个散列值, 并不是实际的地址. 如果想要打印实际地址, 需要显式指定 %px. | v11 ☑ 4.15-rc2 | [PatchWork](https://lore.kernel.org/patchwork/cover/856356)<br>*-*-*-*-*-*-*-* <br>[关键 commit 57e734423add](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=57e734423adda83f3b05505875343284efe3b39c) |
+| 2019/04/17 | Petr Mladek <pmladek@suse.com> | [vsprintf: Prevent silent crashes and consolidate error handling](https://lore.kernel.org/patchwork/cover/1063193) | 此处填写补丁描述 | v7 ☑ 5.2-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1063193)<br>*-*-*-*-*-*-*-* <br>[commit 6eea242f9bcd](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6eea242f9bcdf828bb56334d8ee5c7cb466e4bcd) |
+
+
+## 3.1 v4.14 之前设计
+-------
+
+在 4.x 的内核中 `kptr_restrict` 在内核 [`commit 455cd5ab305c ("kptr_restrict for hiding kernel pointers from unprivileged users")`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=455cd5ab305c90ffc422dd2e0fb634730942b257), 具体实现源码位于 [`lib/vsprintf.c, line 1708`](http://elixir.free-electrons.com/linux/v4.13.9/source/lib/vsprintf.c#L1708)
 
 
 ```cpp
-#http://elixir.free-electrons.com/linux/v4.13.9/source/lib/vsprintf.c#L1708
+// https://elixir.bootlin.com/linux/v4.13.9/source/lib/vsprintf.c#L1708
 	case 'K':
 		switch (kptr_restrict) {
 		case 0:
@@ -141,7 +153,18 @@ When kptr_restrict is set to (2), kernel pointers printed using
 		break;
 ```
 
-#4	参考
+## 3.2 v5.2 之前设计
+-------
+
+```CPP
+// https://elixir.bootlin.com/linux/v5.1/source/lib/vsprintf.c#L1482
+```
+
+
+## 3.3 v5.2 之后设计
+-------
+
+# 4	参考
 -------
 
 [Introducing Linux Kernel Symbols](https://onebitbug.me/2011/03/04/introducing-linux-kernel-symbols/)
