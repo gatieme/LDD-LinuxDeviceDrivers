@@ -130,6 +130,8 @@
 
 [Mel Gorman <mgorman@techsingularity.net>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=19167&state=*&archive=both&param=3&page=1)
 
+[Minchan Kim <minchan@kernel.org>](https://lore.kernel.org/patchwork/project/lkml/list/?series=&submitter=13305&state=*&q=&archive=both&delegate=)
+
 *   关于碎片化
 
 内存按 chunk 分配, 每个程序保留的 chunk 的大小和时间都不同. 一个程序可以多次请求和释放 `memory chunk`. 程序一开始时, 空闲内存有很多并且连续, 随后大的连续的内存区域碎片化, 变成更小的连续区域, 最终程序无法获取大的连续的 memory chunk. 
@@ -516,7 +518,6 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 有个硬件机构叫 TLB, 用来缓存页表查寻结果, 根据程序局部性, 即将访问的数据或代码很可能与刚访问过的在一个页面, 有了 TLB 缓存, 页表查找很多时候就大大加快了. 但是, 内核在切换进程时, 需要切换页表, 同时 TLB 缓存也失效了, 需要冲刷掉. 内核引入的一个优化是, 当切换到内核线程时, 由于内核线程不使用用户态空间, 因此切换用户态的页表是不必要, 自然也不需要冲刷 TLB. 所以引入了 Lazy-TLB 模式, 以提高效率. 关于细节, 可参考[<sup>17</sup>](#refer-anchor-17)
 
 
-
 # 2.4 页面回收
 -------
 
@@ -628,6 +629,15 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 
 3.15 就引入了一种算法, 它通过估算访问距离, 来测定工作集的大小, 从而维持 inactive 链表在一个合适长度[<sup>24</sup>](#refer-anchor-24).
 
+
+## 2.4.6 madvise MADV_FREE 页面延迟回收
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2014/07/18 | Minchan Kim | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/484703) | madvise 可以用来设置页面的属性, MADV_FREE 则将这些页标识为延迟回收, 在页面用不着的时候, 可能并不会立即释放<br>1. 当内核内存紧张时, 这些页将会被优先回收, 如果应用程序在页回收后又再次访问, 内核将会返回一个新的并设置为 0 的页.<br>2. 而如果内核内存充裕时, 标识为 MADV_FREE 的页会仍然存在, 后续的访问会清掉延迟释放的标志位并正常读取原来的数据, 因此应用程序不检查页的数据, 就无法知道页的数据是否已经被丢弃. | v13 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/416962) |
+| 2015/12/30 | Minchan Kim | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/622178) | madvise 支持页面延迟回收(MADV_FREE)的再一次尝试  | v5 ☑ 4.5-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/622178) |
 
 
 
@@ -831,6 +841,8 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/12/19 | Colin Cross | [mm: add a field to store names for private anonymous memory](https://lore.kernel.org/patchwork/cover/416962) | 在二进制中通过 xxx_sched_class 地址顺序标记调度类的优先级, 从而可以通过直接比较两个 xxx_sched_class 地址的方式, 优化调度器中两个热点函数 pick_next_task()和check_preempt_curr(). | v2 ☐ |[PatchWork RFC](https://lore.kernel.org/patchwork/cover/416962)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/416962) |
 | 2019/12/19 | Steven Rostedt | [sched: Optimizations to sched_class processing](https://lore.kernel.org/patchwork/cover/1170901) | 对上面补丁的进一步优化, 对齐数据结构保证 cache 对齐, 通过链接脚本保证数据的排布顺序. | RFC ☑ 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1170901) |
+
+
 
 # 2.9 内存控制组(Memory Cgroup)支持
 -------
