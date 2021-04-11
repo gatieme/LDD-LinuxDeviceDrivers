@@ -15,6 +15,14 @@ kptr_restrict 向用户空间内核中的指针(/proc/kallsyms-modules显示valu
 
 <br>
 
+
+博文更新日志
+
+| 日期	| 更新 |
+|:-----:|:----:|
+| 2017/10/22 | 基于 4.13 讲解 kptr_restrict 的设计与实现      |
+| 2021/04/11 | 更新了 4.14~5.12 目前 kptr_restrict 的最新设计 |
+
 # 1	/proc/kallsyms显示value全部为0
 -------
 
@@ -190,9 +198,6 @@ char *pointer(const char *fmt, char *buf, char *end, void *ptr,
 ### 3.2.1 printk 地址散列化
 -------
 
-```CPP
-// https://elixir.bootlin.com/linux/v5.1/source/lib/vsprintf.c#L1482
-```
 
 
 在 linux 4.15 中 [commit 57e734423add ("vsprintf: refactor %pK code out of pointer()")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=57e734423adda83f3b05505875343284efe3b39c) 将 point 中对 `%pK`(kptr_restrict) 的处理都封装到了 restricted_pointer 函数中. 这个修改比较简单, 就不详细描述了. 想要详细了解的同学可以查看提交的 commit
