@@ -336,7 +336,26 @@ char *pointer(const char *fmt, char *buf, char *end, void *ptr,
 | 2019/04/17 | Petr Mladek <pmladek@suse.com> | [hvsprintf: Prevent silent crashes and consolidate error handling](https://lore.kernel.org/patchwork/cover/1063203) | 修复上面补丁引入的一个小问题, 限制 restricted_pointer 中 kptr_restrict 为 0 时, 输出散列地址. | v7 ☑ 5.2-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1063193)<br>*-*-*-*-*-*-*-* <br>[关键 commit 1ac2f9789c4b](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1ac2f9789c4b76ad749870c25ffae0cbcd1f510f) |
 
 
-### 3.2.3 示例
+### 3.2.3 v5.7 的修正
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/02/19 | Ilya Dryomov <idryomov@gmail.com> | [vsprintf: don't obfuscate NULL and error pointers](https://lore.kernel.org/patchwork/patch/1196790) | 同样的, 之前 NULL 指针和错误指针的输出也很混乱, 进行了归一化. | v2 ☑ 5.7-rc7 | [PatchWork](https://lore.kernel.org/patchwork/cover/1196790)<br>*-*-*-*-*-*-*-* <br>[关键 commit 7bd57fbc4a4d](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7bd57fbc4a4ddedc664cad0bbced1b469e24e921) |
+
+进一步处理了 errr-ptr 和 NULL-ptr 的输出, 让在所有情况下, 显示都保持清晰, 一致.
+
+```cpp
+                              ptr         error-ptr              NULL
+     %p:            0000000001f8cc5b  fffffffffffffff2  0000000000000000
+     %pK, kptr = 0: 0000000001f8cc5b  fffffffffffffff2  0000000000000000
+     %px:           ffff888048c04020  fffffffffffffff2  0000000000000000
+     %pK, kptr = 1: ffff888048c04020  fffffffffffffff2  0000000000000000
+     %pK, kptr = 2: 0000000000000000  0000000000000000  0000000000000000
+
+```
+
+### 3.2.4 示例
 -------
 
 我们制作一个非常简单的用例, 分别用 %p, %pK, %px 打印一下子驱动中指针指向的数组的地址(指针的值)和指针本身的地址.
@@ -397,27 +416,6 @@ done
 ![test kptr restrict](./kptr_restrict_3_test.png)
 
 可以看到输出的内容与我的分析一致.
-
-
-
-### 3.2.4 v5.7 的修正
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/02/19 | Ilya Dryomov <idryomov@gmail.com> | [vsprintf: don't obfuscate NULL and error pointers](https://lore.kernel.org/patchwork/patch/1196790) | 同样的, 之前 NULL 指针和错误指针的输出也很混乱, 进行了归一化. | v2 ☑ 5.7-rc7 | [PatchWork](https://lore.kernel.org/patchwork/cover/1196790)<br>*-*-*-*-*-*-*-* <br>[关键 commit 7bd57fbc4a4d](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7bd57fbc4a4ddedc664cad0bbced1b469e24e921) |
-
-进一步处理了 errr-ptr 和 NULL-ptr 的输出, 让在所有情况下, 显示都保持清晰, 一致.
-
-```cpp
-                              ptr         error-ptr              NULL
-     %p:            0000000001f8cc5b  fffffffffffffff2  0000000000000000
-     %pK, kptr = 0: 0000000001f8cc5b  fffffffffffffff2  0000000000000000
-     %px:           ffff888048c04020  fffffffffffffff2  0000000000000000
-     %pK, kptr = 1: ffff888048c04020  fffffffffffffff2  0000000000000000
-     %pK, kptr = 2: 0000000000000000  0000000000000000  0000000000000000
-
-```
 
 # 4	参考
 -------
