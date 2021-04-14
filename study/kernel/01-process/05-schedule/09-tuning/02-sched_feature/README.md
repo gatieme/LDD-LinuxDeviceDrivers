@@ -1135,6 +1135,9 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 
 *移除 cpu_load* 关闭 LB_BIAS 带来的直接好处就是, 最后一个使用 cpu_load 的用户被关掉了, 那么内核可以安全的[移除 cpu_load 数组 55627e3cd22c sched/core: Remove rq->cpu_load[]](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=55627e3cd22c315c4a02fe3bbbb7234ec439cb1d)了, 同时 [LB_BIAS 也被移除](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1c1b8a7b03ef), 自然 sched_domian 中[设置 idx 的接口也没有存在的必要了](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0e1fef63d92d). 参见 [sched: Remove per rq load array](https://lore.kernel.org/patchwork/patch/1079336), 最终于 5.10-rc1 合入内核.
 
+TODO:
+https://fa.linux.kernel.narkive.com/af7M4Sth/rfc-patch-0-4-sched-disabled-lb-bias-with-full-dynticks
+
 #10    NONTASK_CAPACITY
 -------
 
