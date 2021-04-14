@@ -1039,8 +1039,18 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 ## 1.9.3 debug 接口
 -------
 
+
+在调度的 debug 接口和调优接口中, 在 cpu_load index 一直时争议比较大的一组.  
+
+在 cpu_load 衰减使用中, 我们混合了长期、短期负载和平衡偏差, 根据平衡随机选取一个大或小的值目的地或来源. 这种组合本身时非常奇怪的, 甚至很多人觉得是错误的, 应该基于平衡偏见和在 cpu 组之间的任务移动成本, 而不是随机历史或即时负载.
+
+很多开发者普遍认为历史负载可能会偏离实际负载, 导致不正确的偏差.
+
+因此开发者尝试过多次, 将这些看起来奇怪的东西从内核中移除掉.
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2014/04/16 | Alex Shi | [remove cpu_load idx](https://lore.kernel.org/patchwork/cover/456546) | 调度中使用 cpu_load 来做负载比较时非常错误的, 因此移除他们 | v5 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/456546) |
 | 2021/01/06 | Vincent Guittot | [sched: Remove per rq load array](https://lore.kernel.org/patchwork/cover/1079333) | 自 LB_BIAS 被禁用之后, 调度器只使用 rq->cpu_load[0] 作为cpu负载值, 因此 cpu_load 这个数组的其他之其实没意义了, 直接去掉了. 注意这对 load_balance 的调优是有一定影响的, 之前 sched_domain 中可以通过 sysctl 接口修改比较负载使用的 index, 这些 index 对应的 cpu_load 数组的下标. 干掉了这个数组, 那么这些 sysctl 也就没必要了 | v2 ☑ 5.10-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1079333) |
 | 2021/03/26 | Peter Zijlstra | [sched: Clean up SCHED_DEBUG](https://lore.kernel.org/patchwork/cover/1402660) | 目前内核有 sysctl, procfs 和 debugfs SCHED_DEBUG 接口, 比较混乱, 将所有接口信息都转移到 debugfs 中 | [PatchWork](https://lore.kernel.org/patchwork/cover/1402660) |
 

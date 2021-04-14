@@ -901,7 +901,7 @@ static void clear_buddies(struct cfs_rq *cfs_rq, struct sched_entity *se)
 这个是通过将其设置为 `skip_buddy` 而实现的. 但是在设置之前很有可能当前实体被设置了其它 `buddy` 标记. 因此也需要清楚. 参见 [`yield_task_fair`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L6395)
 
 *    [`dequeue_entity`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L3799) 当进程入队的时候, 也是需要将进程的 `buddy` 清除掉的.
-因此进程很有可能之前是带着 `buddy` 标记睡眠或者让出 `CPU`，不清除 `buddy` 标记必然对下次调度的行为造成影响. 参见 [`dequeue_entity`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L3799)
+因此进程很有可能之前是带着 `buddy` 标记睡眠或者让出 `CPU`, 不清除 `buddy` 标记必然对下次调度的行为造成影响. 参见 [`dequeue_entity`](https://elixir.bootlin.com/linux/v4.14.4/source/kernel/sched/fair.c#L3799)
 
 
 ##4.3 `NEXT_BUDDY` && `LAST_BUDDY` 接口
@@ -1086,9 +1086,54 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 -------
 
 
-#9    LB_BIAS
+#9    LB_BIAS 调度负载的保守度平衡
 -------
 
+> LB_BIAS allows the adjustment on how conservative load should be balanced.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2008/06/27 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [SMP-group balancer - take 3](https://lore.kernel.org/patchwork/cover/120652) | 优化调度器的路径, 减少对 rq->lock 的争抢, 实现 lockless. | v4 ☑ 4.4-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/120655), [commit 93b75217df39](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=93b75217df39e6d75889cc6f8050343286aff4a5) |
+
+## 9.1 cpu_load 数组
+-------
+
+在每个运行队列 struct rq 里, 除了 load 代表当前运行队列的负载, 同时还有一个 cpu_load[] 这样的数组, 它是一个分级别的代表当前运行队列负载的"替身". 在多 CPU 调度时, 会计算不同的 cpu domain 的负载, 根据不同的 index, 会选取相应的 cpu_load[] 作为当前运行队列的负载返回. 该特性的补丁 [commit 7897986bad8f sched: balance timers](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7897986bad8f6cd50d6149345aca7f6480f49464) 后引入, 补丁于 2.6.13-rc1 合入.
+
+这些负载值在 scheduler_tick, idle_balance 以及 NOHZ 退出时进行更新, 内核为每个调度域提供了 5 种 INDEX 以供选择.
+
+## 9.2 source_load 和 target_load
+------
+
+*source_load 和 target_load* 在调度的负载均衡路径和唤醒路径上, 调度器总是希望系统的负载均可能的均衡, 但是比较两个 CPU 的负载的时候, 总是有所倾向的, 我们倾向于把进程留在本地 CPU 而不是迁移到其他 CPU 上. 如果达到这样的效果呢.
+
+*   计算目的负载 target_load(), 负载往大的取
+
+    ```cpp
+    max(rq->cpu_load[load_idx-1], weighted_cpuload(cppu))
+    ```
+
+*   计算源 CPU 负载 source_load(), 负载往小的取
+    
+    ```cpp
+    min(rq->cpu_load[load_idx-1], weighted_cpuload(cpu))
+    ```
+
+这样为了均衡, 总是从大负载的 CPU 上往小负载的 CPU 上迁移进程, 而计算的时候 SRC_CPU 负载往小了取, DSR_CPU 负载往大了取, 很明显, 内核不倾向于进行迁移.
+
+## 9.3 LB_BIAS
+-------
+
+*LB_BIAS 的引入* [commit 93b75217df39 sched: disable source/target_load bias](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=93b75217df39e6d75889cc6f8050343286aff4a5) 发现 source/target_load 的偏差可能会很大, 因此引入了一个 LB_BIAS 可以将其禁用掉, 直接使用 weighted_cpuload(cpu) 来比较 source 和 target CPU 的负载, 不过此时默认 LB_BIAS 是关闭的. 也就是说默认相当于把 source_load 和 target_load BIAS 禁用了. 补丁于 2.6.27-rc1 合入.
+
+*默认开启 LB_BIAS* Yanmin 在他的 16 核机器上发现了一个显著的回归, 经分析正是因为原因是上面引入 LB_BIAS 的补丁导致的, 因此社区立马提了一个补丁将 LB_BIAS 默认开起来. [commit efc2dead2c82](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=efc2dead2c82cae31943828f6d977c483942b0eb), 补丁于 2.6.27-rc5 合入.
+
+*关闭 LB_BIAS* 调度器上任何一个优化, 哪怕只是实验性的, 一旦开起来, 要是想再关闭, 是非常困难的. [commit fdf5f315d5cf](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fdf5f315d5cfaefb7bb8a62ec4bf37b9891837aa), [PatchWork](https://lore.kernel.org/patchwork/patch/973154), 这个补丁中做了大量的性能测试, 最终证实在测试场景中, 把 LB_BIAS 关掉并没有造成较大的性能劣化, 因此可以尝试把它关掉, 最终该补丁于 4.20-rc1 合入.
+
+## 9.4 寿终正寝
+-------
+
+*移除 cpu_load* 关闭 LB_BIAS 带来的直接好处就是, 最后一个使用 cpu_load 的用户被关掉了, 那么内核可以安全的[移除 cpu_load 数组 55627e3cd22c sched/core: Remove rq->cpu_load[]](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=55627e3cd22c315c4a02fe3bbbb7234ec439cb1d)了, 同时 [LB_BIAS 也被移除](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1c1b8a7b03ef), 自然 sched_domian 中[设置 idx 的接口也没有存在的必要了](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0e1fef63d92d). 参见 [sched: Remove per rq load array](https://lore.kernel.org/patchwork/patch/1079336), 最终于 5.10-rc1 合入内核.
 
 #10    NONTASK_CAPACITY
 -------
