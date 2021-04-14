@@ -914,6 +914,36 @@ for (o = order; o < MAX_ORDER; o++) {
 
 
 [`rmqueue_pcplist`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L3396) 从 Per CPU Pages 中分配物理页.
+真正完成分配的函数是 [`__rmqueue_pcplist`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L3371)
+
+
+```cpp
+// https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L3371
+/* Remove page from the per-cpu list, caller must protect the list */
+static struct page *__rmqueue_pcplist(struct zone *zone, int migratetype,
+            unsigned int alloc_flags,
+            struct per_cpu_pages *pcp,
+            struct list_head *list)
+{
+    struct page *page;
+
+    do {
+        if (list_empty(list)) {
+            pcp->count += rmqueue_bulk(zone, 0,
+                    pcp->batch, list,
+                    migratetype, alloc_flags);
+            if (unlikely(list_empty(list)))
+                return NULL;
+        }
+
+        page = list_first_entry(list, struct page, lru);
+        list_del(&page->lru);
+        pcp->count--;
+    } while (check_new_pcp(page));
+
+    return page;
+}
+```
 
 ### 3.4.3   ` __rmqueue`
 -------
