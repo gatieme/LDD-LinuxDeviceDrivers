@@ -945,12 +945,50 @@ static struct page *__rmqueue_pcplist(struct zone *zone, int migratetype,
 }
 ```
 
-### 3.4.3   ` __rmqueue`
+*   如果 PCP list 是空的, 那么会通过 [`rmqueue_bulk`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2880) 从 buddy 伙伴系统分配 pcp->batch 个页面出来.
+
+*   否则, PCP 中有页面, 则直接取一个页面出来.
+
+### 3.4.3   ` __rmqueue_smallest`
 -------
 
 
-### 3.4.4   `__rmqueue_smallest`
+`__rmqueue` 主体是通过 `__rmqueue_smallest` 来向 buddy 伙伴系统中像切蛋糕一样, 切出一块内存出来的.
+
+```cpp
+// https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2303
+/*
+ * Go through the free lists for the given migratetype and remove
+ * the smallest available page from the freelists
+ */
+static __always_inline
+struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
+                        int migratetype)
+{
+    unsigned int current_order;
+    struct free_area *area;
+    struct page *page;
+
+    /* Find a page of the appropriate size in the preferred list */
+    for (current_order = order; current_order < MAX_ORDER; ++current_order) {
+        area = &(zone->free_area[current_order]);
+        page = get_page_from_free_area(area, migratetype);
+        if (!page)
+            continue;
+        del_page_from_free_list(page, zone, current_order);
+        expand(zone, page, order, current_order, migratetype);
+        set_pcppage_migratetype(page, migratetype);
+        return page;
+    }
+
+    return NULL;
+}
+```
+
+
+![`__rmqueue_fallback` 流程](./__rmqueue_fallback.png)
+
+### 3.4.4 `__rmqueue_fallback`
 -------
 
-
-### 3.4.5 __rmqueue_fallback
+如果前面的流程都分配失败了, 那么说明当前 ZONG 区域指定 MIGRATE_TYPE 中没有足够的空闲页来完成本次分配了. 那么内核此时将尝试
