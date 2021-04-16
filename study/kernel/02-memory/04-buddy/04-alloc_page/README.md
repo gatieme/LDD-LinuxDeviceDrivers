@@ -480,7 +480,7 @@ struct alloc_context {
 |:-----:|:-----:|
 | zonelist | 当perferred_zone上没有合适的页可以分配时, 就要按zonelist中的顺序扫描该zonelist中备用zone列表, 一个个的试用 |
 | nodemask | 表示节点的mask, 就是是否能在该节点上分配内存, 这是个bit位数组 |
-| preferred_zone | 表示从high_zoneidx后找到的合适的zone, 一般会从该zone分配；分配失败的话, 就会在zonelist再找一个preferred_zone = 合适的zone |
+| preferred_zone | 表示从high_zoneidx后找到的合适的zone, 一般会从该zone分配; 分配失败的话, 就会在zonelist再找一个preferred_zone = 合适的zone |
 | migratetype | 迁移类型, 在zone->free_area.free_list[XXX] 作为分配下标使用, 这个是用来反碎片化的, 修改了以前的free_area结构体, 在该结构体中再添加了一个数组, 该数组以迁移类型为下标, 每个数组元素都挂了对应迁移类型的页链表 |
 | high_zoneidx | 是表示该分配时, 所能分配的最高zone, 一般从high-->normal-->dma 内存越来越昂贵, 所以一般从high到dma分配依次分配 |
 | spread_dirty_pages | |
@@ -988,7 +988,16 @@ struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 
 ![`__rmqueue_fallback` 流程](./__rmqueue_fallback.png)
 
+
+1.  从期望申请的 order 空闲页面中开始申请目标 MIGRATE_TYPE 类型的页面, 如果没有找到, 则继续从更大 order 的空闲页面中申请, 直到 MAX_ORDER 为止; 
+
+2.  如果从某个 current_order 的空闲页面中查找到足够的页面后, 将它从空闲链表中移除;
+
+3.  由于申请到的 current_order 可能大于 order, 即申请到比期望的 2^order 页面要大的页面, 那么这时候我们需要通过 expand 对页面进行切割, 只取走我们需要的那部分页面, 而剩下的页面需要归还给伙伴系统.
+
+4.  fallback 流程下, 申请的页面可能时从其他 MIGRATE_TYPE 的空闲页面中窃取的, 那么这时候窃取的页面 MIGRATE_TYPE 与跟我们期望的是不符的, 需要设置页面的 MIGRATE_TYPE.
+
 ### 3.4.4 `__rmqueue_fallback`
 -------
 
-如果前面的流程都分配失败了, 那么说明当前 ZONG 区域指定 MIGRATE_TYPE 中没有足够的空闲页来完成本次分配了. 那么内核此时将尝试
+如果前面的流程都分配失败了, 那么说明当前 ZONG 区域指定 MIGRATE_TYPE 中没有足够的空闲页来完成本次分配了. 那么内核将通过 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2759) 尝试从当前 ZONE 的其他 MIGRATE_TYPE 的空闲链表中挪用内存, 
