@@ -1000,4 +1000,177 @@ struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 ### 3.4.4 `__rmqueue_fallback`
 -------
 
-如果前面的流程都分配失败了, 那么说明当前 ZONG 区域指定 MIGRATE_TYPE 中没有足够的空闲页来完成本次分配了. 那么内核将通过 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2759) 尝试从当前 ZONE 的其他 MIGRATE_TYPE 的空闲链表中挪用内存, 
+如果前面的流程都分配失败了, 那么说明当前 ZONG 区域指定 MIGRATE_TYPE 中没有足够的空闲页来完成本次分配了. 那么内核将通过 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2759) 尝试从当前 ZONE 的其他 MIGRATE_TYPE 的空闲链表中挪用内存.
+
+
+![`__rmqueue_fallback`](./__rmqueue_fallback.png)
+
+#### 3.4.4.1 窃取的顺序
+-------
+
+
+对于某个指定的 MIGRATE_TYPES, 内核 fallback 去其他 MIGRATE_TYPE 的空闲内存中窃取内存时, 有什么优先级顺序么?
+
+肯定有的, 内核定义了一个 fallbacks 数组, 用来指定每个迁移类型 fallback 时备选 MIGRATE_TYPE 的顺序.
+
+比如 fallbacks[MIGRATE_UNMOVABLE] 行值为 : { MIGRATE_RECLAIMABLE, MIGRATE_MOVABLE,   MIGRATE_TYPES }
+就意味着, 当分配 UNMOVABLE 的内存页失败的时候, 先去 RECLAIMABLE 类型的页面中分配, 再去 MOVABLE 类型的页面中分配. MIGRATE_TYPES 标记了 fallback 的终止, 如果前两个类型都没有找到可分配的内存, 那么 fallback 就失败了.
+
+CMA 和 ISOLATE 不会进行 fallback 操作, 因此其 fallback 数组只有一项 { MIGRATE_TYPES }.
+
+```cpp
+/*
+ * This array describes the order lists are fallen back to when
+ * the free lists for the desirable migrate type are depleted
+ */
+static int fallbacks[MIGRATE_TYPES][3] = {
+    [MIGRATE_UNMOVABLE]   = { MIGRATE_RECLAIMABLE, MIGRATE_MOVABLE,   MIGRATE_TYPES },
+    [MIGRATE_MOVABLE]     = { MIGRATE_RECLAIMABLE, MIGRATE_UNMOVABLE, MIGRATE_TYPES },
+    [MIGRATE_RECLAIMABLE] = { MIGRATE_UNMOVABLE,   MIGRATE_MOVABLE,   MIGRATE_TYPES },
+#ifdef CONFIG_CMA
+    [MIGRATE_CMA]         = { MIGRATE_TYPES }, /* Never used */
+#endif
+#ifdef CONFIG_MEMORY_ISOLATION
+    [MIGRATE_ISOLATE]     = { MIGRATE_TYPES }, /* Never used */
+#endif
+};
+```
+
+| 迁移类别 | 窃取顺序 |
+|:-------:|:-------:|
+| 不可移动(MIGRATE_UNMOVABLE) | MIGRATE_RECLAIMABLE > MIGRATE_MOVABLE   |
+| 可移动(MIGRATE_MOVABLE)     | MIGRATE_RECLAIMABLE > MIGRATE_UNMOVABLE |
+| 可回收(MIGRATE_RECLAIMABLE) | MIGRATE_UNMOVABLE > MIGRATE_MOVABLE     |
+
+![fallbacks 数组](./fallbacks.png)
+
+
+#### 3.4.4.2 简易流程(4.13 之前的内核版本)
+-------
+
+我们继续回到 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2759), 看着流程有点复杂, 前后两次循环, 一次从 (MAX_ORDER, order] 方向遍历, 此外还有 find_smallest 流程从 [order, MAX_ORDER) 遍历, 咋一看两个流程并没有过于明显的区别, 最后是 do_steal 真正完成页面的窃取.
+
+find_smallest 流程其实是内核 4.13 合入的优化, 那么我们先来看这个优化合入之前的版本, 接着再结合优化来看, 当前这个版本的实现.
+
+
+我们先来看 v4.12 时 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v4.12/source/mm/page_alloc.c#L2599) 的实现
+
+```cpp
+/*
+ * Try finding a free buddy page on the fallback list and put it on the free
+ * list of requested migratetype, possibly along with other pages from the same
+ * block, depending on fragmentation avoidance heuristics. Returns true if
+ * fallback was found so that __rmqueue_smallest() can grab it.
+ */
+static inline bool
+__rmqueue_fallback(struct zone *zone, unsigned int order, int start_migratetype)
+{
+    struct free_area *area;
+    unsigned int current_order;
+    struct page *page;
+    int fallback_mt;
+    bool can_steal;
+
+    /* Find the largest possible block of pages in the other list */
+    for (current_order = MAX_ORDER-1;
+                current_order >= order && current_order <= MAX_ORDER-1;
+                --current_order) {
+        area = &(zone->free_area[current_order]);
+        fallback_mt = find_suitable_fallback(area, current_order,
+                start_migratetype, false, &can_steal);
+        if (fallback_mt == -1)
+            continue;
+
+        page = list_first_entry(&area->free_list[fallback_mt],
+                        struct page, lru);
+
+        steal_suitable_fallback(zone, page, start_migratetype,
+                                can_steal);
+
+        trace_mm_page_alloc_extfrag(page, order, current_order,
+            start_migratetype, fallback_mt);
+
+        return true;
+    }
+
+    return false;
+}
+```
+
+
+#### 3.4.4.3 find_suitable_fallback 查找适合被窃取的 MIGRATE_TYPE
+-------
+
+
+[`find_suitable_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2599) 遍历当前 
+migratetype 的 fallbacks 数组, 为此次 fallback 查找合适 MIGRATE_TYPE 的备选空闲链表.
+
+```cpp
+// https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2599
+/*
+ * Check whether there is a suitable fallback freepage with requested order.
+ * If only_stealable is true, this function returns fallback_mt only if
+ * we can steal other freepages all together. This would help to reduce
+ * fragmentation due to mixed migratetype pages in one pageblock.
+ */
+int find_suitable_fallback(struct free_area *area, unsigned int order,
+            int migratetype, bool only_stealable, bool *can_steal)
+{
+    int i;
+    int fallback_mt;
+
+    if (area->nr_free == 0)
+        return -1;
+
+    *can_steal = false;
+    for (i = 0;; i++) {
+        fallback_mt = fallbacks[migratetype][i];
+        if (fallback_mt == MIGRATE_TYPES)
+            break;
+
+        if (free_area_empty(area, fallback_mt))
+            continue;
+
+        if (can_steal_fallback(order, migratetype))
+            *can_steal = true;
+
+        if (!only_stealable)
+            return fallback_mt;
+
+        if (*can_steal)
+            return fallback_mt;
+    }
+
+    return -1;
+}
+```
+
+find_suitable_fallback 用于找到合适的迁移类型
+
+1.  根据当前的迁移类型[获取到一个备份的迁移类型](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2610), 如果[迁移类型 MIGRATE_TYPES](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2611), 说明已经没有合适的备选 MIGRATE_TYPE 可选, 则 break;
+
+2.  如果当前的[迁移类型的 freelist 的链表为空](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2614), 说明备份的迁移类型没有可用的页, 则去下一优先级获取页;
+
+3.  接着使用 [can_steal_fallback](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2617) 来判断此迁移类型是否可以作为盗用迁移类型, 如果是返回 true 即可.
+
+
+[commit 2149cdaef6c0 ("mm/compaction: enhance compaction finish condition")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2149cdaef6c0eb59a9edf3b152027392cd66b41f)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2015/02/12 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm/compaction: enhance compaction finish condition](https://lore.kernel.org/patchwork/patch/542063) | 同样的, 之前 NULL 指针和错误指针的输出也很混乱, 进行了归一化. | v1 ☑ 4.1-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/542063)<br>*-*-*-*-*-*-*-* <br>[关键 commit 2149cdaef6c0](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2149cdaef6c0eb59a9edf3b152027392cd66b41f) |
+
+
+#### 3.4.4.4 steal_suitable_fallback 从窃取其他 MIGRATE_TYPE 的页面
+-------
+
+
+[`steal_suitable_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2516)
+
+
+```cpp
+static void steal_suitable_fallback(struct zone *zone, struct page *page,
+        unsigned int alloc_flags, int start_type, bool whole_block)
+```
+
+[7a8f58f39188 ("mm, page_alloc: fallback to smallest page when not stealing whole pageblock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e), 4.13-rc1 合入
