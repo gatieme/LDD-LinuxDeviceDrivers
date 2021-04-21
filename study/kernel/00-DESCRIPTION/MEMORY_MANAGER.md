@@ -313,6 +313,24 @@ Linux 为每个 zone 都设置了独立的 min, low 和 high 三个档位的 wat
 
 整个补丁在测试场景下将外碎片时间减少 94% 以上, 这收益大部分来自于补丁 1-4, 但补丁 5 可以处理罕见的特例, 并为THP分配成功率提供调整系统的选项, 以换取一些档位来控制碎片化.
 
+
+### 2.1.1.6 页面窃取 page stealing
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2015/01/23 | Vlastimil Babka <vbabka@suse.cz> | [page stealing tweaks](https://lore.kernel.org/patchwork/cover/535613) |  | v1 ☑ 4.13-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/535613) |
+| 2017/03/07 | Vlastimil Babka <vbabka@suse.cz> | [try to reduce fragmenting fallbacks](https://lore.kernel.org/patchwork/cover/766804) | 修复 [Regression in mobility grouping?](https://lkml.org/lkml/2016/9/28/94) 上报的碎片化问题, 通过修改 fallback 机制和 compaction 机制来减少永久随便化的可能性. 其中 fallback 修改时, 仅尝试从不同 migratetype 的 pageblock 中窃取的页面中挑选最小(但足够)的页面. | v3 ☑ 4.12-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/766804), [关键 commit 3bc48f96cf11 ("mm, page_alloc: split least stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) |
+| 2017/05/29 | Vlastimil Babka <vbabka@suse.cz> | [mm, page_alloc: fallback to smallest page when not stealing whole pageblock](https://lore.kernel.org/patchwork/cover/793063) |  | v1 ☑ 4.13-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/793063), [commit 7a8f58f39188](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e) |
+
+commit fef903efcf0cb9721f3f2da719daec9bbc26f12b
+Author: Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com>
+Date:   Wed Sep 11 14:20:35 2013 -0700
+
+    mm/page_allo.c: restructure free-page stealing code and fix a bug
+
+
 ## 2.1.2 内核级别的 malloc 分配器之-对象分配器(小内存分配)
 -------
 
@@ -338,6 +356,9 @@ BUDDY 提供了页面的分配和回收机制, 而在运行时, SLAB 等对象�
 https://lore.kernel.org/patchwork/patch/47616/
 https://lore.kernel.org/patchwork/patch/46669/
 https://lore.kernel.org/patchwork/patch/46671/
+
+https://lore.kernel.org/patchwork/cover/408914
+
 
 ### 2.1.2.1 SLAB
 -------
@@ -432,12 +453,11 @@ SLUB 在解决了上述的问题之上, 提供与 SLAB 完全一样的接口, �
 
 **3.5(2012年7月发布)**
 
-
-
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2007/02/28 | Mel Gorman | [Introduce ZONE_CMA](https://lore.kernel.org/patchwork/cover/778794) | 新增了 ZONE_CMA 区域, 使用新的分区不仅可以有H/W 寻址限制, 还可以有 S/W 限制来保证页面迁移.  | v7 ☐ | [PatchWork v7](https://lore.kernel.org/patchwork/cover/778794) |
 | 2007/02/28 | Mel Gorman | [mm/cma: manage the memory of the CMA area by using the ZONE_MOVABLE](https://lore.kernel.org/patchwork/cover/857428) | 新增了 ZONE_CMA 区域, 使用新的分区不仅可以有H/W 寻址限制, 还可以有 S/W 限制来保证页面迁移.  | v2 ☐ | [PatchWork v7](https://lore.kernel.org/patchwork/cover/857428) |
+| 2015/02/12 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm/compaction: enhance compaction finish condition](https://lore.kernel.org/patchwork/patch/542063) | 同样的, 之前 NULL 指针和错误指针的输出也很混乱, 进行了归一化. | v1 ☑ 4.1-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/542063)<br>*-*-*-*-*-*-*-* <br>[关键 commit 2149cdaef6c0](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2149cdaef6c0eb59a9edf3b152027392cd66b41f) |
 
 
 顾名思义,这是一个分配连续物理内存页面的分配器. 也许你会疑惑伙伴分配器不是也能分配连续物理页面吗? 诚然, 但是一个系统在运行若干时间后, 可能很难再找到一片足够大的连续内存了, 伙伴系统在这种情况下会分配失败. 但连续物理内存的分配需求是刚需: 一些比较低端的 DMA 设备只能访问连续的物理内存; 还有下面会讲的透明大页的支持, 也需要连续的物理内存.
@@ -1373,6 +1393,13 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 
 相关的文章介绍: [47].
 
+
+# 2.15 功耗管理
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/04/15 | Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com> | [mm: Memory Power Management](https://lore.kernel.org/patchwork/cover/408914) | 内存的电源管理策略  | v4 ☑ 4.4-rc1 | [PatchWork RFC v4](https://lore.kernel.org/patchwork/cover/408914), [LWN](https://lwn.net/Articles/547439/) |
 
 
 

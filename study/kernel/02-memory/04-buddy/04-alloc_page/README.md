@@ -986,7 +986,7 @@ struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 ```
 
 
-![`__rmqueue_fallback` 流程](./__rmqueue_fallback.png)
+![`__rmqueue_fallback` 流程](./__rmqueue_smallest.png)
 
 
 1.  从期望申请的 order 空闲页面中开始申请目标 MIGRATE_TYPE 类型的页面, 如果没有找到, 则继续从更大 order 的空闲页面中申请, 直到 MAX_ORDER 为止; 
@@ -999,6 +999,9 @@ struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 
 ### 3.4.4 `__rmqueue_fallback`
 -------
+
+> The `__rmqueue_fallback()` function is called when there's no free page of requested migratetype, and we need to steal from a different one.
+
 
 如果前面的流程都分配失败了, 那么说明当前 ZONG 区域指定 MIGRATE_TYPE 中没有足够的空闲页来完成本次分配了. 那么内核将通过 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2759) 尝试从当前 ZONE 的其他 MIGRATE_TYPE 的空闲链表中挪用内存.
 
@@ -1052,6 +1055,8 @@ static int fallbacks[MIGRATE_TYPES][3] = {
 
 find_smallest 流程其实是内核 4.13 合入的优化, 那么我们先来看这个优化合入之前的版本, 接着再结合优化来看, 当前这个版本的实现.
 
+
+[7a8f58f39188 ("mm, page_alloc: fallback to smallest page when not stealing whole pageblock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e), 4.13-rc1 合入
 
 我们先来看 v4.12 时 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v4.12/source/mm/page_alloc.c#L2599) 的实现
 
@@ -1173,4 +1178,3 @@ static void steal_suitable_fallback(struct zone *zone, struct page *page,
         unsigned int alloc_flags, int start_type, bool whole_block)
 ```
 
-[7a8f58f39188 ("mm, page_alloc: fallback to smallest page when not stealing whole pageblock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e), 4.13-rc1 合入

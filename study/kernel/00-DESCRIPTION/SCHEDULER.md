@@ -373,7 +373,7 @@ linux 调度器定义了多个调度类, 不同调度类的调度优先级不同
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2010/06/08 | Michael Neuling | [sched: asymmetrical packing for POWER7 SMT4](https://lore.kernel.org/patchwork/cover/202834) | 这个补丁集实现了非对称 SMT 封装(SD_ASYM_PCAKING), 在任务负载小的时候, 将进程都打包在 SMT 域内的某一个 CPU 上, 从而确保在 POWER7 上始终保持良好的性能. 如果没有这个系列, 在 POWER7 上, 任务的性能将有大约 +/-30% 的抖动. | v2 ☐ |[PatchWork RFC](https://lore.kernel.org/patchwork/cover/1408312)) |
 | 2016/11/01 | Ricardo Neri | [Support Intel® Turbo Boost Max Technology 3.0](https://lore.kernel.org/patchwork/cover/722406) | 支持 Intel 超频 | RFC ☑ 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/722406) |
-| 2021/04/06 | Ricardo Neri | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://lore.kernel.org/patchwork/cover/1408312) | 修复 ASYM_PACKING 和 load_balance 的冲突. | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1408312) |
+| 2021/04/14 | Ricardo Neri | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://lore.kernel.org/patchwork/cover/1408312) | 修复 ASYM_PACKING 和 load_balance 的冲突. | v2 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1408312)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1413015) |
 
 core_scheduling 与 coscheduling
 
@@ -819,11 +819,14 @@ ARM 的 Morten Rasmussen 一直致力于ANDROID 调度器优化的:
 | 2016/10/14 | Vincent Guittot | [sched: Clean-ups and asymmetric cpu capacity support](https://lore.kernel.org/patchwork/cover/725608) | 调度程序目前在非对称计算能力的系统上没有做太多的工作来提高性能(读ARM big.LITTLE). 本系列主要通过对任务唤醒路径进行一些调整来改善这种情况, 这些调整主要考虑唤醒时的计算容量, 而不仅仅考虑cpu对这些系统是否空闲. 在部分使用的场景中, 这为我们提供了一致的、可能更高的吞吐量. SMP的行为和性能应该是不受影响. <br>注意这组补丁是分批合入的 | v1 ☑ 4.10-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/725608) |
 | 2018/03/15 | Morten Rasmussen | [sched/fair: Migrate 'misfit' tasks on asymmetric capacity systems](https://lore.kernel.org/patchwork/cover/933989) | 异构 CPU 上 wakeup 路径倾向于使用 prev CPU | v1 ☑ 4.20-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/933989) |
 | 2018/12/03 | Quentin Perret | [Energy Aware Scheduling](https://lore.kernel.org/patchwork/cover/1020432) | 能效感知的调度器 EAS | v10 ☑ 5.0-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1020432) |
+| 2019/08/22 | Patrick Bellasi | [Add utilization clamping support (CGroups API)](https://lore.kernel.org/patchwork/cover/1118345) | TASK util clamp(Android schedtune 的主线替代方案)  | v14 ☑ 5.4-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1118345) |
 | 2020/02/06 | Vincent Guittot | [sched/fair: Capacity aware wakeup rework](https://lore.kernel.org/patchwork/cover/1190300) | 异构 CPU 上 wakeup 路径优化 | v4 ☑ 5.7-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1190300) |
 | 2020/05/20 | Dietmar Eggemann | [Capacity awareness for SCHED_DEADLINE](https://lore.kernel.org/patchwork/cover/1245028) | DEADLINE 感知 Capacity | v3 ☐ 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1245028) |
 | 2020/12/19 | Vincent Guittot | [sched/fair: prefer prev cpu in asymmetric wakeup path](https://lore.kernel.org/patchwork/cover/1329119) | 异构 CPU 上 wakeup 路径倾向于使用 prev CPU | v1 ☑ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1308748) |
 | 2021/03/11 | Valentin Schneider | [sched/fair: misfit task load-balance tweaks](https://lore.kernel.org/patchwork/cover/1393531) | 优化 misfit task 的一些逻辑 | v3 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1393531) |
-| 2019/08/22 | Patrick Bellasi | [Add utilization clamping support (CGroups API)](https://lore.kernel.org/patchwork/cover/1118345) | TASK util clamp(Android schedtune 的主线替代方案)  | v14 ☑ 5.4-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1118345) |
+| 2021/04/07 | Valentin Schneider | [sched/fair: load-balance vs capacity margins](https://lore.kernel.org/patchwork/cover/1409479) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 1 | v3 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1409479) |
+| 2021/04/16 | Valentin Schneider | [sched/fair: (The return of) misfit task load-balance tweaks](https://lore.kernel.org/patchwork/cover/1414181) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 2 | v1 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1414181) |
+| 2021/04/16 | Valentin Schneider | [Rework CPU capacity asymmetry detection](https://lore.kernel.org/patchwork/cover/1414557) | 优化 misfit task 的一些逻辑 | v3 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1414557) |
 
 
 ## 1.7.5 基于调度器的调频
@@ -882,6 +885,11 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 -------
 
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2021/01/22 | Joel Fernandes (Google)" <joel@joelfernandes.org> | [sched/fair: Rate limit calls to update_blocked_averages() for NOHZ](https://lore.kernel.org/patchwork/patch/1369598) | 在运行ChromeOS Linux kernel v5.4 的 octacore ARM64 设备上, 发现有很多对 update_blocked_average() 的调用, 导致调度的开销增大, 造成 newilde_balance 有时需要最多500微秒. 我在周期平衡器中也看到了这一点. 将 update_blocked_average() 调用速率限制为每秒 20 次 | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1369598) |
+
+
 ## 1.8.3 task/CPU 隔离
 -------
 
@@ -892,6 +900,7 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 | 2018/02/21 | Frederic Weisbecker | [isolation: 1Hz residual tick offloading v7](https://lore.kernel.org/patchwork/patch/888860) | 当CPU在full dynticks模式下运行时, 一个1Hz的滴答保持, 以保持调度器的统计状态活着. 然而, 对于那些根本无法忍受任何中断或想要最小化中断的裸金属任务来说, 这种残留的滴答是一种负担. 这组补丁将这个 1HZ 的 TICK 也从 CPU 上卸载掉. | v7 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/888860) |
 | 2020/11/23 | Alex Belits | [support "task_isolation" mode](https://lwn.net/Articles/816298) | NO_HZ_FULL 的进一步优化, 进一步降低 tick 等对隔离核的影响 | v5 ☐ | [2016 Chris Metcalf v16](https://lore.kernel.org/patchwork/cover/847460)<br>*-*-*-*-*-*-*-* <br>Alex Belits 2020 [LWN](https://lwn.net/Articles/813804), [PatchWork](https://lore.kernel.org/patchwork/cover/1344134), [lkml](https://lkml.org/lkml/2020/11/23/1380) |
 | 2020/12/27 | Frederic Weisbecker | [context_tracking: Flatter archs not using exception_enter/exit() v2](https://lore.kernel.org/patchwork/patch/1327311) | 为了能够在运行时打开/关闭 nohz_full 所做的准备, 需要 arch 放弃在任务堆栈上保存上下文跟踪状态, 因为这将迫使上下文跟踪在整个系统范围内运行, 即使是在没有启用 nohz_full 的 CPU 上 | v2 ☑ 5.11-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1327311) |
+
 
 *   隔离 IRQD_AFFINITY_MANAGED 的中断
 
@@ -1006,11 +1015,23 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 
 后来主线上 Dexuan Cui 报 Migrate Disable 合入后引入了问题, [5.10: sched_cpu_dying() hits BUG_ON during hibernation: kernel BUG at kernel/sched/core.c:7596!](https://lkml.org/lkml/2020/12/22/141). Valentin Schneider 怀疑是有些 kworker 线程在 CPU 下线后又选到了下线核上运行, 因此建议去测试这组补丁 [workqueue: break affinity initiatively](https://lkml.org/lkml/2020/12/18/406). Dexuan Cui 测试以后可以解决这个问题, 但是会有其他 WARN. Peter Zijlstra 的 解决方案如下 [sched: Fix hot-unplug regression](https://lore.kernel.org/patchwork/cover/1368710).
 
-# 1.9 调试信息
+# 1.9 CPU HOTPLUG 中的调度处理
 -------
 
 
-## 1.9.1 统计信息
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/03/10 | Tejun Heo <tj@kernel.org> | [sched: define and use CPU_PRI_* enums for cpu notifier priorities](https://lore.kernel.org/patchwork/cover/201980) | 重构 migration_call 的 通知方式 | v1 ☑ 2.6.36-rc1 | 注意补丁有 UPATE, [UPDATE](https://lore.kernel.org/patchwork/cover/202907) |
+| 2016/03/10 | Thomas Gleixner <tglx@linutronix.de> | [sched: Migrate disable support](https://lore.kernel.org/patchwork/cover/657710) | 将 CPU 下线时 MIGRATE 的操作放到了 sched_cpu_dying() 中进行 | v1 ☑ 4.7-rc1 | [2020/09/11 preparations](https://lore.kernel.org/patchwork/cover/657710) |
+| 2020/10/23 | Peter Zijlstra | [sched: Migrate disable support](https://lore.kernel.org/patchwork/cover/1323936) | 在启用 PREEMPT_RT 的内核上, 包括spin/rw锁持有部分在内的大部分代码都是可抢占的, 也使得任务可以迁移. 这违反了每个CPU的约束. 因此, PREEMPT_RT 需要一种独立于抢占的机制来控制迁移. 此特性移除了 sched_cpu_dying(), 改为 balance_push 来完成这个操作 | v4 ☑ 5.11-rc1 | [2020/09/11 preparations](https://lore.kernel.org/patchwork/cover/1304210)<br>*-*-*-*-*-*-*-* <br>[2020/09/21 v1 PatchWork](https://lore.kernel.org/patchwork/cover/1309702)<br>*-*-*-*-*-*-*-* <br>[2020/10/23 v4 PatchWork](https://lore.kernel.org/patchwork/cover/1323936) |
+
+
+# 1.10 调试信息
+-------
+
+
+## 1.10.1 统计信息
 -------
 
 阿里的王贇 [sched/numa: introduce numa locality](https://lore.kernel.org/patchwork/cover/1190383) 提供了 per-cgroup 的 NUMASTAT 功能, 发到了 2020/02/07 v8, 但是最终还是没能合入主线.
@@ -1021,7 +1042,7 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 | 2021/03/27 | Yafang Shao | [sched: support schedstats for RT sched class](https://lore.kernel.org/patchwork/cover/1403138) | 我们希望使用 schedstats 工具测量生产环境中 RT 任务的延迟, 但目前只支持公平调度类的 schedstats.  将 sched_statistics 修改为独立于 task_struct 或 task_group 的调度统计数据, 从而完成了 RT 的 schedstats 支持 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1403138) |
 
 
-## 1.9.2 tracepoint
+## 1.10.2 tracepoint
 -------
 
 [`tracepoints-helpers`](https://github.com/auldp/tracepoints-helpers.git)
@@ -1036,7 +1057,7 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 | 2020/06/19 | | [Sched: Add a tracepoint to track rq->nr_running](https://lore.kernel.org/patchwork/patch/1258690) | 增加 nr_running 的跟踪点 | v1 ☑ 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1258690)<br>*-*-*-*-*-*-*-* <br>[FixPatch](https://lore.kernel.org/patchwork/patch/1284621) |
 | 2020/08/28 | | [sched/debug: Add new tracepoint to track cpu_capacity](https://lore.kernel.org/patchwork/patch/1296761) | 增加 cpu_capacity 的跟踪点 | v1 ☐ |  [PatchWork](https://lore.kernel.org/patchwork/cover/1296761) |
 
-## 1.9.3 debug 接口
+## 1.10.3 debug 接口
 -------
 
 
