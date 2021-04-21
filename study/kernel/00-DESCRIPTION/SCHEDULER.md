@@ -602,7 +602,10 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 # 1.5 基于调度域的负载均衡
 -------
 
-## 1.5.1 负载均衡
+## 1.5.1 拓扑域构建
+-------
+
+## 1.5.2 负载均衡
 -------
 
 
@@ -638,7 +641,7 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 
 
 
-## 1.5.2 自动 NUMA 均衡(Automatic NUMA balancing)
+## 1.5.3 自动 NUMA 均衡(Automatic NUMA balancing)
 -------
 
 **3.8(2013年2月发布)**
@@ -667,7 +670,7 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 
 [NUMA placement problems [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/591995/)
 
-## 1.5.3 rework_load_balance
+## 1.5.4 rework_load_balance
 -------
 
 2019 年的 [Vincent Guittot](https://www.youtube.com/watch?v=cfv63BMnIug) 的 [sched/fair: rework the CFS load balance](https://lwn.net/Articles/793427) 是近几年特别有亮点的补丁.

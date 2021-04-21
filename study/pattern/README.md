@@ -21,9 +21,8 @@ Linux内核中使用的设计技巧
 本作品采用<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议</a>进行许可
 
 
-http://www.davidhill.co/2012/02/enable-esxi-shell-vsphere-5-0/
-
-
-https://zhidao.baidu.com/question/583512262.html
-
-http://blog.csdn.net/yumushui/article/details/38776603
+| 标题 | CSDN | Github |
+|:----:|:----:|:-----:|
+| Linux 内核代码风格--Kernel Coding Style(不断更新-20170616) | []() | [code_style](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/pattern/code_style) |
+| BUILD_BUG_ON编译时断言 | NA | [build_bug_on](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/pattern/build_bug_on) |
+| 待完成 | NA | [container_of](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/pattern/container_of) |
