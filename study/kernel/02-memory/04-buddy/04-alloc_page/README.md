@@ -1102,6 +1102,8 @@ __rmqueue_fallback(struct zone *zone, unsigned int order, int start_migratetype)
 }
 ```
 
+![`__rmqueue_fallback`](./__rmqueue_fallback.png)
+
 
 #### 3.4.4.3 find_suitable_fallback 查找适合被窃取的 MIGRATE_TYPE
 -------
@@ -1164,6 +1166,44 @@ find_suitable_fallback 用于找到合适的迁移类型
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/02/12 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm/compaction: enhance compaction finish condition](https://lore.kernel.org/patchwork/patch/542063) | 同样的, 之前 NULL 指针和错误指针的输出也很混乱, 进行了归一化. | v1 ☑ 4.1-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/542063)<br>*-*-*-*-*-*-*-* <br>[关键 commit 2149cdaef6c0](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2149cdaef6c0eb59a9edf3b152027392cd66b41f) |
+
+其中需要特别关注的函数是 [can_steal_fallback](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2452)
+
+
+```cpp
+// https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2452
+static bool can_steal_fallback(unsigned int order, int start_mt)
+{
+    /*
+     * Leaving this order check is intended, although there is
+     * relaxed order check in next check. The reason is that
+     * we can actually steal whole pageblock if this condition met,
+     * but, below check doesn't guarantee it and that is just heuristic
+     * so could be changed anytime.
+     */
+    if (order >= pageblock_order)
+        return true;
+
+    if (order >= pageblock_order / 2 ||
+        start_mt == MIGRATE_RECLAIMABLE ||
+        start_mt == MIGRATE_UNMOVABLE ||
+        page_group_by_mobility_disabled)
+        return true;
+
+    return false;
+}
+```
+
+| 条件 | 描述 | 引入 commit | 引入版本 |
+|:---:|:----:|:----------:|:-------:|
+| order >= pageblock_order / 2 | NA | [commit b2a0ac8875a0 ("Split the free lists for movable and unmovable allocations")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b2a0ac8875a0a3b9f0739b60526f8c5977d2200f) | 2.6.24-rc1 |
+| start_migratetype == MIGRATE_RECLAIMABLE | NA | [commit 46dafbca2bba ("Be more agressive about stealing when MIGRATE_RECLAIMABLE allocations fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=46dafbca2bba811665b01d8cedf911204820623c) | 2.6.24-rc1 |
+| page_group_by_mobility_disabled | NA | [commit dd5d241ea955 ("page-allocator: always change pageblock ownership when anti-fragmentation is disabled")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dd5d241ea955006122d76af88af87de73fec25b4) | 2.6.31-rc9 |
+| !is_migrate_cma(migratetype) | NA | [commit 47118af076f6 ("mm: mmzone: MIGRATE_CMA migration type added")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=47118af076f64844b4f423bc2f545b2da9dab50d) | 3.5-rc1 |
+| 重构 !is_migrate_cma(migratetype) | NA | [commit 3a1086fba92b ("mm: always steal split buddies in fallback allocations")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3a1086fba92b6e2311b6a342f68bc380beb240fe) | 4.0-rc1 |
+| start_type == MIGRATE_UNMOVABLE | NA | [commit 9c0415eb8cbf ("mm: more aggressive page stealing for UNMOVABLE allocations")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9c0415eb8cbf0c8fd043b6c0f0354308ab099df5) | 4.0-rc1 | 
+| 删除 !is_migrate_cma(migratetype) | NA | [commit dc67647b78b9 ("mm/cma: change fallback behaviour for CMA freepage")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dc67647b78b92d9497f01fab95ac6764ed886b40) | 4.1-rc1 |
+| order >= pageblock_order | [commit 4eb7dce62007 ("mm/page_alloc: factor out fallback freepage checking")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4eb7dce62007113f1a2778213980fd6d8034ef5e) | 4.1-rc1 |
 
 
 #### 3.4.4.4 steal_suitable_fallback 从窃取其他 MIGRATE_TYPE 的页面
