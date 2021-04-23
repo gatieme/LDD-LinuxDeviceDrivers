@@ -694,6 +694,8 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 ## 2.4.6 madvise MADV_FREE 页面延迟回收
 -------
 
+https://kernelnewbies.org/Linux_4.5#Add_MADV_FREE_flag_to_madvise.282.29
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -893,6 +895,8 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 
 
 用户态程序现在可以完成无修改就使用大页支持了. 用户还可以通过 **madvice()** 系统调用给予内核指示, 优化内核对大页的使用. 比如, 指示内核告知其你希望进程空间的某部分要使用大页支持, 内核会尽可能地满足你.
+
+https://lore.kernel.org/patchwork/cover/1118785
 
 
 # 2.8 进程虚拟地址空间
