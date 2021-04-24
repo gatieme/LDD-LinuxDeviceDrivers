@@ -997,7 +997,7 @@ struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 
 4.  fallback 流程下, 申请的页面可能时从其他 MIGRATE_TYPE 的空闲页面中窃取的, 那么这时候窃取的页面 MIGRATE_TYPE 与跟我们期望的是不符的, 需要设置页面的 MIGRATE_TYPE.
 
-### 3.4.4 `__rmqueue_fallback`
+# 4 `__rmqueue_fallback` 页面窃取
 -------
 
 > The `__rmqueue_fallback()` function is called when there's no free page of requested migratetype, and we need to steal from a different one.
@@ -1008,7 +1008,20 @@ struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 
 ![`__rmqueue_fallback`](./__rmqueue_fallback.png)
 
-#### 3.4.4.1 窃取的顺序
+在使用伙伴系统申请内存页面时, 如果所请求的 migratetype 的空闲页面列表中没有足够的内存, 伙伴系统尝试从其他不同的页面中窃取内存.
+
+这会造成减少永久碎片化, 因此伙伴系统使用了各种各样启发式的方法, 尽可能的使这一事件不要那么频繁地触发,  最主要的思路是尝试从拥有最多免费页面的页面块中窃取, 并可能一次窃取尽量多的页面. 但是精确地搜索这样的页面块, 并且一次窃取整个页面块, 是昂贵的.
+
+因此内核采用的方式是按照从 MAX_ORDER 到请求页面大小 order 递减的顺序, 来查找空闲页面. 它假设拥有最高次序空闲页面的块可能也拥有总数最多的空闲页面.
+
+我们继续回到 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2759), 看着流程有点复杂, 前后两次循环, 一次从 (MAX_ORDER, order] 方向遍历, 此外还有 find_smallest 流程从 [order, MAX_ORDER) 遍历, 咋一看两个流程并没有过于明显的区别, 最后是 do_steal 真正完成页面的窃取.
+
+find_smallest 流程其实是内核 4.13 合入的优化, 那么我们先来看这个优化合入之前的版本, 接着再结合优化来看, 当前这个版本的实现.
+
+
+[7a8f58f39188 ("mm, page_alloc: fallback to smallest page when not stealing whole pageblock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e), 4.13-rc1 合入
+
+## 4.1 窃取的顺序
 -------
 
 
@@ -1048,15 +1061,80 @@ static int fallbacks[MIGRATE_TYPES][3] = {
 ![fallbacks 数组](./fallbacks.png)
 
 
-#### 3.4.4.2 简易流程(4.13 之前的内核版本)
+## 4.2 窃取的基本流程
 -------
 
-我们继续回到 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2759), 看着流程有点复杂, 前后两次循环, 一次从 (MAX_ORDER, order] 方向遍历, 此外还有 find_smallest 流程从 [order, MAX_ORDER) 遍历, 咋一看两个流程并没有过于明显的区别, 最后是 do_steal 真正完成页面的窃取.
+### 4.2.1 简易流程(4.12 之前的内核版本)
+-------
 
-find_smallest 流程其实是内核 4.13 合入的优化, 那么我们先来看这个优化合入之前的版本, 接着再结合优化来看, 当前这个版本的实现.
+
+```cpp
+// https://elixir.bootlin.com/linux/v4.11/source/mm/page_alloc.c#L2144
+/* Remove an element from the buddy allocator from the fallback list */
+static inline struct page *
+__rmqueue_fallback(struct zone *zone, unsigned int order, int start_migratetype)
+{
+    struct free_area *area;
+    unsigned int current_order;
+    struct page *page;
+    int fallback_mt;
+    bool can_steal;
+
+    /* Find the largest possible block of pages in the other list */
+    for (current_order = MAX_ORDER-1;
+                current_order >= order && current_order <= MAX_ORDER-1;
+                --current_order) {
+        area = &(zone->free_area[current_order]);
+        fallback_mt = find_suitable_fallback(area, current_order,
+                start_migratetype, false, &can_steal);
+        if (fallback_mt == -1)
+            continue;
+
+        page = list_first_entry(&area->free_list[fallback_mt],
+                        struct page, lru);
+        if (can_steal &&
+            get_pageblock_migratetype(page) != MIGRATE_HIGHATOMIC)
+            steal_suitable_fallback(zone, page, start_migratetype);
+
+        /* Remove the page from the freelists */
+        area->nr_free--;
+        list_del(&page->lru);
+        rmv_page_order(page);
+
+        expand(zone, page, order, current_order, area,
+                    start_migratetype);
+        /*
+         * The pcppage_migratetype may differ from pageblock's
+         * migratetype depending on the decisions in
+         * find_suitable_fallback(). This is OK as long as it does not
+         * differ for MIGRATE_CMA pageblocks. Those can be used as
+         * fallback only via special __rmqueue_cma_fallback() function
+         */
+        set_pcppage_migratetype(page, start_migratetype);
+
+        trace_mm_page_alloc_extfrag(page, order, current_order,
+            start_migratetype, fallback_mt);
+
+        return page;
+    }
+
+    return NULL;
+}
+```
 
 
-[7a8f58f39188 ("mm, page_alloc: fallback to smallest page when not stealing whole pageblock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e), 4.13-rc1 合入
+
+### 4.2.2 简易流程(4.13 之前的内核版本)
+-------
+
+
+
+但是 4.13-rc1 合入的 [commit 3bc48f96cf11 ("mm, page_alloc: split smallest stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/
+commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) 引入了一个 find_smallest 流程
+
+    
+
+
 
 我们先来看 v4.12 时 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v4.12/source/mm/page_alloc.c#L2599) 的实现
 
@@ -1116,7 +1194,87 @@ __rmqueue_fallback(struct zone *zone, unsigned int order, int start_migratetype)
 3.  通过 steal_suitable_fallback 从查找到的 fallback_mt 迁移类型中窃取页面出来.
 
 
-#### 3.4.4.3 find_suitable_fallback 查找适合被窃取的 MIGRATE_TYPE
+### 4.2.3 4.13 之后的版本
+---------
+
+#### 4.2.3.1 find_biggest
+-------
+
+#### 4.2.3.2 find_smallest
+-------
+
+
+4.13 版本之前的 `__rmqueue_fallback` 整体思路就是查找到一个满足窃取要求的最大 order 的页面, 即 find_biggest.
+
+但是 4.13-rc1 合入的 [commit 7a8f58f39188 ("mm, page_alloc: fallback to smallest page when not stealing whole pageblock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e) 引入了一个 find_smallest 流程.
+
+
+```cpp
+/*
+ * Try finding a free buddy page on the fallback list and put it on the free
+ * list of requested migratetype, possibly along with other pages from the same
+ * block, depending on fragmentation avoidance heuristics. Returns true if
+ * fallback was found so that __rmqueue_smallest() can grab it.
+ *
+ * The use of signed ints for order and current_order is a deliberate
+ * deviation from the rest of this file, to make the for loop
+ * condition simpler.
+ */
+static __always_inline bool
+__rmqueue_fallback(struct zone *zone, int order, int start_migratetype,
+                        unsigned int alloc_flags)
+{
+
+    // ......
+
+    for (current_order = MAX_ORDER - 1; current_order >= min_order;
+                --current_order) {
+        // ......
+        fallback_mt = find_suitable_fallback(area, current_order,
+                start_migratetype, false, &can_steal);
+        // ......
+        /*
+         * We cannot steal all free pages from the pageblock and the
+         * requested migratetype is movable. In that case it's better to
+         * steal and split the smallest available page instead of the
+         * largest available page, because even if the next movable
+         * allocation falls back into a different pageblock than this
+         * one, it won't cause permanent fragmentation.
+         */
+        if (!can_steal && start_migratetype == MIGRATE_MOVABLE
+                    && current_order > order)
+            goto find_smallest;
+
+        goto do_steal;
+    }
+
+find_smallest:
+    for (current_order = order; current_order < MAX_ORDER;
+                            current_order++) {
+        area = &(zone->free_area[current_order]);
+        fallback_mt = find_suitable_fallback(area, current_order,
+                start_migratetype, false, &can_steal);
+        if (fallback_mt != -1)
+            break;
+    }
+
+    // ......
+}
+```
+
+
+find_suitable_fallback 中 only_stealable 为 false, 因此找到的 fallback_mt(MIGRATE_TYPE) 只要有足够的页面即可, 并不一定是 can_steal_fallback 的. 如果属于这种情况, 且待分配的页面是 MIGRATE_MOVABLE 类型的, 则尝试走 find_smallest 去找一个能满足要求的最小的页面来窃取.
+
+
+很有可能, 除了最高顺序的页面, 我们还从同一块中窃取低顺序的页面. 但我们还是分走了最高订单页面. 这是一种浪费, 会导致碎片化, 而不是避免碎片化.
+
+
+#### 4.2.3.3 do_steal
+-------
+
+
+
+## 4.3 find_suitable_fallback 查找适合被窃取的 MIGRATE_TYPE
 -------
 
 `find_suitable_fallback` 从当前当前待申请的 migratetype 的 fallback 列表中查找适合被窃取的迁移类型.
@@ -1187,6 +1345,11 @@ find_suitable_fallback 用于找到合适的迁移类型 :
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/02/12 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm/compaction: enhance compaction finish condition](https://lore.kernel.org/patchwork/patch/542063) | 同样的, 之前 NULL 指针和错误指针的输出也很混乱, 进行了归一化. | v1 ☑ 4.1-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/542063)<br>*-*-*-*-*-*-*-* <br>[关键 commit 2149cdaef6c0](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2149cdaef6c0eb59a9edf3b152027392cd66b41f) |
 
+
+
+## 4.4 can_steal_fallback
+-------
+
 其中需要特别关注的函数是 [`can_steal_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2452)
 
 
@@ -1225,7 +1388,7 @@ static bool can_steal_fallback(unsigned int order, int start_mt)
 | order >= pageblock_order | [commit 4eb7dce62007 ("mm/page_alloc: factor out fallback freepage checking")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4eb7dce62007113f1a2778213980fd6d8034ef5e) | 4.1-rc1 |
 
 
-#### 3.4.4.4 steal_suitable_fallback 从窃取其他 MIGRATE_TYPE 的页面
+## 4.5 steal_suitable_fallback 从窃取其他 MIGRATE_TYPE 的页面
 -------
 
 
