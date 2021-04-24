@@ -1105,8 +1105,29 @@ __rmqueue_fallback(struct zone *zone, unsigned int order, int start_migratetype)
 ![`__rmqueue_fallback`](./__rmqueue_fallback.png)
 
 
+
+
+这个版本的 `__rmqueue_fallback` 逻辑还是比较简洁的, 整体思路就是尝试从 MAX_ORDER - 1 开始到所需分配的 order 方向进行遍历, 查找到可以窃取的最大 order 的页面.
+
+1.  依次从高向低遍历每个 order 的空闲页面.
+
+2.  通过 find_suitable_fallback 查找到合适窃取的 MIGRATE_TYPE fallback_mt.
+
+3.  通过 steal_suitable_fallback 从查找到的 fallback_mt 迁移类型中窃取页面出来.
+
+
 #### 3.4.4.3 find_suitable_fallback 查找适合被窃取的 MIGRATE_TYPE
 -------
+
+`find_suitable_fallback` 从当前当前待申请的 migratetype 的 fallback 列表中查找适合被窃取的迁移类型.
+
+| 参数 | 描述 |
+|:----:|:---:|
+| struct free_area *area | 待窃取的空闲页面列表 |
+| unsigned int order | 当前尝试窃取的 order, order 不小于待申请的页面大小 |
+| int migratetype | 期望申请的页面的迁移类型. |
+| bool only_stealable | 该参数是 [commit 2149cdaef6c0 ("mm/compaction: enhance compaction finish condition")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2149cdaef6c0eb59a9edf3b152027392cd66b41f) 新引入的. |
+| bool *can_steal| 是否可以真正进行窃取 |
 
 
 [`find_suitable_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2599) 遍历当前 
@@ -1152,7 +1173,7 @@ int find_suitable_fallback(struct free_area *area, unsigned int order,
 }
 ```
 
-find_suitable_fallback 用于找到合适的迁移类型
+find_suitable_fallback 用于找到合适的迁移类型 :
 
 1.  根据当前的迁移类型[获取到一个备份的迁移类型](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2610), 如果[迁移类型 MIGRATE_TYPES](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2611), 说明已经没有合适的备选 MIGRATE_TYPE 可选, 则 break;
 
@@ -1161,13 +1182,12 @@ find_suitable_fallback 用于找到合适的迁移类型
 3.  接着使用 [can_steal_fallback](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2617) 来判断此迁移类型是否可以作为盗用迁移类型, 如果是返回 true 即可.
 
 
-[commit 2149cdaef6c0 ("mm/compaction: enhance compaction finish condition")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2149cdaef6c0eb59a9edf3b152027392cd66b41f)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/02/12 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm/compaction: enhance compaction finish condition](https://lore.kernel.org/patchwork/patch/542063) | 同样的, 之前 NULL 指针和错误指针的输出也很混乱, 进行了归一化. | v1 ☑ 4.1-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/542063)<br>*-*-*-*-*-*-*-* <br>[关键 commit 2149cdaef6c0](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2149cdaef6c0eb59a9edf3b152027392cd66b41f) |
 
-其中需要特别关注的函数是 [can_steal_fallback](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2452)
+其中需要特别关注的函数是 [`can_steal_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2452)
 
 
 ```cpp
