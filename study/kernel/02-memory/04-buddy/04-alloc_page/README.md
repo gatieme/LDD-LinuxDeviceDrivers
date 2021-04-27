@@ -55,7 +55,7 @@ Linux内核使用二进制伙伴算法来管理和分配物理内存页面, 该�
 
 内核除了伙伴系统函数之外, 还提供了其他内存管理函数. 它们以伙伴系统为基础, 但并不属于伙伴分配器自身. 这些函数包括vmalloc和vmalloc_32, 使用页表将不连续的内存映射到内核地址空间中, 使之看上去是连续的.
 
-还有一组kmalloc类型的函数, 用于分配小于一整页的内存区. 其实现将在以后分别讨论. 
+还有一组kmalloc类型的函数, 用于分配小于一整页的内存区. 其实现将在以后分别讨论.
 
 ## 1.3 页面分配函数实现上之间的关系
 -------
@@ -234,7 +234,7 @@ __alloc_pages(gfp_t gfp_mask, unsigned int order, int preferred_nid)
 ```
 
 
-## 2.3 NUMA 
+## 2.3 NUMA
 -------
 
 
@@ -436,10 +436,10 @@ http://bbs.chinaunix.net/thread-3769001-1-1.html
 
 
 ```cpp
-static struct page *  
-get_page_from_freelist(gfp_t gfp_mask, nodemask_t *nodemask, unsigned int order,  
-        struct zonelist *zonelist, int high_zoneidx, int alloc_flags,  
-        struct zone *preferred_zone, int migratetype)  
+static struct page *
+get_page_from_freelist(gfp_t gfp_mask, nodemask_t *nodemask, unsigned int order,
+        struct zonelist *zonelist, int high_zoneidx, int alloc_flags,
+        struct zone *preferred_zone, int migratetype)
 ```
 
 但是这仍然不够, 随着内核的不段改进, 所支持的特性也越多, 分配内存时需要参照的标识也越来越多, 那难道看着这个函数的参数不断膨胀么, 这个不是内核黑客们所能容忍的, 于是大家想出了一个解决方案, 把那些相关联的参数封装成一个结构
@@ -495,7 +495,7 @@ for 循环所作的基本上与直觉一致(从高端向低端扫描), for_next_
 
 *   首先, 如果使能了 CPUSET, 且内存分配附带了 ALLOC_CPUSET 标记, 则只能(从 CPUSET 限定的)该进程允许运行 CPU 的所属内存域去分配内存, 通过 `__cpuset_zone_allowed` 来检查.
 
-*   `zone_watermark_fast` 检测当前 `ZONE` 的水位情况, 检查是否能够满足当前多个页面的分配请求. 如果水位不足, 则会 `zone_reclaim` 尝试去回收内存. 如果没有正常回收, 或者回收的内存不够, 都将跳过从 ZONE 上分配内存, 回收完成后, 通过 `zone_watermark_ok` 再次检查 ZONE 的水位情况以及是否满足连续大内存块的分配需求. 
+*   `zone_watermark_fast` 检测当前 `ZONE` 的水位情况, 检查是否能够满足当前多个页面的分配请求. 如果水位不足, 则会 `zone_reclaim` 尝试去回收内存. 如果没有正常回收, 或者回收的内存不够, 都将跳过从 ZONE 上分配内存, 回收完成后, 通过 `zone_watermark_ok` 再次检查 ZONE 的水位情况以及是否满足连续大内存块的分配需求.
 
 *   如果没有足够的空闲页, 或者没有连续内存块可满足分配请求, 则循环进行到备用列表中的下一个内存域, 继续同样的检查. 直到找到一个合适的页面, 再进行 `try_this_node` 进行内存分配. 请注意即使一切检查都成功了, 最终依然可能会分配失败. 这种情况可能是:
 
@@ -667,7 +667,7 @@ try_this_zone:
 ## 3.3	水位控制
 -------
 
-我们先把注意力转向页面选择是如何工作的. 
+我们先把注意力转向页面选择是如何工作的.
 
 ### 3.3.1	内存水印标志
 -------
@@ -711,7 +711,7 @@ enum zone_watermarks {
 前几个标志(`ALLOC_WMARK_MIN`, `ALLOC_WMARK_LOW`, `ALLOC_WMARK_HIGH`, `ALLOC_NO_WATERMARKS`)表示在判断页是否可分配时, 需要考虑哪些水印. 默认情况下(即没有因其他因素带来的压力而需要更多的内存), 只有内存域包含页的数目至少为zone->pages_high时, 才能分配页.这对应于`ALLOC_WMARK_HIGH`标志. 如果要使用较低(zone->pages_low)或最低(zone->pages_min)设置, 则必须相应地设置`ALLOC_WMARK_MIN`或`ALLOC_WMARK_LOW`. 而`ALLOC_NO_WATERMARKS`则通知内核在进行内存分配时不要考虑内存水印.
 
 
-`ALLOC_HARDER`通知伙伴系统在急需内存时放宽分配规则. 在分配高端内存域的内存时, `ALLOC_HIGH`进一步放宽限制. 
+`ALLOC_HARDER`通知伙伴系统在急需内存时放宽分配规则. 在分配高端内存域的内存时, `ALLOC_HIGH`进一步放宽限制.
 
 `ALLOC_CPUSET`告知内核, 内存只能从当前进程允许运行的CPU相关联的内存结点分配, 当然该选项只对NUMA系统有意义.
 
@@ -789,7 +789,7 @@ bool __zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
     if (!order)
         return true;
 
-    /* For a high-order request, check at least one suitable page is free 
+    /* For a high-order request, check at least one suitable page is free
      * 在下一阶, 当前阶的页是不可用的  */
     for (o = order; o < MAX_ORDER; o++) {
         struct free_area *area = &z->free_area[o];
@@ -825,7 +825,7 @@ bool __zone_watermark_ok(struct zone *z, unsigned int order, unsigned long mark,
 free_pages -= zone_page_state(z, NR_FREE_CMA_PAGES);
 ```
 
-在解释了`ALLOC_HIGH`和`ALLOC_HARDER`标志之后(将最小值标记降低到当前值的一半或四分之一, 使得分配过程努力或更加努力), 
+在解释了`ALLOC_HIGH`和`ALLOC_HARDER`标志之后(将最小值标记降低到当前值的一半或四分之一, 使得分配过程努力或更加努力),
 ```cpp
 if (alloc_flags & ALLOC_HIGH)
 	min -= min / 2;
@@ -896,7 +896,7 @@ for (o = order; o < MAX_ORDER; o++) {
 2.  如果设置了 ALLOC_HARDER, 则说明是一次高优先级的分配, 就[从迁移类型为 MIGRATE_HIGHATOMIC 的内存中进行分配](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#3458). MIGRATE_HIGHATOMIC 类型的页用常用于于一些紧急情况下的内存分配.
 
 3.  常规模式下, 一般都是通过 [`__rmqueue`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2841) 从伙伴系统中指定迁移类型为 migratetype 的链表中获取.
-    
+
     3.1 如果超过一半空闲内存位于 CMA 区域时, 则优先使用 [`__rmqueue_cma_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2348) 从 CMA 中分配
 
     3.2 标准流程就是 [`__rmqueue_smallest`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2348) 从 各个 order 的空闲链表中获取, 首先从当前 order 的空闲链表中获取页面, 如果当前 order 页面不足, 则开始向高 order 的链表中切蛋糕.
@@ -989,7 +989,7 @@ struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 ![`__rmqueue_fallback` 流程](./__rmqueue_smallest.png)
 
 
-1.  从期望申请的 order 空闲页面中开始申请目标 MIGRATE_TYPE 类型的页面, 如果没有找到, 则继续从更大 order 的空闲页面中申请, 直到 MAX_ORDER 为止; 
+1.  从期望申请的 order 空闲页面中开始申请目标 MIGRATE_TYPE 类型的页面, 如果没有找到, 则继续从更大 order 的空闲页面中申请, 直到 MAX_ORDER 为止;
 
 2.  如果从某个 current_order 的空闲页面中查找到足够的页面后, 将它从空闲链表中移除;
 
@@ -1000,11 +1000,13 @@ struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 # 4 `__rmqueue_fallback` 页面窃取
 -------
 
+## 4.1 关于页面窃取
+-------
+
 > The `__rmqueue_fallback()` function is called when there's no free page of requested migratetype, and we need to steal from a different one.
 
 
 如果前面的流程都分配失败了, 那么说明当前 ZONG 区域指定 MIGRATE_TYPE 中没有足够的空闲页来完成本次分配了. 那么内核将通过 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2759) 尝试从当前 ZONE 的其他 MIGRATE_TYPE 的空闲链表中挪用内存.
-
 
 ![`__rmqueue_fallback`](./__rmqueue_fallback.png)
 
@@ -1013,13 +1015,6 @@ struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 这会造成减少永久碎片化, 因此伙伴系统使用了各种各样启发式的方法, 尽可能的使这一事件不要那么频繁地触发,  最主要的思路是尝试从拥有最多免费页面的页面块中窃取, 并可能一次窃取尽量多的页面. 但是精确地搜索这样的页面块, 并且一次窃取整个页面块, 是昂贵的.
 
 因此内核采用的方式是按照从 MAX_ORDER 到请求页面大小 order 递减的顺序, 来查找空闲页面. 它假设拥有最高次序空闲页面的块可能也拥有总数最多的空闲页面.
-
-我们继续回到 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2759), 看着流程有点复杂, 前后两次循环, 一次从 (MAX_ORDER, order] 方向遍历, 此外还有 find_smallest 流程从 [order, MAX_ORDER) 遍历, 咋一看两个流程并没有过于明显的区别, 最后是 do_steal 真正完成页面的窃取.
-
-find_smallest 流程其实是内核 4.13 合入的优化, 那么我们先来看这个优化合入之前的版本, 接着再结合优化来看, 当前这个版本的实现.
-
-
-[7a8f58f39188 ("mm, page_alloc: fallback to smallest page when not stealing whole pageblock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e), 4.13-rc1 合入
 
 ## 4.1 窃取的顺序
 -------
@@ -1063,6 +1058,14 @@ static int fallbacks[MIGRATE_TYPES][3] = {
 
 ## 4.2 窃取的基本流程
 -------
+
+
+我们继续回到 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2759), 看着流程有点复杂, 前后两次循环, 一次从 (MAX_ORDER, order] 方向遍历, 此外还有 find_smallest 流程从 [order, MAX_ORDER) 遍历, 咋一看两个流程并没有过于明显的区别, 最后是 do_steal 真正完成页面的窃取.
+
+find_smallest 流程其实是内核 4.13 合入的优化, 那么我们先来看这个优化合入之前的版本, 接着再结合优化来看, 当前这个版本的实现.
+
+[7a8f58f39188 ("mm, page_alloc: fallback to smallest page when not stealing whole pageblock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e), 4.13-rc1 合入
+
 
 ### 4.2.1 简易流程(4.12 之前的内核版本)
 -------
@@ -1122,6 +1125,25 @@ __rmqueue_fallback(struct zone *zone, unsigned int order, int start_migratetype)
 }
 ```
 
+这个版本的 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v4.11/source/mm/page_alloc.c#L2144), 直接完成了窃取和分配的工作.
+
+
+1.  从高阶向低阶 find_suitable_fallback() 查找满足要求的迁移类型 fallback_mt.
+
+2.  如果是可以窃取的(can_steal) 的, 且迁移类型不为 MIGRATE_HIGHATOMIC, 则进行窃取 steal_suitable_fallback().
+
+3.  接着从得到的页面中开始分配内存, 这个过程中可能会使用 expand 对内存块切片.
+
+这里注意几个点 :
+
+1.  并不是所有的 fallback 都会进行 steal_suitable_fallback(), 这会将整个内存块移动到当前希望分配的 start_migratetype 的空闲列表.
+
+2.  expand 的过程将切片的内存都放到了 start_migratetype 的空闲列表.
+
+这样的直接影响是 :
+
+*   没有通过 steal_suitable_fallback() 完成窃取的页面, 只是被加入到了 start_migratetype 的空闲列表中, 可以进行分配, 但是回收的时候, 还是会回收到 fallback_mt 的空闲列表中.
+
 
 
 ### 4.2.2 简易流程(4.13 之前的内核版本)
@@ -1129,10 +1151,13 @@ __rmqueue_fallback(struct zone *zone, unsigned int order, int start_migratetype)
 
 
 
-但是 4.13-rc1 合入的 [commit 3bc48f96cf11 ("mm, page_alloc: split smallest stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/
-commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) 引入了一个 find_smallest 流程
+但是 4.13-rc1 合入的 [commit 3bc48f96cf11 ("mm, page_alloc: split smallest stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274), 该补丁重构了 `__rmqueue_fallback` 的流程, **只窃取, 不分配, 真正的分配流程通过 `__rmqueue` 中 retry 分配**.
 
-    
+1.  `__rmqueue_fallback` 只 find_suitable_fallback() 查找到合适的 fallback MIGRATE_TYPE, 并通过 steal_suitable_fallback() 窃取页面, 但是并不进行实质的分配, 因此删除了其中 expand 等流程.
+
+2.  `__rmqueue_fallback` 的返回值不再是窃取的页面, 而是返回窃取成功与否.
+
+3.  `__rmqueue` 发现 `__rmqueue_fallback` 返回成功后, 通过 retry 流程, 再次通过 `__rmqueue_smallest` 分配页面.
 
 
 
@@ -1192,6 +1217,11 @@ __rmqueue_fallback(struct zone *zone, unsigned int order, int start_migratetype)
 2.  通过 find_suitable_fallback 查找到合适窃取的 MIGRATE_TYPE fallback_mt.
 
 3.  通过 steal_suitable_fallback 从查找到的 fallback_mt 迁移类型中窃取页面出来.
+
+
+之前的版本中, 很有可能, 除了最高顺序的页面, 我们还从同一块中窃取低顺序的页面. 但我们还是分走了最高订单页面. 这是一种浪费, 会导致碎片化, 而不是避免碎片化.
+
+因此, 这个补丁将 `__rmqueue_fallback()` 更改为仅仅窃取页面并将它们放到请求的 migratetype 的自由列表中, 并且只报告它是否成功. 然后我们选择(和最终分裂)最小的页面__rmqueue_smallest(). 这一切都发生在区域锁定, 这样在过程中就没人能从我们这里偷了. 这应该可以减少由于回退造成的碎片. 在最坏的情况下, 我们只是窃取了一个最高顺序的页面, 并通过在列表之间移动它, 然后删除它而浪费了一些周期, 但后退并不是真正的热门路径, 所以这不应该是一个问题. 作为附带的好处, 该补丁通过重用__rmqueue_least()删除了一些重复的代码.
 
 
 ### 4.2.3 4.13 之后的版本
@@ -1288,7 +1318,7 @@ find_suitable_fallback 中 only_stealable 为 false, 因此找到的 fallback_mt
 | bool *can_steal| 是否可以真正进行窃取 |
 
 
-[`find_suitable_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2599) 遍历当前 
+[`find_suitable_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2599) 遍历当前
 migratetype 的 fallbacks 数组, 为此次 fallback 查找合适 MIGRATE_TYPE 的备选空闲链表.
 
 ```cpp
@@ -1383,7 +1413,7 @@ static bool can_steal_fallback(unsigned int order, int start_mt)
 | start_migratetype == MIGRATE_RECLAIMABLE | NA | [commit 46dafbca2bba ("Be more agressive about stealing when MIGRATE_RECLAIMABLE allocations fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=46dafbca2bba811665b01d8cedf911204820623c) | 2.6.24-rc1 |
 | page_group_by_mobility_disabled | NA | [commit dd5d241ea955 ("page-allocator: always change pageblock ownership when anti-fragmentation is disabled")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dd5d241ea955006122d76af88af87de73fec25b4) | 2.6.31-rc9 |
 | !is_migrate_cma(migratetype) | NA | [commit 47118af076f6 ("mm: mmzone: MIGRATE_CMA migration type added")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=47118af076f64844b4f423bc2f545b2da9dab50d) | 3.5-rc1 |
-| start_type == MIGRATE_UNMOVABLE | NA | [commit 9c0415eb8cbf ("mm: more aggressive page stealing for UNMOVABLE allocations")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9c0415eb8cbf0c8fd043b6c0f0354308ab099df5) | 4.0-rc1 | 
+| start_type == MIGRATE_UNMOVABLE | NA | [commit 9c0415eb8cbf ("mm: more aggressive page stealing for UNMOVABLE allocations")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9c0415eb8cbf0c8fd043b6c0f0354308ab099df5) | 4.0-rc1 |
 | 删除 !is_migrate_cma(migratetype) | NA | [commit dc67647b78b9 ("mm/cma: change fallback behaviour for CMA freepage")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dc67647b78b92d9497f01fab95ac6764ed886b40) | 4.1-rc1 |
 | order >= pageblock_order | [commit 4eb7dce62007 ("mm/page_alloc: factor out fallback freepage checking")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4eb7dce62007113f1a2778213980fd6d8034ef5e) | 4.1-rc1 |
 
@@ -1395,8 +1425,11 @@ static bool can_steal_fallback(unsigned int order, int start_mt)
 [`steal_suitable_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2516)
 
 
+steal_suitable_fallback 执行真正的 steal 动作. 如果 order 足够大, 就 steal 整个 page block. 反之, 先把 page block 内的空闲页框移动到要申请的迁移类型, 然后检查已经申请的页框中是否是兼容的迁移类型. 如果有超过一半 page block size 是空闲的页或者已分配的兼容的迁移类型, 就可以修改 page block 的迁移类型到新的申请的类型. 这样已分配的兼容的迁移类型在以后被free释放时就会被放置到正确的free list中了. 
+
 ```cpp
 static void steal_suitable_fallback(struct zone *zone, struct page *page,
         unsigned int alloc_flags, int start_type, bool whole_block)
 ```
 
+https://blog.csdn.net/lwhuq/article/details/76030240
