@@ -27,6 +27,8 @@
 | TCP-RT功能的配置说明 | Alibaba Cloud Linux 2在内核版本kernel-4.19.91-21.al7开始支持TCP层的服务监控功能(TCP-RT). |
 
 
+
+
 # 1 SCHED_SLI 
 -------
 
@@ -103,8 +105,20 @@ c75529800bf2 alinux: sched: Introduce per-cgroup steal accounting
 
 ```cpp
 1bd8a72b1181 alinux: psi: using cpuacct_cgrp_id under CONFIG_CGROUP_CPUACCT
-1f49a7385032 alinux: psi: Support PSI under cgroup v1
 dc159a61c043 alinux: introduce psi_v1 boot parameter
+1f49a7385032 alinux: psi: Support PSI under cgroup v1
+```
+
+# MEMSLI
+-------
+
+
+```cpp
+echo 1 > /proc/memsli/enabled
+
+mount -t tmpfs cgroup_root /sys/fs/cgroup
+mkdir -p /sys/fs/cgroup/memory
+mount -t cgroup -o memory memory /sys/fs/cgroup/memory
 ```
 
 # 2 Scheduler
@@ -134,4 +148,95 @@ a0b0376bdbdc alinux: sched: Add document for burstable CFS bandwidth control
 739156b53e75 alinux: sched: Make CFS bandwidth controller burstable
 d9ba6d0880e3 alinux: sched: Introduce primitives for CFS bandwidth burst
 9d168f216486 alinux: sched: Defend cfs and rt bandwidth against overflow
+```
+
+# 3 MEMORY
+-------
+
+
+```cpp
+49c322d5e62e alinux: mm: Fix the vma merge warning
+9eb3033b5452 alinux: meminfo: Add meminfo support for rich container
+3bac8a607ab0 alinux: nitro_enclaves: Split mmio region and increase EIF_LOAD_OFFSET
+59cec5300f4d alinux: mm: bring back unevictable.o in obj-y
+b91b37989d2f alinux: mm: make the swap throttle more accurate
+737b01dfdb63 alinux: mm: fix an global-out-of-bounds in __do_proc_doulongvec_minmax
+f5ac90f84be8 alinux: mm: add an interface to adjust the penalty time dynamically
+f8a6ae902811 alinux: mm: support swap.high for cgroup v1
+7ba445112d91 alinux: configs: Enable SM2 asymmetric algorithm
+a7e3c096fa8a alinux: tcp_rt module: fix bug of using vfree to release the memory obtained by kmalloc
+fc8d2968d054 alinux: arm64: adjust tk_core memory layout
+b893a7d56134 alinux: mm: completely disable swapout with negative swappiness
+05f6ed402562 alinux: introduce deferred_meminit boot parameter
+56a432f556a5 alinux: mm: thp: add fast_cow switch
+587136851af8 alinux: mm: fix undefined reference to printk_ratelimit_state
+79e7c57a1833 alinux: mm: fix undefined reference to mlock_fixup
+a42290726450 alinux: Limit the print message frequency when memcg oom triggers
+8962f1257a40 alinux: mm: restrict the print message frequency further when memcg oom triggers
+b725e2580207 alinux: Revert "mm/compaction.c: clear total_{migrate,free}_scanned before scanning a new zone"
+7d6cb94f148e alinux: mm: Pin code section of process in memory
+3d5ca29dd634 alinux: mm, memcg: optimize division operation with memsli counters
+055ed63be9b6 alinux: mm, memcg: rework memsli interfaces
+9e58d704f63a alinux: mm, memcg: add kconfig MEMSLI
+892970b760e2 alinux: mm, memcg: add memsli procfs switch interface
+77663a9d54da alinux: mm, memcg: gather memsli/exstat from all possible cpus
+6c4e1cc32b45 alinux: mm, memcg: account throttle over memory.high for memcg direct reclaim
+ddfd4d5e8f76 alinux: mm, memcg: record latency of swapout and swapin in every memcg
+390710798062 alinux: mm, memcg: account reclaim_high for memcg direct reclaim
+fe673ccf92aa alinux: mm, memcg: adjust the latency probe point for memcg direct reclaim
+837e53abb954 alinux: mm, memcg: rework memory latency histogram interfaces
+4bec5cfe97cf alinux: mm, memcg: record latency of direct compact in every memcg
+83058e75601e alinux: mm, memcg: record latency of direct reclaim in every memcg
+b37fe7db34f4 alinux: mm, memcg: optimize division operation with memcg counters
+27393b9b965a alinux: mm, memcg: export workingset counters on memcg v1
+ec661706b1c9 alinux: mm, memcg: abort priority oom if with oom victim
+2061acd6c236 alinux: mm, memcg: account number of processes in the css
+fb4c5ea64934 alinux: mm, memcg: fix soft lockup in priority oom
+40969475355a alinux: mm, memcg: record latency of memcg wmark reclaim
+
+
+```cpp
+5028e358bcd4 alinux: mm: oom_kill: show killed task's cgroup info in global oom
+7d41295cc97f alinux: mm: memcontrol: enable oom.group on cgroup-v1
+0c8648d9554d alinux: doc: alibaba: Add priority oom descriptions
+52e375fcb7a7 alinux: mm: memcontrol: introduce memcg priority oom
+```
+
+```cpp
+ef467b9ddbc0 alinux: memcg: Account throttled time due to memory.wmark_min_adj
+60be0f545fac alinux: memcg: Introduce memory.wmark_min_adj
+63442ea9f838 alinux: memcg: Provide users the ability to reap zombie memcgs
+9ea9e641c56a alinux: mm: remove unused variable
+25f9e572a7da alinux: mm: kidled: fix frame-larger-than build warning
+```
+
+83cd9d23197d alinux: jbd2: track slow handle which is preventing transaction committing
+
+```cpp
+3e655c51650c alinux: mm,memcg: export memory.{min,low} to cgroup v1
+942855175c77 alinux: mm,memcg: export memory.{events,events.local} to v1
+7d36553bd29d alinux: mm,memcg: export memory.high to v1
+3c40972a47a6 alinux: mm: memcontrol: memcg_wmark_wq can be static
+dff2d64b00bc alinux: mm/thp: remove unused variable 'pgdata' in split_huge_page_to_list()
+e6ca020bc338 alinux: mm: thp: move deferred split queue to memcg's nodeinfo
+a29243e2e890 alinux: mm: Support kidled
+bbaee3afa992 alinux: mm: memcontrol: make distance between wmark_low and wmark_high configurable
+c69c12cc10ba alinux: mm: vmscan: make memcg kswapd set memcg state to dirty or writeback
+6332d4e3580b alinux: mm: memcontrol: treat memcg wmark reclaim work as kswapd
+0149d7b9a6ab alinux: mm: memcontrol: add background reclaim support for cgroupv2
+6967792f8d41 alinux: mm: memcontrol: support background async page reclaim
+49a3b46525f3 alinux: mm: vmscan: make it sane reclaim if cgwb_v1 is enabled
+2ced6afdefa9 alinux: mm, memcg: fix possible soft lockup in try_charge
+cc00f21eb912 alinux: memcg: Point wb to root memcg/blkcg when offlining to avoid zombie
+
+
+2307342e80bc alinux: writeback: memcg_blkcg_tree_lock can be static
+665e22e9ec59 alinux: writeback: add debug info for memcg-blkcg link
+7396367dbfa2 alinux: writeback: add memcg_blkcg_link tree
+```
+
+
+```cpp
+2e38a0f2950e alinux: mm: add proc interface to control context readahead
+10be0b372cac readahead: introduce context readahead algorithm
 ```
