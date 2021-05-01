@@ -89,31 +89,49 @@ Linux 内核特性演进史
 -------
 
 
-## 2.1 内核月报 VS 自顶向下
+本文
+
+*   最早的启发来自于 2017 年淘宝内核组内核月报的断更.
+
+*   最直接的导火索来自于知乎上的一个问答.
+
+
+## 2.1 启发(内核月报)
 -------
 
 这里的内容, 最早的想法和计划来自于 2017 年. 起因是当时一直关注的[阿里淘宝内核组](https://kernel.taobao.org/index.php)的 "内核月报" 忽然出现网络下线, 停止更新. 其中缘由不得而知, 但是萌生了自己维护 "内核月报" 的想法.
 
+> 现在我最懊悔的事情, 就是:
+>
+> 当时内核淘宝组的 "内核月报" 我嘴上一直说要本地归档下, 本地归档下, 但是因为自己的 "懒惰" 和 "借口", 未付诸实施.
+>
+> 导致现在全网估计只剩下一些 CSDN 和 博客园上一些零星的转载, 不成气候......
+
+"内核月报" 的下线和停更, 不止是惋惜. 满满的干货, 就这样消失, 心中甚是不甘. 但是他们的精神和对技术的追求, 将引领我不断成长.
+
 > 2021 年 05 月 01 日 更新
 >
 > 宋宝华老师的 <Linux 阅码场> 近期开始更新 "内核月报" 的内容
->
-> 不过目前只维持了几期, 断更中, 鄙人将持续关注.
->
-> [Linux阅码场 - Linux内核月报(2020年06月](https://blog.csdn.net/21cnbao/article/details/107241303)
->
-> [Linux阅码场 - Linux内核月报(2020年07月](https://blog.csdn.net/21cnbao/article/details/107925604)
->
-> [Linux阅码场 - Linux内核月报(2020年08月](https://blog.csdn.net/21cnbao/article/details/107925604)
->
-> [Linux阅码场 - Linux内核月报(2020年09月](https://blog.csdn.net/21cnbao/article/details/109040370)
->
-> [Linux阅码场 - Linux内核月报(2020年10月](https://blog.csdn.net/21cnbao/article/details/109699266)
->
-> [Linux阅码场 - Linux内核月报(2020年11月](https://blog.csdn.net/21cnbao/article/details/111244021)
->
-> [Linux阅码场 - Linux内核月报(2020年11月](https://blog.csdn.net/21cnbao/article/details/113010959)
 
+不过目前 <Linux 阅码场> 只维持了几期更新, 断更中, 鄙人将持续关注.
+
+[Linux阅码场 - Linux内核月报(2020年06月](https://blog.csdn.net/21cnbao/article/details/107241303)
+
+[Linux阅码场 - Linux内核月报(2020年07月](https://blog.csdn.net/21cnbao/article/details/107925604)
+
+[Linux阅码场 - Linux内核月报(2020年08月](https://blog.csdn.net/21cnbao/article/details/107925604)
+
+[Linux阅码场 - Linux内核月报(2020年09月](https://blog.csdn.net/21cnbao/article/details/109040370)
+
+[Linux阅码场 - Linux内核月报(2020年10月](https://blog.csdn.net/21cnbao/article/details/109699266)
+
+[Linux阅码场 - Linux内核月报(2020年11月](https://blog.csdn.net/21cnbao/article/details/111244021)
+
+[Linux阅码场 - Linux内核月报(2020年11月](https://blog.csdn.net/21cnbao/article/details/113010959)
+
+
+## 2.2 自身原因(自顶向下的分析方法)
+-------
 
 之后一直处于筹划阶段, 未进行实质的开展, 其中主要纠结的地方有两点:
 
@@ -142,10 +160,11 @@ Linux 内核特性演进史
 
 所以, 观众朋友们, 我鸡血已经备足了, 干饭, 搞起......
 
-## 2.2 起因
+## 2.3 导火索-一个知乎的问答引发的"干饭"激情
 -------
 
-本文最早是 [知乎大神 larmbr宇](https://www.zhihu.com/people/zhan-jian-yu) 2015 年对知乎提问 [现在的 Linux 内核和 Linux 2.6 的内核有多大区别](https://www.zhihu.com/question/35484429) 的回答, 鄙人当时看到后, 叹为观止, 这正是我一直希望做的, 但是作者已经不再维护, 甚是惋惜, 因此接手维护, 希望能尽自己的一份微薄之力.
+
+本文最早是 [知乎大神 larmbr宇](https://www.zhihu.com/people/zhan-jian-yu) 2015 年对知乎提问 [现在的 Linux 内核和 Linux 2.6 的内核有多大区别](https://www.zhihu.com/question/35484429) 的回答, 鄙人当时看到后, 叹为观止, 这不正是我一直希望做的, 但是作者已经不再维护, 甚是惋惜, 因此接手维护, 希望能尽自己的一份微薄之力.
 
 ![为什么会有这篇文章](https://raw.githubusercontent.com/gatieme/LDD-LinuxDeviceDrivers/master/study/kernel/00-DESCRIPTION/images/0000-1-why.png)
 
