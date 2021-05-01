@@ -89,10 +89,28 @@ Linux 内核特性演进史
 -------
 
 
-## 2.1 总结方式
+## 2.1 内核月报 VS 自顶向下
 -------
 
 这里的内容, 最早的想法和计划来自于 2017 年. 起因是当时一直关注的[阿里淘宝内核组](https://kernel.taobao.org/index.php)的 "内核月报" 忽然出现网络下线, 停止更新. 其中缘由不得而知, 但是萌生了自己维护 "内核月报" 的想法.
+
+> 宋宝华老师的 <Linux 阅码场> 近期开始更新 "内核月报" 的内容
+> 不过目前只维持了几期, 断更中, 鄙人将持续关注.
+>
+> [Linux阅码场 - Linux内核月报(2020年06月](https://blog.csdn.net/21cnbao/article/details/107241303)
+>
+> [Linux阅码场 - Linux内核月报(2020年07月](https://blog.csdn.net/21cnbao/article/details/107925604)
+>
+> [Linux阅码场 - Linux内核月报(2020年08月](https://blog.csdn.net/21cnbao/article/details/107925604)
+>
+> [Linux阅码场 - Linux内核月报(2020年09月](https://blog.csdn.net/21cnbao/article/details/109040370)
+>
+> [Linux阅码场 - Linux内核月报(2020年10月](https://blog.csdn.net/21cnbao/article/details/109699266)
+>
+> [Linux阅码场 - Linux内核月报(2020年11月](https://blog.csdn.net/21cnbao/article/details/111244021)
+>
+> [Linux阅码场 - Linux内核月报(2020年11月](https://blog.csdn.net/21cnbao/article/details/113010959)
+
 
 之后一直处于筹划阶段, 未进行实质的开展, 其中主要纠结的地方有两点:
 
@@ -144,8 +162,6 @@ Linux 内核特性演进史
 >   WeChat  :   gatieme
 >
 >   EMAIL   :   gatieme@163.com
-
-
 
 
 这个问题挺大的.
