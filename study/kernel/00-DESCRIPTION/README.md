@@ -45,6 +45,7 @@ Linux 内核特性演进史
 
 *   [深入理解Linux内存管理-之-目录导航_OSKernelLAB-CSDN博客](https://kernel.blog.csdn.net/article/details/52384965)
 ​
+
 *   [Linux进程管理与调度-之-目录导航_OSKernelLAB-CSDN博客](https://kernel.blog.csdn.net/article/details/51456569)
 ​
 
@@ -61,6 +62,7 @@ Linux 内核特性演进史
 
 [LinuxVersions - Linux Kernel Newbies](https://kernelnewbies.org/LinuxVersions)
 ​
+
 [Kernel coverage at LWN.net](https://lwn.net/Kernel)
 ​
 
@@ -69,8 +71,10 @@ Linux 内核特性演进史
 
 [Project List - Patchwork](https://patchwork.kernel.org)
 ​
+
 [Linux Kernel Mailing List](https://lore.kernel.org/patchwork/project/lkml/list)
 ​
+
 [lkml.org](https://lkml.org/lkml)
 
 
