@@ -903,7 +903,7 @@ for (o = order; o < MAX_ORDER; o++) {
 
     3.3 如果切蛋糕也失败了, 说明空闲的页面已经不足以支撑此次分配, 则从 CMA 区域中预留的内存中进行分配.
 
-    3.4 如果前面流程都失败了, 那么说明当前 MIGRATE_TYPE 中已经没有足够的连续物理页面, 那么进入 fallback 流程, 尝试从其他 MIGRATE_TYPE 中窃取内存.
+    3.4 如果前面流程都失败了, 那么说明当前 migratetype 中已经没有足够的连续物理页面, 那么进入 fallback 流程, 尝试从其他 migratetype 中窃取内存.
 
 
 4.  通过 [`check_new_pages`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2253) 检查获取到的内存页是否满足要求. 伙伴系统返回了所获取的的物理页面块第一个页面的 page 结构体, 而 [`check_new_pages`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2253) 则需要检查所有的页面.
@@ -989,13 +989,13 @@ struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 ![`__rmqueue_fallback` 流程](./__rmqueue_smallest.png)
 
 
-1.  从期望申请的 order 空闲页面中开始申请目标 MIGRATE_TYPE 类型的页面, 如果没有找到, 则继续从更大 order 的空闲页面中申请, 直到 MAX_ORDER 为止;
+1.  从期望申请的 order 空闲页面中开始申请目标 migratetype 类型的页面, 如果没有找到, 则继续从更大 order 的空闲页面中申请, 直到 MAX_ORDER 为止;
 
 2.  如果从某个 current_order 的空闲页面中查找到足够的页面后, 将它从空闲链表中移除;
 
 3.  由于申请到的 current_order 可能大于 order, 即申请到比期望的 2^order 页面要大的页面, 那么这时候我们需要通过 expand 对页面进行切割, 只取走我们需要的那部分页面, 而剩下的页面需要归还给伙伴系统.
 
-4.  fallback 流程下, 申请的页面可能时从其他 MIGRATE_TYPE 的空闲页面中窃取的, 那么这时候窃取的页面 MIGRATE_TYPE 与跟我们期望的是不符的, 需要设置页面的 MIGRATE_TYPE.
+4.  fallback 流程下, 申请的页面可能时从其他 migratetype 的空闲页面中窃取的, 那么这时候窃取的页面 migratetype 与跟我们期望的是不符的, 需要设置页面的 migratetype.
 
 # 4 `__rmqueue_fallback` 页面窃取
 -------
@@ -1006,7 +1006,7 @@ struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 > The `__rmqueue_fallback()` function is called when there's no free page of requested migratetype, and we need to steal from a different one.
 
 
-如果前面的流程都分配失败了, 那么说明当前 ZONG 区域指定 MIGRATE_TYPE 中没有足够的空闲页来完成本次分配了. 那么内核将通过 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2759) 尝试从当前 ZONE 的其他 MIGRATE_TYPE 的空闲链表中挪用内存.
+如果前面的流程都分配失败了, 那么说明当前 ZONG 区域指定 migratetype 中没有足够的空闲页来完成本次分配了. 那么内核将通过 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2759) 尝试从当前 ZONE 的其他 migratetype 的空闲链表中挪用内存.
 
 ![`__rmqueue_fallback`](./__rmqueue_fallback.png)
 
@@ -1020,14 +1020,14 @@ struct page *__rmqueue_smallest(struct zone *zone, unsigned int order,
 -------
 
 
-对于某个指定的 MIGRATE_TYPES, 内核 fallback 去其他 MIGRATE_TYPE 的空闲内存中窃取内存时, 有什么优先级顺序么?
+对于某个指定的 migratetype, 内核 fallback 去其他 migratetype 的空闲内存中窃取内存时, 有什么优先级顺序么?
 
-肯定有的, 内核定义了一个 fallbacks 数组, 用来指定每个迁移类型 fallback 时备选 MIGRATE_TYPE 的顺序.
+肯定有的, 内核定义了一个 fallbacks 数组, 用来指定每个迁移类型 fallback 时备选 migratetype 的顺序.
 
-比如 fallbacks[MIGRATE_UNMOVABLE] 行值为 : { MIGRATE_RECLAIMABLE, MIGRATE_MOVABLE,   MIGRATE_TYPES }
-就意味着, 当分配 UNMOVABLE 的内存页失败的时候, 先去 RECLAIMABLE 类型的页面中分配, 再去 MOVABLE 类型的页面中分配. MIGRATE_TYPES 标记了 fallback 的终止, 如果前两个类型都没有找到可分配的内存, 那么 fallback 就失败了.
+比如 fallbacks[MIGRATE_UNMOVABLE] 行值为 : { MIGRATE_RECLAIMABLE, MIGRATE_MOVABLE,   migratetype }
+就意味着, 当分配 UNMOVABLE 的内存页失败的时候, 先去 RECLAIMABLE 类型的页面中分配, 再去 MOVABLE 类型的页面中分配. migratetypeS 标记了 fallback 的终止, 如果前两个类型都没有找到可分配的内存, 那么 fallback 就失败了.
 
-CMA 和 ISOLATE 不会进行 fallback 操作, 因此其 fallback 数组只有一项 { MIGRATE_TYPES }.
+CMA 和 ISOLATE 不会进行 fallback 操作, 因此其 fallback 数组只有一项 { migratetype }.
 
 ```cpp
 /*
@@ -1062,9 +1062,55 @@ static int fallbacks[MIGRATE_TYPES][3] = {
 
 我们继续回到 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2759), 看着流程有点复杂, 前后两次循环, 一次从 (MAX_ORDER, order] 方向遍历, 此外还有 find_smallest 流程从 [order, MAX_ORDER) 遍历, 咋一看两个流程并没有过于明显的区别, 最后是 do_steal 真正完成页面的窃取.
 
-find_smallest 流程其实是内核 4.13 合入的优化, 那么我们先来看这个优化合入之前的版本, 接着再结合优化来看, 当前这个版本的实现.
 
-[7a8f58f39188 ("mm, page_alloc: fallback to smallest page when not stealing whole pageblock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e), 4.13-rc1 合入
+
+这里 fallback 的遍历流程审视下对 fallback 数组的处理
+
+```cpp
+static inline struct page *
+__rmqueue_fallback(struct zone *zone, unsigned int order, int start_migratetype)
+{
+    // ......
+    for (current_order = MAX_ORDER-1;
+                current_order >= order && current_order <= MAX_ORDER-1;
+                --current_order) {
+
+        // fallback_mt = find_suitable_fallback(area, current_order,
+
+        for (i = 0;; i++) {
+            fallback_mt = fallbacks[migratetype][i];
+            if (fallback_mt == MIGRATE_TYPES)
+                break;
+        }
+    }
+    // ......
+```
+
+fallback 流程中是依次对每个 order 的空闲页面, 按照备选 fallback 的顺序查找满足要求的 fallback_mt 进行窃取. 因此 fallback 是在同一级 order 下存在优先级顺序, 不同的 order 下的迁移类型没有明确的顺序. 这个次序和 order 的遍历顺序有关系. 是看:
+
+*   每次去查找一个满足要求的最大的页面进行窃取;
+
+    1.  这样可以缓解下次内存分配的压力, 减少 fallback 的流程, 从而减低永久内存碎片的可能性;
+
+    2.  但是频繁的对大 order 进行切割, 也会让当前处理的两个 migratetype 的页面都非常的零碎, 反而加剧了内存碎片.
+
+*   每次去查找一个满足要求的最小的页面进行窃取;
+
+但是内核总是倾向于优先去窃取尽可能大的页面. 因为内核假定 :
+
+*   最大 order 的空闲页面, 同时也是空闲页面最富余.
+
+*   内核中大多数页面的分配, 都是一些小 order 的, 一次窃取足够大的页面出来, 类似于一个缓冲池, 可以减少 fallback 的触发.
+
+
+但是倾向于窃取大的还是小的空闲页面, 这两种方式的处理是非常微妙的, 伙伴系统窃取的流程也经过了多次的定向优化.
+
+
+1.  最早版本 v4.11 的实现中, 倾向于查找满足要求的最大的页面进行窃取, `__rmqueue_fallback()` 直接将窃取的页面进行了切割并返回.
+
+2.  紧接着 4.12 的版本中, fallback 只是进行了页面的窃取, 并返回成功与否, 发现成功后, `__rmqueue()` 将走 retry 流程再重新通过 `__rmqueue_smallest` 流程分配内存页. [commit 3bc48f96cf11 ("mm, page_alloc: split smallest stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274)
+
+3.  4.13 之后的版本中, fallback 流程中增加了 find_smallest 的优化, 不再总是倾向于选择最大的页面, 在适当的时机也会选择最小的满足要求的页面进行窃取. [7a8f58f39188 ("mm, page_alloc: fallback to smallest page when not stealing whole pageblock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e), 4.13-rc1 合入.
 
 
 ### 4.2.1 简易流程(4.12 之前的内核版本)
@@ -1144,21 +1190,20 @@ __rmqueue_fallback(struct zone *zone, unsigned int order, int start_migratetype)
 
 *   没有通过 steal_suitable_fallback() 完成窃取的页面, 只是被加入到了 start_migratetype 的空闲列表中, 可以进行分配, 但是回收的时候, 还是会回收到 fallback_mt 的空闲列表中.
 
+总结来说 :
+当前 v4.11 版本的 [`__rmqueue_fallback()`](https://elixir.bootlin.com/linux/v4.11/source/mm/page_alloc.c#L2144) 每次查找到最大的满足的页面块, 通过 [`expand()`](https://elixir.bootlin.com/linux/v4.11/source/mm/page_alloc.c#L1632) 切割恰好满足要求的页面返回, 剩余的页面归还到 start_migratetype 的空闲链表. 通常情况下, 窃取的页面迁移类型并未做修改, 在 free 依旧会归还到其原本所属的迁移类型 fallback_mt. 这种可以减少对内存块的永久切片, 减少永久碎片化的可能性. 只有在查找到的页面够大且允许窃取(can_steal)的时候才会通过 [`steal_suitable_fallback()`](https://elixir.bootlin.com/linux/v4.11/source/mm/page_alloc.c#L1965) 进行窃取.
 
 
-### 4.2.2 简易流程(4.13 之前的内核版本)
+### 4.2.2 优化流程(4.13 之前的内核版本)
 -------
-
-
 
 但是 4.13-rc1 合入的 [commit 3bc48f96cf11 ("mm, page_alloc: split smallest stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274), 该补丁重构了 `__rmqueue_fallback` 的流程, **只窃取, 不分配, 真正的分配流程通过 `__rmqueue` 中 retry 分配**.
 
-1.  `__rmqueue_fallback` 只 find_suitable_fallback() 查找到合适的 fallback MIGRATE_TYPE, 并通过 steal_suitable_fallback() 窃取页面, 但是并不进行实质的分配, 因此删除了其中 expand 等流程.
+1.  `__rmqueue_fallback` 只 find_suitable_fallback() 查找到合适的 fallback migratetype, 并通过 steal_suitable_fallback() 窃取页面, 但是并不进行实质的分配, 因此删除了其中 expand 等流程.
 
 2.  `__rmqueue_fallback` 的返回值不再是窃取的页面, 而是返回窃取成功与否.
 
 3.  `__rmqueue` 发现 `__rmqueue_fallback` 返回成功后, 通过 retry 流程, 再次通过 `__rmqueue_smallest` 分配页面.
-
 
 
 我们先来看 v4.12 时 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v4.12/source/mm/page_alloc.c#L2599) 的实现
@@ -1208,35 +1253,70 @@ __rmqueue_fallback(struct zone *zone, unsigned int order, int start_migratetype)
 ![`__rmqueue_fallback`](./__rmqueue_fallback.png)
 
 
-
-
 这个版本的 `__rmqueue_fallback` 逻辑还是比较简洁的, 整体思路就是尝试从 MAX_ORDER - 1 开始到所需分配的 order 方向进行遍历, 查找到可以窃取的最大 order 的页面.
 
 1.  依次从高向低遍历每个 order 的空闲页面.
 
-2.  通过 find_suitable_fallback 查找到合适窃取的 MIGRATE_TYPE fallback_mt.
+2.  通过 find_suitable_fallback 查找到合适窃取的 migratetype fallback_mt.
 
-3.  通过 steal_suitable_fallback 从查找到的 fallback_mt 迁移类型中窃取页面出来.
+3.  不再判断是否 can_steal, 直接通过 steal_suitable_fallback 尝试从查找到的 fallback_mt 迁移类型中窃取页面出来.
 
 
-之前的版本中, 很有可能, 除了最高顺序的页面, 我们还从同一块中窃取低顺序的页面. 但我们还是分走了最高订单页面. 这是一种浪费, 会导致碎片化, 而不是避免碎片化.
-
-因此, 这个补丁将 `__rmqueue_fallback()` 更改为仅仅窃取页面并将它们放到请求的 migratetype 的自由列表中, 并且只报告它是否成功. 然后我们选择(和最终分裂)最小的页面__rmqueue_smallest(). 这一切都发生在区域锁定, 这样在过程中就没人能从我们这里偷了. 这应该可以减少由于回退造成的碎片. 在最坏的情况下, 我们只是窃取了一个最高顺序的页面, 并通过在列表之间移动它, 然后删除它而浪费了一些周期, 但后退并不是真正的热门路径, 所以这不应该是一个问题. 作为附带的好处, 该补丁通过重用__rmqueue_least()删除了一些重复的代码.
+之前的版本中, 很有可能, 除了最高顺序的页面, 我们还从同一块中窃取低顺序的页面. 但我们还是分走了最高订单页面. 这是一种浪费, 会导致碎片化, 而不是避免碎片化. 因此, 这个版本的 `__rmqueue_fallback()` 更改为仅仅窃取页面并将它们放到请求的 migratetype 的自由列表中, 并且只报告它是否成功. 然后重新通过 `__rmqueue_smallest()` 选择(和最终分裂)最小的页面. 这一切都发生在区域锁定, 这样在过程中就没人能从我们这里偷了. 这应该可以减少由于回退造成的碎片. 在最坏的情况下, 我们只是窃取了一个最高顺序的页面, 并通过在列表之间移动它, 然后删除它而浪费了一些周期, 但后退并不是真正的热门路径, 所以这不应该是一个问题. 作为附带的好处, 该补丁通过重用__rmqueue_least()删除了一些重复的代码.
 
 
 ### 4.2.3 4.13 之后的版本
 ---------
 
+
+4.13 版本之前的 `__rmqueue_fallback` 整体思路就是查找到一个满足窃取要求的最大 order 的页面, 即 find_biggest(这个流程名字是我自己瞎起的哈).
+
+但是 4.13-rc1 合入的 [commit 7a8f58f39188 ("mm, page_alloc: fallback to smallest page when not stealing whole pageblock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e) 引入了一个 find_smallest 流程.
+
 #### 4.2.3.1 find_biggest
 -------
+
+首先还是 v4.12 时 [`__rmqueue_fallback`](https://elixir.bootlin.com/linux/v4.13/source/mm/page_alloc.c#L2220) 的流程, 从 MAX_ORDER - 1 -=> order 的方向, 查找到一个满足要求的最大的页面块进行窃取.
+
+
+```cpp
+static inline bool
+__rmqueue_fallback(struct zone *zone, int order, int start_migratetype)
+{
+    // ......
+    for (current_order = MAX_ORDER - 1; current_order >= order;
+                --current_order) {
+        // ......
+
+        /*
+         * We cannot steal all free pages from the pageblock and the
+         * requested migratetype is movable. In that case it's better to
+         * steal and split the smallest available page instead of the
+         * largest available page, because even if the next movable
+         * allocation falls back into a different pageblock than this
+         * one, it won't cause permanent fragmentation.
+         */
+        if (!can_steal && start_migratetype == MIGRATE_MOVABLE
+                    && current_order > order)
+            goto find_smallest;
+
+        goto do_steal;
+    }
+
+    return false;
+
+find_smallest:
+    // ......
+
+do_steal:
+    // ......
+```
 
 #### 4.2.3.2 find_smallest
 -------
 
 
-4.13 版本之前的 `__rmqueue_fallback` 整体思路就是查找到一个满足窃取要求的最大 order 的页面, 即 find_biggest.
-
-但是 4.13-rc1 合入的 [commit 7a8f58f39188 ("mm, page_alloc: fallback to smallest page when not stealing whole pageblock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e) 引入了一个 find_smallest 流程.
+4.13-rc1 合入的 [commit 7a8f58f39188 ("mm, page_alloc: fallback to smallest page when not stealing whole pageblock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e) 引入了个 find_smallest 流程.
 
 
 ```cpp
@@ -1293,18 +1373,53 @@ find_smallest:
 ```
 
 
-find_suitable_fallback 中 only_stealable 为 false, 因此找到的 fallback_mt(MIGRATE_TYPE) 只要有足够的页面即可, 并不一定是 can_steal_fallback 的. 如果属于这种情况, 且待分配的页面是 MIGRATE_MOVABLE 类型的, 则尝试走 find_smallest 去找一个能满足要求的最小的页面来窃取.
+find_smallest 流程和前面的流程正好是反向的, 它从当前 order 开始, 向 MAX_ORDER 方向, 通过 find_suitable_fallback() 重新查找一个满足要求的 fallback_mt. 这样将查找到一个满足要求的最小的页面块进行窃取.
 
+如果我们不能窃取整个页面块(!can_steal), 且待分配的页面是 MIGRATE_MOVABLE 类型的, 则尝试走 find_smallest 去找一个能满足要求的最小的页面来窃取.
 
-很有可能, 除了最高顺序的页面, 我们还从同一块中窃取低顺序的页面. 但我们还是分走了最高订单页面. 这是一种浪费, 会导致碎片化, 而不是避免碎片化.
+find_smallast 的条件有几个 :
 
+| 条件 | 描述 | 详情 |
+|:---:|:----:|:---:|
+| !can_steal | 查找到的 fallback_mt 的页面是不能 steal 的 | find_suitable_fallback 中 only_stealable 为 false, 因此找到的 fallback_mt(migratetype) 只要有足够的页面即可, 并不一定是 can_steal_fallback() 的. 一般来说 !can_steal 的页面都是 MIGRATE_MOVABLE 的小页面. |
+| start_migratetype == MIGRATE_MOVABLE | 注意只有分配 MIGRATE_MOVABLE 类型的页面 fallback 的时候才会走 find_smallest 流程 | 因为 MIGRATE_MOVEABLE 的页面可以进行迁移, 可以有效地进行页面规整, 因为即使下一次 MIGRATE_MOVABLE 的分配流程继续从这里不同的页块中 fallback, 它也不会造成永久的碎片. |
+
+也就是说, 如果我们在分配 MIGRATE_MOVABLE 的页面因为页面不足而需要 fallback 时, 如果查询到的满足要求的其他 migratetype
+ 的页面 order 很小, 则干脆直接用 fnd_smallest 寻找满足要求的最小的页面.
 
 #### 4.2.3.3 do_steal
 -------
 
 
 
-## 4.3 find_suitable_fallback 查找适合被窃取的 MIGRATE_TYPE
+最后是 `do_steal` 流程
+
+```cpp
+static __always_inline bool
+__rmqueue_fallback(struct zone *zone, int order, int start_migratetype,
+                        unsigned int alloc_flags)
+{
+    // ......
+
+do_steal:
+    page = get_page_from_free_area(area, fallback_mt);
+
+    steal_suitable_fallback(zone, page, alloc_flags, start_migratetype,
+                                can_steal);
+
+    trace_mm_page_alloc_extfrag(page, order, current_order,
+        start_migratetype, fallback_mt);
+
+    return true;
+
+}
+```
+
+## 4.3 查询适合被窃取的 migratetype
+-------
+
+
+### 4.3.1 find_suitable_fallback 查找适合被窃取的 migratetype
 -------
 
 `find_suitable_fallback` 从当前当前待申请的 migratetype 的 fallback 列表中查找适合被窃取的迁移类型.
@@ -1313,13 +1428,14 @@ find_suitable_fallback 中 only_stealable 为 false, 因此找到的 fallback_mt
 |:----:|:---:|
 | struct free_area *area | 待窃取的空闲页面列表 |
 | unsigned int order | 当前尝试窃取的 order, order 不小于待申请的页面大小 |
-| int migratetype | 期望申请的页面的迁移类型. |
-| bool only_stealable | 该参数是 [commit 2149cdaef6c0 ("mm/compaction: enhance compaction finish condition")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2149cdaef6c0eb59a9edf3b152027392cd66b41f) 新引入的. |
-| bool *can_steal| 是否可以真正进行窃取 |
+| int migratetype | 期望申请的页面的迁移类型. 正是因为对 migratetype 类型的页面申请失败, 才进行的 fallback |
+| bool only_stealable | 该参数是 [commit 2149cdaef6c0 ("mm/compaction: enhance compaction finish condition")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2149cdaef6c0eb59a9edf3b152027392cd66b41f) 新引入的. 如果设置为 true, 则只有在当前 fallback_mt 是 can_steal 的才可以进行窃取, 否则只要当前 fallback_mt 有足够页面即可窃取. |
+| bool *can_steal | 是否可以真正进行窃取, 函数参数用做返回值, 由于 only_stealable 被设置为 false 的情况下, 返回的 fallback_mt 并不一定是 can_steal 的, 因为将 can_steal 与否当前返回值返回. |
+| 返回值 | 返回查找到的合适窃取的 fallback 迁移类型 fallback_mt. 如果 !only_stealable 或者 can_steal 都将查询到的合适窃取的 fallbacl_mt<br>如果 only_stealable 被设置为 false, 则只要当前迁移类型 fallback_mt 有足够的页面即可返回<br>否则, 则只有在当前 fallback_mt 是 can_steal 的时候, 才被返回. |
 
 
 [`find_suitable_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2599) 遍历当前
-migratetype 的 fallbacks 数组, 为此次 fallback 查找合适 MIGRATE_TYPE 的备选空闲链表.
+migratetype 的 fallbacks 数组, 为此次 fallback 查找合适 migratetype 的备选空闲链表.
 
 ```cpp
 // https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2599
@@ -1363,7 +1479,7 @@ int find_suitable_fallback(struct free_area *area, unsigned int order,
 
 find_suitable_fallback 用于找到合适的迁移类型 :
 
-1.  根据当前的迁移类型[获取到一个备份的迁移类型](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2610), 如果[迁移类型 MIGRATE_TYPES](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2611), 说明已经没有合适的备选 MIGRATE_TYPE 可选, 则 break;
+1.  根据当前的迁移类型[获取到一个备份的迁移类型](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2610), 如果[迁移类型 migratetype](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2611), 说明已经没有合适的备选 migratetype 可选, 则 break;
 
 2.  如果当前的[迁移类型的 freelist 的链表为空](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2614), 说明备份的迁移类型没有可用的页, 则去下一优先级获取页;
 
@@ -1377,10 +1493,25 @@ find_suitable_fallback 用于找到合适的迁移类型 :
 
 
 
-## 4.4 can_steal_fallback
+### 4.3.2 can_steal_fallback
 -------
 
-其中需要特别关注的函数是 [`can_steal_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2452)
+其中需要特别关注的函数是 [`can_steal_fallback()`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2452)
+
+
+```cpp
+// https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2452
+static bool can_steal_fallback(unsigned int order, int start_mt)
+```
+
+| 参数 | 描述 |
+|:----:|:---:|
+| unsigned int order | 待窃取的空闲页面列表 |
+| int start_mt | 期望申请的页面的迁移类型. 正是因为对 migratetype 类型的页面申请失败, 才进行的 fallback |
+| 返回值 boot | 返回能够窃取此 order 的页面块 |
+
+该函数用来检查在对 start_mt 的页面进行分配而不得不进行 fallback 的时候, 能否窃取 order 大小的页面块.
+
 
 
 ```cpp
@@ -1394,9 +1525,16 @@ static bool can_steal_fallback(unsigned int order, int start_mt)
      * but, below check doesn't guarantee it and that is just heuristic
      * so could be changed anytime.
      */
+    // 如果想要窃取的是整个pageblock, 则可以 steal 整个 pageblock
     if (order >= pageblock_order)
         return true;
 
+    /*
+     * 满足如下条件之一的页面是允许被 Steal 的
+     * - 待窃取的页面 order 不小于 1/2 pageblock 大小的块
+     * - 类型是可回收或者不可移动类型
+     * - 按页的移动性分组的功能被关闭
+     */
     if (order >= pageblock_order / 2 ||
         start_mt == MIGRATE_RECLAIMABLE ||
         start_mt == MIGRATE_UNMOVABLE ||
@@ -1407,29 +1545,134 @@ static bool can_steal_fallback(unsigned int order, int start_mt)
 }
 ```
 
-| 条件 | 描述 | 引入 commit | 引入版本 |
-|:---:|:----:|:----------:|:-------:|
-| order >= pageblock_order / 2 | NA | [commit b2a0ac8875a0 ("Split the free lists for movable and unmovable allocations")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b2a0ac8875a0a3b9f0739b60526f8c5977d2200f) | 2.6.24-rc1 |
-| start_migratetype == MIGRATE_RECLAIMABLE | NA | [commit 46dafbca2bba ("Be more agressive about stealing when MIGRATE_RECLAIMABLE allocations fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=46dafbca2bba811665b01d8cedf911204820623c) | 2.6.24-rc1 |
-| page_group_by_mobility_disabled | NA | [commit dd5d241ea955 ("page-allocator: always change pageblock ownership when anti-fragmentation is disabled")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dd5d241ea955006122d76af88af87de73fec25b4) | 2.6.31-rc9 |
-| !is_migrate_cma(migratetype) | NA | [commit 47118af076f6 ("mm: mmzone: MIGRATE_CMA migration type added")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=47118af076f64844b4f423bc2f545b2da9dab50d) | 3.5-rc1 |
-| start_type == MIGRATE_UNMOVABLE | NA | [commit 9c0415eb8cbf ("mm: more aggressive page stealing for UNMOVABLE allocations")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9c0415eb8cbf0c8fd043b6c0f0354308ab099df5) | 4.0-rc1 |
-| 删除 !is_migrate_cma(migratetype) | NA | [commit dc67647b78b9 ("mm/cma: change fallback behaviour for CMA freepage")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dc67647b78b92d9497f01fab95ac6764ed886b40) | 4.1-rc1 |
-| order >= pageblock_order | [commit 4eb7dce62007 ("mm/page_alloc: factor out fallback freepage checking")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4eb7dce62007113f1a2778213980fd6d8034ef5e) | 4.1-rc1 |
+| 条件 | 描述 | 详情 | 引入 commit | 引入版本 |
+|:---:|:----:|:---:|:----------:|:-------:|
+| order >= pageblock_order / 2 | 待窃取的页面块 order 不小于 pageblock_order 的一半 | 窃取足够大的页面是合理的, 这样可以减少永久碎片化的发生. 如果每次只是找一些小的页面块进行窃取, 将导致两个迁移类型的空闲页面都被切割成零零碎碎的小 order 页面 |[commit b2a0ac8875a0 ("Split the free lists for movable and unmovable allocations")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b2a0ac8875a0a3b9f0739b60526f8c5977d2200f) | 2.6.24-rc1 |
+| start_migratetype == MIGRATE_RECLAIMABLE | 申请可回收的页面出现 fallback 时, 倾向于进行窃取 | MIGRATE_RECLAIMABLE 页面的分配本质上是非常频繁的, 就像 updatedb 启动时一样. 这很可能发生在 MAX_ORDER 页块没有释放的情况下. 这意味着 updatedb 可以将 MIGRATE_RECLAIMABLE 页面分散到整个地址空间中. 因此有必要使得 MIGRATE_RECLAIMABLE 窃取页面块方面更激进. |[commit 46dafbca2bba ("Be more agressive about stealing when MIGRATE_RECLAIMABLE allocations fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=46dafbca2bba811665b01d8cedf911204820623c) | 2.6.24-rc1 |
+| page_group_by_mobility_disabled | 内核已经关闭按页的移动性分组的功能, 可以任意窃取 | 如果当前内核已经关闭按页的移动性分组的功能, 说明当前内核中内存的空闲页面是比较紧缺的, 这时候页面不再按照 migratetype 分组, 此时可以任意窃取 | [commit dd5d241ea955 ("page-allocator: always change pageblock ownership when anti-fragmentation is disabled")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dd5d241ea955006122d76af88af87de73fec25b4) | 2.6.31-rc9 |
+| !is_migrate_cma(migratetype) | NA | MIGRATE_CMA 迁移类型有两个主要特征:<br>(i)只能从 MIGRATE_CMA 页块中分配可移动页<br>(ii)页面分配器永远不会改变 MIGRATE_CMA 页面块的迁移类型. <br>这(在某种程度上)保证了 MIGRATE_CMA 页面中的该页面块总是可以迁移到其他地方(除非系统中没有剩余内存). 它被设计用于分配大的块(例如. 10MiB)的物理连续内存. 一旦驱动程序请求连续内存, MIGRATE_CMA页块中的页可能会被迁移, 以创建一个连续块. 为了最小化迁移数量, MIGRATE_CMA 迁移类型是页面分配器在请求时返回到其他迁移类型时尝试的最后一种类型. 因此这个条件的加入, 将保证 MIGRATE_CMA 类型的页面在窃取时, 迁移类型不会被修改. | [commit 47118af076f6 ("mm: mmzone: MIGRATE_CMA migration type added")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=47118af076f64844b4f423bc2f545b2da9dab50d) | 3.5-rc1 |
+| start_type == MIGRATE_UNMOVABLE | 申请不可移动的页面出现 fallback 时, 倾向于进行窃取 | MIGRATE_UNMOVABLE 分配没有以 MIGRATE_RECLAIMABLE 同样的方式进行积极的窃取, 尽管将这种分配分散到多个回退页面块上可能比可回收分配更糟糕. 为了最小化碎片, 我们应该最小化这种回退的数量, 从而从每个回退页块中尽可能多地窃取内容. 请注意, 在理论上, 这可能会给可移动页块带来更大的压力, 并导致可移动分配从不可移动页块中窃取回来. 但是, 可移动的分配不像偷窃那样激进, 也不会造成永久的碎片, 因此权衡是合理的. | [commit 9c0415eb8cbf ("mm: more aggressive page stealing for UNMOVABLE allocations")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9c0415eb8cbf0c8fd043b6c0f0354308ab099df5) | 4.0-rc1 |
+| 删除 !is_migrate_cma(migratetype) | NA | 修改了分配 MIGRATE_MOVABLE 页面时对 MIGRATE_CMA 的 fallback 行为, 之前的版本中 MIGRATE_CMA 是作为 MIGRATE_MOVABLE 首选备用迁移类型而存在的, 在 fallback 流程进行窃取的时候, 只是同一个 order 下优选 MIGRATE_CMA 类型的页面, 但是这个补丁合入后, MIGRATE_CMA 类型的空闲页面总是首先使用, 而不是同其他 migratetype 一样作为可移动类型的分配的 fallback<br>MIGRATE_CMA 只能用于 MIGRATE_MOVABLE, 所以最好尽可能先使用MIGRATE_CMA freepage. 否则, 我们将不必要地占用其他 migratetype 的宝贵空闲空间, 从而增加碎片的机会. <br>带有MIGRATE_CMA的Freepage只能用于MIGRATE_MOVABLE, 它们不应该扩展到其他 migratetype 好友列表, 以保护它们免受不可移动/可回收的分配.  rmqueue_fallback() 每次查找可能的最大的 freepage 块会把的高阶 freepage不断切割和破坏, 即使存在合适的顺序CMA freepage | [commit dc67647b78b9 ("mm/cma: change fallback behaviour for CMA freepage")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dc67647b78b92d9497f01fab95ac6764ed886b40) | 4.1-rc1 |
+| order >= pageblock_order | 待窃取的页面块 order 不小于 pageblock_order, 可以整个窃取. | 虽然在紧接着下一个检查中有宽松的检查(不小于 pageblock_order 的一半也可以直接窃取), 但是打算单独做这个检查, 因为如果满足这个条件, 我们实际上可以窃取整个页面块, 而下面的检查并不能保证它, 此外下面的检查只是启发式和经验式的, 随时可以被修改. | [commit 4eb7dce62007 ("mm/page_alloc: factor out fallback freepage checking")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4eb7dce62007113f1a2778213980fd6d8034ef5e) | 4.1-rc1 |
 
+## 4.5 页面窃取
+-------
 
-## 4.5 steal_suitable_fallback 从窃取其他 MIGRATE_TYPE 的页面
+## 4.5.1 steal_suitable_fallback 从窃取其他 migratetype 的页面
 -------
 
 
-[`steal_suitable_fallback`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2516)
+[`steal_suitable_fallback()`](https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2516)
 
+steal_suitable_fallback() 执行真正的 steal 动作.
 
-steal_suitable_fallback 执行真正的 steal 动作. 如果 order 足够大, 就 steal 整个 page block. 反之, 先把 page block 内的空闲页框移动到要申请的迁移类型, 然后检查已经申请的页框中是否是兼容的迁移类型. 如果有超过一半 page block size 是空闲的页或者已分配的兼容的迁移类型, 就可以修改 page block 的迁移类型到新的申请的类型. 这样已分配的兼容的迁移类型在以后被free释放时就会被放置到正确的free list中了. 
+*   如果 order 足够大, 就 steal 整个 page block.
+
+*   否则, 先把 page block 内的空闲页框移动到要申请的迁移类型, 然后检查已经申请的页框中是否是兼容的迁移类型. 如果有超过一半 page block size 是空闲的页或者已分配的兼容的迁移类型, 就可以修改 page block 的迁移类型到新的申请的类型.
+
+页面的迁移类型修改之后, 这样已分配的兼容的迁移类型在以后被 free 释放时就会被放置到正确的 free list 中了.
 
 ```cpp
 static void steal_suitable_fallback(struct zone *zone, struct page *page,
         unsigned int alloc_flags, int start_type, bool whole_block)
+```
+
+
+
+
+```cpp
+// https://elixir.bootlin.com/linux/v5.10/source/mm/page_alloc.c#L2516
+/*
+ * This function implements actual steal behaviour. If order is large enough,
+ * we can steal whole pageblock. If not, we first move freepages in this
+ * pageblock to our migratetype and determine how many already-allocated pages
+ * are there in the pageblock with a compatible migratetype. If at least half
+ * of pages are free or compatible, we can change migratetype of the pageblock
+ * itself, so pages freed in the future will be put on the correct free list.
+ */
+static void steal_suitable_fallback(struct zone *zone, struct page *page,
+        unsigned int alloc_flags, int start_type, bool whole_block)
+{
+    unsigned int current_order = buddy_order(page);
+    int free_pages, movable_pages, alike_pages;
+    int old_block_type;
+
+    old_block_type = get_pageblock_migratetype(page);
+
+    /*
+     * This can happen due to races and we want to prevent broken
+     * highatomic accounting.
+     */
+    if (is_migrate_highatomic(old_block_type))
+        goto single_page;
+
+    /* Take ownership for orders >= pageblock_order */
+    /* 对于整个 pageblock, 直接进行窃取 :
+     * 如果待窃取的页面块 order 不小于 pageblock_order 时, 接更改 pageblock 的迁移类型
+     * 然后跳转到 signle_page 流程, 把 plageblock 首页框挂到 area->free_list[start_type] 下面
+     */
+    if (current_order >= pageblock_order) {
+        change_pageblock_range(page, current_order, start_type);
+        goto single_page;
+    }
+
+    /*
+     * Boost watermarks to increase reclaim pressure to reduce the
+     * likelihood of future fallbacks. Wake kswapd now as the node
+     * may be balanced overall and kswapd will not wake naturally.
+     */
+    boost_watermark(zone);
+    if (alloc_flags & ALLOC_KSWAPD)
+        set_bit(ZONE_BOOSTED_WATERMARK, &zone->flags);
+
+    /* We are not allowed to try stealing from the whole block */
+    /* 如果不允许窃取整个页面块(whole_block 为 FALSE). 则
+     * 不能修改 pageblock迁移属性, 直接跳转到 signle_page 流程
+     */
+    if (!whole_block)
+        goto single_page;
+
+    free_pages = move_freepages_block(zone, page, start_type,
+                        &movable_pages);
+    /*
+     * Determine how many pages are compatible with our allocation.
+     * For movable allocation, it's the number of movable pages which
+     * we just obtained. For other types it's a bit more tricky.
+     */
+    if (start_type == MIGRATE_MOVABLE) {
+        alike_pages = movable_pages;
+    } else {
+        /*
+         * If we are falling back a RECLAIMABLE or UNMOVABLE allocation
+         * to MOVABLE pageblock, consider all non-movable pages as
+         * compatible. If it's UNMOVABLE falling back to RECLAIMABLE or
+         * vice versa, be conservative since we can't distinguish the
+         * exact migratetype of non-movable pages.
+         */
+        if (old_block_type == MIGRATE_MOVABLE)
+            alike_pages = pageblock_nr_pages
+                        - (free_pages + movable_pages);
+        else
+            alike_pages = 0;
+    }
+
+    /* moving whole block can fail due to zone boundary conditions */
+    if (!free_pages)
+        goto single_page;
+
+    /*
+     * If a sufficient number of pages in the block are either free or of
+     * comparable migratability as our allocation, claim the whole block.
+     */
+    if (free_pages + alike_pages >= (1 << (pageblock_order-1)) ||
+            page_group_by_mobility_disabled)
+        set_pageblock_migratetype(page, start_type);
+
+    return;
+
+single_page:
+    move_to_free_list(page, zone, current_order, start_type);
+}
 ```
 
 https://blog.csdn.net/lwhuq/article/details/76030240
