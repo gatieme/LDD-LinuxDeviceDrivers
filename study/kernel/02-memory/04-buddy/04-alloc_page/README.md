@@ -1675,4 +1675,11 @@ single_page:
 }
 ```
 
-https://blog.csdn.net/lwhuq/article/details/76030240
+# 5 参考资料
+-------
+
+[migrate type——buddy system的好搭档](https://zhougy0717.github.io/2012/12/12/migrate_type%E2%80%94%E2%80%94buddy_system%E7%9A%84%E5%A5%BD%E6%90%AD%E6%A1%A3/)
+
+[对于MIGRATE_MOVABLE的理解](https://blog.csdn.net/rikeyone/article/details/105863277)
+
+[buddy system - Linux内存管理（6）](https://blog.csdn.net/aoyizu7608/article/details/76030240)
