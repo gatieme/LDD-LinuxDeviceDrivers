@@ -448,6 +448,16 @@ SLUB 在解决了上述的问题之上, 提供与 SLAB 完全一样的接口, �
 这是第三个对象分配器, 提供同样的接口, 它是为适用于嵌入式小内存小机器的环境而引入的, 所以实现上很精简, 大大减小了内存 footprint, 能在小机器上提供很不错的性能.
 
 
+### 2.1.2.4 改进与优化
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2014/09/15 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm/slab_common: commonize slab merge logic](https://lore.kernel.org/patchwork/cover/493577) | 如果新创建的 SLAB 具有与现有 SLAB 相似的大小和属性, 该特性将重用它而不是创建一个新的. 这特性就是我们熟知的 `__kmem_cache_alias()`. SLUB 原生支持 merged. | v2 ☑ [3.18-rc1](https://kernelnewbies.org/Linux_3.18#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/493577)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/499717) |
+| 2017/06/20 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm: Allow slab_nomerge to be set at build time](https://lore.kernel.org/patchwork/cover/802038) | 新增 CONFIG_SLAB_MERGE_DEFAULT, 支持通过编译开关 slab_merge | v2 ☑ [3.18-rc1](https://kernelnewbies.org/Linux_3.18#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/801532)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/802038) |
+| 2021/03/29 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm/slab_common: provide "slab_merge" option for !IS_ENABLED(CONFIG_SLAB_MERGE_DEFAULT) builds](https://lore.kernel.org/patchwork/cover/1399240) | 如果编译未开启 CONFIG_SLAB_MERGE_DEFAULT, 可以通过 slab_merge 内核参数动态开启  | v2 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1399240)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1399260) |
+
+
 ## 2.1.3 内核级别的 malloc 分配器之-大内存分配
 -------
 
@@ -919,8 +929,6 @@ https://lore.kernel.org/patchwork/cover/1118785
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2012/12/01 | Davidlohr Bueso <davidlohr@hp.com> | [mm: i_mmap_mutex to rwsem](https://lore.kernel.org/patchwork/cover/344816) | 将struct anon_vma::mutex 转换为rwsem, 这将有效地改善页面迁移过程中对 VMA 的访问的竞争问题. | v1 ☑ 3.8-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/344775)<br>*-*-*-*-*-*-*-* <br>[PatchWork](https://lore.kernel.org/patchwork/cover/344816) |
-| 2014/05/23 | Davidlohr Bueso <davidlohr@hp.com> | [mm: i_mmap_mutex to rwsem](https://lore.kernel.org/patchwork/cover/466974) | 2012 年 Ingo 将 anon-vma lock 从 mutex 转换到了 rwsem 锁. i_mmap_mutex 与 anon-vma 有类似的职责, 保护文件支持的页面. 因此, 我们可以使用类似的锁定技术 : 将互斥锁转换为rwsem, 并在可能的情况下共享锁. | RFC ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/466974) |
 | 2019/12/19 | Colin Cross | [mm: add a field to store names for private anonymous memory](https://lore.kernel.org/patchwork/cover/416962) | 在二进制中通过 xxx_sched_class 地址顺序标记调度类的优先级, 从而可以通过直接比较两个 xxx_sched_class 地址的方式, 优化调度器中两个热点函数 pick_next_task()和check_preempt_curr(). | v2 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/416962)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/416962) |
 | 2018/05/17 | Laurent Dufour <ldufour@linux.vnet.ibm.com> | [Speculative page faults](https://lore.kernel.org/patchwork/cover/906210/) | 优化 MM 的 locking | v11 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/906210/)
 | 2020/02/24 | Michel Lespinasse <walken@google.com> | [Fine grained MM locking](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) | 优化 MM 的 locking | RFC ☐ | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) |
@@ -939,19 +947,38 @@ https://lore.kernel.org/patchwork/cover/1118785
 ## 2.8.3 反向映射 RMAP(Reverse Mapping)
 -------
 
+https://blog.51cto.com/u_15015138/2557286
+https://mp.weixin.qq.com/s?__biz=MzAwMDUwNDgxOA%3D%3D&mid=2652662283&idx=1&sn=70fd990b2f0af2a8f45e24af37022c0f&scene=45#wechat_redirect
+http://www.embeddedlinux.org.cn/emb-linux/system-development/201810/14-8352.html
+
+https://www.usenix.org/conference/2003-linux-kernel-developers-summit/presentation/reverse-mapping-vm-performance
+https://www.researchgate.net/publication/348620478_Virtual_Memory_Management_Techniques_in_26_Linux_kernel_and_challenges
+https://www.kernel.org/doc/ols/2003/
+
 一个物理页面是可以被多个进程映射到自己的虚拟地址空间. 在整个内存管理的过程中, 有些页面可能被迁移, 有些则可能要被释放、写回到磁盘或者 交换到 SWAP 空间(磁盘) 上, 那么这时候经常要找到哪些进程映射并使用了这个页面.
 
 在 Linux 2.4 的时代, 为了确定映射了某个页面的所以进程, 我们不得不遍历每个进程的页表, 这是一项费时费力的工作.
 
 *   PTE-based reverse mapping
 
-于是在 2002 年 [Linux 2.5(一说 2.5.27)](https://kernelnewbies.org/LinuxVersions) 内核开发者实现了一种低开销的[基于 PTE 的的反向映射方方案(low overhead pte-based reverse mapping scheme)](http://lastweek.io/notes/rmap) 来解决这一问题. 经过乐不断的发展, 到 2.5.33 趋于完善. 这个版本的实现中, 系统中的每个物理页(通过结构体类型 struct page 所描述)中维护了一个名为 pte_chain 的链表,  链表的每一项保存了直接指向映射该物理页面的页表项 PTE 的指针. 该机制在大多数情况下都很高效, 但其自身也存在一些问题. 链表中保存反向映射信息的节点很多, 占用了大量内存, 并且 pte_chain 链表本身的维护的工作量也十分繁重, 并且处理速度随着物理页面的增多而变得缓慢. 以 fork() 系统调用为例, 由于需要为进程地址空间中的每个页面都添加新的反向映射项, 所以处理较慢, 影响了进程创建的速度. 关于这个方案的详细实现可以参考 [PATCH 2.5.26-rmap-1-core](http://loke.as.arizona.edu/~ckulesa/kernel/rmap-vm/2.5.26/2.5.26-rmap-1-core). 论文参见 [Object-based Reverse Mapping](https://landley.net/kdocs/ols/2004/ols2004v2-pages-71-74.pdf)
+于是在 2002 年 [Linux 2.5.27](https://kernelnewbies.org/LinuxVersions) 内核开发者实现了一种低开销的[基于 PTE 的的反向映射方方案(low overhead pte-based reverse mapping scheme)](http://lastweek.io/notes/rmap) 来解决这一问题. 经过乐不断的发展, 到 2.5.33 趋于完善. 这个版本的实现中, 系统中的每个物理页(通过结构体类型 struct page 所描述)中维护了一个名为 pte_chain 的链表,  链表的每一项保存了直接指向映射该物理页面的页表项 PTE 的指针. 该机制在大多数情况下都很高效, 但其自身也存在一些问题. 链表中保存反向映射信息的节点很多, 占用了大量内存, 并且 pte_chain 链表本身的维护的工作量也十分繁重, 并且处理速度随着物理页面的增多而变得缓慢. 以 fork() 系统调用为例, 由于需要为进程地址空间中的每个页面都添加新的反向映射项, 所以处理较慢, 影响了进程创建的速度. 关于这个方案的详细实现可以参考 [PATCH 2.5.26-rmap-1-core](http://loke.as.arizona.edu/~ckulesa/kernel/rmap-vm/2.5.26/2.5.26-rmap-1-core) 或者 [CODE mm/rmap.c, v2.5.27](https://elixir.bootlin.com/linux/v2.5.27/source/mm/rmap.c). 论文参见 [Object-based Reverse Mapping](https://landley.net/kdocs/ols/2004/ols2004v2-pages-71-74.pdf)
 
 社区一直在努力试图优化 (PTE-based) RMAP 的整体效率.
 
-*   OBJECT-based reverse mapping
+*   object-based reverse mapping(objrmap)
 
-在 2003 年, Dave McCracken 提出了一种新的解决方法 [**基于对象的反向映射**("object-based reverse mapping")](https://lwn.net/Articles/23732). 通过新增结构 anon_vma, 类似于重用 address_space 的想法, 即拥有一个数据结构 trampoline.
+在 2003 年, IBM 的 Dave McCracken 提出了一种新的解决方法 [**基于对象的反向映射**("object-based reverse mapping")](https://lwn.net/Articles/23732).虽然这组补丁当时未合入主线, 但是向社区证实了, 从 struct page 找到映射该物理页的页表项 PTE. 该方法虽然存在一些问题, 但是测试证明可以显著解决 RMAP 在部分场景的巨大开销问题. 参见 [Performance of partial object-based rmap](https://lkml.org/lkml/2003/2/19/235).
+
+我们都知道, 用户空间进程的页面主要有两种, 一种是 file mapped page, 另外一种是 anonymous mapped page. Dave McCracken 的 objrmap 方案虽然性能不错(保证逆向映射功能的基础上, 同时又能修正 rmap 带来的各种问题). 但是只是适用于 file mapped page, 对于匿名映射页面, 这个方案无能为力.
+
+因此 Hugh Dickins 在 [2003 年](https://lore.kernel.org/patchwork/patch/14844) ~ [2004 年](https://lore.kernel.org/patchwork/patch/22938)的提交了[一系列补丁](https://lore.kernel.org/patchwork/patch/23565), 试图在 Dave McCracken 补丁的基础上, 进一步优化 RMAP 在匿名映射页面上的问题.
+
+与此同时, SUSE 的 Andrea Arcangeli 当时正在做的工作就是让 32-bit 的 Linux 运行在配置超过 32G 内存的公司服务器上. 在这些服务器上往往启动大量的进程, 共享了大量的物理页帧, 消耗了大量的内存. 对于 Andrea Arcangeli 来说, 内存消耗的真正元凶是明确的：逆向映射模块, 这个模块消耗了太多的 low memory, 从而导致了系统的各种 crash. 为了让自己的工作继续推进, 他必须解决 rmap 引入的内存扩展性 (memory scalability) 问题, 必须为匿名映射页面也设计一种基于对象的逆向映射机制. 最后 Andrea Arcangeli [设计了 full objrmap 方案](https://lwn.net/Articles/77106).
+
+> 推动 rmap 优化的动力来自内存方面的压力, 与此相关的问题是：32-bit 的 Linux 内核是否支持 4G 以上的 memory. 在 1999 年, Linus 的决定是：32-bit 的 Linux 内核永远也不会支持 2G 以上的内存. 不过历史的洪流不可阻挡, 处理器厂商设计了扩展模块以便寻址更多的内存, 高端的服务器也配置了越来越多的内存. 这也迫使 Linus 改变之前的思路, 让 Linux 内核支持更大的内存.
+
+
+通过新增结构 anon_vma, 类似于重用 address_space 的想法, 即拥有一个数据结构 trampoline.
 一个 VMA 中的所有页面只共享一个 anon_vma. vma->anon_vma 表示 vma 是否映射了页面. 相关的处理在 do_anonymous_fault()-=>anon_vma_prepare().
 
 相对于基本的基于PTE-chain的解决方案, 基于对象的 RMAP :
@@ -961,16 +988,37 @@ https://lore.kernel.org/patchwork/cover/1118785
 | 优势 |  在页面错误期间, 我们只需要设置page->映射为指向anon_vma结构, 而不是分配一个新结构并插入.
 | 不足 | 在rmap遍历期间, 我们需要额外的计算来遍历每个VMA的页表, 以确保该页实际上被映射到这个特定的VMA中. |
 
-虽然这组补丁当时未合入主线, 但是向社区证实了, 从 struct page 找到映射该物理页的页表项 PTE. 该方法虽然存在一些问题, 但是测试证明可以显著解决 RMAP 在部分场景的巨大开销问题. 参见 [Performance of partial object-based rmap](https://lkml.org/lkml/2003/2/19/235).
 
-接着 2004 年 Andrea Arcangeli 重新实现了 [OBJECT-based 的 RMAP](https://lwn.net/Articles/75198).
+*    anon_vma_chain(AVC-per process anon_vma)
+
+
+
+旧的机制下, 多个进程共享一个 AV(anon_vma), 这可能导致大量分支工作负载的可伸缩性问题. 具体来说, 由于每个 anon_vma 将在父进程和它的所有子进程之间共享.
+
+1.  这样在进程 fork 子进程的场景下, 如果进行 COW, 父子进程原本共享的 page frame 已经不再共享, 然而, 这两个 page 却仍然指向同一个 anon_vma.
+
+2.  即使一开始就没有在父子进程之间共享的页面, 当首次访问的时候(无论是父进程还是子进程), 通过 do_anonymous_page 函数分配的 page frame 也是同样的指向一个 anon_vma.
+
+
+在有些网路服务器中, 系统非常依赖fork, 某个服务程序可能会fork巨大数量的子进程来处理服务请求, 在这种情况下, 系统性能严重下降. Rik van Riel给出了一个具体的示例：系统中有1000进程, 都是通过fork生成的, 每个进程的VMA有 1000个匿名页. 根据目前的软件架构, anon_vma链表中会有1000个vma 的节点, 而系统中有一百万个匿名页面属于同一个anon_vma.
+
+
+这可能导致这样的系统 : 一个 CPU 遍历 page_referenced_one 中的 1000 个进程的页表, 而其他所有 CPU 都被 anon_vma 锁卡住. 这将导致像 AIM7 这样的基准测试出现灾难性的故障, 在那里进程的总数可能达到数万个. 实际工作量仍然比AIM7少10倍, 但它们正在迎头赶上.
+
+这个补丁改变了 anon_vmas 和 VMA 的链接方式, 它允许我们将多个anon_vmas与一个VMA关联起来. 在分叉时, 每个子进程都获得自己的anon_vmas, 它的 COW 页面将在其中实例化. 父类的anon_vma也链接到VMA, 因为非cowed页面可以出现在任何子类中. 这将 1000 个子进程的页面的 RMAP 扫描复杂度降低到 O(1), 系统中最多 1/N 个页面的 RMAP 扫描复杂度为 O(N). 这将把繁重的工作负载从O(N)减少到很小的平均扫描成本.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2002/07/20 | Rik van Riel <riel@redhat.com> | [VM with reverse mappings](https://www.cs.helsinki.fi/linux/linux-kernel/2002-46/0281.html) | 反向映射 RMAP 机制 | ☑ 2.5.27 | [Patch Archive](http://loke.as.arizona.edu/~ckulesa/kernel/rmap-vm/2.5.31/readme.html), [LWN](https://lwn.net/Articles/2925) |
-| 2003/02/20 | Dave McCracken <dmccr@us.ibm.com> | [The object-based reverse-mapping VM](https://lwn.net/Articles/23732) | 基于对象的反向映射技术 | ☐ 2.5.62 | [LWN](https://lwn.net/Articles/23584) |
+| 2003/02/20 | Dave McCracken <dmccr@us.ibm.com> | [The object-based reverse-mapping VM](https://lwn.net/Articles/23732) | 基于对象的反向映射技术 | ☐ 2.5.62 in Andrew Morton's tree | [LWN](https://lwn.net/Articles/23584) |
 | 2003/04/02 | Dave McCracken <dmccr@us.ibm.com> | [Optimizaction for object-based rmap](https://lore.kernel.org/patchwork/patch/15415) | 优化基于对象的反向映射 | ☐ 2.5.66 | [PatchWork](https://lore.kernel.org/patchwork/patch/15415) |
-| 2004/03/10 | Andrea Arcangeli <andrea@suse.de> | [Virtual Memory II: the return of objrmap](https://lwn.net/Articles/75198) | 基于对象的反向映射技术的有一次尝试 | NA | [230-objrmap fixes for 2.6.3-mjb2](https://lore.kernel.org/patchwork/patch/22524)<br>*-*-*-*-*-*-*-* <br>[objrmap-core-1](https://lore.kernel.org/patchwork/patch/22623)<br>*-*-*-*-*-*-*-* <br>[RFC anon_vma previous (i.e. full objrmap)](https://lore.kernel.org/patchwork/patch/22674)<br>*-*-*-*-*-*-*-* <br>[anon_vma RFC2](https://lore.kernel.org/patchwork/patch/22694)<br>*-*-*-*-*-*-*-* <br>[anon-vma](https://lore.kernel.org/patchwork/patch/23307) |
+| 2003/03/20 | Hugh Dickins <hugh@veritas.com> | [anobjrmap 0/6](https://lore.kernel.org/patchwork/patch/14844) | 扩展了Dave McCracken的objrmap来处理匿名内存 | ☐ 2.5.66 | [PatchWork for 6 patches 2003/03/20](https://lore.kernel.org/patchwork/patch/14844)<br>*-*-*-*-*-*-*-* <br>[PatchWork for 2.6.5-rc1 8 patches 2004/03/18](https://lore.kernel.org/patchwork/patch/22938)<br>*-*-*-*-*-*-*-* <br>[PatchWork for 2.6.5-mc2 40 patches 2004/04/08](https://lore.kernel.org/patchwork/patch/23565) |
+| 2004/03/10 | Andrea Arcangeli <andrea@suse.de> | [Virtual Memory II: full objrmap](https://lwn.net/Articles/75198) | 基于对象的反向映射技术的有一次尝试 | v1 ☑ [2.6.7](https://elixir.bootlin.com/linux/v2.6.7/source/mm/rmap.c#322) | [230-objrmap fixes for 2.6.3-mjb2](https://lore.kernel.org/patchwork/patch/22524)<br>*-*-*-*-*-*-*-* <br>[objrmap-core-1](https://lore.kernel.org/patchwork/patch/22623)<br>*-*-*-*-*-*-*-* <br>[RFC anon_vma previous (i.e. full objrmap)](https://lore.kernel.org/patchwork/patch/22674)<br>*-*-*-*-*-*-*-* <br>[anon_vma RFC2](https://lore.kernel.org/patchwork/patch/22694)<br>*-*-*-*-*-*-*-* <br>[anon-vma](https://lore.kernel.org/patchwork/patch/23307) |
+| 2009/11/24 | Hugh Dickins <hugh.dickins@tiscali.co.uk> | [ksm: swapping](https://lore.kernel.org/patchwork/patch/179157) | 内核Samepage归并(KSM)是Linux 2.6.32 中合并的一个特性, 它对虚拟客户机的内存进行重复数据删除. 但是, 该实现不允许交换共享的页面. 这个版本带来了对KSM页面的交换支持.<br>这个对 RMAP 的影响是, RMAP 支持 KASM 页面. 同时用 rmap_walk 的方式 | v1 ☑ [2.6.33-rc1](https://kernelnewbies.org/Linux_2_6_33#Swappable_KSM_pages) | [PatchWork v1](https://lore.kernel.org/patchwork/patch/179157) |
+| 2010/01/14 | Rik van Riel <riel@redhat.com> | [change anon_vma linking to fix multi-process server scalability issue](https://lwn.net/Articles/75198) | 引入 AVC, 实现了 per process anon_vma, 每一个进程的 page 都指向自己特有的 anon_vma 对象. | v1 ☑ [2.6.34](https://kernelnewbies.org/Linux_2_6_34#Various_core_changes) | [PatchWork RFC](https://lore.kernel.org/patchwork/patch/185210)<br>*-*-*-*-*-*-*-* <br>[PatchWork v1](https://lore.kernel.org/patchwork/patch/186566) |
+| 2013/12/4 | Rik van Riel <riel@redhat.com> | [mm/rmap: unify rmap traversing functions through rmap_walk](https://lwn.net/Articles/424318) | 引入 AVC, 实现了 per process anon_vma, 每一个进程的 page 都指向自己特有的 anon_vma 对象. | v1 ☑ 3.4-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/patch/424318) |
+| 2012/12/01 | Davidlohr Bueso <davidlohr@hp.com> | [mm/rmap: Convert the struct anon_vma::mutex to an rwsem](https://lore.kernel.org/patchwork/cover/344816) | 将struct anon_vma::mutex 转换为rwsem, 这将有效地改善页面迁移过程中对 VMA 的访问的竞争问题. | v1 ☑ 3.8-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/344775)<br>*-*-*-*-*-*-*-* <br>[PatchWork](https://lore.kernel.org/patchwork/cover/344816) |
+| 2014/05/23 | Davidlohr Bueso <davidlohr@hp.com> | [mm: i_mmap_mutex to rwsem](https://lore.kernel.org/patchwork/cover/466974) | 2012 年 Ingo 将 anon-vma lock 从 mutex 转换到了 rwsem 锁. i_mmap_mutex 与 anon-vma 有类似的职责, 保护文件支持的页面. 因此, 我们可以使用类似的锁定技术 : 将互斥锁转换为rwsem, 并在可能的情况下共享锁. | RFC ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/466974) |
 
 
 # 2.9 内存控制组 MEMCG (Memory Cgroup)支持
@@ -1006,6 +1054,12 @@ https://lwn.net/Articles/761118
 | 2018/03/16 | David Rientjes <rientjes@google.com> | [rewrite cgroup aware oom killer for general use](https://lore.kernel.org/patchwork/cover/828043) | Cgroup 感知的 OOM, 通过优先级限定 OOM 时杀进程的次序 | v13 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/934536) |
 | 2021/04/14 | Yulei Zhang <yuleixzhang@tencent.com> | [introduce new attribute "priority" to control group](https://lore.kernel.org/patchwork/cover/828043) | Cgroup 感知的 OOM, 通过优先级限定 OOM 时杀进程的次序 | v13 ☐ | [PatchWork v1](https://lwn.net/Articles/851649)<br>*-*-*-*-*-*-*-* <br>[LWN](https://lwn.net/Articles/852378/) |
 | 2021/03/25 | Ybrookxu | [bfq: introduce bfq.ioprio for cgroup](https://lore.kernel.org/patchwork/cover/828043) | Cgroup 感知的 bfq.ioprio | v3 ☐ | [LKML](https://lkml.org/lkml/2021/3/25/93) |
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/06/23 |  Roman Gushchin <guro@fb.com> | [The new cgroup slab memory controller](https://lore.kernel.org/patchwork/cover/1261793) | 将 SLAB 的统计跟踪统计从页面级别更改为到对象级别. 它允许在 memory cgroup 之间共享 SLAB 页. 这一变化消除了每个 memory cgroup 每个重复的每个 cpu 和每个节点 slab 缓存集，并为所有内存控制组建立了一个共同的每个cpu和每个节点slab缓存集. 这将显著提高 SLAB 利用率(最高可达45%), 并相应降低总的内核内存占用. 测试发现不可移动页面数量的减少也对内存碎片产生积极的影响. | v7 ☑ 5.9-rc1 | [PatchWork v7](https://lore.kernel.org/patchwork/cover/1261793/) |
+
 
 
 # 2.10 内存热插拔支持
@@ -1542,12 +1596,28 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 这一节相对于其他本章内容是独立的. MPI(Message Passing Interface, 消息传递接口) [<sup>46</sup>](#refer-anchor-46) 是一个定义并行编程模型下用于进程间消息传递的一个高性能, 可扩展, 可移植的接口规范(注意这只是一个标准, 有多个实现). 之前的 MPI 程序在进程间共享信息是用到共享内存(shared memory)方式, 进程间的消息传递需要 2 次内存拷贝. 而 3.2 版本引入的 "Cross Memory Attach" 的 patch, 引入两个新的系统调用接口. 借用这两个接口, MPI 程序可以只使用一次拷贝, 从而提升性能.
 
 
+## 2.14.4 内存规整
+-------
 
-相关的文章介绍: [47].
+主动压缩，而不是按需压缩.
+
+
+对于正在进行的工作负载活动，系统内存变得碎片化. 碎片可能会导致容量和性能问题. 在某些情况下，程序错误也是可能的. 因此，内核依赖于一种称为内存压缩的反应机制.
+
+
+该机制的原始设计是保守的，压缩活动是根据分配请求的要求发起的. 但是，如果系统内存已经严重碎片化，反应性行为往往会增加分配延迟. 通过在请求分配之前定期启动内存压缩工作，主动压缩改进了设计. 这种增强增加了内存分配请求找到物理上连续的内存块的机会，而不需要内存压缩来按需生成这些内存块. 因此，特定内存分配请求的延迟降低了. 添加了一个新的sysctl vm. compaction_pro主动性，它规定了kcompactd试图维护提交的外部碎片的界限.
+
+>警告:主动压缩可能导致压缩活动增加. 这可能会造成严重的系统范围的影响，因为属于不同进程的内存页会被移动和重新映射. 因此，启用主动压缩需要非常小心，以避免应用程序中的延迟高峰.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/02/04 | SeongJae Park <sjpark@amazon.com> | [Proactive compaction for the kernel](https://lwn.net/Articles/817905) | 主动进行内存规整，而不是之前的按需规整. 添加了一个新的sysctl vm. compaction_pro主动性，它规定了kcompactd试图维护提交的外部碎片的界限. | v8 ☑ 5.9 | [PatchWork v24](https://lore.kernel.org/patchwork/cover/1257280), [LWN](https://lwn.net/Articles/817905) |
 
 
 # 2.15 功耗管理
 -------
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
