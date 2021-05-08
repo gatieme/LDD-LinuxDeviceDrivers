@@ -154,6 +154,9 @@ mm/slab_common.c:__setup_param("slub_merge", slub_merge, setup_slub_merge, 0);
 
 kpatch-dnf 包提供了一个 DNF 插件, 这使得订阅 RHEL 系统来进行内核实时补丁更新成为可能. 订阅将影响当前安装在系统上的所有内核, 包括将来将要安装的内核. 有关kpatch-dnf的更多详细信息, 请参见 [dnf-kpatch(8) 手册页面或管理、监控和更新内核文档](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8-beta/html-single/managing_monitoring_and_updating_the_kernel/index?lb_target=production#applying-patches-with-kernel-live-patching_managing-monitoring-and-updating-the-kernel).
 
+
+[A guide to managing the Linux kernel on Red Hat Enterprise Linux 8](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8-beta/html-single/managing_monitoring_and_updating_the_kernel/index?lb_target=production#applying-patches-with-kernel-live-patching_managing-monitoring-and-updating-the-kernel)
+
 ### 1.1.9 A new cgroups controller implementation for slab memory
 -------
 
@@ -230,15 +233,179 @@ dwarves rebased to version 1.19.1
 ### 1.1.13 The kabi_whitelist package has been renamed to kabi_stablelist
 --------
 
+### 1.1.14 kdump now supports Virtual Local Area Network tagged team network interface
+-------
+
+kdump现在支持虚拟局域网标记团队网络接口
 
 
-*   RHEL 8.4 现在正式支持突击移除 NVMe 存储设备.
+这个更新增加了为kdump配置虚拟局域网标记团队接口的支持。因此，该特性现在允许kdump使用一个带Virtual Local Area Network标记的团队接口来转储vmcore文件。
 
-*   支持 SMB Direct.
+(BZ#1844941)
 
-*   OpenIMPI 2.0.29 与 FreeIPMI 1.6.6 一起到位.
+### 1.1.15 kernel-rt source tree has been updated to RHEL 8.4 tree
+-------
 
-*   现已支持英特尔 Gen12 Tiger Lake 显卡.
+kernel-rt源代码已经更新为使用最新的Red Hat Enterprise Linux内核源代码树。实时补丁集也已经更新到最新的上游版本，v5.10-rt7。这两个更新都提供了大量的错误修复和增强。
+
+(BZ#1858099)
+
+
+### 1.1.16 Support for CPU hotplug in the hv_24x7 and hv_gpci PMUs
+-------
+
+通过这个更新，PMU计数器正确地响应CPU热插拔。因此，如果hv_gpci事件计数器在一个被禁用的CPU上运行，计数将重定向到另一个CPU。
+
+(BZ#1844416)
+
+
+### 1.1.17 Metrics for POWERPC hv_24x7 nest events are now available
+-------
+
+POWERPC hv_24x7嵌套事件的度量现在可以用于性能。通过聚合多个事件，这些指标可以更好地理解从性能计数器获得的值，以及CPU处理工作负载的效率。
+
+```cpp
+cat ../../kernel.spec | grep 1780258
+- [tools] perf vendor events power9: Added nest imc metric events (Michael Petlan) [1780258]
+```
+(BZ#1780258)
+
+
+
+## 1.2 文件系统与存储
+-------
+
+### 1.2.1 RHEL installation now supports creating a swap partition of size 16 TiB
+-------
+
+以前，在安装RHEL时，安装程序创建了一个最大128gb的交换分区，用于自动和手动分区。
+
+有了这个更新，对于自动分区，安装程序将继续创建一个最大128gb的交换分区，但如果是手动分区，您现在可以创建一个16 TiB的交换分区。
+
+(BZ # 1656485)
+
+
+### 1.2.2 Surprise removal of NVMe devices
+-------
+
+有了这个增强功能，您就可以从Linux操作系统中意外地删除NVMe设备，而无需事先通知操作系统。这将增强NVMe设备的可服务性，因为不需要额外的步骤来准备设备以便有序地删除，这通过消除服务器停机时间来确保服务器的可用性。
+
+NVMe设备的意外移除需要内核-4.18.0-193.13.2.el8_2。X86_64版本及以上。
+
+来自硬件平台或在平台上运行的软件的额外需求可能是成功地意外删除NVMe设备所必需的。
+
+奇怪的是，不支持删除对系统操作至关重要的NVMe设备。例如，不能移除包含操作系统或交换分区的NVMe设备。
+
+(BZ # 1634655)
+
+
+### 1.2.3 New mount options to control when DAX is enabled on XFS and ext4 file systems
+-------
+
+这次更新引入了新的挂载选项，当与FS_XFLAG_DAX inode标志结合时，为XFS和ext4文件系统上的文件提供更细粒度的直接访问(DAX)模式控制。在以前的版本中，使用DAX挂载选项为整个文件系统启用了DAX。现在，可以在每个文件的基础上启用直接访问模式。
+
+
+
+磁盘上的标志FS_XFLAG_DAX用于有选择地启用或禁用特定文件或目录的DAX。
+
+你可以通过使用xfs_io工具的chatter命令来设置FS_XFLAG_DAX标志:
+
+
+(BZ # 1838876, BZ # 1838344)
+
+
+### 1.2.4 支持SMB Direct
+-------
+
+通过这个更新，添加了对SMB Direct的支持。
+
+(BZ#1887940)
+
+
+```cpp
+cat ../../kernel.spec | grep 1887940
+- [fs] smb3: smbdirect support can be configured by default (Leif Sahlberg) [1887940]
+- [fs] cifs: smbd: Do not schedule work to send immediate packet on every receive (Leif Sahlberg) [1887940]
+- [fs] cifs: smbd: Properly process errors on ib_post_send (Leif Sahlberg) [1887940]
+- [fs] cifs: Allocate crypto structures on the fly for calculating signatures of incoming packets (Leif Sahlberg) [1887940]
+- [fs] cifs: smbd: Update receive credits before sending and deal with credits roll back on failure before sending (Leif Sahlberg) [1887940]
+- [fs] cifs: smbd: Check send queue size before posting a send (Leif Sahlberg) [1887940]
+- [fs] cifs: smbd: Merge code to track pending packets (Leif Sahlberg) [1887940]
+- [fs] cifs: Allocate encryption header through kmalloc (Leif Sahlberg) [1887940]
+- [fs] cifs: smbd: Check and extend sender credits in interrupt context (Leif Sahlberg) [1887940]
+- [fs] cifs: smbd: Calculate the correct maximum packet size for segmented SMBDirect send/receive (Leif Sahlberg) [1887940]
+```
+
+### 1.2.5 New API for mounting filesystems has been added
+-------
+
+通过这次更新，RHEL 8.4中添加了一个用于安装文件系统的新API，该API基于称为文件系统上下文(struct fs_context)的内部内核结构，允许用户空间、VFS和文件系统之间的挂载参数通信具有更大的灵活性。除此之外，还有以下系统调用来操作文件系统上下文:
+
+
+
+Fsopen()——在内核中为fsname参数中命名的文件系统创建一个空白的文件系统配置上下文，将其添加到创建模式中，并将其附加到文件描述符中，然后返回该描述符。
+
+Fsmount()——接受fsopen()返回的文件描述符，并为其中指定的文件系统根创建一个挂载对象。
+
+Fsconfig()——根据fsopen(2)或fspick(2)系统调用设置的文件系统配置上下文提供参数并发出命令。
+
+Fspick()——在内核中创建一个新的文件系统配置上下文，并将预先存在的超级块附加到它，以便重新配置它。
+
+Move_mount()——将挂载从一个位置移动到另一个位置;它还可以用于通过OPEN_TREE_CLONE系统调用附加由fsmount()或open_tree()创建的一个未附加的挂载。
+
+Open_tree()——选择由路径名指定的挂载对象并将其附加到一个新的文件描述符上，或者克隆它并将克隆附加到文件描述符上。
+
+请注意，仍然支持基于mount()系统调用的旧API。
+
+
+有关其他信息，请参见内核源代码树中的Documentation/filesystems/mount_api.txt文件。
+
+(BZ # 1622041)
+
+
+### 1.2.6 Discrepancy in vfat file system mtime no longer occurs
+-------
+
+vfat文件系统mtime中内存和磁盘上写时间之间的差异将不再存在。这种差异是由内存中和磁盘上的mtime元数据之间的差异造成的，这种差异现在不再发生。
+
+(BZ # 1533270)
+
+RHEL 8.4现在支持close_range()系统调用
+
+
+```cpp
+cat ../../kernel.spec | grep 1533270
+- [fs] fat: truncate inode timestamp updates in setattr (Pavel Reichl) [1533270]
+- [fs] fat: change timestamp updates to use fat_truncate_time (Pavel Reichl) [1533270]
+- [fs] fat: add functions to update and truncate timestamps appropriately (Pavel Reichl) [1533270]
+- [fs] fat: create a function to calculate the timezone offest (Pavel Reichl) [1533270]
+```
+
+
+
+### 1.2.7 RHEL 8.4 now supports close_range() system call
+-------
+
+
+close_range()系统调用被反向移植到RHEL 8.4。这个系统调用有效地关闭给定范围内的所有文件描述符，防止在应用程序配置了非常大的限制时，连续关闭大范围的文件描述符时出现计时问题。
+
+[close_range()](https://lore.kernel.org/patchwork/cover/1078735)
+
+(BZ # 1900674)
+
+```cpp
+cat ../../kernel.spec | grep 1900674
+- [fs] close_range: unshare all fds for CLOSE_RANGE_UNSHARE | CLOSE_RANGE_CLOEXEC (Pavel Reichl) [1900674]
+- [fs] fs, close_range: add flag CLOSE_RANGE_CLOEXEC (Pavel Reichl) [1900674]
+- [tools] tests: close_range - Replace clone3 with clone (Pavel Reichl) [1900674]
+- [tools] selftests: core: use SKIP instead of XFAIL in close_range_test.c (Pavel Reichl) [1900674]
+- [tools] tools headers API: Update close_range affected files (Pavel Reichl) [1900674]
+- [tools] tests: add CLOSE_RANGE_UNSHARE tests (Pavel Reichl) [1900674]
+- [fs] close_range: add CLOSE_RANGE_UNSHARE (Pavel Reichl) [1900674]
+- [tools] tests: add close_range() tests (Pavel Reichl) [1900674]
+- [powerpc] arch: wire-up close_range() (Pavel Reichl) [1900674]
+- [fs] open: add close_range() (Pavel Reichl) [1900674]
+```
 
 
 <br>
