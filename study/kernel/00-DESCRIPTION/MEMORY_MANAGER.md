@@ -451,11 +451,21 @@ SLUB 在解决了上述的问题之上, 提供与 SLAB 完全一样的接口, �
 ### 2.1.2.4 改进与优化
 -------
 
+*   slab_merge
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2014/09/15 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm/slab_common: commonize slab merge logic](https://lore.kernel.org/patchwork/cover/493577) | 如果新创建的 SLAB 具有与现有 SLAB 相似的大小和属性, 该特性将重用它而不是创建一个新的. 这特性就是我们熟知的 `__kmem_cache_alias()`. SLUB 原生支持 merged. | v2 ☑ [3.18-rc1](https://kernelnewbies.org/Linux_3.18#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/493577)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/499717) |
 | 2017/06/20 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm: Allow slab_nomerge to be set at build time](https://lore.kernel.org/patchwork/cover/802038) | 新增 CONFIG_SLAB_MERGE_DEFAULT, 支持通过编译开关 slab_merge | v2 ☑ [3.18-rc1](https://kernelnewbies.org/Linux_3.18#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/801532)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/802038) |
 | 2021/03/29 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm/slab_common: provide "slab_merge" option for !IS_ENABLED(CONFIG_SLAB_MERGE_DEFAULT) builds](https://lore.kernel.org/patchwork/cover/1399240) | 如果编译未开启 CONFIG_SLAB_MERGE_DEFAULT, 可以通过 slab_merge 内核参数动态开启  | v2 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1399240)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1399260) |
+
+
+*   slab 抗碎片化
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2008/08/11 | Christoph Lameter <cl@linux-foundation.org> | [Slab Fragmentation Reduction V14](https://lore.kernel.org/patchwork/cover/125818) | SLAB 抗碎片化 | v14 ☐ | [PatchWork v14](https://lore.kernel.org/patchwork/cover/125818)) |
+
 
 
 ## 2.1.3 内核级别的 malloc 分配器之-大内存分配
@@ -617,22 +627,35 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 从用户角度来看, 这一节对了解 Linux 内核发展帮助不大, 可跳过不读; 但对于技术人员来说, 本节可以展现教材理论模型到工程实现的一些思考与折衷, 还有软件工程实践中由简单粗糙到复杂精细的演变过程
 
-当 MM 遭遇内存分配紧张时, 会回收页面. **页框替换算法(Page Frame Replacement Algorithm, 下称PFRA)** 的实现好坏对性能影响很大: 如果选中了频繁或将马上要用的页, 将会出现 **Swap Thrashing** 现象, 即刚换出的页又要换回来, 现象就是系统响应非常慢.
+当 MM 遭遇内存分配紧张时, 会回收页面. **页框替换算法(Page Frame Replacement Algorithm, 下称PFRA)** 的实现好坏对性能影响很大: 如果选中了频繁或将马上要用的页, 将会出现 **Swap Thrashing** 现象, 即刚换出的页又要换回来, 现象就是系统响应非常慢
+
+## 2.4.1 LRU 算法
+-------
 
 
-## 2.4.1 增强的LRU算法
+
+### 2.4.1.1 UNEVICTABLE_LRU
+-------
+
+
+https://lore.kernel.org/patchwork/cover/117695
+https://www.kernel.org/doc/Documentation/vm/unevictable-lru.txt
+
+https://lore.kernel.org/patchwork/cover/155908
+https://lore.kernel.org/patchwork/patch/155947
+https://lore.kernel.org/patchwork/patch/156055
+
+### 2.4.1.1 增强的LRU算法
 -------
 
 **(2.6前引入, 具体时间难考)**
 
 
-教科书式的 PFRA 会提到要用 LRU (Least-Recently-Used) 算法, 该算法思想基于: 最近很少使用的页, 在紧接着的未来应该也很少使用, 因此, 它可以被当作替换掉的候选页.
+教科书式的 PFRA 会提到要用 LRU (Least-Recently-Used) 算法, 该算法思想基于 : 最近很少使用的页, 在紧接着的未来应该也很少使用, 因此, 它可以被当作替换掉的候选页.
 
 
 
-但现实中, 要跟踪每个页的使用情况, 开销不是一般的大, 尤其是内存大的系统. 而且, 还有一个问题, LRU 考量的是近期的历史, 却没能体现页面的使用频率 - 假设有一个页面会被多次访问, 最近一次访问稍久点了, 这时涌入了很多只会使用一次的页(比如在播放电影), 那么按照 LRU 语义,  很可能被驱逐的是前者, 而不是后者这些不会再用的页面.
-
-
+但现实中, 要跟踪每个页的使用情况, 开销不是一般的大, 尤其是内存大的系统. 而且, 还有一个问题, LRU 考量的是近期的历史, 却没能体现页面的使用频率 - 假设有一个页面会被多次访问, 最近一次访问稍久点了, 这时涌入了很多只会使用一次的页(比如在播放电影), 那么按照 LRU 语义, 很可能被驱逐的是前者, 而不是后者这些不会再用的页面.
 
 为此, Linux 引入了两个链表, 一个 active list, 一个 inactive list , 这两个链表如此工作:
 
@@ -654,9 +677,13 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2008/06/11 | Rik van Riel <riel@redhat.com> | [VM pageout scalability improvements (V12)](https://lore.kernel.org/patchwork/cover/118967) | 在大内存系统上, 扫描 LRU 中无法(或不应该)从内存中逐出的页面. 它不仅会占用CPU时间, 而且还会引发锁争用. 并且会使大型系统处于紧张的内存压力状态. 该补丁系列通过一系列措施提高了虚拟机的可扩展性:<br>1. 将文件系统支持的、交换支持的和不可收回的页放到它们自己的LRUs上, 这样系统只扫描它可以/应该从内存中收回的页<br>
+2. 为匿名 LRUs 切换到双指针时钟替换, 因此系统开始交换时需要扫描的页面数量绑定到一个合理的数量<br>3. 将不可收回的页面完全远离LRU, 这样 VM 就不会浪费 CPU 时间扫描它们. ramfs、ramdisk、SHM_LOCKED共享内存段和mlock VMA页都保持在不可撤销列表中. | v12 ☑ 2.6.16-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118967) |
 | 2017/03/17 | Nicholas Piggin <npiggin@gmail.com> | [Multigenerational LRU Framework](https://lore.kernel.org/patchwork/cover/1412560) | 实现 SLOB 分配器 | v2 ☑ 2.6.16-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1412560) |
 
-## 2.4.2 active 与 inactive 链表拆分
+### 2.4.1.2 active 与 inactive 链表拆分
 -------
 
 **2.6.28(2008年12月)**
@@ -665,15 +692,13 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 4.1 中描述过一个用户可配置的接口 : **_swappiness_**. 这是一个百分比数(取值 0 -100, 默认60), 当值越靠近100, 表示更倾向替换匿名页; 当值越靠近0, 表示更倾向替换文件缓存页. 这在不同的工作负载下允许管理员手动配置.
 
 
-
 4.1 中 规则 4)中说在需要换页时, MM 会从 active 链表尾开始扫描, 如果有一台机器的 **_swappiness_** 被设置为 0, 意为完全不替换匿名页, 则 MM 在扫描中要跳过很多匿名页, 如果有很多匿名页(在一台把 **_swappiness_** 设为0的机器上很可能是这样的), 则容易出现性能问题.
-
 
 
 解决方法就是把链表拆分为匿名页链表和文件缓存页链表[<sup>18</sup>](#refer-anchor-18),[<sup>19</sup>](#refer-anchor-19), 现在 active 链表分为 active 匿名页链表 和 active 文件缓存页链表了; inactive 链表也如此.  所以, 当 **_swappiness_** 为0时, 只要扫描 active 文件缓存页链表就够了.
 
 
-## 2.4.3 再拆分出被锁页的链表
+### 2.4.1.3 再拆分出被锁页的链表
 -------
 
 **2.6.28(2008年12月)**
@@ -685,8 +710,7 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 所以解决办法是把这些页独立出来, 放一个独立链表. 现在就有5个链表了, 不过有一个链表不会被扫描[<sup>20</sup>](#refer-anchor-20), [<sup>21</sup>](#refer-anchor-21).
 
 
-
-## 2.4.4 让代码文件缓存页多待一会
+## 2.4.1.4 让代码文件缓存页多待一会
 -------
 
 **2.6.31(2009年9月发布)**
@@ -701,7 +725,7 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 解决方法是在扫描这些在使用中的代码文件缓存页时, 跳过它, 让它有多一点时间待在 active 链表上, 从而避免上述问题. [<sup>22</sup>](#refer-anchor-22), [<sup>23</sup>](#refer-anchor-23)
 
 
-## 2.4.5 工作集大小的探测
+## 2.4.1.5 工作集大小的探测
 -------
 
 **3.15(2014年6月发布)**
@@ -723,8 +747,32 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 
 3.15 就引入了一种算法, 它通过估算访问距离, 来测定工作集的大小, 从而维持 inactive 链表在一个合适长度[<sup>24</sup>](#refer-anchor-24).
 
+### 2.4.1.6 zone-based LRU reclaim
+-------
 
-## 2.4.6 madvise MADV_FREE 页面延迟回收
+之前版本的 LRU 链表都是按照 zone 来管理和配置的, 4.8 合入了基于 zone 的页面回收策略, 将 LRU 的页面回收从 zone 迁移到了 node 上.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/07/08 | Mel Gorman <mgorman@techsingularity.net> | [Move LRU page reclaim from zones to nodes v9](https://lore.kernel.org/patchwork/cover/696408) | 实现 SLOB 分配器 | v9 ☑ [4.8](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork v21](https://lore.kernel.org/patchwork/cover/696408) |
+
+
+
+### 2.4.1.6 per memcg lru lock
+-------
+
+[memcg lru lock 血泪史](https://blog.csdn.net/bjchenxu/article/details/112504932)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/12/05 | Alex Shi <alex.shi@linux.alibaba.com> | [per memcg lru lock](https://lore.kernel.org/patchwork/cover/1333353) | 实现 SLOB 分配器 | v21 ☑ [5.11](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork v21](https://lore.kernel.org/patchwork/cover/1333353) |
+
+
+
+https://lore.kernel.org/patchwork/patch/222042/
+https://github.com/hakavlad/le9-patch
+
+## 2.4.2 madvise MADV_FREE 页面延迟回收
 -------
 
 
@@ -1011,7 +1059,7 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 >
 > 关于 32-bit 的 Linux 内核是否支持 4G 以上的 memory. 在 1999 年, Linus 的决定是 :
 >
-> 1999年，linus说:32位linux永远不会，也不需要支持大于2GB的内存，没啥好商量的。
+> 1999年, linus说:32位linux永远不会, 也不需要支持大于2GB的内存, 没啥好商量的.
 >
 > 不过历史的洪流不可阻挡, 处理器厂商设计了扩展模块以便寻址更多的内存, 高端的服务器也配置了越来越多的内存.
 >
