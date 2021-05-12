@@ -761,6 +761,17 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 # 1.6 pick_next_task
 -------
 
+5d7d605642b2 sched/core: Optimize pick_next_task()
+678d5718d8d0 sched/fair: Optimize cgroup pick_next_task_fair()
+27e3e60 sched: Optimize branch hint in pick_next_task_fair()
+9ee576809d8 sched/core: Optimize pick_next_task() for idle_..
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2017/01/19 | Peter Zijlstra | [sched/core: Optimize pick_next_task() for idle_sched_class](https://lkml.org/lkml/2017/1/19/687) | NA | | v1 ☑ 4.11-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/755854), [LKML](https://lkml.org/lkml/2017/1/19/687), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49ee576809d837442624ac18804b07943267cd57) |
+|
+
+
 
 
 # 1.7 **调度与节能**
@@ -1086,8 +1097,9 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2014/04/16 | Alex Shi | [remove cpu_load idx](https://lore.kernel.org/patchwork/cover/456546) | 调度中使用 cpu_load 来做负载比较时非常错误的, 因此移除他们 | v5 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/456546) |
+| 2017/09/29 | Peter Zijlstra | [sched: Rework task state printing](https://lore.kernel.org/patchwork/cover/834387) | 重构进程状态的打印方式 | v1 ☑ 4.14-rc3 |[PatchWork](https://lore.kernel.org/patchwork/cover/834387) |
 | 2021/01/06 | Vincent Guittot | [sched: Remove per rq load array](https://lore.kernel.org/patchwork/cover/1079333) | 自 LB_BIAS 被禁用之后, 调度器只使用 rq->cpu_load[0] 作为cpu负载值, 因此 cpu_load 这个数组的其他之其实没意义了, 直接去掉了. 注意这对 load_balance 的调优是有一定影响的, 之前 sched_domain 中可以通过 sysctl 接口修改比较负载使用的 index, 这些 index 对应的 cpu_load 数组的下标. 干掉了这个数组, 那么这些 sysctl 也就没必要了 | v2 ☑ 5.10-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1079333) |
-| 2021/03/26 | Peter Zijlstra | [sched: Clean up SCHED_DEBUG](https://lore.kernel.org/patchwork/cover/1402660) | 目前内核有 sysctl, procfs 和 debugfs SCHED_DEBUG 接口, 比较混乱, 将所有接口信息都转移到 debugfs 中 | [PatchWork](https://lore.kernel.org/patchwork/cover/1402660) |
+| 2021/03/26 | Peter Zijlstra | [sched: Clean up SCHED_DEBUG](https://lore.kernel.org/patchwork/cover/1402660) | 目前内核有 sysctl, procfs 和 debugfs SCHED_DEBUG 接口, 比较混乱, 将所有接口信息都转移到 debugfs 中 | v1 ☑ 5.13-rc1 |[PatchWork](https://lore.kernel.org/patchwork/cover/1402660) |
 
 
 
