@@ -42,6 +42,10 @@ blogexcerpt: FZF 是目前最快的模糊搜索工具. 使用golang编写. 结�
 最初, Linus Torvalds 根本没有使用版本控制工具. 内核贡献者会将补丁发布到 Usenet 组，然后发布到邮件列表中，Linus 在对这些补丁逐行检视之后, 将它们合并到自己的源码源树上。然后一段时间后, Linus 将发布 Linux 内核的新版本. 在这个阶段不同作者的各个补丁之间没有加以区分, 要研究这些补丁, 我们只能在这两个版本之间进行 diff.
 
 
+https://en.wikipedia.org/wiki/BitKeeper
+https://www.linuxjournal.com/content/git-origin-story
+http://www.path8.net/tn/archives/6039
+https://www.linuxfoundation.org/blog/10-years-of-git-an-interview-with-git-creator-linus-torvalds/
 
 ## 1.2
 -------
