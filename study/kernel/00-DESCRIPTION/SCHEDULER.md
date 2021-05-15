@@ -379,7 +379,7 @@ linux 调度器定义了多个调度类, 不同调度类的调度优先级不同
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2010/06/08 | Michael Neuling | [sched: asymmetrical packing for POWER7 SMT4](https://lore.kernel.org/patchwork/cover/202834) | 这个补丁集实现了非对称 SMT 封装(SD_ASYM_PCAKING), 在任务负载小的时候, 将进程都打包在 SMT 域内的某一个 CPU 上, 从而确保在 POWER7 上始终保持良好的性能. 如果没有这个系列, 在 POWER7 上, 任务的性能将有大约 +/-30% 的抖动. | v2 ☐ |[PatchWork RFC](https://lore.kernel.org/patchwork/cover/1408312)) |
 | 2016/11/01 | Ricardo Neri | [Support Intel® Turbo Boost Max Technology 3.0](https://lore.kernel.org/patchwork/cover/722406) | 支持 Intel 超频 | RFC ☑ 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/722406) |
-| 2021/04/14 | Ricardo Neri | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://lore.kernel.org/patchwork/cover/1408312) | 修复 ASYM_PACKING 和 load_balance 的冲突. | v2 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1408312)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1413015) |
+| 2021/05/13 | Ricardo Neri | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://lore.kernel.org/patchwork/cover/1428441) | 修复 ASYM_PACKING 和 load_balance 的冲突. | v3 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1408312)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1413015)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3 0/6](https://lore.kernel.org/patchwork/cover/1428441) |
 
 core_scheduling 与 coscheduling
 
@@ -851,7 +851,7 @@ ARM 的 Morten Rasmussen 一直致力于ANDROID 调度器优化的:
 | 2021/03/11 | Valentin Schneider | [sched/fair: misfit task load-balance tweaks](https://lore.kernel.org/patchwork/cover/1393531) | 优化 misfit task 的一些逻辑 | v3 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1393531) |
 | 2021/04/07 | Valentin Schneider | [sched/fair: load-balance vs capacity margins](https://lore.kernel.org/patchwork/cover/1409479) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 1 | v3 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1409479) |
 | 2021/04/16 | Valentin Schneider | [sched/fair: (The return of) misfit task load-balance tweaks](https://lore.kernel.org/patchwork/cover/1414181) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 2 | v1 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1414181) |
-| 2021/04/16 | Valentin Schneider | [Rework CPU capacity asymmetry detection](https://lore.kernel.org/patchwork/cover/1414557) | 优化 misfit task 的一些逻辑 | v3 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1414557) |
+| 2021/05/10 | Valentin Schneider | [Rework CPU capacity asymmetry detection](https://lore.kernel.org/patchwork/cover/1424708) | 优化 misfit task 的一些逻辑 | v3 ☐ 5.10-rc4 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1414557)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3](https://lore.kernel.org/patchwork/cover/1424708) |
 
 
 ## 1.7.5 基于调度器的调频

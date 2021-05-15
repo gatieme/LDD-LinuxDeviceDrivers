@@ -135,6 +135,7 @@
 
 [Joonsoo Kim](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13703&state=%2A&archive=both)
 
+[Kamezawa Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=4430&state=%2A&archive=both)
 
 *   关于碎片化
 
@@ -754,7 +755,6 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 2. 为匿名 LRUs 切换到双指针时钟替换, 因此系统开始交换时需要扫描的页面数量绑定到一个合理的数量<br>3. 将不可收回的页面完全远离LRU, 这样 VM 就不会浪费 CPU 时间扫描它们. ramfs、ramdisk、SHM_LOCKED共享内存段和mlock VMA页都保持在不可撤销列表中.<br><br> 这里我们关心的是它将 LRU 中匿名页和文件页分开成两个链表进行管理  | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118966), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f98a2fee8acdb4ac84545df98cccecfd130f8db) |
 
 
-
 ### 2.4.1.3 拆分出 unevictable page 的 LRU 链表
 -------
 
@@ -1092,6 +1092,7 @@ https://lore.kernel.org/patchwork/cover/1118785
 
 [linux内存管理-反向映射](https://blog.csdn.net/faxiang1230/article/details/106609834)
 
+[如何知道物理内存中的某个页帧属于某个进程，或者说进程的某个页表项?](https://www.zhihu.com/question/446137543)
 
 RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 
@@ -1187,6 +1188,7 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 # 2.9 内存控制组 MEMCG (Memory Cgroup)支持
 -------
 
+[KS2012: The memcg/mm minisummit](https://lwn.net/Articles/516439)
 
 **2.6.25(2008年4月发布)**
 
@@ -1196,8 +1198,8 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 
 在2.6.25 中, 内核在此基础上支持了内存资源隔离, 叫内存控制组. 它使用可以在不同的控制组中, 实施内存资源控制, 如分配, 内存用量, 交换等方面的控制.
 
-PageCacheLimit
-
+## 2.9.1 PageCacheLimit
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -1205,8 +1207,9 @@ PageCacheLimit
 | 2014/06/16 |  Xishi Qiu <qiuxishi@huawei.com> | [mm: add page cache limit and reclaim feature](https://lore.kernel.org/patchwork/cover/473535) | 限制 page cache 的内存占用. | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/416962)<br>*-*-*-*-*-*-*-* <br>[openEuler 4.19](https://gitee.com/openeuler/kernel/commit/6174ecb523613c8ed8dcdc889d46f4c02f65b9e4) |
 | 2019/02/23 | Chunguang Xu <brookxu@tencent.com> | [pagecachelimit: limit the pagecache ratio of totalram](http://github.com/tencent/TencentOS-kernel/commit/6711b34671bc658c3a395d99aafedd04a4ebbd41) | 限制 page cache 的内存占用. | NA |  [pagecachelimit: limit the pagecache ratio of totalram](http://github.com/tencent/TencentOS-kernel/commit/6711b34671bc658c3a395d99aafedd04a4ebbd41) |
 
+## 2.9.2 Cgroup-Aware OOM killer
+-------
 
-Cgroup-Aware OOM killer
 https://lwn.net/Articles/317814
 https://lwn.net/Articles/761118
 
@@ -1218,11 +1221,52 @@ https://lwn.net/Articles/761118
 | 2021/04/14 | Yulei Zhang <yuleixzhang@tencent.com> | [introduce new attribute "priority" to control group](https://lore.kernel.org/patchwork/cover/828043) | Cgroup 感知的 OOM, 通过优先级限定 OOM 时杀进程的次序 | v13 ☐ | [PatchWork v1](https://lwn.net/Articles/851649)<br>*-*-*-*-*-*-*-* <br>[LWN](https://lwn.net/Articles/852378/) |
 | 2021/03/25 | Ybrookxu | [bfq: introduce bfq.ioprio for cgroup](https://lore.kernel.org/patchwork/cover/828043) | Cgroup 感知的 bfq.ioprio | v3 ☐ | [LKML](https://lkml.org/lkml/2021/3/25/93) |
 
+## 2.9.3 kmemcg
+-------
+
+[memcg kernel memory tracking](https://lwn.net/Articles/482777)
+
+```cpp
+git://git.kernel.org/pub/scm/linux/kernel/git/glommer/memcg.git kmemcg-stac
+```
+
+2012-04-20 [slab+slub accounting for memcg 00/23](https://lore.kernel.org/patchwork/cover/298625)
+2012-05-11 [kmem limitation for memcg (v2,00/29)](https://lore.kernel.org/patchwork/cover/302291)
+2012-05-25 [kmem limitation for memcg (v3,00/28)](https://lore.kernel.org/patchwork/patch/304994)
+2012-06-18 [kmem limitation for memcg (v4,00/25)](https://lore.kernel.org/patchwork/cover/308973)
+2012-06-25 [kmem controller for memcg: stripped down version](https://lore.kernel.org/patchwork/cover/310278)
+2012-09-18 [ kmem controller for memcg (v3,00/13)](https://lore.kernel.org/patchwork/cover/326975)
+2012-10-08 [kmem controller for memcg (v4,00/14)](https://lore.kernel.org/patchwork/cover/331578/)
+2012-10-16 [kmem controller for memcg (v5,00/14](https://lore.kernel.org/patchwork/cover/333535)
+
+```cpp
+git://github.com/glommer/linux.git kmemcg-slab
+```
+
+2021-07-25 [memcg kmem limitation - slab.](https://lore.kernel.org/patchwork/cover/315827)
+2012-08-09 [Request for Inclusion: kmem controller for memcg (v2, 00/11)](https://lore.kernel.org/patchwork/cover/318976/)
+2012-09-18 [slab accounting for memcg (v3,00/16)](https://lore.kernel.org/patchwork/cover/326976)
+2012-10-19 [slab accounting for memcg (v5,00/18)](https://lore.kernel.org/patchwork/cover/334479)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2012/03/09 |  Suleiman Souhlal <ssouhlal@FreeBSD.org> | [Memcg Kernel Memory Tracking](https://lwn.net/Articles/485593) | memcg 支持对内核 STACK 进行统计 | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/291219) |
+| 2012/10/16 | Glauber Costa <glommer@parallels.com> | [kmemcg-stack](https://lwn.net/Articles/485593) | memcg 支持对内核 STACK 进行统计 | v5 ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/cover/333535) |
+| 2012/10/19 | Glauber Costa <glommer@parallels.com> | [kmemcg-stack](https://lwn.net/Articles/485593) | memcg 支持对内核 SLAB 进行统计 | v5 ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/cover/334479) |
+| 2020/06/23 | Glauber Costa <glommer@parallels.com> | [kmem controller for memcg](https://lwn.net/Articles/516529) | memcg 支持对内核内存(kmem)进行统计, memcg 开始支持统计两种类型的内核内存使用 : 内核栈 和 slab. 这些限制对于防止 fork 炸弹(bombs)等事件很有用. | v6 ☑ 3.8-rc1 | [PatchWork v5 kmem(stack) controller for memcg](https://lore.kernel.org/patchwork/cover/333535), [PatchWork v5 slab accounting for memcg](https://lore.kernel.org/patchwork/cover/334479/)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6](https://lore.kernel.org/patchwork/cover/337780) |
 | 2020/06/23 |  Roman Gushchin <guro@fb.com> | [The new cgroup slab memory controller](https://lore.kernel.org/patchwork/cover/1261793) | 将 SLAB 的统计跟踪统计从页面级别更改为到对象级别. 它允许在 memory cgroup 之间共享 SLAB 页. 这一变化消除了每个 memory cgroup 每个重复的每个 cpu 和每个节点 slab 缓存集, 并为所有内存控制组建立了一个共同的每个cpu和每个节点slab缓存集. 这将显著提高 SLAB 利用率(最高可达45%), 并相应降低总的内核内存占用. 测试发现不可移动页面数量的减少也对内存碎片产生积极的影响. | v7 ☑ 5.9-rc1 | [PatchWork v7](https://lore.kernel.org/patchwork/cover/1261793/) |
 
+
+## 2.9.4 memcg LRU list
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2007/12/27 | Kamezawa Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [per-zone and reclaim enhancements for memory controller take 3](https://lore.kernel.org/patchwork/cover/98042) | per-zone LRU for memcg, 其中引入了 mem_cgroup_per_zone, mem_cgroup_per_node 等结构 | v7 ☑ 2.6.25-rc1 | [PatchWork v7](https://lore.kernel.org/patchwork/cover/98042/) |
+| 2011/12/08 | Johannes Weiner <jweiner@redhat.com> | [memcg naturalization -rc5](https://lore.kernel.org/patchwork/cover/273527) | 引入 per-memcg lru, 消除重复的 LRU 列表, 全球 LRU 不再存在, page 只存在于 per-memcg LRU list 中.<br>该补丁引入了 lruvec 结构 | v5 ☑ [3.3-rv1](https://kernelnewbies.org/Linux_3.3#Memory_management) | [PatchWork v5](https://lore.kernel.org/patchwork/cover/273527), [LWN](https://lwn.net/Articles/443241) |
+| 2012/02/20 | Hugh Dickins <hughd@google.com> | [mm/memcg: per-memcg per-zone lru locking](https://lore.kernel.org/patchwork/cover/288055) | per-memcg lru lock | v1 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/288055) |
+| 2020/12/05 | Alex Shi <alex.shi@linux.alibaba.com> | [per memcg lru lock](https://lore.kernel.org/patchwork/cover/1333353) | per memcg LRU lock | v21 ☑ [5.11](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork v21](https://lore.kernel.org/patchwork/cover/1333353) |
 
 
 # 2.10 内存热插拔支持
