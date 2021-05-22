@@ -88,7 +88,7 @@ blogexcerpt: 树莓派使用资料
 [Manjaro](https://osdn.net/projects/manjaro-arm/storage/rpi4)
 
 
-
+[USB-TTL 连接 树莓派4](https://blog.csdn.net/sjt19910311/article/details/104332862)
 
 <br>
 
