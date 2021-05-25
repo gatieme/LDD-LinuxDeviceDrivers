@@ -474,7 +474,7 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/03/16 | JHuaixin Chang | [sched/fair: Burstable CFS bandwidth controller](https://lore.kernel.org/patchwork/cover/1396878) | 突发任务的带宽控制优化, 通过临时之前剩余累计的配额, 使得突发进程在当前周期的配额突然用尽之后, 还可以临时使用之前累计的配额使用, 从而降低突发任务的时延. | RFC ☑ 5.9-rc1 | [ 2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1354613)<br>*-*-*-*-*-*-*-*<br>[2021/01/20 v2](https://lore.kernel.org/patchwork/cover/1368037)<br>*-*-*-*-*-*-*-*<br>[2021/01/21 v3](https://lore.kernel.org/patchwork/cover/1368746)<br>*-*-*-*-*-*-*-*<br>[  2021-02-02 v4](https://lore.kernel.org/patchwork/cover/1396878) |
+| 2021/03/16 | JHuaixin Chang | [sched/fair: Burstable CFS bandwidth controller](https://lore.kernel.org/patchwork/cover/1396878) | 突发任务的带宽控制优化, 通过临时之前剩余累计的配额, 使得突发进程在当前周期的配额突然用尽之后, 还可以临时使用之前累计的配额使用, 从而降低突发任务的时延. | v5 ☐ | [ 2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1354613)<br>*-*-*-*-*-*-*-*<br>[2021/01/20 v2](https://lore.kernel.org/patchwork/cover/1368037)<br>*-*-*-*-*-*-*-*<br>[2021/01/21 v3](https://lore.kernel.org/patchwork/cover/1368746)<br>*-*-*-*-*-*-*-*<br>[2021-02-02 v4](https://lore.kernel.org/patchwork/cover/1396878)<br>*-*-*-*-*-*-*-*<br>[2021/05/20 v5](https://lore.kernel.org/patchwork/cover/1433660) |
 
 
 ## 1.2.2 实时进程的组调度支持(RT Group Scheduling)
@@ -571,7 +571,7 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 | 2017/12/18 | Mel Gorman | [Reduce scheduler migrations due to wake_affine](https://lore.kernel.org/patchwork/cover/864391) | 优化 wake_affine 减少迁移次数 | | [PatchWork](https://lore.kernel.org/patchwork/cover/864391) |
 | 2018/01/30 | Mel Gorman | [Reduce migrations and unnecessary spreading of load to multiple CPUs](https://lore.kernel.org/patchwork/cover/878789) | 减少不合理的迁移 | v1 ☑ 4.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/878789) |
 | 2020/05/24 | Mel Gorman | [Optimise try_to_wake_up() when wakee is descheduling](https://lore.kernel.org/patchwork/cover/1246560) | 唤醒时如果 wakee 进程正在睡眠或者调度(释放 CPU), 优化在 on_cpu 的自旋等待时间 | v1 ☑ 5.8-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1246560) |
-| 2021/04/22 |  Mel Gorman <mgorman@techsingularity.net> | [sched/fair: wake_affine improvements](https://lore.kernel.org/patchwork/cover/1416963) | 通过根据 LLC 域内 idle CPU 的信息, 优化 wake_affine, 如果当前待选的 LLC 域没有空闲 CPU, 尝试从之前的 LLC 域中选择. | v1 ☑ 5.8-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1416963) |
+| 2021/05/13 |  Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [sched/fair: wake_affine improvements](https://lore.kernel.org/patchwork/cover/1416963) | 通过根据 LLC 域内 idle CPU 的信息, 优化 wake_affine, 如果当前待选的 LLC 域没有空闲 CPU, 尝试从之前的 LLC 域中选择. | v3 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1428244) |
 
 
 TencentOS-kernel 回合了主线 wake_affine 中几个优化迁移的补丁, 可以 [kernel-4.14 修复wake affine进程导致性能降低的问题](https://github.com/Tencent/TencentOS-kernel/commit/985a0aad220cec1e43a35432b25dbbdb31b975ba), [kernel-5.4](https://github.com/Tencent/TencentOS-kernel/commit/822a50c9e70205cbc29fb97d72c26c7a51b58a1d)
@@ -615,6 +615,11 @@ TencentOS-kernel 回合了主线 wake_affine 中几个优化迁移的补丁, 可
 
 ## 1.5.1 拓扑域构建
 -------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:----:|:---:|:----------:|:---:|
+| 2018/05/30 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [Skip numa distance for offline nodes](https://lore.kernel.org/patchwork/patch/1433871) | NA | v1 ☐ | [select_idle_sibling rework](https://lore.kernel.org/patchwork/patch/1433871) |
+
 
 ## 1.5.2 负载均衡
 -------
@@ -856,6 +861,13 @@ ARM 的 Morten Rasmussen 一直致力于ANDROID 调度器优化的:
 | 2021/04/07 | Valentin Schneider | [sched/fair: load-balance vs capacity margins](https://lore.kernel.org/patchwork/cover/1409479) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 1 | v3 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1409479) |
 | 2021/04/16 | Valentin Schneider | [sched/fair: (The return of) misfit task load-balance tweaks](https://lore.kernel.org/patchwork/cover/1414181) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 2 | v1 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1414181) |
 | 2021/05/10 | Valentin Schneider | [Rework CPU capacity asymmetry detection](https://lore.kernel.org/patchwork/cover/1424708) | 优化 misfit task 的一些逻辑 | v3 ☐ 5.10-rc4 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1414557)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3](https://lore.kernel.org/patchwork/cover/1424708) |
+
+异构拓扑优化
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2021/05/17 | Beata Michalska <beata.michalska@arm.com> | [Rework CPU capacity asymmetry detection](https://lore.kernel.org/patchwork/cover/1429483) | NA | v3 ☐ | [PatchWork v4](https://lore.kernel.org/patchwork/cover/1429483) |
+
 
 
 ## 1.7.5 基于调度器的调频
