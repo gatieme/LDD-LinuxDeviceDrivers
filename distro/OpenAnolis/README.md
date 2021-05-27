@@ -240,3 +240,34 @@ cc00f21eb912 alinux: memcg: Point wb to root memcg/blkcg when offlining to avoid
 2e38a0f2950e alinux: mm: add proc interface to control context readahead
 10be0b372cac readahead: introduce context readahead algorithm
 ```
+
+
+# 3 CGROUP
+-------
+
+## 3.1 CONFIG_CGROUP_CACHE
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/01/15 | Yi Tao <escape@linux.alibaba.com> | [add CONFIG_CGROUP_CACHE](https://github.com/gatieme/linux/commit/021d0414e9c5c593431b6b448a73b465a0e9662b) | 自研特性, 加速 cgroup 的创建, 目前已经支持 memcg, cpu, cpuacct 等子 subsysten, 同时接管 cgroup kernfs node 的创建.
+ | 自研 NA | [COMMIT](https://github.com/gatieme/linux/commit/021d0414e9c5c593431b6b448a73b465a0e9662b) |
+
+
+
+```cpp
+#31531504
+021d0414e9c5 configs: add CONFIG_CGROUP_CACHE
+18d7ef726d4a alinux: cgroup: fix dead lock in put_to_cache
+5b71d2f57720 alinux: cgroup: introduce cgroup_limit
+dc6cf8e45fc4 alinux: cgroup: use cache for kernfs node
+51b3509e23bd alinux: sched: use cache when creating task_group
+1435e60d7490 alinux: cpuacct: use cache when creating cpuacct
+e79f31f668aa alinux: cpuacct: extract init and free
+ef94292f1674 alinux: memcg: use cache when creating memcg
+869bebf17144 alinux: memcg: memcg: extract init from mem_cgroup_alloc
+bea1123abee6 alinux: cgroup: introduce cache struct and function
+```
+
+# 4 VIRT
+-------
