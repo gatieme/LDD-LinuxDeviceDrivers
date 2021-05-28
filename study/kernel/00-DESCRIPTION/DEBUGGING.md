@@ -149,6 +149,16 @@ Date:   Tue Feb 21 16:09:33 2017 +0100
     arch: add ARCH_HAS_SET_MEMORY config
 
 
+
+# 4 KDUMP
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2009/08/05 | Arjan van de Ven <arjan@infradead.org> | [Implement crashkernel=auto](https://lore.kernel.org/patchwork/cover/166256) | 实现 crashkernel=auto . | v1  ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/166256) |
+
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

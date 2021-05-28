@@ -1,6 +1,6 @@
 ---
 
-title: 锁机制
+title: 虚拟化 & KVM 子系统
 date: 2021-02-15 00:32
 author: gatieme
 tags:
@@ -51,49 +51,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 **-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* 正文 -*-*-*-*-*-*-*-*-*-*-*-*-*-*-***
 
-# 1 SPINLOCK
--------
-
-
-## 1.1 CAS LOCK
--------
-
-
-## 1.2 ticket LOCK
--------
-
-https://lwn.net/Articles/267968
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2007/11/01 | Nick Piggin <npiggin@suse.de> | [ticket spinlocks for x86](https://lore.kernel.org/patchwork/cover/95892) | X86 架构 ticket spinlocks 的实现. | v1 ☑ 2.6.25-rc1(部分合入) | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/85789)<br>*-*-*-*-*-*-*-* <br>[PatchWork](https://lore.kernel.org/patchwork/cover/95892), [PatchWork](https://lore.kernel.org/patchwork/cover/95894) |
-
-
-[Linux中的spinlock机制[一] - CAS和ticket spinlock](https://zhuanlan.zhihu.com/p/80727111)
-
-
-## 1.3 MCS lock
--------
-
-
-spinlock 的值出现变化时, 所有试图获取这个 spinlock 的 CPU 都需要读取内存, 刷新自己对应的 cache line, 而最终只有一个 CPU 可以获得锁, 也只有它的刷新才是有意义的. 锁的争抢越激烈(试图获取锁的CPU数目越多), 无谓的开销也就越大.
-
-如果在 ticket spinlock 的基础上进行一定的修改, 让每个 CPU 不再是等待同一个 spinlock 变量, 而是基于各自不同的 per-CPU 的变量进行等待, 那么每个 CPU 平时只需要查询自己对应的这个变量所在的本地 cache line, 仅在这个变量发生变化的时候, 才需要读取内存和刷新这条 cache line, 这样就可以解决上述的这个问题.
-
-要实现类似这样的 spinlock的 「分身」, 其中的一种方法就是使用 MCS lock. 试图获取一个 spinlock 的每个CPU, 都有一份自己的 MCS lock.
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2008/08/28 | Nick Piggin <npiggin@suse.de> | [queueing spinlocks?](https://lore.kernel.org/patchwork/cover/127444) | X86 架构 qspinlocks 的实现. | RFC ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/127444) |
-| 2015/04/07 | Waiman Long <Waiman.Long@hp.com> | [qspinlock: a 4-byte queue spinlock with PV support](https://lore.kernel.org/patchwork/cover/558505) | PV SPINLOCK | v15 ☑ 4.2-rc1 | [PatchWork v15](https://lore.kernel.org/patchwork/cover/558505) |
-| 2014/01/21 | Tim Chen <tim.c.chen@linux.intel.com> | [MCS Lock: MCS lock code cleanup and optimizations](https://lore.kernel.org/patchwork/cover/435770) | MCS LOCK 优化 | v9 ☑ 4.2-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/435770) |
-| 2014/02/10 | Peter Zijlstra <peterz@infradead.org> | [locking/core patches](https://lore.kernel.org/patchwork/cover/440565) | PV SPINLOCK | v1 ☑ 4.2-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/440565) |
-
-
-
-## 1.4 PV_SPINLOCK
+# 1 PV_SPINLOCK
 -------
 
 spinlock 在非虚拟化的环境下, 它是可以认为 CPU 不会被抢占的, 所以 A 拿锁干活, B 死等 A, A 干完自己的活, 就释放了, 中间不会被调度.
@@ -139,13 +97,9 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 | 2018/10/08 | Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com> | [Enable PV qspinlock for Hyper-V](https://lore.kernel.org/patchwork/cover/996494) | Hyper-V 的 PV spiclock 实现. | v2 ☑ 4.20-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/996494) |
 | 2019/10/23 | Zhenzhong Duan <zhenzhong.duan@oracle.com> | [Add a unified parameter "nopvspin"](https://lore.kernel.org/patchwork/cover/1143398) | PV SPINLOCK | v8 ☑ 5.9-rc1 | [PatchWork v8](https://lore.kernel.org/patchwork/cover/1143398) |
 
-## 1.5 NumaAware SPINLOCK
--------
 
+相关的文章介绍: [47].
 
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/05/14 | Alex Kogan <alex.kogan@oracle.com> | [Add NUMA-awareness to qspinlock](https://lore.kernel.org/patchwork/cover/1428910) | NUMA 感知的 spinlock, 基于 CNA. | v15 ☐ | [PatchWork v15](https://lore.kernel.org/patchwork/cover/1428910) |
 
 
 <br>
