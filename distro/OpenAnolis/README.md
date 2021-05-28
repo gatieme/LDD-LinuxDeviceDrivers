@@ -335,7 +335,6 @@ c3f32f75ac28 mm/memory: fix IO cost for anonymous page
 2c43e0162ddb mm/swap: fix for "mm: workingset: age nonresident information alongside anonymous pages"
 6f4e186fae1a mm: workingset: age nonresident information alongside anonymous pages
 
-
 bf7023bd718a mm: vmscan: limit the range of LRU type balancing
 6c3b7eb38700 mm: vmscan: reclaim writepage is IO cost
 65daa60b0781 mm: vmscan: determine anon/file pressure balance at the reclaim root
@@ -352,11 +351,26 @@ c64c253a6886 mm: vmscan: drop unnecessary div0 avoidance rounding in get_scan_co
 c9fe54195999 mm: fix LRU balancing effect of new transparent huge pages
 ```
 
+## NA
+
 ```cpp
 8d6fc8aaccf4 mm/memcontrol: fix OOPS inside mem_cgroup_get_nr_swap_pages()
+
 db1ed1833f57 ksm: reinstate memcg charge on copied pages
 fd3832463ad1 mm: do_swap_page(): fix up the error code
 b41e5c93ed50 mm: memcontrol: correct the NR_ANON_THPS counter of hierarchical memcg
+```
+
+
+## mm: memcontrol: charge swapin pages on instantiation
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2020/08/20 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: charge swapin pages on instantiation](https://lore.kernel.org/patchwork/cover/1239175) | memcg swapin 的延迟统计, 对memcg进行了修改, 使其在交换时直接对交换页统计, 而不是在出错时统计, 这可能要晚得多, 或者根本不会发生. | v2 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1227833), [PatchWork v2](https://lore.kernel.org/patchwork/cover/1239175) |
+
+
+```cpp
 4f9bab4b3a47 mm: memcontrol: update page->mem_cgroup stability rules
 5ff14606ff7e mm: memcontrol: delete unused lrucare handling
 f8fed034b2fe mm: memcontrol: document the new swap control behavior
@@ -378,10 +392,25 @@ d57c8cd555f8 mm: memcontrol: drop @compound parameter from memcg charging API
 c5cfeb3e2b18 mm: memcontrol: fix stat-corrupting race in charge moving
 ```
 
+
+## mm: fix page aging across multiple cgroups
+-------
+
+https://lore.kernel.org/patchwork/cover/1150211
+
 ```cpp
 af77f2589a48 mm: vmscan: enforce inactive:active ratio at the reclaim root
 293ca5d0e0df mm: vmscan: detect file thrashing at the reclaim root
 0f68ac9a7339 mm: vmscan: move file exhaustion detection to the node level
+```
+
+## mm: vmscan: cgroup-related cleanups
+-------
+
+https://lore.kernel.org/patchwork/cover/1142997
+
+
+```cpp
 9f124d740916 mm: vmscan: harmonize writeback congestion tracking for nodes & memcgs
 47b5bb94e110 mm: vmscan: turn shrink_node_memcg() into shrink_lruvec()
 d144427dbe3d mm: vmscan: split shrink_node() into node part and memcgs part
@@ -390,8 +419,19 @@ ae1afb31b51e mm: vmscan: naming fixes: global_reclaim() and sane_reclaim()
 c5e78e07aaa1 mm: vmscan: move inactive_list_is_low() swap check to the caller
 70cb7ad4e25f mm: clean up and clarify lruvec lookup procedure
 385269e8de19 mm: vmscan: simplify lruvec_lru_size()
+```
+
+## mm/workingset: remove unused @mapping argument in workingset_eviction()
+-------
+
+https://lore.kernel.org/patchwork/patch/1046511
+
+```cpp
 f2116b7f9274 mm/workingset: remove unused @mapping argument in workingset_eviction()
 4f466c091b62 mm/vmscan: remove unused lru_pages argument
+```
+
+
 91ae8e0cd768 mm: vmscan: do not share cgroup iteration between reclaimers
 1a8869efe950 mm: vmscan: do not iterate all mem cgroups for global direct reclaim
 54c1b36ed43a mm/memcontrol: update lruvec counters in mem_cgroup_move_account
@@ -1250,3 +1290,14 @@ f2180acdcfc5 scripts/sortextable: Refactor the do_func() function
 dd4b28606ec5 scripts/sortextable: Remove dead code
 e3f834c364c5 scripts/sortextable: Clean up the code to meet the kernel coding style better
 9999162392f9 scripts/sortextable: Rewrite error/success handling
+
+
+# KDUMP
+-------
+
+
+https://lore.kernel.org/patchwork/patch/1266592
+
+```cpp
+8d6fc8aaccf4 mm/memcontrol: fix OOPS inside mem_cgroup_get_nr_swap_pages()
+```
