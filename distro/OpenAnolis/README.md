@@ -168,14 +168,22 @@ bcc32a75cf6b psi: fix reference to kernel commandline enable
 d09e62bab8d0 kernel/sched/psi.c: simplify cgroup_move_task()
 d26da1947f48 psi: cgroup support
 8b2bf0799111 psi: pressure stall information for CPU, memory, and IO
+```
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/04/03 | Johannes Weiner <hannes@cmpxchg.org> | [psi: pressure stall information for CPU, memory, and IO v4](https://lwn.net/Articles/815342) | NA | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_5.9#Memory_management) | [Patchwork](https://lore.kernel.org/patchwork/patch/978495) |
 
+```cpp
+d26da1947f48 psi: cgroup support
+8b2bf0799111 psi: pressure stall information for CPU, memory, and IO
 ec035638f0c2 sched: introduce this_rq_lock_irq()
 420e6dea146e sched: sched.h: make rq locking and clock functions available in stats.h
 3bf93774b166 sched: loadavg: make calc_load_n() public
 4ca637b41664 sched: loadavg: consolidate LOAD_INT, LOAD_FRAC, CALC_LOAD
 2dde6f773e87 delayacct: track delays from thrashing cache pages
-
+e2d3e3cb0d60 mm: workingset: tell cache transitions from workingset thrashing
+b027d193c877 mm: workingset: don't drop refault information prematurely
 ```
 
 
@@ -396,7 +404,10 @@ c5cfeb3e2b18 mm: memcontrol: fix stat-corrupting race in charge moving
 ## mm: fix page aging across multiple cgroups
 -------
 
-https://lore.kernel.org/patchwork/cover/1150211
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2019/11/07 | Johannes Weiner <hannes@cmpxchg.org> | [mm: fix page aging across multiple cgroups](https://lore.kernel.org/patchwork/cover/1150211) | NA | v2 ☑ [5.5-rc1](https://kernelnewbies.org/Linux_5.5#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1150211) |
 
 ```cpp
 af77f2589a48 mm: vmscan: enforce inactive:active ratio at the reclaim root
@@ -407,10 +418,18 @@ af77f2589a48 mm: vmscan: enforce inactive:active ratio at the reclaim root
 ## mm: vmscan: cgroup-related cleanups
 -------
 
-https://lore.kernel.org/patchwork/cover/1142997
+一组 cleanup 也合入了, 我表示深刻的不理解. cleanup 没改变逻辑, 只是上代码更清晰. 合入的原因是啥
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2019/11/07 | Johannes Weiner <hannes@cmpxchg.org> | [mm: fix page aging across multiple cgroups](https://lore.kernel.org/patchwork/cover/1142997) | 对回收代码与cgroups的交互进行了一些清理. 它们不应该改变任何行为, 而只是让实现更容易理解和使用. | v1 ☑ [5.5-rc1](https://kernelnewbies.org/Linux_5.5#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1142997) |
 
 
 ```cpp
+#30476527
+
 9f124d740916 mm: vmscan: harmonize writeback congestion tracking for nodes & memcgs
 47b5bb94e110 mm: vmscan: turn shrink_node_memcg() into shrink_lruvec()
 d144427dbe3d mm: vmscan: split shrink_node() into node part and memcgs part
@@ -421,17 +440,23 @@ c5e78e07aaa1 mm: vmscan: move inactive_list_is_low() swap check to the caller
 385269e8de19 mm: vmscan: simplify lruvec_lru_size()
 ```
 
-## mm/workingset: remove unused @mapping argument in workingset_eviction()
--------
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2019/02/28 | Andrey Ryabinin <aryabinin@virtuozzo.com> | [mm/workingset: remove unused @mapping argument in workingset_eviction()](https://lore.kernel.org/patchwork/cover/1046511) | NA | v1 ☑ [5.5-rc1](https://kernelnewbies.org/Linux_5.5#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1046511) |
 
-https://lore.kernel.org/patchwork/patch/1046511
 
 ```cpp
 f2116b7f9274 mm/workingset: remove unused @mapping argument in workingset_eviction()
 4f466c091b62 mm/vmscan: remove unused lru_pages argument
 ```
 
+## mm/workingset: remove unused @mapping argument in workingset_eviction()
+-------
 
+又一组 cleanup
+
+
+```cpp
 91ae8e0cd768 mm: vmscan: do not share cgroup iteration between reclaimers
 1a8869efe950 mm: vmscan: do not iterate all mem cgroups for global direct reclaim
 54c1b36ed43a mm/memcontrol: update lruvec counters in mem_cgroup_move_account
