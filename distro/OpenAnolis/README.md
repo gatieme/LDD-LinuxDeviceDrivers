@@ -266,17 +266,6 @@ d9ba6d0880e3 alinux: sched: Introduce primitives for CFS bandwidth burst
 -------
 
 
-## 2.1 MEMSLI
--------
-
-
-```cpp
-echo 1 > /proc/memsli/enabled
-
-mount -t tmpfs cgroup_root /sys/fs/cgroup
-mkdir -p /sys/fs/cgroup/memory
-mount -t cgroup -o memory memory /sys/fs/cgroup/memory
-```
 
 ## 2.2 fast_cow
 -------
@@ -360,11 +349,11 @@ c9fe54195999 mm: fix LRU balancing effect of new transparent huge pages
 ```
 
 
+## task #30476527
+-------
 
 
-
-
-## mm: fix page aging across multiple cgroups
+### mm: fix page aging across multiple cgroups
 -------
 
 
@@ -378,12 +367,10 @@ af77f2589a48 mm: vmscan: enforce inactive:active ratio at the reclaim root
 0f68ac9a7339 mm: vmscan: move file exhaustion detection to the node level
 ```
 
-## mm: vmscan: cgroup-related cleanups
+### mm: vmscan: cgroup-related cleanups
 -------
 
 一组 cleanup 也合入了, 我表示深刻的不理解. cleanup 没改变逻辑, 只是上代码更清晰. 合入的原因是啥
-
-
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
@@ -391,8 +378,6 @@ af77f2589a48 mm: vmscan: enforce inactive:active ratio at the reclaim root
 
 
 ```cpp
-#30476527
-
 9f124d740916 mm: vmscan: harmonize writeback congestion tracking for nodes & memcgs
 47b5bb94e110 mm: vmscan: turn shrink_node_memcg() into shrink_lruvec()
 d144427dbe3d mm: vmscan: split shrink_node() into node part and memcgs part
@@ -403,9 +388,11 @@ c5e78e07aaa1 mm: vmscan: move inactive_list_is_low() swap check to the caller
 385269e8de19 mm: vmscan: simplify lruvec_lru_size()
 ```
 
+### cleanup
+-------
+
 
 又一组 cleanup, 但是只合入了其中的 2 个补丁.
-
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
@@ -417,16 +404,27 @@ f2116b7f9274 mm/workingset: remove unused @mapping argument in workingset_evicti
 4f466c091b62 mm/vmscan: remove unused lru_pages argument
 ```
 
-## enhance & fix memcg
+### fix
 -------
-
-
-*   task #3047633
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2019/02/28 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: memory.stat cost & correctness](https://lore.kernel.org/patchwork/cover/1046756) | NA | v1 ☑ [5.2-rc1](https://kernelnewbies.org/Linux_5.2#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1046756) |
-| 2019/04/12 | Andrey Ryabinin <aryabinin@virtuozzo.com> | [mm: memcontrol: memory.stat cost & correctness](https://lore.kernel.org/patchwork/cover/1061078) | NA | v1 ☑ [5.2-rc1](https://kernelnewbies.org/Linux_5.2#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1061078) |
+| 2019/01/29 | Johannes Weiner <hannes@cmpxchg.org> | [ mm: vmscan: do not iterate all mem cgroups for global direct reclaim](https://lore.kernel.org/patchwork/cover/1036823) | NA | v1 ☑ [5.5-rc1](https://kernelnewbies.org/Linux_5.5#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1036823) |
+| 2019/08/12 | Johannes Weiner <hannes@cmpxchg.org> | [mm: vmscan: do not share cgroup iteration between reclaimers](https://lore.kernel.org/patchwork/cover/1114038) | NA | v1 ☑ [5.5-rc1](https://kernelnewbies.org/Linux_5.5#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1114038) |
+
+```cpp
+91ae8e0cd768 mm: vmscan: do not share cgroup iteration between reclaimers
+1a8869efe950 mm: vmscan: do not iterate all mem cgroups for global direct reclaim
+54c1b36ed43a mm/memcontrol: update lruvec counters in mem_cgroup_move_account
+```
+
+## task #3047633(enhance & fix memcg)
+-------
+
+
+
+### fix
+-------
 
 
 ```cpp
@@ -439,14 +437,32 @@ bc0030faffe9 mm: memcontrol: flush percpu vmevents before releasing memcg
 2ddc019313c5 mm: memcontrol: flush percpu vmstats before releasing memcg
 7f75ebe21937 mm/memcontrol: fix wrong statistics in memory.stat
 e7643c241159 mm: memcontrol: don't batch updates of local VM stats and events
+```
 
-https://lore.kernel.org/patchwork/cover/1061078
+###
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2019/04/12 | Andrey Ryabinin <aryabinin@virtuozzo.com> | [mm: memcontrol: memory.stat cost & correctness](https://lore.kernel.org/patchwork/cover/1061078) | NA | v1 ☑ [5.2-rc1](https://kernelnewbies.org/Linux_5.2#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1061078) |
+
+
+```cpp
 97276f710344 mm: memcontrol: fix NUMA round-robin reclaim at intermediate level
 d9d834314371 mm: memcontrol: fix recursive statistics correctness & scalabilty
 b82ffa7c06b9 mm: memcontrol: move stat/event counting functions out-of-line
 c24d85c9806d mm: memcontrol: make cgroup stats and events query API explicitly local
 98ab53a614a mm, memcg: rename ambiguously named memory.stat counters and functions
+```
 
+###
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2019/02/28 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: track LRU counts in the vmstats array](https://lore.kernel.org/patchwork/cover/1046756) | NA | v1 ☑ [5.2-rc1](https://kernelnewbies.org/Linux_5.2#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1046756) |
+
+```cpp
 https://lore.kernel.org/patchwork/patch/1046756
 1009eea36499 mm: memcontrol: quarantine the mem_cgroup_[node_]nr_lru_pages() API
 b254f736aa06 mm: memcontrol: push down mem_cgroup_nr_lru_pages()
@@ -457,12 +473,11 @@ af2a43b06ab6 mm: memcontrol: track LRU counts in the vmstats array
 ```
 
 
-*   task #30476868
+## task #30476868
+-------
 
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2020/05/08 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: charge swapin pages on instantiation1239175mboxseries](https://lore.kernel.org/patchwork/cover/1239175) | NA | v1 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1239175) |
-
+### NA
+-------
 
 ```cpp
 8d6fc8aaccf4 mm/memcontrol: fix OOPS inside mem_cgroup_get_nr_swap_pages()
@@ -471,6 +486,9 @@ db1ed1833f57 ksm: reinstate memcg charge on copied pages
 fd3832463ad1 mm: do_swap_page(): fix up the error code
 b41e5c93ed50 mm: memcontrol: correct the NR_ANON_THPS counter of hierarchical memcg
 ```
+
+### mm: memcontrol: charge swapin pages on instantiation
+-------
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -500,45 +518,73 @@ d57c8cd555f8 mm: memcontrol: drop @compound parameter from memcg charging API
 c5cfeb3e2b18 mm: memcontrol: fix stat-corrupting race in charge moving
 ```
 
-*   task #30476527
-
-```cpp
-https://lore.kernel.org/patchwork/patch/1114038
-91ae8e0cd768 mm: vmscan: do not share cgroup iteration between reclaimers
-1a8869efe950 mm: vmscan: do not iterate all mem cgroups for global direct reclaim
-54c1b36ed43a mm/memcontrol: update lruvec counters in mem_cgroup_move_account
-```
-
+## task #31315199
+-------
 
 ```cpp
 737b01dfdb63 alinux: mm: fix an global-out-of-bounds in __do_proc_doulongvec_minmax
 f5ac90f84be8 alinux: mm: add an interface to adjust the penalty time dynamically
 f8a6ae902811 alinux: mm: support swap.high for cgroup v1
+```
+
+
+### memcg: Slow down swap allocation as the available space gets depleted
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2020/05/27 | Jakub Kicinski <kuba@kernel.org> | [memcg: Slow down swap allocation as the available space gets depleted](https://patchwork.kernel.org/project/linux-mm/cover/20200527195846.102707-1-kuba@kernel.org/) | NA | v6 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v6](https://patchwork.kernel.org/project/linux-mm/cover/20200527195846.102707-1-kuba@kernel.org) |
+
+
+```CPP
 ad06f811534b mm/memcg: automatically penalize tasks with high swap use
 e1a2c040dcd7 mm/memcg: move cgroup high memory limit setting into struct page_counter
 49b0d8d106e8 mm/memcg: move penalty delay clamping out of calculate_high_delay()
 408975905823 mm/memcg: prepare for swap over-high accounting and penalty calculation
+```
+
+### mm, memcg: cgroup v2 tunable load/store tearing fixes
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2020/03/12 | Jakub Kicinski <kuba@kernel.org> | [memcg: Slow down swap allocation as the available space gets depleted](https://lore.kernel.org/patchwork/cover/1208947) | NA | v1 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1208947) |
+
+
+```cpp
 e8144debf849 mm, memcg: prevent memory.swap.max load tearing
 8ef892f0023b mm, memcg: prevent memory.min load/store tearing
 1793bc1dd739 mm, memcg: prevent memory.low load/store tearing
 4b9fe46dcedf mm, memcg: prevent memory.max load tearing
 e0a3c6cf7328 mm, memcg: prevent memory.high load/store tearing
+```
+
+
+```cpp
+https://lore.kernel.org/patchwork/patch/1218448
 1e005f35c32f mm, memcg: do not high throttle allocators based on wraparound
+
+https://lore.kernel.org/patchwork/patch/1208907
 b7671aa6d7ef mm, memcg: bypass high reclaim iteration for cgroup hierarchy root
+
+https://lore.kernel.org/patchwork/patch/1208954/
 044b9665cf59 mm, memcg: throttle allocators based on ancestral memory.high
 efe4ee97dd8f mm, memcg: fix corruption on 64-bit divisor in memory.high throttling
 
 ```
 
+## task #31072503
+-------
+
+
 
 ```cpp
-b91b37989d2f alinux: mm: make the swap throttle more accurate
-9ff7293e6dc7 io_uring: add IORING_CQ_EVENTFD_DISABLED to the CQ ring flags
-1b6d35612c87 io_uring: add 'cq_flags' field for the CQ ring
-dc535ede525f KVM: x86: Expose fast short REP MOV for supported cpuid
-f61f407663fa x86/cpufeatures: Add support for fast short REP; MOVSB
 362c19f4f21d mm: proactive compaction
 ```
+
+## to #29998112
+-------
+
 
 ```cpp
 acfc4d580d12 mm: add kiocb_wait_page_queue_init() helper
@@ -552,17 +598,45 @@ acfc4d580d12 mm: add kiocb_wait_page_queue_init() helper
 f0e3c8506f52 mm: allow read-ahead with IOCB_NOWAIT set
 ```
 
+
+## to #29931646
+-------
+
 ```cpp
 63de663eb5b9 mm, page_alloc: skip ->waternark_boost for atomic order-0 allocations
 
 b893a7d56134 alinux: mm: completely disable swapout with negative swappiness
 ```
 
+## task #25182720
+-------
+
 ```cpp
 7e6914774bc8 mm: do not allow MADV_PAGEOUT for CoW pages
+```
+
+## to #26782094
+-------
+
+```cpp
 7d6cb94f148e alinux: mm: Pin code section of process in memory
-f579b6f96a5d alinux: kidled: make kidled_inc_page_age return latest page age
-3049621727e9 mm, vmstat: reduce zone->lock holding time by /proc/pagetypeinfo
+```
+
+## MEMSLI(to #26424368)
+-------
+
+```cpp
+echo 1 > /proc/memsli/enabled
+
+mount -t tmpfs cgroup_root /sys/fs/cgroup
+mkdir -p /sys/fs/cgroup/memory
+mount -t cgroup -o memory memory /sys/fs/cgroup/memory
+```
+
+
+```cpp
+start_commit : 3d5ca29dd634b4628d7dc82423b2680718e6eb2a
+end_commit   : a5f32c14829c2cf52ffe8a2c25fd5e089c254d9c
 3d5ca29dd634 alinux: mm, memcg: optimize division operation with memsli counters
 055ed63be9b6 alinux: mm, memcg: rework memsli interfaces
 a2feb0da9d27 alinux: config: enable CONFIG_MEMSLI
@@ -577,6 +651,20 @@ fe673ccf92aa alinux: mm, memcg: adjust the latency probe point for memcg direct 
 4bec5cfe97cf alinux: mm, memcg: record latency of direct compact in every memcg
 83058e75601e alinux: mm, memcg: record latency of direct reclaim in every memcg
 ```
+
+
+## task #29077503
+-------
+
+### mm/memory_hotplug: Export generic_online_page()
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2019/09/09 | Jakub Kicinski <kuba@kernel.org> | [mm/memory_hotplug: Export generic_online_page()](https://lore.kernel.org/patchwork/cover/1125874) | NA | v1 ☑ [5.5-rc1](https://kernelnewbies.org/Linux_5.5#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1125874) |
+
+
 
 
 ```cpp
@@ -1035,7 +1123,18 @@ c3694064258c virtiofs: Do not end request in submission context
 ```
 
 
+
+## task #29077503(virtio-mem: paravirtualized memory)
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2020/05/07 | Johannes Weiner <hannes@cmpxchg.org> | [virtio-mem: paravirtualized memory](https://lore.kernel.org/patchwork/cover/1237689) | NA | v2 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v4](https://lore.kernel.org/patchwork/cover/1237689) |
+
 ```cpp
+start_commit : 1e5d7fb5446ca564cd5be1b0f555b8f766b3aacf
+end_commit   : add0d5e477f6fe01e7ab1556590bb47fa12a13e2
 1e5d7fb5446c virtio_mem: convert device block size into 64bit
 64f827bfa426 mm/memory_hotplug: set node_start_pfn of hotadded pgdat to 0
 99d68412c05e virtio-mem: silence a static checker warning
@@ -1055,7 +1154,17 @@ c062d118b6c4 mm/memory_hotplug: Introduce offline_and_remove_memory()
 91f30ea2ed5c virtio-mem: Paravirtualized memory hotunplug part 1
 c9f36272db0c virtio-mem: Allow to specify an ACPI PXM as nid
 d3997ceb10d2 virtio-mem: Paravirtualized memory hotplug
+
+0c6a9eb5c0d9 mm/memory_hotplug: export generic_online_page()
+bd6aced3785a mm/page_alloc.c: memory hotplug: free pages as higher order
+5eee472829ec mm, memory_hotplug: deobfuscate migration part of offlining
+a6785cdc8d2b mm, memory_hotplug: __offline_pages fix wrong locking
+86f9a7e38183 mm, memory_hotplug: print reason for the offlining failure
+80aa4777f63f mm/page_isolation.c: convert SKIP_HWPOISON to MEMORY_OFFLINE
+5316eb6eaeb8 mm: only report isolation failures when offlining memory
+59df23d6178e mm: convert PG_balloon to PG_offline
 ```
+
 
 ```cpp
 414ddd93b45c namei: LOOKUP_{IN_ROOT,BENEATH}: permit limited ".." resolution
