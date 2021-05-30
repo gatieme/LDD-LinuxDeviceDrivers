@@ -359,46 +359,9 @@ c64c253a6886 mm: vmscan: drop unnecessary div0 avoidance rounding in get_scan_co
 c9fe54195999 mm: fix LRU balancing effect of new transparent huge pages
 ```
 
-## NA
-
-```cpp
-8d6fc8aaccf4 mm/memcontrol: fix OOPS inside mem_cgroup_get_nr_swap_pages()
-
-db1ed1833f57 ksm: reinstate memcg charge on copied pages
-fd3832463ad1 mm: do_swap_page(): fix up the error code
-b41e5c93ed50 mm: memcontrol: correct the NR_ANON_THPS counter of hierarchical memcg
-```
 
 
-## mm: memcontrol: charge swapin pages on instantiation
--------
 
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2020/08/20 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: charge swapin pages on instantiation](https://lore.kernel.org/patchwork/cover/1239175) | memcg swapin 的延迟统计, 对memcg进行了修改, 使其在交换时直接对交换页统计, 而不是在出错时统计, 这可能要晚得多, 或者根本不会发生. | v2 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1227833), [PatchWork v2](https://lore.kernel.org/patchwork/cover/1239175) |
-
-
-```cpp
-4f9bab4b3a47 mm: memcontrol: update page->mem_cgroup stability rules
-5ff14606ff7e mm: memcontrol: delete unused lrucare handling
-f8fed034b2fe mm: memcontrol: document the new swap control behavior
-33d30bcb37fe mm: memcontrol: charge swapin pages on instantiation
-8b5be32d8233 mm: memcontrol: make swap tracking an integral part of memory control
-0191de877275 mm: memcontrol: prepare swap controller setup for integration
-bfcc7afc681b mm: memcontrol: drop unused try/commit/cancel charge API
-5c9f51f53e5b mm: memcontrol: convert anon and file-thp to new mem_cgroup_charge() API
-4baf8591cf70 mm: memcontrol: switch to native NR_ANON_THPS counter
-4b556f45dbc7 mm: memcontrol: switch to native NR_ANON_MAPPED counter
-550ce3abf64d mm: memcontrol: switch to native NR_FILE_PAGES and NR_SHMEM counters
-4acc4d03b2f1 mm: memcontrol: prepare cgroup vmstat infrastructure for native anon counters
-aaf017e0abbe mm: memcontrol: prepare move_account for removal of private page type counters
-c85ee7938537 mm: memcontrol: prepare uncharging for removal of private page type counters
-ab4551efe9d9 mm: memcontrol: convert page cache to a new mem_cgroup_charge() API
-0c1947cb3ad1 mm: memcontrol: move out cgroup swaprate throttling
-ec9fe1cae515 mm: shmem: remove rare optimization when swapin races with hole punching
-d57c8cd555f8 mm: memcontrol: drop @compound parameter from memcg charging API
-c5cfeb3e2b18 mm: memcontrol: fix stat-corrupting race in charge moving
-```
 
 
 ## mm: fix page aging across multiple cgroups
@@ -440,6 +403,10 @@ c5e78e07aaa1 mm: vmscan: move inactive_list_is_low() swap check to the caller
 385269e8de19 mm: vmscan: simplify lruvec_lru_size()
 ```
 
+
+又一组 cleanup, 但是只合入了其中的 2 个补丁.
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2019/02/28 | Andrey Ryabinin <aryabinin@virtuozzo.com> | [mm/workingset: remove unused @mapping argument in workingset_eviction()](https://lore.kernel.org/patchwork/cover/1046511) | NA | v1 ☑ [5.5-rc1](https://kernelnewbies.org/Linux_5.5#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1046511) |
@@ -450,16 +417,19 @@ f2116b7f9274 mm/workingset: remove unused @mapping argument in workingset_evicti
 4f466c091b62 mm/vmscan: remove unused lru_pages argument
 ```
 
-## mm/workingset: remove unused @mapping argument in workingset_eviction()
+## enhance & fix memcg
 -------
 
-又一组 cleanup
+
+*   task #3047633
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2019/02/28 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: memory.stat cost & correctness](https://lore.kernel.org/patchwork/cover/1046756) | NA | v1 ☑ [5.2-rc1](https://kernelnewbies.org/Linux_5.2#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1046756) |
+| 2019/04/12 | Andrey Ryabinin <aryabinin@virtuozzo.com> | [mm: memcontrol: memory.stat cost & correctness](https://lore.kernel.org/patchwork/cover/1061078) | NA | v1 ☑ [5.2-rc1](https://kernelnewbies.org/Linux_5.2#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1061078) |
 
 
 ```cpp
-91ae8e0cd768 mm: vmscan: do not share cgroup iteration between reclaimers
-1a8869efe950 mm: vmscan: do not iterate all mem cgroups for global direct reclaim
-54c1b36ed43a mm/memcontrol: update lruvec counters in mem_cgroup_move_account
 f14b2eb60240 mm, memcg: partially revert "mm/memcontrol.c: keep local VM counters in sync with the hierarchical ones"
 5ca35dcb4cc1 mm/memcontrol.c: keep local VM counters in sync with the hierarchical ones
 a93d486591a7 mm: memcg: get number of pages on the LRU list in memcgroup base on lru_zone_size
@@ -469,11 +439,76 @@ bc0030faffe9 mm: memcontrol: flush percpu vmevents before releasing memcg
 2ddc019313c5 mm: memcontrol: flush percpu vmstats before releasing memcg
 7f75ebe21937 mm/memcontrol: fix wrong statistics in memory.stat
 e7643c241159 mm: memcontrol: don't batch updates of local VM stats and events
+
+https://lore.kernel.org/patchwork/cover/1061078
 97276f710344 mm: memcontrol: fix NUMA round-robin reclaim at intermediate level
 d9d834314371 mm: memcontrol: fix recursive statistics correctness & scalabilty
 b82ffa7c06b9 mm: memcontrol: move stat/event counting functions out-of-line
 c24d85c9806d mm: memcontrol: make cgroup stats and events query API explicitly local
+98ab53a614a mm, memcg: rename ambiguously named memory.stat counters and functions
+
+https://lore.kernel.org/patchwork/patch/1046756
+1009eea36499 mm: memcontrol: quarantine the mem_cgroup_[node_]nr_lru_pages() API
+b254f736aa06 mm: memcontrol: push down mem_cgroup_nr_lru_pages()
+10add36bfcea mm: memcontrol: push down mem_cgroup_node_nr_lru_pages()
+98c54943f68e mm: memcontrol: replace node summing with memcg_page_state()
+22682e63f389 mm: memcontrol: replace zone summing with lruvec_page_state()
+af2a43b06ab6 mm: memcontrol: track LRU counts in the vmstats array
 ```
+
+
+*   task #30476868
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2020/05/08 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: charge swapin pages on instantiation1239175mboxseries](https://lore.kernel.org/patchwork/cover/1239175) | NA | v1 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1239175) |
+
+
+```cpp
+8d6fc8aaccf4 mm/memcontrol: fix OOPS inside mem_cgroup_get_nr_swap_pages()
+
+db1ed1833f57 ksm: reinstate memcg charge on copied pages
+fd3832463ad1 mm: do_swap_page(): fix up the error code
+b41e5c93ed50 mm: memcontrol: correct the NR_ANON_THPS counter of hierarchical memcg
+```
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2020/08/20 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: charge swapin pages on instantiation](https://lore.kernel.org/patchwork/cover/1239175) | memcg swapin 的延迟统计, 对memcg进行了修改, 使其在交换时直接对交换页统计, 而不是在出错时统计, 这可能要晚得多, 或者根本不会发生. | v2 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1227833), [PatchWork v2](https://lore.kernel.org/patchwork/cover/1239175) |
+
+
+```cpp
+4f9bab4b3a47 mm: memcontrol: update page->mem_cgroup stability rules
+5ff14606ff7e mm: memcontrol: delete unused lrucare handling
+f8fed034b2fe mm: memcontrol: document the new swap control behavior
+33d30bcb37fe mm: memcontrol: charge swapin pages on instantiation
+8b5be32d8233 mm: memcontrol: make swap tracking an integral part of memory control
+0191de877275 mm: memcontrol: prepare swap controller setup for integration
+bfcc7afc681b mm: memcontrol: drop unused try/commit/cancel charge API
+5c9f51f53e5b mm: memcontrol: convert anon and file-thp to new mem_cgroup_charge() API
+4baf8591cf70 mm: memcontrol: switch to native NR_ANON_THPS counter
+4b556f45dbc7 mm: memcontrol: switch to native NR_ANON_MAPPED counter
+550ce3abf64d mm: memcontrol: switch to native NR_FILE_PAGES and NR_SHMEM counters
+4acc4d03b2f1 mm: memcontrol: prepare cgroup vmstat infrastructure for native anon counters
+aaf017e0abbe mm: memcontrol: prepare move_account for removal of private page type counters
+c85ee7938537 mm: memcontrol: prepare uncharging for removal of private page type counters
+ab4551efe9d9 mm: memcontrol: convert page cache to a new mem_cgroup_charge() API
+0c1947cb3ad1 mm: memcontrol: move out cgroup swaprate throttling
+ec9fe1cae515 mm: shmem: remove rare optimization when swapin races with hole punching
+d57c8cd555f8 mm: memcontrol: drop @compound parameter from memcg charging API
+c5cfeb3e2b18 mm: memcontrol: fix stat-corrupting race in charge moving
+```
+
+*   task #30476527
+
+```cpp
+https://lore.kernel.org/patchwork/patch/1114038
+91ae8e0cd768 mm: vmscan: do not share cgroup iteration between reclaimers
+1a8869efe950 mm: vmscan: do not iterate all mem cgroups for global direct reclaim
+54c1b36ed43a mm/memcontrol: update lruvec counters in mem_cgroup_move_account
+```
+
 
 ```cpp
 737b01dfdb63 alinux: mm: fix an global-out-of-bounds in __do_proc_doulongvec_minmax
