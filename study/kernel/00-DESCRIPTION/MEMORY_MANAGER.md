@@ -233,7 +233,7 @@ Linux 为每个 zone 都设置了独立的 min, low 和 high 三个档位的 wat
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2018/11/23 | Mel Gorman | [Fragmentation avoidance improvements v5](https://lore.kernel.org/patchwork/cover/1016503) | 优化调度器的路径, 减少对 rq->lock 的争抢, 实现 lockless. | v5 ☑ 5.0-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/1016503) |
+| 2018/11/23 | Mel Gorman | [Fragmentation avoidance improvements v5](https://lore.kernel.org/patchwork/cover/1016503) | 伙伴系统页面分配时的反碎片化 | v5 ☑ 5.0-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/cover/1016503) |
 | 2020/02/25 | Mel Gorman | [Limit runaway reclaim due to watermark boosting](https://lore.kernel.org/patchwork/cover/1200172) | 优化调度器的路径, 减少对 rq->lock 的争抢, 实现 lockless. | v4 ☑ 4.4-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/1200172) |
 
 ### 2.1.1.4 PCP(Per CPU Page) Allocation
