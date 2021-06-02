@@ -2,6 +2,8 @@
 =====================
 
 
+# 总结
+-------
 
 - [x] [Alibaba Cloud Linux 2](https://help.aliyun.com/document_detail/154950.html)
 - [x] [Alibaba Cloud Linux 2功能和接口概述](https://help.aliyun.com/document_detail/177687.html)
@@ -13,18 +15,18 @@
 |:-------:|:----:|
 | 启用cgroup writeback功能 | Alibaba Cloud Linux 2在内核版本4.19.36-12.al7中，对内核接口cgroup v1新增了控制群组回写(cgroup writeback)功能. 该功能使您在使用内核接口cgroup v1时，可以对缓存异步I/O (Buffered I/O) 进行限速.  |
 | blk-iocost权重限速  | Alibaba Cloud Linux 2在内核版本4.19.81-17.al7.x86_64开始支持基于成本模型(cost model)的权重限速功能，即blk-iocost功能. 该功能是对内核中IO子系统(blkcg)基于权重的磁盘限速功能的进一步完善.  |
-| 在cgroup v1接口开启PSI功能 | Alibaba Cloud Linux 2在内核版本4.19.81-17.al7中为cgroup v1接口提供了PSI功能. PSI(Pressure Stall Information)是一个可以监控CPU、内存及IO性能异常的内核功能.  |
-| 修改TCP TIME-WAIT超时时间 | 在Linux的内核中，TCP/IP协议的TIME-WAIT状态持续60秒且无法修改. 但在某些场景下，例如TCP负载过高时，适当调小该值有助于提升网络性能. 因此Alibaba Cloud Linux 2在内核版本4.19.43-13.al7新增内核接口，用于修改TCP TIME-WAIT超时时间.  |
-| Block IO限流增强监控接口 | 为了更方便地监控Linux block IO限流，Alibaba Cloud Linux 2在内核版本4.19.81-17.al7增加相关接口，用于增强block IO限流的监控统计能力.  |
-| JBD2优化接口 | JBD2作为ext4文件系统的内核线程，在使用过程中常会遇到影子状态(BH_Shadow)，影响系统性能. 为解决使用JBD2过程中出现的异常，Alibaba Cloud Linux 2在内核版本4.19.81-17.al7对JBD2进行了优化.  |
+| 在 cgroup v1 接口开启 PSI 功能 | Alibaba Cloud Linux 2在内核版本4.19.81-17.al7中为cgroup v1接口提供了PSI功能. PSI(Pressure Stall Information)是一个可以监控CPU、内存及IO性能异常的内核功能.  |
+| 修改 TCP TIME-WAIT 超时时间 | 在Linux的内核中，TCP/IP协议的TIME-WAIT状态持续60秒且无法修改. 但在某些场景下，例如TCP负载过高时，适当调小该值有助于提升网络性能. 因此Alibaba Cloud Linux 2在内核版本4.19.43-13.al7新增内核接口，用于修改TCP TIME-WAIT超时时间.  |
+| Block IO 限流增强监控接口 | 为了更方便地监控Linux block IO限流，Alibaba Cloud Linux 2在内核版本4.19.81-17.al7增加相关接口，用于增强block IO限流的监控统计能力.  |
+| JBD2 优化接口 | JBD2作为ext4文件系统的内核线程，在使用过程中常会遇到影子状态(BH_Shadow)，影响系统性能. 为解决使用JBD2过程中出现的异常，Alibaba Cloud Linux 2在内核版本4.19.81-17.al7对JBD2进行了优化.  |
 | 跨目录配额创建硬链接 | 默认情况下，ext4文件系统中存在约束，不允许跨目录配额创建硬链接. 但在实际中，某些特定场景有创建硬链接的需求，因此Alibaba Cloud Linux 2提供定制接口，该接口能够绕过ext4文件系统中的约束，实现跨目录配额创建硬链接.  |
-| 追踪IO时延 | Alibaba Cloud Linux 2优化了IO时延分析工具iostat的原始数据来源/proc/diskstats接口，增加了对设备侧的读、写及特殊IO(discard)等耗时的统计，此外还提供了一个方便追踪IO时延的工具bcc. |
-| 检测文件系统和块层的IO hang | IO hang是指在系统运行过程中，因某些IO耗时过长而引起的系统不稳定甚至宕机. 为了准确检测出IO hang，Alibaba Cloud Linux 2扩展核心数据结构，增加了在较小的系统开销下，快速定位并检测IO hang的功能.  |
-| Memcg全局最低水位线分级 | Alibaba Cloud Linux 2新增了memcg全局最低水位线分级功能. 在global wmark_min的基础上，将资源消耗型任务的global wmark_min上移，使其提前进入直接内存回收. 将时延敏感型业务的global wmark_min下移，使其尽量避免直接内存回收. 这样当资源消耗型任务瞬间申请大量内存的时候，会通过上移的global wmark_min将其短时间抑制，避免时延敏感型业务发生直接内存回收. 等待全局kswapd回收一定量的内存后，再解除资源消耗型任务的短时间抑制. |
-| Memcg后台异步回收 | Alibaba Cloud Linux 2 增加了 memcg 粒度的后台异步回收功能. 该功能的实现不同于全局kswapd内核线程的实现，并没有创建对应的memcg kswapd内核线程，而是采用了workqueue机制来实现.  |
-| cgroup v1接口支持memcg QoS功能 | 内存子系统服务质量(memcg QoS)可以用来控制内存子系统(memcg)的内存使用量的保证(锁定)与限制. Alibaba Cloud Linux 2在4.19.91-18.al7内核版本，新增cgroup v1接口支持memcg QoS的相关功能.  |
-| Memcg Exstat功能  | Alibaba Cloud Linux 2在4.19.91-18.al7内核版本开始支持的Memcg Exstat(Extend/Extra)功能.  |
-| TCP-RT功能的配置说明 | Alibaba Cloud Linux 2在内核版本kernel-4.19.91-21.al7开始支持TCP层的服务监控功能(TCP-RT). |
+| 追踪 I O时延 | Alibaba Cloud Linux 2优化了IO时延分析工具iostat的原始数据来源/proc/diskstats接口，增加了对设备侧的读、写及特殊IO(discard)等耗时的统计，此外还提供了一个方便追踪IO时延的工具bcc. |
+| 检测文件系统和块层的 IO hang | IO hang是指在系统运行过程中，因某些IO耗时过长而引起的系统不稳定甚至宕机. 为了准确检测出IO hang，Alibaba Cloud Linux 2扩展核心数据结构，增加了在较小的系统开销下，快速定位并检测IO hang的功能.  |
+| Memcg 全局最低水位线分级 | Alibaba Cloud Linux 2新增了memcg全局最低水位线分级功能. 在global wmark_min的基础上，将资源消耗型任务的global wmark_min上移，使其提前进入直接内存回收. 将时延敏感型业务的global wmark_min下移，使其尽量避免直接内存回收. 这样当资源消耗型任务瞬间申请大量内存的时候，会通过上移的global wmark_min将其短时间抑制，避免时延敏感型业务发生直接内存回收. 等待全局kswapd回收一定量的内存后，再解除资源消耗型任务的短时间抑制. |
+| Memcg 后台异步回收 | Alibaba Cloud Linux 2 增加了 memcg 粒度的后台异步回收功能. 该功能的实现不同于全局kswapd内核线程的实现，并没有创建对应的memcg kswapd内核线程，而是采用了workqueue机制来实现.  |
+| cgroup v1 接口支持memcg Qo S功能 | 内存子系统服务质量(memcg QoS)可以用来控制内存子系统(memcg)的内存使用量的保证(锁定)与限制. Alibaba Cloud Linux 2在4.19.91-18.al7内核版本，新增cgroup v1接口支持memcg QoS的相关功能.  |
+| Memcg Exstat 功能  | Alibaba Cloud Linux 2 在4.19.91-18.al7内核版本开始支持的Memcg Exstat(Extend/Extra)功能.  |
+| TCP-RT 功能的配置说明 | Alibaba Cloud Linux 2在内核版本kernel-4.19.91-21.al7开始支持TCP层的服务监控功能(TCP-RT). |
 
 
 # 1 SCHEDULER
@@ -63,6 +65,8 @@ cpuacct 中引入了一些调度相关的 latency 的统计信息, 并用 histog
 
 
 ```cpp
+252315eb68be alinux: sched: get_sched_lat_count_idx optimization
+
 ab81d2d9f745 alinux: sched: Add cpu_stress to show system-wide task waiting
 c7462cfec178 alinux: sched: Fix wrong cpuacct_update_latency declaration
 
@@ -122,7 +126,7 @@ bae5297970bb sched/fair: Disable LB_BIAS by default
 
 
 
-## 1.5 PSI
+## 1.5 PSI(Tracking pressure-stall information)
 -------
 
 ### 1.5.1 PSI V1
@@ -140,8 +144,12 @@ eee77c97f8c4 sched/psi: Correct overly pessimistic size calculation
 a4a4fdd978a8 sched/psi: Reduce psimon FIFO priority
 ```
 
-### 1.5.2 PSI V2
+### 1.5.2 PSI core
 -------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/03/19 | Johannes Weiner <hannes@cmpxchg.org> | [psi: pressure stall monitors v6](https://lore.kernel.org/patchwork/patch/1052413) | NA | v6 ☑ [5.2-rc1](https://kernelnewbies.org/Linux_5.2) | [Patchwork](https://lore.kernel.org/patchwork/patch/1052413) |
 
 ```cpp
 c1cc09981b82 psi: introduce psi monitor
@@ -153,6 +161,11 @@ a310bf88c601 psi: track changed states
 6c479dfbe22f psi: rename psi fields in preparation for psi trigger addition
 b967851710f2 psi: make psi_enable static
 529aca9e758a psi: introduce state_mask to represent stalled psi states
+```
+
+
+```cpp
+https://lore.kernel.org/patchwork/patch/1057457/
 92f5c2aec4ce psi: clarify the units used in pressure files
 2ab1c71c198d psi: avoid divide-by-zero crash inside virtual machines
 c3a04b34efeb psi: clarify the Kconfig text for the default-disable option
@@ -160,13 +173,11 @@ c3a04b34efeb psi: clarify the Kconfig text for the default-disable option
 bcc32a75cf6b psi: fix reference to kernel commandline enable
 8570f9337114 psi: make disabling/enabling easier for vendor kernels
 d09e62bab8d0 kernel/sched/psi.c: simplify cgroup_move_task()
-d26da1947f48 psi: cgroup support
-8b2bf0799111 psi: pressure stall information for CPU, memory, and IO
 ```
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/04/03 | Johannes Weiner <hannes@cmpxchg.org> | [psi: pressure stall information for CPU, memory, and IO v4](https://lwn.net/Articles/815342) | NA | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_5.9#Memory_management) | [Patchwork](https://lore.kernel.org/patchwork/patch/978495) |
+| 2018/08/28 | Johannes Weiner <hannes@cmpxchg.org> | [psi: pressure stall information for CPU, memory, and IO v4](https://lwn.net/Articles/759781) | 引入 PSI 评估系统 CPU, MEMORY, IO 等资源的压力. | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_5.9#Memory_management) | [Patchwork](https://lore.kernel.org/patchwork/patch/978495) |
 
 ```cpp
 d26da1947f48 psi: cgroup support
@@ -178,13 +189,6 @@ ec035638f0c2 sched: introduce this_rq_lock_irq()
 2dde6f773e87 delayacct: track delays from thrashing cache pages
 ```
 
-
-
-```cpp
-abd7f977069d alinux: sched: Fix a branch prediction error in static_key
-a66f5804aa67 alinux: sched: Fix compiling error without CONFIG_FAIR_GROUP_SCHED
-252315eb68be alinux: sched: get_sched_lat_count_idx optimization
-```
 
 
 ## 1.6 burst
@@ -416,10 +420,8 @@ f2116b7f9274 mm/workingset: remove unused @mapping argument in workingset_evicti
 54c1b36ed43a mm/memcontrol: update lruvec counters in mem_cgroup_move_account
 ```
 
-## 2.5 task #3047633(enhance & fix memcg)
+## 2.5 task #3047633(enhance memcg statistic)
 -------
-
-
 
 ### 2.5.1 fix
 -------
@@ -453,12 +455,12 @@ c24d85c9806d mm: memcontrol: make cgroup stats and events query API explicitly l
 98ab53a614a mm, memcg: rename ambiguously named memory.stat counters and functions
 ```
 
-### 2.5.3 mm: memcontrol: track LRU counts in the vmstats array
+### 2.5.3 mm: memcontrol: clean up the LRU counts tracking
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2019/02/28 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: track LRU counts in the vmstats array](https://lore.kernel.org/patchwork/cover/1046756) | NA | v1 ☑ [5.2-rc1](https://kernelnewbies.org/Linux_5.2#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1046756) |
+| 2019/02/28 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: clean up the LRU counts tracking](https://lore.kernel.org/patchwork/cover/1046756) | NA | v1 ☑ [5.2-rc1](https://kernelnewbies.org/Linux_5.2#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1046756) |
 
 ```cpp
 https://lore.kernel.org/patchwork/patch/1046756
@@ -471,7 +473,7 @@ af2a43b06ab6 mm: memcontrol: track LRU counts in the vmstats array
 ```
 
 
-## 2.6 task #30476868
+## 2.6 task #30476868(mm: memcontrol: charge swapin pages on instantiation)
 -------
 
 ### 2.6.1 NA
@@ -584,7 +586,7 @@ efe4ee97dd8f mm, memcg: fix corruption on 64-bit divisor in memory.high throttli
 
 
 
-## 2.9 MEMSLI(to #26424368)
+## 2.8 MEMSLI(to #26424368)
 -------
 
 ```cpp
@@ -594,6 +596,15 @@ mount -t tmpfs cgroup_root /sys/fs/cgroup
 mkdir -p /sys/fs/cgroup/memory
 mount -t cgroup -o memory memory /sys/fs/cgroup/memory
 ```
+
+
+
+
+cpuacct 中引入了一些调度相关的 latency 的统计信息, 并用 histograms 的方式输出.
+
+| 接口 | 描述 |  实现思路 | commit |
+|:---:|:----:|:-------:|:-------:|
+| memory.{direct_reclaim_global_latency,direct_reclaim_memcg_latency} | 全局直接回收 和 memcg直接回收的延迟 | 统计方式同 psi_memstall 等计数器. enqueue_entity 入队时开始计时, 出队时结束计时(set_next_entity 准备投入运行时, 也会出队.) | [83058e75601e alinux: mm, memcg: record latency of direct reclaim in every memcg](https://github.com/alibaba/cloud-kernel/commit/83058e75601ebc28df0f4ddfd344b8926bf5c178)  |
 
 ```cpp
 start_commit : 3d5ca29dd634b4628d7dc82423b2680718e6eb2a
@@ -613,7 +624,7 @@ fe673ccf92aa alinux: mm, memcg: adjust the latency probe point for memcg direct 
 83058e75601e alinux: mm, memcg: record latency of direct reclaim in every memcg
 ```
 
-## 2.10 to #28825456(Fragmentation avoidance improvements v5)
+## 2.9 to #28825456(Fragmentation avoidance improvements v5)
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -639,7 +650,7 @@ fd98e14a7fb4 mm: use alloc_flags to record if kswapd can wake
 039531d219fb mm, page_alloc: spread allocations across zones before introducing fragmentation
 ```
 
-## 2.11 to #28718400(mm: zap pages with read mmap_sem in munmap for large mapping)
+## 2.10 to #28718400(mm: zap pages with read mmap_sem in munmap for large mapping)
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -660,7 +671,7 @@ d33d61675b4d filemap: kill page_cache_read usage in filemap_fault
 7027c30559b9 mm: mmap: zap pages with read mmap_sem in munmap
 ```
 
-## 2.12 task #27327988(thp/khugepaged improvements and CoW semantics)
+## 2.11 task #27327988(thp/khugepaged improvements and CoW semantics)
 -------
 
 
@@ -686,7 +697,7 @@ ed3a7ca76842 khugepaged: do not stop collapse if less than half PTEs are referen
 
 
 
-## 2.13 to #26255339(Increase success rates and reduce latency of compaction v3)
+## 2.12 to #26255339(Increase success rates and reduce latency of compaction v3)
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -740,7 +751,7 @@ b725e2580207 alinux: Revert "mm/compaction.c: clear total_{migrate,free}_scanned
 ```
 
 
-## 2.14 memcg QoS
+## 2.13 memcg QoS
 -------
 
 OOM 优先级以及水线控制
@@ -770,7 +781,7 @@ ef467b9ddbc0 alinux: memcg: Account throttled time due to memory.wmark_min_adj
 63442ea9f838 alinux: memcg: Provide users the ability to reap zombie memcgs
 ```
 
-## 2.15 Introduce MADV_COLD and MADV_PAGEOUT
+## 2.14 Introduce MADV_COLD and MADV_PAGEOUT
 -------
 
 
@@ -789,7 +800,7 @@ a0747c913cc3 mm: change PAGEREF_RECLAIM_CLEAN with PAGE_REFRECLAIM
 
 
 
-## 2.16 Deferred page init improvements
+## 2.15 Deferred page init improvements
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -810,7 +821,7 @@ e23b0cb5fbb8 mm: use mm_zero_struct_page from SPARC on all 64b architectures
 ```
 
 
-## 2.17 CGROUP V1 ENHANCE
+## 2.16 CGROUP V1 ENHANCE
 -------
 
 引入 workingset 统计
@@ -833,7 +844,7 @@ de7ca7468c5d mm, memcg: introduce memory.events.local
 ```
 
 
-## 2.18 Devmap cleanups + arm64 support
+## 2.17 Devmap cleanups + arm64 support
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -847,7 +858,25 @@ f72a099beb96 arm64: mm: add missing PTE_SPECIAL in pte_mkdevmap on arm64
 d7066a918302 mm: introduce ARCH_HAS_PTE_DEVMAP
 ```
 
-##  2.19 background reclaim
+
+## 2.18 Make deferred split shrinker memcg aware
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/06/12 | Yang Shi <yang.shi@linux.alibaba.com> | [Make deferred split shrinker memcg aware](https://lore.kernel.org/patchwork/cover/1088698) | NA | v3 ☑ 5.4-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/cover/1088698) |
+
+
+```cpp
+dff2d64b00bc alinux: mm/thp: remove unused variable 'pgdata' in split_huge_page_to_list()
+e6ca020bc338 alinux: mm: thp: move deferred split queue to memcg's nodeinfo
+d651fcbb412a mm: thp: make deferred split shrinker memcg aware
+bd5596b4a854 mm: shrinker: make shrinker not depend on memcg kmem
+9b78918c7450 mm: move mem_cgroup_uncharge out of __page_cache_release()
+e65b696142fc mm: thp: extract split_queue_* into a struct
+```
+
+## 2.19 background reclaim
 -------
 
 
