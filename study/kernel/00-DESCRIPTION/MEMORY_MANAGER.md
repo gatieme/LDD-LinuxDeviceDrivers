@@ -1164,6 +1164,25 @@ https://lore.kernel.org/patchwork/cover/1118785
 ### 2.8.2 缺页异常
 -------
 
+#### 2.8.2.1 COW
+-------
+
+在 fork 进程的时候, 并不会为子进程直接分配物理页面, 而是使用 COW 的机制. 在 fork 之后, 父子进程都共享原来父进程的页面, 同时将父子进程的 COW mapping 都设置为只读. 这样当这两个进程触发写操作的时候, 触发缺页中断, 在处理缺页的过程中再为该进程分配出一个新的页面出来.
+
+```cpp
+copy_process
+copy_mm
+-=> dup_mm
+    -=> dup_mmap
+        -=> copy_page_range
+            -=> copy_p4d_range
+                -=> copy_pud_range
+                    -=> copy_pmd_range
+                        -=> copy_one_pte
+                            -=> ptep_set_wrprotect
+```
+
+
 #### 2.8.2.1 enhance
 -------
 
