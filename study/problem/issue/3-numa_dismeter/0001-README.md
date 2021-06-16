@@ -49,8 +49,8 @@ blogexcerpt: 这篇文章旨在帮助希望更好地分析其应用程序中性�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:--:|:----:|:---------:|:----:|
-| 2021/01/15 | Song Bao Hua (Barry Song) | [sched/fair: first try to fix the scheduling impact of NUMA diameter > 2 1366256 diffmboxseries](https://lore.kernel.org/patchwork/patch/1366256) | 尝试修复 3 跳问题导致的性能蜕化 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1366256) |
-| 2021/01/27 | Song Bao Hua (Barry Song) | [sched/topology: fix the issue groups don't span domain->span for NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1371875)| 修复 | v2 | [PatchWork](https://lore.kernel.org/patchwork/cover/1371875), [LKML]() |
+| 2021/01/15 | Song Bao Hua (Barry Song) | [sched/fair: first try to fix the scheduling impact of NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1366256) | 尝试修复 3 跳问题导致的性能蜕化 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1366256) |
+| 2021/01/27 | Song Bao Hua (Barry Song) | [sched/topology: fix the issue groups don't span domain->span for NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1371875)| 修复 | v2  5.13-rc1 ☑ | [PatchWork](https://lore.kernel.org/patchwork/cover/1371875) |
 
 
 
@@ -1249,8 +1249,8 @@ load_balance
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:--:|:----:|:---------:|:----:|
 | 2021/01/22 | Valentin Schneider | [sched/topology: NUMA distance deduplication](https://lore.kernel.org/patchwork/cover/1369363) | 修复 | v1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1369363), [LKML](https://lkml.org/lkml/2021/1/22/460) |
-| 2021/01/15 | Song Bao Hua (Barry Song) | [sched/fair: first try to fix the scheduling impact of NUMA diameter > 2 1366256 diffmboxseries](https://lore.kernel.org/patchwork/patch/1366256) | 尝试修复 3 跳问题导致的性能蜕化 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1366256) |
-| 2021/01/27 | Song Bao Hua (Barry Song) | [sched/topology: fix the issue groups don't span domain->span for NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1371875)| 修复 3 跳问题的拓扑构建 | v2 | [PatchWork](https://lore.kernel.org/patchwork/cover/1371875), [LKML]() |
+| 2021/01/15 | Song Bao Hua (Barry Song) | [sched/fair: first try to fix the scheduling impact of NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1366256) | 尝试修复 3 跳问题导致的性能蜕化 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1366256) |
+| 2021/01/27 | Song Bao Hua (Barry Song) | [sched/topology: fix the issue groups don't span domain->span for NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1371875)| 修复 | v2  5.13-rc1 ☑ | [PatchWork](https://lore.kernel.org/patchwork/cover/1371875) |
 
 
 
