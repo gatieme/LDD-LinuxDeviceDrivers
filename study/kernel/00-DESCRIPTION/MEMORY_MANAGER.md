@@ -602,10 +602,10 @@ Mel Gorman观察到, 所有使用的内存页有三种情形:
 | 2010/04/20 | Mel Gorman <mel@csn.ul.ie> | [Memory Compaction](https://lwn.net/Articles/368869) | 内存规整 | v8 ☑ 2.6.35-rc1 | [PatchWork v8](https://lore.kernel.org/patchwork/cover/196771), [LWN](https://lwn.net/Articles/368869) |
 | 2010/11/22 | Mel Gorman <mel@csn.ul.ie> | [Use memory compaction instead of lumpy reclaim during high-order allocations V2](https://lore.kernel.org/patchwork/cover/196771) | 在分配大内存时, 不再使用成块回收(lumpy reclaim)策略, 而是使用内存规整(memory compaction) | v8 ☑ 2.6.35-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/196771) |
 | 2011/02/25 | Mel Gorman <mel@csn.ul.ie> | [Reduce the amount of time compaction disables IRQs for V2](https://lore.kernel.org/patchwork/cover/238585) | 减少内存规整关中断的时间, 降低其开销. | v2 ☑ 2.6.39-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/238585) |
-| 2011/02/25 | Mel Gorman <mel@csn.ul.ie> | [Outsourcing compaction for THP allocations to kcompactd](https://lore.kernel.org/patchwork/cover/575290/) | 在分配大内存时, 不再使用成块回收(lumpy reclaim)策略, 而是使用内存规整(memory compaction) | v8 ☑ 2.6.35-rc1 | [PatchWork v8](https://lore.kernel.org/patchwork/cover/575290) |
 | 2012/04/11 | Mel Gorman <mel@csn.ul.ie> | [Removal of lumpy reclaim V2](https://lore.kernel.org/patchwork/cover/296609) | 移除成块回收(lumpy reclaim) 的代码. | v2 ☑ [3.5-rc1](https://kernelnewbies.org/Linux_3.5#Memory_Management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/296609) |
 | 2012/09/21 | Mel Gorman <mel@csn.ul.ie> | [Reduce compaction scanning and lock contention](https://lore.kernel.org/patchwork/cover/327667) | 进一步优化内存规整的扫描耗时和锁开销. | v1 ☑ 3.7-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/327667) |
 | 2013/12/05 | Mel Gorman <mel@csn.ul.ie> | [Removal of lumpy reclaim V2](https://lore.kernel.org/patchwork/cover/296609) | 添加了 start 和 end 两个 tracepoint, 用于内存规整的开始和结束. 通过这两个 tracepoint 可以计算工作负载在规整过程中花费了多少时间, 并可能调试与用于扫描的缓存 pfns 相关的问题. 结合直接回收和 slab 跟踪点, 应该可以估计工作负载的大部分与分配相关的开销. | v2 ☑ 3.14-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/296609) |
+| 2015/07/02 | Mel Gorman <mel@csn.ul.ie> | [Outsourcing compaction for THP allocations to kcompactd](https://lore.kernel.org/patchwork/cover/575290) | 实现 per node 的 kcompactd 内核线程来定期触发内存规整. | RFC v2 ☑ 4.6-rc1 | [PatchWork RFC v2](https://lore.kernel.org/patchwork/cover/575290) |
 
 
 
@@ -1977,6 +1977,10 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 
 ### 2.13.4.3   数据访问监视器 DAMON
 -------
+
+[linux data access monitor (DAMON)](https://blog.csdn.net/zqh1630/article/details/109954910)
+
+[LWN：用DAMON来优化memory-management!](https://blog.csdn.net/Linux_Everything/article/details/104707923)
 
 对指定的程序进行内存相关优化, 了解业务给定工作负载的数据访问模式至关重要. 但是, 从庞大和复杂的工作量中手动提取此类模式非常详尽. 更糟糕的是, 现有的内存访问分析工具会为不必要的详细分析结果带来不可接受的高开销.
 
