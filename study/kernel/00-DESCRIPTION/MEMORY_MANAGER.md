@@ -1032,15 +1032,20 @@ Johannes Weiner 认为这种经验公式过于简单且不够灵活, 为此他�
 
 [Linux Kernel中AEP的现状和发展](https://kernel.taobao.org/2019/05/NVDIMM-in-Linux-Kernel)
 
-[LSF/MM 2019](https://lwn.net/Articles/lsfmm2019) 期间, 主动回收 IDLE 页面的议题引起了开发者的关注. 通过对业务持续一段时间的页面使用进行监测, 回收掉那些不常用的或者没必要的页面, 可以节省大量的内存. 这可能比启发式的 kswapd 更有效.
+[LSF/MM 2019](https://lwn.net/Articles/lsfmm2019) 期间, 主动回收 IDLE 页面的议题引起了开发者的关注. 通过对业务持续一段时间的页面使用进行监测, 回收掉那些不常用的或者没必要的页面, 在满足业务需求的前提下, 可以节省大量的内存. 这可能比启发式的 kswapd 更有效. 这包括两部分的内容:
 
-首先是 Google 开发了一套 idle page tracking 的机制来跟踪一段时间没有访问的是哪些内存页面.
+1.  为了能识别那些可以回收的页面, 必须对那些不常用的页面有效地进行跟踪, 即 idle page tracking.
+
+2.  为了在回收了内存之后还能满足业务的需求, 保障业务性能不下降, 需要能预测出业务运行所需要的实际最小内存. brendangregg 大神对此也有描述, [Working Set Size Estimation](https://www.brendangregg.com/wss.html).
+
+
+首先是 Google 的方案, 这个特性很好的诠释了上面量两部分的内容, 参见[V2: idle page tracking / working set estimation](https://lore.kernel.org/patchwork/cover/268228). 其主要实现思路如下:
 
 1.  目前已经实现好的方案有一个 user-space 进程会频繁读取 sysfs 提供的 bitmap. 参见 [idle memory tracking](https://lore.kernel.org/patchwork/cover/580794), 引入了一个 `/sys/kernel/mm/page_idle/bitmap`, 不过这个方案CPU占用率偏高, 并且内存浪费的也不少.
 
 2.  所以目前 Google 在试一个新方案, 基于一个名为 kstaled 的 kernel thread, 参见 [V2: idle page tracking / working set estimation](https://lore.kernel.org/patchwork/cover/268228). 这个 kernel thread 会利用 page 里的 flag 来跟踪 idle page, 所以不会再浪费更多系统内存了, 不过仍然需要挺多 CPU 时间的. 还有一个新加的 kreclaimd 线程来扫描内存, 回收那些空闲(没人读写访问)太久的页面. CPU 的开销并不小, 会随着需要跟踪的内存空间大小, 以及扫描的频率而线性增加. 在一个 512GB 内存的系统上, 可能会需要一个CPU完全用于做这部分工作. 大多数的时间都是在遍历 reverse-map 列表来查找 page mapping. 他们试过把 reverse-map 的查找去掉, 而是创建一个 PMD page table 链表, 可以改善这部分开销. 这样能减少 CPU 占用率到原来的 2/7. 还有另一个优化是把 kreclaimd 的扫描去掉而直接利用 kstaled 传入的一组页面, 也有明显的效果.
 
-基于 kstaled 的方案, 没有合入主线, 但是 idle memory tracking 的方案在优化后, 于 4.3 合入了主线, 命名为 CONFIG_IDLE_PAGE_TRACKING. 作者基于这个特性进程运行所需的实际内存预测(WSS), 并提供了一[系列工具 idle_page_tracking](https://github.com/sjp38/idle_page_tracking)来完成这个工作, 参见 [Idle Page Tracking Tools](https://sjp38.github.io/post/idle_page_tracking). brendangregg 大神对此也有描述, [Working Set Size Estimation](https://www.brendangregg.com/wss.html).
+基于 kstaled 的方案, 没有合入主线, 但是 idle memory tracking 的方案在优化后, 于 4.3 合入了主线, 命名为 CONFIG_IDLE_PAGE_TRACKING. 作者基于这个特性进程运行所需的实际内存预测(WSS), 并提供了一[系列工具 idle_page_tracking](https://github.com/sjp38/idle_page_tracking)来完成这个工作, 参见 [Idle Page Tracking Tools](https://sjp38.github.io/post/idle_page_tracking).
 
 Facebook 指出他们也面临过同样的问题, 所有的workload都需要放到container里去执行, 用户需要明确申明需要使用多少内存, 不过其实没人知道自己真的会用到多少内存, 因此用户申请的内存数量都太多了, 也就有了类似的overcommit和reclaim问题. Facebook的方案是采用 [PSI(pressure-stall information)](https://lwn.net/Articles/759781), 根据这个来了解内存是否变得很紧张了, 相应的会把LRU list里最久未用的page砍掉. 假如这个举动导致更多的 refault 发生. 不过通过调整内存的回收就调整的激进程度可以缓和 refault. 从而达到较合理的结果, 同时占用的CPU时间也会小得多.
 
