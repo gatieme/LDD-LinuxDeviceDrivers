@@ -248,8 +248,39 @@ Linux 为每个 zone 都设置了独立的 min, low 和 high 三个档位的 wat
 ### 2.1.1.4 PCP(Per CPU Page) Allocation
 -------
 
+*   [Hot and cold pages](https://lwn.net/Articles/14768)
+
+[Linux 中的冷热页机制概述](https://toutiao.io/posts/d4cz9u/preview)
+
+[内存管理中的cold page和hot page， 冷页 vs 热页](https://blog.csdn.net/kickxxx/article/details/9306361)
+
+v2.5.45, Martin Bligh 和 Andrew Morton 以及其他人提交了一个内核分配器 patch, 引入了 hot-n-cold pages 的概念, 这个概念本身是和现在处理器架构息息相关的. 尽量利用处理器 cache, 避免使用主存, 可以提升性能. hot-cold page 就是这样的思路. 处理器cache保存着最近访问的内存. kernel 认为最近访问的内存很有可能存在于cache之中. hot-cold page patch 为 每个 zone 建立了一个 [per-CPU 的页面缓存](https://elixir.bootlin.com/linux/v2.5.45/source/include/linux/mmzone.h#L125), 页面缓存中包含了[ cold 和 hot 两种页面](https://elixir.bootlin.com/linux/v2.5.45/source/include/linux/mmzone.h#L59) 每个内存zone). 当 kernel 释放的 page 可能是 hot page 时([page cache 的页面往往被认为是在 cache 中的](https://elixir.bootlin.com/linux/v2.5.45/source/mm/swap.c#L87), 是 hot 的), 那么就把它[放入hot链表](https://elixir.bootlin.com/linux/v2.5.45/source/mm/page_alloc.c#L558), 否则放入 cold 链表.
+
+1.  当 kernel 需要分配一个page时, 新分配器通常会从 per-CPU 的 hot list 获取页面, 甚至我们获得的页面马上就要写入新数据的情况下, 仍然能获得较好的速度.
+
+2.  当然也有些情况下, 申请 hot page 不会获得性能上的提高, 只要申请 cold page 就可以了. 比如 [DMA 读操作需要的内存分配](https://elixir.bootlin.com/linux/v2.5.45/C/ident/page_cache_alloc_cold), 设备会直接修改内存并且无效相应的 cache. 所以内核分配器提供了 [GFP_COLD分配标记](https://elixir.bootlin.com/linux/v2.5.45/source/mm/page_alloc.c#L412) 来显式从 cold page 链表分配内存.
+
+此外使用 per-CPU page 链表也削减了锁竞争, 提高了性能. Andrew Morton 测试了这个patch，在不同环境下获得了 `%1~%12` 不等的性能提升.
+
+
+```cpp
+8d6282a1cf8 [PATCH] hot-n-cold pages: free and allocate hints
+5019ce29f74 [PATCH] hot-n-cold pages: use cold pages for readahead
+a206231bbe6 [PATCH] hot-n-cold pages: page allocator core
+1d2652dd2c3 [PATCH] hot-n-cold pages: bulk page freeing
+38e419f5b01 [PATCH] hot-n-cold pages: bulk page allocator
+```
+
+后来经过测试后, 大家一致认为, 将热门页面和冷页面分开列出可能没有什么意义. 因为有一种方法可以连接这两个列表: 使用单一列表, 将冷页面放在末尾, 将热页面放在开头. 这样, 一个列表就可以为这两种类型的分配服务. [Page allocator: get rid of the list of cold pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3dfa5721f12c3d5a441448086bee156887daa961).
+
+这样 free_cold_page 函数已经没意义了, 被删除掉, [page-allocator: Remove dead function free_cold_page()](https://lore.kernel.org/patchwork/patch/166245), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=38a398572fa2d8124f7479e40db581b5b72719c9). 以及 [free_hot_page](https://lore.kernel.org/patchwork/patch/185034), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fc91668eaf9e7ba61e867fc2218b7e9fb67faa4f).
+
+随后, 由于页面空闲路径没有区分缓存热页面和冷页面, 更是将 `__GFP_COLD` 标记删掉 [mm: remove `__GFP_COLD`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=453f85d43fa9ee243f0fc3ac4e1be45615301e3f). 当前空闲列表中没有真正有用的页面排序, 分配请求无法利用这些排序, 因此 `__GFP_COLD` 已经没有明确的意义. 删除 `__GFP_COLD` 参数还简化了页面分配器中的一些路径.
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2017/10/17 | Jan Kara <jack@suse.cz> | [Speed up page cache truncation v2](https://patchwork.kernel.org/project/linux-fsdevel/patch/20171017162120.30990-2-jack@suse.cz) | NA | v2 ☑ 5.11-rc1 | [PatchwWork v2](https://patchwork.kernel.org/project/linux-fsdevel/patch/20171017162120.30990-2-jack@suse.cz) |
+| 2017/10/18 | Mel Gorman <mgorman@techsingularity.net> | [Follow-up for speed up page cache truncation v2](https://lore.kernel.org/patchwork/cover/842268) | NA | v2 ☑ 4.15-rc1 | [PatchwWork v2](https://lore.kernel.org/patchwork/cover/842268) |
 | 2016/12/01 | Vlastimil Babka <vbabka@suse.cz> | [disable pcplists during memory offline](https://lore.kernel.org/patchwork/cover/1336780) | 当内存下线的时候, 禁用 PCP   | v3 ☑ 5.11-rc1 | [v4](https://lore.kernel.org/patchwork/cover/1336780) |
 
 
@@ -344,7 +375,7 @@ Linux 为每个 zone 都设置了独立的 min, low 和 high 三个档位的 wat
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/01/23 | Vlastimil Babka <vbabka@suse.cz> | [page stealing tweaks](https://lore.kernel.org/patchwork/cover/535613) |  | v1 ☑ 4.13-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/535613) |
-| 2017/03/07 | Vlastimil Babka <vbabka@suse.cz> | [try to reduce fragmenting fallbacks](https://lore.kernel.org/patchwork/cover/766804) | 修复 [Regression in mobility grouping?](https://lkml.org/lkml/2016/9/28/94) 上报的碎片化问题, 通过修改 fallback 机制和 compaction 机制来减少永久随便化的可能性. 其中 fallback 修改时, 仅尝试从不同 migratetype 的 pageblock 中窃取的页面中挑选最小(但足够)的页面. | v3 ☑ 4.12-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/766804), [KernelNewbies](https://kernelnewbies.org/Linux_4.12#Memory_management), [关键 commit 3bc48f96cf11 ("mm, page_alloc: split least stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) |
+| 2017/03/07 | Vlastimil Babka <vbabka@suse.cz> | [try to reduce fragmenting fallbacks](https://lore.kernel.org/patchwork/cover/766804) | 修复 [Regression in mobility grouping?](https://lkml.org/lkml/2016/9/28/94) 上报的碎片化问题, 通过修改 fallback 机制和 compaction 机制来减少永久随便化的可能性. 其中 fallback 修改时, 仅尝试从不同 migratetype 的 pageblock 中窃取的页面中挑选最小(但足够)的页面. | v3 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v6](https://lore.kernel.org/patchwork/cover/766804), [KernelNewbies](https://kernelnewbies.org/Linux_4.12#Memory_management), [关键 commit 3bc48f96cf11 ("mm, page_alloc: split least stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) |
 | 2017/05/29 | Vlastimil Babka <vbabka@suse.cz> | [mm, page_alloc: fallback to smallest page when not stealing whole pageblock](https://lore.kernel.org/patchwork/cover/793063) |  | v1 ☑ 4.13-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/793063), [commit 7a8f58f39188](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e) |
 
 commit fef903efcf0cb9721f3f2da719daec9bbc26f12b
@@ -482,7 +513,7 @@ SLUB 在解决了上述的问题之上, 提供与 SLAB 完全一样的接口, �
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2008/08/11 | Christoph Lameter <cl@linux-foundation.org> | [Slab Fragmentation Reduction V14](https://lore.kernel.org/patchwork/cover/125818) | SLAB 抗碎片化 | v14 ☐ | [PatchWork v14](https://lore.kernel.org/patchwork/cover/125818)) |
+| 2008/08/11 | Christoph Lameter <cl@linux-foundation.org> | [Slab Fragmentation Reduction V14](https://lore.kernel.org/patchwork/cover/125818) | SLAB 抗碎片化 | v14 ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/cover/90742)<br>*-*-*-*-*-*-*-* <br>[PatchWork v14](https://lore.kernel.org/patchwork/cover/125818) |
 
 
 *   kmalloc-reclaimable caches
@@ -501,6 +532,16 @@ Roman Gushchin indirectly reclaimable memory](https://lore.kernel.org/patchwork/
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/03/05 | Roman Gushchin <guro@fb.com> | [indirectly reclaimable memory](https://lore.kernel.org/patchwork/cover/922092) | 引入间接回收内存的概念( `/proc/vmstat/nr_indirect _reclaimable`). 间接回收内存是任何类型的内存, 由内核使用(除了可回收的 slab), 这实际上是可回收的, 即将在内存压力下释放. 并[被当作 available 的内存对待](034ebf65c3c21d85b963d39f992258a64a85e3a9). | v1 ☑ [4.17-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/922092)) |
 | 2018/07/31 | Vlastimil Babka <vbabka@suse.cz> | [kmalloc-reclaimable caches](https://lore.kernel.org/patchwork/cover/969264) | 为 kmalloc 引入回收 SLAB, dcache external names 是 kmalloc-rcl-* 的第一个用户.  | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) | [PatchWork v4](https://lore.kernel.org/patchwork/cover/969264)) |
+
+
+https://lore.kernel.org/patchwork/patch/76916
+https://lore.kernel.org/patchwork/cover/78940
+https://lore.kernel.org/patchwork/cover/72119
+https://lore.kernel.org/patchwork/cover/63980
+https://lore.kernel.org/patchwork/cover/91223
+https://lore.kernel.org/patchwork/cover/145184
+https://lore.kernel.org/patchwork/cover/668967
+
 
 
 ## 2.1.3 内核级别的 malloc 分配器之-大内存分配
@@ -638,7 +679,10 @@ Mel Gorman观察到, 所有使用的内存页有三种情形:
 | 2012/04/11 | Mel Gorman <mel@csn.ul.ie> | [Removal of lumpy reclaim V2](https://lore.kernel.org/patchwork/cover/296609) | 移除成块回收(lumpy reclaim) 的代码. | v2 ☑ [3.5-rc1](https://kernelnewbies.org/Linux_3.5#Memory_Management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/296609) |
 | 2012/09/21 | Mel Gorman <mel@csn.ul.ie> | [Reduce compaction scanning and lock contention](https://lore.kernel.org/patchwork/cover/327667) | 进一步优化内存规整的扫描耗时和锁开销. | v1 ☑ 3.7-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/327667) |
 | 2013/12/05 | Mel Gorman <mel@csn.ul.ie> | [Removal of lumpy reclaim V2](https://lore.kernel.org/patchwork/cover/296609) | 添加了 start 和 end 两个 tracepoint, 用于内存规整的开始和结束. 通过这两个 tracepoint 可以计算工作负载在规整过程中花费了多少时间, 并可能调试与用于扫描的缓存 pfns 相关的问题. 结合直接回收和 slab 跟踪点, 应该可以估计工作负载的大部分与分配相关的开销. | v2 ☑ 3.14-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/296609) |
+| 2014/02/14 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [compaction related commits](https://lore.kernel.org/patchwork/cover/441817) | 内存规整相关清理和优化. 降低了内存规整 9% 的运行时间. | v2 ☑ 3.15-rc1 | [PatchWork v2 0/5](https://lore.kernel.org/patchwork/cover/441817) |
 | 2015/07/02 | Mel Gorman <mel@csn.ul.ie> | [Outsourcing compaction for THP allocations to kcompactd](https://lore.kernel.org/patchwork/cover/575290) | 实现 per node 的 kcompactd 内核线程来定期触发内存规整. | RFC v2 ☑ 4.6-rc1 | [PatchWork RFC v2](https://lore.kernel.org/patchwork/cover/575290) |
+| 2016/08/10 | Mel Gorman <mel@csn.ul.ie> | [make direct compaction more deterministic](https://lore.kernel.org/patchwork/cover/692460) | 更有效地直接压缩. 在内存分配的慢速路径 `__alloc_pages_slowpath` 中的一直会先尝试直接回收和压缩, 直到分配成功或返回失败.<br>1. 当回收先于压缩时更有可能成功, 因为压缩需要满足某些苛刻的条件和水线要求, 并且在有更多的空闲页面时会增加压缩成功的概率.<br>2. 另一方面, 从轻异步压缩(如果水线允许的话)开始也可能更有效, 特别是对于较小 order 的申请. 因此这个补丁慢速路径下的尝试流程修正为将先进行 MIGRATE_ASYNC 异步迁移(规整), 再尝试内存直接回收, 接着进行 MIGRATE_SYNC_LIGHT 轻度同步迁移(规整). 并引入了[直接规整的优先级](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a5508cd83f10f663e05d212cb81f600a3af46e40). | RFC v2 ☑ 4.8-rc1 & 4.9-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/cover/692460)<br>*-*-*-*-*-*-*-* <br>[PatchWork series 1 v5](https://lore.kernel.org/patchwork/cover/700017)<br>*-*-*-*-*-*-*-* <br>[PatchWork series 2 v6](https://lore.kernel.org/patchwork/cover/705827) |
+| 2017/03/07 | Vlastimil Babka <vbabka@suse.cz> | [try to reduce fragmenting fallbacks](https://lore.kernel.org/patchwork/cover/766804) | 修复 [Regression in mobility grouping?](https://lkml.org/lkml/2016/9/28/94) 上报的碎片化问题, 通过修改 fallback 机制和 compaction 机制来减少永久随便化的可能性. 其中 fallback 修改时, 仅尝试从不同 migratetype 的 pageblock 中窃取的页面中挑选最小(但足够)的页面. | v3 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v6](https://lore.kernel.org/patchwork/cover/766804), [KernelNewbies](https://kernelnewbies.org/Linux_4.12#Memory_management), [关键 commit 3bc48f96cf11 ("mm, page_alloc: split least stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) |
 
 
 
@@ -728,7 +772,25 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 |:-------:|:---:|
 | 快速内存回收机制 `node_reclaim()` | 处于get_page_from_freelist()函数中, 在遍历zonelist过程中, 对每个zone都在分配前进行判断, 如果分配后zone的空闲内存数量 < 阀值 + 保留页框数量, 那么此zone就会进行快速内存回收. 其中阀值可能是min/low/high的任何一种, 因为在快速内存分配, 慢速内存分配和oom分配过程中如果回收的页框足够, 都会调用到get_page_from_freelist()函数, 所以快速内存回收不仅仅发生在快速内存分配中, 在慢速内存分配过程中也会发生. |
 | 直接内存回收 `__alloc_pages_direct_reclaim` | 处于慢速分配过程中, 直接内存回收只有一种情况下会使用, 在慢速分配中无法从zonelist的所有zone中以min阀值分配页框, 并且进行异步内存压缩后, 还是无法分配到页框的时候, 就对zonelist中的所有zone进行一次直接内存回收. 注意, 直接内存回收是针对zonelist中的所有zone的, 它并不像快速内存回收和kswapd内存回收, 只会对zonelist中空闲页框不达标的zone进行内存回收. 在直接内存回收中, 有可能唤醒flush内核线程. |
-| kswapd 内存回收 | 发生在kswapd内核线程中, 每个node有一个swapd内核线程, 也就是kswapd内核线程中的内存回收, 是只针对所在node的, 并且只会对分配了order页框数量后空闲页框数量 < 此zone的high阀值 + 保留页框数量的zone进行内存回收, 并不会对此node的所有zone进行内存回收. |
+| kswapd 内存回收 | 发生在 kswapd 内核线程中, 当前每个 node 有一个 kswapd 内核线程, 也就是kswapd内核线程中的内存回收, 是只针对所在node的, 并且只会对分配了order页框数量后空闲页框数量 < 此zone的high阀值 + 保留页框数量的zone进行内存回收, 并不会对此node的所有zone进行内存回收. |
+
+## 2.4.1 内存回收机制
+-------
+
+快速内存回收机制 `node_reclaim()` 在内存分配的快速路径进行, 因此一直是优化的重点.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2005/06/21 | Martin Hicks <mort@sgi.com> | [VM: early zone reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=753ee728964e5afb80c17659cc6c3a6fd0a42fe0) | 引入 zone_reclaim syscall, 用来回收 zone 的内存. | v1 ☑ 2.6.13-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=753ee728964e5afb80c17659cc6c3a6fd0a42fe0) |
+| 2005/12/08 | Christoph Lameter <clameter@sgi.com> | [Zone reclaim V3: main patch](https://lore.kernel.org/patchwork/cover/47638) | 实现快速内存回收机制 `node_reclaim()`. 当前版本 LRU 是在 zone 上管理的, 因此引入快速页面内存回收的时候, 也是 Zone reclaim 的. 引入了 zone_reclaim_mode. | v14 ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/cover/90742)<br>*-*-*-*-*-*-*-* <br>[PatchWork v14](https://lore.kernel.org/patchwork/cover/47638) |
+| 2005/12/21 | Christoph Lameter <clameter@sgi.com> | [Zone reclaim Reclaim logic based on zoned counters](https://lore.kernel.org/patchwork/cover/48460) | NA | v4 ☐ | [PatchWork v4 0/3](https://lore.kernel.org/patchwork/cover/48460) |
+| 2006/01/18 | Christoph Lameter <clameter@sgi.com> | [Zone reclaim: Reclaim logic](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9eeff2395e3cfd05c9b2e6074ff943a34b0c5c21) | 重构 zone reclaim. | v1 ☑ v2.6.16-rc2 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9eeff2395e3cfd05c9b2e6074ff943a34b0c5c21) |
+| 2006/01/18 | Christoph Lameter <clameter@sgi.com> | [mm, numa: reclaim from all nodes within reclaim distance](https://lore.kernel.org/patchwork/patch/326889) | NA | v1 ☑ v2.6.16-rc2 | [PatchWork](https://lore.kernel.org/patchwork/cover/326889)<br>*-*-*-*-*-*-*-* <br>[PatchWork fix](https://lore.kernel.org/patchwork/cover/328345)<br>*-*-*-*-*-*-*-* <br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=957f822a0ab95e88b146638bad6209bbc315bedd) |
+| 2009/06/11 | Mel Gorman <mel@csn.ul.ie> | [Fix malloc() stall in zone_reclaim() and bring behaviour more in line with expectations V3](https://lore.kernel.org/patchwork/patch/159963) | NA | v1 ☑ v2.6.16-rc2 | [PatchWork](https://lore.kernel.org/patchwork/cover/159963) |
+
+
+## 2.4.1 LRU
+-------
 
 ### 2.4.1.1 经典地 LRU 算法
 -------
@@ -1003,6 +1065,11 @@ Johannes Weiner 认为这种经验公式过于简单且不够灵活, 为此他�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2010/06/29 | Mel Gorman <mel@csn.ul.ie> | [Avoid overflowing of stack during page reclaim V3](https://lore.kernel.org/patchwork/cover/204944) | NA | v3 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/685701)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3](https://lore.kernel.org/patchwork/cover/204944) |
+| 2010/09/15 | Mel Gorman <mel@csn.ul.ie> | [Reduce latencies and improve overall reclaim efficiency v2](https://lore.kernel.org/patchwork/cover/215977) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/215977) |
+| 2010/10/28 | Mel Gorman <mel@csn.ul.ie> | [Reduce the amount of time spent in watermark-related functions V4](https://lore.kernel.org/patchwork/cover/222014) | NA | v4 ☐ | [PatchWork v4](https://lore.kernel.org/patchwork/cover/222014) |
+| 2010/07/30 | Mel Gorman <mel@csn.ul.ie> | [Reduce writeback from page reclaim context V6](https://lore.kernel.org/patchwork/cover/209074) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/209074) |
+
 | 2021/05/27 | Muchun Song <songmuchun@bytedance.com> | [Optimize list lru memory consumption](https://lore.kernel.org/patchwork/cover/1436887) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1436887) |
 
 
@@ -1016,6 +1083,7 @@ Johannes Weiner 认为这种经验公式过于简单且不够灵活, 为此他�
 | 2015/12/30 | Rik van Riel <riel@redhat.com> | [MM: implement MADV_FREE lazy freeing of anonymous memory](https://lore.kernel.org/patchwork/cover/79624) | madvise 支持页面延迟回收(MADV_FREE)的早期尝试  | v5 ☑ 4.5-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/79624) |
 | 2014/07/18 | Minchan Kim | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/484703) | madvise 可以用来设置页面的属性, MADV_FREE 则将这些页标识为延迟回收, 在页面用不着的时候, 可能并不会立即释放<br>1. 当内核内存紧张时, 这些页将会被优先回收, 如果应用程序在页回收后又再次访问, 内核将会返回一个新的并设置为 0 的页.<br>2. 而如果内核内存充裕时, 标识为 MADV_FREE 的页会仍然存在, 后续的访问会清掉延迟释放的标志位并正常读取原来的数据, 因此应用程序不检查页的数据, 就无法知道页的数据是否已经被丢弃. | v13 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/416962) |
 | 2015/12/30 | Minchan Kim | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/622178) | madvise 支持页面延迟回收(MADV_FREE)的再一次尝试  | v5 ☑ 4.5-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/622178), [KernelNewbies](https://kernelnewbies.org/Linux_4.5#Add_MADV_FREE_flag_to_madvise.282.29) |
+| 2017/02/24 | Minchan Kim | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/622178) | MADV_FREE 有几个问题, 使它不能在 jemalloc 这样的库中使用: 不支持系统没有交换启用, 增加了内存的压力, 另外统计也存在问题. 这个版本将 MADV_FREE 页面放到 LRU_INACTIVE_FILE 列表中, 为无交换系统启用 MADV_FREE, 并改进了统计计费.  | v5 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v5](https://lore.kernel.org/patchwork/cover/622178) |
 
 
 ## 2.4.3 主动的页面回收
