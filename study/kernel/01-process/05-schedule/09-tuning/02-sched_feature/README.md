@@ -1100,10 +1100,31 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 
 在每个运行队列 struct rq 里, 除了 load 代表当前运行队列的负载, 同时还有一个 cpu_load[] 这样的数组, 它是一个分级别的代表当前运行队列负载的"替身". 在多 CPU 调度时, 会计算不同的 cpu domain 的负载, 根据不同的 index, 会选取相应的 cpu_load[] 作为当前运行队列的负载返回. 该特性的补丁 [commit 7897986bad8f sched: balance timers](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7897986bad8f6cd50d6149345aca7f6480f49464) 后引入, 补丁于 2.6.13-rc1 合入.
 
-这些负载值在 scheduler_tick, idle_balance 以及 NOHZ 退出时进行更新, 内核为每个调度域提供了 5 种 INDEX 以供选择.
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2005/06/25 | Nicholas Piggin <npiggin@gmail.com> | [sched: balance timers](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7897986bad8f6cd50d6149345aca7f6480f49464) | 引入 cpu_load 数组, 不同路径下 source_load 和 target_load 将同时选择不同的 idx 作为负载计算的来源. | v1 ☑ 2.6.13-rc1 | [commit 7897986bad8f](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7897986bad8f6cd50d6149345aca7f6480f49464) |
+| 2008/06/27 | Venkatesh Pallipadi <venki@google.com> | [sched: Avoid side-effect of tickless idle on update_cpu_load (v2)](https://lore.kernel.org/patchwork/cover/200128) | NA | v2 ☑ 2.6.36-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/200128), [commit fdf3e95d3916](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fdf3e95d3916f18bf8703fb065499fdbc4dfe34c) |
+| 2009/03/25 | Venkatesh Pallipadi <venki@google.com> | [sched: Simple helper functions for find_busiest_group()
+](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=67bb6c036d1fc3d332c8527a36a546e3e72e822c) | 简化 find_busiest_group 的逻辑, 引入了 get_sd_load_idx. | v1 ☑ 2.6.30-rc1 | [commit 67bb6c036d1f](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=67bb6c036d1fc3d332c8527a36a546e3e72e822c) |
+| 2010/05/17 | Venkatesh Pallipadi <venki@google.com> | [sched: cfs rq data types](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6aa645ea5f7a246702e07f29edc7075d487ae4a3) | 引入 cfs_rq, rt_rq 等. 同时将 rt_rq. 同时 cpu_load 扩充为 5 个 | v2 ☑ 2.6.36-rc1 | [commit 6aa645ea5f7a](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6aa645ea5f7a246702e07f29edc7075d487ae4a3) |
+
+
+
+| idx | 默认值 | 描述 |
+|:---:|:-----:|:----:|
+| busy_idx | x86_64:3, i386:3 | find_busiest_group 时通过 get_sd_load_idx 获取. 要求 idle_type 为 CPU_NOT_IDLE. 如果 tick 中触发 load_balance() 时 CPU 不为 IDLE 的, 则处于此类型. |
+| idle_idx | x86_64:2, i386:1 | find_busiest_group 时通过 get_sd_load_idx 获取. 要求 idle_type 为 CPU_IDLE. 如果处于 active_load_balance() 或者 tick 中触发 load_balance() 时 CPU 为 IDLE 的, 则处于此类型. |
+| newidle_idx | x86_64:1, i386:2 | find_busiest_group 时通过 get_sd_load_idx 获取. 要求 idle_type 为 CPU_NEWLY_IDLE. 如果处于 idle_balance() 或者 nohz_newidle_balance() 则使用此类型. |
+| wake_idx | x86_64:1, i386:1 | find_idlest_cpu 时使用 |
+
+这些负载值在 scheduler_tick, idle_balance 以及 NOHZ 退出时进行更新, 内核为每个调度域提供了 4 种 INDEX 需要选择, 可以配置 CPU_LOAD_IDX_MAX(早期是 3 后期是 5) 种 cpu_load 以供选择.
 
 ## 9.2 source_load 和 target_load
 ------
+
+[8c136f71934b sched: scheduler domain support](https://github.com/gatieme/linux-history/commit/8c136f71934b05aebb7ffb9631415b74f0906bad)
+
+[a690c9b7ac0d sched: cpu load management cleanup](https://github.com/gatieme/linux-history/commit/a690c9b7ac0ddc28785c38526a69a7fe2e692500)
 
 *source_load 和 target_load* 在调度的负载均衡路径和唤醒路径上, 调度器总是希望系统的负载均可能的均衡, 但是比较两个 CPU 的负载的时候, 总是有所倾向的, 我们倾向于把进程留在本地 CPU 而不是迁移到其他 CPU 上. 如果达到这样的效果呢.
 
@@ -1130,13 +1151,16 @@ static void check_preempt_wakeup(struct rq *rq, struct task_struct *p, int wake_
 
 *关闭 LB_BIAS* 调度器上任何一个优化, 哪怕只是实验性的, 一旦开起来, 要是想再关闭, 是非常困难的. [commit fdf5f315d5cf](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fdf5f315d5cfaefb7bb8a62ec4bf37b9891837aa), [PatchWork](https://lore.kernel.org/patchwork/patch/973154), 这个补丁中做了大量的性能测试, 最终证实在测试场景中, 把 LB_BIAS 关掉并没有造成较大的性能劣化, 因此可以尝试把它关掉, 最终该补丁于 4.20-rc1 合入.
 
+
+TODO:
+https://fa.linux.kernel.narkive.com/af7M4Sth/rfc-patch-0-4-sched-disabled-lb-bias-with-full-dynticks
+
 ## 9.4 寿终正寝
 -------
 
 *移除 cpu_load* 关闭 LB_BIAS 带来的直接好处就是, 最后一个使用 cpu_load 的用户被关掉了, 那么内核可以安全的[移除 cpu_load 数组 55627e3cd22c sched/core: Remove rq->cpu_load[]](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=55627e3cd22c315c4a02fe3bbbb7234ec439cb1d)了, 同时 [LB_BIAS 也被移除](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1c1b8a7b03ef), 自然 sched_domian 中[设置 idx 的接口也没有存在的必要了](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0e1fef63d92d). 参见 [sched: Remove per rq load array](https://lore.kernel.org/patchwork/patch/1079336), 最终于 5.10-rc1 合入内核.
 
-TODO:
-https://fa.linux.kernel.narkive.com/af7M4Sth/rfc-patch-0-4-sched-disabled-lb-bias-with-full-dynticks
+
 
 #10    NONTASK_CAPACITY
 -------
