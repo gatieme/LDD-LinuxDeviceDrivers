@@ -1,5 +1,14 @@
-1   调度子系统(scheduling)
+调度子系统(scheduling)
 =====================
+
+
+# 0 调度子系统(开篇)
+-------
+
+
+# 0.1 调度子系统概述
+-------
+
 
 **概述: **Linux 是一个遵循 POSIX 标准的类 Unix 操作系统(然而它并不是 Unix 系统[<sup>1</sup>](#refer-anchor-1)), POSIX 1003.1b 定义了调度相关的一个功能集合和 API 接口[<sup>2</sup>](#refer-anchor-2). 调度器的任务是分配 CPU 运算资源, 并以协调效率和公平为目的. **效率**可从两方面考虑: 1) 吞吐量(throughput) 2)延时(latency). 不做精确定义, 这两个有相互矛盾的衡量标准主要体现为两大类进程: 一是 CPU 密集型, 少量 IO 操作, 少量或无与用户交互操作的任务(强调吞吐量, 对延时不敏感, 如高性能计算任务 HPC), 另一则是 IO 密集型, 大量与用户交互操作的任务(强调低延时, 对吞吐量无要求, 如桌面程序). **公平**在于有区分度的公平, 多媒体任务和数值计算任务对延时和限定性的完成时间的敏感度显然是不同的.
 为此,  POSIX 规定了操作系统必须实现以下**调度策略(scheduling policies),** 以针对上述任务进行区分调度:
@@ -21,8 +30,6 @@
 
 先级(可用 **nice()** API设置), 分配 CPU 运算资源.  **注意: 这类进程比上述两类实时进程优先级低, 换言之, 在有实时进程存在时, 实时进程优先调度**.
 
-
-
 Linux 除了实现上述策略, 还额外支持以下策略:
 
 - **SCHED\_IDLE** 优先级最低, **在系统空闲时才跑这类进程**(如利用闲散计算机资源跑地外文明搜索, 蛋白质结构分析等任务, 是此调度策略的适用者)
@@ -35,39 +42,7 @@ Linux 除了实现上述策略, 还额外支持以下策略:
 除了完成以上基本任务外, Linux 调度器还应提供高性能保障, 对吞吐量和延时的均衡要有好的优化; 要提供高可扩展性(scalability)保障, 保障上千节点的性能稳定; 对于广泛作为服务器领域操作系统来说, 它还提供丰富的组策略调度和节能调度的支持.
 
 
-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-　重要功能和时间点　-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**
-
-
-**目录:**
-
-**1 抢占支持(preemption)**
-
-**2 普通进程调度器(SCHED\_OTHER)之纠极进化史**
-
-**3 有空时再跑 SCHED\_IDLE**
-
-**4 吭哧吭哧跑计算 SCHED\_BATCH**
-
-**5 十万火急, 限期完成 SCHED\_DEADLINE**
-
-**6 普通进程的组调度支持(Fair Group Scheduling)**
-
-**7 实时进程的组调度支持(RT Group Scheduling)**
-
-**8 组调度带宽控制(CFS bandwidth control)**
-
-**9 极大提高体验的自动组调度(Auto Group Scheduling)**
-
-**10 基于调度域的负载均衡**
-
-**11 更精确的调度时钟(HRTICK)**
-
-**12 自动 NUMA 均衡(Automatic NUMA balancing)**
-
-**13 CPU 调度与节能**
-
-
-调度特性时间线
+## 0.2 调度特性时间线
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:------:|:---:|
@@ -89,44 +64,70 @@ Linux 除了实现上述策略, 还额外支持以下策略:
 | 2020/12/14 | [select_idle_sibling() wreckage](https://lore.kernel.org/patchwork/cover/1353496) | 重构 SIS_PROP 的逻辑, 重新计算 CPU 的扫描成本, 同时归一 select_idle_XXX 中对 CPU 的遍历, 统一选核的搜索逻辑来降低开销, 提升性能 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1353496), [lkml](https://lkml.org/lkml/2020/12/14/560) |
 
 
-54a728dc5e4f Merge tag 'sched-core-2021-06-28' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
-666751701b6e Merge tag 'sched-urgent-2021-06-24' of git://git.kernel.org/pub/scm/linux/kernel/git/tip/tip
-
+## 0.3 主线内存管理分支合并窗口
+-------
 
 Mainline Merge Window
+
+- [x] Merge tag 'sched-core-date'
+
+- [x] Merge tag 'sched-urgent-date'
 
 | 版本 | 发布时间 | 合并链接 |
 |:---:|:-------:|:-------:|
 | 5.13 | 2021/06/28 | [Merge tag 'sched-core-2021-04-28', 5.13-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=16b3d0cf5bad844daaf436ad2e9061de0fe36e5c)<br>[Merge tag 'sched-urgent-2021-05-09', 5.13-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9819f682e48c6a7055c5d7a6746411dd3969b0e5)<br>[Merge tag 'sched-urgent-2021-05-15', 5.13-rc2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c12a29ed9094b4b9cde8965c12850460b9a79d7c)<br>[Merge tag 'sched-urgent-2021-06-12', 5.13-rc6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=99f925947ab0fd5c17b74460d8b32f1aa1c86e3a)<br>[Merge tag 'sched_urgent_for_v5.13_rc6', 5.13-rc7, 2021/06/20](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cba5e97280f53ec7feb656fcdf0ec00a5c6dd539)<br>[Merge tag 'sched-urgent-2021-06-24', 5.13](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=666751701b6e4b6b6ebc82186434806fa8a09cf3)<br> |
-| 5.14 | NA | 2021/06/28 | [Merge tag 'sched-core-2021-06-28'](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=54a728dc5e4feb0a9278ad62b19f34ad21ed0ee4) |
+| 5.14 | NA | [Merge tag 'sched-core-2021-06-28'](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=54a728dc5e4feb0a9278ad62b19f34ad21ed0ee4) |
 
 
 
-社区几个调度的大神
-[Mel Gorman mgorman@techsingularity.net](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=19167)
-
-[Alex Shi](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=25695&state=%2A&series=&q=&delegate=&archive=both)
-
-[Valentin Schneider](https://lore.kernel.org/patchwork/project/lkml/list/?series=&submitter=23332&state=*&q=&archive=both&delegate=)
-
-[Vincent Guittot](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=11990&archive=both&state=*)
-
-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*- 正文 -*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-**
-
-
-
-
-# 1.1 进程调度类
+## 0.4 社区几个调度的大神
 -------
 
-## 1.1.1 普通进程调度器(SCHED\_OTHER)之纠极进化史
+- [x] [Mel Gorman mgorman@techsingularity.net](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=19167)
+
+- [x] [Alex Shi](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=25695&state=%2A&series=&q=&delegate=&archive=both)
+
+- [x] [Valentin Schneider](https://lore.kernel.org/patchwork/project/lkml/list/?series=&submitter=23332&state=*&q=&archive=both&delegate=)
+
+- [x] [Vincent Guittot](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=11990&archive=both&state=*)
+
+
+
+## 0.5 目录
+-------
+
+- [x] 1. 进程调度类
+
+- [x] 2. 组调度支持(Group Scheduling)
+
+- [x] 3. 负载跟踪机制
+
+- [x] 4. 基于调度域的负载均衡
+
+- [x] 5. SELECT_TASK_RQ
+
+- [x] 6. PICK_NEXT_TASK
+
+- [x] 7. 调度与节能
+
+- [x] 8. 实时性 linux PREEMPT_RT
+
+- [x] 9. 其他
+
+- [x] 10. 调试信息
+
+
+# 1 进程调度类
+-------
+
+## 1.1 普通进程调度器(SCHED\_NORMAL)之纠极进化史
 -------
 
 Linux 一开始, 普通进程和实时进程都是基于优先级的一个调度器, 实时进程支持 100 个优先级, 普通进程是优先级小于实时进程的一个静态优先级, 所有普通进程创建时都是默认此优先级, 但可通过 **nice()** 接口调整动态优先级(共40个). 实时进程的调度器比较简单, 而普通进程的调度器, 则历经变迁[<sup>5</sup>](#refer-anchor-5):
 
 
 
-### 1.1.1.1 O(1) 调度器:
+### 1.1.1 O(1) 调度器:
 -------
 
 2.6 时代开始支持(2002年引入).
@@ -134,7 +135,7 @@ Linux 一开始, 普通进程和实时进程都是基于优先级的一个调度
 顾名思义, 此调度器为O(1)时间复杂度. 该调度器修正之前的O(n) 时间复杂度调度器, 以解决扩展性问题. 为每一个动态优先级维护队列, 从而能在常数时间内选举下一个进程来执行.
 
 
-### 1.1.1.2 夭折的 RSDL(The Rotating Staircase Deadline Scheduler)调度器
+### 1.1.2 夭折的 RSDL(The Rotating Staircase Deadline Scheduler)调度器
 -------
 
 **2007 年 4 月提出, 预期进入 2.6.22, 后夭折.**
@@ -148,7 +149,7 @@ Con Kolivas (八卦: 这家伙白天是个麻醉医生)为解决这个问题提�
 
 
 
-### 1.1.1.3 完全公平的调度器(CFS)
+### 1.1.3 完全公平的调度器(CFS)
 -------
 
 **2.6.23(2007年10月发布)**
@@ -167,7 +168,7 @@ Con Kolivas 的完全公平的想法启发了原 O(1) 调度器作者 Ingo Molna
 CFS的算法和实现都相当简单, 众多的测试表明其性能也非常优越. 并得到更多的开发者支持, 所以它最终替代了 RSDL 在 2.6.23 进入内核, 一直使用到现在.
 
 
-### 1.1.1.4 CK 的 BFS 和 MuQSS
+### 1.1.4 CK 的 BFS 和 MuQSS
 -------
 
 可以八卦的是, Con Kolivas (因此)离开了社区, 不过他本人否认是因为此事而心生龃龉. 后来, 2009 年, 他对越来越庞杂的 CFS 不满意, 认为 CFS 过分注重对大规模机器, 而大部分人都是使用少 CPU 的小机器, 因此于 2009年8月31日发布了 BFS 调度器(Brain Fuck Scheduler)[<sup>48</sup>](#refer-anchor-48).
@@ -194,7 +195,7 @@ BFS 的最后版本是 2016 年 12 月发布的 v0.512, 基于 v4.8 内核.
 
 之后 CK 发布了更现代化的 MuQSS(多队列跳过列表调度程序) [The MuQSS CPU scheduler](https://lwn.net/Articles/720227), CK 称之为原始 BFS 调度程序基于 per-CPU 运行队列改进版. 截止目前 MuQSS 都在不断维护.
 
-### 1.1.1.4 不那么重要的进程 SCHED\_IDLE
+### 1.1.5 不那么重要的进程 SCHED\_IDLE
 -------
 
 **2.6.23(2007年10月发布)**
@@ -238,7 +239,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 | 2021/06/08 | [cgroup SCHED_IDLE support](https://lore.kernel.org/patchwork/patch/1443542) | 将 SCHED_IDLE 策略扩展到进程组. | v1 | [2021/06/08 v1](https://lore.kernel.org/patchwork/patch/1443542) |
 
 
-### 1.1.1.5 吭哧吭哧跑计算 SCHED\_BATCH
+### 1.1.6 吭哧吭哧跑计算 SCHED\_BATCH
 -------
 
 **2.6.16(2006年3月发布)**
@@ -250,7 +251,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 在引入该策略后, 原来的 SCHED\_OTHER 被改名为 SCHED\_NORMAL, 不过它的值不变, 因此保持 API 兼容, 之前的 SCHED\_OTHER 自动成为 SCHED\_NORMAL, 除非你设置 SCHED\_BATCH.
 
-## 1.1.2  SCHED\_RT
+## 1.2  SCHED\_RT
 -------
 
 RT 有两种调度策略, SCHED_FIFO 先到先服务 和 SCHED_RR 时间片轮转
@@ -305,7 +306,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 
 
 
-## 1.1.3 十万火急, 限期完成 SCHED\_DEADLINE
+## 1.3 十万火急, 限期完成 SCHED\_DEADLINE
 -------
 
 **3.14(2014年3月发布)**
@@ -320,7 +321,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 更多可参看此文章: [Deadline scheduling: coming soon? [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/575497/)
 
 
-## 1.1.4 其他一些调度类的尝试
+## 1.4 其他一些调度类的尝试
 -------
 
 
@@ -346,12 +347,12 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
     特别是在之前提到的 [sched/fair: Fallback to sched-idle CPU in absence of idle CPUs](https://lore.kernel.org/patchwork/cover/1094197) 合入之后, SCHED_NORMAL 的时延已经很低, 其实可以理解为在 SCHED_NORMAL(CFS) 下面又添加了一层时延不敏感的离线任务, 只不过不是使用新增调度类的方式. 而是借助了 CFS 的框架和策略实现.
 
 
-## 1.1.5 调度类的一些其他优化点
+## 1.5 调度类的一些其他优化点
 -------
 
 调度器的演进是 linux 不断发展和完善的风向标之一. 调度器对性能的追求是无止境的, 不光调度本身对性能的影响比较大. 另外一方面, 调度器本身的性能影响也要最小. 于是内核开发者们在这条路上, 不断前行. 调度器的终极目标就是: 用最小的性能开销, 发挥 CPU 的最大能力.
 
-### 1.1.5.1  lockless scheduler 调度器减少 rq->lock 的争抢
+### 1.5.1  lockless scheduler 调度器减少 rq->lock 的争抢
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -361,7 +362,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 这组补丁是当年亮点的补丁, 虽然做了较大的重构, 但是通过去锁和无锁话, 性能得到了提升. 虽然也引入了不少问题, 但是毋庸置疑, 这是调度器历史上的一次飞跃.
 
 
-### 1.1.5.2 直接比较两个调度类的优先级
+### 1.5.2 直接比较两个调度类的优先级
 -------
 
 linux 调度器定义了多个调度类, 不同调度类的调度优先级不同, 通过链表的方式进行排列, 高优先级调度类的 next 指针域指向低优先级的调度类. 从而可以使用 for_each_class 的方式进行遍历. 这其实是有缺陷的:
@@ -383,7 +384,7 @@ linux 调度器定义了多个调度类, 不同调度类的调度优先级不同
 
 从这组补丁可以看出来, 调度器中的算法和数据结构对性能简直到了吹毛求疵的地步, 这里也不得不佩服社区调度和性能大神的脑洞和技术能力.
 
-### 1.1.5.3 SMT 适配与优化
+### 1.5.3 SMT 适配与优化
 -------
 
 早期调度器上 SMT 的优化, 主要集中在 POWERPC.
@@ -430,13 +431,13 @@ coscheduling 协同调度是为了解决云服务场景, 为不同用户提供�
 
 
 
-# 1.2 组调度支持(Group Scheduling)
+# 2 组调度支持(Group Scheduling)
 -------
 
-## 1.2.1 普通进程的组调度支持(Fair Group Scheduling)
+## 2.1 普通进程的组调度支持(Fair Group Scheduling)
 -------
 
-### 1.2.1.1 CFS 组调度
+### 2.1.1 CFS 组调度
 -------
 
 **2.6.24(2008年１月发布)**
@@ -450,7 +451,7 @@ coscheduling 协同调度是为了解决云服务场景, 为不同用户提供�
 该功能是基于控制组(control group, cgroup)的概念, 需要内核开启 CGROUP 的支持才可使用. 关于 CGROUP, 以后可能会写.
 
 
-### 1.2.1.2 CFS BANDWIDTH 带宽控制
+### 2.1.2 CFS BANDWIDTH 带宽控制
 -------
 
 内核中的 `CFS BANDWIDTH Controller` 是控制每个 CGROUP 可以使用多少 CPU 时间的一种有效方式. 它可以避免某些进程消耗过多的 CPU 时间, 并确保所有需要 CPU 的进程都能拿到足够的时间.
@@ -494,7 +495,7 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 | 2021/06/21 | JHuaixin Chang | [sched/fair: Burstable CFS bandwidth controller](https://lore.kernel.org/patchwork/cover/1396878) | 突发任务的带宽控制优化, 通过临时之前剩余累计的配额, 使得突发进程在当前周期的配额突然用尽之后, 还可以临时使用之前累计的配额使用, 从而降低突发任务的时延. | v6 ☑ 5.14-rc1 | [ 2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1354613)<br>*-*-*-*-*-*-*-*<br>[2021/01/20 v2](https://lore.kernel.org/patchwork/cover/1368037)<br>*-*-*-*-*-*-*-*<br>[2021/01/21 v3](https://lore.kernel.org/patchwork/cover/1368746)<br>*-*-*-*-*-*-*-*<br>[2021-02-02 v4](https://lore.kernel.org/patchwork/cover/1396878)<br>*-*-*-*-*-*-*-*<br>[2021/05/20 v5](https://lore.kernel.org/patchwork/cover/1433660)<br>*-*-*-*-*-*-*-*<br>[2021/06/21 v6](https://lore.kernel.org/patchwork/cover/1449268) |
 
 
-## 1.2.2 实时进程的组调度支持(RT Group Scheduling)
+## 2.2 实时进程的组调度支持(RT Group Scheduling)
 -------
 
 
@@ -503,7 +504,7 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 该功能同普通进程的组调度功能一样, 只不过是针对实时进程的.
 
 
-## 1.2.3 组调度带宽控制(CFS bandwidth control)** , **3.2(2012年1月发布)**
+## 2.3 组调度带宽控制(CFS bandwidth control)** , **3.2(2012年1月发布)**
 -------
 
 
@@ -511,7 +512,7 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 
 
 
-## 1.2.4 极大提高体验的自动组调度(Auto Group Scheduling)
+## 2.4 极大提高体验的自动组调度(Auto Group Scheduling)
 -------
 
 **2.6.38(2011年3月发布)**
@@ -534,17 +535,17 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 该功能可以手动关闭.
 
 
-# 1.3 负载跟踪机制
+# 3 负载跟踪机制
 -------
 
-## 1.3.1 WALT
+## 3.1 WALT
 -------
 
 原谅我在这里跳过了主线默认强大的 PELT, 而先讲 WALT.
 
 [improving exynos 9810 galaxy s9](https://www.anandtech.com/show/12620/improving-the-exynos-9810-galaxy-s9-part-2)
 
-## 1.3.2 PELT
+## 3.2 PELT
 -------
 
 从Arm的资源来看, 这很像该公司意识到性能问题, 并正在积极尝试改善 PELT 的行为以使其更接近 WALT.
@@ -554,96 +555,11 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 2.  改善PELT的另一种简单方法是[减少斜坡/衰减时间](https://lore.kernel.org/lkml/20180409165134.707-1-patrick.bellasi@arm.com/#r), 主线默认的 PELT 衰减周期为 32MS, 该补丁提供了 8MS/16MS/32MS 的可选择衰减周期. 通常的测试结果会认为 8ms 的半衰期是一种偏性能的选择, 默认的 32ms 设置, 无法满足终端场景突发的负载变化, 因此往往 16ms 的折中方案能提供最佳性能和电池折衷.
 
 
-# 1.4 select_task_rq
+
+# 4 基于调度域的负载均衡
 -------
 
-调度器最核心的工作就两个内容 :
-
-- [x] **选进程**: 选择下一个更合适的进程 **pick_next_task**
-- [x] **选核**: 为某个进程选择更合适的 CPU 运行 **select_task_rq**
-
-所有其他的机制都是直接或者间接服务这两个终极任务的.
-
-1.  Linux 下各个调度类都实现了这两个接口, 各个调度类按照既定的算法和规则运行, 在选进程这方面, 各个调度类的算法很成熟, 而且经历的改动较小.
-
-2.  调度的目标是提升系统整体的性能或者降低功耗, 从这些目标上看, 在**选进程**算法既定的情况下, 第二个任务**选核**就会显的更重要也更复杂一些, 选核选的好, 不光能及早的投入运行, 而且在运行时能充分利用 cache 等硬件优势, 让进程飞一般的运行.
-
-3.  此外现在调度器还有一个附加功能, 为了提升系统整体的吞吐量和利用率, 大多数调度器都提供了 **load_balance 负载均衡** 的功能.
-
-因此我们将这几个工作称为调度器的核心功能. 而调度器的性能优化也都围绕这几个方面来进行.
-而其中对性能影响最大的, 也是最关键的任务就是 select_task_rq, 其次是 load_balance, 而 pick_next_task 的工作, 更多的是体现在公平性和扩展性方面.
-那么下面我们就看看内核调度中, 近几年这部分的优化工作.
-
-
-内核中主体的进程都是以 SCHED_NORMAL 为策略的普通 CFS 进程, 以 select_task_rq_fair 为例, 其代码就经过了不断的重构和优化.
-
-
-
-## 1.4.1 WAKE_AFFINE & WAKEUP 优化
--------
-
-| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:------:|:---:|
-| 2013/07/04 | Michael wang | [sched: smart wake-affine](https://lore.kernel.org/patchwork/cover/390846) | 引入wakee 翻转次数, 通过巧妙的启发式算法, 识别系统中 1:N/N:M 等唤醒模型, 作为是否进行 wake_affine 的依据 | v3 ☑ 3.12-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/390846)<br>*-*-*-*-*-*-*-* <br>[commit 1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=62470419e993f8d9d93db0effd3af4296ecb79a5), [commit2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7d9ffa8961482232d964173cccba6e14d2d543b2) |
-| 2017/12/18 | Mel Gorman | [Reduce scheduler migrations due to wake_affine](https://lore.kernel.org/patchwork/cover/864391) | 优化 wake_affine 减少迁移次数 | | [PatchWork](https://lore.kernel.org/patchwork/cover/864391) |
-| 2018/01/30 | Mel Gorman | [Reduce migrations and unnecessary spreading of load to multiple CPUs](https://lore.kernel.org/patchwork/cover/878789) | 减少不合理的迁移 | v1 ☑ 4.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/878789) |
-| 2020/05/24 | Mel Gorman | [Optimise try_to_wake_up() when wakee is descheduling](https://lore.kernel.org/patchwork/cover/1246560) | 唤醒时如果 wakee 进程正在睡眠或者调度(释放 CPU), 优化在 on_cpu 的自旋等待时间 | v1 ☑ 5.8-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1246560) |
-| 2021/05/13 |  Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [sched/fair: wake_affine improvements](https://lore.kernel.org/patchwork/cover/1416963) | 通过根据 LLC 域内 idle CPU 的信息, 优化 wake_affine, 如果当前待选的 LLC 域没有空闲 CPU, 尝试从之前的 LLC 域中选择. | v3 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1428244) |
-
-
-TencentOS-kernel 回合了主线 wake_affine 中几个优化迁移的补丁, 可以 [kernel-4.14 修复wake affine进程导致性能降低的问题](https://github.com/Tencent/TencentOS-kernel/commit/985a0aad220cec1e43a35432b25dbbdb31b975ba), [kernel-5.4](https://github.com/Tencent/TencentOS-kernel/commit/822a50c9e70205cbc29fb97d72c26c7a51b58a1d)
-
-## 1.4.3 SELECT_CPU 的优化是调度优化永恒不变的命题
--------
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:----:|:---:|:----------:|:---:|
-| 2016/05/06 | Peter Zijlstra | [sched: Rewrite select_idle_siblings()](https://lore.kernel.org/patchwork/cover/677017) | 通过这个补丁, 将 select_idle_siblings 中对 sched_domain 上 CPU 的单次扫描替换为 3 个显式的扫描.<br>1. select_idle_core 在 LLC 域内搜索一个空闲的 CORE<br>2. select_idle_cpu 在 LLC 域内搜索一个空闲的 CPU.<br>3. select_idle_smt 在目标 CORE 中搜索一个空闲的 CPU. | RFC ☑ 4.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/677017) |
-| 2021/04/20 | Song Bao Hua (Barry Song) | [scheduler: expose the topology of clusters and add cluster scheduler](https://lore.kernel.org/patchwork/cover/1415806) | 增加了 cluster 层次的 CPU select. 多个架构都是有 CLUSTER 域的概念的, 比如 Kunpeng 920 一个 NODE(DIE) 24个 CPU 分为 8 个 CLUSTER, 整个 DIE 共享 L3 tag, 但是一个 CLUSTER 使用一个 L3 TAG. 这种情况下对于有数据共享的进程, 在一个 cluster 上运行, 通讯的时延更低. | RFC v6 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1415806) |
-
-
-
-## 1.4.4 提升 CPU 的查找效率
--------
-
-每次为进程选择一个合适的 CPU 的时候, 较好的情况可以通过 wake_affine 等走快速路径, 但是最坏的情况下, 却不得不遍历当前 SD 查找一个 IDLE CPU 或者负载较小的 CPU.
-这个查找是一项大工程, 在调度里面几乎是觉难以容忍的. 因此这里一直是性能优化的战场, 炮火味十足.
-
-2020 年 12 月 15 日, 调度的大 Maintainer Peter Zijlstra, 曾公开抨击选核的慢速流程里面[部分代码, "The thing is, the code as it exists today makes no sense what so ever. It's plain broken batshit."](https://lkml.org/lkml/2020/12/15/93).
-
-### 1.4.4.1 select_idle_sibling rework
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:----:|:---:|:----------:|:---:|
-| 2018/05/30 | Peter Zijlstra | [select_idle_sibling rework](https://lore.kernel.org/patchwork/patch/911697) | 优化 select_idle_XXX 的性能 | RFC | [PatchWork RFC](https://lore.kernel.org/patchwork/patch/911697) |
-| 2019/7/1 | Subhra Mazumdar | [Improve scheduler scalability for fast path](https://lore.kernel.org/patchwork/cover/1094549) | select_idle_cpu 每次遍历 LLC 域查找空闲 CPU 的代价非常高, 因此通过限制搜索边界来减少搜索时间, 进一步通过保留 PER_CPU 的 next_cpu 变量来跟踪上次搜索边界, 来缓解此次优化引入的线程局部化问题  | v3 ☐ | [LWN](https://lwn.net/Articles/757379/), [PatchWork](https://lore.kernel.org/patchwork/cover/1094549/), [lkml](https://lkml.org/lkml/2019/7/1/450), [Blog](https://blogs.oracle.com/linux/linux-scheduler-scalabilty-like-a-boss) |
-| 2018/01/30 | Mel Gorman | [Reduce migrations and unnecessary spreading of load to multiple CPUs](https://lore.kernel.org/patchwork/cover/878789) | 通过优化选核逻辑, 减少不必要的迁移 | | |
-| 2019/1/21 | Srikar Dronamraju | [sched/fair: Optimize select_idle_core](https://lore.kernel.org/patchwork/patch/1163807) | | | |
-| 2019/07/08 | Parth Shah | [Optimize the idle CPU search](https://lore.kernel.org/patchwork/patch/1098092) | 通过标记 idle_cpu 来降低 select_idle_sibling/select_idle_cpu 的搜索开销 | | |
-| 2020/04/15 | Valentin Schneider | [sched: Streamline select_task_rq() & select_task_rq_fair()](https://lore.kernel.org/patchwork/patch/1224733) | 选核流程上的重构和优化, 当然除此之外还做了其他操作, 比如清理了 sd->flags 信息, 甚至 sysfs 接口都变成只读了 | v3 ☑ 5.8-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1224733) |
-| 2021/03/26 | Rik van Riel | [Throttle select_idle_sibling when a target domain is overloaded](https://lore.kernel.org/patchwork/patch/1213189) | 这是 CPU/NUMA 负载平衡器协调的后续工作. 补丁中做了如下的优化<br>1. 补丁1-2 添加了 schedstats 来跟踪 select_idle_sibling() 的效率. 默认是禁用的<br>2. 补丁3 是一个细微的优化, 如果一个 CPU 已经找到, 避免清除部分 cpumask.<br>3. 补丁 4 跟踪在 select_idle_cpu() 期间域是否出现重载, 以便将来的扫描可以在必要时尽早终止. 这减少了在域超载时无用扫描的运行队列数量. | v2 ☐ | [PatchWork](https://lore.kernel.org/patchwork/patch/1213189) |
-| 2020/12/03 | Mel Gorman | [Reduce time complexity of select_idle_sibling](https://lore.kernel.org/patchwork/cover/1348877) | 通过自己完善的 schedstat 的统计信息, 发现 select_idle_XXX 中不合理的地方(提高了p->recent_used_cpu的命中率. 以减少扫描开销, 同时如果在扫描a时发现了一个候选, 那么补丁4将返回一个空闲的候选免费的核心等), 降低搜索开销 | RFC v3 | 这组补丁其实有很多名字, 作者发了几版本之后, 不断重构, 也改了名字<br>*-*-*-*-*-*-*-* <br>2020/12/03 v1[Reduce time complexity of select_idle_sibling](https://lore.kernel.org/patchwork/cover/1348877)<br>*-*-*-*-*-*-*-* <br>2020/12/07 v2[Reduce scanning of runqueues in select_idle_sibling](https://lore.kernel.org/patchwork/cover/1350876)<br>*-*-*-*-*-*-*-* <br>2020/12/07 v3[Reduce worst-case scanning of runqueues in select_idle_sibling](https://lore.kernel.org/patchwork/patch/1350248)<br>*-*-*-*-*-*-*-* <br>2020/12/08 v4[Reduce scanning of runqueues in select_idle_sibling](https://lore.kernel.org/patchwork/patch/1350877)  |
-| 2020/12/14 | Peter Zijlstra | [select_idle_sibling() wreckage](https://lore.kernel.org/patchwork/cover/1353496) | 重构 SIS_PROP 的逻辑, 重新计算 CPU 的扫描成本, 同时归一 select_idle_XXX 中对 CPU 的遍历, 统一选核的搜索逻辑来降低开销, 提升性能 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1353496), [LKML](https://lkml.org/lkml/2020/12/14/560) |
-| 2020/12/08 | Mel Gorman | [Scan for an idle sibling in a single pass](https://lore.kernel.org/patchwork/cover/1371921) |  基于上面 Peter 的补丁的思路进行了重构, 减少 select_idle_XXX 的开销<br>1. 优化了 IDLE_CPU 扫描深度的计算方法<br>2. 减少了 CPU 的遍历次数, 重构了 sched_idle_XXX 函数<br>3. 将空闲的核心扫描调节机制转换为SIS_PROP, 删除了 SIS_PROP_CPU<br>3.   | v5 ☑ 5.12-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1371921) |
-| 2021/03/26 | Rik van Riel | [sched/fair: bring back select_idle_smt, but differently](https://lore.kernel.org/patchwork/patch/1402916) | Mel Gorman 上面的补丁在 9fe1f127b913("sched/fair: Merge select_idle_core/cpu()") 中做了一些出色的工作, 从而提高了内核查找空闲cpu的效率, 可以有效地降低任务等待运行的时间. 但是较多的均衡和迁移, 减少的局部性和相应的 L2 缓存丢失的增加会带来一些负面的效应. 这个补丁重新将 `select_idle_smt` 引入回来, 并做了优化, 修复了性能回归, 在搜索所有其他 CPU 之前, 检查 prev 的兄弟 CPU 是否空闲. | v2 ☐ | [PatchWork](https://lore.kernel.org/patchwork/patch/1402916) |
-
-### 1.4.4.2 avg_idle bypass
--------
-
-avg_idle 可以反应目前 RQ 进入 idle 的时间长短.
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:----:|:---:|:----------:|:---:|
-| 2020/03/30 | Valentin Schneider | [sched: Align rq->avg_idle and rq->avg_scan_cost](https://lore.kernel.org/patchwork/patch/1217584) | NA | RFC | [2021/06/15 v2](https://lore.kernel.org/patchwork/patch/1217584) |
-| 2021/06/15 | Peter Zijlstra | [sched/fair: Age the average idle time](https://lore.kernel.org/patchwork/patch/1446838) | NA | RFC | [2021/06/15 v2](https://lore.kernel.org/patchwork/patch/1446838) |
-
-
-# 1.5 基于调度域的负载均衡
--------
-
-## 1.5.1 拓扑域构建
+## 4.1 拓扑域构建
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -651,7 +567,7 @@ avg_idle 可以反应目前 RQ 进入 idle 的时间长短.
 | 2018/05/30 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [Skip numa distance for offline nodes](https://lore.kernel.org/patchwork/patch/1433871) | NA | v1 ☐ | [select_idle_sibling rework](https://lore.kernel.org/patchwork/patch/1433871) |
 
 
-## 1.5.2 负载均衡
+## 4.2 负载均衡
 -------
 
 
@@ -691,7 +607,7 @@ avg_idle 可以反应目前 RQ 进入 idle 的时间长短.
 | 2009/09/01 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [load-balancing and cpu_power -v2](https://lore.kernel.org/patchwork/patch/169381) | load balance 感知 CPU PWOER, 对于 RT 任务, 引入了 sched_time_avg 来平均一段时间内实时任务的 CPU 消耗. 用得到的平均值来调整非实时任务的 CPU 功率, 以确保实时任务不必争抢 CPU. | v4 ☑ |[PatchWork](https://lore.kernel.org/patchwork/patch/169381) |
 
 
-## 1.5.3 自动 NUMA 均衡(Automatic NUMA balancing)
+## 4.3 自动 NUMA 均衡(Automatic NUMA balancing)
 -------
 
 **3.8(2013年2月发布)**
@@ -720,7 +636,7 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 
 [NUMA placement problems [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/591995/)
 
-## 1.5.4 rework_load_balance
+## 4.4 rework_load_balance
 -------
 
 2019 年的 [Vincent Guittot](https://www.youtube.com/watch?v=cfv63BMnIug) 的 [sched/fair: rework the CFS load balance](https://lwn.net/Articles/793427) 是近几年特别有亮点的补丁.
@@ -755,7 +671,7 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 | 2020/03/11 | Valentin Schneider <valentin.schneider@arm.com> | [sched: Streamline select_task_rq() & select_task_rq_fair()](https://lore.kernel.org/patchwork/patch/1208449) | 选核流程上的重构和优化, 当然除此之外还做了其他操作, 比如清理了 sd->flags 信息, 甚至 sysfs 接口都变成只读了 | | |
 | 2020/03/11 | Valentin Schneider <valentin.schneider@arm.com> | [sched: Instrument sched domain flags](https://lore.kernel.org/patchwork/cover/1224722) | 基于上一组补丁, 重构了 SD_FLAGS 的定义 | v4 ☑ 5.10-rc1 | [PatchWork v5 00/17](https://lore.kernel.org/patchwork/cover/1224722) |
 
-## 1.5.5 load_balance 的其他优化
+## 4.5 load_balance 的其他优化
 -------
 
 Mel Gorman 深耕与解决 load_balance 以及 wake_affine 流程中一些不合理的行为.
@@ -798,7 +714,7 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 
 
 
-## 1.5.6 idle balance
+## 4.6 idle balance
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -806,7 +722,7 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 | 2013/08/29 | Jason Low <jason.low2@hp.com> | [sched: Limiting idle balance](https://lore.kernel.org/patchwork/patch/403138) | 限制 idle balance  | v1 ☑ 4.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/403138) |
 
 
-## 1.5.7 active load_balance
+## 4.7 active load_balance
 -------
 
 
@@ -820,7 +736,94 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 | 2021/06/02 | Yafang Shao <laoar.shao@gmail.com> | [sched, fair: try to prevent migration thread from preempting non-cfs task](https://lore.kernel.org/patchwork/patch/1440172) | 规避问题 [a race between active_load_balance and sched_switch](https://lkml.org/lkml/2021/6/14/204), []() | v1 ☐ | [PatchWork v1 old](https://lore.kernel.org/patchwork/patch/1440172), [PatchWork v1](https://lore.kernel.org/patchwork/patch/1446860) |
 
 
-# 1.6 pick_next_task
+# 5 select_task_rq
+-------
+
+调度器最核心的工作就两个内容 :
+
+- [x] **选进程**: 选择下一个更合适的进程 **pick_next_task**
+- [x] **选核**: 为某个进程选择更合适的 CPU 运行 **select_task_rq**
+
+所有其他的机制都是直接或者间接服务这两个终极任务的.
+
+1.  Linux 下各个调度类都实现了这两个接口, 各个调度类按照既定的算法和规则运行, 在选进程这方面, 各个调度类的算法很成熟, 而且经历的改动较小.
+
+2.  调度的目标是提升系统整体的性能或者降低功耗, 从这些目标上看, 在**选进程**算法既定的情况下, 第二个任务**选核**就会显的更重要也更复杂一些, 选核选的好, 不光能及早的投入运行, 而且在运行时能充分利用 cache 等硬件优势, 让进程飞一般的运行.
+
+3.  此外现在调度器还有一个附加功能, 为了提升系统整体的吞吐量和利用率, 大多数调度器都提供了 **load_balance 负载均衡** 的功能.
+
+因此我们将这几个工作称为调度器的核心功能. 而调度器的性能优化也都围绕这几个方面来进行.
+而其中对性能影响最大的, 也是最关键的任务就是 select_task_rq, 其次是 load_balance, 而 pick_next_task 的工作, 更多的是体现在公平性和扩展性方面.
+那么下面我们就看看内核调度中, 近几年这部分的优化工作.
+
+
+内核中主体的进程都是以 SCHED_NORMAL 为策略的普通 CFS 进程, 以 select_task_rq_fair 为例, 其代码就经过了不断的重构和优化.
+
+
+
+## 5.1 WAKE_AFFINE & WAKEUP 优化
+-------
+
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:------:|:---:|
+| 2013/07/04 | Michael wang | [sched: smart wake-affine](https://lore.kernel.org/patchwork/cover/390846) | 引入wakee 翻转次数, 通过巧妙的启发式算法, 识别系统中 1:N/N:M 等唤醒模型, 作为是否进行 wake_affine 的依据 | v3 ☑ 3.12-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/390846)<br>*-*-*-*-*-*-*-* <br>[commit 1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=62470419e993f8d9d93db0effd3af4296ecb79a5), [commit2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7d9ffa8961482232d964173cccba6e14d2d543b2) |
+| 2017/12/18 | Mel Gorman | [Reduce scheduler migrations due to wake_affine](https://lore.kernel.org/patchwork/cover/864391) | 优化 wake_affine 减少迁移次数 | | [PatchWork](https://lore.kernel.org/patchwork/cover/864391) |
+| 2018/01/30 | Mel Gorman | [Reduce migrations and unnecessary spreading of load to multiple CPUs](https://lore.kernel.org/patchwork/cover/878789) | 减少不合理的迁移 | v1 ☑ 4.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/878789) |
+| 2020/05/24 | Mel Gorman | [Optimise try_to_wake_up() when wakee is descheduling](https://lore.kernel.org/patchwork/cover/1246560) | 唤醒时如果 wakee 进程正在睡眠或者调度(释放 CPU), 优化在 on_cpu 的自旋等待时间 | v1 ☑ 5.8-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1246560) |
+| 2021/05/13 |  Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [sched/fair: wake_affine improvements](https://lore.kernel.org/patchwork/cover/1416963) | 通过根据 LLC 域内 idle CPU 的信息, 优化 wake_affine, 如果当前待选的 LLC 域没有空闲 CPU, 尝试从之前的 LLC 域中选择. | v3 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1428244) |
+
+
+TencentOS-kernel 回合了主线 wake_affine 中几个优化迁移的补丁, 可以 [kernel-4.14 修复wake affine进程导致性能降低的问题](https://github.com/Tencent/TencentOS-kernel/commit/985a0aad220cec1e43a35432b25dbbdb31b975ba), [kernel-5.4](https://github.com/Tencent/TencentOS-kernel/commit/822a50c9e70205cbc29fb97d72c26c7a51b58a1d)
+
+## 5.3 SELECT_CPU 的优化是调度优化永恒不变的命题
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:----:|:---:|:----------:|:---:|
+| 2016/05/06 | Peter Zijlstra | [sched: Rewrite select_idle_siblings()](https://lore.kernel.org/patchwork/cover/677017) | 通过这个补丁, 将 select_idle_siblings 中对 sched_domain 上 CPU 的单次扫描替换为 3 个显式的扫描.<br>1. select_idle_core 在 LLC 域内搜索一个空闲的 CORE<br>2. select_idle_cpu 在 LLC 域内搜索一个空闲的 CPU.<br>3. select_idle_smt 在目标 CORE 中搜索一个空闲的 CPU. | RFC ☑ 4.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/677017) |
+| 2021/04/20 | Song Bao Hua (Barry Song) | [scheduler: expose the topology of clusters and add cluster scheduler](https://lore.kernel.org/patchwork/cover/1415806) | 增加了 cluster 层次的 CPU select. 多个架构都是有 CLUSTER 域的概念的, 比如 Kunpeng 920 一个 NODE(DIE) 24个 CPU 分为 8 个 CLUSTER, 整个 DIE 共享 L3 tag, 但是一个 CLUSTER 使用一个 L3 TAG. 这种情况下对于有数据共享的进程, 在一个 cluster 上运行, 通讯的时延更低. | RFC v6 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1415806) |
+
+
+
+## 5.4 提升 CPU 的查找效率
+-------
+
+每次为进程选择一个合适的 CPU 的时候, 较好的情况可以通过 wake_affine 等走快速路径, 但是最坏的情况下, 却不得不遍历当前 SD 查找一个 IDLE CPU 或者负载较小的 CPU.
+这个查找是一项大工程, 在调度里面几乎是觉难以容忍的. 因此这里一直是性能优化的战场, 炮火味十足.
+
+2020 年 12 月 15 日, 调度的大 Maintainer Peter Zijlstra, 曾公开抨击选核的慢速流程里面[部分代码, "The thing is, the code as it exists today makes no sense what so ever. It's plain broken batshit."](https://lkml.org/lkml/2020/12/15/93).
+
+### 5.4.1 select_idle_sibling rework
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:----:|:---:|:----------:|:---:|
+| 2018/05/30 | Peter Zijlstra | [select_idle_sibling rework](https://lore.kernel.org/patchwork/patch/911697) | 优化 select_idle_XXX 的性能 | RFC | [PatchWork RFC](https://lore.kernel.org/patchwork/patch/911697) |
+| 2019/7/1 | Subhra Mazumdar | [Improve scheduler scalability for fast path](https://lore.kernel.org/patchwork/cover/1094549) | select_idle_cpu 每次遍历 LLC 域查找空闲 CPU 的代价非常高, 因此通过限制搜索边界来减少搜索时间, 进一步通过保留 PER_CPU 的 next_cpu 变量来跟踪上次搜索边界, 来缓解此次优化引入的线程局部化问题  | v3 ☐ | [LWN](https://lwn.net/Articles/757379/), [PatchWork](https://lore.kernel.org/patchwork/cover/1094549/), [lkml](https://lkml.org/lkml/2019/7/1/450), [Blog](https://blogs.oracle.com/linux/linux-scheduler-scalabilty-like-a-boss) |
+| 2018/01/30 | Mel Gorman | [Reduce migrations and unnecessary spreading of load to multiple CPUs](https://lore.kernel.org/patchwork/cover/878789) | 通过优化选核逻辑, 减少不必要的迁移 | | |
+| 2019/1/21 | Srikar Dronamraju | [sched/fair: Optimize select_idle_core](https://lore.kernel.org/patchwork/patch/1163807) | | | |
+| 2019/07/08 | Parth Shah | [Optimize the idle CPU search](https://lore.kernel.org/patchwork/patch/1098092) | 通过标记 idle_cpu 来降低 select_idle_sibling/select_idle_cpu 的搜索开销 | | |
+| 2020/04/15 | Valentin Schneider | [sched: Streamline select_task_rq() & select_task_rq_fair()](https://lore.kernel.org/patchwork/patch/1224733) | 选核流程上的重构和优化, 当然除此之外还做了其他操作, 比如清理了 sd->flags 信息, 甚至 sysfs 接口都变成只读了 | v3 ☑ 5.8-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1224733) |
+| 2021/03/26 | Rik van Riel | [Throttle select_idle_sibling when a target domain is overloaded](https://lore.kernel.org/patchwork/patch/1213189) | 这是 CPU/NUMA 负载平衡器协调的后续工作. 补丁中做了如下的优化<br>1. 补丁1-2 添加了 schedstats 来跟踪 select_idle_sibling() 的效率. 默认是禁用的<br>2. 补丁3 是一个细微的优化, 如果一个 CPU 已经找到, 避免清除部分 cpumask.<br>3. 补丁 4 跟踪在 select_idle_cpu() 期间域是否出现重载, 以便将来的扫描可以在必要时尽早终止. 这减少了在域超载时无用扫描的运行队列数量. | v2 ☐ | [PatchWork](https://lore.kernel.org/patchwork/patch/1213189) |
+| 2020/12/03 | Mel Gorman | [Reduce time complexity of select_idle_sibling](https://lore.kernel.org/patchwork/cover/1348877) | 通过自己完善的 schedstat 的统计信息, 发现 select_idle_XXX 中不合理的地方(提高了p->recent_used_cpu的命中率. 以减少扫描开销, 同时如果在扫描a时发现了一个候选, 那么补丁4将返回一个空闲的候选免费的核心等), 降低搜索开销 | RFC v3 | 这组补丁其实有很多名字, 作者发了几版本之后, 不断重构, 也改了名字<br>*-*-*-*-*-*-*-* <br>2020/12/03 v1[Reduce time complexity of select_idle_sibling](https://lore.kernel.org/patchwork/cover/1348877)<br>*-*-*-*-*-*-*-* <br>2020/12/07 v2[Reduce scanning of runqueues in select_idle_sibling](https://lore.kernel.org/patchwork/cover/1350876)<br>*-*-*-*-*-*-*-* <br>2020/12/07 v3[Reduce worst-case scanning of runqueues in select_idle_sibling](https://lore.kernel.org/patchwork/patch/1350248)<br>*-*-*-*-*-*-*-* <br>2020/12/08 v4[Reduce scanning of runqueues in select_idle_sibling](https://lore.kernel.org/patchwork/patch/1350877)  |
+| 2020/12/14 | Peter Zijlstra | [select_idle_sibling() wreckage](https://lore.kernel.org/patchwork/cover/1353496) | 重构 SIS_PROP 的逻辑, 重新计算 CPU 的扫描成本, 同时归一 select_idle_XXX 中对 CPU 的遍历, 统一选核的搜索逻辑来降低开销, 提升性能 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1353496), [LKML](https://lkml.org/lkml/2020/12/14/560) |
+| 2020/12/08 | Mel Gorman | [Scan for an idle sibling in a single pass](https://lore.kernel.org/patchwork/cover/1371921) |  基于上面 Peter 的补丁的思路进行了重构, 减少 select_idle_XXX 的开销<br>1. 优化了 IDLE_CPU 扫描深度的计算方法<br>2. 减少了 CPU 的遍历次数, 重构了 sched_idle_XXX 函数<br>3. 将空闲的核心扫描调节机制转换为SIS_PROP, 删除了 SIS_PROP_CPU<br>3.   | v5 ☑ 5.12-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1371921) |
+| 2021/03/26 | Rik van Riel | [sched/fair: bring back select_idle_smt, but differently](https://lore.kernel.org/patchwork/patch/1402916) | Mel Gorman 上面的补丁在 9fe1f127b913("sched/fair: Merge select_idle_core/cpu()") 中做了一些出色的工作, 从而提高了内核查找空闲cpu的效率, 可以有效地降低任务等待运行的时间. 但是较多的均衡和迁移, 减少的局部性和相应的 L2 缓存丢失的增加会带来一些负面的效应. 这个补丁重新将 `select_idle_smt` 引入回来, 并做了优化, 修复了性能回归, 在搜索所有其他 CPU 之前, 检查 prev 的兄弟 CPU 是否空闲. | v2 ☐ | [PatchWork](https://lore.kernel.org/patchwork/patch/1402916) |
+
+### 5.4.2 avg_idle bypass
+-------
+
+avg_idle 可以反应目前 RQ 进入 idle 的时间长短.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:----:|:---:|:----------:|:---:|
+| 2020/03/30 | Valentin Schneider | [sched: Align rq->avg_idle and rq->avg_scan_cost](https://lore.kernel.org/patchwork/patch/1217584) | NA | RFC | [2021/06/15 v2](https://lore.kernel.org/patchwork/patch/1217584) |
+| 2021/06/15 | Peter Zijlstra | [sched/fair: Age the average idle time](https://lore.kernel.org/patchwork/patch/1446838) | NA | RFC | [2021/06/15 v2](https://lore.kernel.org/patchwork/patch/1446838) |
+
+
+
+# 6 pick_next_task
 -------
 
 5d7d605642b2 sched/core: Optimize pick_next_task()
@@ -831,12 +834,9 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2017/01/19 | Peter Zijlstra | [sched/core: Optimize pick_next_task() for idle_sched_class](https://lkml.org/lkml/2017/1/19/687) | NA | | v1 ☑ 4.11-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/755854), [LKML](https://lkml.org/lkml/2017/1/19/687), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49ee576809d837442624ac18804b07943267cd57) |
-|
 
 
-
-
-# 1.7 **调度与节能**
+# 7 调度与节能
 -------
 
 
@@ -847,7 +847,7 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 在前不久, 一个新的 patch 被提交到 Linux 内核开发邮件列表, 这个问题也许有了新的眉目, 到时再来更新此小节．可阅读此文章: [Steps toward power-aware scheduling [LWN.net](https://lwn.net/Articles/655479/)
 
 
-## 1.7.1 小任务封包
+## 7.1 小任务封包
 -------
 
 小任务封包(Small Task Packing) 是内核调度特性中少数几个隔几年就会被人换个马甲发出来的特性之一.
@@ -858,7 +858,7 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 但是请大家记住这个特性, 这个特性将在后面的特性中不断被提及并实现. 它作为一个先驱者, 为终端功耗场景在调度领域做了最初的一次尝试. 自此开始调度领域一场旷日持久的性能 vs 功耗的战役被打响.
 
 
-## 1.7.2 能耗感知的调度器
+## 7.2 能耗感知的调度器
 -------
 
 在 Linaro 开发小任务封包的同时, 2012 年 Intel 的 Alex Shi 发起的讨论中, 提出了更高大上的概念[**能耗感知的调度器**](https://lkml.org/lkml/2012/8/13/139), 功耗和性能本身就是一个矛盾的统一体, 因此由于此特性节省的功耗和降低的性能不成正比, 因此在发到 v7 [PatchWork](https://lore.kernel.org/patchwork/cover/370834) 之后也寿终正寝.
@@ -877,7 +877,7 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 >
 >[Another attempt at power-aware scheduling](https://lwn.net/Articles/600419)
 
-## 1.7.3 IKS -> HMP -> EAS
+## 7.3 IKS -> HMP -> EAS
 -------
 
 
@@ -896,7 +896,7 @@ ARM 的 Morten Rasmussen 一直致力于ANDROID 调度器优化的:
 5.  EAS 带来了划时代的想法, 最终 [Quentin Perret](http://www.linux-arm.org/git?p=linux-qp.git;a=summary) 接手了 Morten Rasmussen 的工作, 最终在 2018/10/03 v10 版本将 EAS 合入主线 [https://lore.kernel.org/patchwork/cover/1020432/](https://lore.kernel.org/patchwork/cover/1020432)
 
 
-## 1.7.4 异构调度优化
+## 7.4 异构调度优化
 -------
 
 后续基于 EAS 还做了很多优化
@@ -923,7 +923,7 @@ ARM 的 Morten Rasmussen 一直致力于ANDROID 调度器优化的:
 
 
 
-## 1.7.5 基于调度器的调频
+## 7.5 基于调度器的调频
 -------
 
 
@@ -955,7 +955,7 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 | 2016/02/23 | Steve Muckle 等 | [sched: scheduler-driven CPU frequency selection](https://lore.kernel.org/patchwork/cover/649930) | 调度器驱动的调频 cpufreq_sched | RFC v7 | [PatchWork](https://lore.kernel.org/patchwork/cover/649930), [lkml](https://lkml.org/lkml/2016/2/22/1037) |
 | 2016/03/22 | Rafael J. Wysocki | [cpufreq: schedutil governor](https://lore.kernel.org/patchwork/cover/660587) | 基于 utilization update callback callback 的 schedutil 的调频 governor | v6 ☑ 4.7-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/660587), (https://lkml.org/lkml/2016/3/29/1041) |
 
-## 1.7.6 freezer 冻结
+## 7.6 freezer 冻结
 -------
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -964,11 +964,11 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 
 
 
-# 1.8 实时性 linux PREEMPT_RT
+# 8 实时性 linux PREEMPT_RT
 -------
 
 
-## 1.8.1 抢占支持(preemption)
+## 8.1 抢占支持(preemption)
 -------
 
 **2.6 时代开始支持** (首次在2.5.4版本引入[<sup>37</sup>](#refer-anchor-37), 感谢知友 [@costa](https://www.zhihu.com/people/78ceb98e7947731dc06063f682cf9640) 考证! 关于 Linux 版本规则,  可看我文章[<sup>4</sup>](#refer-anchor-4).
@@ -983,7 +983,7 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 
 
 
-## 1.8.2 NO_HZ
+## 8.2 NO_HZ
 -------
 
 
@@ -992,7 +992,7 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 | 2021/01/22 | Joel Fernandes (Google)" <joel@joelfernandes.org> | [sched/fair: Rate limit calls to update_blocked_averages() for NOHZ](https://lore.kernel.org/patchwork/patch/1369598) | 在运行ChromeOS Linux kernel v5.4 的 octacore ARM64 设备上, 发现有很多对 update_blocked_average() 的调用, 导致调度的开销增大, 造成 newilde_balance 有时需要最多500微秒. 我在周期平衡器中也看到了这一点. 将 update_blocked_average() 调用速率限制为每秒 20 次 | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1369598) |
 
 
-## 1.8.3 task/CPU 隔离
+## 8.3 task/CPU 隔离
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1036,7 +1036,7 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 
 
 
-## 1.8.4 更精确的调度时钟(HRTICK), 2.6.25(2008年4月发布)**
+## 8.4 更精确的调度时钟(HRTICK), 2.6.25(2008年4月发布)**
 -------
 
 
@@ -1051,7 +1051,7 @@ CPU的周期性调度, 和基于时间片的调度, 是要基于时钟中断来�
 2.6.25 引入了所谓的**高清嘀哒(High Resolution Tick)**, 以提供更精确的调度时钟中断．这个功能是基于**高精度时钟(High Resolution Timer)框架**, 这个框架让内核支持可以提供纳秒级别的精度的硬件时钟(将会在时钟子系统里讲).
 
 
-## 1.8.5 混乱的 RT 优先级(RT 进程优先级管控)
+## 8.5 混乱的 RT 优先级(RT 进程优先级管控)
 -------
 
 Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中, 这些线程是在内核地址空间中运行的特殊进程. 大多数内核线程运行在 SCHED_NORMAL 类中, 必须与普通用户空间进程争夺CPU时间. 但是有一些内核线程它的开发者们认为它们非常特殊, 应该比用户空间进程要有更高优先级. 因此也会把这些内核线程放到 SCHED_FIFO 中去.
@@ -1090,7 +1090,7 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 | 2020/09/17 | Peter Zijlstra | [sched: Remove FIFO priorities from modules](https://lore.kernel.org/patchwork/cover/1229354) | 显示驱动中 RT/FIFO 线程的优先级设定  | v1 ☑ 5.9-rc1 | [PatchWork](https://lwn.net/Articles/1307272) |
 | 2020/09/17 | Dietmar Eggemann | [sched: Task priority related cleanups](https://lore.kernel.org/patchwork/cover/1372514) | 清理了优先级设置过程中一些老旧的接口. | v1 ☐ 5.12-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1372514) |
 
-## 1.8.6  Migrate disable support && kmap_local
+## 8.6  Migrate disable support && kmap_local
 -------
 
 
@@ -1117,10 +1117,10 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 
 后来主线上 Dexuan Cui 报 Migrate Disable 合入后引入了问题, [5.10: sched_cpu_dying() hits BUG_ON during hibernation: kernel BUG at kernel/sched/core.c:7596!](https://lkml.org/lkml/2020/12/22/141). Valentin Schneider 怀疑是有些 kworker 线程在 CPU 下线后又选到了下线核上运行, 因此建议去测试这组补丁 [workqueue: break affinity initiatively](https://lkml.org/lkml/2020/12/18/406). Dexuan Cui 测试以后可以解决这个问题, 但是会有其他 WARN. Peter Zijlstra 的 解决方案如下 [sched: Fix hot-unplug regression](https://lore.kernel.org/patchwork/cover/1368710).
 
-# 1.9 其他
+# 9 其他
 -------
 
-## 1.9.1 CPU HOTPLUG 中的调度处理
+## 9.1 CPU HOTPLUG 中的调度处理
 -------
 
 
@@ -1133,7 +1133,7 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 
 
 
-## 1.9.2 Google Fibers 用户空间调度框架
+## 9.2 Google Fibers 用户空间调度框架
 -------
 
 "Google Fibers" 是一个用户空间调度框架, 在谷歌广泛使用并成功地用于改善进程内工作负载隔离和响应延迟. 我们正在开发这个框架, UMCG(用户管理并发组)内核补丁是这个框架的基础.
@@ -1143,11 +1143,11 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/05/20 | Peter Oskolkov <posk@google.com> | [UMCG early preview/RFC patchset](https://lore.kernel.org/patchwork/cover/1433967) | per-cgroup 的 NUMASTAT 功能 | [PatchWork v8](https://lore.kernel.org/patchwork/cover/1433967) |
 
-# 1.10 调试信息
+# 10 调试信息
 -------
 
 
-## 1.10.1 统计信息
+## 10.1 统计信息
 -------
 
 阿里的王贇 [sched/numa: introduce numa locality](https://lore.kernel.org/patchwork/cover/1190383) 提供了 per-cgroup 的 NUMASTAT 功能, 发到了 2020/02/07 v8, 但是最终还是没能合入主线.
@@ -1158,7 +1158,7 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 | 2021/03/27 | Yafang Shao | [sched: support schedstats for RT sched class](https://lore.kernel.org/patchwork/cover/1403138) | 我们希望使用 schedstats 工具测量生产环境中 RT 任务的延迟, 但目前只支持公平调度类的 schedstats.  将 sched_statistics 修改为独立于 task_struct 或 task_group 的调度统计数据, 从而完成了 RT 的 schedstats 支持 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1403138) |
 
 
-## 1.10.2 tracepoint
+## 10.2 tracepoint
 -------
 
 [`tracepoints-helpers`](https://github.com/auldp/tracepoints-helpers.git)
@@ -1173,7 +1173,7 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 | 2020/06/19 | | [Sched: Add a tracepoint to track rq->nr_running](https://lore.kernel.org/patchwork/patch/1258690) | 增加 nr_running 的跟踪点 | v1 ☑ 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1258690)<br>*-*-*-*-*-*-*-* <br>[FixPatch](https://lore.kernel.org/patchwork/patch/1284621) |
 | 2020/08/28 | | [sched/debug: Add new tracepoint to track cpu_capacity](https://lore.kernel.org/patchwork/patch/1296761) | 增加 cpu_capacity 的跟踪点 | v1 ☐ |  [PatchWork](https://lore.kernel.org/patchwork/cover/1296761) |
 
-## 1.10.3 debug 接口
+## 10.3 debug 接口
 -------
 
 
