@@ -133,6 +133,18 @@ raw_tracepoint 相比 tracepoint
 | 2021/06/19 | Alan Maguire <alan.maguire@oracle.com> | [libbpf: BTF dumper support for typed data](https://lore.kernel.org/patchwork/cover/1448989) | 引入 btf_dump__dump_type_data, 可以用来输出结构体的信息. | v5 ☐ | [PatchWork v5,bpf-next,0/3](https://lore.kernel.org/patchwork/cover/1448989) |
 
 
+
+# 5 function call
+-------
+
+[Calling kernel functions from BPF](https://lwn.net/Articles/856005)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/03/01 | Jan H. Schönherr | [bpf: Support calling kernel function](https://patchwork.kernel.org/project/netdevbpf/cover/20210325015124.1543397-1-kafai@fb.com) | BPF 支持直接调用内核函数 | v2 ☑ 5.13-rc1 | [PatchWork v2,bpf-next,00/14](http://patches.linaro.org/cover/221148) |
+
+
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

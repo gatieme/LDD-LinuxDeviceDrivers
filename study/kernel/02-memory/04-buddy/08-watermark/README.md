@@ -1,6 +1,6 @@
 ---
 
-title: 虚拟化 & KVM 子系统
+title: 内存水线
 date: 2021-02-15 00:32
 author: gatieme
 tags:
@@ -32,7 +32,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 <br>
 
-2   **虚拟化子系统**
+2   **内存水线**
 =====================
 
 
