@@ -2,6 +2,14 @@
 =====================
 
 
+# 0 内存管理子系统(开篇)
+-------
+
+
+
+## 0.1 内存管理子系统概述
+------
+
 **概述: **内存管理子系统**, 作为 kernel 核心中的核心, 是承接所有系统活动的舞台, 也是 Linux kernel 中最为庞杂的子系统, 没有之一．截止 4.2 版本, 内存管理子系统(下简称 MM)所有平台独立的核心代码(C文件和头文件)达到11万6千多行, 这还不包括平台相关的 C 代码, 及一些汇编代码; 与之相比, 调度子系统的平台独立的核心代码才2万８千多行．
 
 
@@ -64,47 +72,8 @@
 
 
 
-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*　重要功能和时间点　-*-*-*-*-*-*-*-*-*-*-*-*-*-*-***
-
-
-
-
-
-下文将按此目录分析 Linux 内核中 MM 的重要功能和引入版本:
-
-
-
-**目录:**
-
-**1 内存分配**
-
-**2 内存去碎片化**
-
-**3 页表管理**
-
-**4 页面回收**
-
-**5 页面写回**
-
-**6 页面预读**
-
-**7 大内存页支持**
-
-**8 内存控制组(Memory Cgroup)支持**
-
-**9 内存热插拔支持**
-
-**10 超然内存(Transcendent Memory)支持**
-
-**11 非易失性内存 (NVDIMM, Non-Volatile DIMM) 支持**
-
-**12 内存管理调试支持**
-
-**13 杂项**
-
-
-
-**-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* 正文 -*-*-*-*-*-*-*-*-*-*-*-*-*-*-***
+## 0.2 重要功能和时间点
+-------
 
 
 内存管理的目标是提供一种方法, 为实现各种目的而在各个用户之间实现内存共享. 内存管理方法应该实现以下两个功能:
@@ -126,6 +95,9 @@
 | 2020/02/24 | [Fine grained MM locking](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) | MM lockless | RFC ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com), [fine_grained_mm.pdf](https://linuxplumbersconf.org/event/4/contributions/556/attachments/304/509/fine_grained_mm.pdf) |
 
 
+## 0.3 主线内存管理分支合并窗口
+-------
+
 Mainline Merge Window - Merge branch 'akpm' (patches from Andrew)
 
 | 版本 | 发布时间 | 合并链接 |
@@ -135,35 +107,103 @@ Mainline Merge Window - Merge branch 'akpm' (patches from Andrew)
 
 
 
-社区的内存开发者
+## 0.4 社区的内存管理领域的开发者
+-------
 
-[David Rientjes <rientjes@google.com>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=6580&state=*&archive=both&param=4&page=1)
+- [x] [David Rientjes <rientjes@google.com>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=6580&state=*&archive=both&param=4&page=1)
 
-[Mel Gorman <mgorman@techsingularity.net>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=19167&state=*&archive=both&param=3&page=1)
+- [x] [Mel Gorman <mgorman@techsingularity.net>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=19167&state=*&archive=both&param=3&page=1)
 
-[Minchan Kim <minchan@kernel.org>](https://lore.kernel.org/patchwork/project/lkml/list/?series=&submitter=13305&state=*&q=&archive=both&delegate=)
+- [x] [Minchan Kim <minchan@kernel.org>](https://lore.kernel.org/patchwork/project/lkml/list/?series=&submitter=13305&state=*&q=&archive=both&delegate=)
 
-[Joonsoo Kim](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13703&state=%2A&archive=both)
+- [x] [Joonsoo Kim](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13703&state=%2A&archive=both)
 
-[Kamezawa Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=4430&state=%2A&archive=both)
-
-*   关于碎片化
-
-内存按 chunk 分配, 每个程序保留的 chunk 的大小和时间都不同. 一个程序可以多次请求和释放 `memory chunk`. 程序一开始时, 空闲内存有很多并且连续, 随后大的连续的内存区域碎片化, 变成更小的连续区域, 最终程序无法获取大的连续的 memory chunk.
+- [x] [Kamezawa Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=4430&state=%2A&archive=both)
 
 
-| 碎片化类型 | 描述 | 示例 |
-|:--------:|:----:|:---:|
-| 内碎片化(Internal fragmentation) | 分给程序的内存比它实际需要的多, 多分的内存被浪费. | 比如chunk一般是4, 8或16的倍数, 请求23字节的程序实际可以获得24字节的chunk, 未被使用的内存无法再被分配, 这种分配叫fixed partitions. 一个程序无论多么小, 都要占据一个完整的partition. 通常最好的解决方法是改变设计, 比如使用动态内存分配, 把内存空间的开销分散到大量的objects上, 内存池可以大大减少internal fragmentation. |
-| 外部碎片(External fragmentation) | 有足够的空闲内存, 但是没有足够的连续空闲内存供分配. | 因为都被分成了很小的pieces, 每个piece都不足以满足程序的要求. external指未使用的存储空间在已分配的区域外. 这种情况经常发生在频繁创建、更改(大小)、删除不同大小文件的文件系统中. 比起文件系统, 这种fragmentation在RAM上更是一个问题, 因为程序通常请求RAM分配一些连续的blocks, 而文件系统可以利用可用的blocks并使得文件逻辑上看上去是连续的. 所以对于文件系统来说, 有空闲空间就可以放新文件, 碎片化也没关系, 对内存来说, 程序请求连续blocks可能无法满足, 除非程序重新发出请求, 请求一些更小的分散的blocks. 解决方法一是compaction, 把所有已分配的内存blocks移到一块, 但是比较慢, 二是garbage collection, 收集所有无法访问的内存并把它们当作空闲内存, 三是paging, 把物理内存分成固定大小的frames, 用相同大小的逻辑内存pages填充, 逻辑地址不连续, 只要有可用内存, 进程就可以获得, 但是paging又会造成internal fragmentation. |
-| Data fragmentation. | 当内存中的一组数据分解为不连续且彼此不紧密的许多碎片时, 会发生这种类型的碎片. 如果我们试图将一个大对象插入已经遭受的内存中, 则会发生外部碎片 .  | 通常发生在向一个已有external fragmentation的存储系统中插入一个大的object的时候, 操作系统找不到大的连续的内存区域, 就把一个文件不同的blocks分散放置, 放到可用的小的内存pieces中, 这样文件的物理存放就不连续, 读写就慢了, 这叫文件系统碎片. 消除碎片工具的主要工作就是重排block, 让每个文件的blocks都相邻. |
+## 0.5 目录
+-------
 
-参考 [Fragmentation in Operating System](https://www.includehelp.com/operating-systems/fragmentation.aspx)
+下文将按此**目录**分析 Linux 内核中 MM 的重要功能和引入版本:
 
 
 
 
-# 2.1 内存分配
+- [x] 1. 页表管理
+
+- [x] 2. 内存分配
+
+- [x] 3. 内存去碎片化
+
+- [x] 4. 页面回收
+
+- [x] 5. 页面写回
+
+- [x] 6. 页面预读
+
+- [x] 7. 大内存页支持
+
+- [x] 8. 内存控制组(Memory Cgroup)支持
+
+- [x] 9. 内存热插拔支持
+
+- [x] 10. 超然内存(Transcendent Memory)支持
+
+- [x] 11. 非易失性内存 (NVDIMM, Non-Volatile DIMM) 支持
+
+- [x] 12. 内存管理调试支持
+
+- [x] 13. 杂项
+
+
+
+# 1 页表管理
+-------
+
+
+## 1.1 四级页表
+-------
+
+**2.6.11(2005年3月发布)**
+
+页表实质上是一个虚拟地址到物理地址的映射表, 但由于程序的局部性, 某时刻程序的某一部分才需要被映射, 换句话说, 这个映射表是相当稀疏的, 因此在内存中维护一个一维的映射表太浪费空间, 也不现实. 因此, 硬件层次支持的页表就是一个多层次的映射表.
+
+Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2级的(页目录项 -> 页表项), 所以, 一开始 Linux 支持的软件页表也是2级的; 后来, 为了支持 PAE (Physical Address Extension), 扩展为3级; 后来, 64位 CPU 的引入, 3级也不够了, 于是, 2.6.11 引入了四级的通用页表.
+
+
+关于四级页表是如何适配 i386 的两级页表的, 很简单, 就是虚设两级页表. 类比下, 北京市(省)北京市海淀区东升镇, 就是为了适配4级行政区规划而引入的一种表示法. 这种通用抽象的软件工程做法在内核中不乏例子.
+
+关于四级页表演进的细节, 可看我以前文章: [Linux内核4级页表的演进](https://link.zhihu.com/?target=http%3A//larmbr.com/2014/01/19/the-evolution-of-4-level-page-talbe-in-linux/)
+
+## 1.2 延迟页表缓存冲刷 (Lazy-TLB flushing)
+-------
+
+**极早引入, 时间难考**
+
+
+有个硬件机构叫 TLB, 用来缓存页表查寻结果, 根据程序局部性, 即将访问的数据或代码很可能与刚访问过的在一个页面, 有了 TLB 缓存, 页表查找很多时候就大大加快了. 但是, 内核在切换进程时, 需要切换页表, 同时 TLB 缓存也失效了, 需要冲刷掉. 内核引入的一个优化是, 当切换到内核线程时, 由于内核线程不使用用户态空间, 因此切换用户态的页表是不必要, 自然也不需要冲刷 TLB. 所以引入了 Lazy-TLB 模式, 以提高效率. 关于细节, 可参考[kernel 3.10内核源码分析--TLB相关--TLB概念、flush、TLB lazy模式](https://www.cnblogs.com/sky-heaven/p/5133747.html)
+
+
+## 1.3 Clarifying memory management with page folios
+-------
+
+
+[LWN：利用page folio来明确内存操作！](https://blog.csdn.net/Linux_Everything/article/details/115388078)
+
+[带有“memory folios”的 Linux：编译内核时性能提升了 7%](https://www.heikewan.com/item/27509944)
+
+内存管理(memory management) 一般是以 page 为单位进行的, 一个 page 通常包含 4,096 个字节, 也可能更大. 内核已经将 page 的概念扩展到所谓的 compound page(复合页), 即一组组物理连续的单独 page 的组合. 这又使得 "page" 的定义变得有些模糊了. Matthew Wilcox 提出了 "page folio" 的概念, 它实际上仍然是一个 page structure, 只是保证了它一定不是 tail page. 任何接受 folio page 参数的函数都会是对整个 compound page 进行操作(如果传入的确实是一个 compound page 的话), 这样就不会有任何歧义. 从而可以使内核里的内存管理子系统更加清晰；也就是说, 如果某个函数被改为只接受 folio page 作为参数的话, 很明确, 它们不适用于对 tail page 的操作. 通过 folio 结构来管理内存. 它提供了一些具有自身价值的基础设施, 将内核的文本缩减了约 6kB.
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/04/14 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Memory folios](https://lwn.net/Articles/849538) | NA | v11 ☐ | [PatchWork v11](https://lore.kernel.org/patchwork/cover/1446440), [LWN](https://lwn.net/Articles/849538) |
+
+
+
+
+# 2 内存分配
 -------
 
 
@@ -174,11 +214,11 @@ Mainline Merge Window - Merge branch 'akpm' (patches from Andrew)
 
 另外一种方法称为 buddy memory allocation, 是一种更快的内存分配技术, 它将内存划分为 2 的幂次方个分区, 并使用 best-fit 方法来分配内存请求. 当用户释放内存时, 就会检查 buddy 块, 查看其相邻的内存块是否也已经被释放. 如果是的话, 将合并内存块以最小化内存碎片. 这个算法的时间效率更高, 但是由于使用 best-fit 方法的缘故, 会产生内存浪费.
 
-## 2.1.1  页分配器: 伙伴分配器[<sup>12<sup>](#ref-anchor-12)
+## 2.1  页分配器: 伙伴分配器[<sup>12<sup>](#ref-anchor-12)
 -------
 
 
-### 2.1.1.1 BUDDY 伙伴系统
+### 2.1.1 BUDDY 伙伴系统
 -------
 
 古老, 具体时间难考 , 应该是生而有之. orz...
@@ -226,7 +266,7 @@ Mainline Merge Window - Merge branch 'akpm' (patches from Andrew)
 | 2021/02/25 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Rationalise `__alloc_pages` wrappers](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) | 重构 alloc_pages 接口的调用逻辑使逻辑更清晰. | v3 ☑ 5.13-rc1 | [PatchWork v6](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) |
 
 
-### 2.1.1.2 fair allocation
+### 2.1.2 fair allocation
 -------
 
 
@@ -238,24 +278,7 @@ Mainline Merge Window - Merge branch 'akpm' (patches from Andrew)
 | 2016/07/08 | Mel Gorman <mgorman@techsingularity.net> |  | [Move LRU page reclaim from zones to nodes v9](https://lore.kernel.org/patchwork/cover/696437)系列中的一个补丁. 公平区域分配策略在区域之间交叉分配请求, 以避免年龄倒置问题, 即回收新页面来平衡区域. LRU 回收现在是基于节点的, 所以这应该不再是一个问题, 公平区域分配策略本身开销也不小, 因此这个补丁移除了它. | v9 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork v21](https://lore.kernel.org/patchwork/cover/696437) |
 
 
-
-### 2.1.1.5 优化
--------
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2016/04/15 | Mel Gorman <mgorman@techsingularity.net> | [Optimise page alloc/free fast paths v3](https://lore.kernel.org/patchwork/cover/668967) | 优化 page 申请和释放的快速路径. 优化后<br>1. 在 free 路径中, 调试检查和页面区域/页面块仍然查找占主导地位, 目前仍没有明显的解决方案. 在 alloc 路径中, 主要的耗时操作是处理 zonelist、新页面准备和 fair zone 分配以及无数的统计更新. | v3 ☑ 4.7-rc1 | [PatchWork v6 00/28](https://lore.kernel.org/patchwork/cover/668967) |
-
-### 2.1.1.5 重构
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2016/04/15 | Mel Gorman <mgorman@techsingularity.net> | [Rationalise `__alloc_pages` wrappers](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) | NA | v3 ☑ 4.7-rc1 | [PatchWork v3,0/7](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) |
-
-
-### 2.1.1.3 内存水线
+### 2.1.3 内存水线
 -------
 
 Linux 为每个 zone 都设置了独立的 min, low 和 high 三个档位的 watermark 值, 在代码中以struct zone中的 `_watermark[NR_WMARK]` 来表示.
@@ -277,7 +300,7 @@ Linux 为每个 zone 都设置了独立的 min, low 和 high 三个档位的 wat
 | 2020/05/01 |Charan Teja Kalla <charante@codeaurora.org> | [mm: Limit boost_watermark on small zones.](https://lore.kernel.org/patchwork/cover/1234105) | NA | v1 ☑ 5.11-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1234105) |
 
 
-### 2.1.1.4 PCP(Per CPU Page) Allocation
+### 2.1.4 PCP(Per CPU Page) Allocation
 -------
 
 *   [Hot and cold pages](https://lwn.net/Articles/14768)
@@ -350,7 +373,7 @@ a206231bbe6 [PATCH] hot-n-cold pages: page allocator core
 | 2020/03/20 | Mel Gorman | [mm/page_alloc: Add a bulk page allocator -fix -fix](https://lore.kernel.org/patchwork/cover/1405057) | Bulk memory allocation 的第二组修复补丁 | v1 ☐ | [RFC](https://lore.kernel.org/patchwork/cover/1405057) |
 
 
-### 2.1.1.5 ALLOC_NOFRAGMENT 优化
+### 2.1.5 ALLOC_NOFRAGMENT 优化
 -------
 
 页面分配最容易出现的就是外碎片化问题, 因此主线进行了锲而不舍的优化, Mel Gorman 提出的 [Fragmentation avoidance improvements v5](https://lore.kernel.org/patchwork/cover/1016503) 是比较有特色的一组.
@@ -389,7 +412,7 @@ a206231bbe6 [PATCH] hot-n-cold pages: page allocator core
 整个补丁在测试场景下将外碎片时间减少 94% 以上, 这收益大部分来自于补丁 1-4, 但补丁 5 可以处理罕见的特例, 并为THP分配成功率提供调整系统的选项, 以换取一些档位来控制碎片化.
 
 
-### 2.1.1.6 页面窃取 page stealing
+### 2.1.6 页面窃取 page stealing
 -------
 
 
@@ -416,8 +439,25 @@ Date:   Wed Sep 11 14:20:35 2013 -0700
 
     mm/page_allo.c: restructure free-page stealing code and fix a bug
 
+### 2.1.7 优化
+-------
 
-## 2.1.2 内核级别的 malloc 分配器之-对象分配器(小内存分配)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/04/15 | Mel Gorman <mgorman@techsingularity.net> | [Optimise page alloc/free fast paths v3](https://lore.kernel.org/patchwork/cover/668967) | 优化 page 申请和释放的快速路径. 优化后<br>1. 在 free 路径中, 调试检查和页面区域/页面块仍然查找占主导地位, 目前仍没有明显的解决方案. 在 alloc 路径中, 主要的耗时操作是处理 zonelist、新页面准备和 fair zone 分配以及无数的统计更新. | v3 ☑ 4.7-rc1 | [PatchWork v6 00/28](https://lore.kernel.org/patchwork/cover/668967) |
+
+
+
+### 2.1.7 重构
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/04/15 | Mel Gorman <mgorman@techsingularity.net> | [Rationalise `__alloc_pages` wrappers](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) | NA | v3 ☑ 4.7-rc1 | [PatchWork v3,0/7](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) |
+
+
+## 2.2 内核级别的 malloc 分配器之-对象分配器(小内存分配)
 -------
 
 伙伴系统是每次分配内存最小都是以页(4KB)为单位的, 页面分配和回收起来很方便, 但是在实际使用过程中还是有一些问题的.
@@ -446,7 +486,7 @@ https://lore.kernel.org/patchwork/patch/46671/
 https://lore.kernel.org/patchwork/cover/408914
 
 
-### 2.1.2.1 SLAB
+### 2.2.1 SLAB
 -------
 
 
@@ -478,7 +518,7 @@ Linux slab 分配器使用了这种思想和其他一些思想来构建一个在
 与传统的内存管理模式相比,  slab 缓存分配器提供了很多优点. 首先, 内核通常依赖于对小对象的分配, 它们会在系统生命周期内进行无数次分配. slab 缓存分配器通过对类似大小的对象进行缓存而提供这种功能, 从而避免了常见的碎片问题. slab 分配器还支持通用对象的初始化, 从而避免了为同一目而对一个对象重复进行初始化. 最后, slab 分配器还可以支持硬件缓存对齐和着色, 这允许不同缓存中的对象占用相同的缓存行, 从而提高缓存的利用率并获得更好的性能.
 
 
-### 2.1.2.2 SLUB
+### 2.2.2 SLUB
 -------
 
 随着大规模多处理器系统和NUMA系统的广泛应用, slab终于暴露出不足:
@@ -510,7 +550,7 @@ SLUB 在解决了上述的问题之上, 提供与 SLAB 完全一样的接口, �
 
 
 
-### 2.1.2.3 SLOB
+### 2.2.3 SLOB
 -------
 
 **2.6.16(2006年3月发布)**
@@ -522,14 +562,14 @@ SLUB 在解决了上述的问题之上, 提供与 SLAB 完全一样的接口, �
 
 这是第三个对象分配器, 提供同样的接口, 它是为适用于嵌入式小内存小机器的环境而引入的, 所以实现上很精简, 大大减小了内存 footprint, 能在小机器上提供很不错的性能.
 
-### 2.1.2.4 SLQB
+### 2.2.4 SLQB
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2009/01/23 | Nick Piggin <npiggin@suse.de> | [SLQB slab allocator](https://lwn.net/Articles/311502/) | 实现 SLQB 分配器 | v2 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/1385629)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/141837) |
 
-### 2.1.2.5 改进与优化
+### 2.2.5 改进与优化
 -------
 
 *   slab_merge
@@ -576,10 +616,10 @@ https://lore.kernel.org/patchwork/cover/668967
 
 
 
-## 2.1.3 内核级别的 malloc 分配器之-大内存分配
+## 2.3 内核级别的 malloc 分配器之-大内存分配
 -------
 
-### 2.1.3.1 VMALLOC 大内存分配器
+### 2.3.1 VMALLOC 大内存分配器
 -------
 
 小内存的问题算是解决了, 但还有一个大内存的问题: 用伙伴系统分配 8 x 4KB 大小以上的的数据时, 只能从 16 x 4KB 的空闲列表里面去找(这样得到的物理内存是连续的), 但很有可能系统里面有内存, 但是伙伴系统分配不出来, 因为他们被分割成小的片段. 那么, vmalloc 就是要用这些碎片来拼凑出一个大内存, 相当于收集一些"边角料", 组装成一个成品后"出售".
@@ -593,7 +633,7 @@ https://lore.kernel.org/patchwork/cover/668967
 | 2021/03/24 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [vmalloc: Improve vmalloc(4MB) performance](https://lore.kernel.org/patchwork/cover/1401688) | 加速 4MB vmalloc 分配. | v2 ☑ 5.13-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1401688) |
 
 
-### 2.1.3.2 连续内存分配器(CMA)
+### 2.3.2 连续内存分配器(CMA)
 -------
 
 **3.5(2012年7月发布)**
@@ -627,15 +667,30 @@ CMA 的做法也是启动时预留, 但不同的是, 它允许这部分内存被
 
 
 
-# 2.2 内存去碎片化
+# 3 内存去碎片化
 -------
+
+## 3.1 关于碎片化
+-------
+
+内存按 chunk 分配, 每个程序保留的 chunk 的大小和时间都不同. 一个程序可以多次请求和释放 `memory chunk`. 程序一开始时, 空闲内存有很多并且连续, 随后大的连续的内存区域碎片化, 变成更小的连续区域, 最终程序无法获取大的连续的 memory chunk.
+
+
+| 碎片化类型 | 描述 | 示例 |
+|:--------:|:----:|:---:|
+| 内碎片化(Internal fragmentation) | 分给程序的内存比它实际需要的多, 多分的内存被浪费. | 比如chunk一般是4, 8或16的倍数, 请求23字节的程序实际可以获得24字节的chunk, 未被使用的内存无法再被分配, 这种分配叫fixed partitions. 一个程序无论多么小, 都要占据一个完整的partition. 通常最好的解决方法是改变设计, 比如使用动态内存分配, 把内存空间的开销分散到大量的objects上, 内存池可以大大减少internal fragmentation. |
+| 外部碎片(External fragmentation) | 有足够的空闲内存, 但是没有足够的连续空闲内存供分配. | 因为都被分成了很小的pieces, 每个piece都不足以满足程序的要求. external指未使用的存储空间在已分配的区域外. 这种情况经常发生在频繁创建、更改(大小)、删除不同大小文件的文件系统中. 比起文件系统, 这种fragmentation在RAM上更是一个问题, 因为程序通常请求RAM分配一些连续的blocks, 而文件系统可以利用可用的blocks并使得文件逻辑上看上去是连续的. 所以对于文件系统来说, 有空闲空间就可以放新文件, 碎片化也没关系, 对内存来说, 程序请求连续blocks可能无法满足, 除非程序重新发出请求, 请求一些更小的分散的blocks. 解决方法一是compaction, 把所有已分配的内存blocks移到一块, 但是比较慢, 二是garbage collection, 收集所有无法访问的内存并把它们当作空闲内存, 三是paging, 把物理内存分成固定大小的frames, 用相同大小的逻辑内存pages填充, 逻辑地址不连续, 只要有可用内存, 进程就可以获得, 但是paging又会造成internal fragmentation. |
+| Data fragmentation. | 当内存中的一组数据分解为不连续且彼此不紧密的许多碎片时, 会发生这种类型的碎片. 如果我们试图将一个大对象插入已经遭受的内存中, 则会发生外部碎片 .  | 通常发生在向一个已有external fragmentation的存储系统中插入一个大的object的时候, 操作系统找不到大的连续的内存区域, 就把一个文件不同的blocks分散放置, 放到可用的小的内存pieces中, 这样文件的物理存放就不连续, 读写就慢了, 这叫文件系统碎片. 消除碎片工具的主要工作就是重排block, 让每个文件的blocks都相邻. |
+
+参考 [Fragmentation in Operating System](https://www.includehelp.com/operating-systems/fragmentation.aspx)
+
 
 
 前面讲了运行较长时间的系统存在的内存碎片化问题, Linux 内核也不能幸免, 因此有开发者陆续提出若干种方法.
 
 
 
-## 2.2.1 成块回收(Lumpy Reclaim)
+## 3.2 成块回收(Lumpy Reclaim)
 -------
 
 
@@ -652,7 +707,7 @@ CMA 的做法也是启动时预留, 但不同的是, 它允许这部分内存被
 | 2007/08/02 | Andy Whitcroft <apw@shadowen.org> | [Synchronous Lumpy Reclaim V3](https://lore.kernel.org/patchwork/cover/87667) | 当以较高的阶数应用回收时, 可能会启动大量IO. 这组补丁尝试修复这个问题, 用于在 VM 事件记录器中中将页面标记为非活动时修复, 并在直接回收连续区域时等待页面写回. | v3 ☑ 2.6.23-rc4 | [Patchwork V5](https://lore.kernel.org/patchwork/cover/87667) |
 
 
-## 2.2.2 通过迁移类型分组来实现反碎片
+## 3.3 通过迁移类型分组来实现反碎片
 -------
 
 也称为: 基于页面可移动性的页面聚类(Page Clustering by Page Mobility)
@@ -689,19 +744,19 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 关于细节, 可看我之前写的文章:[Linux内核中避免内存碎片的方法(1)](https://link.zhihu.com/?target=http%3A//larmbr.com/2014/04/08/avoiding-memory-fragmentation-in-linux-kernelp%281%29/)
 
 
-## 2.2.3 内存规整(Memory Compaction)
+## 3.4 内存规整(Memory Compaction)
 -------
 
-### 2.2.3.1 内存规整
+### 3.4.1 内存规整
 -------
 
 **2.6.35(2010年8月发布)**
 
-2.2中讲到页面迁移类型(聚类), 它把相当可移动性的页面聚集在一起: 可移动的在一起, 可回收的在一起, 不可移动的也在一起. **它作为去碎片化的基础.** 然后, 利用**成块回收,** 在回收时, 把可回收的一起回收, 把可移动的一起移动, 从而能空出大量连续物理页面. 这个**作为去碎片化的策略.**
+2.2中讲到页面迁移类型(聚类), 它把相当可移动性的页面聚集在一起: 可移动的在一起, 可回收的在一起, 不可移动的也在一起. **它作为去碎片化的基础.** 然后, 利用**成块回收**, 在回收时, 把可回收的一起回收, 把可移动的一起移动, 从而能空出大量连续物理页面. 这个**作为去碎片化的策略.**
 
 
 
-2.6.35 里, Mel Gorman 又实现了一种新的**去碎片化的策略** 叫[**内存紧致化或者内存规整](https://lwn.net/Articles/368869).** 不同于**成块回收**回收相临页面, **内存规整**则是更彻底, 它在回收页面时被触发, 它会在一个 zone 里扫描, 把已分配的页记录下来, 然后把所有这些页移动到 zone 的一端, 这样这把一个可能已经七零八落的 zone 给紧致化成一段完全未分配的区间和一段已经分配的区间, 这样就又腾出大块连续的物理页面了.
+2.6.35 里, Mel Gorman 又实现了一种新的**去碎片化的策略** 叫[**内存紧致化或者内存规整**](https://lwn.net/Articles/368869). 不同于**成块回收**回收相临页面, **内存规整**则是更彻底, 它在回收页面时被触发, 它会在一个 zone 里扫描, 把已分配的页记录下来, 然后把所有这些页移动到 zone 的一端, 这样这把一个可能已经七零八落的 zone 给紧致化成一段完全未分配的区间和一段已经分配的区间, 这样就又腾出大块连续的物理页面了.
 
 它后来替代了成块回收, 使得后者在 3.5 中被移除.
 
@@ -721,7 +776,7 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 
 
 
-### 2.2.3.2 主动规整
+### 3.4.2 主动规整
 -------
 
 主动规整, 而不是按需规整.
@@ -736,52 +791,7 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/02/04 | SeongJae Park <sjpark@amazon.com> | [Proactive compaction for the kernel](https://lwn.net/Articles/817905) | 主动进行内存规整, 而不是之前的按需规整. 新的 sysctl 接口 `vm.compaction_pro` 来调整内存规整的主动性, 它规定了 kcompactd 试图维护提交的外部碎片的界限. | v8 ☑ [5.9](https://kernelnewbies.org/Linux_5.9#Memory_management) | [PatchWork v24](https://lore.kernel.org/patchwork/cover/1257280), [LWN](https://lwn.net/Articles/817905) |
 
-
-# 2.3 页表管理
--------
-
-
-## 2.3.1 四级页表
--------
-
-**2.6.11(2005年3月发布)**
-
-页表实质上是一个虚拟地址到物理地址的映射表, 但由于程序的局部性, 某时刻程序的某一部分才需要被映射, 换句话说, 这个映射表是相当稀疏的, 因此在内存中维护一个一维的映射表太浪费空间, 也不现实. 因此, 硬件层次支持的页表就是一个多层次的映射表.
-
-Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2级的(页目录项 -> 页表项), 所以, 一开始 Linux 支持的软件页表也是2级的; 后来, 为了支持 PAE (Physical Address Extension), 扩展为3级; 后来, 64位 CPU 的引入, 3级也不够了, 于是, 2.6.11 引入了四级的通用页表.
-
-
-关于四级页表是如何适配 i386 的两级页表的, 很简单, 就是虚设两级页表. 类比下, 北京市(省)北京市海淀区东升镇, 就是为了适配4级行政区规划而引入的一种表示法. 这种通用抽象的软件工程做法在内核中不乏例子.
-
-关于四级页表演进的细节, 可看我以前文章: [Linux内核4级页表的演进](https://link.zhihu.com/?target=http%3A//larmbr.com/2014/01/19/the-evolution-of-4-level-page-talbe-in-linux/)
-
-## 2.3.2 延迟页表缓存冲刷 (Lazy-TLB flushing)
--------
-
-**极早引入, 时间难考**
-
-
-有个硬件机构叫 TLB, 用来缓存页表查寻结果, 根据程序局部性, 即将访问的数据或代码很可能与刚访问过的在一个页面, 有了 TLB 缓存, 页表查找很多时候就大大加快了. 但是, 内核在切换进程时, 需要切换页表, 同时 TLB 缓存也失效了, 需要冲刷掉. 内核引入的一个优化是, 当切换到内核线程时, 由于内核线程不使用用户态空间, 因此切换用户态的页表是不必要, 自然也不需要冲刷 TLB. 所以引入了 Lazy-TLB 模式, 以提高效率. 关于细节, 可参考[kernel 3.10内核源码分析--TLB相关--TLB概念、flush、TLB lazy模式](https://www.cnblogs.com/sky-heaven/p/5133747.html)
-
-
-## 2.3.3 Clarifying memory management with page folios
--------
-
-
-[LWN：利用page folio来明确内存操作！](https://blog.csdn.net/Linux_Everything/article/details/115388078)
-
-[带有“memory folios”的 Linux：编译内核时性能提升了 7%](https://www.heikewan.com/item/27509944)
-
-内存管理(memory management) 一般是以 page 为单位进行的, 一个 page 通常包含 4,096 个字节, 也可能更大. 内核已经将 page 的概念扩展到所谓的 compound page(复合页), 即一组组物理连续的单独 page 的组合. 这又使得 "page" 的定义变得有些模糊了. Matthew Wilcox 提出了 "page folio" 的概念, 它实际上仍然是一个 page structure, 只是保证了它一定不是 tail page. 任何接受 folio page 参数的函数都会是对整个 compound page 进行操作(如果传入的确实是一个 compound page 的话), 这样就不会有任何歧义. 从而可以使内核里的内存管理子系统更加清晰；也就是说, 如果某个函数被改为只接受 folio page 作为参数的话, 很明确, 它们不适用于对 tail page 的操作. 通过 folio 结构来管理内存. 它提供了一些具有自身价值的基础设施, 将内核的文本缩减了约 6kB.
-
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/04/14 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Memory folios](https://lwn.net/Articles/849538) | NA | v11 ☐ | [PatchWork v11](https://lore.kernel.org/patchwork/cover/1446440), [LWN](https://lwn.net/Articles/849538) |
-
-
-# 2.4 页面回收
+# 4 页面回收
 -------
 
 [Page replacement for huge memory systems](https://lwn.net/Articles/257541)
@@ -809,7 +819,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 | 直接内存回收 `__alloc_pages_direct_reclaim` | 处于慢速分配过程中, 直接内存回收只有一种情况下会使用, 在慢速分配中无法从zonelist的所有zone中以min阀值分配页框, 并且进行异步内存压缩后, 还是无法分配到页框的时候, 就对zonelist中的所有zone进行一次直接内存回收. 注意, 直接内存回收是针对zonelist中的所有zone的, 它并不像快速内存回收和kswapd内存回收, 只会对zonelist中空闲页框不达标的zone进行内存回收. 在直接内存回收中, 有可能唤醒flush内核线程. |
 | kswapd 内存回收 | 发生在 kswapd 内核线程中, 当前每个 node 有一个 kswapd 内核线程, 也就是kswapd内核线程中的内存回收, 是只针对所在node的, 并且只会对分配了order页框数量后空闲页框数量 < 此zone的high阀值 + 保留页框数量的zone进行内存回收, 并不会对此node的所有zone进行内存回收. |
 
-## 2.4.1 内存回收机制
+## 4.1 内存回收机制
 -------
 
 快速内存回收机制 `node_reclaim()` 在内存分配的快速路径进行, 因此一直是优化的重点.
@@ -825,10 +835,10 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 | 2014/04/08 | Mel Gorman <mel@csn.ul.ie> | [Disable zone_reclaim_mode by default v2](https://lore.kernel.org/patchwork/patch/454625) | NA | v2 ☑ 3.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/454625) |
 
 
-## 2.4.1 LRU
+## 4.2 LRU
 -------
 
-### 2.4.1.1 经典地 LRU 算法
+### 4.2.1 经典地 LRU 算法
 -------
 
 
@@ -837,7 +847,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 | 2008/06/11 | Rik van Riel <riel@redhat.com> | [VM pageout scalability improvements (V12)](https://lore.kernel.org/patchwork/cover/118967) | 在大内存系统上, 扫描 LRU 中无法(或不应该)从内存中逐出的页面. 它不仅会占用CPU时间, 而且还会引发锁争用. 并且会使大型系统处于紧张的内存压力状态. 该补丁系列通过一系列措施提高了虚拟机的可扩展性:<br>1. 将文件系统支持的、交换支持的和不可收回的页放到它们自己的LRUs上, 这样系统只扫描它可以/应该从内存中收回的页<br>
 2. 为匿名 LRUs 切换到双指针时钟替换, 因此系统开始交换时需要扫描的页面数量绑定到一个合理的数量<br>3. 将不可收回的页面完全远离LRU, 这样 VM 就不会浪费 CPU 时间扫描它们. ramfs、ramdisk、SHM_LOCKED共享内存段和mlock VMA页都保持在不可撤销列表中. | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118967), [LWN](https://lwn.net/Articles/286472) |
 
-### 2.4.1.2 二次机会法
+### 4.2.2 二次机会法
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -846,7 +856,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 | NA | Linus Torvalds <torvalds@athlon.transmeta.com> | [me: be sane about page reference bits](https://github.com/gatieme/linux-history/commit/c37fa164f793735b32aa3f53154ff1a7659e6442) | check_used_once -=> mark_page_accessed | v2.4.9.9 -> v2.4.9.10 | NA |
 | 2014/05/13 | Mel Gorman <mgorman@suse.de> | [Misc page alloc, shmem, mark_page_accessed and page_waitqueue optimisations v3r33](https://lore.kernel.org/patchwork/cover/464309) | 在页缓存分配期间非原子标记页访问方案, 为了解决 dd to tmpfs 的性能退化问题. 问题的主要原因是Kconfig的不同, 但是 Mel 找到了 tmpfs、mark_page_accessible 和  page_alloc 中不必要的开销. | v3 ☑ [3.16-rc1](https://kernelnewbies.org/Linux_3.16#Memory_management) | [PatchWork v3](https://lore.kernel.org/patchwork/cover/464309) |
 
-### 2.4.1.3 锁优化
+### 4.2.3 锁优化
 -------
 
 *   通过 pagevec 缓存来缓解 pagemap_lru_lock 锁竞争
@@ -897,7 +907,7 @@ aaba9265318 [PATCH] make pagemap_lru_lock irq-safe
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/12/05 | Alex Shi <alex.shi@linux.alibaba.com> | [Introduce local_lock()](https://lore.kernel.org/patchwork/cover/1248697) | 引入 local_locks, 在这之中进入了 lru_pvecs 结构. | v3 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v3](https://lore.kernel.org/patchwork/cover/1248697) |
 
-### 2.4.1.2 zone or node base LRU
+### 4.2.4 zone or node base LRU
 -------
 
 2.5.33 合入了基于 zone 的 LRU
@@ -923,7 +933,7 @@ aaba9265318 [PATCH] make pagemap_lru_lock irq-safe
 | 2020/12/05 | Alex Shi <alex.shi@linux.alibaba.com> | [per memcg lru lock](https://lore.kernel.org/patchwork/cover/1333353) | 实现 SLOB 分配器 | v21 ☑ [5.11](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork v21](https://lore.kernel.org/patchwork/cover/1333353) |
 
 
-### 2.4.1.2 不同类型页面拆分管理
+### 4.2.5 不同类型页面拆分管理
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -981,7 +991,7 @@ aaba9265318 [PATCH] make pagemap_lru_lock irq-safe
 
 
 
-### 2.4.1.3 页面老化(active 与 inactive 链表拆分)
+### 4.2.6 页面老化(active 与 inactive 链表拆分)
 -------
 
 
@@ -1039,7 +1049,7 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 
 
 
-## 2.4.1.4 LRU 中的内存水线
+## 4.2.7 LRU 中的内存水线
 -------
 
 **2.6.28(2008年12月)**
@@ -1053,7 +1063,7 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 解决方法就是把链表拆分为匿名页链表和文件缓存页链表, 现在 active 链表分为 active 匿名页链表 和 active 文件缓存页链表了; inactive 链表也如此.  所以, 当 **_swappiness_** 为0时, 只要扫描 active 文件缓存页链表就够了.
 
 
-## 2.4.1.5 工作集大小的探测(Better LRU list balancing)
+## 4.2.8 工作集大小的探测(Better LRU list balancing)
 -------
 
 https://lore.kernel.org/patchwork/patch/222042
@@ -1098,7 +1108,7 @@ Johannes Weiner 认为这种经验公式过于简单且不够灵活, 为此他�
 | 2020/04/03 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [workingset protection/detection on the anonymous LRU list](https://lwn.net/Articles/815342) | 实现对匿名 LRU 页面列表的工作集保护和检测. 在之前的实现中, 新创建的或交换中的匿名页, 都是默认加入到 active LRU list, 然后逐渐降级到 inactive LRU list. 这造成在某种场景下新申请的内存(即使被使用一次cold page)也会把在a ctive list 的 hot page 挤到 inactive list. 为了解决这个的问题, 这组补丁, 将新创建或交换的匿名页面放到 inactive LRU list 中, 只有当它们被足够引用时才会被提升到活动列表. 另外,  因为这些更改可能导致新创建的匿名页面或交换中的匿名页面交换不活动列表中的现有页面, 所以工作集检测被扩展到处理匿名LRU列表. 以做出更优的决策. | v5 ☑ [5.9-rc1](https://kernelnewbies.org/Linux_5.9#Memory_management) | [PatchWork v5](https://lore.kernel.org/patchwork/cover/1219942), [Patchwork v7](https://lore.kernel.org/patchwork/patch/1278082), [ZhiHu](https://zhuanlan.zhihu.com/p/113220105) |
 | 2020/05/20 | Johannes Weiner <hannes@cmpxchg.org> | [mm: balance LRU lists based on relative thrashing v2](https://lore.kernel.org/patchwork/cover/1245255) | 基于相对抖动平衡 LRU 列表(重新实现了页面缓存和匿名页面之间的 LRU 平衡, 以便更好地与快速随机 IO 交换设备一起工作). : 在交换和缓存回收之间平衡的回收代码试图仅基于内存引用模式预测可能的重用. 随着时间的推移, 平衡代码已经被调优到一个点, 即它主要用于页面缓存, 并推迟交换, 直到 VM 处于显著的内存压力之下. 因为 commit a528910e12ec Linux 有精确的故障 IO 跟踪-回收错误页面的最终代价. 这允许我们使用基于 IO 成本的平衡模型, 当缓存发生抖动时, 这种模型更积极地扫描匿名内存, 同时能够避免不必要的交换风暴. | v1 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/685701)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1245255) |
 
-## 2.4.1.6 其他优化
+## 4.2.9 其他优化
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1111,7 +1121,7 @@ Johannes Weiner 认为这种经验公式过于简单且不够灵活, 为此他�
 | 2021/05/27 | Muchun Song <songmuchun@bytedance.com> | [Optimize list lru memory consumption](https://lore.kernel.org/patchwork/cover/1436887) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1436887) |
 
 
-## 2.4.2 madvise MADV_FREE 页面延迟回收
+## 4.3 madvise MADV_FREE 页面延迟回收
 -------
 
 
@@ -1124,10 +1134,10 @@ Johannes Weiner 认为这种经验公式过于简单且不够灵活, 为此他�
 | 2017/02/24 | Minchan Kim | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/622178) | MADV_FREE 有几个问题, 使它不能在 jemalloc 这样的库中使用: 不支持系统没有交换启用, 增加了内存的压力, 另外统计也存在问题. 这个版本将 MADV_FREE 页面放到 LRU_INACTIVE_FILE 列表中, 为无交换系统启用 MADV_FREE, 并改进了统计计费.  | v5 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v5](https://lore.kernel.org/patchwork/cover/622178) |
 
 
-## 2.4.3 主动的页面回收
+## 4.4 主动的页面回收
 -------
 
-### 2.4.3.1 [Proactively reclaiming idle memory](https://lwn.net/Articles/787611)
+### 4.4.1 [Proactively reclaiming idle memory](https://lwn.net/Articles/787611)
 -------
 
 [LWN：主动回收较少使用的内存页面](https://blog.csdn.net/Linux_Everything/article/details/96416633)
@@ -1176,7 +1186,7 @@ Facebook 指出他们也面临过同样的问题, 所有的workload都需要放�
 | 2021/06/08 | SeongJae Park <sjpark@amazon.com> | [Introduce DAMON-based Proactive Reclamation](https://lore.kernel.org/patchwork/cover/1442732) | 该补丁集改进了用于生产质量的通用数据访问模式内存管理的引擎, 并在其之上实现了主动回收. | v2 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/1438747)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1442732) |
 
 
-# 2.5 页面写回
+# 5 页面写回
 -------
 
 
@@ -1191,7 +1201,7 @@ Facebook 指出他们也面临过同样的问题, 所有的workload都需要放�
 
 
 
-## 2.5.1 由全局的脏页门槛到每设备脏页门槛
+## 5.1 由全局的脏页门槛到每设备脏页门槛
 -------
 
 **2.6.24(2008年1月发布)**
@@ -1216,7 +1226,7 @@ Facebook 指出他们也面临过同样的问题, 所有的workload都需要放�
 
 
 
-## 2.5.2 引入更具体扩展性的回写线程
+## 5.2 引入更具体扩展性的回写线程
 -------
 
 **2.6.32(2009年12月发布)**
@@ -1239,7 +1249,7 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 
 
 
-## 2.5.3 动态的脏页生成扼制和写回扼制算法
+## 5.3 动态的脏页生成扼制和写回扼制算法
 -------
 
 **3.1(2011年11月发布), 3.2(2012年1月发布)**
@@ -1269,10 +1279,10 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 
 
 
-# 2.6 PageCache
+# 6 PageCache
 -------
 
-## 2.6.1 PAGE CACHE
+## 6.1 PAGE CACHE
 -------
 
 
@@ -1281,7 +1291,7 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 | 2018/06/11 | Matthew Wilcox <willy@infradead.org> | [Convert page cache to XArray](https://lore.kernel.org/patchwork/cover/951137) | 将 page cahce 的组织结构从 radix tree 切换到 [xarray](https://lwn.net/Articles/745073). | v13 ☑ 2.5.8 | [PatchWork](https://lore.kernel.org/patchwork/cover/951137) |
 
 
-## 2.6.2 页面预读(readahead)
+## 6.2 页面预读(readahead)
 -------
 
 [linux文件预读发展过程](https://blog.csdn.net/jinking01/article/details/106541116)
@@ -1293,7 +1303,7 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 
 系统在读取文件页时, 如果发现存在着顺序读取的模式时, 就会预先把后面的页也读进内存, 以期之后的访问可以快速地访问到这些页, 而不用再启动快速的磁盘读写.
 
-### 2.6.2.1 原始的预读框架
+### 6.2.1 原始的预读框架
 -------
 
 Linux内核的一大特色就是支持最多的文件系统, 并拥有一个虚拟文件系统(VFS)层. 早在2002年, 也就是2.5内核的开发过程中, Andrew Morton在VFS层引入了文件预读的基本框架, 以统一支持各个文件系统. 如图所示, Linux内核会将它最近访问过的文件页面缓存在内存中一段时间, 这个文件缓存被称为pagecache. 如下图所示. 一般的read()操作发生在应用程序提供的缓冲区与pagecache之间. 而预读算法则负责填充这个 pagecache. 应用程序的读缓存一般都比较小, 比如文件拷贝命令cp的读写粒度就是4KB；内核的预读算法则会以它认为更合适的大小进行预读I/O, 比比如16-128KB.
@@ -1307,7 +1317,7 @@ Linux内核的一大特色就是支持最多的文件系统, 并拥有一个虚�
 | 2003/02/03 | Andrew Morton <akpm@digeo.com> | [implement posix_fadvise64()](https://github.com/gatieme/linux-history/commit/fccbe3844c29beed4e665b1a5aafada44e133adc) | 引入 posix_fadvise64 | v1 ☑ 2.5.60 | [HISTORY commit](https://github.com/gatieme/linux-history/commit/fccbe3844c29beed4e665b1a5aafada44e133adc) |
 
 
-### 2.6.2.2 预读算法及其优化
+### 6.2.2 预读算法及其优化
 -------
 
 一开始, 内核的预读方案如你所想, 很简单. 就是在内核发觉可能在做顺序读操作时, 就把后面的 128 KB 的页面也读进来.
@@ -1324,7 +1334,7 @@ Linux内核的一大特色就是支持最多的文件系统, 并拥有一个虚�
 
 
 
-### 2.6.2.3 按需预读(On-demand Readahead)
+### 6.2.3 按需预读(On-demand Readahead)
 -------
 
 **2.6.23(2007年10月发布)**
@@ -1348,7 +1358,7 @@ Linux内核的一大特色就是支持最多的文件系统, 并拥有一个虚�
 | 2011/05/17 | WU Fengguang <wfg@mail.ustc.edu.cn> | [on-demand readahead](https://lwn.net/Articles/235164) | on-demand 预读算法 | v1 ☑ [2.6.23-rc1](https://kernelnewbies.org/Linux_2_6_23#On-demand_read-ahead) | [LWN](https://lwn.net/Articles/234784) |
 
 
-# 2.7 大内存页支持
+# 7 大内存页支持
 -------
 
 
@@ -1364,7 +1374,7 @@ Linux内核的一大特色就是支持最多的文件系统, 并拥有一个虚�
 
 
 
-## 2.7.1 HUGETLB支持
+## 7.1 HUGETLB支持
 -------
 
 
@@ -1390,7 +1400,7 @@ Linux内核的一大特色就是支持最多的文件系统, 并拥有一个虚�
 
 这一功能的主要使用者是数据库程序.
 
-## 2.7.2 透明大页的支持
+## 7.2 透明大页的支持
 -------
 
 
@@ -1411,10 +1421,10 @@ Linux内核的一大特色就是支持最多的文件系统, 并拥有一个虚�
 https://lore.kernel.org/patchwork/cover/1118785
 
 
-# 2.8 进程虚拟地址空间(VMA)
+# 8 进程虚拟地址空间(VMA)
 -------
 
-### 2.8.1 VMA
+## 8.1 VMA
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1425,10 +1435,10 @@ https://lore.kernel.org/patchwork/cover/1118785
 
 
 
-### 2.8.2 Mapping
+## 8.2 Mapping
 -------
 
-#### 2.8.2.1 COW
+### 8.2.1 COW
 -------
 
 在 fork 进程的时候, 并不会为子进程直接分配物理页面, 而是使用 COW 的机制. 在 fork 之后, 父子进程都共享原来父进程的页面, 同时将父子进程的 COW mapping 都设置为只读. 这样当这两个进程触发写操作的时候, 触发缺页中断, 在处理缺页的过程中再为该进程分配出一个新的页面出来.
@@ -1447,7 +1457,7 @@ copy_mm
 ```
 
 
-#### 2.8.2.1 enhance
+### 8.2.1 enhance
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1456,7 +1466,7 @@ copy_mm
 | 2017/07/25 | Catalin Marinas <catalin.marinas@arm.com> | [arm64: Fix potential race with hardware DBM in ptep_set_access_flags()](https://patchwork.kernel.org/project/linux-arm-kernel/patch/20170725135308.18173-2-catalin.marinas@arm.com) | 修复前面支持 TCP_EL1.HA/HD 引入的硬件和软件的竞争问题 | RFC ☐ | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) |
 
 
-#### 2.8.2.2 MMAP locing
+### 8.2.3 MMAP locing
 -------
 
 [[LSF/MM TOPIC] mmap locking topics](https://www.spinics.net/lists/linux-mm/msg258803.html)
@@ -1480,7 +1490,7 @@ https://events.static.linuxfound.org/sites/events/files/slides/mm.pdf
 | 2013/01/31 | Michel Lespinasse <walken@google.com> | [Mapping range lock](https://lore.kernel.org/patchwork/cover/356467) | 文件映射的 mapping lock | RFC ☐  | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/356467) |
 | 2020/02/24 | Michel Lespinasse <walken@google.com> | [Fine grained MM locking](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) | 细粒度 MM MMAP lock | RFC ☐  | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) |
 
-## 2.8.3 反向映射 RMAP(Reverse Mapping)
+## 8.3 反向映射 RMAP(Reverse Mapping)
 -------
 
 [郭健： Linux内存逆向映射(reverse mapping) 技术的前世今生](https://blog.51cto.com/u_15015138/2557286)
@@ -1586,7 +1596,7 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 | 2014/05/23 | Davidlohr Bueso <davidlohr@hp.com> | [mm: i_mmap_mutex to rwsem](https://lore.kernel.org/patchwork/cover/466974) | 2012 年 Ingo 将 anon-vma lock 从 mutex 转换到了 rwsem 锁. i_mmap_mutex 与 anon-vma 有类似的职责, 保护文件支持的页面. 因此, 我们可以使用类似的锁定技术 : 将互斥锁转换为rwsem, 并在可能的情况下共享锁. | RFC ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/466974) |
 
 
-# 2.9 内存控制组 MEMCG (Memory Cgroup)支持
+# 9 内存控制组 MEMCG (Memory Cgroup)支持
 -------
 
 [KS2012: The memcg/mm minisummit](https://lwn.net/Articles/516439)
@@ -1602,7 +1612,7 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2010/09/01 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [memcg: towards I/O aware memcg v7.](https://lore.kernel.org/patchwork/cover/213968) | IO 感知的 MEMCG. | v7 ☐ | [PatchWork v7](https://lore.kernel.org/patchwork/cover/213968) |
 
-## 2.9.1 PageCacheLimit
+## 9.1 PageCacheLimit
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1612,7 +1622,7 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 | 2014/06/16 | Xishi Qiu <qiuxishi@huawei.com> | [mm: add page cache limit and reclaim feature](https://lore.kernel.org/patchwork/cover/473535) | 限制 page cache 的内存占用. | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/416962)<br>*-*-*-*-*-*-*-* <br>[openEuler 4.19](https://gitee.com/openeuler/kernel/commit/6174ecb523613c8ed8dcdc889d46f4c02f65b9e4) |
 | 2019/02/23 | Chunguang Xu <brookxu@tencent.com> | [pagecachelimit: limit the pagecache ratio of totalram](http://github.com/tencent/TencentOS-kernel/commit/6711b34671bc658c3a395d99aafedd04a4ebbd41) | 限制 page cache 的内存占用. | NA |  [pagecachelimit: limit the pagecache ratio of totalram](http://github.com/tencent/TencentOS-kernel/commit/6711b34671bc658c3a395d99aafedd04a4ebbd41) |
 
-## 2.9.2 Cgroup-Aware OOM killer
+## 9.2 Cgroup-Aware OOM killer
 -------
 
 https://lwn.net/Articles/317814
@@ -1627,7 +1637,7 @@ https://lwn.net/Articles/761118
 | 2021/03/25 | Ybrookxu | [bfq: introduce bfq.ioprio for cgroup](https://lore.kernel.org/patchwork/cover/828043) | Cgroup 感知的 bfq.ioprio | v3 ☐ | [LKML](https://lkml.org/lkml/2021/3/25/93) |
 
 
-## 2.9.3 kmemcg
+## 9.3 kmemcg
 -------
 
 [memcg kernel memory tracking](https://lwn.net/Articles/482777)
@@ -1665,7 +1675,7 @@ git://github.com/glommer/linux.git kmemcg-slab
 | 2021/05/06 | Waiman Long <longman@redhat.com> | [mm/memcg: Reduce kmemcache memory accounting overhead](https://lore.kernel.org/patchwork/cover/1422112) | 降低 kmemcache 统计的消耗. | v6 ☐ | [PatchWork v6](https://lore.kernel.org/patchwork/cover/1422112) |
 
 
-## 2.9.4 memcg LRU list
+## 9.4 memcg LRU list
 -------
 
 
@@ -1679,7 +1689,7 @@ git://github.com/glommer/linux.git kmemcg-slab
 
 
 
-## 2.9.5 MEMCG DRITY Page
+## 9.5 MEMCG DRITY Page
 -------
 
 
@@ -1689,7 +1699,7 @@ git://github.com/glommer/linux.git kmemcg-slab
 | 2015/12/30 | Tejun Heo <tj@kernel.org> | [memcg: add per cgroup dirty page accounting](https://lore.kernel.org/patchwork/cover/558382) | madvise 支持页面延迟回收(MADV_FREE)的早期尝试  | v5 ☑ [4.2-rc1](https://kernelnewbies.org/Linux_4.2#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/558382), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c4843a7593a9df3ff5b1806084cefdfa81dd7c79) |
 
 
-## 2.9.6 memcg swapin
+## 9.6 memcg swapin
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1702,7 +1712,7 @@ git://github.com/glommer/linux.git kmemcg-slab
 | 2015/12/17 | Vladimir Davydov <vdavydov@virtuozzo.com> | [Add swap accounting to cgroup2](https://lore.kernel.org/patchwork/cover/628754) | NA | v2 ☑ 2.6.29-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/patch/628754)) |
 | 2020/08/20 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: charge swapin pages on instantiation](https://lore.kernel.org/patchwork/cover/1239175) | memcg swapin 的延迟统计, 对memcg进行了修改, 使其在交换时直接对交换页统计, 而不是在出错时统计, 这可能要晚得多, 或者根本不会发生. | v2 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1227833), [PatchWork v2](https://lore.kernel.org/patchwork/cover/1239175) |
 
-# 2.10 内存热插拔支持
+# 10 内存热插拔支持
 -------
 
 
@@ -1733,7 +1743,7 @@ git://github.com/glommer/linux.git kmemcg-slab
 
 
 
-## 2.10.1 内存热插入支持
+## 10.1 内存热插入支持
 -------
 
 **2.6.15(2006年1月发布)**
@@ -1745,7 +1755,7 @@ git://github.com/glommer/linux.git kmemcg-slab
 
 
 
-## 2.10.2 初步的内存逻辑热拔除支持
+## 10.2 初步的内存逻辑热拔除支持
 -------
 
 **2.6.24(2008年1月发布)**
@@ -1763,7 +1773,7 @@ git://github.com/glommer/linux.git kmemcg-slab
 
 
 
-## 2.10.3 完善的内存逻辑热拔除支持
+## 10.3 完善的内存逻辑热拔除支持
 -------
 
 **3.8(2013年2月发布)**
@@ -1777,7 +1787,7 @@ git://github.com/glommer/linux.git kmemcg-slab
 
 
 
-## 2.10.4 物理热拔除的支持
+## 10.4 物理热拔除的支持
 -------
 
 
@@ -1791,11 +1801,11 @@ git://github.com/glommer/linux.git kmemcg-slab
 
 
 
-# 2.11 超然内存(Transcendent Memory)支持
+# 11 超然内存(Transcendent Memory)支持
 -------
 
 
-## 2.11.1 tmem 简介
+## 11.1 tmem 简介
 -------
 
 [超然内存(Transcendent Memory)](https://lwn.net/Articles/338098), 对很多第一次听见这个概念的人来说, 是如此的奇怪和陌生. 这个概念是在 Linux 内核开发者社区中首次被提出的. 超然内存(后文一律简称为[**tmem**](https://lore.kernel.org/patchwork/cover/161314))之于普通内存, 不同之处在于以下几点:
@@ -1840,10 +1850,10 @@ Linux 内核 从 3.X 系列开始陆续加入 tmem 相关的基础设施支持, 
 针对这两个问题, 可以把内核对于 tmem 的支持分别分为**前端**和**后端**. 前端是内核与 tmem 通讯的接口; 而后端则实现 tmem 的管理策略.
 
 
-## 2.11.1 tmem 前端
+## 11.1 tmem 前端
 -------
 
-### 2.11.1.1 前端接口之 CLEANCACHE
+### 11.1.1 前端接口之 CLEANCACHE
 -------
 
 **3.0(2011年7月发布)**
@@ -1857,7 +1867,7 @@ Linux 内核 从 3.X 系列开始陆续加入 tmem 相关的基础设施支持, 
 
 
 
-### 2.11.1.2 前端接口之 FRONTSWAP
+### 11.1.2 前端接口之 FRONTSWAP
 -------
 
 **3.5(2012年7月发布)**
@@ -1871,10 +1881,10 @@ Linux 内核 从 3.X 系列开始陆续加入 tmem 相关的基础设施支持, 
 
 
 
-## 2.11.2 后端
+## 11.2 后端
 -------
 
-### 2.11.2.1 后端之 ZCACHE
+### 11.2.1 后端之 ZCACHE
 -------
 
 
@@ -1884,7 +1894,7 @@ Linux 内核 从 3.X 系列开始陆续加入 tmem 相关的基础设施支持, 
 
 
 
-### 2.11.2.2 后端之 ZRAM
+### 11.2.2 后端之 ZRAM
 -------
 
 **3.14(2014年3月发布)**
@@ -1900,7 +1910,7 @@ ZRAM 是一个在内存中的块设备(块设备相对于字符设备而言, 信
 
 
 
-### 2.11.2.3 后端之 ZSWAP
+### 11.2.3 后端之 ZSWAP
 -------
 
 **3.11(2013年9月发布)**
@@ -1910,7 +1920,7 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 
 
-## 2.11.3 一些细节
+## 11.3 一些细节
 -------
 
 
@@ -1926,7 +1936,7 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 
 
-# 2.12 非易失性内存 (NVDIMM, Non-Volatile DIMM) 支持
+# 12 非易失性内存 (NVDIMM, Non-Volatile DIMM) 支持
 -------
 
 
@@ -1955,7 +1965,7 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 
 
-## 2.12.1 NVDIMM 支持框架
+## 12.1 NVDIMM 支持框架
 -------
 
 ** libnvdimm 4.2(2015年8月30日发布)**
@@ -1966,7 +1976,7 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 
 
-## 2.12.2 DAX
+## 12.2 DAX
 -------
 
 
@@ -1980,7 +1990,7 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 传统的基于磁盘的文件系统, 在被访问时, 内核总会把页面通过前面所提的文件缓存页(page cache)的缓存机制, 把文件系统页从磁盘中预先加载到内存中, 以提速访问. 然后, 对于新兴的 NVDIMM 设备, 基于它的非易失特性, 内核应该能直接访问基于此设备之上的文件系统的内容, 它使得这一拷贝到内存的操作变得不必要. 4.0 开始引入的 DAX 就是提供这一支持. 截至 4.3, 内核中已经有 XFS, EXT2, EXT4 这几个文件系统实现这一特性.
 
-## 2.12.3 NUMA nodes for persistent-memory management
+## 12.3 NUMA nodes for persistent-memory management
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1991,7 +2001,7 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 
 
-## 2.12.3 Top-tier memory management
+## 12.4 Top-tier memory management
 -------
 
 [Top-tier memory management](https://lwn.net/Articles/857133)
@@ -2005,7 +2015,7 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 | 2021/04/15 | Tim Chen <tim.c.chen@linux.intel.com>> | [Manage the top tier memory in a tiered memory](https://lore.kernel.org/patchwork/cover/1408180) |  memory tiers 的配置管理. 监控系统和每个 cgroup 中各自使用的 top-tier 内存的数量. 当前使用了 soft limit, 用 kswapd 来把某个 cgroup 中超过 soft limit 限制的 page 迁移到较慢的 memory 类型上去. 这里所说的 soft limit, 是指如果 top-tier memory 很充足的话, cgroup 可以拥有超过此限制的 page 数量, 但如果资源紧张的话则会被迅速削减从而满足这个 limit 值. 后期可用于对于不同的任务划分快、慢内存(fast and slow memory). 即让高优先级的任务获得更多 top-tier memory 访问优先, 而低优先级的任务则要受到更严格的限制 | v1 ☐ 5.13 | [PatchWork RFC,v1,00/11](https://lore.kernel.org/patchwork/cover/1408180) |
 
 
-# 2.13 内存管理调试支持
+# 13 内存管理调试支持
 -------
 
 
@@ -2015,7 +2025,7 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 
 
-## 2.13.1 页分配的调试支持
+## 13.1 页分配的调试支持
 -------
 
 
@@ -2039,7 +2049,7 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 
 
-## 2.13.2 SLAB 子系统的调试支持
+## 13.2 SLAB 子系统的调试支持
 -------
 
 
@@ -2055,11 +2065,11 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 
 - 对上一次分配者进行记录的支持等
 
-## 2.13.3 内存检测工具
+## 13.3 内存检测工具
 -------
 
 
-### 2.13.3.1 错误注入机制
+### 13.3.1 错误注入机制
 -------
 
 **2.6.20(2007年2月发布)**
@@ -2067,7 +2077,7 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 
 内核有着极强的健壮性, 能对各种错误异常情况进行合理的处理. 然而, 毕竟有些错误实在是极小可能发生, 测试对这种小概率异常情况的处理的代码实在是不方便. 所以, 2.6.20中内核引入了错误注入机制, 其中跟 MM 相关的有两个, 一个是对页分配器的失败注入, 一个是对 SLAB 对象分配器的失败注入. 这两个注入机制, 可以触发内存分配失败, 以测试极端情况下(如内存不足)系统的处理情况.
 
-### 2.13.3.2 KMEMCHECK - 内存非法访问检测工具
+### 13.3.2 KMEMCHECK - 内存非法访问检测工具
 -------
 
 **2.6.31(2009年9月发布)**
@@ -2093,7 +2103,7 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 这里面有个问题是, **present** 标记在第一次缺页异常后将被置位, 之后如果再次访问, KMEMCHECK 如何再次利用该机制来检测呢? 答案是内核在上述处理后还**打开了单步调试功能,** 所以 CPU 接着执行下一条指令前, 又陷入了调试陷阱(debug trap, 详情请查看 CPU 文档), 在处理程序中, 内核又会把该页的 **present** 标记会清除.
 
 
-## 2.13.3.3 KMEMLEAK - 内存泄漏检测工具
+## 13.3.3 KMEMLEAK - 内存泄漏检测工具
 -------
 
 **2.6.31(2009年9月发布)**
@@ -2118,7 +2128,7 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 
 这个工具当然也存在着显著的影响系统性能的问题, 所以也只是作为调试使用.
 
-### 2.13.3.4 KASan - 内核地址净化器
+### 13.3.4 KASan - 内核地址净化器
 -------
 
 **4.0(2015年4月发布)**
@@ -2131,7 +2141,7 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 总的来说, 它利用了 GCC 5.0的新特性, 可对内核内存进行 Instrumentaion, 编译器可以在访问内存前插入指令, 从而检测该次访问是否合法. 对比前述的 KMEMCHECK 要用到 CPU 的陷阱指令处理和单步调试功能, KASan 是在编译时加入了探针, 因此它的性能更快.
 
 
-### 2.13.3.5 KFENCE 一个新的内存安全检测工具
+### 13.3.5 KFENCE 一个新的内存安全检测工具
 -------
 
 5.12 引入一个[新的内存错误检测工具 : KFENCE (Kernel Electric-Fence, 内核电子栅栏)](https://mp.weixin.qq.com/s/62Oht7WRnKPUBdOJfQ9cBg), 是一个低开销的基于采样的内存安全错误检测器, 用于检测堆后释放、无效释放和越界访问错误. 该系列使 KFENCE 适用于 x86 和 arm64 体系结构, 并将 KFENCE 钩子添加到 SLAB 和 SLUB 分配器.
@@ -2147,10 +2157,10 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 | 2020/04/21 | Marco Elver <elver@google.com> | [kfence: optimize timer scheduling](https://lore.kernel.org/patchwork/cover/1416384) | ARM 支持 PTDUMP | RFC ☑ 3.19-rc1 | [PatchWork v24](https://lore.kernel.org/patchwork/cover/1416384) |
 
 
-## 2.13.4 debugfs & sysfs 接口
+## 13.4 debugfs & sysfs 接口
 -------
 
-### 2.13.4.1 ptdump
+### 13.4.1 ptdump
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -2160,7 +2170,7 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 | 2019/12/19 | Colin Cross | [Generic page walk and ptdump](https://lore.kernel.org/patchwork/cover/1169746) | 重构了 ARM64/X86_64 的 PTDUMP, 实现了通用的 PTDUMP 框架. 目前许多体系结构都有一个 debugfs 文件用于转储内核页表. 目前, 每个体系结构都必须为此实现自定义函数, 因为内核使用的页表的遍历细节在不同的体系结构之间是不同的. 本系列扩展了walk_page_range()的功能, 使其能够处理内核的页表(内核没有vma, 可以包含比用户空间现有页面更大的页面). 通用的 PTDUMP 实现是利用walk_page_range()的新功能实现的, 最终arm64和x86将转而使用它, 删除了自定义的表行器. | v17 ☑ 5.6-rc1 |[PatchWork RFC](https://lore.kernel.org/patchwork/cover/1169746) |
 | 2020/2/10 |  Zong Li | [RISC-V page table dumper](https://patchwork.kernel.org/project/linux-arm-kernel/patch/20131024071600.GC16735@n2100.arm.linux.org.uk/) | ARM 支持 PTDUMP | RFC ☑ 3.19-rc1 | [LKML](https://lkml.org/lkml/2020/2/10/100) |
 
-### 2.13.4.2   Page Owner
+### 13.4.2   Page Owner
 -------
 
 早在 2.6.11 的时代就通过 [Page owner tracking leak detector](https://lwn.net/Articles/121271) 给大家展示了页面所有者跟踪 [Page Owner](https://lwn.net/Articles/121656). 但是它一直停留在 Andrew 的源代码树上, 然而, 没有人试图 upstream 到 mainline, 虽然已经有不少公司使用这个特性来调试内存泄漏或寻找内存占用者. 最终在 v3.19, Joonsoo Kim 在一个重构中, 将这个特性推到主线.
@@ -2177,7 +2187,7 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 | 2013/11/24 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [Resurrect and use struct page extension for some debugging features](https://lore.kernel.org/patchwork/cover/520462) | 1. 引入 page_ext 作为 page 的扩展来存储调试相关的变量<br>2. upstream page_owner | v7 ☑ 3.19-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/cover/520462), [Kernel Newbies](https://kernelnewbies.org/Linux_3.19#Memory_management) |
 
 
-### 2.13.4.3   数据访问监视器 DAMON
+### 13.4.3   数据访问监视器 DAMON
 -------
 
 [linux data access monitor (DAMON)](https://blog.csdn.net/zqh1630/article/details/109954910)
@@ -2218,7 +2228,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2021/06/08 | SeongJae Park <sjpark@amazon.com> | [Introduce DAMON-based Proactive Reclamation](https://damonitor.github.io) | 该补丁集改进了用于生产质量的通用数据访问模式内存管理的引擎, 并在其之上实现了主动回收. | v2 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/1375732)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1442732) |
 
 
-# 2.14 杂项
+# 14 杂项
 -------
 
 
@@ -2226,7 +2236,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 
 
 
-## 2.14.1 KSM - 内存去重
+## 14.1 KSM - 内存去重
 -------
 
 
@@ -2246,7 +2256,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 
 2.  [KSM tries again](https://lwn.net/Articles/330589/)
 
-## 2.14.2 HWPoison - 内存页错误的处理
+## 14.2 HWPoison - 内存页错误的处理
 -------
 
 **2.6.32(2009年12月发布)**
@@ -2268,7 +2278,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 
 
 
-## 2.14.3 Cross Memory Attach - 进程间快速消息传递
+## 14.3 Cross Memory Attach - 进程间快速消息传递
 -------
 
 **3.2(2012年1月发布)**
@@ -2276,7 +2286,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 这一节相对于其他本章内容是独立的. MPI(Message Passing Interface, 消息传递接口) [The Message Passing Interface (MPI) standard](https://www.mcs.anl.gov/research/projects/mpi) 是一个定义并行编程模型下用于进程间消息传递的一个高性能, 可扩展, 可移植的接口规范(注意这只是一个标准, 有多个实现). 之前的 MPI 程序在进程间共享信息是用到共享内存(shared memory)方式, 进程间的消息传递需要 2 次内存拷贝. 而 3.2 版本引入的 "Cross Memory Attach" 的 patch, 引入两个新的系统调用接口. 借用这两个接口, MPI 程序可以只使用一次拷贝, 从而提升性能.
 
 
-## 2.14.4 CPA(Change Page Attribute)
+## 14.4 CPA(Change Page Attribute)
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -2284,7 +2294,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2018/09/17 | Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com> | [x86/mm/cpa: Improve large page preservation handling](https://lore.kernel.org/patchwork/cover/987147) | 优化 页面属性(CPA) 代码中的 try_preserve_large_page(), 降低 CPU 消耗. | v3 ☑ 4.20-rc1 | [PatchWork RFC v3](https://lore.kernel.org/patchwork/cover/987147) |
 
 
-## 2.14.4 功耗管理
+## 14.5 功耗管理
 -------
 
 
