@@ -345,7 +345,7 @@ a206231bbe6 [PATCH] hot-n-cold pages: page allocator core
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2017/10/17 | Jan Kara <jack@suse.cz> | [Speed up page cache truncation v2](https://patchwork.kernel.org/project/linux-fsdevel/patch/20171017162120.30990-2-jack@suse.cz) | NA | v2 ☑ 5.11-rc1 | [PatchwWork v2](https://patchwork.kernel.org/project/linux-fsdevel/patch/20171017162120.30990-2-jack@suse.cz) |
+| 2017/10/17 | Jan Kara <jack@suse.cz> | [Speed up page cache truncation v2](https://patchwork.kernel.org/project/linux-fsdevel/patch/20171017162120.30990-2-jack@suse.cz) | NA | v2 ☐ | [PatchwWork v2](https://patchwork.kernel.org/project/linux-fsdevel/patch/20171017162120.30990-2-jack@suse.cz) |
 | 2017/10/18 | Mel Gorman <mgorman@techsingularity.net> | [Follow-up for speed up page cache truncation v2](https://lore.kernel.org/patchwork/cover/842268) | NA | v2 ☑ 4.15-rc1 | [PatchwWork v2](https://lore.kernel.org/patchwork/cover/842268) |
 | 2020/11/11 | Vlastimil Babka <vbabka@suse.cz> | [disable pcplists during memory offline](https://lore.kernel.org/patchwork/cover/1336780) | 当内存下线的时候, 禁用 PCP | v3 ☑ [5.11-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [v4](https://lore.kernel.org/patchwork/cover/1336780) |
 
@@ -383,16 +383,21 @@ a206231bbe6 [PATCH] hot-n-cold pages: page allocator core
 | 2021/03/29 | Mel Gorman | [Use local_lock for pcp protection and reduce stat overhead](https://lore.kernel.org/patchwork/cover/1404513) | Bulk memory allocation 的第一组修复补丁, PCP 与 vmstat 共享锁定要求, 这很不方便, 并且会导致一些问题. 可能因为这个原因, PCP 链表和 vmstat 共享相同的 Per CPU 空间, 这意味着 vmstat 可能跨 CPU 更新包含 Per CPU 列表的脏缓存行, 除非使用填充. 该补丁集拆分该结构并分离了锁. | RFC ☐ | [RFC](https://lore.kernel.org/patchwork/cover/1404513) |
 | 2020/03/20 | Mel Gorman | [mm/page_alloc: Add a bulk page allocator -fix -fix](https://lore.kernel.org/patchwork/cover/1405057) | Bulk memory allocation 的第二组修复补丁 | v1 ☐ | [RFC](https://lore.kernel.org/patchwork/cover/1405057) |
 
+*   Adjust high and batch
 
-percpu 页分配器(PCP)旨在减少对区域锁的争用, 但是 batch 和 high 的大小已经过时了,既不考虑区域大小, 也不考虑一个区域的本地cpu数量. 随着更大的区域和每个节点更多的 cpu, 争用情况越来越糟. 而且, vm.percpu_pagelist_fraction 同时调整批处理和高值, 这意味着 sysctl 可以减少区域锁争用，但也会增加分配延迟.
+percpu 页分配器(PCP)旨在减少对区域锁的争用, 但是 PCP 中的页面数量也要有限制. 因此 PCP 引入了 high 和 batch 来控制 pcplist 中的页面大小. 当 PCP 中的页面超过了 pcp->high 的时候, 则会释放 batch 的页面回到 BUDDY 中.
 
-Mel Gorman 开发的 [Calculate pcp->high based on zone sizes and active CPUs](https://lore.kernel.org/patchwork/cover/1435878) 将 pcp->high 从 pcp->batch 中分离出来, 然后根据 local zone 的大小扩展 pcp->high, 对活动cpu的回收和计算影响有限, 但 pcp->batch 保持静态. 它还根据最近的释放模式调整可以在 PCP 列表上的页面数量.
+2.6.16 时, 内核通过 [commit Making high and batch sizes of per_cpu_pagelists configurable](https://lore.kernel.org/patchwork/cover/47659) 引入了一个参数 percpu_pagelist_fraction 用来设置 PCP->high 的大小. 而 PCP->batch 的大小将被设置为 min(high / 4, PAGE_SHIFT * 8).
+
+时间来到 2021 年, batch 和 high 的大小已经过时了, 既不考虑 zone 大小, 也不考虑一个区域的本地节点上 CPU 的数量. PCP 的空间往往非常有限, 随着更大的 zone 和每个节点更多的 CPU, 将导致争用情况越来越糟. 而且, vm.percpu_pagelist_fraction 同时调整 high 和 batch 两个值, 虽然可以一定程度减少 zone->lock 锁的争用, 但也会增加分配延迟.
+
+Mel Gorman 发现了这一问题, 开发了 [Calculate pcp->high based on zone sizes and active CPUs](https://lore.kernel.org/patchwork/cover/1435878) 将 pcp->high 和 pcp->batch 的设置分离, 然后根据 local zone 的大小扩展 pcp->high, 对活动 CPU 的回收和计算影响有限, 但 PCP->batch 保持静态. 它还根据最近的释放模式调整可以在 PCP 列表上的页面数量.
 
 其动机部分是为了调整以适应更大的内存大小, 但也受到这样一个事实的驱动: 通过 `release_pages()` 批量释放页面常常显示区域争用是问题的主要部分. 另一个是基于旧内核的bug报告，在旧内核中，一个多tb的进程可能需要几分钟才能退出. 一种变通方法是使用 vm.percpu_pagelist_fraction 来增加 pcp->high, 但是测试表明, 由于分配延迟的增加, 生产工作负载不能使用相同的值. 不幸的是, 我不能自己重现这个测试用例, 因为多tb的机器正在积极使用中, 但它应该可以缓解问题.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/05/25 | Mel Gorman <mgorman@techsingularity.net> | [Making high and batch sizes of per_cpu_pagelists configurable](https://lore.kernel.org/patchwork/cover/47659) | 引入了 percpu_pagelist_fraction 来调整各个 zone PCP 的 high, 同时将 batch 值设置为 min(high/4, )  | v1 ☑ 5.14-rc1 | [RFC](https://lore.kernel.org/patchwork/cover/47659) |
+| 2005/12/09 | Mel Gorman <mgorman@techsingularity.net> | [Making high and batch sizes of per_cpu_pagelists configurable](https://lore.kernel.org/patchwork/cover/47659) | 引入了 percpu_pagelist_fraction 来调整各个 zone PCP 的 high, 同时将 batch 值设置为 min(high / 4, PAGE_SHIFT * 8).  | v1 ☑ 2.6.16-rc1 | [RFC](https://lore.kernel.org/patchwork/cover/47659), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8ad4b1fb8205340dba16b63467bb23efc27264d6) |
 | 2021/05/25 | Mel Gorman <mgorman@techsingularity.net> | [Calculate pcp->high based on zone sizes and active CPUs](https://lore.kernel.org/patchwork/cover/1435878) | pcp->high 和 pcp->batch 根据 zone 内内存的大小进行调整. 移除了不适用的 vm.percpu_pagelist_fraction 参数. | v2 ☑ 5.14-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1435878) |
 | 2021/06/03 | Mel Gorman <mgorman@techsingularity.net> | [Allow high order pages to be stored on PCP v2](https://lore.kernel.org/patchwork/cover/1440776) | PCP 支持缓存高 order 的页面. | v2 ☑ 5.14-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1440776) |
 
