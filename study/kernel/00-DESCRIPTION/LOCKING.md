@@ -32,7 +32,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 <br>
 
-2   **虚拟化子系统**
+2   **锁**
 =====================
 
 
@@ -149,6 +149,13 @@ PV_SPINLOCKS 的合入引起了[性能问题 Performance overhead of paravirt_op
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/05/14 | Alex Kogan <alex.kogan@oracle.com> | [Add NUMA-awareness to qspinlock](https://lore.kernel.org/patchwork/cover/1428910) | NUMA 感知的 spinlock, 基于 CNA. | v15 ☐ | [PatchWork v15](https://lore.kernel.org/patchwork/cover/1428910) |
 
+
+# 2 RWSEM
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/11/21 | Waiman Long <longman@redhat.com> | [locking/rwsem: Rework reader optimistic spinning](https://lore.kernel.org/patchwork/cover/1342950) | 当读者的评论部分很短, 周围没有那么多读者时, 读者乐观旋转(osq_lock)是有帮助的. 它还提高了读者获得锁的机会, 因为写入器乐观旋转对写入器的好处远远大于读者. 由于提交d3681e269fff ("locking/rwsem: Wake up almost all reader in wait queue"), 所有等待的reader都会被唤醒, 这样它们就都能获得读锁并并行运行. 当竞争的读者数量很大时, 允许读者乐观自旋很可能会导致读者碎片, 多个较小的读者组可以以顺序的方式(由写入器分隔)获得读锁. 这降低了读者的并行性. 解决这个缺点的一种可能方法是限制能够进行乐观旋转的读者的数量(最好是一个). 这些读者作为等待队列中所有等待的读者的代表, 因为一旦获得锁, 它们将唤醒所有等待的读者.  | v2 ☐ | [PatchWork v2,0/5](https://lore.kernel.org/patchwork/cover/1342950) |
 
 <br>
 

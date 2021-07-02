@@ -198,6 +198,15 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 | 2019/02/12 | Rasmus Villemoes <linux@rasmusvillemoes.dk> | [various dynamic_debug patches](https://lore.kernel.org/patchwork/patch/1041363) | NA | v1 ☑ 5.1-rc1 | [Patchwork v4,00/14](https://lore.kernel.org/patchwork/patch/1041363) |
 | 2019/04/09 | Rasmus Villemoes <linux@rasmusvillemoes.dk> | [implement DYNAMIC_DEBUG_RELATIVE_POINTERS](https://lore.kernel.org/patchwork/patch/1059829) | 实现 DYNAMIC_DEBUG_RELATIVE_POINTERS | v1 ☐ | [Patchwork ](https://lore.kernel.org/patchwork/patch/1059829) |
 
+
+
+# 8 DRGN
+-------
+
+
+[LWN/A kernel debugger in Python: drgn(https://lwn.net/Articles/789641)
+[LWN: 想用python命令来调试kernel吗？drgn就是了！](https://blog.csdn.net/Linux_Everything/article/details/93270705)
+
 # 7 OTHER
 -------
 

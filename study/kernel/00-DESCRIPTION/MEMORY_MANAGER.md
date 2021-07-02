@@ -110,16 +110,25 @@ Mainline Merge Window - Merge branch 'akpm' (patches from Andrew)
 ## 0.4 社区的内存管理领域的开发者
 -------
 
-- [x] [David Rientjes <rientjes@google.com>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=6580&state=*&archive=both&param=4&page=1)
+| developer | git |
+|:---------:|:---:|
+| [David Rientjes <rientjes@google.com>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=6580&state=*&archive=both&param=4&page=1) | NA |
+| [Mel Gorman <mgorman@techsingularity.net>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=19167&state=*&archive=both&param=3&page=1) | [git.kernel.org](https://git.kernel.org/pub/scm/linux/kernel/git/mel/linux.git) |
+| [Minchan Kim <minchan@kernel.org>](https://lore.kernel.org/patchwork/project/lkml/list/?series=&submitter=13305&state=*&q=&archive=both&delegate=) | NA |
+| [Joonsoo Kim](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13703&state=%2A&archive=both) | NA |
+| [Kamezawa Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=4430&state=%2A&archive=both) | NA |
 
-- [x] [Mel Gorman <mgorman@techsingularity.net>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=19167&state=*&archive=both&param=3&page=1)
 
-- [x] [Minchan Kim <minchan@kernel.org>](https://lore.kernel.org/patchwork/project/lkml/list/?series=&submitter=13305&state=*&q=&archive=both&delegate=)
+## 0.5 社区地址
+-------
 
-- [x] [Joonsoo Kim](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13703&state=%2A&archive=both)
 
-- [x] [Kamezawa Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com>](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=4430&state=%2A&archive=both)
-
+| 描述 | 地址 |
+|:---:|:----:|
+| WebSite | [linux-mm](https://www.linux-mm.org) |
+| PatchWork | [PatchWork](https://patchwork.kernel.org/project/linux-mm/list/?archive=both&state=*) |
+| 邮件列表 | linux-mm@kvack.org |
+| maintainer branch | [Github](https://github.com/hnaz/linux-mm)
 
 ## 0.5 目录
 -------
@@ -198,7 +207,9 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/04/14 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Memory folios](https://lwn.net/Articles/849538) | NA | v11 ☐ | [PatchWork v11](https://lore.kernel.org/patchwork/cover/1446440), [LWN](https://lwn.net/Articles/849538) |
+| 2021/06/22 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Memory folios](https://lwn.net/Articles/849538) | NA | v13 ☐ | [PatchWork v13](https://lore.kernel.org/patchwork/cover/1450139), [LWN](https://lwn.net/Articles/849538) |
+| 2021/06/22 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folio-enabling the page cache](https://lwn.net/Articles/1450196) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1450196), [PatchWork v2](https://patchwork.kernel.org/project/linux-mm/cover/20210622121551.3398730-1-willy@infradead.org) |
+| 2021/06/30 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folio conversion of memcg](https://lwn.net/Articles/1450196) | NA | v3 ☐ | [PatchWork v3](https://patchwork.kernel.org/project/linux-mm/cover/20210630040034.1155892-1-willy@infradead.org) |
 
 
 
@@ -336,7 +347,7 @@ a206231bbe6 [PATCH] hot-n-cold pages: page allocator core
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2017/10/17 | Jan Kara <jack@suse.cz> | [Speed up page cache truncation v2](https://patchwork.kernel.org/project/linux-fsdevel/patch/20171017162120.30990-2-jack@suse.cz) | NA | v2 ☑ 5.11-rc1 | [PatchwWork v2](https://patchwork.kernel.org/project/linux-fsdevel/patch/20171017162120.30990-2-jack@suse.cz) |
 | 2017/10/18 | Mel Gorman <mgorman@techsingularity.net> | [Follow-up for speed up page cache truncation v2](https://lore.kernel.org/patchwork/cover/842268) | NA | v2 ☑ 4.15-rc1 | [PatchwWork v2](https://lore.kernel.org/patchwork/cover/842268) |
-| 2016/12/01 | Vlastimil Babka <vbabka@suse.cz> | [disable pcplists during memory offline](https://lore.kernel.org/patchwork/cover/1336780) | 当内存下线的时候, 禁用 PCP   | v3 ☑ 5.11-rc1 | [v4](https://lore.kernel.org/patchwork/cover/1336780) |
+| 2020/11/11 | Vlastimil Babka <vbabka@suse.cz> | [disable pcplists during memory offline](https://lore.kernel.org/patchwork/cover/1336780) | 当内存下线的时候, 禁用 PCP | v3 ☑ [5.11-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [v4](https://lore.kernel.org/patchwork/cover/1336780) |
 
 
 *   [High-order per-cpu page allocator](https://lore.kernel.org/patchwork/patch/740275)
@@ -371,6 +382,19 @@ a206231bbe6 [PATCH] hot-n-cold pages: page allocator core
 | 2021/03/25 | Mel Gorman | [Introduce a bulk order-0 page allocator with two in-tree users](https://lore.kernel.org/patchwork/cover/1399888) | 批量 order-0 页面分配器, 目前 sunrpc 和 network 页面池是这个特性的第一个用户 | v6 ☑ 5.13-rc1 | [RFC](https://lore.kernel.org/patchwork/cover/1383906)<br>*-*-*-*-*-*-*-* <br>[v1](https://lore.kernel.org/patchwork/cover/1385629)<br>*-*-*-*-*-*-*-* <br>[v2](https://lore.kernel.org/patchwork/cover/1392670)<br>*-*-*-*-*-*-*-* <br>[v3](https://lore.kernel.org/patchwork/cover/1393519)<br>*-*-*-*-*-*-*-* <br>[v4](https://lore.kernel.org/patchwork/cover/1394347)<br>*-*-*-*-*-*-*-* <br>[v5](https://lore.kernel.org/patchwork/cover/1399888)<br>*-*-*-*-*-*-*-* <br>[v6](https://lore.kernel.org/patchwork/cover/1402140) |
 | 2021/03/29 | Mel Gorman | [Use local_lock for pcp protection and reduce stat overhead](https://lore.kernel.org/patchwork/cover/1404513) | Bulk memory allocation 的第一组修复补丁, PCP 与 vmstat 共享锁定要求, 这很不方便, 并且会导致一些问题. 可能因为这个原因, PCP 链表和 vmstat 共享相同的 Per CPU 空间, 这意味着 vmstat 可能跨 CPU 更新包含 Per CPU 列表的脏缓存行, 除非使用填充. 该补丁集拆分该结构并分离了锁. | RFC ☐ | [RFC](https://lore.kernel.org/patchwork/cover/1404513) |
 | 2020/03/20 | Mel Gorman | [mm/page_alloc: Add a bulk page allocator -fix -fix](https://lore.kernel.org/patchwork/cover/1405057) | Bulk memory allocation 的第二组修复补丁 | v1 ☐ | [RFC](https://lore.kernel.org/patchwork/cover/1405057) |
+
+
+percpu 页分配器(PCP)旨在减少对区域锁的争用, 但是 batch 和 high 的大小已经过时了,既不考虑区域大小, 也不考虑一个区域的本地cpu数量. 随着更大的区域和每个节点更多的 cpu, 争用情况越来越糟. 而且, vm.percpu_pagelist_fraction 同时调整批处理和高值, 这意味着 sysctl 可以减少区域锁争用，但也会增加分配延迟.
+
+Mel Gorman 开发的 [Calculate pcp->high based on zone sizes and active CPUs](https://lore.kernel.org/patchwork/cover/1435878) 将 pcp->high 从 pcp->batch 中分离出来, 然后根据 local zone 的大小扩展 pcp->high, 对活动cpu的回收和计算影响有限, 但 pcp->batch 保持静态. 它还根据最近的释放模式调整可以在 PCP 列表上的页面数量.
+
+其动机部分是为了调整以适应更大的内存大小, 但也受到这样一个事实的驱动: 通过 `release_pages()` 批量释放页面常常显示区域争用是问题的主要部分. 另一个是基于旧内核的bug报告，在旧内核中，一个多tb的进程可能需要几分钟才能退出. 一种变通方法是使用 vm.percpu_pagelist_fraction 来增加 pcp->high, 但是测试表明, 由于分配延迟的增加, 生产工作负载不能使用相同的值. 不幸的是, 我不能自己重现这个测试用例, 因为多tb的机器正在积极使用中, 但它应该可以缓解问题.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/05/25 | Mel Gorman <mgorman@techsingularity.net> | [Making high and batch sizes of per_cpu_pagelists configurable](https://lore.kernel.org/patchwork/cover/47659) | 引入了 percpu_pagelist_fraction 来调整各个 zone PCP 的 high, 同时将 batch 值设置为 min(high/4, )  | v1 ☑ 5.14-rc1 | [RFC](https://lore.kernel.org/patchwork/cover/47659) |
+| 2021/05/25 | Mel Gorman <mgorman@techsingularity.net> | [Calculate pcp->high based on zone sizes and active CPUs](https://lore.kernel.org/patchwork/cover/1435878) | pcp->high 和 pcp->batch 根据 zone 内内存的大小进行调整. 移除了不适用的 vm.percpu_pagelist_fraction 参数. | v2 ☑ 5.14-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1435878) |
+| 2021/06/03 | Mel Gorman <mgorman@techsingularity.net> | [Allow high order pages to be stored on PCP v2](https://lore.kernel.org/patchwork/cover/1440776) | PCP 支持缓存高 order 的页面. | v2 ☑ 5.14-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1440776) |
 
 
 ### 2.1.5 ALLOC_NOFRAGMENT 优化
@@ -629,7 +653,7 @@ https://lore.kernel.org/patchwork/cover/668967
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/04/06 |  "Uladzislau Rezki (Sony)" <urezki@gmail.com> | [improve vmap allocation](https://lore.kernel.org/patchwork/cover/1059021) | 实现 SLOB 分配器 | v2 ☑ [5.2-rc7](https://kernelnewbies.org/Linux_5.2#Memory_management) | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/1002038)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC v4](https://lore.kernel.org/patchwork/cover/1028793), [PatchWork v2](https://lore.kernel.org/patchwork/cover/1059021) |
 | 2019/01/03 |  "Uladzislau Rezki (Sony)" <urezki@gmail.com> | [test driver to analyse vmalloc allocator](https://lore.kernel.org/patchwork/cover/1059021) | 实现一个 test 驱动来帮助分析和测试 vmalloc | RFC v4 ☐ | [PatchWork RFC v4](https://lore.kernel.org/patchwork/cover/1028793) |
-| 2021/03/17 | Nicholas Piggin <npiggin@gmail.com> | [huge vmalloc mappings](https://lore.kernel.org/patchwork/cover/1397495) | vmalloc 支持透明大页 | v13 ☑ 5.13-rc1 | [PatchWork v13](https://lore.kernel.org/patchwork/cover/1397495) |
+| 2021/03/17 | Nicholas Piggin <npiggin@gmail.com> | [huge vmalloc mappings](https://lore.kernel.org/patchwork/cover/1397495) | vmalloc 支持透明大页 | v13 ☑ [5.13-rc1](https://kernelnewbies.org/Linux_5.13#Memory_management) | [PatchWork v13,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210317062402.533919-1-npiggin@gmail.com/) |
 | 2021/03/24 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [vmalloc: Improve vmalloc(4MB) performance](https://lore.kernel.org/patchwork/cover/1401688) | 加速 4MB vmalloc 分配. | v2 ☑ 5.13-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1401688) |
 
 
@@ -1289,7 +1313,11 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/06/11 | Matthew Wilcox <willy@infradead.org> | [Convert page cache to XArray](https://lore.kernel.org/patchwork/cover/951137) | 将 page cahce 的组织结构从 radix tree 切换到 [xarray](https://lwn.net/Articles/745073). | v13 ☑ 2.5.8 | [PatchWork](https://lore.kernel.org/patchwork/cover/951137) |
+| 2020/06/10 | Matthew Wilcox <willy@infradead.org> | [Large pages in the page cache](https://lore.kernel.org/patchwork/cover/1254710) | NA | v6 ☐ | [PatchWork RFC,v6,00/51](https://patchwork.kernel.org/project/linux-mm/cover/20200610201345.13273-1-willy@infradead.org) |
+| 2020/06/29 | Matthew Wilcox <willy@infradead.org> | [THP prep patches](https://patchwork.kernel.org/project/linux-mm/cover/20200629151959.15779-1-willy@infradead.org/) | NA | v1 ☑ 2.5.8 | [PatchWork](https://patchwork.kernel.org/project/linux-mm/cover/20200629151959.15779-1-willy@infradead.org) |
 
+
+https://lore.kernel.org/patchwork/cover/1324435/
 
 ## 6.2 页面预读(readahead)
 -------
@@ -1596,6 +1624,22 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 | 2014/05/23 | Davidlohr Bueso <davidlohr@hp.com> | [mm: i_mmap_mutex to rwsem](https://lore.kernel.org/patchwork/cover/466974) | 2012 年 Ingo 将 anon-vma lock 从 mutex 转换到了 rwsem 锁. i_mmap_mutex 与 anon-vma 有类似的职责, 保护文件支持的页面. 因此, 我们可以使用类似的锁定技术 : 将互斥锁转换为rwsem, 并在可能的情况下共享锁. | RFC ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/466974) |
 
 
+## 8.4 Mremapping
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/10/14 | Kalesh Singh <kaleshsingh@google.com> | [Speed up mremap on large regions](https://lore.kernel.org/patchwork/cover/1321018) | mremap PUD 映射优化, 可以加速映射大块地址时的速度. 如果源地址和目的地址是 PMD/PUD 对齐和 PMD/PUD 大小, mremap 的耗时时间可以通过移动 PMD/PUD 级别的表项来优化. 允许在 arm64 和 x86 上的 PMD 和 PUD 级别移动. 其他支持这种类型移动且已知安全的体系结构也可以通过启用 HAVE_MOVE_PMD 和 HAVE_MOVE_PUD 来选择这些优化。 | v4 ☑ | [PatchWork v4,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20201014005320.2233162-1-kaleshsingh@google.com/) |
+
+
+## 8.5 filemapping
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/10/25 | Kalesh Singh <kaleshsingh@google.com> | [generic_file_buffered_read() improvements](https://lore.kernel.org/patchwork/cover/1324435) | filemap 的批量内存分配和拷贝. | v4 ☑ [5.11-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork v2,0/2](https://lore.kernel.org/patchwork/cover/1324435) |
+
+
 # 9 内存控制组 MEMCG (Memory Cgroup)支持
 -------
 
@@ -1618,6 +1662,7 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2007/01/15 | Roy Huang <royhuang9@gmail.com> | [Provide an interface to limit total page cache.](https://lore.kernel.org/patchwork/cover/72078) | 限制 page cache 的内存占用. | RFC ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/72078) |
+| 2007/01/24 | Christoph Lameter <clameter@sgi.com> | [Limit the size of the pagecache](https://lore.kernel.org/patchwork/cover/72581) | 限制 page cache 的内存占用. | RFC ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/72581) |
 | 2014/06/16 | Xishi Qiu <qiuxishi@huawei.com> | [Limit the size of the pagecache](https://lore.kernel.org/patchwork/cover/72581) | 限制 page cache 的内存占用. | RFC ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/72581) |
 | 2014/06/16 | Xishi Qiu <qiuxishi@huawei.com> | [mm: add page cache limit and reclaim feature](https://lore.kernel.org/patchwork/cover/473535) | 限制 page cache 的内存占用. | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/416962)<br>*-*-*-*-*-*-*-* <br>[openEuler 4.19](https://gitee.com/openeuler/kernel/commit/6174ecb523613c8ed8dcdc889d46f4c02f65b9e4) |
 | 2019/02/23 | Chunguang Xu <brookxu@tencent.com> | [pagecachelimit: limit the pagecache ratio of totalram](http://github.com/tencent/TencentOS-kernel/commit/6711b34671bc658c3a395d99aafedd04a4ebbd41) | 限制 page cache 的内存占用. | NA |  [pagecachelimit: limit the pagecache ratio of totalram](http://github.com/tencent/TencentOS-kernel/commit/6711b34671bc658c3a395d99aafedd04a4ebbd41) |
@@ -1672,7 +1717,7 @@ git://github.com/glommer/linux.git kmemcg-slab
 | 2020/06/23 | Glauber Costa <glommer@parallels.com> | [kmem controller for memcg](https://lwn.net/Articles/516529) | memcg 支持对内核内存(kmem)进行统计, memcg 开始支持统计两种类型的内核内存使用 : 内核栈 和 slab. 这些限制对于防止 fork 炸弹(bombs)等事件很有用. | v6 ☑ 3.8-rc1 | [PatchWork v5 kmem(stack) controller for memcg](https://lore.kernel.org/patchwork/cover/333535), [PatchWork v5 slab accounting for memcg](https://lore.kernel.org/patchwork/cover/334479/)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6](https://lore.kernel.org/patchwork/cover/337780) |
 | 2020/06/23 |  Roman Gushchin <guro@fb.com> | [The new cgroup slab memory controller](https://lore.kernel.org/patchwork/cover/1261793) | 将 SLAB 的统计跟踪统计从页面级别更改为到对象级别. 它允许在 memory cgroup 之间共享 SLAB 页. 这一变化消除了每个 memory cgroup 每个重复的每个 cpu 和每个节点 slab 缓存集, 并为所有内存控制组建立了一个共同的每个cpu和每个节点slab缓存集. 这将显著提高 SLAB 利用率(最高可达45%), 并相应降低总的内核内存占用. 测试发现不可移动页面数量的减少也对内存碎片产生积极的影响. | v7 ☑ 5.9-rc1 | [PatchWork v7](https://lore.kernel.org/patchwork/cover/1261793/) |
 | 2015/11/10 | Roman Gushchin <guro@fb.com> | [memcg/kmem: switch to white list policy](https://lore.kernel.org/patchwork/cover/616606) | 所有的 kmem 分配(即每次 kmem_cache_alloc、kmalloc、alloc_kmem_pages调用)都会自动计入内存 cgroup. 如果出于某些原因, 呼叫者必须明确选择退出. 这样的设计决策会导致以下许多个问题, 因此该补丁切换为白名单策略. 现在 kmalloc 用户必须通过传递 __GFP_ACCOUNT 标志来显式标记. | v7 ☑ 5.9-rc1 | [PatchWork v7](https://lore.kernel.org/patchwork/cover/616606) |
-| 2021/05/06 | Waiman Long <longman@redhat.com> | [mm/memcg: Reduce kmemcache memory accounting overhead](https://lore.kernel.org/patchwork/cover/1422112) | 降低 kmemcache 统计的消耗. | v6 ☐ | [PatchWork v6](https://lore.kernel.org/patchwork/cover/1422112) |
+| 2021/05/06 |  Waiman Long <longman@redhat.com> | [The new cgroup slab memory controller](https://lore.kernel.org/patchwork/cover/1422112) | [The new cgroup slab memory controller](https://lore.kernel.org/patchwork/cover/1261793) 合入后, 不再需要为每个 MEMCG 使用单独的 kmemcache, 从而减少了总体的内核内存使用. 但是, 我们还为每次调用 kmem_cache_alloc() 和 kmem_cache_free() 增加了额外的内存开销. 参见 [10befea91b:  hackbench.throughput -62.4% regression](https://lore.kernel.org/lkml/20210114025151.GA22932@xsang-OptiPlex-9020) 和 [memcg: performance degradation since v5.9](https://lore.kernel.org/linux-mm/20210408193948.vfktg3azh2wrt56t@gabell/T/#u). 这组补丁通过降低了 kmemcache 统计的开销. 缓解了这个问题. | v7 ☑ 5.9-rc1 | [PatchWork v7](https://lore.kernel.org/patchwork/cover/1422112) |
 
 
 ## 9.4 memcg LRU list
@@ -2139,6 +2184,15 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 
 
 总的来说, 它利用了 GCC 5.0的新特性, 可对内核内存进行 Instrumentaion, 编译器可以在访问内存前插入指令, 从而检测该次访问是否合法. 对比前述的 KMEMCHECK 要用到 CPU 的陷阱指令处理和单步调试功能, KASan 是在编译时加入了探针, 因此它的性能更快.
+
+ARM 引入了一个[内存标签扩展](https://community.arm.com/developer/ip-products/processors/b/processors-ip-blog/posts/enhancing-memory-safety)的硬件特性. 然后 Google 的 [Andrey Konovalov](https://github.com/xairy/linux/)基于此硬件特性重写了 KASan. 实现了 [hardware tag-based mode 的 KASan](https://lore.kernel.org/patchwork/cover/1344197).
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/11/23 | Andrey Konovalov <andreyknvl@google.com> | [kasan: add hardware tag-based mode for arm64](https://lore.kernel.org/patchwork/cover/1344197) | NA | v11 ☑ [5.11-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork mm,v11,00/42](https://patchwork.kernel.org/project/linux-mm/cover/cover.1606161801.git.andreyknvl@google.com) |
+| 2020/11/23 | Andrey Konovalov <andreyknvl@google.com> | [kasan: boot parameters for hardware tag-based mode](https://lore.kernel.org/patchwork/cover/1344258) | NA | v4 ☑ [5.11-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork mm,v4,00/19](https://patchwork.kernel.org/project/linux-mm/patch/748daf013e17d925b0fe00c1c3b5dce726dd2430.1606162397.git.andreyknvl@google.com/) |
+| 2021/01/15 | Andrey Konovalov <andreyknvl@google.com> | [kasan: HW_TAGS tests support and fixes](https://lore.kernel.org/patchwork/cover/1366086) | NA | v4 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork mm,v4,00/15](https://patchwork.kernel.org/project/linux-mm/cover/cover.1610733117.git.andreyknvl@google.com) |
+| 2021/02/05 | Andrey Konovalov <andreyknvl@google.com> | [kasan: optimizations and fixes for HW_TAGS](https://lore.kernel.org/patchwork/cover/1376340) | NA | v3 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork mm,v3,mm,00/13](https://patchwork.kernel.org/project/linux-mm/cover/cover.1612546384.git.andreyknvl@google.com) |
 
 
 ### 13.3.5 KFENCE 一个新的内存安全检测工具
