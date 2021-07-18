@@ -687,7 +687,9 @@ https://lore.kernel.org/patchwork/cover/668967
 | 2019/10/31 | Daniel Axtens <dja@axtens.net> | [kasan: support backing vmalloc space with real shadow memory](https://lore.kernel.org/patchwork/cover/1146684) | NA | v11 ☑ 5.5-rc1 | [PatchWork v11,0/4](https://lore.kernel.org/patchwork/cover/1146684) |
 | 2021/03/24 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [vmalloc: Improve vmalloc(4MB) performance](https://lore.kernel.org/patchwork/cover/1401688) | 加速 4MB vmalloc 分配. | v2 ☑ 5.13-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1401688) |
 | 2006/04/21 | Nick Piggin <npiggin@suse.de> | [mm: introduce remap_vmalloc_range](https://lore.kernel.org/patchwork/cover/55978) | 添加 remap_vmalloc_range()、vmalloc_user() 和 vmalloc_32_user(), 这样驱动程序就可以有一个很好的接口来重新映射vmalloc内存. | v2 ☑ 2.6.18-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/55972)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/55978) |
-| 2013/05/23 | Nick Piggin <npiggin@suse.de> | [kdump, vmcore: support mmap() on /proc/vmcore](https://lore.kernel.org/patchwork/cover/381217) | NA | v8 ☑ 3.11-rc1 | [PatchWork v8,0/9](https://lore.kernel.org/patchwork/cover/381217) |
+| 2013/05/23 | HATAYAMA Daisuke <d.hatayama@jp.fujitsu.com> | [kdump, vmcore: support mmap() on /proc/vmcore](https://lore.kernel.org/patchwork/cover/381217) | NA | v8 ☑ 3.11-rc1 | [PatchWork v8,0/9](https://lore.kernel.org/patchwork/cover/381217) |
+| 2017/01/02 | Michal Hocko <mhocko@kernel.org> | [mm: introduce kv[mz]alloc helpers](https://patchwork.kernel.org/project/linux-security-module/patch/20170102133700.1734-1-mhocko@kernel.org) | 实现 kvmalloc()/kvzalloc(). | v8 ☑ 3.11-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/381217)<br>*-*-*-*-*-*-*-* <br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a7c3e901a46ff54c016d040847eda598a9e3e653) |
+| 2021/03/09 | Topi Miettinen <toiwoton@gmail.com> | [mm/vmalloc: randomize vmalloc() allocations](https://lore.kernel.org/patchwork/patch/1392280) | vmalloc() 随机分配. 内核中使用 vmalloc() 分配的内存映射是按可预测的顺序排列的, 并且紧密地向低地址填充, 除了从 vmalloc 区域的顶部开始的 per-cpu 区域. 有了新的内核引导参数 'randomize_vmalloc = 1', 整个区域被随机使用, 使得分配更难以预测, 更难让攻击者猜测. 此外, 模块和 BPF 代码位置是随机的(在它们专用的很小的区域内), 如果启用了 CONFIG_VMAP_STACK, 内核栈位置也是随机的.  | v4 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1392280) |
 
 
 
@@ -798,7 +800,19 @@ vmalloc_to_page 则提供了通过 vmalloc 地址查找到对应 page 的操作.
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/03/03 | Toshi Kani <toshi.kani@hp.com> | [Kernel huge I/O mapping support](https://lore.kernel.org/patchwork/cover/547056) | ioremap() 支持透明大页. 扩展了 ioremap() 接口, 尽可能透明地创建具有大页面的 I/O 映射. 当一个大页面不能满足请求范围时, ioremap() 继续使用 4KB 的普通页面映射. 使用 ioremap() 不需要改变驱动程序. 但是, 为了使用巨大的页面映射, 请求的物理地址必须以巨面大小(x86上为 2MB 或 1GB)对齐. 内核巨页的 I/O 映射将提高 NVME 和其他具有大内存的设备的性能, 并减少创建它们映射的时间. | v3 ☑ 4.1-rc1 | [PatchWork v3,0/6](https://lore.kernel.org/patchwork/cover/547056) |
 | 2021/03/17 | Nicholas Piggin <npiggin@gmail.com> | [huge vmalloc mappings](https://lore.kernel.org/patchwork/cover/1397495) | 支持大页面 vmalloc 映射. 配置选项 HAVE_ARCH_HUGE_VMALLOC 支持定义 HAVE_ARCH_HUGE_VMAP 的架构, 并支持 PMD 大小的 vmap 映射. 如果分配 PMD 大小或更大的页面, vmalloc 将尝试分配 PMD 大小的页面, 如果不成功, 则返回到小页面. 架构必须确保任何需要 PAGE_SIZE 映射的 arch 特定的 vmalloc 分配(例如, 模块分配与严格的模块rwx) 使用 VM_NOHUGE 标志来禁止更大的映射. 对于给定的分配, 这可能导致更多的内部碎片和内存开销, nohugevmalloc 选项在引导时被禁用. | v13 ☑ [5.13-rc1](https://kernelnewbies.org/Linux_5.13#Memory_management) | [PatchWork v13,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210317062402.533919-1-npiggin@gmail.com) |
-| 2021/05/12 | Christophe Leroy <christophe.leroy@csgroup.eu> | [Implement huge VMAP and VMALLOC on powerpc 8xx](https://lore.kernel.org/patchwork/cover/1425630) | 本系列在 powerpc 8xx 上实现了大型 VMAP 和 VMALLOC. Powerpc 8xx 有 4 个页面大小: 4k, 16k, 512k, 8M. 目前, vmalloc 和 vmap 只支持 PMD 级别的大页. 这里的PMD级别是 4M, 它不对应于任何受支持的页面大小. 现在, 实现 16k 和 512k 页的使用, 这是在PTE级别上完成的. 对 8M 页面的支持将在以后实现, 这需要使用 gepd表. 为了实现这一点，该体系结构提供了两个功能: <br>1. arch_vmap_pte_range_map_size() 告诉 vmap_pte_range() 使用什么页面大小. <br>2. arch_vmap_pte_supported_shift() 告诉 `__vmalloc_node_range()` 对于给定的区域大小使用什么分页移位.<br>当体系结构不提供这些函数时, 将返回PAGE_SHIFT. | v2 ☑ 5.14-rc1 | [PatchWork v2,0/5](https://lore.kernel.org/patchwork/cover/1425630) |
+| 2021/05/12 | Christophe Leroy <christophe.leroy@csgroup.eu> | [Implement huge VMAP and VMALLOC on powerpc 8xx](https://lore.kernel.org/patchwork/cover/1425630) | 本系列在 powerpc 8xx 上实现了大型 VMAP 和 VMALLOC. Powerpc 8xx 有 4 个页面大小: 4k, 16k, 512k, 8M. 目前, vmalloc() 和 vmap() 只支持 PMD 级别的大页. 这里的 PMD 级别是 4M, 它不对应于任何受支持的页面大小. 现在, 实现 16k 和 512k 页的使用, 这是在PTE级别上完成的. 对 8M 页面的支持将在以后实现, 这需要使用 gepd表. 为了实现这一点, 该体系结构提供了两个功能: <br>1. arch_vmap_pte_range_map_size() 告诉 vmap_pte_range() 使用什么页面大小. <br>2. arch_vmap_pte_supported_shift() 告诉 `__vmalloc_node_range()` 对于给定的区域大小使用什么分页移位.<br>当体系结构不提供这些函数时, 将返回PAGE_SHIFT. | v2 ☑ 5.14-rc1 | [PatchWork v2,0/5](https://lore.kernel.org/patchwork/cover/1425630) |
+
+
+#### 2.3.1.7 vmallocinfo
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2017/05/02 | Michal Hocko <mhocko@kernel.org> | [mm, vmalloc: properly track vmalloc users](https://lore.kernel.org/patchwork/patch/784732) | 在 `/proc/vmallocinfo` 中显示 lazy 释放的 vm_area. | v2 ☑ 4.13-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/784732)<br>*-*-*-*-*-*-*-* <br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1f5307b1e094bfffa83c65c40ac6e3415c108780) |
+| 2017/06/05 | Yisheng Xie <xieyisheng1@huawei.com> | [vmalloc: show lazy-purged vma info in vmallocinfo](https://lore.kernel.org/patchwork/cover/795284) | 在 `/proc/vmallocinfo` 中显示 lazy 释放的 vm_area. | v2 ☑ 4.13-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/795284)<br>*-*-*-*-*-*-*-* <br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=78c72746f56b212ecf768a7e67cee3b7cf89238c) |
+
+
 
 
 ### 2.3.2 连续内存分配器(CMA)
@@ -2558,6 +2572,23 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2009/02/24 | Tejun Heo <tj@kernel.org> | [percpu: fix pcpu_chunk_struct_size](https://lore.kernel.org/patchwork/cover/145272) | 1. 为对 static per_cpu(第一个 percpu 块)分配增加更多的自由度: 引入 PERCPU_DYNAMIC_RESERVE 用于预留 percpu 空间, 修改 pcpu_setup_static() 为 pcpu_setup_first_chunk(), 并让其更灵活.<br>2. 实现嵌入式的 percpu 分配器, 在 !NUMA 模式下, 可以简单地分配连续内存并将其用于第一个块, 而无需将其映射到 vmalloc 区域. 由于内存区域是由大页物理内存映射覆盖的, 所以它允许在基于可伸缩的动态 percpu 分配器分配静态 percpu 区域不引入任何 TLB 开销, 而且实现也非常简单.  | v1 ☑ 2.6.30-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/145272) |
 | 2009/03/26 | Tejun Heo <tj@kernel.org> | [percpu: clean up percpu constants](https://lore.kernel.org/patchwork/cover/146513) | NA | v1 ☑ 2.6.30-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/146513) |
 | 2009/07/21 | Tejun Heo <tj@kernel.org> | [percpu:  implement pcpu_get_vm_areas() and update embedding first chunk allocator](https://lore.kernel.org/patchwork/cover/164588) | NA | v1 ☑ 2.6.32-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/164588) |
+
+
+## 14.7 ASLR
+-------
+
+### 14.7.1 ASLR
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/01/24 | Topi Miettinen <toiwoton@gmail.com> | [mm: Optional full ASLR for mmap(), vdso, stack and heap](https://lore.kernel.org/patchwork/cover/1370134) | NA | v1 ☑ 2.6.30-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1370134) |
+| 2020/07/17 | Topi Miettinen <toiwoton@gmail.com> | [Function Granular KASLR](https://patchwork.kernel.org/project/kernel-hardening/cover/20200717170008.5949-1-kristen@linux.intel.com/#23528683) | NA | v1 ☑ v4,00/10 | [PatchWork](https://patchwork.kernel.org/project/kernel-hardening/cover/20200717170008.5949-1-kristen@linux.intel.com/#23528683) |
+
+
+
+### 14.7.2 KASLR
+-------
 
 
 
