@@ -280,6 +280,7 @@ https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13419&state=*&arc
 | 2016/04/15 | Mel Gorman | [Optimise page alloc/free fast paths v3](https://lore.kernel.org/patchwork/cover/668967) | 优化调度器的路径, 减少对 rq->lock 的争抢, 实现 lockless. | v3 ☑ 4.7-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/668967) |
 | 2016/07/08 | Mel Gorman | [Move LRU page reclaim from zones to nodes v9](https://lore.kernel.org/patchwork/cover/696408) | 将 LRU 页面的回收从 ZONE 切换到 NODE. | v3 ☑ 4.7-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/696408) |
 | 2016/07/15 | Mel Gorman | [Follow-up fixes to node-lru series v2](https://lore.kernel.org/patchwork/cover/698606) | node-lru 系列补丁的另一轮修复补丁, 防止 memcg 中警告被触发. | v3 ☑ 4.8-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/698606) |
+| 2019/11/21 | Pengfei Li <fly@kernel.page> | [Modify zonelist to nodelist v1](https://lore.kernel.org/patchwork/cover/1157012) | 目前, 如果我们想遍历所有节点, 我们必须遍历分区列表中的所有区域. 所以为了减少遍历节点所需的循环次数, 这一系列补丁将zonelist修改为nodelist. 引入了两个新的宏: <br>1) for_each_node_nlist<br>2) for_each_node_nlist_nodemask<br>这样带来的好处是:<br>1. 对于有N个节点的NUMA系统, 每个节点有M个区域, 在遍历节点时, 循环次数从N*M次减少到N次.<br>2. pg_data_t的大小减少了很多. | RFC,v1 ☐ | [PatchWork RFC,v1,00/19] Modify zonelist to nodelist v1](https://lore.kernel.org/patchwork/cover/1157012) |
 
 
 一些核心的重构和修正
@@ -1869,7 +1870,7 @@ https://lwn.net/Articles/761118
 | 2021/03/25 | Ybrookxu | [bfq: introduce bfq.ioprio for cgroup](https://lore.kernel.org/patchwork/cover/828043) | Cgroup 感知的 bfq.ioprio | v3 ☐ | [LKML](https://lkml.org/lkml/2021/3/25/93) |
 
 
-## 9.3 kmemcg
+## 9.3 KMEMCG
 -------
 
 [memcg kernel memory tracking](https://lwn.net/Articles/482777)
@@ -1906,6 +1907,7 @@ git://github.com/glommer/linux.git kmemcg-slab
 | 2020/06/23 |  Roman Gushchin <guro@fb.com> | [The new cgroup slab memory controller](https://lore.kernel.org/patchwork/cover/1261793) | 将 SLAB 的统计跟踪统计从页面级别更改为到对象级别. 它允许在 memory cgroup 之间共享 SLAB 页. 这一变化消除了每个 memory cgroup 每个重复的每个 cpu 和每个节点 slab 缓存集, 并为所有内存控制组建立了一个共同的每个cpu和每个节点slab缓存集. 这将显著提高 SLAB 利用率(最高可达45%), 并相应降低总的内核内存占用. 测试发现不可移动页面数量的减少也对内存碎片产生积极的影响. | v7 ☑ 5.9-rc1 | [PatchWork v7](https://lore.kernel.org/patchwork/cover/1261793) |
 | 2015/11/10 | Roman Gushchin <guro@fb.com> | [memcg/kmem: switch to white list policy](https://lore.kernel.org/patchwork/cover/616606) | 所有的 kmem 分配(即每次 kmem_cache_alloc、kmalloc、alloc_kmem_pages调用)都会自动计入内存 cgroup. 如果出于某些原因, 呼叫者必须明确选择退出. 这样的设计决策会导致以下许多个问题, 因此该补丁切换为白名单策略. 现在 kmalloc 用户必须通过传递 __GFP_ACCOUNT 标志来显式标记. | v7 ☑ 5.9-rc1 | [PatchWork v7](https://lore.kernel.org/patchwork/cover/616606) |
 | 2021/05/06 |  Waiman Long <longman@redhat.com> | [The new cgroup slab memory controller](https://lore.kernel.org/patchwork/cover/1422112) | [The new cgroup slab memory controller](https://lore.kernel.org/patchwork/cover/1261793) 合入后, 不再需要为每个 MEMCG 使用单独的 kmemcache, 从而减少了总体的内核内存使用. 但是, 我们还为每次调用 kmem_cache_alloc() 和 kmem_cache_free() 增加了额外的内存开销. 参见 [10befea91b:  hackbench.throughput -62.4% regression](https://lore.kernel.org/lkml/20210114025151.GA22932@xsang-OptiPlex-9020) 和 [memcg: performance degradation since v5.9](https://lore.kernel.org/linux-mm/20210408193948.vfktg3azh2wrt56t@gabell/T/#u). 这组补丁通过降低了 kmemcache 统计的开销. 缓解了这个问题. | v7 ☑ 5.9-rc1 | [PatchWork v7](https://lore.kernel.org/patchwork/cover/1422112) |
+| 2020/12/20 | Shakeel Butt <shakeelb@google.com> | [inotify, memcg: account inotify instances to kmemcg](https://lore.kernel.org/patchwork/cover/1355497) | 目前 sysctl inotify/max_user_instances 用于限制系统的 inotify 实例数量. 对于运行多个工作负载的系统, 每个用户的命名空间 sysctl max_inotify_instances 可以用于进一步划分 inotify 实例. 但是, 没有简单的方法可以对 inotify 实例设置合理的系统级别最大限制, 并在工作负载之间对其进行进一步分区. 该补丁通过将 inotify 实例分配给 memcg, 管理员可以简单地将 max_user_instances 设置为 INT_MAX, 并让作业的 memcg 限制它们的 inotify 实例. | v2 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.12#Memory_management) | [PatchWork v7](https://lore.kernel.org/patchwork/cover/1355497), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ac7b79fd190b02e7151bc7d2b9da692f537657f3) |
 
 
 ## 9.4 memcg LRU list
