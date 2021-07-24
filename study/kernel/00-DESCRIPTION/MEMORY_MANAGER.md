@@ -214,7 +214,7 @@ https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13419&state=*&arc
 
 [带有“memory folios”的 Linux：编译内核时性能提升了 7%](https://www.heikewan.com/item/27509944)
 
-内存管理(memory management) 一般是以 page 为单位进行的, 一个 page 通常包含 4,096 个字节, 也可能更大. 内核已经将 page 的概念扩展到所谓的 compound page(复合页), 即一组组物理连续的单独 page 的组合. 这又使得 "page" 的定义变得有些模糊了. Matthew Wilcox 提出了 "page folio" 的概念, 它实际上仍然是一个 page structure, 只是保证了它一定不是 tail page. 任何接受 folio page 参数的函数都会是对整个 compound page 进行操作(如果传入的确实是一个 compound page 的话), 这样就不会有任何歧义. 从而可以使内核里的内存管理子系统更加清晰；也就是说, 如果某个函数被改为只接受 folio page 作为参数的话, 很明确, 它们不适用于对 tail page 的操作. 通过 folio 结构来管理内存. 它提供了一些具有自身价值的基础设施, 将内核的文本缩减了约 6kB.
+内存管理(memory management) 一般是以 page 为单位进行的, 一个 page 通常包含 4,096 个字节, 也可能更大. 内核已经将 page 的概念扩展到所谓的 compound page(复合页), 即一组组物理连续的单独 page 的组合. 这又使得 "page" 的定义变得有些模糊了. Matthew Wilcox 提出了 "page folio" 的概念, 它实际上仍然是一个 page structure, 只是保证了它一定不是 tail page. 任何接受 folio page 参数的函数都会是对整个 compound page 进行操作(如果传入的确实是一个 compound page 的话), 这样就不会有任何歧义. 从而可以使内核里的内存管理子系统更加清晰; 也就是说, 如果某个函数被改为只接受 folio page 作为参数的话, 很明确, 它们不适用于对 tail page 的操作. 通过 folio 结构来管理内存. 它提供了一些具有自身价值的基础设施, 将内核的文本缩减了约 6kB.
 
 
 
@@ -582,6 +582,7 @@ Linux slab 分配器使用了这种思想和其他一些思想来构建一个在
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2007/02/28 | Christoph Lameter <clameter@engr.sgi.com> | [SLUB The unqueued slab allocator V3](https://lore.kernel.org/patchwork/cover/75156) | 优化调度器的路径, 减少对 rq->lock 的争抢, 实现 lockless. | v3 ☑ 2.6.22-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/75156), [commit 81819f0fc828 SLUB core](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=81819f0fc8285a2a5a921c019e3e3d7b6169d225) |
 | 2011/08/09 | Christoph Lameter <cl@linux.com> | [slub: per cpu partial lists V4](https://lore.kernel.org/patchwork/cover/262225) | slub 的 per-cpu 页面池, 有助于避免每个节点锁定开销, 使得 SLUB 的部分工作(比如fastpath和free slowpath)可以进一步在不禁用中断的情况下工作, 可以进一步减少分配器的延迟. | v3 ☑ 2.6.22-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/262225) |
+| 2020/10/15 | Kees Cook <keescook@chromium.org> | [Actually fix freelist pointer vs redzoning](https://lore.kernel.org/patchwork/cover/1321332) | NA | v3 ☑ 2.6.22-rc1 | [PatchWork v3,0/3](https://lore.kernel.org/patchwork/cover/1321332) |
 
 
 SLUB 这是第二个对象分配器实现. 引入这个新的实现的原因是 SLAB 存在的一些问题. 比如 NUMA 的支持, SLAB 引入时内核还没支持 NUMA, 因此, 一开始就没把 NUMA 的需求放在设计理念里, 结果导致后来的对 NUMA 的支持比较臃肿奇怪, 一个典型的问题是, SLAB 为追踪这些缓存, 在每个 CPU, 每个 node, 上都维护着对象队列. 同时, 为了满足 NUMA 分配的局部性, 每个 node 上还维护着所有其他 node 上的队列, 这样导致 SLAB 内部为维护这些队列就得花费大量的内存空间, 并且是O(n^2) 级别的. 这在大规模的 NUMA 机器上, 浪费的内存相当可观. 同时, 还有别的一些使用上的问题, 导致开发者对其不满, 因而引入了新的实现. 参见 [The SLUB allocator](https://lwn.net/Articles/229984).
@@ -1016,7 +1017,8 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 | 2006/01/18 | Christoph Lameter <clameter@sgi.com> | [mm, numa: reclaim from all nodes within reclaim distance](https://lore.kernel.org/patchwork/patch/326889) | NA | v1 ☑ v2.6.16-rc2 | [PatchWork](https://lore.kernel.org/patchwork/cover/326889)<br>*-*-*-*-*-*-*-* <br>[PatchWork fix](https://lore.kernel.org/patchwork/cover/328345)<br>*-*-*-*-*-*-*-* <br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=957f822a0ab95e88b146638bad6209bbc315bedd) |
 | 2009/06/11 | Mel Gorman <mel@csn.ul.ie> | [Fix malloc() stall in zone_reclaim() and bring behaviour more in line with expectations V3](https://lore.kernel.org/patchwork/patch/159963) | NA | v1 ☑ v2.6.16-rc2 | [PatchWork](https://lore.kernel.org/patchwork/cover/159963) |
 | 2014/04/08 | Mel Gorman <mel@csn.ul.ie> | [Disable zone_reclaim_mode by default v2](https://lore.kernel.org/patchwork/patch/454625) | NA | v2 ☑ 3.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/454625) |
-| 2016/06/13 | Minchan Kim <minchan@kernel.org> | [per-process reclaim](https://lore.kernel.org/patchwork/patch/688097) | 这个补丁为用户空间添加了新的方法, 通过把手 "/proc/PID/reclaim" 有效地管理内存, 这样平台可以在任何时候回收任何进程. 一个有用的用例是避免在android中为了获得空闲内存而杀死进程, 这是非常糟糕的体验, 因为当我在享受游戏的同时切换电话后, 我失去了我所拥有的最好的游戏分数, 以及由于冷启动而导致的缓慢启动. 因为冷启动需要加载大量资源数据, 有些游戏需要 15~20 秒, 而成功启动只需要1~5秒. 通过使用新的管理策略来回收perproc, 我们可以大大减少冷启动(即. (171-72), 从而大大减少了应用启动. 该特性的另一个有用功能是方便切换, 这对于测试切换压力和工作负载很有用.  | v2 ☑ 3.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/688097) |
+| 2016/06/13 | Minchan Kim <minchan@kernel.org> | [mm: per-process reclaim](https://lore.kernel.org/patchwork/patch/688097) | 这个补丁允许用户空间主动回收进程的页面, 通过把手 "/proc/PID/reclaim" 有效地管理内存, 这样平台可以在任何时候回收任何进程. 一个有用的用例是避免在android中为了获得空闲内存而杀死进程, 这是非常糟糕的体验, 因为当我在享受游戏的同时切换电话后, 我失去了我所拥有的最好的游戏分数, 以及由于冷启动而导致的缓慢启动. 因为冷启动需要加载大量资源数据, 有些游戏需要 15~20 秒, 而成功启动只需要1~5秒. 通过使用新的管理策略来回收perproc, 我们可以大大减少冷启动(即. (171-72), 从而大大减少了应用启动. 该特性的另一个有用功能是方便切换, 这对于测试切换压力和工作负载很有用.  | v2 ☑ 3.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/688097) |
+| 2016/05/31 | Minchan Kim <minchan@kernel.org> | [Support non-lru page migration](https://lore.kernel.org/patchwork/patch/683233) | 到目前为止, 我们只允许对 LRU 页面进行迁移, 这足以生成高阶页面. 但是最近, 嵌入式系统以及终端等设备使用了大量不可移动的页面(如zram、GPU内存), 因此我们看到了一些关于小高阶分配问题的报道. 问题主要是由<br>1. zram 和 GPU 驱动造成的碎片. 在内存压力下, 它们的页面被分散到所有的页块中, 无法进行迁移, 内存规整也不能很好地工作, 所以收缩业务所有的页面, 使得系统非常慢.<br>2. 另一个问题是他们不能使用CMA内存空间, 所以当OOM kill发生时, 我可以在CMA区域看到很多空闲页面, 这不是内存效率. 我们的产品有很大的CMA内存, 虽然CMA中有很大的空闲空间, 但是过多的回收区域来分配GPU和zram页面, 很容易使系统变得很慢. 之前为了解决这个问题, 我们做了几项努力(例如, 增强压缩算法、SLUB回退到0阶页、保留内存、vmalloc等), 但如果系统中存在大量不可移动页, 则从长远来看, 它们的解决方案是无效的. 因此尝试了当前这种方案.  | v2 ☑ 3.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/683233) |
 
 
 ## 4.2 LRU
@@ -1024,12 +1026,22 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 
 ### 4.2.1 经典地 LRU 算法
 -------
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2005/06/21 | Martin Hicks <mort@sgi.com> | [Swap reorganised 29.12.95](https://github.com/gatieme/linux-history/commit/ecda87c064fea1d7322a357b78b99e04594bc6f3) | 引入 zone_reclaim syscall, 用来回收 zone 的内存. | v1 ☑ 1.3.57 | [commit HISTORY](https://github.com/gatieme/linux-history/commit/ecda87c064fea1d7322a357b78b99e04594bc6f3) |
+| 2.4.0-test9pre1 | Rik van Riel <riel@redhat.com> | [MM balancing (Rik Riel)](https://github.com/gatieme/linux-history/commit/1fc53b2209b58e786c102e55ee682c12ffb4c794) | 引入 MM balancing, 其中将 LRU 拆分成了 active_list 和 inactive_dirty_list 两条链表 | 2.4.0-test9pre1 | [1fc53b2209b](https://github.com/gatieme/linux-history/commit/1fc53b2209b58e786c102e55ee682c12ffb4c794) |
 
+### 4.2.2 Split LRU 替换算法
+-------
+
+
+Rik van Riel, Lee Schermerhorn, Kosaki Motohiro 等众多的开发者设计了最初的 [Split LRU 替换算法](https://linux-mm.org/PageReplacementDesign). 它与 2.6.28 合入主线内核, 在经历了诸多的 bugfix 和优化后, 与 2.6.32 版本开始趋于稳定并运行良好.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2008/06/11 | Rik van Riel <riel@redhat.com> | [VM pageout scalability improvements (V12)](https://lore.kernel.org/patchwork/cover/118967) | 在大内存系统上, 扫描 LRU 中无法(或不应该)从内存中逐出的页面. 它不仅会占用CPU时间, 而且还会引发锁争用. 并且会使大型系统处于紧张的内存压力状态. 该补丁系列通过一系列措施提高了虚拟机的可扩展性:<br>1. 将文件系统支持的、交换支持的和不可收回的页放到它们自己的LRUs上, 这样系统只扫描它可以/应该从内存中收回的页<br>
-2. 为匿名 LRUs 切换到双指针时钟替换, 因此系统开始交换时需要扫描的页面数量绑定到一个合理的数量<br>3. 将不可收回的页面完全远离LRU, 这样 VM 就不会浪费 CPU 时间扫描它们. ramfs、ramdisk、SHM_LOCKED共享内存段和mlock VMA页都保持在不可撤销列表中. | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118967), [LWN](https://lwn.net/Articles/286472) |
+| 2008/06/11 | Rik van Riel <riel@redhat.com> | [VM pageout scalability improvements (V12)](https://lore.kernel.org/patchwork/cover/118967) | 在大内存系统上, 扫描 LRU 中无法(或不应该)从内存中逐出的页面. 它不仅会占用CPU时间, 而且还会引发锁争用. 并且会使大型系统处于紧张的内存压力状态. 该补丁系列通过一系列措施提高了虚拟内存的可扩展性:<br>1. 将文件系统支持的、交换支持的和不可收回的页放到它们自己的LRUs上, 这样系统只扫描它可以/应该从内存中收回的页<br>2. 为匿名 LRUs 切换到双指针时钟替换, 因此系统开始交换时需要扫描的页面数量绑定到一个合理的数量<br>3. 将不可收回的页面完全远离LRU, 这样 VM 就不会浪费 CPU 时间扫描它们. ramfs、ramdisk、SHM_LOCKED共享内存段和mlock VMA页都保持在不可撤销列表中. | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118967), [LWN](https://lwn.net/Articles/286472) |
+| 2006/04/18 | "Rafael J. Wysocki" <rjw@sisk.pl> | [swsusp: rework memory shrinker (rev. 2)](https://lore.kernel.org/patchwork/patch/55788) | 按以下方式重新设计 swsusp 的内存收缩器: <br>1. 通过从中删除所有与 swsusp 相关的代码来简化 balance_pgdat(). <br>2. 使 shrink_all_memory() 使用 shrink_slab() 和一个新函数 shrink_all_zones(), 该函数以针对挂起优化的方式直接为每个区域调用 shrink_active_list() 和 shrink_inactive_list().<br>在 shrink_all_memory() 中, 我们尝试从更简单的目标开始释放与调用者要求的一样多的页面, 最好一次性释放. 如果slab缓存很大, 它们很可能有足够的页面来回收.  接下来是非活动列表(具有更多非活动页面的区域首先显示)等.<br>每次 shrink_all_memory() 尝试在5 次传递中缩小每个区域的活动和非活动列表. 在第一遍中, 仅考虑非活动列表. 在接下来的两次传递中, 活动列表也缩小了, 但映射的页面不会被回收. 在最后两遍中, 活动和非活动列表缩小, 映射页面也被回收. 这样做的目的是改变回收逻辑以选择最好的页面来继续恢复并提高恢复系统的响应能力. | [2.6.18](https://elixir.bootlin.com/linux/v2.6.18/source/mm/vmscan.c#L1057) | [PatchWork RFC](https://lore.kernel.org/patchwork/patch/55598)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/patch/55754)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/patch/55788)<br>*-*-*-*-*-*-*-* <br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d6277db4ab271862ed599da08d78961c70f00002) |
+
 
 ### 4.2.2 二次机会法
 -------
@@ -1131,7 +1143,7 @@ aaba9265318 [PATCH] make pagemap_lru_lock irq-safe
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2007/03/16 | Rik van Riel <riel@redhat.com> | [split file and anonymous page queues](https://lore.kernel.org/patchwork/cover/76770) | 将 LRU 中匿名页和文件页拆分的第一次尝试 | RFC v3 ☐ | [PatchWork RFC v1](https://lore.kernel.org/patchwork/cover/76719)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC v2](https://lore.kernel.org/patchwork/cover/76558)<br>*-*-*-*-*-*-*-*<br>[PatchWork RFC v3](https://lore.kernel.org/patchwork/cover/76558) |
 | 2007/11/03 | Rik van Riel <riel@redhat.com> | [split anon and file LRUs](https://lore.kernel.org/patchwork/cover/96138) | 将 LRU 中匿名页和文件页分开管理的系列补丁 | RFC ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/96138) |
-| 2008/06/11 | Rik van Riel <riel@redhat.com> | [VM pageout scalability improvements (V12)](https://lore.kernel.org/patchwork/cover/118967) | 这里我们关心的是它将 LRU 中匿名页和文件页分开成两个链表进行管理. | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118966), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f98a2fee8acdb4ac84545df98cccecfd130f8db) |
+| 2008/06/11 | Rik van Riel <riel@redhat.com> | [VM pageout scalability improvements (V12)](https://lore.kernel.org/patchwork/cover/118966) | 这里我们关心的是它将 LRU 中匿名页和文件页分开成两个链表进行管理. 将LRU列表分成两组, 一组用于文件映射的页面, 另一组用于匿名页面, 后者包括tmpfs. 这样做的好处是, VM 将不必扫描大量的匿名页面(我们通常不希望换出这些匿名页面), 只需要找到它应该清除的页面缓存页面(PageCache). | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118966), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f98a2fee8acdb4ac84545df98cccecfd130f8db) |
 
 *   拆分出 unevictable page 的 LRU 链表
 
@@ -1173,6 +1185,30 @@ aaba9265318 [PATCH] make pagemap_lru_lock irq-safe
 | 2011/08/08 | Konstantin Khlebnikov <khlebnikov@openvz.org> | [vmscan: activate executable pages after first usage](https://lore.kernel.org/patchwork/patch/262018) | 上面补丁希望对 VM_EXEC 的页面区别对待, 但是添加的逻辑被明显削弱, 只有在第二次使用后才能成为一等公民("the first class citizen"), 由于二次机会法的存在, 这些页面将通过 page_check_references() 在第一次使用后才能进入 active LRU list, 然后才能触发前面补丁的优化, 保证 VM_EXEC 的页面有更好的机会留在内存中. 因此这个补丁 通过 page_check_references() 在页面在第一次被访问后就激活它们, 从而保护可执行代码将有更好的机会留在内存中. | v2 ☑ 3.3-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/262018), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c909e99364c8b6ca07864d752950b6b4ecf6bef4) |
 
 
+*   Swappiness
+
+
+Swappiness 用于设置将页面从物理内存交换到交换空间以及从页面缓存中删除页面之间的平衡. 可以通过引入 `/proc/sys/vm/swappiness` 控制系统在进行 swap 时, 内存使用的相对权重.
+
+swappiness 参数值可设置范围在 `0~100` 之间.
+
+1.      参数值越低, 就会让 Linux 系统尽量少用 swap 分区, 多用内存;
+
+2.      参数值越高就是反过来, 使内核更多的去使用swap空间.
+
+假设 swappiness 值为 60, 表示当剩余物理内存低于40%(40=100-60)时, 开始使用 swap 分区.
+
+[swappiness参数的含义和设置](https://www.maixj.net/ict/swappiness-22576)
+
+[Linux内核页回收swappiness参数有着什么作用](https://www.linuxprobe.com/linuxkernel-swappiness-meaning.html)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2002/10/12 | Andrew Morton <akpm@digeo.com> | [reduced and tunable swappiness](https://github.com/gatieme/linux-history/commit/8f7a14042e1f5fc814fa60956e3a2dcf5744a0ed) | 引入 `/proc/sys/vm/swappiness` 控制 VM 取消页面映射和交换内容的倾向. 在所有用于控制交换性的机制是: 宁愿回收 page cache, 也不愿将匿名页放到非活动列表. 对 swappiness 机制的控制如下:<br>1. 如果系统中有大量的匿名页, 我们倾向于将匿名页安置到非活动列表中.<br>2. 如果页面回收处于困境(比如更多的扫描正在发生), 然后选择将匿名页带到非活动列表. 这基本上是2.4算法.<br>3. 如果 `/proc/sys/vm/swappiness` 控制高, 则倾向于将映射的页面带到非活动列表中.<br>执行起来很简单: 将上述三件事计算成百分比并相加, 如果[超过100%, 那么开始回收匿名页](https://elixir.bootlin.com/linux/v2.5.43/source/mm/vmscan.c#L594). | v1 ☑ [2.5.43](https://elixir.bootlin.com/linux/v2.5.43/source/mm/vmscan.c#L588) | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/685701)<br>*-*-*-*-*-*-*-* <br>[COMMIT HISTORY](https://github.com/gatieme/linux-history/commit/8f7a14042e1f5fc814fa60956e3a2dcf5744a0ed) |
+| 2002/10/12 | Christoph Lameter <clameter@engr.sgi.com> | [vmscan: skip reclaim_mapped determination if we do not swap](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2903fb1694dcb08a3c1d9d823cfae7ba30e66cd3) | 如果不是 may_swap, 则跳过 swappiness 机制检查回收匿名页的流程. | v1 ☑ [2.6.16](https://elixir.bootlin.com/linux/v2.6.16/source/mm/vmscan.c#L1205) | [COMMIT 1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=80e4342601abfafacb5f20571e40b56d73d10819), [COMMIT 2](https://github.com/gatieme/linux-history/commit/072eaa5d9cc3e63f567ffd9ad87b36194fdd8010), [COMMIT 3](https://github.com/gatieme/linux-history/commit/072eaa5d9cc3e63f567ffd9ad87b36194fdd8010) |
+| 2007/10/16 | Andrea Arcangeli <andrea@suse.de> | [make swappiness safer to use](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4106f83a9f86afc423557d0d92ebf4b3f36728c1) | Swappiness 不是一个安全的sysctl.<br>1. 将它设置为0会挂起系统. 这是一种极端情况, 但即使将其设置为10或更低, 也会浪费大量cpu而没有取得很大进展.<br>2. 有一些客户想要使用swappiness, 但由于当前实现的原因, 他们不能使用(如果你改变它, 系统停止交换, 它真的停止交换, 如果你真的必须交换一些东西, 任何事情都不能正常工作).<br>这个补丁来自Kurt Garloff使swappiness使用更安全, 并且没有更多巨大的cpu占用或低swappiness值引起的挂起. 计算 swap_tendency 时考虑活动和非活动页面的不平衡比例 $\frac {NR_ACTIVE}{NR_INACTIVE + 1} \times \frac {vm\_swappiness + 1}{100} \times \frac {mapped\_ratio}{100}$. | v1 ☑ [2.6.24](https://kernelnewbies.org/Linux_3.16#Memory_management) | [PatchWork v3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4106f83a9f86afc423557d0d92ebf4b3f36728c1) |
+| 2007/11/26 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [per-zone and reclaim enhancements for memory controller take 3 [8/10] modifies vmscan.c for isolate globa/cgroup lru activity](https://lkml.org/lkml/2007/11/26/366) | 隔离全局和 cgroup 内存回收, 防止 cgroup 内存回收影响全局内存回收. per-zone 的页面回收感知 MEMCG 的其中一个补丁. 将原本 swap_tendency 和 reclaim_mapped 的处理流程分离新一个新函数 calc_reclaim_mapped() 中.<br>当使用内存控制器时, 有2级内存回收.<br>1. 区域内存回收, 因为系统/zone 内内存短缺.<br>2. cgroup 内存回收, 因为达到限制.<br>这两个可以通过sc->mem_cgroup参数来区分. 这个补丁试图使内存cgroup回收程序避免影响系统/区域内存回收. 这个补丁插入if (scan_global_lru()) 并钩子到 memory_cgroup回收支持函数. | v3 ☑ [2.6.25-rc1](https://elixir.bootlin.com/linux/v2.6.25/source/mm/vmscan.c#L1057) | [PatchWork v3](https://lore.kernel.org/patchwork/patch/98041), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1cfb419b394ba82745c54ff05436d598ecc2dbd5) |
+| 2008/06/11 | Rik van Riel <riel@redhat.com> | [VM pageout scalability improvements (V12)](https://lore.kernel.org/patchwork/cover/118966) | 这里我们关心的是它将 LRU 中匿名页和文件页分开成两个链表进行管理时引入的平衡策略, 用于平衡我们扫描匿名列表和扫描文件列表的数量. 引入 [get_scan_ratio()](https://elixir.bootlin.com/linux/v2.6.28/source/mm/vmscan.c#L1332) 来确定确定对匿名页 LRU 列表和文件页 LRU 列表的扫描力度. 每一组 LRU 列表的相对值是通过查看我们已经旋转回活动列表而不是驱逐的页面的部分来确定的. %[0] 指定对匿名页 LRUs 施加多大压力, 而 %[1] 确定对文件 LRUs 施加多大压力. | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118966), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f98a2fee8acdb4ac84545df98cccecfd130f8db) |
 
 
 ### 4.2.6 页面老化(active 与 inactive 链表拆分)
@@ -1234,21 +1270,7 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 
 
 
-## 4.2.7 LRU 中的内存水线
--------
-
-**2.6.28(2008年12月)**
-
-4.1 中描述过一个用户可配置的接口 : **_swappiness_**. 这是一个百分比数(取值 0-100, 默认60), 当值越靠近100, 表示更倾向替换匿名页; 当值越靠近0, 表示更倾向替换文件缓存页. 这在不同的工作负载下允许管理员手动配置.
-
-
-4.1 中 规则 4)中说在需要换页时, MM 会从 active 链表尾开始扫描, 如果有一台机器的 **_swappiness_** 被设置为 0, 意为完全不替换匿名页, 则 MM 在扫描中要跳过很多匿名页, 如果有很多匿名页(在一台把 **_swappiness_** 设为0的机器上很可能是这样的), 则容易出现性能问题.
-
-
-解决方法就是把链表拆分为匿名页链表和文件缓存页链表, 现在 active 链表分为 active 匿名页链表 和 active 文件缓存页链表了; inactive 链表也如此.  所以, 当 **_swappiness_** 为0时, 只要扫描 active 文件缓存页链表就够了.
-
-
-## 4.2.8 工作集大小的探测(Better LRU list balancing)
+### 4.2.7 工作集大小的探测(Better LRU list balancing)
 -------
 
 https://lore.kernel.org/patchwork/patch/222042
@@ -1293,7 +1315,21 @@ Johannes Weiner 认为这种经验公式过于简单且不够灵活, 为此他�
 | 2020/04/03 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [workingset protection/detection on the anonymous LRU list](https://lwn.net/Articles/815342) | 实现对匿名 LRU 页面列表的工作集保护和检测. 在之前的实现中, 新创建的或交换中的匿名页, 都是默认加入到 active LRU list, 然后逐渐降级到 inactive LRU list. 这造成在某种场景下新申请的内存(即使被使用一次cold page)也会把在a ctive list 的 hot page 挤到 inactive list. 为了解决这个的问题, 这组补丁, 将新创建或交换的匿名页面放到 inactive LRU list 中, 只有当它们被足够引用时才会被提升到活动列表. 另外,  因为这些更改可能导致新创建的匿名页面或交换中的匿名页面交换不活动列表中的现有页面, 所以工作集检测被扩展到处理匿名LRU列表. 以做出更优的决策. | v5 ☑ [5.9-rc1](https://kernelnewbies.org/Linux_5.9#Memory_management) | [PatchWork v5](https://lore.kernel.org/patchwork/cover/1219942), [Patchwork v7](https://lore.kernel.org/patchwork/patch/1278082), [ZhiHu](https://zhuanlan.zhihu.com/p/113220105) |
 | 2020/05/20 | Johannes Weiner <hannes@cmpxchg.org> | [mm: balance LRU lists based on relative thrashing v2](https://lore.kernel.org/patchwork/cover/1245255) | 基于相对抖动平衡 LRU 列表(重新实现了页面缓存和匿名页面之间的 LRU 平衡, 以便更好地与快速随机 IO 交换设备一起工作). : 在交换和缓存回收之间平衡的回收代码试图仅基于内存引用模式预测可能的重用. 随着时间的推移, 平衡代码已经被调优到一个点, 即它主要用于页面缓存, 并推迟交换, 直到 VM 处于显著的内存压力之下. 因为 commit a528910e12ec Linux 有精确的故障 IO 跟踪-回收错误页面的最终代价. 这允许我们使用基于 IO 成本的平衡模型, 当缓存发生抖动时, 这种模型更积极地扫描匿名内存, 同时能够避免不必要的交换风暴. | v1 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/685701)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1245255) |
 
-## 4.2.9 其他优化
+
+### 4.2.8 LRU 中的内存水线
+-------
+
+**2.6.28(2008年12月)**
+
+4.1 中描述过一个用户可配置的接口 : **_swappiness_**. 这是一个百分比数(取值 0-100, 默认60), 当值越靠近100, 表示更倾向替换匿名页; 当值越靠近0, 表示更倾向替换文件缓存页. 这在不同的工作负载下允许管理员手动配置.
+
+
+4.1 中 规则 4)中说在需要换页时, MM 会从 active 链表尾开始扫描, 如果有一台机器的 **_swappiness_** 被设置为 0, 意为完全不替换匿名页, 则 MM 在扫描中要跳过很多匿名页, 如果有很多匿名页(在一台把 **_swappiness_** 设为0的机器上很可能是这样的), 则容易出现性能问题.
+
+
+解决方法就是把链表拆分为匿名页链表和文件缓存页链表, 现在 active 链表分为 active 匿名页链表 和 active 文件缓存页链表了; inactive 链表也如此.  所以, 当 **_swappiness_** 为0时, 只要扫描 active 文件缓存页链表就够了.
+
+### 4.2.9 LRU 的优化
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1302,8 +1338,18 @@ Johannes Weiner 认为这种经验公式过于简单且不够灵活, 为此他�
 | 2010/09/15 | Mel Gorman <mel@csn.ul.ie> | [Reduce latencies and improve overall reclaim efficiency v2](https://lore.kernel.org/patchwork/cover/215977) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/215977) |
 | 2010/10/28 | Mel Gorman <mel@csn.ul.ie> | [Reduce the amount of time spent in watermark-related functions V4](https://lore.kernel.org/patchwork/cover/222014) | NA | v4 ☐ | [PatchWork v4](https://lore.kernel.org/patchwork/cover/222014) |
 | 2010/07/30 | Mel Gorman <mel@csn.ul.ie> | [Reduce writeback from page reclaim context V6](https://lore.kernel.org/patchwork/cover/209074) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/209074) |
-
 | 2021/05/27 | Muchun Song <songmuchun@bytedance.com> | [Optimize list lru memory consumption](https://lore.kernel.org/patchwork/cover/1436887) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1436887) |
+
+
+### 4.2.10 其他页面替换算法
+-------
+
+[AdvancedPageReplacement](https://linux-mm.org/AdvancedPageReplacement)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2005/08/08 | Rik van Riel <riel@redhat.com> | [non-resident page tracking](https://lore.kernel.org/patchwork/cover/41749) | 这些补丁实现了非驻留页面跟踪, 这是高级页面替换算法(如CART和CLOCK-Pro)所需的基础功能. | RFC ☐ | [PatchWork RFC,0/3](https://lore.kernel.org/patchwork/cover/41749) |
+| 2005/08/10 | Rik van Riel <riel@redhat.com> | [CLOCK-Pro page replacement](https://lore.kernel.org/patchwork/cover/41832) | CLOCK-Pr 页面替换是一种实现, 以保持那些页面在活动列表中引用"最频繁, 最近", 即, 后面两个引用之间距离最小的页面. | RFT ☐ | [PatchWork RFT,0/5](https://lore.kernel.org/patchwork/cover/41832) |
 
 
 ## 4.3 madvise MADV_FREE 页面延迟回收
@@ -1495,7 +1541,7 @@ https://lore.kernel.org/patchwork/cover/1324435/
 ### 6.2.1 原始的预读框架
 -------
 
-Linux内核的一大特色就是支持最多的文件系统, 并拥有一个虚拟文件系统(VFS)层. 早在2002年, 也就是2.5内核的开发过程中, Andrew Morton在VFS层引入了文件预读的基本框架, 以统一支持各个文件系统. 如图所示, Linux内核会将它最近访问过的文件页面缓存在内存中一段时间, 这个文件缓存被称为pagecache. 如下图所示. 一般的read()操作发生在应用程序提供的缓冲区与pagecache之间. 而预读算法则负责填充这个 pagecache. 应用程序的读缓存一般都比较小, 比如文件拷贝命令cp的读写粒度就是4KB；内核的预读算法则会以它认为更合适的大小进行预读I/O, 比比如16-128KB.
+Linux内核的一大特色就是支持最多的文件系统, 并拥有一个虚拟文件系统(VFS)层. 早在2002年, 也就是2.5内核的开发过程中, Andrew Morton在VFS层引入了文件预读的基本框架, 以统一支持各个文件系统. 如图所示, Linux内核会将它最近访问过的文件页面缓存在内存中一段时间, 这个文件缓存被称为pagecache. 如下图所示. 一般的read()操作发生在应用程序提供的缓冲区与pagecache之间. 而预读算法则负责填充这个 pagecache. 应用程序的读缓存一般都比较小, 比如文件拷贝命令cp的读写粒度就是4KB; 内核的预读算法则会以它认为更合适的大小进行预读I/O, 比比如16-128KB.
 
 
 ![以pagecache为中心的读和预读](./images/0002-1-readahead_page_cache.gif)
@@ -1834,6 +1880,8 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 
 [KS2012: The memcg/mm minisummit](https://lwn.net/Articles/516439)
 
+[Controlling memory use in containers](https://lwn.net/Articles/243795)
+
 **2.6.25(2008年4月发布)**
 
 在Linux轻量级虚拟化的实现 container 中(比如现在挺火的Docker, 就是基于container), 一个重要的功能就是做资源隔离. Linux 在 2.6.24中引入了cgroup(control group, 控制组)的资源隔离基础框架(将在最后一个部分详述), 提供了资源隔离的基础.
@@ -1843,7 +1891,12 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2007/08/24 | Balbir Singh <balbir@linux.vnet.ibm.com> | [Memory controller containers setup (v7)](https://lore.kernel.org/patchwork/cover/90224) | 实现 MEMCG | v7 ☑ [2.6.25-rc1](https://kernelnewbies.org/Linux_2_6_25) | [PatchWork v7](https://lore.kernel.org/patchwork/cover/90224) |
+| 2007/11/26 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [per-zone and reclaim enhancements for memory controller take 3 [0/10] introduction
+share 0](https://lkml.org/lkml/2007/11/26/356) | per-zone 的页面回收感知 MEMCG. | v3 ☑ 2.6.25-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/patch/98042) |
 | 2010/09/01 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [memcg: towards I/O aware memcg v7.](https://lore.kernel.org/patchwork/cover/213968) | IO 感知的 MEMCG. | v7 ☐ | [PatchWork v7](https://lore.kernel.org/patchwork/cover/213968) |
+
+
 
 ## 9.1 PageCacheLimit
 -------
