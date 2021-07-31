@@ -404,8 +404,7 @@ kpatch 的实现一直是根据内核的进展而演进的, 对 JUMP_LABEL 的�
 ## 6.1 ARM64
 -------
 
-[Current status about arm64 livepatch support
-](https://www.spinics.net/lists/arm-kernel/msg790495.html)
+[Current status about arm64 livepatch support](https://www.spinics.net/lists/arm-kernel/msg790495.html)
 
 | 时间  | 作者 |特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:--:|:----:|:---------:|:----:|
