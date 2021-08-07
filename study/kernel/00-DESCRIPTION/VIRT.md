@@ -87,6 +87,8 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 目前来看, 已经有一种较为成熟的软件方法来解决类似问题, 期待后续是否会有硬件的一些特性来支持, 或许已经有了.
 
 
+# 1 VIRT LOCK
+-------
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -96,6 +98,17 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 | 2015/11/10 | Waiman Long <Waiman.Long@hpe.com> | [locking/qspinlock: Enhance pvqspinlock performance](https://lore.kernel.org/patchwork/cover/616398) | PV SPINLOCK | v10 ☑ 4.5-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/cover/588106)<br>*-*-*-*-*-*-*-* <br>[PatchWork v10](https://lore.kernel.org/patchwork/cover/616398) |
 | 2018/10/08 | Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com> | [Enable PV qspinlock for Hyper-V](https://lore.kernel.org/patchwork/cover/996494) | Hyper-V 的 PV spiclock 实现. | v2 ☑ 4.20-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/996494) |
 | 2019/10/23 | Zhenzhong Duan <zhenzhong.duan@oracle.com> | [Add a unified parameter "nopvspin"](https://lore.kernel.org/patchwork/cover/1143398) | PV SPINLOCK | v8 ☑ 5.9-rc1 | [PatchWork v8](https://lore.kernel.org/patchwork/cover/1143398) |
+
+
+
+# 2 VDPA
+-------
+
+[Introduction to vDPA kernel framework](https://www.redhat.com/zh/blog/introduction-vdpa-kernel-framework)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/12/22 | Xie Yongji <xieyongji@bytedance.com> | [Introduce VDUSE - vDPA Device in Userspace](https://lore.kernel.org/patchwork/cover/398912) | 本系列介绍了一个框架, 可用于在用户空间程序中实现 vDPA 设备. 该工作包括两部分: 控制路径转发和数据路径卸载.<br>1. 在控制路径中, VDUSE 驱动程序将利用消息机制将配置操作从 vdpa 总线驱动程序转发到用户空间. 用户空间可以使用 read()/write() 来接收/回复这些控制消息.<br>2. 在数据路径中, 核心是将 dma 缓冲区映射到 VDUSE 守护进程的地址空间, 这可以根据 vdpa 设备所连接的 vdpa 总线以不同的方式实现.<br>在 virtio-vdpa 的情况下, 我们实现了一个基于 mmu 的片上 IOMMU 驱动程序, 该驱动程序带有弹跳缓冲机制. 在vhost-vdpa的情况下, dma 缓冲区驻留在用户空间内存区域, 可以通过传输shmfd共享给VDUSE用户空间进程. | v2 ☐ | [PatchWork RFC,v2,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20201222145221.711-1-xieyongji@bytedance.com) |
 
 
 相关的文章介绍: [47].
