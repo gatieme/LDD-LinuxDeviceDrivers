@@ -227,7 +227,13 @@ https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13419&state=*&arc
 | 2021/07/19 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folio support in block + iomap layers](https://lwn.net/Articles/1450196) | NA | v15 ☐ | [PatchWork v15,00/17](https://patchwork.kernel.org/project/linux-mm/cover/20210712194551.91920-1-willy@infradead.org/) |
 
 
+## 1.5 页面初始化
+-------
 
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/12/30 | Alexander Duyck <alexander.h.duyck@linux.intel.com> | [Deferred page init improvements](https://lore.kernel.org/patchwork/cover/1019963/) | 该补丁集本质上是页面初始化逻辑的重构, 旨在提供更好的代码重用, 同时显著提高延迟页面初始化性能.<br>在我对 x86_64 系统的测试中, 每个节点有 384GB 的 RAM 和 3TB 的持久内存<br>1. 在常规内存初始化的情况下, 初始化时间平均从 3.75s 减少到 1.06s. 对于持久内存, 初始化时间平均从 24.17s 下降到 19.12s.<br>2. 这相当于内存初始化性能提高了 253%, 持久内存初始化性能提高了 26%. | v6 ☑ 5.2-rc1 | [PatchWork mm,v6,0/7](https://patchwork.kernel.org/project/linux-mm/cover/154361452447.7497.1348692079883153517.stgit@ahduyck-desk1.amr.corp.intel.com) |
 
 # 2 内存分配
 -------
@@ -310,7 +316,7 @@ https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13419&state=*&arc
 | 2013/08/02 | Mel Gorman <mgorman@techsingularity.net> | [mm: improve page aging fairness between zones/nodes](https://lore.kernel.org/patchwork/cover/397316) | 引入了区域公平分配策略来修复页面分配器与 kswapd 交互的方式上造成老化不平衡<br>在回收压力下, 用户空间页面在内存中获得的时间取决于分配器从哪个区域、哪个节点获取页面框架. 这造成了如下几个问题<br>1. NUMA 系统上错误的不同步的 kswapd 唤醒, 这导致一些节点相对于系统中的其他节点落后于一个完整的回收周期.<br>2. kswapd 和页面分配的连续流无限期地将任务的首选区域保持在高水位和低水位之间(分配成功 + kswapd不会进入休眠), 完全不充分利用较低的区域, 并在首选区域上抖动. | v2 ☑ 3.12-rc1 | [PatchWork v2,0/3](https://lore.kernel.org/patchwork/cover/397316) |
 | 2013/12/18 | Mel Gorman <mgorman@suse.de> | [Configurable fair allocation zone policy v4](https://lore.kernel.org/patchwork/cover/428591) | NA | v2 ☑ 3.12-rc1 | [PatchWorkRFC,0/6](https://lore.kernel.org/patchwork/cover/428591) |
 | 2013/12/18 | Mel Gorman <mgorman@techsingularity.net> | [Configurable fair allocation zone policy v4](https://lore.kernel.org/patchwork/cover/397316) | NA | v4 ☐ | [PatchWork RFC v4,0/6](https://lore.kernel.org/patchwork/cover/397316) |
-| 2014/03/20 | Johannes Weiner <hannes@cmpxchg.org> | [mm: page_alloc: spill to remote nodes before waking kswapd](https://lore.kernel.org/patchwork/patch/450947) | 在 NUMA 系统上, 节点可能会过早的开始回收页面, 甚至交换匿名页, 而即使远程节点上仍然有空闲页时.<br>这是 81c0a2bb515f ("mm: page_alloc: fair zone allocator policy") 和 fff4068cba48 ("mm: page_alloc: revert NUMA aspect of fair allocation policy") 合入后导致的.<br>在进行这些更改之前, 分配器将首先尝试所有允许的分区, 包括远程节点上的分区, 然后再唤醒任何 kswapds.<br>但是现在, 分配器快速路径同时作为公平通道, 它只能考虑本地节点, 以防止仅基于耗尽公平批次的远程溢出. 远程节点只在缓慢路径中考虑, 且在 kswapds 被唤醒之后.<br>是如果远程节点仍然有空闲内存, 其实不应该唤醒 kswapd 来重新平衡本地节点, 否则它可能会过早地 swap.<br>通过在 zonelist 上再添加一个不公平的传递来修复此问题, 该传递允许在本地公平传递失败后, 在进入慢路径并唤醒 KSWAPD 之前考虑远程节点. | v1 ☑ 3.15-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/450947), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3a025760fc158b3726eac89ee95d7f29599e9dfa) |
+| 2014/03/20 | Johannes Weiner <hannes@cmpxchg.org> | [mm: page_alloc: spill to remote nodes before waking kswapd](https://lore.kernel.org/patchwork/patch/450947) | 这个补丁引入了 ALLOC_FAIR.<br>在 NUMA 系统上, 节点可能会过早的开始回收页面, 甚至交换匿名页, 而即使远程节点上仍然有空闲页时.<br>这是 81c0a2bb515f ("mm: page_alloc: fair zone allocator policy") 和 fff4068cba48 ("mm: page_alloc: revert NUMA aspect of fair allocation policy") 合入后导致的.<br>在进行这些更改之前, 分配器将首先尝试所有允许的分区, 包括远程节点上的分区, 然后再唤醒任何 kswapds.<br>但是现在, 分配器快速路径同时作为公平通道, 它只能考虑本地节点, 以防止仅基于耗尽公平批次的远程溢出. 远程节点只在缓慢路径中考虑, 且在 kswapds 被唤醒之后.<br>是如果远程节点仍然有空闲内存, 其实不应该唤醒 kswapd 来重新平衡本地节点, 否则它可能会过早地 swap.<br>通过在 zonelist 上再添加一个不公平的传递来修复此问题, 该传递允许在本地公平传递失败后, 在进入慢路径并唤醒 KSWAPD 之前考虑远程节点. | v1 ☑ 3.15-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/450947), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3a025760fc158b3726eac89ee95d7f29599e9dfa) |
 | 2014/07/09 | Mel Gorman <mgorman@suse.de> | [mm: page_alloc: Reduce cost of the fair zone allocation policy](https://lore.kernel.org/patchwork/patch/481298) | [Reduce sequential read overhead](https://lore.kernel.org/patchwork/cover/481299) 系列中的一个补丁. fair zone allocation policy 按单个区域大小的比例分配页面, 以确保页面老化公平. 在回收页之前, 分配页的区域不应影响页在内存中的时间. 启用区域回收模式后, 尝试停留在快速路径中的本地区域. 如果失败, 将进入慢路径, 该路径将从本地区域开始执行另一次传递, 但最终返回到不参与此区域列表的公平循环的远程区域. | v1 ☑ 3.17-rc1 | [PatchWork 6/6](https://lore.kernel.org/patchwork/cover/481298) |
 | 2016/04/15 | Mel Gorman <mgorman@techsingularity.net> | [mm, page_alloc: Reduce cost of fair zone allocation policy retry](https://lore.kernel.org/patchwork/patch/668985) | [Optimise page alloc/free fast paths v3](https://lore.kernel.org/patchwork/cover/668967) 系列中的一个补丁. 降低了 fair zone 分配器的开销. | v3 ☑ 4.7-rc1 | [PatchWork v6 00/28](https://lore.kernel.org/patchwork/cover/668967) |
 | 2016/07/08 | Mel Gorman <mgorman@techsingularity.net> | [mm, page_alloc: remove fair zone allocation policy](https://lore.kernel.org/patchwork/patch/696437/) | [Move LRU page reclaim from zones to nodes v9](https://lore.kernel.org/patchwork/cover/696437)系列中的一个补丁. 公平区域分配策略在区域之间交叉分配请求, 以避免年龄倒置问题, 即回收新页面来平衡区域. LRU 回收现在是基于节点的, 所以这应该不再是一个问题, 公平区域分配策略本身开销也不小, 因此这个补丁移除了它. | v9 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork v21](https://lore.kernel.org/patchwork/cover/696437), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e6cbd7f2efb433d717af72aa8510a9db6f7a7e05) |
@@ -494,7 +500,17 @@ Date:   Wed Sep 11 14:20:35 2013 -0700
 
     mm/page_allo.c: restructure free-page stealing code and fix a bug
 
-### 2.1.7 优化
+
+### 2.1.7 页面清 0 优化
+-------
+
+将页面内容归零通常发生在分配页面时, 这是一个耗时的操作, 它会使 pin 和 mlock 操作非常慢, 特别是对于大量内存.
+
+| 2020/04/12 | Liang Li <liliang.opensource@gmail.com> | [mm: Add PG_zero support](https://lore.kernel.org/patchwork/cover/1222960) | 这个补丁引入了一个新特性, 可以在页面分配之前将页面清空, 它可以帮助加快页面分配.<br>想法很简单，在系统不忙时将空闲页面清 0, 并用 PG_ZERO 标记页面, 分配页面时, 如果页面需要用零填充, 则检查 struct page 中的标志,  如果标记为 PG_ZERO, 则可以跳过清 0 的操作, 从而节省 CPU 时间并加快页面分配.<br>本系列基于 Alexander Duyck 推出的"免费页面报告"功能. | RFC ☐ | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20200412090728.GA19572@open-light-1.localdomain) |
+| 2020/12/21 | Liang Li <liliang.opensource@gmail.com> | [speed up page allocation for `__GFP_ZERO`](https://patchwork.kernel.org/project/linux-mm/cover/20201221162519.GA22504@open-light-1.localdomain) | mm: Add PG_zero support](https://lore.kernel.org/patchwork/cover/1222960) 系列的再版和延续. | RFC v2 ☐ | [PatchWork RFC,v2,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20201221162519.GA22504@open-light-1.localdomain) |
+
+
+### 2.1.8 优化
 -------
 
 
@@ -503,8 +519,7 @@ Date:   Wed Sep 11 14:20:35 2013 -0700
 | 2016/04/15 | Mel Gorman <mgorman@techsingularity.net> | [Optimise page alloc/free fast paths v3](https://lore.kernel.org/patchwork/cover/668967) | 优化 page 申请和释放的快速路径. 优化后<br>1. 在 free 路径中, 调试检查和页面区域/页面块仍然查找占主导地位, 目前仍没有明显的解决方案. 在 alloc 路径中, 主要的耗时操作是处理 zonelist、新页面准备和 fair zone 分配以及无数的统计更新. | v3 ☑ 4.7-rc1 | [PatchWork v6 00/28](https://lore.kernel.org/patchwork/cover/668967) |
 
 
-
-### 2.1.7 重构
+### 2.1.9 重构
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -2820,6 +2835,12 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2006/01/10 | Christoph Lameter <clameter@sgi.com> | [Direct Migration V9: Overview](https://lore.kernel.org/patchwork/cover/49754) | NA | v9 ☑ 2.6.16-rc2 | [PatchWork v9,0/5](https://lore.kernel.org/patchwork/cover/49754) |
 | 2021/08/05 | Christoph Lameter <clameter@sgi.com> | [Some cleanup for page migration](https://lore.kernel.org/patchwork/cover/1472581) | NA | v1 ☐ | [PatchWork 0/5](https://lore.kernel.org/patchwork/cover/49754) |
 
+## 14.9 [Free Page Reporting](https://www.kernel.org/doc/html/latest/vm/free_page_reporting.html)
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/02/11 | Alexander Duyck <alexander.h.duyck@linux.intel.com> | [mm / virtio: Provide support for free page reporting](https://patchwork.kernel.org/project/linux-mm/cover/20200211224416.29318.44077.stgit@localhost.localdomain) | 本系列提供了一种异步方法, 用于向虚拟机监控程序报告空闲的 guest 页面, 以便主机上的其他进程和/或 guest 可以删除和重用与这些页面关联的内存.<br>使用此功能, 可以避免对磁盘进行不必要的I/O, 并在主机内存过度使用的情况下大大提高性能.<br>启用时, 将每2秒扫描一次可用内存, 同时释放足够高阶的页面. | v17 ☑ 5.7-rc1 | [PatchWork [v17,0/9](https://lore.kernel.org/patchwork/cover/49754) |
 
 
 ---
