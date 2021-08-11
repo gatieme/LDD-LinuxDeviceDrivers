@@ -1434,24 +1434,12 @@ Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 p
 
 如上图, T0时刻表示一个page cache第一次访问, 这时会调用 add_to_page_cache_lru() 函数来分配一个 shadow 用来存储 zone->inactive_age 值, 每当有页面被 promote 到活跃链表时, zone->inactive_age 值会加 1, 每当有页面被踢出不活跃链表时, zone->inactive_age 也会加 1. T1时刻表示该页被踢出LRU链表并从LRU链表中回收释放, 这时把当前T1时刻的zone->inactive_age的值编码存放到shadow中. T2时刻是该页第二次读, 这时要计算 Refault Distance, Refault Distance = T2 - T1, 如果Refault Distance <= NR_active, 说明该page cache极有可能在下一次读时已经被踢出LRU链表, 因此要人为地actived该页面并且加入活跃链表中.
 
-
-1. 在 struct zone 数据结构中新增一个 [inactive_age](https://elixir.bootlin.com/linux/v3.15/source/include/linux/mmzone.h#L399) 原子变量成员, 用于记录(v3.15 只涉及文件缓存)不活跃链表中的 eviction 操作和 activation 操作的计数.
-
-2.  page cache 第一次加入不活跃链表的 LRU 时, 在处理 radix tree 时会[分配一个 slot 来存放 inactive_age](https://elixir.bootlin.com/linux/v3.15/source/mm/filemap.c#L626), 这里使用 shadow 指向 slot. 因此第一次加入时 shadow 值为空, 还没有 Refault Distance, 因此[加入不活跃 LRU 链表](https://elixir.bootlin.com/linux/v3.15/source/mm/filemap.c#L640).
-
-3.  当在文件缓存不活跃链表(LRU_INACTIVE_FILE)里的页面被再一次读取时, 会被激活到活跃 LRU 链表, 这时候会通过 mark_page_accessed(page) -=> workingset_activation(page) 更新(增加) zone->inactive_age 的计数.
-
-4.  在不活跃链表末尾的页面会被踢出LRU链表并被释放, 页面高度缓存通过 [`__remove_mapping`](https://elixir.bootlin.com/linux/v3.15/source/mm/vmscan.c#L526) 来释放.  在被踢出LRU链表时, 通过 [workingset_eviction](https://elixir.bootlin.com/linux/v3.15/source/mm/workingset.c#L213) 把当前的 zone->inactive_age 计数保存到该页对应的 radix_tree 的 shadow 中.
-
-5.  当 page cache 第二次读取时, 在 [add_to_page_cache_lru()](https://elixir.bootlin.com/linux/v3.15/source/mm/filemap.c#L636) 中, 首先会通过 [workingset_refault()](https://elixir.bootlin.com/linux/v3.15/source/mm/workingset.c#L231) -=> [unpack_shadow](https://elixir.bootlin.com/linux/v3.15/source/mm/workingset.c#L164) 计算 Refault Distance, 并且判断是否需要把 page cache 加入到活跃链表中, 以避免下一次读之前被踢出 LRU 链表. 如果发现需要将页面激活, 则调用 [workingset_activation()](https://elixir.bootlin.com/linux/v3.15/source/mm/filemap.c#L638). 其中 unpack_shadow() 函数只把该页面之前存放的 shadow 值重新解码, 得出了图中 T1 时刻的 inactive_age 值, 然后把当前的 inactive_age 减去 T1, 得到 Refault Distance.
-
-
-
-| 操作 | 流程 | Page Cache | 匿名页 |
-|:---:|:----:|:----------:|:-----:|
-| workingset_eviction() | 在不活跃链表末尾的页面会被踢出LRU链表并被释放, 在被踢出LRU链表时, 通过 [workingset_eviction()](https://elixir.bootlin.com/linux/v3.15/source/mm/workingset.c#L213) 把当前的 zone->inactive_age 计数保存到该页对应的 radix_tree 的 shadow 中. | 页面高度缓存通过 [`__remove_mapping`](https://elixir.bootlin.com/linux/v3.15/source/mm/vmscan.c#L526) 来释放. | NA |
-| workingset_activation() |  | 1. 当在文件缓存不活跃链表(LRU_INACTIVE_FILE)里的页面被再一次读取时, 会被激活到活跃 LRU 链表, 这时候会通过 mark_page_accessed(page) -=> workingset_activation(page) 更新(增加) zone->inactive_age 的计数.<br>2. 当 page cache 第二次读取时, 在 [add_to_page_cache_lru()](https://elixir.bootlin.com/linux/v3.15/source/mm/filemap.c#L636) 中, 首先会通过 [workingset_refault()](https://elixir.bootlin.com/linux/v3.15/source/mm/workingset.c#L231) -=> [unpack_shadow](https://elixir.bootlin.com/linux/v3.15/source/mm/workingset.c#L164) 计算 Refault Distance, 并且判断是否需要把 page cache 加入到活跃链表中, 以避免下一次读之前被踢出 LRU 链表. 如果发现需要将页面激活, 则调用 [workingset_activation()](https://elixir.bootlin.com/linux/v3.15/source/mm/filemap.c#L638). 其中 unpack_shadow() 函数只把该页面之前存放的 shadow 值重新解码, 得出了图中 T1 时刻的 inactive_age 值, 然后把当前的 inactive_age 减去 T1, 得到 Refault Distance.  | NA |
-|
+| 操作 | 流程 | Page Cache(v3.15 支持) | 匿名页(v5.9 支持) |
+|:---:|:----:|:---------------------:|:----------------:|
+| zone->inactive_age | 1. 在 struct zone 数据结构中新增一个 [inactive_age](https://elixir.bootlin.com/linux/v3.15/source/include/linux/mmzone.h#L399) 原子变量成员, 用于记录(v3.15 只涉及文件缓存)不活跃链表中的 eviction 操作和 activation 操作的计数.<br>*-*-*-*-*-*-*-*<br>2.  page cache 第一次加入不活跃链表的 LRU 时, 在处理 radix tree 时会[分配一个 slot 来存放 inactive_age](https://elixir.bootlin.com/linux/v3.15/source/mm/filemap.c#L626), 这里使用 shadow 指向 slot. 因此第一次加入时 shadow 值为空, 还没有 Refault Distance, 因此[加入不活跃 LRU 链表](https://elixir.bootlin.com/linux/v3.15/source/mm/filemap.c#L640). | NA | NA |
+| workingset_eviction() | 在不活跃链表末尾的页面会被踢出LRU链表并被释放, 在被踢出LRU链表时, 通过 [workingset_eviction()](https://elixir.bootlin.com/linux/v3.15/source/mm/workingset.c#L213) 把当前的 zone->inactive_age 计数保存到该页对应的 radix_tree 的 shadow 中. | 高速缓存页面 [`__remove_mapping`, v3.15](https://elixir.bootlin.com/linux/v3.15/source/mm/vmscan.c#L526) 流程中释放页面时调用. | [`__remove_mapping`, v5.9](https://elixir.bootlin.com/linux/v5.9/source/mm/vmscan.c#L901) 流程中对于 PageSwapCache(page) 释放时调用 |
+| workingset_activation() | 当前 zone 中 INACTIVE LRU 中的页面在被激活到 ACTIVE LRU 时调用, 会调用 workingset_activation() 更新(增加) zone->inactive_age 的计数 | 1. 当在文件缓存不活跃链表(LRU_INACTIVE_FILE)里的页面被再一次读取时, 会被激活到活跃 LRU 链表, 这时候会通过 mark_page_accessed(page) -=> workingset_activation(page) 更新(增加) zone->inactive_age 的计数.<br>*-*-*-*-*-*-*-*<br>2. 当 page cache 第二次读取时, 在 [add_to_page_cache_lru()](https://elixir.bootlin.com/linux/v3.15/source/mm/filemap.c#L636) 中, 首先会通过 [workingset_refault()](https://elixir.bootlin.com/linux/v3.15/source/mm/workingset.c#L231) -=> [unpack_shadow](https://elixir.bootlin.com/linux/v3.15/source/mm/workingset.c#L164) 计算 Refault Distance, 并且判断是否需要把 page cache 加入到活跃链表中, 以避免下一次读之前被踢出 LRU 链表. 如果发现需要将页面激活, 则调用 [workingset_activation()](https://elixir.bootlin.com/linux/v3.15/source/mm/filemap.c#L638). 其中 unpack_shadow() 函数只把该页面之前存放的 shadow 值重新解码, 得出了图中 T1 时刻的 inactive_age 值, 然后把当前的 inactive_age 减去 T1, 得到 Refault Distance.  | 同高速缓存页面 1, mark_page_accessed(page) 激活页面时调用. |
+| workingset_refault() | 计算页面的 Refault Distance, 并判断是否需要把页面加入到活跃 LRU 链表中. | add_to_page_cache_lru() 中激活高速缓存页面的时候, 通过 workingset_refault() 计算 Refault Distance. | 1. 匿名页面缺页处理时, 如果页面 pte 不为 0, 表示此时 pte 的内容所对应的页面在 swap 空间中, 缺页异常时会通过 do_swap_page() 来分配页面. 在 do_swap_page() 中 get_shadow_from_swap_cache() 获取到页面后, 通过 [workingset_refault()](https://elixir.bootlin.com/linux/v5.9/source/mm/memory.c#L3298) 判断页面是否需要加到活跃 LRU.<br>*-*-*-*-*-*-*-*<br>2.  `__read_swap_cache_async()` 预读 SWAP 页面的时候时, 同样需要通过 [workingset_refault()](https://elixir.bootlin.com/linux/v5.9/source/mm/swap_state.c#L503) 判定要将页面加入到哪个 LRU 链表中去. |
 
 
 
