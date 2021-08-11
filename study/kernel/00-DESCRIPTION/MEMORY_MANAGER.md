@@ -1345,6 +1345,13 @@ LRU 链表被分为 inactive 和 active 链表:
 ### 4.2.7.1 inactive_is_low
 -------
 
+
+如果进一步思考, 这个问题跟工作集大小相关. 所谓工作集, 就是维持系统所有活动的所需内存页面的最小量. 如果工作集小于等于 inactive 链表长度, 即访问距离, 则是安全的; 如果工作集大于 inactive 链表长度, 即访问距离, 则不可避免有些页要被踢出去.
+
+当前内核采取的平衡策略相对简单: 仅仅控制 active list 的长度不要超过 inactive list 的长度一定比例, 参见 [inactive_list_is_low, v3.14, mm/vmscan.c, line 1799](https://elixir.bootlin.com/linux/v3.14/source/mm/vmscan.c#L1799), 具体的比例[与 inactive_ratio 有关](https://elixir.bootlin.com/linux/v3.14/source/mm/page_alloc.c#L5697). 其中对于文件页更是直接[要求 active list 的长度不要超过 inactive list](https://elixir.bootlin.com/linux/v3.14/source/mm/vmscan.c#L1788).
+
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2008/06/11 | Rik van Riel <riel@redhat.com> | [vmscan: second chance replacement for anonymous pages](https://lore.kernel.org/patchwork/cover/118976) | [VM pageout scalability improvements (V12)](https://lore.kernel.org/patchwork/cover/118967) 系列中的一个补丁.<br>在大多数情况下, 我们避免了驱逐和扫描匿名页面, 但在某些工作负载下, 我们可能最终会让大部分内存充满匿名页面. 这时, 我们突然需要清除所有内存上的引用位, 这可能会耗时很长. 当取消激活匿名页面时, 我们可以通过不考虑引用状态来减少需要扫描的页面的最大数量. 毕竟, 每个匿名页面一开始都是被引用的.如果匿名页面在到达非活动列表的末尾之前再次被引用, 我们将其移回活动列表.<br>为了使所需的最大工作量保持合理, 这个补丁引入了 inactive_ratio 根据内存大小伸缩活动与非活动的比率, 使用公式 inactive_ratio = active/inactive = sqrt(memory in GB * 10).<br> 注意当前只支持匿名页面的转换比率. 该补丁引入了 inactive_anon_is_low(). | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118976), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=556adecba110bf5f1db6c6b56416cfab5bcab698) |
@@ -1364,10 +1371,6 @@ LRU 链表被分为 inactive 和 active 链表:
 
 
 [14.7 跟踪LRU活动情况和 Refault Distance算法](https://blog.csdn.net/dai_xiangjun/article/details/118945704)
-
-如果进一步思考, 这个问题跟工作集大小相关. 所谓工作集, 就是维持系统所有活动的所需内存页面的最小量. 如果工作集小于等于 inactive 链表长度, 即访问距离, 则是安全的; 如果工作集大于 inactive 链表长度, 即访问距离, 则不可避免有些页要被踢出去.
-
-当前内核采取的平衡策略相对简单: 仅仅控制 active list 的长度不要超过 inactive list 的长度一定比例, 参见 [inactive_list_is_low, v3.14, mm/vmscan.c, line 1799](https://elixir.bootlin.com/linux/v3.14/source/mm/vmscan.c#L1799), 具体的比例[与 inactive_ratio 有关](https://elixir.bootlin.com/linux/v3.14/source/mm/page_alloc.c#L5697). 其中对于文件页更是直接[要求 active list 的长度不要超过 inactive list](https://elixir.bootlin.com/linux/v3.14/source/mm/vmscan.c#L1788).
 
 Johannes Weiner 认为这种经验公式过于简单且不够灵活, 为此他提出了一个替代方案 [Refault Distance 算法](https://lwn.net/Articles/495543). 该算法希望通过跟踪一个页框从被回收开始到(因为访问缺页)被再次载入所经历的时间长度来采取更灵活的平衡策略. 它通过估算访问距离, 来测定工作集的大小, 从而维持 inactive 链表在一个合适长度. 最早 v3.15 合入时, 只针对页面高速缓存类型的页面生效, [mm: thrash detection-based file cache sizing v9](https://lwn.net/Articles/495543). 随后被不断优化. 参见 [Better active/inactive list balancing](https://lwn.net/Articles/495543).
 
@@ -1423,12 +1426,19 @@ Johannes Weiner 认为这种经验公式过于简单且不够灵活, 为此他�
 Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 page cache 添加到活跃链表从而防止该 page cache 被踢出 LRU 链表而带来的内存颠簸.
 
 
+### 4.2.7.3 Refault Distance 基本实现
+-------
+
 [refault_distance 实现思路](./images/0002-3-refault_distance.png)
 
 
 如上图, T0时刻表示一个page cache第一次访问, 这时会调用 add_to_page_cache_lru() 函数来分配一个 shadow 用来存储 zone->inactive_age 值, 每当有页面被 promote 到活跃链表时, zone->inactive_age 值会加 1, 每当有页面被踢出不活跃链表时, zone->inactive_age 也会加 1. T1时刻表示该页被踢出LRU链表并从LRU链表中回收释放, 这时把当前T1时刻的zone->inactive_age的值编码存放到shadow中. T2时刻是该页第二次读, 这时要计算 Refault Distance, Refault Distance = T2 - T1, 如果Refault Distance <= NR_active, 说明该page cache极有可能在下一次读时已经被踢出LRU链表, 因此要人为地actived该页面并且加入活跃链表中.
 
 
+
+
+### 4.2.7.4 Refault Distance 的演进与发展
+-------
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
