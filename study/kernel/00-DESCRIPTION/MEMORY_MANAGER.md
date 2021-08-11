@@ -235,6 +235,18 @@ https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13419&state=*&arc
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/12/30 | Alexander Duyck <alexander.h.duyck@linux.intel.com> | [Deferred page init improvements](https://lore.kernel.org/patchwork/cover/1019963/) | 该补丁集本质上是页面初始化逻辑的重构, 旨在提供更好的代码重用, 同时显著提高延迟页面初始化性能.<br>在我对 x86_64 系统的测试中, 每个节点有 384GB 的 RAM 和 3TB 的持久内存<br>1. 在常规内存初始化的情况下, 初始化时间平均从 3.75s 减少到 1.06s. 对于持久内存, 初始化时间平均从 24.17s 下降到 19.12s.<br>2. 这相当于内存初始化性能提高了 253%, 持久内存初始化性能提高了 26%. | v6 ☑ 5.2-rc1 | [PatchWork mm,v6,0/7](https://patchwork.kernel.org/project/linux-mm/cover/154361452447.7497.1348692079883153517.stgit@ahduyck-desk1.amr.corp.intel.com) |
 
+
+
+## 1.6 madvise
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/07/18 | Qi Zheng <zhengqi.arch@bytedance.com> | [Free user PTE page table pages](https://lore.kernel.org/patchwork/cover/1461972) | 这个补丁系列的目的是在所有 PTE 条目都为空时释放用户 PTE 页表页面.<br>一些malloc库(例如 jemalloc 或 tcmalloc) 通常通过 mmap() 分配 VAs 的数量, 而不取消这些 VAs 的映射. 如果需要, 他们将使用 madvise(MADV_DONTNEED) 来释放物理内存. 但是 madvise() 不会释放页表, 因此当进程接触到巨大的虚拟地址空间时, 它会生成许多页表.<br>PTE 页表占用大量内存的原因是 madvise(MADV_DONTNEED) 只清空 PTE 并释放物理内存, 但不释放 PTE 页表页. 这组补丁通过释放那些空的 PTE 页表来节省内存. | v1 ☐ | [PatchWork 0/7](https://patchwork.kernel.org/project/linux-mm/cover/20210712190204.80979-1-willy@infradead.org) |
+
+
+
+
 # 2 内存分配
 -------
 
@@ -1351,6 +1363,8 @@ LRU 链表被分为 inactive 和 active 链表:
 -------
 
 
+[14.7 跟踪LRU活动情况和 Refault Distance算法](https://blog.csdn.net/dai_xiangjun/article/details/118945704)
+
 如果进一步思考, 这个问题跟工作集大小相关. 所谓工作集, 就是维持系统所有活动的所需内存页面的最小量. 如果工作集小于等于 inactive 链表长度, 即访问距离, 则是安全的; 如果工作集大于 inactive 链表长度, 即访问距离, 则不可避免有些页要被踢出去.
 
 当前内核采取的平衡策略相对简单: 仅仅控制 active list 的长度不要超过 inactive list 的长度一定比例, 参见 [inactive_list_is_low, v3.14, mm/vmscan.c, line 1799](https://elixir.bootlin.com/linux/v3.14/source/mm/vmscan.c#L1799), 具体的比例[与 inactive_ratio 有关](https://elixir.bootlin.com/linux/v3.14/source/mm/page_alloc.c#L5697). 其中对于文件页更是直接[要求 active list 的长度不要超过 inactive list](https://elixir.bootlin.com/linux/v3.14/source/mm/vmscan.c#L1788).
@@ -1360,6 +1374,61 @@ Johannes Weiner 认为这种经验公式过于简单且不够灵活, 为此他�
 最开始, Refault Distance 算法只支持对文件高速缓存进行评估. [mm: thrash detection-based file cache sizing v9](https://lwn.net/Articles/495543).
 
 后来 linux 5.9 引入了对匿名页的支持. [workingset protection/detection on the anonymous LRU list](https://lwn.net/Articles/815342).
+
+下面简单了解下 Refault Distance 算法的基本思想:
+
+
+对于 LRU 链表来说, 有两个链表值得关注, 分别是活跃链表和不活跃链表.
+
+1.  页面回收也总是从不活跃链表的尾部开始回收. 不活跃链表的页面第二次访问时会升级(promote)到活跃链表, 防止被回收;
+
+2.  另一方面如果活跃链表增长太快, 那么活跃的页面会被降级(demote)到不活跃链表中.
+
+
+
+实际上有一些场景, 某些页面经常被访问, 但是它们在下一次被访问之前就在不活跃链表中被回收并释放了, 那么又必须从存储系统中读取这些page cache页面, 这些场景下产生颠簸现象(thrashing).
+
+1.  有一个 page cache 页面第一次访问时, 它加入到不活跃链表头, 然后慢慢从链表头向链表尾移动, 链表尾的 page cache 会被踢出 LRU 链表并且释放页面, 这个过程叫做 eviction(驱逐/移出).
+
+2.  当第二次访问时, page cache 被升级到活跃 LRU 链表, 这样不活跃链表也空出一个位置, 这个过程叫作 activation(激活).
+
+
+当我们观察文件缓存不活跃链表的行为特征时, 会发现如下有趣特征:
+
+1. 任意两个时间点之间的驱逐和激活的总和表示在这两个时间点之间访问的不活跃页面的最小数量.
+
+2. 将一个非活跃列表中槽位为 N 位置的页面(移向列表尾部并)释放需要至少N个非活动页面访问.
+
+结合这些：
+
+从宏观时间轴来看, eviction 过程处理的页面数量与 activation 过程处理的页数量的和等于不活跃链表的长度 NR_INACTIVE. 即要将新加入不活跃链表的页面释放, 需要移动 NR_INACTIVE 个页面.
+
+记 page cache 页面第一次被踢出 LRU 链表并回收时 eviction(驱逐)和 activation(激活) 的页面总数为(E), 记第二次再访问该页时 eviction(驱逐)和 activation(激活) 的页面总数为(R), 通过这两个计数可得出页面未缓存时的最小访问次数. 将这两个时刻内里需要移动的页面个数称为 refault_distance, 则 refault_distance = (R - E).
+
+综合上面的一些行为特征, 定义了 Refault Distance 的概念. 第一次访问 page cache 称为 fault, 第二次访问该页面称为 refault. 第一次和第二次读之间需要移动的页面个数称为 read_distance,
+
+    read_distance =  页面从加入 LRU 到释放所需要移动的页面数量 + 页面从释放到第二次访问所需要移动的页面数量 = NR_INACTIVE + refault_distance = NR_INACTIVE + (R - E)
+
+如果 page 想一直保持在 LRU 链表中, 那么 read_distance 不应该比内存的大小还长, 否则该 page 永远都会被踢出 LR U链表, 因此公式可以推导为:
+
+    NR_INACTIVE + (R-E) <= NR_INACTIVE + NR_active
+    (R-E) <= NR_active
+
+换句话说, Refault Distance 可以理解为不活跃链表的"财政赤字", 如果不活跃链表长度至少再延长 Refault Distance, 那么就可以保证该 page cache 在第二次读之前不会被踢出 LRU 链表并释放内存, 否则就要把该 page cache 重新加入活跃链表加以保护, 以防内存颠簸. 在理想情况下, page cache 的平均访问距离要大于不活跃链表, 小于总的内存大小.
+
+上述内容讨论了两次读的距离小于等于内存大小的情况, 即 NR_INACTIVE+(R-E) <= NR_INACTIVE+NR_active, 如果两次读的距离大于内存大小呢?
+
+这种特殊情况不是 Refault Distance 算法能解决的问题, 因为它在第二次读时永远已经被踢出 LRU 链表, 因为可以假设第二次读发生在遥远的未来, 但谁都无法保证它在 LRU 链表中.
+
+Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 page cache 添加到活跃链表从而防止该 page cache 被踢出 LRU 链表而带来的内存颠簸.
+
+
+[refault_distance 实现思路](./images/0002-3-refault_distance.png)
+
+
+如上图, T0时刻表示一个page cache第一次访问, 这时会调用 add_to_page_cache_lru() 函数来分配一个 shadow 用来存储 zone->inactive_age 值, 每当有页面被 promote 到活跃链表时, zone->inactive_age 值会加 1, 每当有页面被踢出不活跃链表时, zone->inactive_age 也会加 1. T1时刻表示该页被踢出LRU链表并从LRU链表中回收释放, 这时把当前T1时刻的zone->inactive_age的值编码存放到shadow中. T2时刻是该页第二次读, 这时要计算 Refault Distance, Refault Distance = T2 - T1, 如果Refault Distance <= NR_active, 说明该page cache极有可能在下一次读时已经被踢出LRU链表, 因此要人为地actived该页面并且加入活跃链表中.
+
+
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1371,9 +1440,10 @@ Johannes Weiner 认为这种经验公式过于简单且不够灵活, 为此他�
 | 2018/08/28 | Johannes Weiner <hannes@cmpxchg.org> | [psi: pressure stall information for CPU, memory, and IO v4](https://lore.kernel.org/patchwork/cover/978495) | Refaults 发生在工作集转换和就地抖动期间. 在工作集转换期间, 非活动缓存发生 Refaults 并推出已建立的活动缓存. 但是, 如果活动缓存没有过期, 并且最终会出现 Refaults, 就会造成抖动. 引入一个新的页标志 WORKINGSET_RESTORE, 它在退出时告诉页面在其生命周期内是否处于活动状态. 然后将此位存储在影子条目中, 将故障分类为转换或抖动. | v1 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/978495), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1899ad18c6072d689896badafb81267b0a1092a4) |
 | 2018/10/09 | Johannes Weiner <hannes@cmpxchg.org> | [mm: workingset & shrinker fixes](https://lore.kernel.org/patchwork/cover/997829) | 通过为循环中的影子节点添加一个计数器, 可以更容易地捕获影子节点收缩器中的 bug. | v1 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/997829), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=68d48e6a2df575b935edd420396c3cb8b6aa6ad3) |
 | 2019/10/22 | Johannes Weiner <hannes@cmpxchg.org> | [mm/vmscan: cgroup-related cleanups](https://lore.kernel.org/patchwork/cover/1142997) | 这里的 8 个补丁, 清理回收代码与cgroups的交互. 它们不应该改变任何行为, 只是让实现更容易理解和使用. | v1 ☑ 5.5-rc1 | [PatchWork 0/8](https://lore.kernel.org/patchwork/cover/1142997) |
-| 2019/11/07 | Johannes Weiner <hannes@cmpxchg.org> | [1150211](https://lore.kernel.org/patchwork/cover/1150211) | 我们希望VM回收系统中最冷的页面. 但是现在VM可以在一个cgroup中回收热页, 而在其他cgroup中明明有更适合回收的冷缓存. 这是因为回收算法的一部分(非活动/活动列表的平衡, 这是用来保护热缓存数据不受一次性流IO影响的部分.)并不是真正意识到 cgroup 层次结构的.<br>递归 cgroup 回收方案将以相同的速率以循环方式扫描和旋转每个符合条件的 cgroup 的物理 LRU 列表, 从而在所有这些cgroup的页面之间建立一个相对顺序. 然而, 非活动/活动的平衡决策是在每个cgroup内部本地做出的, 所以当一个cgroup冷页面运行不足时, 它的热页面将被回收——即使在相同的回收运行中, 但是同级的 cgroup 中却可能有足够的冷缓存.<br>这组补丁通过将非活动/活动平衡决策提升到回收运行的顶层来修复这个问题. 这要么是一个cgroup达到了它的极限, 要么是直接的全局回收, 如果有物理内存压力. 从那里, 它采用了一个cgroup子树的递归视图来决定是否有必要取消页面. | v1 ☑ [5.5-rc1](https://kernelnewbies.org/Linux_5.5#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/1150211) |
+| 2019/11/07 | Johannes Weiner <hannes@cmpxchg.org> | [mm: fix page aging across multiple cgroups](https://lore.kernel.org/patchwork/cover/1150211) | 我们希望VM回收系统中最冷的页面. 但是现在VM可以在一个cgroup中回收热页, 而在其他cgroup中明明有更适合回收的冷缓存. 这是因为回收算法的一部分(非活动/活动列表的平衡, 这是用来保护热缓存数据不受一次性流IO影响的部分.)并不是真正意识到 cgroup 层次结构的.<br>递归 cgroup 回收方案将以相同的速率以循环方式扫描和旋转每个符合条件的 cgroup 的物理 LRU 列表, 从而在所有这些cgroup的页面之间建立一个相对顺序. 然而, 非活动/活动的平衡决策是在每个cgroup内部本地做出的, 所以当一个cgroup冷页面运行不足时, 它的热页面将被回收——即使在相同的回收运行中, 但是同级的 cgroup 中却可能有足够的冷缓存.<br>这组补丁通过将非活动/活动平衡决策提升到回收运行的顶层来修复这个问题. 这要么是一个cgroup达到了它的极限, 要么是直接的全局回收, 如果有物理内存压力. 从那里, 它采用了一个cgroup子树的递归视图来决定是否有必要取消页面. | v1 ☑ [5.5-rc1](https://kernelnewbies.org/Linux_5.5#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/1150211) |
 | 2020/04/03 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [workingset protection/detection on the anonymous LRU list](https://lwn.net/Articles/815342) | 实现对匿名 LRU 页面列表的工作集保护和检测. 在之前的实现中, 新创建的或交换中的匿名页, 都是默认加入到 active LRU list, 然后逐渐降级到 inactive LRU list. 这造成在某种场景下新申请的内存(即使被使用一次cold page)也会把在a ctive list 的 hot page 挤到 inactive list. 为了解决这个的问题, 这组补丁, 将新创建或交换的匿名页面放到 inactive LRU list 中, 只有当它们被足够引用时才会被提升到活动列表. 另外,  因为这些更改可能导致新创建的匿名页面或交换中的匿名页面交换不活动列表中的现有页面, 所以工作集检测被扩展到处理匿名LRU列表. 以做出更优的决策. | v5 ☑ [5.9-rc1](https://kernelnewbies.org/Linux_5.9#Memory_management) | [PatchWork v5](https://lore.kernel.org/patchwork/cover/1219942), [Patchwork v7](https://lore.kernel.org/patchwork/patch/1278082), [ZhiHu](https://zhuanlan.zhihu.com/p/113220105) |
 | 2020/05/20 | Johannes Weiner <hannes@cmpxchg.org> | [mm: balance LRU lists based on relative thrashing v2](https://lore.kernel.org/patchwork/cover/1245255) | 基于相对抖动平衡 LRU 列表(重新实现了页面缓存和匿名页面之间的 LRU 平衡, 以便更好地与快速随机 IO 交换设备一起工作). : 在交换和缓存回收之间平衡的回收代码试图仅基于内存引用模式预测可能的重用. 随着时间的推移, 平衡代码已经被调优到一个点, 即它主要用于页面缓存, 并推迟交换, 直到 VM 处于显著的内存压力之下. 因为 commit a528910e12ec Linux 有精确的故障 IO 跟踪-回收错误页面的最终代价. 这允许我们使用基于 IO 成本的平衡模型, 当缓存发生抖动时, 这种模型更积极地扫描匿名内存, 同时能够避免不必要的交换风暴. | v1 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/685701)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1245255) |
+| 2016/01/29 | Johannes Weiner <hannes@cmpxchg.org> | [mm: workingset: per-cgroup thrash detection](https://lore.kernel.org/patchwork/cover/641469) | 通过为循环中的影子节点添加一个计数器, 可以更容易地捕获影子节点收缩器中的 bug. | v1 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) | [PatchWork v2,0/5](https://lore.kernel.org/patchwork/cover/641469) |
 
 
 ### 4.2.8 LRU 中的内存水线
@@ -1870,7 +1940,8 @@ https://events.static.linuxfound.org/sites/events/files/slides/mm.pdf
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2018/05/17 | Laurent Dufour <ldufour@linux.vnet.ibm.com> | [Speculative page faults](http://lore.kernel.org/patchwork/patch/906210) | SPF | v11 ☐  | [PatchWork](https://lore.kernel.org/patchwork/patch/906210) |
+| 2010/01/04 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [Speculative pagefault -v3](http://lore.kernel.org/patchwork/patch/183997) | SPF | RFC v3 ☐  | [PatchWork](https://lore.kernel.org/patchwork/patch/183997) |
+| 2019/04/16 | Laurent Dufour <ldufour@linux.vnet.ibm.com> | [Speculative page faults](http://lore.kernel.org/patchwork/patch/1062659) | SPF | v11 ☐  | [PatchWork v12,00/31](https://lore.kernel.org/patchwork/patch/1062659) |
 | 2021/04/20 | Michel Lespinasse <michel@lespinasse.org> | [Speculative page faults (anon vmas only)](http://lore.kernel.org/patchwork/patch/1420569) | SPF | v11 ☐  | [PatchWork RFC,00/37](https://lore.kernel.org/patchwork/cover/1408784)<br>*-*-*-*-*-*-*-* <br>[PatchWork v1](https://lore.kernel.org/patchwork/patch/1420569) |
 
 * Fine grained MM locking
