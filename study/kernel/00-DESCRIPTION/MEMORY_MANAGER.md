@@ -506,7 +506,7 @@ Date:   Wed Sep 11 14:20:35 2013 -0700
 
 将页面内容归零通常发生在分配页面时, 这是一个耗时的操作, 它会使 pin 和 mlock 操作非常慢, 特别是对于大量内存.
 
-| 2020/04/12 | Liang Li <liliang.opensource@gmail.com> | [mm: Add PG_zero support](https://lore.kernel.org/patchwork/cover/1222960) | 这个补丁引入了一个新特性, 可以在页面分配之前将页面清空, 它可以帮助加快页面分配.<br>想法很简单，在系统不忙时将空闲页面清 0, 并用 PG_ZERO 标记页面, 分配页面时, 如果页面需要用零填充, 则检查 struct page 中的标志,  如果标记为 PG_ZERO, 则可以跳过清 0 的操作, 从而节省 CPU 时间并加快页面分配.<br>本系列基于 Alexander Duyck 推出的"免费页面报告"功能. | RFC ☐ | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20200412090728.GA19572@open-light-1.localdomain) |
+| 2020/04/12 | Liang Li <liliang.opensource@gmail.com> | [mm: Add PG_zero support](https://lore.kernel.org/patchwork/cover/1222960) | 这个补丁引入了一个新特性, 可以在页面分配之前将页面清空, 它可以帮助加快页面分配.<br>想法很简单, 在系统不忙时将空闲页面清 0, 并用 PG_ZERO 标记页面, 分配页面时, 如果页面需要用零填充, 则检查 struct page 中的标志,  如果标记为 PG_ZERO, 则可以跳过清 0 的操作, 从而节省 CPU 时间并加快页面分配.<br>本系列基于 Alexander Duyck 推出的"免费页面报告"功能. | RFC ☐ | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20200412090728.GA19572@open-light-1.localdomain) |
 | 2020/12/21 | Liang Li <liliang.opensource@gmail.com> | [speed up page allocation for `__GFP_ZERO`](https://patchwork.kernel.org/project/linux-mm/cover/20201221162519.GA22504@open-light-1.localdomain) | mm: Add PG_zero support](https://lore.kernel.org/patchwork/cover/1222960) 系列的再版和延续. | RFC v2 ☐ | [PatchWork RFC,v2,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20201221162519.GA22504@open-light-1.localdomain) |
 
 
@@ -2705,7 +2705,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2021/07/23 | Mel Gorman <mgorman@techsingularity.net> | [mm/vmstat: Protect per cpu variables with preempt disable on RT](https://lore.kernel.org/patchwork/cover/1466447) | NA | v1 ☐ | [PatchWork 0/2](https://patchwork.kernel.org/project/linux-mm/cover/20210723100034.13353-1-mgorman@techsingularity.net) |
 
 
-### 13.4.5   其他
+### 13.4.5 其他
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -2840,7 +2840,8 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/02/11 | Alexander Duyck <alexander.h.duyck@linux.intel.com> | [mm / virtio: Provide support for free page reporting](https://patchwork.kernel.org/project/linux-mm/cover/20200211224416.29318.44077.stgit@localhost.localdomain) | 本系列提供了一种异步方法, 用于向虚拟机监控程序报告空闲的 guest 页面, 以便主机上的其他进程和/或 guest 可以删除和重用与这些页面关联的内存.<br>使用此功能, 可以避免对磁盘进行不必要的I/O, 并在主机内存过度使用的情况下大大提高性能.<br>启用时, 将每2秒扫描一次可用内存, 同时释放足够高阶的页面. | v17 ☑ 5.7-rc1 | [PatchWork [v17,0/9](https://lore.kernel.org/patchwork/cover/49754) |
+| 2020/02/11 | Alexander Duyck <alexander.h.duyck@linux.intel.com> | [mm / virtio: Provide support for free page reporting](https://patchwork.kernel.org/project/linux-mm/cover/20200211224416.29318.44077.stgit@localhost.localdomain) | 本系列提供了一种异步方法, 用于向虚拟机监控程序报告空闲的 guest 页面, 以便主机上的其他进程和/或 guest 可以删除和重用与这些页面关联的内存.<br>使用此功能, 可以避免对磁盘进行不必要的I/O, 并在主机内存过度使用的情况下大大提高性能.<br>启用时, 将每2秒扫描一次可用内存, 同时释放足够高阶的页面. | v17 ☑ 5.7-rc1 | [PatchWork v17,0/9](https://lore.kernel.org/patchwork/cover/49754) |
+| 2021/03/23 | Alexander Duyck <alexander.h.duyck@linux.intel.com> | [x86/Hyper-V: Support for free page reporting](https://lore.kernel.org/patchwork/patch/1401238) | Linux现在支持虚拟化环境的免费页面报告(36e66c554b5c "mm: introduce Reported pages". 在 Hyper-V 上, 当配置了虚拟备份虚拟机时, Hyper-V 将在支持时公布冷内存丢弃功能. 此修补程序添加了对挂接免费页面报告基础结构的支持, 并利用 Hyper-V 冷内存丢弃提示 hypercall 将这些页面报告/释放回主机. | v5 ☑ 5.13-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/1401238) |
 
 
 ---
