@@ -169,6 +169,10 @@ Mainline Merge Window - Merge branch 'akpm' (patches from Andrew)
 # 1 页表管理
 -------
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/04/28 | Matthew Wilcox <willy@infradead.org> | [Record the mm_struct in the page table pages](https://lore.kernel.org/patchwork/cover/1232723) | NA| v1 ☐ | [PatchWork 0/6](https://lore.kernel.org/patchwork/cover/1232723) |
+
 
 ## 1.1 多级页表
 -------
@@ -184,9 +188,17 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 关于四级页表演进的细节, 可看我以前文章: [Linux内核4级页表的演进](https://link.zhihu.com/?target=http%3A//larmbr.com/2014/01/19/the-evolution-of-4-level-page-talbe-in-linux)
 
-https://lwn.net/Articles/717293/
-generic code to 5-level paging
-https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13419&state=*&archive=both&param=6&page=7
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2017/03/13 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [x86: 5-level paging enabling for v4.12, Part 1](https://lore.kernel.org/patchwork/cover/769534) | NA| v1 ☑ 4.12-rc1 | [PatchWork 0/6](https://lore.kernel.org/patchwork/cover/769534) |
+| 2017/03/17 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [x86: 5-level paging enabling for v4.12, Part 2](https://lore.kernel.org/patchwork/cover/771246) | NA | v1 ☑ 4.12-rc1 | [PatchWork 0/6](https://lore.kernel.org/patchwork/cover/771246) |
+| 2017/03/17 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [x86: 5-level paging enabling for v4.12, Part 3](https://lore.kernel.org/patchwork/cover/775152) | NA | v3 ☑ 4.12-rc1 | [PatchWork v3,0/7](https://lore.kernel.org/patchwork/cover/775152) |
+| 2017/06/06 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [x86: 5-level paging enabling for v4.13, Part 4](https://lore.kernel.org/patchwork/cover/796033) | NA | v7 ☑ 4.14-rc1 | [PatchWork v7,00/14](https://lore.kernel.org/patchwork/cover/796033) |
+| 2017/06/16 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [5-level paging enabling for v4.14](https://lore.kernel.org/patchwork/cover/810080) | NA | v7 ☑ 4.14-rc1 | [PatchWork 0/8](https://lore.kernel.org/patchwork/cover/810080) |
+| 2017/06/22 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [Last bits for initial 5-level paging enabling](https://lore.kernel.org/patchwork/cover/802652) | NA | v1 ☑ 4.14-rc1 | [PatchWork 0/5](https://lore.kernel.org/patchwork/cover/802652) |
+| 2017/08/07 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [Boot-time switching between 4- and 5-level paging](https://lore.kernel.org/patchwork/cover/818286) | NA | v3 ☑ 4.17-rc1 | [PatchWork v3,00/13](https://lore.kernel.org/patchwork/cover/818286) |
+
+
 
 ## 1.2 VA_BITS
 -------
@@ -207,7 +219,7 @@ https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13419&state=*&arc
 有个硬件机构叫 TLB, 用来缓存页表查寻结果, 根据程序局部性, 即将访问的数据或代码很可能与刚访问过的在一个页面, 有了 TLB 缓存, 页表查找很多时候就大大加快了. 但是, 内核在切换进程时, 需要切换页表, 同时 TLB 缓存也失效了, 需要冲刷掉. 内核引入的一个优化是, 当切换到内核线程时, 由于内核线程不使用用户态空间, 因此切换用户态的页表是不必要, 自然也不需要冲刷 TLB. 所以引入了 Lazy-TLB 模式, 以提高效率. 关于细节, 可参考[kernel 3.10内核源码分析--TLB相关--TLB概念、flush、TLB lazy模式](https://www.cnblogs.com/sky-heaven/p/5133747.html)
 
 
-## 1.4 Clarifying memory management with page folios
+## 1.4 [Clarifying memory management with page folios](https://lwn.net/Articles/849538)
 -------
 
 
@@ -1452,6 +1464,7 @@ Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 p
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2014/04/03 | Johannes Weiner <hannes@cmpxchg.org> | [mm: thrash detection-based file cache sizing v9](https://lwn.net/Articles/495543) | 实现基于 Refault Distance 算法的文件高速缓存页的工作集探测, 引入 WORKINGSET_REFAULT, WORKINGSET_ACTIVATE, WORKINGSET_NODERECLAIM 三种工作集. | v9 ☑ [3.15](https://kernelnewbies.org/Linux_3.15#head-dbe2430cd9e5ed1d3f2362367758cd490aba4b9d) | [PatchWork v9](https://lore.kernel.org/patchwork/cover/437949) |
 | 2015/08/03 | Johannes Weiner <hannes@cmpxchg.org> | [Make workingset detection logic memcg aware](https://lwn.net/Articles/586023) | 工作集探测感知 memcg. | v9 ☐ | [PatchWork v9](https://lore.kernel.org/patchwork/cover/586023) |
+| 2016/01/29 | Johannes Weiner <hannes@cmpxchg.org> | [mm: workingset: per-cgroup thrash detection](https://lore.kernel.org/patchwork/cover/641469) | NA | v2 ☑ [4.6-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) | [PatchWork v2,0/5](https://lore.kernel.org/patchwork/cover/641469) |
 | 2016/04/04 | Johannes Weiner <hannes@cmpxchg.org> | [mm: support bigger cache workingsets and protect against writes](https://lore.kernel.org/patchwork/cover/664653) | NA | v1 ☑ [4.7-rc1](https://kernelnewbies.org/Linux_4.7#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/664653) |
 | 2016/07/08 | Mel Gorman <mgorman@techsingularity.net> | [Move LRU page reclaim from zones to nodes v9](https://lore.kernel.org/patchwork/cover/696408) | 将 LRU 页面的回收从 ZONE 切换到 NODE. 这里需要将 workingset 从 zone 切换到 node 上. | v9 ☑ [4.8](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork v9](https://lore.kernel.org/patchwork/cover/696408), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1e6b10857f91685c60c341703ece4ae9bb775cf3) |
 | 2018/08/28 | Johannes Weiner <hannes@cmpxchg.org> | [psi: pressure stall information for CPU, memory, and IO v4](https://lore.kernel.org/patchwork/cover/978495) | Refaults 发生在工作集转换和就地抖动期间. 在工作集转换期间, 非活动缓存发生 Refaults 并推出已建立的活动缓存. 但是, 如果活动缓存没有过期, 并且最终会出现 Refaults, 就会造成抖动. 引入一个新的页标志 WORKINGSET_RESTORE, 它在退出时告诉页面在其生命周期内是否处于活动状态. 然后将此位存储在影子条目中, 将故障分类为转换或抖动. | v1 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/978495), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1899ad18c6072d689896badafb81267b0a1092a4) |
@@ -1460,7 +1473,6 @@ Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 p
 | 2019/11/07 | Johannes Weiner <hannes@cmpxchg.org> | [mm: fix page aging across multiple cgroups](https://lore.kernel.org/patchwork/cover/1150211) | 我们希望VM回收系统中最冷的页面. 但是现在VM可以在一个cgroup中回收热页, 而在其他cgroup中明明有更适合回收的冷缓存. 这是因为回收算法的一部分(非活动/活动列表的平衡, 这是用来保护热缓存数据不受一次性流IO影响的部分.)并不是真正意识到 cgroup 层次结构的.<br>递归 cgroup 回收方案将以相同的速率以循环方式扫描和旋转每个符合条件的 cgroup 的物理 LRU 列表, 从而在所有这些cgroup的页面之间建立一个相对顺序. 然而, 非活动/活动的平衡决策是在每个cgroup内部本地做出的, 所以当一个cgroup冷页面运行不足时, 它的热页面将被回收——即使在相同的回收运行中, 但是同级的 cgroup 中却可能有足够的冷缓存.<br>这组补丁通过将非活动/活动平衡决策提升到回收运行的顶层来修复这个问题. 这要么是一个cgroup达到了它的极限, 要么是直接的全局回收, 如果有物理内存压力. 从那里, 它采用了一个cgroup子树的递归视图来决定是否有必要取消页面. | v1 ☑ [5.5-rc1](https://kernelnewbies.org/Linux_5.5#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/1150211) |
 | 2020/04/03 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [workingset protection/detection on the anonymous LRU list](https://lwn.net/Articles/815342) | 实现对匿名 LRU 页面列表的工作集保护和检测. 在之前的实现中, 新创建的或交换中的匿名页, 都是默认加入到 active LRU list, 然后逐渐降级到 inactive LRU list. 这造成在某种场景下新申请的内存(即使被使用一次cold page)也会把在a ctive list 的 hot page 挤到 inactive list. 为了解决这个的问题, 这组补丁, 将新创建或交换的匿名页面放到 inactive LRU list 中, 只有当它们被足够引用时才会被提升到活动列表. 另外,  因为这些更改可能导致新创建的匿名页面或交换中的匿名页面交换不活动列表中的现有页面, 所以工作集检测被扩展到处理匿名LRU列表. 以做出更优的决策. | v5 ☑ [5.9-rc1](https://kernelnewbies.org/Linux_5.9#Memory_management) | [PatchWork v5](https://lore.kernel.org/patchwork/cover/1219942), [Patchwork v7](https://lore.kernel.org/patchwork/patch/1278082), [ZhiHu](https://zhuanlan.zhihu.com/p/113220105) |
 | 2020/05/20 | Johannes Weiner <hannes@cmpxchg.org> | [mm: balance LRU lists based on relative thrashing v2](https://lore.kernel.org/patchwork/cover/1245255) | 基于相对抖动平衡 LRU 列表(重新实现了页面缓存和匿名页面之间的 LRU 平衡, 以便更好地与快速随机 IO 交换设备一起工作). : 在交换和缓存回收之间平衡的回收代码试图仅基于内存引用模式预测可能的重用. 随着时间的推移, 平衡代码已经被调优到一个点, 即它主要用于页面缓存, 并推迟交换, 直到 VM 处于显著的内存压力之下. 因为 commit a528910e12ec Linux 有精确的故障 IO 跟踪-回收错误页面的最终代价. 这允许我们使用基于 IO 成本的平衡模型, 当缓存发生抖动时, 这种模型更积极地扫描匿名内存, 同时能够避免不必要的交换风暴. | v1 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/cover/685701)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1245255) |
-| 2016/01/29 | Johannes Weiner <hannes@cmpxchg.org> | [mm: workingset: per-cgroup thrash detection](https://lore.kernel.org/patchwork/cover/641469) | 通过为循环中的影子节点添加一个计数器, 可以更容易地捕获影子节点收缩器中的 bug. | v1 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) | [PatchWork v2,0/5](https://lore.kernel.org/patchwork/cover/641469) |
 
 
 ### 4.2.8 LRU 中的内存水线
@@ -1612,8 +1624,8 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2018/06/11 | Matthew Wilcox <willy@infradead.org> | [Convert page cache to XArray](https://lore.kernel.org/patchwork/cover/951137) | 将 page cahce 的组织结构从 radix tree 切换到 [xarray](https://lwn.net/Articles/745073). | v13 ☑ 2.5.8 | [PatchWork](https://lore.kernel.org/patchwork/cover/951137) |
-| 2020/06/10 | Matthew Wilcox <willy@infradead.org> | [Large pages in the page cache](https://lore.kernel.org/patchwork/cover/1254710) | NA | v6 ☐ | [PatchWork RFC,v6,00/51](https://patchwork.kernel.org/project/linux-mm/cover/20200610201345.13273-1-willy@infradead.org) |
+| 2018/06/17 | Matthew Wilcox <willy@infradead.org> | [Convert page cache to XArray](https://lore.kernel.org/patchwork/cover/951137) | 将 page cahce 的组织结构从 radix tree 切换到 [xarray](https://lwn.net/Articles/745073). | v13 ☑ 4.20-rc1 | [PatchWork v14,00/74](https://lore.kernel.org/patchwork/cover/950304) |
+| 2020/06/10 | Matthew Wilcox <willy@infradead.org> | [Large pages in the page cache](https://lore.kernel.org/patchwork/cover/1254710) | NA | v6 ☑ 5.9-rc1 | [PatchWork RFC,v6,00/51](https://patchwork.kernel.org/project/linux-mm/cover/20200610201345.13273-1-willy@infradead.org) |
 | 2020/06/29 | Matthew Wilcox <willy@infradead.org> | [THP prep patches](https://patchwork.kernel.org/project/linux-mm/cover/20200629151959.15779-1-willy@infradead.org) | NA | v1 ☑ 2.5.8 | [PatchWork](https://patchwork.kernel.org/project/linux-mm/cover/20200629151959.15779-1-willy@infradead.org) |
 | 2020/04/22 | Jan Kara <jack@suse.cz> | [mm: Speedup page cache truncation](https://lore.kernel.org/patchwork/cover/1229535) | 页面缓存到 xarray 的转换(关键 commit 69b6c1319b6 "mm:Convert truncate to xarray") 使页面缓存截断的性能降低了约 10%, 参见 [Truncate regression due to commit 69b6c1319b6](https://lore.kernel.org/linux-mm/20190226165628.GB24711@quack2.suse.cz). 本系列补丁旨在改进截断, 以恢复部分回归.<br>1.
 第一个补丁修复了一个长期存在的错误, 我在调试补丁时发现了 xas_for_each_marked().<br>2. 剩下的补丁则致力于停止清除 xas_store() 中的标记, 从而将截断性能提高约 6%. | v2 ☐ | [PatchWork 0/23,v2](https://patchwork.kernel.org/project/linux-mm/cover/20200204142514.15826-1-jack@suse.cz) |
@@ -1800,6 +1812,20 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/07/13 | Jan Kara <jack@suse.cz> | [writeback: Fix bandwidth estimates](https://patchwork.kernel.org/project/linux-mm/cover/20210712165811.13163-1-jack@suse.cz) | NA | v2 ☐ | [PatchWork 0/5,v2](https://patchwork.kernel.org/project/linux-mm/cover/20210712165811.13163-1-jack@suse.cz) |
+
+## 6.4 page cache THP
+-------
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/06/10 | Matthew Wilcox <willy@infradead.org> | [Large pages in the page cache](https://lore.kernel.org/patchwork/cover/1254710) | NA | RFC v6 ☐  | [PatchWork RFC,v6,00/51](https://patchwork.kernel.org/project/linux-mm/cover/20200610201345.13273-1-willy@infradead.org) |
+| 2020/06/29 | Matthew Wilcox <willy@infradead.org> | [THP prep patches](https://patchwork.kernel.org/project/linux-mm/cover/20200629151959.15779-1-willy@infradead.org) | NA | v1 ☑ 5.9-rc1 | [PatchWork 0/7](https://patchwork.kernel.org/project/linux-mm/cover/20200629151959.15779-1-willy@infradead.org) |
+| 2020/09/10 | Matthew Wilcox <willy@infradead.org> | [THP iomap patches for 5.10](https://lore.kernel.org/patchwork/cover/1304097) | NA | v2 ☑ 5.10-rc1 | [PatchWork v2,0/9](https://lore.kernel.org/patchwork/cover/1304097) |
+| 2020/09/16 | Matthew Wilcox <willy@infradead.org> | [fs: Add a filesystem flag for THPs](https://lore.kernel.org/patchwork/cover/1306507) | NA | v1 ☑ 5.10-rc1 | [PatchWork 1/2](https://lore.kernel.org/patchwork/cover/1306507) |
+| 2020/08/24 | Matthew Wilcox <willy@infradead.org> | [iomap/fs/block patches for 5.11](https://lore.kernel.org/patchwork/cover/1294511) | NA | v1 ☑ 5.11-rc1 | [PatchWork 00/11](https://lore.kernel.org/patchwork/cover/1294511) |
+| 2021/05/10 | Muchun Song <songmuchun@bytedance.com> | [Overhaul multi-page lookups for THP](https://lore.kernel.org/patchwork/cover/1337675) | 提升大量页面查找时的效率 | v4 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.12#Memory_management) | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20201112212641.27837-1-willy@infradead.org) |
 
 
 # 7 大内存页支持
