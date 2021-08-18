@@ -254,9 +254,24 @@ bcc726c56a0f alinux: sched: introduce 'idle seeker' and ID_IDLE_AVG
 ## 1.8 dynamical CPU isolation
 -------
 
+我们在 root cgroup 下有太多的野生任务(wild tasksZ), 它们来自任何地方, 并且没有好的方法来正确管理它们.
+
+但是, 我们不希望它们干扰我们的关键任务, 例如 MOC 环境中的 IO 进程任务. 内核提供了 'isolcpu' 启动参数隔离 CPU, 但这是一个静态配置, 因此稍后当我们想要释放更多CPU资源时, 需要重新启动.
+
+commit [b2818621d5e7 ("alinux: sched/isolation: dynamical CPU isolation support")](https://github.com/gatieme/linux/commit/b2818621d5e7) 引入了一种将 CPU 与这些野生任务动态隔离的方法, 使管理员能够动态安排 CPU 资源.
+
+通过 `echo CPULIST >/proc/dyn_isolcpus`, 这些指定的 CPULIST 将与:
+
+1. 与未绑核的用户空间野生任务隔离.
+
+2. 摆脱调度域.
+
+3. 与未绑定的工作队列 kworker 隔离.
+
+
 | DESCRIPTION | task | commit |
 |:-----------:|:----:|:------:|
-| dynamical CPU isolation | fix #28231823 | [b2818621d5e7 alinux: sched/isolation: dynamical CPU isolation support](https://github.com/gatieme/linux/commit/25f6e3e64a77) |
+| dynamical CPU isolation | fix #28231823 | [b2818621d5e7 alinux: sched/isolation: dynamical CPU isolation support](https://github.com/gatieme/linux/commit/b2818621d5e7) |
 
 
 
