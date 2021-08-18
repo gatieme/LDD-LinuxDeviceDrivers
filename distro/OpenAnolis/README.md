@@ -208,10 +208,62 @@ d9ba6d0880e3 alinux: sched: Introduce primitives for CFS bandwidth burst
 9d168f216486 alinux: sched: Defend cfs and rt bandwidth against overflow
 ```
 
-## 1.7 性能优化
+## 1.7 per-cgroup identity(to #30665478)
 -------
 
-### 1.7.1 optimize overhead path
+
+| DESCRIPTION | task | commit |
+|:-----------:|:----:|:------:|
+| per-cgroup identity | to #30665478 | [827bf49be8a3 alinux: sched: introduce per-cgroup identity](https://github.com/gatieme/linux/commit/827bf49be8a3) |
+
+在混部环境中, 我们将延迟敏感(LS)工作负载和最大努力(BE)工作负载部署在同一台机器上, 借用虚拟时间(BVT)是遗留特性, 有助于确保 LS 的调度优先级.
+
+这个补丁只是移植了这个思想, 但是为了减少开销, 我们引入了基于多 rb 树思想的组身份特征. 现在每个 cfs_rq 有两个 rb 树, 具有特殊身份的任务将被排到相应的树中, 这有助于降低实现的复杂性, 并明显减少 smt expeller(Noise Clean) 特性的开销.
+
+通过将特定的标识写入名为 "group_identity" 的新 cpu-cgroup 条目中, 这个 cgroup 的任务将执行特殊的调度行为, 包括:
+
+| identity | 描述 |
+|:--------:|:---:|
+| ID_NORMAL | 普通 CFS 任务. |
+| ID_HIGHCLASS | 任务抢占正常的和底层的任务在唤醒, 也考虑底层的 CPU 作为空闲. |
+| ID_UNDERCLASS 任务在唤醒时会受到惩罚. |
+
+而遗留条目 'bvt_warp_ns' 是为了兼容(老版本)而保留的, 与身份的关系是:
+
+| bvt_warp_ns | identity |
+|:-----------:|:--------:|
+| 2 | ID_HIGHCLASS |
+| 1 | ID_HIGHCLASS |
+| 0 | ID_NORMAL |
+| -1 | ID_UNDERCLASS |
+| -2 | ID_UNDERCLASS |
+
+
+```cpp
+6f066b07121e alinux: sched: fix the bug that nr_tasks incorrect
+e6031d307ffa alinux: sched: enable group identity
+60aa4e7d6d9a alinux: sched: fix the bug that nr_high_running underflow
+a4f07eb17f13 alinux:sched: rescue the expellee on migration
+bcc726c56a0f alinux: sched: introduce 'idle seeker' and ID_IDLE_AVG
+84c08b2e134a alinux: sched: introduce group identity 'idle saver'
+5526cecbda00 alinux: sched: introduce group identity 'smt expeller'
+827bf49be8a3 alinux: sched: introduce per-cgroup identity
+```
+
+
+## 1.8 dynamical CPU isolation
+-------
+
+| DESCRIPTION | task | commit |
+|:-----------:|:----:|:------:|
+| dynamical CPU isolation | fix #28231823 | [b2818621d5e7 alinux: sched/isolation: dynamical CPU isolation support](https://github.com/gatieme/linux/commit/25f6e3e64a77) |
+
+
+
+## 1.X 性能优化
+-------
+
+### 1.X.1 optimize overhead path
 -------
 
 调度中一些比较耗时的路径, 在特殊条件下直接跳过.
@@ -234,7 +286,7 @@ bb48b716f496 alinux: sched: Add switch for update_blocked_averages
 d2440c99979d alinux: sched/fair: use static load in wake_affine_weight
 ```
 
-### 1.7.2 other fix
+### 1.X.2 other fix
 -------
 
 ```cpp
@@ -253,8 +305,35 @@ f381d3d2c39c sched/core: Fix CPU controller for !RT_GROUP_SCHED
 417cf53b4b85 sched/fair: Fix imbalance due to CPU affinity
 ```
 
+### 1.X.3 ID_LAST_HIGHCLASS_STAY(fix #34923487)
+-------
+
+在 nginx(highclass) + ffmpeg(underclass) 场景中, 开发者发现发现在应用修补程序修复了nr_high_running 下溢的错误(修复补丁 [commit 60aa4e7d6d9a "alinux: sched: fix the bug that nr_high_running underflow"](https://github.com/gatieme/linux/commit/60aa4e7d6d9a))后, 性能会下降, 这意味着当 nr_high_running 运行错误时, 性能会更好.
+
+最后, 开发者发现, 如果我们跳过第一个判断 "if (is_highclass_task(p) && src_rq->nr_high_running < 2)", nginx 的性能将提高 10%.
+
+但是这个修正并不适用于所有场景, 所以引入了一个 [sched_feature : ID_HIGHCLASS_STAY](https://github.com/gatieme/linux/commit/25f6e3e64a77). 当 ID_LAST_HIGHCLASS_STAY 处于启用状态时, HIGHCLASS 任务将更倾向于保留而不是迁移. ID_LAST_HIGHCLASS_STAY 的默认值为 true.
 
 
+| DESCRIPTION | task | commit |
+|:-----------:|:----:|:------:|
+| ID_LAST_HIGHCLASS_STAY | to #34923487 | [25f6e3e64a77 alinux: sched: Introduce sched_feat ID_LAST_HIGHCLASS_STAY](https://github.com/gatieme/linux/commit/25f6e3e64a77) |
+
+
+
+## 1.X.4 Reduce tasklist_lock contention
+-------
+
+进程在 fork/exit 的时候会持有 tasklist_lock 这把大锁. 致力于优化这个锁的竞争.
+
+[commit ("f14304cdc955    alinux: kernel: Reduce tasklist_lock contention at fork and exit")](https://github.com/gatieme/linux/commit/f14304cdc955) 的思路很简单, 在脱机任务开始和结束时观察到大量的tasklist_锁争用, 这导致了较长的调度延迟和较长的中断时间, 因为调用了write_lock_irq(). 在有大量并发 fork 和 exit 事件的极端情况下, 它可能会导致系统挂起. 这个补丁将它们改为使用 trylock, 然后锁内的操作占用很少的时间, 所以它自然解决了这个问题. 在这个补丁之后, 当启动并终止数千个任务时, 延迟可以从几十毫秒减少到大约2毫秒.
+
+后来发现上面的补丁在 ARM64 上导致 unixbench 有大概 5% 的性能回归, 因此只在 X86 上使用这个优化. [commit ("5eb53a6526ab    ck: kernel: Reduce tasklist_lock contention only for x86_64")](https://github.com/gatieme/linux/commit/5eb53a6526ab)
+
+```cpp
+5eb53a6526ab    ck: kernel: Reduce tasklist_lock contention only for x86_64
+f14304cdc955    alinux: kernel: Reduce tasklist_lock contention at fork and exit
+```
 
 
 
@@ -1082,6 +1161,58 @@ https://lore.kernel.org/patchwork/patch/1138644
 91eec7692b94 hugetlbfs: don't access uninitialized memmaps in pfn_range_valid_gigantic()
 https://lore.kernel.org/patchwork/patch/1139559
 f712e3066f75 mm/page_owner: don't access uninitialized memmaps when reading /proc/pagetypeinfo
+```
+
+## 2.23 THP zero subpages reclaim(fix #34670772/ck-release-24)
+-------
+
+为 cgroup 增加了 THP zero subpages reclaim 的能力. 透明的巨大页面可以减少地址转换失误的数量, 从而提高应用程序的性能. 但有一个问题是 THP 可能导致内存膨胀, 从而导致 OOM. 原因是一个 THP 可能包含一些用户没有真正访问的零个子页面.
+
+这个补丁引入了一种机制来回收这些零子页面, 它在内存压力很高时工作. 我们将首先估计一个巨大的页面是否包含足够的零个子页面, 然后尝试拆分它并回收. 通过将巨大的页面存储到一个新列表中, 并在回收时添加一个 slab shrinker 来扫描列表.
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/05/10 | Yu Zhao <yuzhao@google.com> | [mm: optimize thp for reclaim and migration](https://lore.kernel.org/patchwork/cover/1470432) | 对 THP 的回收和迁移进行优化.<br>使用配置 THP 为 always 的时候, 大量 THP 的内部碎片会造成不小的内存压力. 用户空间可以保留许多子页面不变, 但页面回收不能简单的根据 dirty bit 来识别他们.<brr>但是, 仍然可以通过检查子页面的内容来确定它是否等同于干净. 当拆分 THP 用于回收或迁移时, 我们可以删除只包含0的子页面, 从而避免将它们写回或复制它们. | v23 ☑ 4.5-rc1 | [PatchWork 0/3](https://patchwork.kernel.org/project/linux-mm/cover/20210731063938.1391602-1-yuzhao@google.com) |
+| 2021/05/29 | Ning Zhang <ningzhang@linux.alibaba.com> | [mm, thp: introduce a controller to trigger thp reclaim](https://github.com/gatieme/linux/commit/57456d1625ba9036968fa0be70a6036b88f2b2f4) | 实现 MEMCG 的 THP 回收. | v1 ☐ | [PatchWork 0/3](https://patchwork.kernel.org/project/linux-mm/cover/20210731063938.1391602-1-yuzhao@google.com) |
+
+thp_reclaim_ctrl 接口多种控制参数
+
+|   控制参数   | 用途 |
+|:----------:|:-----:|
+| reclaim 1  | 回收当前 memcg 的 THP 内存 |
+| reclaim 2  | 递归回收当前 memcg(当前 memcg 本身以及其子 memecg) 的 THP 内存 |
+| threshold $v | 来设置回收阈值. 默认值为 16, 这意味着如果一个 THP 页面包含超过16个零子页面, 那么当 thp zero subpages Reclain 工作时, 可以拆分该 THP 面并回收零个子页面. |
+
+
+
+添加了一个接口 "thp_reclain" 来控制内存 cgroup 中的开或关, 默认模式继承自其父模式.
+
+
+
+|   控制参数   | 用途 |
+|:----------:|:----:|
+| reclaim | THP_RECLAIM_ZSR, 启用回收模式. 回收模式意味着巨大的页面将被拆分, 零子页面将被回收. |
+| swap | THP_RECLAIM_SWAP, 启用交换模式. 交换模式意味着我们只需将巨大的页面放在非活动 lru 列表的尾部, 并使用交换机制进行交换. |
+| disable | THP_RECLAIM_DISABLE, 禁用 THP 回收. |
+
+
+添加了一个接口 thp_reclain_stat 来显示内存 cgroup 中每个节点的 stat.
+
+同时提供了全局接口进行配置, `/sys/kernel/mm/transparent_hugepage/reclaim`.
+
+
+
+```cpp
+2c15b41d3af0 mm, thp: correct the order of unregister shrinker in error path
+8410f99b089b mm, thp: remap the page when unmap failed for thp reclaim
+
+01cb1124bf3 mm, thp: add some statistics for thp reclaim stat
+57456d1625ba mm, thp: introduce a controller to trigger thp reclaim
+1f3a50b5d334 mm, thp: introduce thp reclaim threshold
+fde93933ea8c mm, thp: skip kmemcg and slab page for zero subpages reclaim
+62f8852885cc mm, thp: introduce thp zero subpages reclaim
 ```
 
 # 3 IO
