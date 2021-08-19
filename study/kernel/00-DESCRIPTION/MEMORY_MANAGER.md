@@ -237,6 +237,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 | 2021/06/22 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folio-enabling the page cache](https://lwn.net/Articles/1450196) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1450196), [PatchWork v2](https://patchwork.kernel.org/project/linux-mm/cover/20210622121551.3398730-1-willy@infradead.org) |
 | 2021/06/30 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folio conversion of memcg](https://lwn.net/Articles/1450196) | NA | v3 ☐ | [PatchWork v13b](https://patchwork.kernel.org/project/linux-mm/cover/20210712194551.91920-1-willy@infradead.org/) |
 | 2021/07/19 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folio support in block + iomap layers](https://lwn.net/Articles/1450196) | NA | v15 ☐ | [PatchWork v15,00/17](https://patchwork.kernel.org/project/linux-mm/cover/20210712194551.91920-1-willy@infradead.org/) |
+| 2021/07/15 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Memory folios: Pagecache edition](https://patchwork.kernel.org/project/linux-mm/cover/20210715200030.899216-1-willy@infradead.org) | NA | v14c ☐ | [PatchWork v14c,00/39](https://patchwork.kernel.org/project/linux-mm/cover/20210715200030.899216-1-willy@infradead.org) |
 
 
 ## 1.5 页面初始化
@@ -254,7 +255,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/07/18 | Qi Zheng <zhengqi.arch@bytedance.com> | [Free user PTE page table pages](https://lore.kernel.org/patchwork/cover/1461972) | 这个补丁系列的目的是在所有 PTE 条目都为空时释放用户 PTE 页表页面.<br>一些malloc库(例如 jemalloc 或 tcmalloc) 通常通过 mmap() 分配 VAs 的数量, 而不取消这些 VAs 的映射. 如果需要, 他们将使用 madvise(MADV_DONTNEED) 来释放物理内存. 但是 madvise() 不会释放页表, 因此当进程接触到巨大的虚拟地址空间时, 它会生成许多页表.<br>PTE 页表占用大量内存的原因是 madvise(MADV_DONTNEED) 只清空 PTE 并释放物理内存, 但不释放 PTE 页表页. 这组补丁通过释放那些空的 PTE 页表来节省内存. | v1 ☐ | [PatchWork 0/7](https://patchwork.kernel.org/project/linux-mm/cover/20210712190204.80979-1-willy@infradead.org) |
+| 2021/08/19 | Qi Zheng <zhengqi.arch@bytedance.com> | [Free user PTE page table pages](https://lore.kernel.org/patchwork/cover/1461972) | 这个补丁系列的目的是在所有 PTE 条目都为空时释放用户 PTE 页表页面.<br>一些malloc库(例如 jemalloc 或 tcmalloc) 通常通过 mmap() 分配 VAs 的数量, 而不取消这些 VAs 的映射. 如果需要, 他们将使用 madvise(MADV_DONTNEED) 来释放物理内存. 但是 madvise() 不会释放页表, 因此当进程接触到巨大的虚拟地址空间时, 它会生成许多页表.<br>PTE 页表占用大量内存的原因是 madvise(MADV_DONTNEED) 只清空 PTE 并释放物理内存, 但不释放 PTE 页表页. 这组补丁通过释放那些空的 PTE 页表来节省内存. | v1 ☐ | [PatchWork 0/7](https://lore.kernel.org/patchwork/cover/1461972)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://lore.kernel.org/patchwork/cover/1478844) |
 
 
 
@@ -933,6 +934,9 @@ CMA 的做法也是启动时预留, 但不同的是, 它允许这部分内存被
 参考 [Fragmentation in Operating System](https://www.includehelp.com/operating-systems/fragmentation.aspx)
 
 
+*   [Linux Kernel vs. Memory Fragmentation (Part I)](https://en.pingcap.com/blog/linux-kernel-vs-memory-fragmentation-1)
+
+*   [Linux Kernel vs. Memory Fragmentation (Part II)](https://en.pingcap.com/blog/linux-kernel-vs-memory-fragmentation-2)
 
 前面讲了运行较长时间的系统存在的内存碎片化问题, Linux 内核也不能幸免, 因此有开发者陆续提出若干种方法.
 
@@ -1609,16 +1613,31 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 | 2002/10/12 | Christoph Lameter <clameter@engr.sgi.com> | [vmscan: skip reclaim_mapped determination if we do not swap](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2903fb1694dcb08a3c1d9d823cfae7ba30e66cd3) | 如果不是 may_swap, 则跳过 swappiness 机制检查回收匿名页的流程. | v1 ☑ [2.6.16](https://elixir.bootlin.com/linux/v2.6.16/source/mm/vmscan.c#L1205) | [COMMIT 1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=80e4342601abfafacb5f20571e40b56d73d10819), [COMMIT 2](https://github.com/gatieme/linux-history/commit/072eaa5d9cc3e63f567ffd9ad87b36194fdd8010), [COMMIT 3](https://github.com/gatieme/linux-history/commit/072eaa5d9cc3e63f567ffd9ad87b36194fdd8010) |
 | 2007/10/16 | Andrea Arcangeli <andrea@suse.de> | [make swappiness safer to use](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4106f83a9f86afc423557d0d92ebf4b3f36728c1) | Swappiness 不是一个安全的sysctl.<br>1. 将它设置为0会挂起系统. 这是一种极端情况, 但即使将其设置为10或更低, 也会浪费大量cpu而没有取得很大进展.<br>2. 有一些客户想要使用swappiness, 但由于当前实现的原因, 他们不能使用(如果你改变它, 系统停止交换, 它真的停止交换, 如果你真的必须交换一些东西, 任何事情都不能正常工作).<br>这个补丁来自Kurt Garloff使swappiness使用更安全, 并且没有更多巨大的cpu占用或低swappiness值引起的挂起. 计算 swap_tendency 时考虑活动和非活动页面的不平衡比例 $\frac {NR_ACTIVE}{NR_INACTIVE + 1} \times \frac {vm\_swappiness + 1}{100} \times \frac {mapped\_ratio}{100}$. | v1 ☑ [2.6.24](https://kernelnewbies.org/Linux_3.16#Memory_management) | [PatchWork v3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4106f83a9f86afc423557d0d92ebf4b3f36728c1) |
 | 2007/11/26 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [per-zone and reclaim enhancements for memory controller take 3 [8/10] modifies vmscan.c for isolate globa/cgroup lru activity](https://lkml.org/lkml/2007/11/26/366) | 隔离全局和 cgroup 内存回收, 防止 cgroup 内存回收影响全局内存回收. per-zone 的页面回收感知 MEMCG 的其中一个补丁. 将原本 swap_tendency 和 reclaim_mapped 的处理流程分离新一个新函数 calc_reclaim_mapped() 中.<br>当使用内存控制器时, 有2级内存回收.<br>1. 区域内存回收, 因为系统/zone 内内存短缺.<br>2. cgroup 内存回收, 因为达到限制.<br>这两个可以通过sc->mem_cgroup参数来区分. 这个补丁试图使内存cgroup回收程序避免影响系统/区域内存回收. 这个补丁插入if (scan_global_lru()) 并钩子到 memory_cgroup回收支持函数. | v3 ☑ [2.6.25-rc1](https://elixir.bootlin.com/linux/v2.6.25/source/mm/vmscan.c#L1057) | [PatchWork v3](https://lore.kernel.org/patchwork/patch/98041), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1cfb419b394ba82745c54ff05436d598ecc2dbd5) |
-| 2008/06/11 | Rik van Riel <riel@redhat.com> | [VM pageout scalability improvements (V12)](https://lore.kernel.org/patchwork/cover/118966) | 这里我们关心的是它将 LRU 中匿名页和文件页分开成两个链表进行管理时引入的平衡策略, 用于平衡我们扫描匿名列表和扫描文件列表的数量. 引入 [get_scan_ratio()](https://elixir.bootlin.com/linux/v2.6.28/source/mm/vmscan.c#L1332) 来确定确定对匿名页 LRU 列表和文件页 LRU 列表的扫描力度. 每一组 LRU 列表的相对值是通过查看我们已经旋转回活动列表而不是驱逐的页面的部分来确定的. %[0] 指定对匿名页 LRUs 施加多大压力, 而 %[1] 确定对文件 LRUs 施加多大压力. | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118966), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f98a2fee8acdb4ac84545df98cccecfd130f8db) |
+| 2008/06/11 | Rik van Riel <riel@redhat.com> | [VM pageout scalability improvements (V12)](https://lore.kernel.org/patchwork/cover/118966) | 这里我们关心的是它将 LRU 中匿名页和文件页分开成两个链表进行管理时引入的平衡策略, 用于平衡我们扫描匿名列表和扫描文件列表的数量. 引入 [get_scan_ratio()](https://elixir.bootlin.com/linux/v2.6.28/source/mm/vmscan.c#L1332) 来确定确定对匿名页 LRU 列表和文件页 LRU 列表的扫描力度. 每一组 LRU
+列表的相对值是通过查看我们已经旋转回活动列表而不是驱逐的页面的部分来确定的. %[0] 指定对匿名页 LRUs 施加多大压力, 而 %[1] 确定对文件 LRUs 施加多大压力. | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118966), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f98a2fee8acdb4ac84545df98cccecfd130f8db) |
+
+
+
+
+
 
 ## 5.2 MEMCG Swap
 -------
 
-
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2008/12/02 | KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com> | [memcg: swappiness](https://lkml.org/lkml/2008/12/2/21) | 引入 per-memcg 的 swappiness, 可以用来对 per-memcg 进行精确控制. | v2 ☑ [2.6.29-rc1](https://kernelnewbies.org/Linux_2_6_29#Memory_controller_swap_management_and_other_improvements) | [LKML](https://lkml.org/lkml/2008/12/2/21), [PatchWork](https://lore.kernel.org/patchwork/cover/136809) |
 | 2014/04/14 | Michal Hocko <mhocko@suse.cz> | [vmscan: memcg: Always use swappiness of the reclaimed memcg swappiness and oom_control](https://lore.kernel.org/patchwork/cover/459015) | NA | RFC ☑  | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/459015), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=688eb988d15af55c1d1b70b1ca9f6ce58f277c20) |
 | 2014/04/16 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: remove hierarchy restrictions for swappiness and oom_control](https://lore.kernel.org/patchwork/cover/456852) | swappiness 和 oom_control 目前不能被调整在一个等级的一部分的memcg, 但不是那个等级的根. 当打开层次模式时, 他们无法配置 per-memcg 的 swappiness 和 oom_control. 但是这种限制并没有很好的理由. swappiness 和 oom_control的设置是从其限制触发回收和OOM调用的任何memcg获取的, 而不管它在层次结构树中的位置. 这个补丁允许<br>1. 在任何组上设置 swappiness. root memcg 上的配置读取了全局虚拟机的 swappiness, 也使它是可写的.<br>2. 允许在任何非根memcg上禁用OOM杀手.  | RFC ☑ 3.16-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/456852), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3dae7fec5e884a4e72e5416db0894de66f586201) |
 
+
+## 5.3 pagemap swap
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/07/30 | Tiberiu A Georgescu <tiberiu.georgescu@nutanix.com> | [pagemap: swap location for shared pages](https://lore.kernel.org/patchwork/cover/1470271) | NA | v2 ☐ v5.14-rc4 | [PatchWork RFC,0/4](https://lore.kernel.org/patchwork/cover/1470271) |
+| 2021/08/17 | Peter Xu <peterx@redhat.com> | [mm: Enable PM_SWAP for shmem with PTE_MARKER](https://lore.kernel.org/patchwork/cover/1473423) | 这个补丁集在 shmem 上启用 pagemap 的 PM_SWAP. IOW 用户空间将能够检测 shmem 页面是否被换出, 就像匿名页面一样.<br>可以使用  CONFIG_PTE_MARKER_PAGEOUT 来启用该特性. 当启用时, 它会在 shmem 页面上带来 0.8% 的换入性能开销, 所以作者还没有将它设置为默认值. 然而, 以作者的看法, 0.8% 仍然在一个可接受的范围内, 我们甚至可以使它最终默认. | v2 ☐ v5.14-rc4 | [PatchWork RFC,0/4](https://lore.kernel.org/patchwork/cover/1473423) |
 
 
 # 6 PageCache
