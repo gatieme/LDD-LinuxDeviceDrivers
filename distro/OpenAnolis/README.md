@@ -1631,7 +1631,11 @@ f486d9b98b68 alinux: tcp_rt module: support ports_range
 03fcbae2ecd7 alinux: tcp_rt module: add tcp_rt module
 ```
 
-# 6 X86
+# 6 ARCH
+-------
+
+
+## 6.1 X86
 -------
 
 
@@ -1835,7 +1839,59 @@ e3f834c364c5 scripts/sortextable: Clean up the code to meet the kernel coding st
 9999162392f9 scripts/sortextable: Rewrite error/success handling
 
 
-# KDUMP
+## 6.2 ARM64
+-------
+
+
+### 6.2.1 fix_numa_dist_parse_early_param
+-------
+
+对于 HISI 2P 的机器, `numactl -H` 命令无法告诉用户节点之间的实际距离. 此修补程序用于修复 ARCH_HISI 的此问题.
+
+根据 BIOS 的距离值初始化 numa 距离后, 它将再次根据 numa_accurate_distance 进行初始化. 此外, numa 距离固定仅适用于 HiSilicon 芯片, 且节点数必须等于4, 即 2P.
+
+最后, 黑盒测试表明这些更改对性能没有影响.
+
+
+```cpp
+     0    1   2   3
+0:  {10, 12, 22, 22},
+1:  {12, 10, 22, 22},
+2:  {22, 22, 10, 12},
+3:  {22, 22, 12, 10}
+```
+
+
+| DESCRIPTION | task | tag |commit |
+|:-----------:|:----:|:----:|:-----:|
+| HiSilicon numa distance | fix #28893917 | ck-release-24.6 | [b3dee6c6dfd7 ck: arm64: fix numa distance for HiSilicon chips](https://github.com/gatieme/linux/commit/b3dee6c6dfd7) |
+
+这个有点没太理解, 默认 KunPeng 920 2P 的机器上, numa_distance 距离应该一次是
+
+
+硬件拓扑如下:
+
+
+```cpp
+    2           10         2
+1<------->0<------->2<------->3
+```
+
+numa_distance:
+
+```cpp
+     0    1   2   3
+0:  {10, 12, 20, 22},
+1:  {12, 10, 22, 24},
+2:  {20, 22, 10, 12},
+3:  {22, 24, 12, 10}
+```
+
+这种目前的处理的确会导致 3跳的问题, 感觉上上面的补丁是强制通过改 numa_distance 假设当前 SOCKET 的 CPU 访问另外一个 SOCKET 的 CPU 是无差别的. 从而可以规避 3跳问题, 当然部分 CPU 调度域会减少一层.
+
+
+
+# 7 KDUMP
 -------
 
 
@@ -1846,7 +1902,7 @@ https://lore.kernel.org/patchwork/patch/1266592
 ```
 
 
-# Unixbench
+# 8 Unixbench
 -------
 
 
