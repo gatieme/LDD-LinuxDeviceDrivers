@@ -225,8 +225,12 @@ d9ba6d0880e3 alinux: sched: Introduce primitives for CFS bandwidth burst
 | identity | 描述 |
 |:--------:|:---:|
 | ID_NORMAL | 普通 CFS 任务. |
-| ID_HIGHCLASS | 任务抢占正常的和底层的任务在唤醒, 也考虑底层的 CPU 作为空闲. |
-| ID_UNDERCLASS 任务在唤醒时会受到惩罚. |
+| ID_HIGHCLASS | 在唤醒时可以抢占 ID_NORMAL 和 ID_HIGHCLASS 进程, 也会考虑运行着 ID_UNDERCLASS 的 CPU 作为 IDLE CPU. |
+| ID_UNDERCLASS | 低优先级的任务, 任务在唤醒时会受到惩罚. |
+| ID_SMT_EXPELLER | |
+| ID_IDLE_SAVER | |
+| ID_IDLE_SEEKER | 在选核时忽略 SIS_PROP 造成的限制, 并有更多机会在 select_idke_cpu() 中找到真正的空闲 CPU. |
+
 
 而遗留条目 'bvt_warp_ns' 是为了兼容(老版本)而保留的, 与身份的关系是:
 
@@ -273,7 +277,60 @@ commit [b2818621d5e7 ("alinux: sched/isolation: dynamical CPU isolation support"
 |:-----------:|:----:|:------:|
 | dynamical CPU isolation | fix #28231823 | [b2818621d5e7 alinux: sched/isolation: dynamical CPU isolation support](https://github.com/gatieme/linux/commit/b2818621d5e7) |
 
+## 1.9 sched_feature
+-------
 
+### 1.9.1 WA_STATIC_WEIGHT
+-------
+
+
+引入 WA_STATIC_WEIGHT, wake_affine 比较负载的时候,
+
+```cpp
+d2440c99979d alinux: sched/fair: use static load in wake_affine_weight
+```
+
+### 1.9.2 ID_IDLE_AVG(to #30665478)
+-------
+
+
+SIS_PROP 限制空闲 CPU 的搜索范围, 在使用了 per-cgroup identity 之后经常导致高级任务的不稳定延迟.
+
+1.  在 identity 中引入了 ID_IDLE_SEEKER 标识, 默认情况下为 bvt 为 2 或 1 的组激活, 使得他们忽略 SIS_PROP 造成的限制, 并有更多机会在 select_idke_cpu() 中找到真正的空闲 CPU. 通过关闭 "cpu.identity" 中的第 4 位, 标识可能会失效.
+
+2.  使用 avg_idle 作为旋钮, 以确保下层阶级不会占用太多空闲的 cpu, 但是, 这不是很公平, 因为其他任务甚至可能不会运行.
+
+因此, 引入了新的 sched_feature: ID_IDLE_AVG, 引入新的 `rq->avg_id_idle` 表示 CPU 上空闲和 ID_UNDERCLASS 类别的进程执行的平均周期, 通过将其代替为 avg_idle, ID_UNDERCLASS 将仅在其他任务快速使用时节省空闲 CPU.
+
+此外, sched_debug 条目将立即打印 ID_HIGHCLASS 和 ID_UNDERCLASS 进程的执行时间总和.
+
+```cpp
+bcc726c56a0f alinux: sched: introduce 'idle seeker' and ID_IDLE_AVG
+```
+
+### 1.9.3 ID_RESCUE_EXPELLEE(to #30665478)
+-------
+
+```cpp
+e6f05bd1d63a alinux: sched: fix the performence regression caused by update_rq_on_expel()
+c9af3e52ed2a Revert "alinux: sched: fix the performence regression caused by update_rq_on_expel()"
+c848a4fd1ecd alinux: sched: fix the performence regression caused by update_rq_on_expel()
+a4f07eb17f13 alinux:sched: rescue the expellee on migration
+```
+
+### 1.9.3 ID_LAST_HIGHCLASS_STAY(fix #34923487)
+-------
+
+在 nginx(highclass) + ffmpeg(underclass) 场景中, 开发者发现发现在应用修补程序修复了nr_high_running 下溢的错误(修复补丁 [commit 60aa4e7d6d9a "alinux: sched: fix the bug that nr_high_running underflow"](https://github.com/gatieme/linux/commit/60aa4e7d6d9a))后, 性能会下降, 这意味着当 nr_high_running 运行错误时, 性能会更好.
+
+最后, 开发者发现, 如果我们跳过第一个判断 "if (is_highclass_task(p) && src_rq->nr_high_running < 2)", nginx 的性能将提高 10%.
+
+但是这个修正并不适用于所有场景, 所以引入了一个 [sched_feature : ID_LAST_HIGHCLASS_STAY](https://github.com/gatieme/linux/commit/25f6e3e64a77). 当 ID_LAST_HIGHCLASS_STAY 处于启用状态时, HIGHCLASS 任务将更倾向于保留而不是迁移. ID_LAST_HIGHCLASS_STAY 的默认值为 true.
+
+
+| DESCRIPTION | task | commit |
+|:-----------:|:----:|:------:|
+| ID_LAST_HIGHCLASS_STAY | to #34923487 | [25f6e3e64a77 alinux: sched: Introduce sched_feat ID_LAST_HIGHCLASS_STAY](https://github.com/gatieme/linux/commit/25f6e3e64a77) |
 
 ## 1.X 性能优化
 -------
@@ -295,11 +352,6 @@ bcaf8afd6270 alinux: sched: Add switch for scheduler_tick load tracking
 bb48b716f496 alinux: sched: Add switch for update_blocked_averages
 ```
 
-*   引入 WA_STATIC_WEIGHT, wake_affine 比较负载的时候,
-
-```cpp
-d2440c99979d alinux: sched/fair: use static load in wake_affine_weight
-```
 
 ### 1.X.2 other fix
 -------
@@ -320,19 +372,7 @@ f381d3d2c39c sched/core: Fix CPU controller for !RT_GROUP_SCHED
 417cf53b4b85 sched/fair: Fix imbalance due to CPU affinity
 ```
 
-### 1.X.3 ID_LAST_HIGHCLASS_STAY(fix #34923487)
--------
 
-在 nginx(highclass) + ffmpeg(underclass) 场景中, 开发者发现发现在应用修补程序修复了nr_high_running 下溢的错误(修复补丁 [commit 60aa4e7d6d9a "alinux: sched: fix the bug that nr_high_running underflow"](https://github.com/gatieme/linux/commit/60aa4e7d6d9a))后, 性能会下降, 这意味着当 nr_high_running 运行错误时, 性能会更好.
-
-最后, 开发者发现, 如果我们跳过第一个判断 "if (is_highclass_task(p) && src_rq->nr_high_running < 2)", nginx 的性能将提高 10%.
-
-但是这个修正并不适用于所有场景, 所以引入了一个 [sched_feature : ID_HIGHCLASS_STAY](https://github.com/gatieme/linux/commit/25f6e3e64a77). 当 ID_LAST_HIGHCLASS_STAY 处于启用状态时, HIGHCLASS 任务将更倾向于保留而不是迁移. ID_LAST_HIGHCLASS_STAY 的默认值为 true.
-
-
-| DESCRIPTION | task | commit |
-|:-----------:|:----:|:------:|
-| ID_LAST_HIGHCLASS_STAY | to #34923487 | [25f6e3e64a77 alinux: sched: Introduce sched_feat ID_LAST_HIGHCLASS_STAY](https://github.com/gatieme/linux/commit/25f6e3e64a77) |
 
 
 
