@@ -246,7 +246,8 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2018/12/30 | Alexander Duyck <alexander.h.duyck@linux.intel.com> | [Deferred page init improvements](https://lore.kernel.org/patchwork/cover/1019963/) | 该补丁集本质上是页面初始化逻辑的重构, 旨在提供更好的代码重用, 同时显著提高延迟页面初始化性能.<br>在我对 x86_64 系统的测试中, 每个节点有 384GB 的 RAM 和 3TB 的持久内存<br>1. 在常规内存初始化的情况下, 初始化时间平均从 3.75s 减少到 1.06s. 对于持久内存, 初始化时间平均从 24.17s 下降到 19.12s.<br>2. 这相当于内存初始化性能提高了 253%, 持久内存初始化性能提高了 26%. | v6 ☑ 5.2-rc1 | [PatchWork mm,v6,0/7](https://patchwork.kernel.org/project/linux-mm/cover/154361452447.7497.1348692079883153517.stgit@ahduyck-desk1.amr.corp.intel.com) |
+| 2008/04/28 | Mel Gorman <mel@csn.ul.ie> | [Verification and debugging of memory initialisation V4](https://lore.kernel.org/patchwork/cover/114302) | 引导初始化非常复杂, 有大量特定于体系结构的例程、挂钩和代码排序. 虽然大量的初始化是独立于体系结构的, 但它信任从体系结构层接收的数据. 这是一个错误, 并导致了一些难以诊断的错误. 这个补丁集为内存初始化添加了一些验证和跟踪. 它还介绍了一些基本的防御措施. 对于嵌入式系统, 可以显式禁用验证代码. | v6 ☑ 5.2-rc1 | [PatchWork mm,v6,0/7](https://lore.kernel.org/patchwork/cover/114302) |
+| 2018/12/30 | Alexander Duyck <alexander.h.duyck@linux.intel.com> | [Deferred page init improvements](https://lore.kernel.org/patchwork/cover/1019963) | 该补丁集本质上是页面初始化逻辑的重构, 旨在提供更好的代码重用, 同时显著提高延迟页面初始化性能.<br>在我对 x86_64 系统的测试中, 每个节点有 384GB 的 RAM 和 3TB 的持久内存<br>1. 在常规内存初始化的情况下, 初始化时间平均从 3.75s 减少到 1.06s. 对于持久内存, 初始化时间平均从 24.17s 下降到 19.12s.<br>2. 这相当于内存初始化性能提高了 253%, 持久内存初始化性能提高了 26%. | v6 ☑ 5.2-rc1 | [PatchWork mm,v6,0/7](https://patchwork.kernel.org/project/linux-mm/cover/154361452447.7497.1348692079883153517.stgit@ahduyck-desk1.amr.corp.intel.com) |
 
 
 
@@ -271,7 +272,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 另外一种方法称为 buddy memory allocation, 是一种更快的内存分配技术, 它将内存划分为 2 的幂次方个分区, 并使用 best-fit 方法来分配内存请求. 当用户释放内存时, 就会检查 buddy 块, 查看其相邻的内存块是否也已经被释放. 如果是的话, 将合并内存块以最小化内存碎片. 这个算法的时间效率更高, 但是由于使用 best-fit 方法的缘故, 会产生内存浪费.
 
-## 2.1  页分配器: 伙伴分配器[<sup>12<sup>](#ref-anchor-12)
+## 2.1 页分配器: 伙伴分配器[<sup>12<sup>](#ref-anchor-12)
 -------
 
 
@@ -321,7 +322,18 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/02/25 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Rationalise `__alloc_pages` wrappers](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) | 重构 alloc_pages 接口的调用逻辑使逻辑更清晰. | v3 ☑ 5.13-rc1 | [PatchWork v6](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) |
+| 2007/03/01 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Rationalise `__alloc_pages` wrappers](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) | NA | v3 ☑ 5.13-rc1 | [PatchWork v6](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) |
+
+
+### 2.1.2 zone 分区管理
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2006/08/21 | Mel Gorman <mel@csn.ul.ie> | [Sizing zones and holes in an architecture independent manner V9](https://lore.kernel.org/patchwork/cover/63170) | NA | v1 ☑ v2.6.19-rc1 | [PatchWork 0/2](https://lore.kernel.org/patchwork/cover/63170) |
+| 2007/12/11 | Mel Gorman <mel@csn.ul.ie> | [Use two zonelists per node instead of multiple zonelists v11r2](https://lore.kernel.org/patchwork/cover/99109) | 优化分配器处理区域列表, 区域列表指示分配目标区域的顺序. 类似地, 页面的直接回收会在区域数组上迭代. 为了保持一致性, 这组补丁将直接回收转换为使用分区列表, 并简化 zonelist 迭代器.<br>将每个节点的多个(两组)分区列表替换为两个分区列表, 一组用于系统中的每个分区类型, 另一组用于 GFP_THISNODE 分配. 根据 gfp 掩码允许的分区, 选择其中一个分区列表. 所有这些分区列表都会消耗内存并占用缓存线. | v1 ☑ v2.6.19-rc1 | [PatchWork v11r2,0/6](https://lore.kernel.org/patchwork/cover/99109) |
+
 
 
 ### 2.1.2 fair allocation zone policy
@@ -979,7 +991,12 @@ CMA 的做法也是启动时预留, 但不同的是, 它允许这部分内存被
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2007/03/01 | Mel Gorman <mel@csn.ul.ie> | [Group pages of related mobility together to reduce external fragmentation v28](https://lore.kernel.org/patchwork/cover/75208) | 基于页面可移动性的页面聚类 | v28 ☑ 2.6.24-rc1 | [Patchwork v28,0/12](https://lore.kernel.org/patchwork/cover/75208) |
+| 2007/09/10 | Mel Gorman <mel@csn.ul.ie> | [Reduce external fragmentation by grouping pages by mobility v30](https://lore.kernel.org/patchwork/cover/75208) | 基于页面可移动性的页面聚类来抗(外部)碎片化. 引入 CONFIG_PAGE_GROUP_BY_MOBILITY 控制 | v28 ☑ 2.6.24-rc1 | [2006/11/01 PatchWork v26,0/11](https://lore.kernel.org/patchwork/cover/67812)<br>*-*-*-*-*-*-*-* <br>[2006/11/21 PatchWork v27,0/11](https://lore.kernel.org/patchwork/cover/68969)<br>*-*-*-*-*-*-*-* <br>[Patchwork v28,0/12](https://lore.kernel.org/patchwork/cover/75208)<br>*-*-*-*-*-*-*-* <br>[Patchwork v30,0/13](https://lore.kernel.org/patchwork/cover/91119) |
+| 2007/03/01 | Mel Gorman <mel@csn.ul.ie> | [Create optional ZONE_MOVABLE to partition memory between movable and non-movable pages v2](https://lore.kernel.org/patchwork/cover/75221) | NA | v2 ☑ 2.6.23-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/75221) |
+| 2007/04/24 | Mel Gorman <mel@csn.ul.ie> | [Fix two boot problems related to ZONE_MOVABLE sizing](https://lore.kernel.org/patchwork/cover/79220) | NA | v1 ☐ | [PatchWork 0/2](https://lore.kernel.org/patchwork/cover/79220) |
+| 2007/05/17 | Mel Gorman <mel@csn.ul.ie> | [Annotation fixes for grouping pages by mobility v2](https://lore.kernel.org/patchwork/cover/81511) | NA | v1 ☐ | [PatchWork 0/5](https://lore.kernel.org/patchwork/cover/81511) |
+| 2007/05/25 | Mel Gorman <mel@csn.ul.ie> | [Arbitrary grouping and statistics for grouping pages by mobility](https://lore.kernel.org/patchwork/cover/82099) | NA | v1 ☐ | [PatchWork 0/5](https://lore.kernel.org/patchwork/cover/82099))<br>*-*-*-*-*-*-*-* <br>[2007/06/01 Patchwork v4, 0/3](https://lore.kernel.org/patchwork/cover/82585) |
+
 
 Mel Gorman 观察到, 所有使用的内存页有三种情形:
 
@@ -1043,6 +1060,19 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/02/04 | SeongJae Park <sjpark@amazon.com> | [Proactive compaction for the kernel](https://lwn.net/Articles/817905) | 主动进行内存规整, 而不是之前的按需规整. 新的 sysctl 接口 `vm.compaction_pro` 来调整内存规整的主动性, 它规定了 kcompactd 试图维护提交的外部碎片的界限. | v8 ☑ [5.9](https://kernelnewbies.org/Linux_5.9#Memory_management) | [PatchWork v24](https://lore.kernel.org/patchwork/cover/1257280), [LWN](https://lwn.net/Articles/817905) |
+
+
+## 3.5 抗碎片化优化
+-------
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/11/23 | Mel Gorman | [Fragmentation avoidance improvements v5](https://lore.kernel.org/patchwork/cover/1016503) | 伙伴系统页面分配时的反碎片化 | v5 ☑ 5.0-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/cover/1016503) |
+| 2017/03/07 | Vlastimil Babka <vbabka@suse.cz> | [try to reduce fragmenting fallbacks](https://lore.kernel.org/patchwork/cover/766804) | 修复 [Regression in mobility grouping?](https://lkml.org/lkml/2016/9/28/94) 上报的碎片化问题, 通过修改 fallback 机制和 compaction 机制来减少永久随便化的可能性. 其中 fallback 修改时, 仅尝试从不同 migratetype 的 pageblock 中窃取的页面中挑选最小(但足够)的页面. | v3 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v6](https://lore.kernel.org/patchwork/cover/766804), [KernelNewbies](https://kernelnewbies.org/Linux_4.12#Memory_management), [关键 commit 3bc48f96cf11 ("mm, page_alloc: split least stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) |
+| 2008/08/11 | Christoph Lameter <cl@linux-foundation.org> | [Slab Fragmentation Reduction V14](https://lore.kernel.org/patchwork/cover/125818) | SLAB 抗碎片化 | v14 ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/cover/90742)<br>*-*-*-*-*-*-*-* <br>[PatchWork v14](https://lore.kernel.org/patchwork/cover/125818) |
+
 
 # 4 页面回收
 -------
@@ -1475,7 +1505,7 @@ Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 p
 | 2016/06/24 | Johannes Weiner <hannes@cmpxchg.org> | [mm: fix vm-scalability regression in cgroup-aware workingset code](https://lore.kernel.org/patchwork/cover/692559) | commit 23047a96d7cf ("mm:workingset:per cgroup cache thrash detection") 在缓存逐出 workingset_evictio()、探测 workingset_refault() 和激活 workingset_activation() 路径中添加了 page->mem_cgroup 查找, 并[锁定到激活路径](https://elixir.bootlin.com/linux/v4.6/source/mm/workingset.c#L310), vm可伸缩性测试显示了-23%的回归.<br>虽然所讨论的测试是一种在实际工作负载中不会发生的人为最坏情况场景(并行读取两个稀疏文件, 只是为了敲碎 LRU 路径), 但仍然可以在这些路径中进行一些优化.<br>1.
 内联查找函数以消除调用.<br>此外, 在计算激活次数时, 不需要持续 hold page->mem_cgroup, 我们只需要[保持 RCU 锁以防止 memcg 被释放](https://elixir.bootlin.com/linux/v4.8/source/mm/workingset.c#L316). | v1 ☑ 4.8-rc1 | [2016/06/22 PatchWork v1](https://lore.kernel.org/patchwork/cover/691734)<br>*-*-*-*-*-*-*-*<br>[2016/06/24 PatchWork rebase](https://lore.kernel.org/patchwork/patch/692559), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=55779ec759ccc3c12b917b3712a7716e1140c652) |
 | 2016/07/08 | Mel Gorman <mgorman@techsingularity.net> | [Move LRU page reclaim from zones to nodes v9](https://lore.kernel.org/patchwork/cover/696408) | 将 LRU 页面的回收从 ZONE 切换到 NODE. 这里需要将 workingset 从 zone 切换到 node 上. | v9 ☑ [4.8](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork v9](https://lore.kernel.org/patchwork/cover/696408), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1e6b10857f91685c60c341703ece4ae9bb775cf3) |
-| 2018/08/28 | Johannes Weiner <hannes@cmpxchg.org> | [psi: pressure stall information for CPU, memory, and IO v4](https://lore.kernel.org/patchwork/cover/978495) | Refaults 发生在工作集转换和就地抖动期间. 在工作集转换期间, 非活动缓存发生 Refaults 并推出已建立的活动缓存. 但是, 如果活动缓存没有过期, 并且最终会出现 Refaults, 就会造成抖动. 引入一个新的页标志 WORKINGSET_RESTORE, 它在退出时告诉页面在其生命周期内是否处于活动状态. 然后将此位存储在影子条目中, 将故障分类为转换或抖动. | v1 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/978495), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1899ad18c6072d689896badafb81267b0a1092a4) |
+| 2018/08/28 | Johannes Weiner <hannes@cmpxchg.org> | [psi: pressure stall information for CPU, memory, and IO v4](https://lore.kernel.org/patchwork/cover/978495) | 发生 refault 的页面可能是 inactive, 也可能是 active 的.<br>1. 对于前者, 如果非活动缓存以合适的重构距离重构, 称为缓存**工作集转换**, 并将对当前活动列表施加压力.<br>2. 对于后者, 如果 refault 的页面最近并没有访问, 则意味着活动列表不再保护活动使用的缓存免于回收. 但是缓存不会转换到不同的工作设置, 现有的工作设置在分配给页面缓存的空间中受到冲击. 这种我们称为**原地抖动**.<br>为了有效地区分两种场景, 引入一个新的页面标志, 标记被驱逐的页面在其一生中是否处于活动状态. 然后将此位存储在阴影条目中, 以将重构分类为转换 WORKINGSET_ACTIVATE 或抖动 WORKINGSET_RESTORE.. | v1 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/978495), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1899ad18c6072d689896badafb81267b0a1092a4) |
 | 2018/10/09 | Johannes Weiner <hannes@cmpxchg.org> | [mm: workingset & shrinker fixes](https://lore.kernel.org/patchwork/cover/997829) | 通过为循环中的影子节点添加一个计数器, 可以更容易地捕获影子节点收缩器中的 bug. | v1 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/997829), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=68d48e6a2df575b935edd420396c3cb8b6aa6ad3) |
 | 2019/07/01 | Johannes Weiner <hannes@cmpxchg.org> | [mm: vmscan: scan anonymous pages on file refaults](https://lore.kernel.org/patchwork/cover/1095936) | NA | v1 ☑ 5.3-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1090850)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1095351)<br>*-*-*-*-*-*-*-*<br>[PatchWork](https://lore.kernel.org/patchwork/cover/1095936), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2c012a4ad1a2cd3fb5a0f9307b9d219f84eda1fa) |
 | 2019/10/22 | Johannes Weiner <hannes@cmpxchg.org> | [mm/vmscan: cgroup-related cleanups](https://lore.kernel.org/patchwork/cover/1142997) | 这里的 8 个补丁, 清理回收代码与cgroups的交互. 它们不应该改变任何行为, 只是让实现更容易理解和使用. | v1 ☑ 5.5-rc1 | [PatchWork 0/8](https://lore.kernel.org/patchwork/cover/1142997) |
@@ -1584,6 +1614,16 @@ Facebook 指出他们也面临过同样的问题, 所有的 workload 都需要�
 | 2021/03/18 | liubo <liubo254@huawei.com> | [etmem: swap and scan](https://gitee.com/openeuler/kernel/issues/I3W4XW) | openEuler 实现的内存分级扩展技术. | v1 ☐ 4.19 | [etmem tools](https://gitee.com/src-openeuler/etmem) |
 | 2021/07/20 | SeongJae Park <sjpark@amazon.com> | [Introduce DAMON-based Proactive Reclamation](https://lwn.net/Articles/863753) | 该补丁集改进了用于生产质量的通用数据访问模式内存管理的引擎, 并在其之上实现了主动回收. | v2 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/1438747)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1442732)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3](https://lore.kernel.org/patchwork/cover/1464866) |
 | 2021/08/09 | SeongJae Park <sjpark@amazon.com> | [mm: introduce process_mrelease system call](https://lore.kernel.org/patchwork/patch/1474134) | 我们经常希望能杀死不必要的进程, 为更重要的进程释放内存. 例如 Facebook 的 OOM killer 守护程序 oomd 和 Android的低内存killer守护程序lmkd. 对于这样的系统组件, 能够快速有效地释放内存非常. 但是重要不幸的是, 在接收到 SIGKILL 后, 进程释放内存所需的时间可能会根据进程的状态(不间断睡眠)、进程正在运行的内核的大小和 OPP 级别而有所不同. 以更可预测的方式释放目标进程资源的机制将提高系统控制内存压力的能力.<br>引入 process_mrelease 系统调用, 该调用从调用方的上下文中释放即将死亡的进程的内存. 这样, 内存将以一种更可控的方式释放, 并具有CPU相关性和调用方的优先级.<br>释放内存的工作量也将由调用方承担. | v9 ☐ | [PatchWork v9,1/2](https://lore.kernel.org/patchwork/cover/1474134) |
+
+### 4.4.2 其他释放手段
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/09 | Suren Baghdasaryan <surenb@google.com> | [mm: introduce process_mrelease system call](https://lwn.net/Articles/864184) | 引入 process_mrelease() 加速进程的清理.<br>在现代系统中，系统组件监控系统的内存状况并负责控制系统内存压力并不罕见。实现这一目标的一种方法是杀死非必要的过程，为更重要的过程释放内存。
+在现代系统中, 系统组件监控系统的内存状况并负责控制系统内存压力并不罕见. 实现这一目标的一种方法是杀死非必要的过程, 为更重要的进程留出更充足的内存.<br>这方面的例子是 Facebook 的 OOM 杀手 daemon (称为 oomd) 和 Android 的低记忆杀手 daemon(称为 lmkd).<br>对于这样的系统组件, 能够快速有效地释放内存非常重要. 不幸的是, 在接收到 SIGKILL 之后, 过程释放内存所需的时间可能会根据过程的状态(不间断的睡眠), 过程正在运行的核心的大小和 OPP 级别而变化. 以更可预测的方式释放目标过程资源的机制将提高系统控制其内存压力的能力.<br>引入 process_mrelease() 系统调用, 从调用者的上下文中释放垂死过程的内存. 这样, 内存就可以通过CPU亲和力和调用者的优先级以更可控的方式释放. | v9 ☐ | [PatchWork v9,1/2](https://lore.kernel.org/patchwork/cover/1474134) |
+
+
 
 
 # 5 Swappiness
