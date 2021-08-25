@@ -32,7 +32,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 <br>
 
-2   **虚拟化子系统**
+   **工具**
 =====================
 
 
@@ -58,6 +58,14 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 社区一直在寻求一种非邮件列表的内核开发方式, [Pulling GitHub into the kernel process](https://lwn.net/Articles/860607)
 
+
+
+# 2 编译
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/06/14 | Alexander Potapenko <glider@google.com> | [security: allow using Clang's zero initialization for stack variables](https://lore.kernel.org/patchwork/cover/1255765) | 支持 clang 的局部变量零初始化. 通过 CONFIG_INIT_STACK_ALL_ZERO 来启用, clang 可以通过选项 `-ftrivial-auto-var-init=zero -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang` 来保证未初始化局部变量初始化为 0. | RFC v2 ☑ 5.9-rc1 | [PatchWork v2,RFC](https://lore.kernel.org/patchwork/cover/1255765)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC](https://lore.kernel.org/patchwork/patch/1256566) |
 
 
 <br>

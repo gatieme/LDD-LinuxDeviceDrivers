@@ -357,7 +357,7 @@ Peter 后来进行了一些优化
 |:----:|:----:|:---:|:------:|:---:|
 | 2016/06/17 | Peter Zijlstra | [sched/fair: Fix PELT wobblies](https://lore.kernel.org/patchwork/cover/690025) | | v1 ☑ 4.8-rc1 | [PatchWork](ttps://lore.kernel.org/patchwok/cover/690025) |
 | 2017/05/04 | Tejun Heo | [sched/fair: Propagate runnable_load_avg independently from load_avg](https://lore.kernel.org/patchwork/patch/785393) | | v1 ☑ 4.15 | [PatchWork](https://lore.kernel.org/patchwork/patch/782955)<br>*-*-*-*-*-*-*-*<br> [PatchWork](https://lore.kernel.org/patchwork/patch/785395) |
-| 2017/09/01 | Peter Zijlstra | [ A bit of a cgroup/PELT overhaul](https://lore.kernel.org/patchwork/cover/827575) | | v2 ☑ 4.15 | 2017/05/12 [PatchWork RFC](https://lore.kernel.org/patchwork/cover/787364/)<br>*-*-*-*-*-*-*-*<br> 2017/09/01 [PatchWork v1](https://lore.kernel.org/patchwork/cover/827575), [LKML](https://lkml.org/lkml/2017/9/1/331) |
+| 2017/09/01 | Peter Zijlstra | [A bit of a cgroup/PELT overhaul](https://lore.kernel.org/patchwork/cover/827575) | | v2 ☑ 4.15 | 2017/05/12 [PatchWork RFC,00/14](https://lore.kernel.org/patchwork/cover/787364)<br>*-*-*-*-*-*-*-*<br> 2017/09/01 [PatchWork -v2,00/18](https://lore.kernel.org/patchwork/cover/827575), [LKML](https://lkml.org/lkml/2017/9/1/331) |
 
 
 ```cpp

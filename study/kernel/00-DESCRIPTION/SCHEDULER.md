@@ -78,9 +78,27 @@ Mainline Merge Window
 | 5.13 | 2021/06/28 | [Merge tag 'sched-core-2021-04-28', 5.13-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=16b3d0cf5bad844daaf436ad2e9061de0fe36e5c)<br>[Merge tag 'sched-urgent-2021-05-09', 5.13-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9819f682e48c6a7055c5d7a6746411dd3969b0e5)<br>[Merge tag 'sched-urgent-2021-05-15', 5.13-rc2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c12a29ed9094b4b9cde8965c12850460b9a79d7c)<br>[Merge tag 'sched-urgent-2021-06-12', 5.13-rc6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=99f925947ab0fd5c17b74460d8b32f1aa1c86e3a)<br>[Merge tag 'sched_urgent_for_v5.13_rc6', 5.13-rc7, 2021/06/20](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cba5e97280f53ec7feb656fcdf0ec00a5c6dd539)<br>[Merge tag 'sched-urgent-2021-06-24', 5.13](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=666751701b6e4b6b6ebc82186434806fa8a09cf3)<br> |
 | 5.14 | NA | [Merge tag 'sched-core-2021-06-28'](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=54a728dc5e4feb0a9278ad62b19f34ad21ed0ee4) |
 
+## 0.4 社区会议
+-------
 
 
-## 0.4 社区几个调度的大神
+### 0.4.1 Linux Plumbers Conference
+-------
+
+Scheduler Microconference Accepted into Linux Plumbers Conference
+
+`2010~2017` 年的内容, 可以在 [wiki](http://wiki.linuxplumbersconf.org/?do=search&id=scheduler) 检索.
+
+| 日期 | 官网 | LKML | LWN |
+|:---:|:----:|:----:|:---:|
+| [2021](https://linuxplumbersconf.org/event/11/page/104-accepted-microconferences) | [LPC 2021 - Overview](https://www.linuxplumbersconf.org/event/11/page/103-lpc-2021-overview) | [[ANNOUNCE] CFP: Scheduler Microconference - Linux Plumbers Conference 2021](https://lkml.org/lkml/2021/8/9/718) | [A look forward to Linux Plumbers 2021](https://lwn.net/Articles/864016) |
+| [2020](https://linuxplumbersconf.org/event/7/page/44-microconferences) | [Scheduler Microconference 2020](https://www.linuxplumbersconf.org/blog/2020/scheduler-microconference-accepted-into-2020-linux-plumbers-conference) | NA | NA |
+| [2019](https://linuxplumbersconf.org/event/4/page/38-microconferences) | [Scheduler Microconference 2019](https://www.linuxplumbersconf.org/blog/2019/scheduler-microconference-accepted-into-2019-linux-plumbers-conference) | NA | NA |
+| [2018](https://www.linuxplumbersconf.org/2018) | [Power Management and Energy-awareness Microconference 2018](https://blog.linuxplumbersconf.org/2018/power-management-mc)<br>[timeline](https://www.linuxplumbersconf.org/event/2/timetable/?view=lpc) | NA | [Notes from the LPC scheduler microconference](https://lwn.net/Articles/734039) |
+| [2017](https://blog.linuxplumbersconf.org/2017) | [Scheduler Workloads Microconference 2017](http://wiki.linuxplumbersconf.org/2017:scheduler_workloads) | | [Notes from the LPC scheduler microconference](https://lwn.net/Articles/734039)
+
+
+## 0.5 社区几个调度的大神
 -------
 
 - [x] [Mel Gorman mgorman@techsingularity.net](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=19167)
@@ -93,7 +111,7 @@ Mainline Merge Window
 
 
 
-## 0.5 目录
+## 0.6 目录
 -------
 
 - [x] 1. 进程调度类
@@ -1016,12 +1034,16 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 ## 8.3 task/CPU 隔离
 -------
 
+
+
+### 8.3.1 降噪
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2017/11/27 | Frederic Weisbecker | [housekeeping: Move housekeeping related code to its own file](https://lore.kernel.org/patchwork/patch/845141) |  housekeepin 的代码目前与 nohz 绑定在了一起. 先把他们拆分出来, 后期计划将两个功能拆开 | v1☑ 4.15-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/845141) |
 | 2017/12/14 | Frederic Weisbecker | [sched/isolation: Make NO_HZ_FULL select CPU_ISOLATION](https://lore.kernel.org/patchwork/patch/863225) | 增加 cpu_capacity 的跟踪点 | v1☑ 4.15-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/863225) |
 | 2018/02/21 | Frederic Weisbecker | [isolation: 1Hz residual tick offloading v7](https://lore.kernel.org/patchwork/patch/888860) | 当CPU在full dynticks模式下运行时, 一个1Hz的滴答保持, 以保持调度器的统计状态活着. 然而, 对于那些根本无法忍受任何中断或想要最小化中断的裸金属任务来说, 这种残留的滴答是一种负担. 这组补丁将这个 1HZ 的 TICK 也从 CPU 上卸载掉. | v7 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/888860) |
-| 2020/11/23 | Alex Belits | [support "task_isolation" mode](https://lwn.net/Articles/816298) | NO_HZ_FULL 的进一步优化, 进一步降低 tick 等对隔离核的影响 | v5 ☐ | [2016 Chris Metcalf v16](https://lore.kernel.org/patchwork/cover/847460)<br>*-*-*-*-*-*-*-* <br>Alex Belits 2020 [LWN](https://lwn.net/Articles/813804), [PatchWork](https://lore.kernel.org/patchwork/cover/1344134), [lkml](https://lkml.org/lkml/2020/11/23/1380) |
 | 2020/12/27 | Frederic Weisbecker | [context_tracking: Flatter archs not using exception_enter/exit() v2](https://lore.kernel.org/patchwork/patch/1327311) | 为了能够在运行时打开/关闭 nohz_full 所做的准备, 需要 arch 放弃在任务堆栈上保存上下文跟踪状态, 因为这将迫使上下文跟踪在整个系统范围内运行, 即使是在没有启用 nohz_full 的 CPU 上 | v2 ☑ 5.11-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1327311) |
 
 
@@ -1054,7 +1076,31 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 
 第三个补丁 [net: Restrict receive packets queuing to housekeeping CPUs](), 现有的 store_rps_map 机制会将报文发到其他 CPU 的 backlog 队列中接收, 无论该 COU 是否被隔离. 从而导致对隔离核造成干扰. 因此在选择 CPU 时, 只从非隔离核中选择. 使用启动参数开启此功能, isolcpus 和 nohz_full 均可.
 
+### 8.3.2 task_isolation mode
+-------
 
+2020 年, 开发社区对 ["task_isolation" mode](https://lwn.net/Articles/816298) 进行了激烈的讨论, 这个特性允许那些对 latency 很敏感的应用程序在没有内核干扰的情况下得以在 CPU 上运行. 这项工作最终没有被 merge, 但人们显然仍然对这种模式很感兴趣. 这组补丁启发了 来自 Redhat 的 Marcelo Tosatti.
+
+2021 年, Marcelo Tosatti 采取了一种更简单的方法来解决这个问题, 至少起初的时候是这样的. 这个 patch 着重关注的是, 哪怕 CPU 在 "nohz" 模式下运行时不会有定期的 clock tick, 也仍然会产生内核中断, 因此会引出麻烦. 具体而言, 他正在研究 "vmstat" 代码, 这部分代码是为内存管理子系统执行清理工作的. 其中一些工作是在一个单独的线程中完成的(通过一个工作队列来运行), 当 CPU 运行在 nohz 模式下时, 该线程通常会被禁用. 不过, 有些情况会导致这个线程在 nohz CPU 上被重新 reschedule 得以运行, 从而导致原来的应用程序无法再独占该处理器.
+
+Tosatti 的 patch set 增加了一组新的 prctl() 命令来解决这个问题.
+
+| 模式 | 描述 |
+|:---:|:---:|
+| PR_ISOL_SET | 设置 "isolation parameters", 这个参数可以是 PR_ISOL_MODE_NONE 或 PR_ISOL_MODE_NORMAL. 后者要求内核避免发生中断. |
+| PR_ISOL_ENTER | task 进入 isolation 模式. |
+| PR_ISOL_EXIT | task 退出 isolation 模式. 执行这个操作系统将变成 PR_ISOL_MODE_NONE 模式.  |
+| PR_ISOL_GET | 获取 "isolation parameters" 参数 |
+
+内核看到需要进入 isolation 模式的时候, 就会立即执行之前推迟的所有 vmstat 工作, 这样内核就不会在以后不方便清理的时候再做这个工作了. 在 isolation mode 中, 任何一次系统调用结束的时候都会触发这个 deferred-work 要完成的 cleanup 动作. 因为这些系统调用很可能总会触发一些 delayed work, 这样在应用程序代码运行时情况不会被弄得更加混乱.
+
+这个改动的意图明显是希望使这类功能更加普遍适用, 也就是保证任何一个 delayed work 都要得以立即执行. 这导致其他人(包括 Nicolás Sáenz)的质疑, 认为这种采用单一的 mode 来控制那些各种不同的内核操作是不对的. 他说, 将各种行为分割开来, 后续就可以将一些决策动作转移到用户空间. 经过反反复复的讨论, Tosatti 同意修改接口, 让用户空间可以明确控制每个可能会用到的 isolation 功能. 因此 v2 实现该 API, 它增加了一个新的操作(PR_ISOL_FEAT), 用于查询 isolation 模式激活时可以被静默掉的那些 action.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2020/11/23 | Alex Belits | [support "task_isolation" mode](https://lwn.net/Articles/816298) | NO_HZ_FULL 的进一步优化, 进一步降低 tick 等对隔离核的影响 | v5 ☐ | [2016 Chris Metcalf v16](https://lore.kernel.org/patchwork/cover/847460)<br>*-*-*-*-*-*-*-* <br>[Alex Belits 2020 LWN](https://lwn.net/Articles/813804), [PatchWork](https://lore.kernel.org/patchwork/cover/1344134), [lkml](https://lkml.org/lkml/2020/11/23/1380) |
+| 2021/07/30 | Marcelo Tosatti <mtosatti@redhat.com> | [extensible prctl task isolation interface and vmstat sync](https://lwn.net/Articles/864603) | 添加 prctl 来控制 task isolation 模式. 依赖于之前 "task isolation mode" 的基础代码实现, 内核看到需要进入 isolation 模式的时候, 就会立即执行之前推迟的所有 vmstat 工作, 这样内核就不会在以后不方便清理的时候再做这个工作了. 目前借助这个特性优化了 vmstat 的干扰. | v2 ☐ | [2021/07/27 Chris Metcalf 0/4](https://lore.kernel.org/patchwork/cover/1468441)<br>*-*-*-*-*-*-*-* <br>[2021/07/30 PatchWork v2, 0/4](https://lore.kernel.org/patchwork/cover/1470296)<br>*-*-*-*-*-*-*-* <br> |
 
 
 ## 8.4 更精确的调度时钟(HRTICK), 2.6.25(2008年4月发布)**
