@@ -260,6 +260,14 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 
 
+## 1.7 Quicklist
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2007/03/23 | Christoph Lameter <clameter@sgi.com> | [Quicklists for page table pages V4](https://lore.kernel.org/patchwork/cover/76916) | NA | v1  ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/76097)<br>*-*-*-*-*-*-*-* <br> [PatchWork v2](https://lore.kernel.org/patchwork/cover/76244)<br>*-*-*-*-*-*-*-* <br> [PatchWork v3](https://lore.kernel.org/patchwork/cover/76702)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4](https://lore.kernel.org/patchwork/cover/76916)<br>*-*-*-*-*-*-*-* <br>[PatchWork v5](https://lore.kernel.org/patchwork/cover/78116) |
+| 2019/08/08 | Christoph Lameter <clameter@sgi.com> | [mm: remove quicklist page table caches](https://lore.kernel.org/patchwork/cover/1112468) | NA | v1  ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/cover/1112468) |
+
 
 # 2 内存分配
 -------
@@ -655,10 +663,10 @@ Linux slab 分配器使用了这种思想和其他一些思想来构建一个在
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2007/02/28 | Christoph Lameter <clameter@engr.sgi.com> | [SLUB The unqueued slab allocator V3](https://lore.kernel.org/patchwork/cover/75156) | 优化调度器的路径, 减少对 rq->lock 的争抢, 实现 lockless. | v3 ☑ 2.6.22-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/75156), [commit 81819f0fc828 SLUB core](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=81819f0fc8285a2a5a921c019e3e3d7b6169d225) |
+| 2007/02/28 | Christoph Lameter <clameter@engr.sgi.com> | [SLUB The unqueued slab allocator V6](https://lore.kernel.org/patchwork/cover/77393) | 优化调度器的路径, 减少对 rq->lock 的争抢, 实现 lockless. | v3 ☑ 2.6.22-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/cover/75156)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6](https://lore.kernel.org/patchwork/cover/75156), [commit 81819f0fc828 SLUB core](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=81819f0fc8285a2a5a921c019e3e3d7b6169d225) |
 | 2011/08/09 | Christoph Lameter <cl@linux.com> | [slub: per cpu partial lists V4](https://lore.kernel.org/patchwork/cover/262225) | slub 的 per-cpu 页面池, 有助于避免每个节点锁定开销, 使得 SLUB 的部分工作(比如fastpath和free slowpath)可以进一步在不禁用中断的情况下工作, 可以进一步减少分配器的延迟. | v3 ☑ 2.6.22-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/262225) |
 | 2020/10/15 | Kees Cook <keescook@chromium.org> | [Actually fix freelist pointer vs redzoning](https://lore.kernel.org/patchwork/cover/1321332) | NA | v3 ☑ 2.6.22-rc1 | [PatchWork v3,0/3](https://lore.kernel.org/patchwork/cover/1321332) |
-| 2021/07/29 | Vlastimil Babka <vbabka@suse.cz> | [SLUB: reduce irq disabled scope and make it RT compatible](https://lore.kernel.org/patchwork/cover/1469467) | 本系列最初是受到 Mel 的 pcplist local_lock 重写的启发, 同时也对更好地理解 SLUB 的锁以及新的原语、RT变体和含义感兴趣. 使 SLUB 更有利于抢占, 特别是对于RT. | v3 ☐ 5.14-rc3 | [PatchWork v3,00/35](https://patchwork.kernel.org/project/linux-mm/cover/20210729132132.19691-1-vbabka@suse.cz) |
+| 2021/08/23 | Vlastimil Babka <vbabka@suse.cz> | [SLUB: reduce irq disabled scope and make it RT compatible](https://lore.kernel.org/patchwork/cover/1469467) | 本系列最初是受到 Mel 的 pcplist local_lock 重写的启发, 同时也对更好地理解 SLUB 的锁以及新的原语、RT变体和含义感兴趣. 使 SLUB 更有利于抢占, 特别是对于RT. | v3 ☐ 5.14-rc3 | [PatchWork v3,00/35](https://patchwork.kernel.org/project/linux-mm/cover/20210729132132.19691-1-vbabka@suse.cz)<br>*-*-*-*-*-*-*-* <br>[PatchWork v5,00/35](https://patchwork.kernel.org/project/linux-mm/cover/20210823145826.3857-1-vbabka@suse.cz) |
 
 
 
@@ -723,7 +731,7 @@ Roman Gushchin indirectly reclaimable memory](https://lore.kernel.org/patchwork/
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/03/05 | Roman Gushchin <guro@fb.com> | [indirectly reclaimable memory](https://lore.kernel.org/patchwork/cover/922092) | 引入间接回收内存的概念( `/proc/vmstat/nr_indirect _reclaimable`). 间接回收内存是任何类型的内存, 由内核使用(除了可回收的 slab), 这实际上是可回收的, 即将在内存压力下释放. 并[被当作 available 的内存对待](034ebf65c3c21d85b963d39f992258a64a85e3a9). | v1 ☑ [4.17-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/922092)) |
-| 2018/07/31 | Vlastimil Babka <vbabka@suse.cz> | [kmalloc-reclaimable caches](https://lore.kernel.org/patchwork/cover/969264) | 为 kmalloc 引入回收 SLAB, dcache external names 是 kmalloc-rcl-* 的第一个用户.  | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) | [PatchWork v4](https://lore.kernel.org/patchwork/cover/969264)) |
+| 2018/07/31 | Vlastimil Babka <vbabka@suse.cz> | [kmalloc-reclaimable caches](https://lore.kernel.org/patchwork/cover/969264) | 为 kmalloc 引入回收 SLAB, dcache external names 是 kmalloc-rcl-* 的第一个用户.  | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Memory_management) |  [PatchWork v4](https://lore.kernel.org/patchwork/cover/969264)) |
 
 
 https://lore.kernel.org/patchwork/patch/76916
@@ -1913,6 +1921,7 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2007/10/04 | Christoph Lameter <clameter@sgi.com> | [Virtual Compound Page Support V2](https://lore.kernel.org/patchwork/cover/93090) | NA | ☑ 4.11-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/93090) |
 | 2017/01/26 | Matthew Wilcox <willy@infradead.org><br>Dave Jiang <dave.jiang@intel.com> | [Support for transparent PUD pages](https://lwn.net/Articles/669232) | NA | ☑ 4.11-rc1 | [PatchWork RFC](https://patchwork.kernel.org/project/linux-nvdimm/patch/148545059381.17912.8602162635537598445.stgit@djiang5-desk3.ch.intel.com) |
 | 2021/07/30 | Hugh Dickins <hughd@google.com> | [tmpfs: HUGEPAGE and MEM_LOCK fcntls and memfds](https://lwn.net/Articles/669232) | NA  | ☑ 4.11-rc1 | [PatchWork 00/16](https://patchwork.kernel.org/project/linux-mm/cover/2862852d-badd-7486-3a8e-c5ea9666d6fb@google.com) |
 
