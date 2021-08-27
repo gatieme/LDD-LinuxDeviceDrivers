@@ -362,7 +362,9 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2006/08/21 | Mel Gorman <mel@csn.ul.ie> | [Sizing zones and holes in an architecture independent manner V9](https://lore.kernel.org/patchwork/cover/63170) | NA | v1 ☑ v2.6.19-rc1 | [PatchWork 0/2](https://lore.kernel.org/patchwork/cover/63170) |
 | 2007/12/11 | Mel Gorman <mel@csn.ul.ie> | [Use two zonelists per node instead of multiple zonelists v11r2](https://lore.kernel.org/patchwork/cover/99109) | 优化分配器处理区域列表, 区域列表指示分配目标区域的顺序. 类似地, 页面的直接回收会在区域数组上迭代. 为了保持一致性, 这组补丁将直接回收转换为使用分区列表, 并简化 zonelist 迭代器.<br>将每个节点的多个(两组)分区列表替换为两个分区列表, 一组用于系统中的每个分区类型, 另一组用于 GFP_THISNODE 分配. 根据 gfp 掩码允许的分区, 选择其中一个分区列表. 所有这些分区列表都会消耗内存并占用缓存线. | v1 ☑ v2.6.19-rc1 | [PatchWork v11r2,0/6](https://lore.kernel.org/patchwork/cover/99109) |
-
+| 2021/08/10 | Baoquan He <bhe@redhat.com> | [Avoid requesting page from DMA zone when no managed pages](https://lore.kernel.org/patchwork/cover/1474378) | TODO | v1 ☑ v2.6.19-rc1 | [PatchWork RFC,v2,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20210810094835.13402-1-bhe@redhat.com) |
+https://patchwork.kernel.org/project/linux-mm/patch/20210810062626.1012-6-kirill.shutemov@linux.intel.com/
+https://patchwork.kernel.org/project/linux-mm/patch/20210809093750.131091-3-wangkefeng.wang@huawei.com/
 
 
 ### 2.1.2 fair allocation zone policy
@@ -1968,7 +1970,7 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/12/22 | Liang Li <liliang.opensource@gmail.com> | [add support for free hugepage reporting](https://lore.kernel.org/patchwork/cover/1355899) | Free page reporting 只支持伙伴系统中的页面, 它不能报告为 hugetlbfs 预留的页面. 这个补丁在 hugetlb 的空闲列表中增加了对报告巨大页的支持, 它可以被 virtio_balloon 驱动程序用于内存过载和预归零空闲页, 以加速内存填充和页面错误处理. | RFC ☐ | [PatchWork RFC,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20201222074538.GA30029@open-light-1.localdomain) |
-| 2021/07/21 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: add demote/split page functionality](https://lore.kernel.org/patchwork/cover/1465517) | 实现了 hugetlb 降低策略. 提供了一种“就地”将 hugetlb 页面分割为较小的页面的方法. | v1 ☐ 5.14 | [PatchWork 0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210721230511.201823-1-mike.kravetz@oracle.com) |
+| 2021/08/16 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: add demote/split page functionality](https://lore.kernel.org/patchwork/cover/1465517) | 实现了 hugetlb 降低策略. 提供了一种“就地”将 hugetlb 页面分割为较小的页面的方法. | v1 ☐ 5.14 | [2021/07/21 PatchWork 0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210721230511.201823-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/08/16 PatchWork RESEND,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210816224953.157796-1-mike.kravetz@oracle.com) |
 
 
 ## 7.2 透明大页的支持
@@ -2029,8 +2031,6 @@ https://lore.kernel.org/patchwork/cover/1118785
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/12/19 | Colin Cross | [mm: add a field to store names for private anonymous memory](https://lore.kernel.org/patchwork/cover/416962) | 在二进制中通过 xxx_sched_class 地址顺序标记调度类的优先级, 从而可以通过直接比较两个 xxx_sched_class 地址的方式, 优化调度器中两个热点函数 pick_next_task()和check_preempt_curr(). | v2 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/416962)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/416962) |
-| 2018/05/17 | Laurent Dufour <ldufour@linux.vnet.ibm.com> | [Speculative page faults](https://lore.kernel.org/patchwork/cover/906210) | 优化 MM 的 locking | v11 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/906210)
-| 2020/02/24 | Michel Lespinasse <walken@google.com> | [Fine grained MM locking](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) | 优化 MM 的 locking | RFC ☐ | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) |
 
 
 
@@ -2089,6 +2089,14 @@ https://events.static.linuxfound.org/sites/events/files/slides/mm.pdf
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2013/01/31 | Michel Lespinasse <walken@google.com> | [Mapping range lock](https://lore.kernel.org/patchwork/cover/356467) | 文件映射的 mapping lock | RFC ☐  | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/356467) |
 | 2020/02/24 | Michel Lespinasse <walken@google.com> | [Fine grained MM locking](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) | 细粒度 MM MMAP lock | RFC ☐  | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) |
+
+* Maple Tree
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/17 | Liam Howlett <liam.howlett@oracle.com> | [Introducing the Maple Tree](https://lore.kernel.org/patchwork/cover/1477973) | Maple Tree 是一种基于 RCU 安全范围的 B树, 旨在高效使用现代处理器缓存. 在内核中有许多地方, 基于范围的非重叠树是有益的, 尤其是具有简单接口的树. Maple Tree 的第一个用户是 vm_area_struct, 当前替换了三个结构: 增强 rbtree、vma 缓存和 mm_struct 中的 vma linked 链表. 长期目标是减少或消除 mmap_sem 争用.
+ | v2 ☐ | [PatchWork v2,00/61](https://patchwork.kernel.org/project/linux-mm/cover/20210817154651.1570984-1-Liam.Howlett@oracle.com) |
+
 
 ## 8.3 反向映射 RMAP(Reverse Mapping)
 -------
@@ -2671,6 +2679,24 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 | 2021/07/22 | Huang Ying <ying.huang@intel.com> | [NUMA balancing: optimize memory placement for memory tiering system](https://lore.kernel.org/patchwork/cover/1465579) | NA | v1 ☐ 5.13 | [PatchWork RFC,-V7,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20210722031819.3446711-1-ying.huang@intel.com) |
 
 
+## 12.5 异构内存(CPU & GPU)
+-------
+
+
+AMD 正在研究一种异构超级计算机架构, 该架构在 CPU 和 GPU 之间具有一致的互连. 这种硬件架构允许 CPU 连贯地访问 GPU 设备内存. Alex Sierra 所在的实验室正在与合作伙伴 HPE 合作, 开发 BIOS、固件和软件, 以交付给 DOE.
+
+系统 BIOS 在 UEFI 系统地址映射中将 GPU 设备内存(也称为VRAM)作为 SPM(专用内存)播发. AMD GPU 驱动程序可以通过 lookup_resource() 查找到这些内存资源, 并使用  devm_memremap_pages() 将其注册为通用内存设备(MEMORY_DEVICE_GENERIC)使用.
+
+补丁集 [Support DEVICE_GENERIC memory in migrate_vma_*](https://lore.kernel.org/patchwork/cover/1472581) 进行了一些更改, 尝试通过使用 `migrate_vma_*()` 辅助函数将数据迁移到该内存中, 以便在统一内存分配中支持基于页面的迁移, 同时还支持 CPU 直接访问对这些页面.
+
+这项工作基于 HMM 和 SVM 内存管理器，该内存管理器最近被上传到 Dave Airlie 的 [drm-next](https://cgit.freedesktop.org/drm/drm/log/?h=drm-next), 其中对用于迁移的 VRAM 管理进行了一些返工, 以消除一些不正确的假设, 允许在 VRAM 和系统内存中混合页面的部分成功迁移和 GPU 内存映射, 参见 [drm/amdkfd: add owner ref param to get hmm pages Felix](https://lore.kernel.org/dri-devel/20210527205606.2660-6-Felix.Kuehling@amd.com/T/#r996356015e295780eb50453e7dbd5d0d68b47cbc)
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/05 | Alex Sierra <alex.sierra@amd.com> | [Support DEVICE_GENERIC memory in migrate_vma_*](https://lore.kernel.org/patchwork/cover/1472581) | NA | v1 ☐ | [PatchWork v6,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20210813063150.2938-1-alex.sierra@amd.com) |
+
+
 # 13 内存管理调试支持
 -------
 
@@ -3052,6 +3078,8 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2005/11/01 | Christoph Lameter <clameter@sgi.com> | [Swap Migration V5: Overview](https://lwn.net/Articles/157066) | 交换迁移允许在进程运行时通过交换在 NUMA 系统中的节点之间移动页的物理位置.<br>1. 这组补丁不会自动迁移已移动的进程的内存, 相反, 它把迁移决策留给了用户空间. 因此并没有直接解决进程跨接点迁移后内存不能跟随迁移的问题, 但它确实试图建立了迁移的通用框架, 以便最终能够发展出完整的迁移解决方案.<br>2. 引入个新的系统调用 migrate_pages 尝试将属于给定进程的任何页面从 old_nodes 移动到 new_nodes.<br>3. 新的 MPOL_MF_MOVE 选项, 在 set_mempolicy() 系统调用中使用, 可用于相同的效果. | v5 ☑ 2.6.16-rc1 | [PatchWork v5,0/5](https://lore.kernel.org/patchwork/cover/45422) |
 | 2006/01/10 | Christoph Lameter <clameter@sgi.com> | [Direct Migration V9: Overview](https://lore.kernel.org/patchwork/cover/49754) | NA | v9 ☑ 2.6.16-rc2 | [PatchWork v9,0/5](https://lore.kernel.org/patchwork/cover/49754) |
 | 2021/08/05 | Christoph Lameter <clameter@sgi.com> | [Some cleanup for page migration](https://lore.kernel.org/patchwork/cover/1472581) | NA | v1 ☐ | [PatchWork 0/5](https://lore.kernel.org/patchwork/cover/49754) |
+
+
 
 ## 14.9 [Free Page Reporting](https://www.kernel.org/doc/html/latest/vm/free_page_reporting.html)
 -------
