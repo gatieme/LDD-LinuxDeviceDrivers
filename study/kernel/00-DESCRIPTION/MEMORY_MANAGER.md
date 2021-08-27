@@ -260,13 +260,34 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 
 
-## 1.7 Quicklist
+## 1.7 page table pages
+-------
+
+### 1.7.1 Quicklist
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2007/03/23 | Christoph Lameter <clameter@sgi.com> | [Quicklists for page table pages V4](https://lore.kernel.org/patchwork/cover/76916) | NA | v1  ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/76097)<br>*-*-*-*-*-*-*-* <br> [PatchWork v2](https://lore.kernel.org/patchwork/cover/76244)<br>*-*-*-*-*-*-*-* <br> [PatchWork v3](https://lore.kernel.org/patchwork/cover/76702)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4](https://lore.kernel.org/patchwork/cover/76916)<br>*-*-*-*-*-*-*-* <br>[PatchWork v5](https://lore.kernel.org/patchwork/cover/78116) |
-| 2019/08/08 | Christoph Lameter <clameter@sgi.com> | [mm: remove quicklist page table caches](https://lore.kernel.org/patchwork/cover/1112468) | NA | v1  ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/cover/1112468) |
+| 2019/08/08 | Christoph Lameter <clameter@sgi.com> | [mm: remove quicklist page table caches](https://lore.kernel.org/patchwork/cover/1112468) | 内核提前直接映射好足够的 PTE 级别的页面, 引入 `__GFP_PTE_MAPPED` 标志, 当使用此标记分配 order 为 0 页面时, 将在直接映射中的 PTE 级别进行映射.<br>目前只是分配页表时使用 `__GFP_PTE_MAPPED` 分配页表, 以便它们在直接映射中具有 4K PTE. | v1  ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/cover/1112468) |
+
+
+### 1.7.2 Quicklist
+-------
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/23 | Mike Rapoport <rppt@linux.ibm.com> | [mm/page_alloc: cache pte-mapped allocations](https://lore.kernel.org/patchwork/cover/1480366) | NA | v1  ☐ | [PatchWork RFC,0/4](https://lore.kernel.org/patchwork/cover/1480366) |
+
+
+## 1.8 memory policy
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/03 | Feng Tang <feng.tang@intel.com> | [Introduce multi-preference mempolicy](https://lore.kernel.org/patchwork/cover/1471473) | 引入 MPOL_PREFERRED_MANY 的 policy, 该 mempolicy 模式可用于 set_mempolicy 或 mbind 接口.<br>1. 与 MPOL_PREFERRED 模式一样, 它允许应用程序为满足内存分配请求的节点设置首选项.但是与 MPOL_PREFERRED 模式不同, 它需要一组节点.<br>2. 与 MPOL_BIND 接口一样, 它在一组节点上工作, 与 MPOL_BIND 不同, 如果首选节点不可用, 它不会导致 SIGSEGV 或调用 OOM killer. | v7 ☐ | [PatchWork v7,0/5](https://lore.kernel.org/patchwork/cover/1471473) |
 
 
 # 2 内存分配
@@ -1367,7 +1388,7 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/05/20 | Yu Zhao <yuzhao@google.com> | [Multigenerational LRU](https://lwn.net/Articles/1394674) | 将 LRU 的列表划分为多代老化. 通过 CONFIG_LRU_GEN 来控制. | v3 ☐ | [Patchwork v1,00/14](https://lore.kernel.org/patchwork/patch/1394674)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2,00/16](https://lore.kernel.org/patchwork/cover/1412560)<br>*-*-*-*-*-*-*-*<br>[PatchWork v3,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210520065355.2736558-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[PatchWork v4,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20210818063107.2696454-1-yuzhao@google.com) |
+| 2021/05/20 | Yu Zhao <yuzhao@google.com> | [Multigenerational LRU](https://lwn.net/Articles/1394674) | 将 LRU 的列表划分为多代老化. 通过 CONFIG_LRU_GEN 来控制. | v3 ☐ | [Patchwork v1,00/14](https://lore.kernel.org/patchwork/patch/1394674)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2,00/16](https://lore.kernel.org/patchwork/cover/1412560)<br>*-*-*-*-*-*-*-*<br>[PatchWork v3,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210520065355.2736558-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/08/18 PatchWork v4,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20210818063107.2696454-1-yuzhao@google.com) |
 
 
 

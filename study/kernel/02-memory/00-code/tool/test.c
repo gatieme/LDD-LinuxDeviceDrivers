@@ -1,3 +1,4 @@
+// https://zhuanlan.zhihu.com/p/320688306
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -8,6 +9,8 @@
 
 int main(void)
 {
+	char c;
+
 	int fd = open("1.bat", O_RDWR|O_CREAT|O_TRUNC, 0777);
 	ftruncate(fd, 5000);
 
@@ -21,10 +24,14 @@ int main(void)
 	printf("addr_mmap_p: %p, addr_mmap_s: %p, addr_malloc: %p\n",
 			addr_mmap_p, addr_mmap_s, addr_malloc);
 
+	c = getchar();
 	addr_mmap_p[pagesize - 1] = 0;
 	addr_mmap_s[pagesize - 1] = 0;
 	*addr_malloc = 0;
-	char c = getchar();
+
+	c = getchar();
+	printf("addr_mmap_p: %p, addr_mmap_s: %p, addr_malloc: %p\n",
+			addr_mmap_p, addr_mmap_s, addr_malloc);
 
 	return 0;
 }
