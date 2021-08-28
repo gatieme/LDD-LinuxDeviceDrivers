@@ -1025,6 +1025,7 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 ## 8.2 NO_HZ
 -------
 
+NOHZ 社区测试用例 [frederic/dynticks-testing.git](https://git.kernel.org/pub/scm/linux/kernel/git/frederic/dynticks-testing.git)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|

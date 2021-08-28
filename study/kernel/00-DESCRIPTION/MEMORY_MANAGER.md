@@ -1090,6 +1090,7 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/06/16 | Nitin Gupta <nigupta@nvidia.com> | [mm: Proactive compaction](https://patchwork.kernel.org/project/linux-mm/patch/20200616204527.19185-1-nigupta@nvidia.com) | NA | v8 ☐ 5.6.0-rc3 | [PatchWork v8](https://patchwork.kernel.org/project/linux-mm/patch/20200616204527.19185-1-nigupta@nvidia.com) |
 | 2021/02/04 | SeongJae Park <sjpark@amazon.com> | [Proactive compaction for the kernel](https://lwn.net/Articles/817905) | 主动进行内存规整, 而不是之前的按需规整. 新的 sysctl 接口 `vm.compaction_pro` 来调整内存规整的主动性, 它规定了 kcompactd 试图维护提交的外部碎片的界限. | v8 ☑ [5.9](https://kernelnewbies.org/Linux_5.9#Memory_management) | [PatchWork v24](https://lore.kernel.org/patchwork/cover/1257280), [LWN](https://lwn.net/Articles/817905) |
 
 
@@ -2000,6 +2001,7 @@ https://lore.kernel.org/patchwork/cover/1118785
 
 
 
+
 ### 7.2.1 improve thp collapse rate
 -------
 
@@ -2020,6 +2022,16 @@ https://lore.kernel.org/patchwork/cover/1118785
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/05/10 | Yu Zhao <yuzhao@google.com> | [mm: optimize thp for reclaim and migration](https://lore.kernel.org/patchwork/cover/1470432) | 对 THP 的回收和迁移进行优化.<br>使用配置 THP 为 always 的时候, 大量 THP 的内部碎片会造成不小的内存压力. 用户空间可以保留许多子页面不变, 但页面回收不能简单的根据 dirty bit 来识别他们.<brr>但是, 仍然可以通过检查子页面的内容来确定它是否等同于干净. 当拆分 THP 用于回收或迁移时, 我们可以删除只包含0的子页面, 从而避免将它们写回或复制它们. | v23 ☑ 4.5-rc1 | [PatchWork 0/3](https://patchwork.kernel.org/project/linux-mm/cover/20210731063938.1391602-1-yuzhao@google.com) |
 | 2021/05/29 | Ning Zhang <ningzhang@linux.alibaba.com> | [mm, thp: introduce a controller to trigger thp reclaim](https://github.com/gatieme/linux/commit/57456d1625ba9036968fa0be70a6036b88f2b2f4) | 实现 MEMCG 的 THP 回收. | v1 ☐ | [PatchWork 0/3](https://patchwork.kernel.org/project/linux-mm/cover/20210731063938.1391602-1-yuzhao@google.com) |
+
+### 7.2.3 Reduce memory bloat
+-------
+
+当前, 如果启用THP的策略为 "always", 或模式为 "madvise" 且某个区域标记为 MADV_HUGEPAGE 时, 内核都会优先分配大页, 而即使 pud或pmd为空. 这会产生最佳的 VA 翻译性能, 减少 TLB 冲突, 但是却增加了内存的消耗. 特别是但如果仅仅访问大页的一些小页面范围, 则会增加内存消耗.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/01/19 | Anthony Yznaga <anthony.yznaga@oracle.com> | [mm: Reduce memory bloat with THP](https://marc.info/?l=linux-mm&m=151631857310828&w=2) | NA | RFC,v2 ☐  | [PatchWork RFC,v2](https://lkml.org/lkml/2018/1/19/252) |
+| 2018/11/09 | Anthony Yznaga <anthony.yznaga@oracle.com> | [mm: thp: implement THP reservations for anonymous memory](https://lore.kernel.org/patchwork/cover/1009090) | NA | RFC ☐  | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/1009090) |
 
 
 # 8 进程虚拟地址空间(VMA)
