@@ -1,6 +1,16 @@
 # ck-release-23...ck-release-24
 -------
 
+## ck-release-24.7....ck-release-24.8
+-------
+
+| TASK | COMMIT |
+|:----:|:------:|
+|     to #36339403 | 56feda607fa9 fs/buffer.c: add checking buffer head stat before clear<br> |
+|     to #36095939 | 342eb9fee9aa KVM: arm64: Clarify explanation of STAGE2_PGTABLE_LEVELS<br>b52db6969fdc KVM: arm64: Drop __cpu_init_stage2 on the VHE path<br>d25b3cb5e019 KVM: arm/arm64: Rename kvm_arm_config_vm to kvm_arm_setup_stage2<br>aaddd86d4b37 kvm: arm64: Allow tuning the physical address size for VM<br>954e3db5bb4b kvm: arm64: Limit the minimum number of page table levels<br>b63e42c7b429 kvm: arm64: Set a limit on the IPA size<br>febe4b7984bc kvm: arm64: Add 52bit support for PAR to HPFAR conversoin<br>d498f28247c3 vgic: Add support for 52bit guest physical address<br>9aee84c27e90 kvm: arm64: Switch to per VM IPA limit<br>d5b69e0005ec kvm: arm64: Configure VTCR_EL2.SL0 per VM<br>2c276b71336a kvm: arm64: Dynamic configuration of VTTBR mask<br>6b834650f0ed kvm: arm64: Make stage2 page table layout dynamic<br>59bdc92a4e4a kvm: arm64: Prepare for dynamic stage2 page table layout<br>b394428b41b5 kvm: arm/arm64: Prepare for VM specific stage2 translations<br>700a11728108 kvm: arm64: Configure VTCR_EL2 per VM<br>15adc5d1ad67 kvm: arm/arm64: Allow arch specific configurations for VM<br>11a66462de5e kvm: arm64: Clean up VTCR_EL2 initialisation<br>dae39345529f arm64: Add a helper for PARange to physical shift conversion<br>17824683797f kvm: arm64: Add helper for loading the stage2 setting for a VM<br>cd357d152aa2 kvm: arm/arm64: Remove spurious WARN_ON<br> |
+|     to #35724517, #35778030 | cbeb82ea93c7 Revert "alinux: kernel: Reduce tasklist_lock contention at fork and exit"<br>dcca9f503ee9 Revert "ck: kernel: Reduce tasklist_lock contention only for x86_64"<br> |
+|     to #35977568 | b34aea61c6b6 Revert "config: arm64: Set PAGE SIZE as 64K"<br> |
+
 
 ## ck-release-24....ck-release-24.7
 -------
