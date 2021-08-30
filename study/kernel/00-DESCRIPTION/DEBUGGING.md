@@ -225,6 +225,18 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 | 2020/05/07 | Anthony Yznaga <anthony.yznaga@oracle.com> | [PKRAM: Preserved-over-Kexec RAM](https://lore.kernel.org/patchwork/cover/856356) | NA | v11 ☑ 4.15-rc2 | [PatchWork RFC,00/43](https://lore.kernel.org/patchwork/cover/1237362) |
 
 
+
+# 11 perf
+-------
+
+## 11.1 perf-user
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/09/18 | Yafang Shao <laoar.shao@gmail.com> | [introduce new perf-script page-reclaim](https://lore.kernel.org/patchwork/cover/1128886) | 为 perf 引入了一个新的 python 脚本 page-reclaim.py 页面回收, 用于报告页面回收详细信息.<br>此脚本目前的用途如下:<br>1. 识别由直接回收引起的延迟峰值<br>2. 延迟峰值与 pageout 是否相关<br>3. 请求页面回收的原因, 即是否是内存碎片<br>4. 页面回收效率等. 将来, 我们还可以将其增强以分析 memcg 回收. | v1 ☐ | [PatchWork 0/2](https://lore.kernel.org/patchwork/cover/1128886) |
+
 # 7 OTHER
 -------
 
