@@ -42,29 +42,7 @@ Linux 除了实现上述策略, 还额外支持以下策略:
 除了完成以上基本任务外, Linux 调度器还应提供高性能保障, 对吞吐量和延时的均衡要有好的优化; 要提供高可扩展性(scalability)保障, 保障上千节点的性能稳定; 对于广泛作为服务器领域操作系统来说, 它还提供丰富的组策略调度和节能调度的支持.
 
 
-## 0.2 调度特性时间线
-
-| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:------:|:---:|
-| 1991/01/01 | [示例 sched: Improve the scheduler]() | 此处填写描述【示例】 | ☑ ☒☐ v3/5.4-rc1 | [LWN](), [PatchWork](), [lkml]() |
-| 2016/11/07 | [sched/rt: RT_RUNTIME_GREED sched feature](https://lore.kernel.org/patchwork/patch/732374) | 限制只有当当前 RQ 上没有 CFS 任务的时候, RT 任务才可以通过 RT_RUNTIME_SHARE 特性从其他 CPU 上窃取运行时间 | v1 ☐  | [LWN](https://lwn.net/Articles/705849/), [PatchWork](https://lore.kernel.org/patchwork/patch/732374), [lkml](https://lkml.org/lkml/2016/11/7/55) |
-| 2019/6/26 | [sched/fair: Fallback to sched-idle CPU in absence of idle CPUs](https://lore.kernel.org/patchwork/cover/1094197) | CFS SCHED_NORMAL 进程在选核的时候, 之前优先选择 idle 的 CPU, 现在也倾向于选择只有 SCHED_IDLE 的进程在运行的 CPU | v3 ☑ 5.4-rc1 | [LWN](https://lwn.net/Articles/805317), [PatchWork](https://lore.kernel.org/patchwork/cover/1094197), [lkml](https://lkml.org/lkml/2019/6/26/16) |
-| 2019/6/26 | [BT scheduling class](https://lore.kernel.org/patchwork/cover/1092086) | 离线调度策略, 腾讯为低时延业务实现的调度类, 调度类优先级在 CFS 之下. |  v1 ☐ | [LWN](https://lwn.net/Articles/791681), [PatchWork](https://lore.kernel.org/patchwork/cover/1092086), [lkml](https://lkml.org/lkml/2019/6/21/77) |
-| 2018/12/6 | [steal tasks to improve CPU utilization](https://lore.kernel.org/patchwork/cover/1022417) | idle_balance 的补偿策略, 在 CPU 即将进入 idle 的时候, 通过从其他 CPU 上偷取线程来提升系统整体的吞吐量 | v4 ☐ | [LWN](), [PatchWork](https://lore.kernel.org/patchwork/cover/1022417), [lkml](https://lkml.org/lkml/2018/12/6/1253), [coding](http://www.linux-arm.org/git?p=linux-vs.git;a=shortlog;h=refs/heads/mainline/cfs-stealing/v4-rebase) |
-| 2019/6/26 | [Scheduler soft affinity](https://lwn.net/Articles/793492) | CPU 软亲和力特性, 对进程指定一组软亲和的 CPU, 当 CPU 并不都很忙的时候, 则可以使用它们, 即使这组 CPU 不在它的 cpus_allowed 列表中 | RFC v1 ☐ | [LWN](https://lwn.net/Articles/793492), [PatchWork](https://lore.kernel.org/patchwork/cover/1094525), [lkml](https://lkml.org/lkml/2019/6/26/1044) |
-| 2019/7/1 | [Improve scheduler scalability for fast path](https://lore.kernel.org/patchwork/cover/1094549) | select_idle_cpu 每次遍历 LLC 域查找空闲 CPU 的代价非常高, 因此通过限制搜索边界来减少搜索时间, 进一步通过保留 PER_CPU 的 next_cpu 变量来跟踪上次搜索边界, 来缓解此次优化引入的线程局部化问题  | v3 ☐ | [LWN](https://lwn.net/Articles/757379/), [PatchWork](https://lore.kernel.org/patchwork/cover/1094549/), [lkml](https://lkml.org/lkml/2019/7/1/450), [Blog](https://blogs.oracle.com/linux/linux-scheduler-scalabilty-like-a-boss) |
-| 2019/9/6 | [sched: Add micro quanta scheduling class](https://lkml.org/lkml/2019/9/6/178) | 支持微秒级调度间隔的轻量级低时延调度类 | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1125037/), [lkml](https://lkml.org/lkml/2019/9/6/178) |
-| 2019/9/6 | [sched,fair: flatten CPU controller runqueues](https://lore.kernel.org/patchwork/cover/1125295) | 当前组调度 RQ 层次结构较深, 增加了每秒大量唤醒时的工作开销, 因此通过将所有进程放在同一层次的 RQ 上来解决此问题. | RFC v5 ☐  | [LWN](https://lwn.net/Articles/791072), [PatchWork](https://lore.kernel.org/patchwork/cover/1125295), [lkml](https://lkml.org/lkml/2019/9/6/853) |
-| 2020/1/21 | [TurboSched: A scheduler for sustaining Turbo Frequencies for longer durations](https://lwn.net/Articles/793498)) | 小任务封包的又一次场景尝试, 将一组任务打包在一起之后, 然后把这个 CPU 超频运行 | v6 ☐ | [LWN](https://lwn.net/Articles/793498), [PatchWork](https://lore.kernel.org/patchwork/cover/1182559), [lkml](https://lkml.org/lkml/2020/1/21/39) |
-| 2020/1/22 | [Add support for frequency invariance for (some) x86](https://lore.kernel.org/patchwork/cover/1183773) | 为 X86_64 实现频率标度不变性, PELT 算法计算利用率时感知频率的变化, 之前只有 ARM64 实现了此特性 | v5 ☑ 5.7-rc1 | [LWN](https://lwn.net/Articles/793393), [PatchWork](https://lore.kernel.org/patchwork/cover/1183773), [lkml](https://lkml.org/lkml/2020/1/22/1038) |
-| 2020/2/21 | [Introduce Thermal Pressure](https://lore.kernel.org/patchwork/cover/1198915) | 温控会限制 CPU 的最大频率, 进而影响 CPU capacity, 因此 PELT 负载跟踪时需要感知温控 | v10 ☑ 5.7-rc1 | [LWN](https://lwn.net/Articles/807428/), [PatchWork](https://lore.kernel.org/patchwork/cover/1198915), [lkml](https://lkml.org/lkml/2020/2/21/2138) |
-| 2020/2/24 | [Task latency-nice](https://lwn.net/Articles/820659) | 告诉调度器 per-task 的 latency 需求, 这个进程必须在预期 latency 之内赶快运行起来. | v4 ☐ | [Subhra Mazumdar](https://lore.kernel.org/patchwork/cover/1122405)<br>*-*-*-*-*-*-*-* <br>[LWN](https://lwn.net/Articles/798194), [PatchWork](https://lore.kernel.org/patchwork/cover/1199395), [lkml](https://lkml.org/lkml/2020/2/24/216) |
-| 2020/5/7 | [IDLE gating in presence of latency-sensitive tasks]() | 为 ltency-nice 所做的优化, 在 latency-nice 的基础上, 与 CPU_IDLE 结合, 当 CPU 上存在 latency-nice 的进程时, 则阻止 CPU 陷入更深层次的睡眠, 从而降低唤醒延迟. | RFC v1 ☐ | [LWN](https://lwn.net/Articles/819784), [PatchWork](https://lore.kernel.org/patchwork/cover/1237681), [lkml](https://lkml.org/lkml/2020/5/7/575) |
-| 2020/11/23 | [support "task_isolation" mode](https://lwn.net/Articles/816298) | NO_HZ_FULL 的进一步优化, 进一步降低 tick 等对隔离核的影响 | v5 ☐ | [2016 Chris Metcalf v16](https://lore.kernel.org/patchwork/cover/847460)<br>*-*-*-*-*-*-*-* <br>Alex Belits 2020 [LWN](https://lwn.net/Articles/813804), [PatchWork](https://lore.kernel.org/patchwork/cover/1344134), [lkml](https://lkml.org/lkml/2020/11/23/1380) |
-| 2020/12/14 | [select_idle_sibling() wreckage](https://lore.kernel.org/patchwork/cover/1353496) | 重构 SIS_PROP 的逻辑, 重新计算 CPU 的扫描成本, 同时归一 select_idle_XXX 中对 CPU 的遍历, 统一选核的搜索逻辑来降低开销, 提升性能 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1353496), [lkml](https://lkml.org/lkml/2020/12/14/560) |
-
-
-## 0.3 主线内存管理分支合并窗口
+## 0.2 主线内存管理分支合并窗口
 -------
 
 Mainline Merge Window
@@ -76,13 +54,13 @@ Mainline Merge Window
 | 版本 | 发布时间 | 合并链接 |
 |:---:|:-------:|:-------:|
 | 5.13 | 2021/06/28 | [Merge tag 'sched-core-2021-04-28', 5.13-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=16b3d0cf5bad844daaf436ad2e9061de0fe36e5c)<br>[Merge tag 'sched-urgent-2021-05-09', 5.13-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9819f682e48c6a7055c5d7a6746411dd3969b0e5)<br>[Merge tag 'sched-urgent-2021-05-15', 5.13-rc2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c12a29ed9094b4b9cde8965c12850460b9a79d7c)<br>[Merge tag 'sched-urgent-2021-06-12', 5.13-rc6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=99f925947ab0fd5c17b74460d8b32f1aa1c86e3a)<br>[Merge tag 'sched_urgent_for_v5.13_rc6', 5.13-rc7, 2021/06/20](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cba5e97280f53ec7feb656fcdf0ec00a5c6dd539)<br>[Merge tag 'sched-urgent-2021-06-24', 5.13](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=666751701b6e4b6b6ebc82186434806fa8a09cf3)<br> |
-| 5.14 | NA | [Merge tag 'sched-core-2021-06-28'](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=54a728dc5e4feb0a9278ad62b19f34ad21ed0ee4) |
+| 5.14 | 2021/08/29 | [Merge tag 'sched-core-2021-06-28', 5.14-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=54a728dc5e4feb0a9278ad62b19f34ad21ed0ee4)<br>[Merge tag 'sched-urgent-2021-06-30', 5.14-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a6eaf3850cb171c328a8b0db6d3c79286a1eba9d)<br>[Merge tag 'sched-urgent-2021-07-11', 5.14-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=877029d9216dcc842f50d37571f318cd17a30a2d)<br>[Merge tag 'sched-urgent-2021-08-08', 5.14-rc5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=713f0f37e8128e8a0190a98f5a4be71fb32a671a)<br>[Merge tag 'sched_urgent_for_v5.14', 5.14](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=537b57bd5a202af145c266d4773971c2c9f90cd9) |
 
-## 0.4 社区会议
+## 0.3 社区会议
 -------
 
 
-### 0.4.1 Linux Plumbers Conference
+### 0.3.1 Linux Plumbers Conference
 -------
 
 Scheduler Microconference Accepted into Linux Plumbers Conference
@@ -98,7 +76,7 @@ Scheduler Microconference Accepted into Linux Plumbers Conference
 | [2017](https://blog.linuxplumbersconf.org/2017) | [Scheduler Workloads Microconference 2017](http://wiki.linuxplumbersconf.org/2017:scheduler_workloads) | | [Notes from the LPC scheduler microconference](https://lwn.net/Articles/734039)
 
 
-## 0.5 社区几个调度的大神
+## 0.4 社区几个调度的大神
 -------
 
 - [x] [Mel Gorman mgorman@techsingularity.net](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=19167)
@@ -111,7 +89,7 @@ Scheduler Microconference Accepted into Linux Plumbers Conference
 
 
 
-## 0.6 目录
+## 0.5 目录
 -------
 
 - [x] 1. 进程调度类
