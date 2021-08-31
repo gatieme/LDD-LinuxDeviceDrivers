@@ -111,6 +111,15 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 | 2020/12/22 | Xie Yongji <xieyongji@bytedance.com> | [Introduce VDUSE - vDPA Device in Userspace](https://lore.kernel.org/patchwork/cover/398912) | 本系列介绍了一个框架, 可用于在用户空间程序中实现 vDPA 设备. 该工作包括两部分: 控制路径转发和数据路径卸载.<br>1. 在控制路径中, VDUSE 驱动程序将利用消息机制将配置操作从 vdpa 总线驱动程序转发到用户空间. 用户空间可以使用 read()/write() 来接收/回复这些控制消息.<br>2. 在数据路径中, 核心是将 dma 缓冲区映射到 VDUSE 守护进程的地址空间, 这可以根据 vdpa 设备所连接的 vdpa 总线以不同的方式实现.<br>在 virtio-vdpa 的情况下, 我们实现了一个基于 mmu 的片上 IOMMU 驱动程序, 该驱动程序带有弹跳缓冲机制. 在vhost-vdpa的情况下, dma 缓冲区驻留在用户空间内存区域, 可以通过传输shmfd共享给VDUSE用户空间进程. | v2 ☐ | [PatchWork RFC,v2,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20201222145221.711-1-xieyongji@bytedance.com) |
 
 
+# 3 IPA
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/12/22 | Xie Yongji <xieyongji@bytedance.com> | [kvm: arm64: Dynamic IPA and 52bit IPA](https://lore.kernel.org/patchwork/cover/992057) | arm/arm64 上 VM 的物理地址空间大小(IPA 大小)被限制为 40 位的静态限制. 这组补丁增加了对使用特定于 VM 的 IPA 大小的支持, 允许使用主机支持的大小(基于主机内核配置和 CPU 支持). | v6 ☐ | [PatchWork v6,00/18](https://lore.kernel.org/patchwork/cover/992057) |
+
+
 相关的文章介绍: [47].
 
 
