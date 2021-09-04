@@ -388,9 +388,8 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2006/08/21 | Mel Gorman <mel@csn.ul.ie> | [Sizing zones and holes in an architecture independent manner V9](https://lore.kernel.org/patchwork/cover/63170) | NA | v1 ☑ v2.6.19-rc1 | [PatchWork 0/2](https://lore.kernel.org/patchwork/cover/63170) |
 | 2007/12/11 | Mel Gorman <mel@csn.ul.ie> | [Use two zonelists per node instead of multiple zonelists v11r2](https://lore.kernel.org/patchwork/cover/99109) | 优化分配器处理区域列表, 区域列表指示分配目标区域的顺序. 类似地, 页面的直接回收会在区域数组上迭代. 为了保持一致性, 这组补丁将直接回收转换为使用分区列表, 并简化 zonelist 迭代器.<br>将每个节点的多个(两组)分区列表替换为两个分区列表, 一组用于系统中的每个分区类型, 另一组用于 GFP_THISNODE 分配. 根据 gfp 掩码允许的分区, 选择其中一个分区列表. 所有这些分区列表都会消耗内存并占用缓存线. | v1 ☑ v2.6.19-rc1 | [PatchWork v11r2,0/6](https://lore.kernel.org/patchwork/cover/99109) |
-| 2021/08/10 | Baoquan He <bhe@redhat.com> | [Avoid requesting page from DMA zone when no managed pages](https://lore.kernel.org/patchwork/cover/1474378) | TODO | v1 ☑ v2.6.19-rc1 | [PatchWork RFC,v2,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20210810094835.13402-1-bhe@redhat.com) |
-https://patchwork.kernel.org/project/linux-mm/patch/20210810062626.1012-6-kirill.shutemov@linux.intel.com/
-https://patchwork.kernel.org/project/linux-mm/patch/20210809093750.131091-3-wangkefeng.wang@huawei.com/
+| 2021/08/10 | Baoquan He <bhe@redhat.com> | [Avoid requesting page from DMA zone when no managed pages](https://lore.kernel.org/patchwork/cover/1474378) | 在当前内核的某些地方, 它假定 DMA 区域必须具有托管页面, 并在启用 CONFIG_ZONE_DMA 时尝试请求页面. 但这并不总是正确的. 例如, 在 x86_64 的 kdump 内核中, 在启动的早期阶段, 只显示并锁定低 1M, 因此在 DMA 区域中根本没有托管页面. 如果从 DMA 区域请求页面, 此异常将始终导致页面分配失败. 这造成在 x86_64 的 kdump 内核中， 使用 GFP_DMA 创建的 atomic_pool_dma 会导致页面分配失败. dma-kmalloc 初始化也会导致页面分配失败. | v2 ☐ | [PatchWork RFC,v2,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20210810094835.13402-1-bhe@redhat.com) |
+
 
 
 ### 2.1.2 fair allocation zone policy
@@ -1110,7 +1109,7 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 ### 3.4.2 主动规整
 -------
 
-主动规整, 而不是按需规整.
+[主动规整, 而不是按需规整](https://lwn.net/Articles/817905).
 
 对于正在进行的工作负载活动, 系统内存变得碎片化. 碎片可能会导致容量和性能问题. 在某些情况下, 程序错误也是可能的. 因此, 内核依赖于一种称为内存压缩的反应机制.
 
@@ -1120,8 +1119,8 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/06/16 | Nitin Gupta <nigupta@nvidia.com> | [mm: Proactive compaction](https://patchwork.kernel.org/project/linux-mm/patch/20200616204527.19185-1-nigupta@nvidia.com) | NA | v8 ☐ 5.6.0-rc3 | [PatchWork v8](https://patchwork.kernel.org/project/linux-mm/patch/20200616204527.19185-1-nigupta@nvidia.com) |
-| 2021/02/04 | SeongJae Park <sjpark@amazon.com> | [Proactive compaction for the kernel](https://lwn.net/Articles/817905) | 主动进行内存规整, 而不是之前的按需规整. 新的 sysctl 接口 `vm.compaction_pro` 来调整内存规整的主动性, 它规定了 kcompactd 试图维护提交的外部碎片的界限. | v8 ☑ [5.9](https://kernelnewbies.org/Linux_5.9#Memory_management) | [PatchWork v24](https://lore.kernel.org/patchwork/cover/1257280), [LWN](https://lwn.net/Articles/817905) |
+| 2020/06/16 | Nitin Gupta <nigupta@nvidia.com> | [mm: Proactive compaction](https://lore.kernel.org/patchwork/cover/1257280) | 主动进行内存规整, 而不是之前的按需规整. 新的 sysctl 接口 `vm.compaction_pro` 来调整内存规整的主动性, 它规定了 kcompactd 试图维护提交的外部碎片的界限. | v8 ☑ [5.9-rc1](https://kernelnewbies.org/Linux_5.9#Memory_management) | [PatchWork v8](https://patchwork.kernel.org/project/linux-mm/patch/20200616204527.19185-1-nigupta@nvidia.com), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit?id=facdaa917c4d5a376d09d25865f5a863f906234a) |
+| 2021/07/30 | Nitin Gupta <nigupta@nvidia.com> | [mm: compaction: support triggering of proactive compaction by user](https://patchwork.kernel.org/project/linux-mm/patch/1627653207-12317-1-git-send-email-charante@codeaurora.org) | 主动压缩每 500ms 触发一次, 并基于设置为 sysctl.compression_proactiveness 的值, 在节点上运行压缩 COMPACTION_HPAGE_ORDER(通常为 ORDER-9) 的页面. 并非所有应用程序都需要每 500ms 触发一次压缩以搜索压缩页面, 特别是在可能只有很少 MB RAM 的嵌入式系统用例上. 这些默认设置将导致嵌入式系统中主动压缩几乎总是在运行.<br>另一方面, 主动压缩对于获取一组高阶页面仍然非常有用. 因此, 在不需要启用主动压缩的系统上, 可以在写入其 sysctl 接口时从用户空间触发主动压缩. 例如, 假设 AppLauncher 决定启动内存密集型应用程序, 如果它获得更多高阶页面, 则可以快速启动该应用程序, 这样 launcher 就可以通过从用户空间触发主动压缩来提前准备系统. | v5 ☐  | [PatchWork v5](https://patchwork.kernel.org/project/linux-mm/patch/1627653207-12317-1-git-send-email-charante@codeaurora.org) |
 
 
 ## 3.5 抗碎片化优化
@@ -1740,6 +1739,7 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/07/30 | Tiberiu A Georgescu <tiberiu.georgescu@nutanix.com> | [pagemap: swap location for shared pages](https://lore.kernel.org/patchwork/cover/1470271) | NA | v2 ☐ v5.14-rc4 | [PatchWork RFC,0/4](https://lore.kernel.org/patchwork/cover/1470271) |
 | 2021/08/17 | Peter Xu <peterx@redhat.com> | [mm: Enable PM_SWAP for shmem with PTE_MARKER](https://lore.kernel.org/patchwork/cover/1473423) | 这个补丁集在 shmem 上启用 pagemap 的 PM_SWAP. IOW 用户空间将能够检测 shmem 页面是否被换出, 就像匿名页面一样.<br>可以使用  CONFIG_PTE_MARKER_PAGEOUT 来启用该特性. 当启用时, 它会在 shmem 页面上带来 0.8% 的换入性能开销, 所以作者还没有将它设置为默认值. 然而, 以作者的看法, 0.8% 仍然在一个可接受的范围内, 我们甚至可以使它最终默认. | v2 ☐ v5.14-rc4 | [PatchWork RFC,0/4](https://lore.kernel.org/patchwork/cover/1473423) |
+
 
 
 # 6 PageCache
@@ -3158,7 +3158,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2009/03/26 | Tejun Heo <tj@kernel.org> | [percpu: clean up percpu constants](https://lore.kernel.org/patchwork/cover/146513) | NA | v1 ☑ 2.6.30-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/146513) |
 | 2009/07/21 | Tejun Heo <tj@kernel.org> | [percpu:  implement pcpu_get_vm_areas() and update embedding first chunk allocator](https://lore.kernel.org/patchwork/cover/164588) | NA | v1 ☑ 2.6.32-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/164588) |
 | 2008/11/18 | Tejun Heo <tj@kernel.org> | [Improve alloc_percpu: expose percpu_modalloc and percpu_modfree](https://lore.kernel.org/patchwork/cover/135207) | NA | v1 ☐ | [PatchWork 0/7](https://lore.kernel.org/patchwork/cover/135207) |
-| 2021/07/20 | Kefeng Wang <wangkefeng.wang@huawei.com> | [arm64: support page mapping percpu first chunk allocator](https://lore.kernel.org/patchwork/cover/1464663) | NA | v2 ☐ v5.14-rc2 | [PatchWork v2,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20210720025105.103680-1-wangkefeng.wang@huawei.com) |
+| 2021/08/09 | Kefeng Wang <wangkefeng.wang@huawei.com> | [arm64: support page mapping percpu first chunk allocator](https://lore.kernel.org/patchwork/cover/1464663) | NA | v2 ☐ v5.14-rc2 | [PatchWork v3,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20210809093750.131091-1-wangkefeng.wang@huawei.com) |
 
 
 ## 14.7 ASLR
@@ -3206,6 +3206,15 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/05/07 | Anthony Yznaga <anthony.yznaga@oracle.com> | [PKRAM: Preserved-over-Kexec RAM](https://lore.kernel.org/patchwork/cover/856356) | NA | v11 ☑ 4.15-rc2 | [PatchWork RFC,00/43](https://lore.kernel.org/patchwork/cover/1237362) |
+
+
+## 14.11 unaccepted memory
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/10 | Anthony Yznaga <anthony.yznaga@oracle.com> | [x86: Impplement support for unaccepted memory](https://patchwork.kernel.org/project/linux-mm/cover/20210810062626.1012-1-kirill.shutemov@linux.intel.com) | UEFI规范 v2.9 引入了内存接受的概念, 一些虚拟机平台, 如Intel TDX或AMD SEV-SNP, 要求在来宾使用内存之前先接受内存, 并通过特定于虚拟机平台的协议进行接受.<br>接受内存成本很高, 这会使 VMM 为接受的来宾物理地址范围分配内存, 最好等到需要使用内存时再接受内存, 这可以减少启动时间并减少内存开销.<br>支持这种内存需要对核心 mm 代码进行少量更改:<br>1. memblock 必须在分配时接受内存;<br>2. 页面分配器必须在第一次分配页面时接受内存;<br>3. Memblock更改是微不足道的.<br>4. 页面分配器被修改为在第一次分配时接受页面.<br>5. PageOffline() 用于指示页面需要接受.<br>6. 热插拔和引出序号当前使用的标志, 这样的页面对页面分配器不可用.<br>如果一个体系结构想要支持不可接受的内存, 它必须提供三个助手:<br>1. accept_memory() 使一系列物理地址被接受;<br>2. 如果页面需要接受, 则通过 maybe_set_page_offline() 将页面标记为 PageOffline(), 在引导期间用于将页面放在空闲列表上.<br>3. clear_page_offline() 清除使页面被接受并清除 PageOffline(). | v1 ☐ | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-mm/cover/20210810062626.1012-1-kirill.shutemov@linux.intel.com) |
 
 
 ---
