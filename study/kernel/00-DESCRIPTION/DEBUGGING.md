@@ -223,7 +223,7 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/05/07 | Anthony Yznaga <anthony.yznaga@oracle.com> | [PKRAM: Preserved-over-Kexec RAM](https://lore.kernel.org/patchwork/cover/856356) | NA | v11 ☑ 4.15-rc2 | [PatchWork RFC,00/43](https://lore.kernel.org/patchwork/cover/1237362) |
-
+| 2021/08/02 | Pavel Tatashin <pasha.tatashin@soleen.com> | [arm64: MMU enabled kexec relocation](https://patchwork.kernel.org/project/linux-mm/cover/20210802215408.804942-1-pasha.tatashin@soleen.com) | NA | v16 ☐ | [PatchWork v16,00/15](https://patchwork.kernel.org/project/linux-mm/cover/20210802215408.804942-1-pasha.tatashin@soleen.com) |
 
 
 # 11 perf
