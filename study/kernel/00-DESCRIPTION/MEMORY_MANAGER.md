@@ -305,7 +305,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/08/30 | Rick Edgecombe <rick.p.edgecombe@intel.com> | [mm/page_alloc: cache pte-mapped allocations](https://patchwork.kernel.org/project/linux-mm/cover/20210830235927.6443-1-rick.p.edgecombe@intel.com) | 使用 [PKS(Protection Keys for Supervisor)]() 对页表进行写保护. 其基本思想是使页表成为只读的, 除非在需要修改页表时临时基于每个 cpu 来修改. | v1  ☐ | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20210830235927.6443-1-rick.p.edgecombe@intel.com) |
+| 2021/08/30 | Rick Edgecombe <rick.p.edgecombe@intel.com> | [PKS write protected page tables](https://patchwork.kernel.org/project/linux-mm/cover/20210830235927.6443-1-rick.p.edgecombe@intel.com) | 使用 [PKS(Protection Keys for Supervisor)]() 对页表进行写保护. 其基本思想是使页表成为只读的, 除非在需要修改页表时临时基于每个 cpu 来修改. | v1  ☐ | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20210830235927.6443-1-rick.p.edgecombe@intel.com) |
 
 
 ## 1.8 memory policy
@@ -3177,12 +3177,53 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/01/24 | Topi Miettinen <toiwoton@gmail.com> | [mm: Optional full ASLR for mmap(), vdso, stack and heap](https://lore.kernel.org/patchwork/cover/1370134) | NA | v1 ☑ 2.6.30-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1370134) |
-| 2020/07/17 | Topi Miettinen <toiwoton@gmail.com> | [Function Granular KASLR](https://patchwork.kernel.org/project/kernel-hardening/cover/20200717170008.5949-1-kristen@linux.intel.com/#23528683) | NA | v1 ☑ v4,00/10 | [PatchWork](https://patchwork.kernel.org/project/kernel-hardening/cover/20200717170008.5949-1-kristen@linux.intel.com/#23528683) |
 
 
 
-### 14.7.2 KASLR
+### 14.7.2 KASLR & Randomize Offset
 -------
+
+
+*   内核地址随机化
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/01/24 | Topi Miettinen <toiwoton@gmail.com> | [mm: Optional full ASLR for mmap(), vdso, stack and heap](https://lore.kernel.org/patchwork/cover/1370134) | NA | v1 ☑ 2.6.30-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1370134) |
+
+
+*   随机函数偏移
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/07/17 | Topi Miettinen <toiwoton@gmail.com> | [Function Granular KASLR](https://patchwork.kernel.org/project/kernel-hardening/cover/20200717170008.5949-1-kristen@linux.intel.com/#23528683) | NA | v1 ☑ v4 | [PatchWork v4,00/10](https://patchwork.kernel.org/project/kernel-hardening/cover/20200717170008.5949-1-kristen@linux.intel.com/#23528683) |
+
+*   随机栈偏移
+
+黑客们经常利用堆栈的信息, 窥测进程运行时的指令和数据. 为了保护堆栈数据, 增加攻击的难度, Linux 内核堆栈保护不断改进, 比如基于 vmap 的堆栈分配和保护页面(VMAP_STACK)、 删除 thread_info()、[STACKLEAK](https://a13xp0p0v.github.io/img/Alexander_Popov-stackleak-LinuxPiter2017.pdf), 攻击者必须找到新的方法来利用它们的攻击.
+
+这里面很大一部分都是 Pax 的功劳, PaX 团队在内核安全方面进行了很多实践. [Documentation for the PaX project](https://pax.grsecurity.net/docs).
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/09/13 | Elena Reshetova <elena.reshetova@intel.com> | [thread_info cleanups and stack caching](https://lore.kernel.org/all/a0898196f0476195ca02713691a5037a14f2aac5.1473801993.git.luto@kernel.org) | 引入 CONFIG_THREAD_INFO_IN_TASK 将 thread_info 保存到 task_struct 中.<br>之前 thread_info 与内核栈放在一起, 如果不慎踩了栈会同时破坏 thread_info, 极其不可靠. 因此把 thread_info 保存到 task_struct 中, 跟内核栈分离, 提高可靠性. | v1 ☑ 4.9-rc1 | [PatchWork](https://lore.kernel.org/kernel-hardening/20190329081358.30497-1-elena.reshetova@intel.com/) |
+| 2017/12/06 | Alexander Popov <alex.popov@...ux.com> | [Introduce the STACKLEAK feature and a test for it](https://www.openwall.com/lists/kernel-hardening/2017/12/05/18) | STACKLEAK 是由 Grsecurity/PaX 开发的一种安全功能, 它:<br>1. 减少了内核堆栈泄漏 bug 可能泄露的信息;<br>2. 阻止一些未初始化的堆栈变量攻击(例如CVE-2010-2963);<br>3. 引入一些内核堆栈溢出检测的运行时检查. | v6 ☑ 4.20-rc1 | [PatchWork v6,0/6](https://lwn.net/Articles/725287)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6,0/6](https://www.openwall.com/lists/kernel-hardening/2017/12/05/19) |
+
+最早 PaX 团队的 [RANDKSTACK 特性](https://pax.grsecurity.net/docs/randkstack.txt) 提出了内核栈随机偏移的最早思想. 这个特性旨在大大增加依赖确定性堆栈结构的各种基于堆栈的攻击的难度.
+
+
+其主要思想是:
+
+1.  由于堆栈偏移量在每次系统调用时都是随机的, 因此在执行攻击时, 攻击者很难可靠地落在线程堆栈上的任何特定位置.
+
+2.  此外, 由于随机化是在确定的 pt_regs 之后执行的, 因此在长时间运行的系统调用期间, 不应该使用基于 ptrace 的方法来发现随机化偏移量.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/03/29 | Elena Reshetova <elena.reshetova@intel.com> | [x86/entry/64: randomize kernel stack offset upon syscall](https://lore.kernel.org/kernel-hardening/20190329081358.30497-1-elena.reshetova@intel.com) | 引入了 CONFIG_RANDOMIZE_KSTACK_OFFSET, 在 pt_regs 的固定位置之后, 系统调用的每个条目都会随机化内核堆栈偏移量. | v1 ☐ | [PatchWork](https://lore.kernel.org/kernel-hardening/20190329081358.30497-1-elena.reshetova@intel.com/) |
+| 2021/04/01 | Kees Cook <keescook@chromium.org> | [Optionally randomize kernel stack offset each syscall](https://patchwork.kernel.org/project/kernel-hardening/cover/20210401232347.2791257-1-keescook@chromium.org) | Elena 先前添加内核堆栈基偏移随机化的工作的延续和重构. | v4 ☐ | [PatchWork v4,00/10](https://patchwork.kernel.org/project/kernel-hardening/cover/20210401232347.2791257-1-keescook@chromium.org) |
+
 
 
 ## 14.8 页面迁移
