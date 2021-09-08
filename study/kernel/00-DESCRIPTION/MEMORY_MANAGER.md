@@ -2125,8 +2125,9 @@ Anthony Yznaga 接替了之前同事 Nitin Gupta 的工作, 并基于 Mel 的思
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/12/19 | Colin Cross | [mm: add a field to store names for private anonymous memory](https://lore.kernel.org/patchwork/cover/416962) | 在二进制中通过 xxx_sched_class 地址顺序标记调度类的优先级, 从而可以通过直接比较两个 xxx_sched_class 地址的方式, 优化调度器中两个热点函数 pick_next_task()和check_preempt_curr(). | v2 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/416962)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/416962) |
 
-### 8.1.1 Anonymous VMA naming
+### 8.1.1 具名匿名页 Anonymous VMA naming
 -------
+
 
 用户空间进程通常有多个分配器, 每个分配器执行匿名 MMAP 以获取内存. 在整体检查单个进程或系统的内存使用情况时, 如果能够分解每个层分配的各种堆并检查它们的大小、RSS和物理内存使用情况对分析内核的内存分配和管理非常有用.
 
@@ -2134,7 +2135,7 @@ Anthony Yznaga 接替了之前同事 Nitin Gupta 的工作, 并基于 Mel 的思
 
 最初 [Colin Cross](https://lore.kernel.org/linux-mm/1372901537-31033-1-git-send-email-ccross@android.com) 实现了一个重计数名称的字典, 以重用相同的名称字符串. 当时 Dave Hansen [建议改用用户空间指针](https://lore.kernel.org/linux-mm/51DDFA02.9040707@intel.com), 补丁也这样重写了.
 
-后续 Sumit Semwal 发现这组补丁并没有被主线接受, 而一个非常相似的补丁已经存在 Android 中用于命名匿名 vma 很多年了, 因此他[接替了 Colin Cross 的工作, 并继续发到了 v7 版本](https://lore.kernel.org/linux-mm/20200901161459.11772-1-sumit.semwal@linaro.org), [Kees Cook](https://lore.kernel.org/linux-mm/5d0358ab-8c47-2f5f-8e43-23b89d6a8e95@intel.com/) 对这个补丁提出了担忧, 他注意到这个补丁缺少字符串清理功能, 并且使用了来自内核的用户空间指针. 社区建议 strndup_user() 来自 userspace 的字符串, 执行适当的检查并将副本存储为 vm_area_struct 成员. fork() 期间额外 strdup() 的性能影响应该通过分配大量(64k)具有最长名称和定时 fork() 的 vma 来衡量.
+后续 Sumit Semwal 发现这组补丁并没有被主线接受, 而一个非常相似的补丁已经存在 Android 中用于命名匿名 vma 很多年了, 参见 [ANDROID: mm: add a field to store names for private anonymous memory](https://github.com/aosp-mirror/kernel_common/commit/533e4ed309748abb89ae53548af7afe1649ac48a). 因此他[接替了 Colin Cross 的工作, 并继续发到了 v7 版本](https://lore.kernel.org/linux-mm/20200901161459.11772-1-sumit.semwal@linaro.org), [Kees Cook](https://lore.kernel.org/linux-mm/5d0358ab-8c47-2f5f-8e43-23b89d6a8e95@intel.com/) 对这个补丁提出了担忧, 他注意到这个补丁缺少字符串清理功能, 并且使用了来自内核的用户空间指针. 社区建议 strndup_user() 来自 userspace 的字符串, 执行适当的检查并将副本存储为 vm_area_struct 成员. fork() 期间额外 strdup() 的性能影响应该通过分配大量(64k)具有最长名称和定时 fork() 的 vma 来衡量.
 
 接着, Suren Baghdasaryan 继续着这项工作. 实现了社区之间的 review 意见, 并优化了简单的重计数, 以避免在 fork() 期间 strdup() 名称所带来的性能开销.
 
@@ -2142,7 +2143,7 @@ Anthony Yznaga 接替了之前同事 Nitin Gupta 的工作, 并基于 Mel 的思
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2013/07/03 | Suren Baghdasaryan <surenb@google.com> | [mm: add sys_madvise2 and MADV_NAME to name vmas](https://lore.kernel.org/linux-mm/1372901537-31033-1-git-send-email-ccross@android.com) | 这组通过添加新的 MADVESE2 系统调用, 可以使用 MADV_NAME 来将名称附加到现有的 VMA 上.<br>1. 向每个 vma 添加一个包含名称字符串的 vma_name 结构, 系统中每个具有相同名称的 vma 都保证指向相同的 vma_name 结构. 可以直接通过比较指针进行名称相等比较.<br>2. 匿名 VMA 的名称在 `/proc/pid/maps` 中显示为 `[anon:<name>]`. 所有命名 VMA 的名称显示在 `/proc/pid/smap` 中的 Name 字段中用于命名 VMA.<br>3. 此修补程序添加的未命名 vma 的唯一成本是检查 vm_name 指针. 对于命名 vma, 它会将 refcount 更新添加到拆分/合并/复制 vma 中, 如果命名 vma 是具有该名称的最后一个vma, 则取消映射可能需要使用全局锁. | v2 ☐ | [PatchWork RFC](https://lore.kernel.org/linux-mm/1372901537-31033-1-git-send-email-ccross@android.com) |
 | 2020/09/01 | Sumit Semwal <sumit.semwal@linaro.org> | [Anonymous VMA naming patches](https://lore.kernel.org/linux-mm/20200901161459.11772-1-sumit.semwal@linaro.org) | NA | v7 ☐ 5.9-rc3 | [PatchWork v7,0/3](https://lore.kernel.org/linux-mm/20200901161459.11772-1-sumit.semwal@linaro.org) |
-| 2021/08/27 | Suren Baghdasaryan <surenb@google.com> | [Anonymous VMA naming patches](https://patchwork.kernel.org/project/linux-mm/cover/20210827191858.2037087-1-surenb@google.com) | NA | v2 ☐ | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20210827191858.2037087-1-surenb@google.com) |
+| 2021/08/27 | Suren Baghdasaryan <surenb@google.com> | [Anonymous VMA naming patches](https://lwn.net/Articles/867818) | NA | v2 ☐ | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20210827191858.2037087-1-surenb@google.com) |
 
 
 
