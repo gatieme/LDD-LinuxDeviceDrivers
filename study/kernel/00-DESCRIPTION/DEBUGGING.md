@@ -249,8 +249,73 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/03/21 | Rasmus Villemoes <linux@rasmusvillemoes.dk> | [arm64: Enable OPTPROBE for arm64](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210818073336.59678-1-liuqi115@huawei.com) | 为 ARM64 引入了 optprobe, 使用分支指令替换探测指令.<br>作者在 Hip08 平台上的进行了测试, optprobe 可以将延迟降低到正常 kprobe 的 `1/4` | v4 ☐ | [Patchwork v4,0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210818073336.59678-1-liuqi115@huawei.com) |
 
-## 13 安全
+# 13 编译
 -------
+
+
+## 13.1 CONFIG_OPTIMIZE_INLINING
+-------
+
+
+[CONFIG_OPTIMIZE_INLINING 引发 Go运行时bug调试过程解析](https://blog.csdn.net/qq_40267706/article/details/78817614)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/03/20 | Ingo Molnar <mingo@elte.hu> | [x86: add optimized inlining](https://lore.kernel.org/patchwork/patch/1394812) | 引入 CONFIG_OPTIMIZE_INLINING, 允许 GCC 自己确定哪个 inline 函数真的需要内联, 而不是强制内允许 GCC. 之前 Linux 强制 gcc 总是通过 gcc 属性来内联这些函数, 这可以一定程度提升函数调用的性能, 但是对于一个比较大的函数, 强制将其 inline, 将不可避险增加内核映像的大小, 开启这个选项后, 即使有些函数被标记为 inline, GCC 也会将这些不再 inline. 特别是当用户已经选择了 CONFIG_OPTIMIZE_FOR_SIZE=y 时, 这可以在内核映像大小上产生巨大的差异. 使用标准的 Fedora .config 测试, vmlinux 比之前减少了 2.3% | v1 ☑ 2.6.26-rc1 | [Patchwork](https://patches.linaro.org/patch/160631), [LKML](https://lkml.org/lkml/2019/3/20/63)<br>*-*-*-*-*-*-*-* <br>[关键 commit 57e734423add](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=60a3cdd0639473c79c253bc08c8ef8f882cca107) |
+| 2019/03/20 | Masahiro Yamada <yamada.masahiro@socionext.com> | [compiler: allow all arches to enable CONFIG_OPTIMIZE_INLINING](https://lore.kernel.org/patchwork/patch/1394812) | [commit 60a3cdd06394 ("x86: add optimized inline ")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=60a3cdd0639473c79c253bc08c8ef8f882cca107) 引入了 CONFIG_OPTIMIZE_INLINING, 但它只在 x86 上可用.<br>这个想法显然是不可知论的, 因此当前提交将配置项从 `arch/x86/Kconfig.debug` 移到 `lib/Kconfig.debug`, 以便所有架构都能从中受益. 这个提交[早在 2008 年就有过讨论](https://lkml.org/lkml/2008/4/27/7). | v1 ☑ 5.2-rc1 | [Patchwork](https://patches.linaro.org/patch/160631), [LKML](https://lkml.org/lkml/2019/3/20/63)<br>*-*-*-*-*-*-*-* <br>[LKML v3 00/10](https://lkml.org/lkml/2019/4/22/922)<br>*-*-*-*-*-*-*-* <br>[关键 commit 57e734423add](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9012d011660ea5cf2a623e1de207a2bc0ca6936d) |
+| 2019/08/30 | Masahiro Yamada <yamada.masahiro@socionext.com> | [compiler: enable CONFIG_OPTIMIZE_INLINING forcibly](https://lore.kernel.org/patchwork/patch/1122097) | NA | v1 ☑ 5.4-rc1 | [Patchwork](https://patches.linaro.org/patch/160631), [LKML](https://lkml.org/lkml/2019/8/29/1772) |
+
+
+## 13.2 LTO
+-------
+
+
+[Link-time optimization for the kernel](https://lwn.net/Articles/512548)
+
+[Shrinking the kernel with link-time optimization](https://lwn.net/Articles/744507)
+
+[gcc link time optimization and the Linux kernel](http://www.halobates.de/kernel-lto.pdf)
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/12/11 | Masahiro Yamada <yamada.masahiro@socionext.com> | [Add support for Clang LTO](https://patchwork.kernel.org/project/linux-kbuild/cover/20201211184633.3213045-1-samitolvanen@google.com) | 本补丁系列增加了对使用 Clang 的链接时间优化(LTO) 构建内核的支持. 除了性能之外, LTO 的主要动机是允许在内核中使用 Clang 的控制流完整性(CFI). 自 2018 年以来, 谷歌已经发布了数百万个运行 LTO + CFI 三个主要内核版本的 Pixel 设备.<br>大多数补丁是为了处理 LLVM 位码而进行的构建系统更改, Clang 使用 LTO 而不是 ELF 对象文件生成 LLVM 位码, 将 ELF 处理推迟到后面的阶段, 并确保初始化调用顺序.<br>arm64支持依赖于 [Will 的内存排序补丁](https://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git/log/?h=for-next/lto). 目前只做了 ARM64 的适配. | v9 ☑ 5.12-rc1 | [Patchwork v9,00/16](https://patchwork.kernel.org/project/linux-kbuild/cover/20201211184633.3213045-1-samitolvanen@google.com) |
+
+
+# 14 FTRACE
+-------
+
+## 14.1 dynamic event
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/11/05 | Masami Hiramatsu <mhiramat@kernel.org> | [tracing: Unifying dynamic event interface](https://lore.kernel.org/all/154140838606.17322.15294184388075458777.stgit@devbox) | 目前 ftrace 有 3 个动态事件接口, kprobes, uprobes 和 synthetic. 这组补丁将这些动态事件接口统一为 "dynamic_events", 这样我们就可以在同一个接口上轻松地添加其他动态事件. Dynamic_events 语法与 kprobe_events 和 uprobe_events 没有区别, 可以对 dynamic_events 接口使用相同的语法. | v2 ☑ 5.0-rc1 | [Patchwork](https://lore.kernel.org/all/154140838606.17322.15294184388075458777.stgit@devbox) |
+
+
+## 14.2 tracepoint
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/12 | "Tzvetomir Stoyanov (VMware)" <tz.stoyanov@gmail.com> | [trace: Add kprobe on tracepoint](https://lore.kernel.org/patchwork/patch/1122097) | 引入了一种新的动态事件:事件探测, 事件可以被附加到一个现有的 tracepoint 跟踪点, 并使用它的字段作为参数. 事件探测通过在 'dynamic_events' ftrace 文件中写入配置字符串来创建. | RFC,v5 ☑ 5.15-rc1 | [Patchwork](https://patchwork.kernel.org/project/linux-trace-devel/patch/20210812145805.2292326-1-tz.stoyanov@gmail.com)<br>*-*-*-*-*-*-*-* <br>[commit 7491e2c44278](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7491e2c442781a1860181adb5ab472a52075f393) |
+
+
+## 14.3 trace_probe
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/19 | "Tzvetomir Stoyanov (VMware)" <tz.stoyanov@gmail.com> | [tracing/probes: Reject events which have the same name of existing one](https://patchwork.kernel.org/project/linux-trace-devel/patch/162936876189.187130.17558311387542061930.stgit@devnote2) | NA | v1 ☑ 5.15-rc1 | [Patchwork](https://patchwork.kernel.org/project/linux-trace-devel/patch/162936876189.187130.17558311387542061930.stgit@devnote2)<br>*-*-*-*-*-*-*-* <br>[commit 8e242060c6a4](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8e242060c6a4947e8ae7d29794af6a581db08841) |
+| 2021/08/20 | Steven Rostedt <rostedt@goodmis.org> | [Tracing: Creation of event probe](https://patchwork.kernel.org/project/linux-trace-devel/patch/162936876189.187130.17558311387542061930.stgit@devnote2) | NA | v9 ☐ | [Patchwork v7,00/10](https://patchwork.kernel.org/project/linux-trace-devel/cover/20210819041321.105110033@goodmis.org)<br>*-*-*-*-*-*-*-* <br>[Patchwork v9,0/6](https://patchwork.kernel.org/project/linux-trace-devel/cover/20210820204644.546662591@goodmis.org) |
+
+## 14.4 boot-time tracing
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/10 | Masami Hiramatsu <mhiramat@kernel.org> | [tracing/boot: Add histogram syntax support in boot-time tracing](https://patchwork.kernel.org/project/linux-trace-devel/patch/162936876189.187130.17558311387542061930.stgit@devnote2) | 为 boot-time tracing  添加 Histogram 选项, 目前, 引导时跟踪仅支持设置触发器动作的每事件动作. 对于像 traceon, traceoff, snapshot 等短动作来说, 这就足够了. 然而, 对于 hist 触发器操作来说, 这并不好, 因为它通常太长了, 无法将其写入单个字符串, 特别是如果它有 onmatch 操作时. | v1 ☑ 5.15-rc1 | [Patchwork](https://lore.kernel.org/all/162856122550.203126.17607127017097781682.stgit@devnote2) |
 
 
 
