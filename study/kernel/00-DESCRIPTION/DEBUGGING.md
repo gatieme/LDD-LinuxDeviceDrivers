@@ -270,7 +270,15 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 -------
 
 
-为 kernel 支持 LTO 编译在内核社区经历了长期的实践.
+编译器一次只能对一个单元(比如一个 `.c` 文件)进行编译和优化(生成 `.o`), 因此没法跨文件范围做优化(如内联等), 只能实现局部优化, 缺乏全局观. 而 LTO, 就是在链接时通过全局视角进行优化操作, 从而对整个系统进行更加极致的优化. 跨模块优化的效果, 也即开启 LTO 主要有这几点好处:
+
+1.  从全局上看将哪些函数內联化, 哪些函数非内敛.
+
+2.  去除了一些无用代码
+
+3.  对程序有全局的优化作用
+
+实践证明, LTO 可以带来诸多好处, 不仅仅是性能的提升甚至飞跃, 也可以带来诸如二进制大小上的缩小等其他附加好处. 但是内核由于其复杂性, 为内核支持 LTO 链接优化在内核社区经历了长期的实践.
 
 1.  早在 2012 年 Intel 的 Andi Kleen 就基于 linux 3.x 为[内核支持了 gcc LTO 编译 Link-time optimization for the kernel](https://lwn.net/Articles/512548), 测试表明 LTO 内核镜像减少了约 20% 的体积, 当然带来的代价就是编译时间增加 3 倍左右(主要是链接时间的增加), 编译过程中所消耗的内存增加(至少 4G 以上). 而由于当时 LTO 并不成熟, 因此禁用了不少模块, 以及不支持多线程编译等问题, 被社区所诟病, 最终 Linus 明确表示不会合并此提交. 但是即使如此 Andi Kleen 也依旧在自己的代码分支: [scm](https://git.kernel.org/pub/scm/linux/kernel/git/ak/linux-misc.git), [github](https://github.com/andikleen/linux-misc/tree/lto-5.12-3). 继续维护和支持着 gcc LTO kernel, 截止目前最新的版本是 lto-5.12. 邮件列表中也能断断续续看到这批补丁的身影. 但是由于为了满足内核稳定性的要求, 体积方面的收益不断减少, 根据最新的测试结果, LTO 内核体积反而增大了 0.2%. 参见 [gcc link time optimization and the Linux kernel](http://www.halobates.de/kernel-lto.pdf).
 
