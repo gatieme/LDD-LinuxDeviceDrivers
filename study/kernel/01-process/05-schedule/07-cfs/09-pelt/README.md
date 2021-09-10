@@ -331,7 +331,7 @@ Yuyang Du 在 Document 下新增了一个 `sched-pelt.c` 的文件, 用来生成
 
 
 
-# 5 PELT 4.15@ 2017 FIE and CIE support for ARM/ARM64
+# 6 PELT 4.15@ 2017 FIE and CIE support for ARM/ARM64
 -------
 
 
@@ -348,13 +348,16 @@ Yuyang Du 在 Document 下新增了一个 `sched-pelt.c` 的文件, 用来生成
 
 *   CIE 则使系统感知, 不同架构(比如 big.LITTLE 的小核和大核虽然都使用 ARM 架构, 但是是性能异构的) 的 CPU 即使处于相同频点下, 所能提供的计算能力 capacity 也是不同的.
 
-# 5 PELT 4.15@2017 A bit of a cgroup/PELT overhaul
+# 7 PELT 4.15@2017 A bit of a cgroup/PELT overhaul
+-------
+
+## 7.1 补丁列表
 -------
 
 Peter 后来进行了一些优化
 
 | 时间  | 作者 |特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:------:|:---:|
+|:----:|:----:|:---:|:--:|:----------:|:----:|
 | 2016/06/17 | Peter Zijlstra | [sched/fair: Fix PELT wobblies](https://lore.kernel.org/patchwork/cover/690025) | | v1 ☑ 4.8-rc1 | [PatchWork](ttps://lore.kernel.org/patchwok/cover/690025) |
 | 2017/05/04 | Tejun Heo | [sched/fair: Propagate runnable_load_avg independently from load_avg](https://lore.kernel.org/patchwork/patch/785393) | | v1 ☑ 4.15 | [PatchWork](https://lore.kernel.org/patchwork/patch/782955)<br>*-*-*-*-*-*-*-*<br> [PatchWork](https://lore.kernel.org/patchwork/patch/785395) |
 | 2017/09/01 | Peter Zijlstra | [A bit of a cgroup/PELT overhaul](https://lore.kernel.org/patchwork/cover/827575) | | v2 ☑ 4.15 | 2017/05/12 [PatchWork RFC,00/14](https://lore.kernel.org/patchwork/cover/787364)<br>*-*-*-*-*-*-*-*<br> 2017/09/01 [PatchWork -v2,00/18](https://lore.kernel.org/patchwork/cover/827575), [LKML](https://lkml.org/lkml/2017/9/1/331) |
@@ -381,7 +384,10 @@ cef27403cbe9 sched/fair: Add comment to calc_cfs_shares()
 7c80cfc99b7b sched/fair: Clean up calc_cfs_shares()
 ```
 
-这个版本 sched_avg 结构体变更如下
+## 7.2 结构体变更
+-------
+
+这个版本 sched_avg 结构体变更如下, 参见 [1ea6c46a23f1 sched/fair: Propagate an effective runnable_load_avg](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1ea6c46a23f1)
 
 ```cpp
 # https://elixir.bootlin.com/linux/v4.15/source/include/linux/sched.h#L278
@@ -407,6 +413,12 @@ struct sched_avg {
 | runnable_load_sum | 新增字段, 对于进程或者进程组记录了所有调度实体(on_rq) 的累计负载, 对于 CFS_RQ, 记录了当前就绪队列上所有可运行的任务的负载累计之和 |
 | runnable_load_avg | 新增字段, 调度时期在就绪队列上的平均累计负载 |
 | period_contrib | 记录了当前进程最后运行的未满一个窗口(1024us) 的剩余时间 |
+
+## 7.3 逻辑修改
+-------
+
+### 7.3.1 修改了负载和平均负载的计算方式
+-------
 
 
 **首先这组补丁**修改了负载和平均负载的计算方式, 参照 [commit c7b50216818e sched/fair: Remove se->load.weight from se->avg.load_sum](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c7b50216818e) 中的修改.
@@ -435,7 +447,19 @@ struct sched_avg {
 
 *   对于 CFS_RQ 来说, 我们经常需要使用 runnable_load_avg 负载值比较不同 CPU 之间的负载信息, 他其实是 RQ 上所有调度实体的 load_sum 之和, 因此需要附带 weight 信息的, 因此在 `___update_load_sum` 更新 CFS_RQ 负载的时候, 直接附带了 weight 信息, 而 `___update_load_avg` 中更新 avg 的时候, 则不应该再附带.
 
+
+### 7.3.2 归一了 CFS_RQ 上 runnable_load_avg 的计算
+-------
+
 **其次归一了 CFS_RQ 上 runnable_load_avg 的计算, 并处理了组调度情形下, runnable_load_avg 的计算**, load_balance 比较 CPU 的负载时, 为了体现出等待的压力, 之前一直是使用 runnable_load_avg 的负载, 因此早期版本通过 cfs_rq 上增加了一个 runnable_load_avg 字段来完成. 参见 [139622343ef3 sched/fair: Provide runnable_load_avg back to cfs_rq](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=139622343ef3).
+
+
+
+
+### 7.3.3 引入 group se 的 runnable_weight
+-------
+
+参见 [1ea6c46a23f1 sched/fair: Propagate an effective runnable_load_avg](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1ea6c46a23f1).
 
 对于没开组调度的情况
 
@@ -447,11 +471,14 @@ struct sched_avg {
 runnable_load_avg = \Sum se->avg.load_avg ; where se->on_rq
 ```
 
-然而, 在开启了 cgroup 的情况下, 这就要分开了, 因为 group 实体总是可运行的, 即使它的大部分调度实体都被阻塞.
+然而, 在开启了 cgroup 的情况下, 情况稍微有点复杂, 因为 group 实体总是可运行的, 即使它的大部分调度实体都被阻塞.
 
-因此, [commit sched/fair: Propagate an effective runnable_load_avg](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1ea6c46a23f1213d1972bfae220db5c165e27bba) 引入 runnable_weight, 它对于任务实体与常规权重相同, 但对于组实体是实体权重的一部分, 并表示组运行队列的可运行部分.
+因此, [commit sched/fair: Propagate an effective runnable_load_avg](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1ea6c46a23f1213d1972bfae220db5c165e27bba) 引入 runnable_weight, 它对于任务实体与常规权重相同, 但对于组调度实体 runnable_weight 则只表示组运行队列的可运行部分.
 
-具体信息可以通过这个 commit 中注释部分的修改窥测一二.
+enqueue_runnable_load_avg() 中增加 runnable_weight.
+dequeue_runnable_load_avg() 中则减少 runnable_weight.
+
+具体信息可以通过这个 [commit sched/fair: Propagate an effective runnable_load_avg](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1ea6c46a23f1213d1972bfae220db5c165e27bba) 中[注释部分](https://elixir.bootlin.com/linux/v4.15/source/kernel/sched/fair.c#L3252)的修改窥测一二. 以及后续修改注释的补丁 [17de4ee04ca9 sched/fair: Update calc_group_*() comments](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=17de4ee04ca925590df036b112c1db8a778e14bf)
 
 
 ```cpp
@@ -485,11 +512,52 @@ runnable_load_avg = \Sum se->avg.load_avg ; where se->on_rq
 
 具体实现上, 仍然沿用了上面刚提到的 cfs->runnable_load_{sum|avg} 的更新, 这个补丁做了归一, 将 RQ 的负载统计放置到了 sched_avg 上.
 
-然后将此负载 runnable_load_sum 通过 PELT 层次结构传播, 以达到有效的可运行负载平均值
-我们不应该将其与规范的可运行负载平均值混淆.
+然后将此负载 runnable_load_sum 通过 PELT 层次结构传播, 以达到有效的可运行负载平均值, 我们不应该将其与规范的可运行负载平均值混淆.
+
+但是这样依旧有问题, 参见 [commit 2c8e4dce7963 sched/fair: Calculate runnable_weight slightly differently](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=17de4ee04ca925590df036b112c1db8a778e14bf).
 
 
-# 5 PELT 4.17@2018 sched/fair: add util_est on top of PELT
+可运行权重 runnable_weight 目前是直接据可运行负载与平均负载的比率来调整组.
+
+$runnable\_weight = shares \times  \frac{runnable\_load\_avg}{load\_avg}$
+
+这导致了一个问题, 它让我们倾向于不睡觉的任务. 因此进入睡眠状态的任务将会使其 `runnable_load_avg` 衰减得相当厉害, 这将大大降低交互任务组的可运行权重.
+
+为了解决这种不平衡, 作者稍微调整了一下 runnable_weight 的计算方法, 所以
+
+1.  在理想情况下仍然是上述情况. $runnable\_weight = shares \times  \frac{runnable\_load\_avg}{load\_avg}$
+
+2.  但在交互式情况下, 它是 $runnable\_weight = shares \times \frac{runnable\_weight}{load\_weight}$, 这将使互动性和非互动性组之间的权重分配更加公平。
+
+这个补丁将 runnable_weight 的计算方式修正为:
+
+$shares \times \frac{max(cfs_rq->avg.runnable\_load\_avg, cfs_rq->runnable\_weight)}{max(cfs\_rq->avg.load\_avg, cfs\_rq->load.weight)}$
+
+
+### 7.3.4 reweight_entity
+-------
+
+[840c5abca499 sched/fair: More accurate reweight_entity()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=840c5abca499)
+
+当一个调度实体改变它的权重 load.weight 时, 应该立即改变它的 load_avg, 并将这个改变传播到它所属的负载累计总和中. 因为我们用这些值来预测未来的行为, 而对其历史价值不感兴趣.
+
+如果没有这种变化, 负载的变化将需要通过平均值传播, 到那时它可能再次发生变化.
+
+通过这个更改, cfs_rq->load_{avg|sum} 将更准确地反映当前可运行的和预期的阻塞负载.
+
+### 7.3.4 重写 RQ remove_avg
+-------
+
+
+[2a2f5d4e44ed sched/fair: Rewrite cfs_rq->removed_*avg](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2a2f5d4e44ed)
+
+在进程迁移的时候, 我们需要将进程的负载从原来的 RQ 上移除, 添加到新的 RQ 上. 但是由于唤醒, 迁移等路径, 长期持有旧的 RQ->lock, 会引入性能开销和不稳定因素, 因此我们无法更新 RQ 的负载信息. 因此早期内核就引入了 RQ->removd 机制, 通过异步的方式, 首先通过 remove_entity_load_avg() 将[待删除的负载信息](https://elixir.bootlin.com/linux/v4.14/source/kernel/sched/fair.c#L3530) 添加到一个原子变量中, 并让 CPU 在[下一次更新收集并处理它](https://elixir.bootlin.com/linux/v4.14/source/kernel/sched/fair.c#L3349).
+
+目前我们有两个原子变量: removed_load_avg, removed_util_avg, 但是它们存在一些问题, 即它们可能会被读取为不同步. 而且, 在一条缓存线上进行两次原子操作的开销不见得比争用的 RQ 锁更廉价.
+
+因为这个补丁进行了处理, 将其转换为带有 `cfs_rq->removed.lock` 的实现, 并且锁被标记为 `____cacheline_aligned`.
+
+# 8 PELT 4.17@2018 sched/fair: add util_est on top of PELT
 -------
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -553,7 +621,7 @@ f9be3e5961c5 sched/fair: Use util_est in LB and WU paths
  };
 ```
 
-# PELT 4.19@2018 track CPU utilization
+# 9 PELT 4.19@2018 track CPU utilization
 -------
 
 | 时间  | 作者 |特性 | 描述 | 是否合入主线 | 链接 |
@@ -564,7 +632,7 @@ linux 内核中调度器提供了多种调度类, 但是到目前为止, PELT �
 
 
 
-# 6 PELT 5.1@2019 update scale invariance of PELT
+# 10 PELT 5.1@2019 update scale invariance of PELT
 -------
 
 | 时间  | 作者 |特性 | 描述 | 是否合入主线 | 链接 |
@@ -583,7 +651,7 @@ Frequency Invariance 通过按照 CPU 频率和实际 capacity 对进程运行�
 ```
 
 
-# 7 PELT 5.7@2020 Support frequency invariance for X86
+# 11 PELT 5.7@2020 Support frequency invariance for X86
 -------
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -593,7 +661,7 @@ Frequency Invariance 通过按照 CPU 频率和实际 capacity 对进程运行�
 得益于 ARM big.LITTLE 架构和 DynamicIQ 架构在安卓的广泛使用, FIE 和 CIE 的支持, ARM64 走在了其他架构的最前面, 但是 X86_64 服务器虽然更看重吞吐量, 但是对功耗的追求也是永恒的话题, 更何况 X86_64 也有一些低端嵌入式芯片, 因此这组补丁补齐了 X86 架构下 FIE 的支持.
 
 
-# 6 PELT 5.7@2020 remove runnable_load_avg and improve group_classify
+# 12 PELT 5.7@2020 remove runnable_load_avg and improve group_classify
 -------
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -635,10 +703,10 @@ Frequency Invariance 通过按照 CPU 频率和实际 capacity 对进程运行�
 [9f68395333ad sched/pelt: Add a new runnable average signal](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9f68395333ad) 前脚把 runnable_load_{sum|avg} 删掉了, 这个补丁找了一种新的 runnable 计算方式来(runnable_{sum|avg})替代旧的方式. 之前 runnable_load_{sum|avg} 的计算包含了太多作者认为不合适的信息(比如 se 和 group 的 runnable 负载 包含了太多的权重 load_weight 信息), 而作者**更希望 runnable 能体现出等待进程的数量, 这个才能突出反应示 CFS_RQ 上的可运行压力**. 新的 runnable 负载计算方式只在意有多少进程在等待, 而不关心他们的 load_weight, 因此可以理解为该信号跟踪 RQ 上任务的等待压力, 有助于更好地定义 RQ 的状态. 这种计算方式与 load_{sum|avg} 的计算方式是类似的, 这样的好处是, 我们**可以直接将 runnable 的负载和 running 的负载进行比较**. 当任务竞争同一个 RQ时, 它们的可运行平均负载将高于 util_avg, 因为它将包含等待时间(不再包含之前的 load_weight 信息), 我们可以使用这个信号更好地对 CFS_RQ 进行分类.
 
 
-# 10 背景知识
+# 13 背景知识
 -------
 
-## 10.1 进程的最大运行负载
+## 13.1 进程的最大运行负载
 -------
 
 进程投入运行至今, 如果一直运行那么能达到的负载最大值是多少呢?
@@ -690,7 +758,7 @@ LOAD_AVG_MAX - 1024 + sa->period_contrib = LOAD_AVG_MAX - (1024 - sa->period_con
 语义上可以理解为, 最后一个的窗口只运行了 `sa->period_contrib`, 这个窗口不需要衰减.
 
 
-## 10.2 FIE 和 CIE
+## 13.2 FIE 和 CIE
 -------
 
 内核当前 PELT 在计算负载的时候, 考虑了两个跟 CPU 性能和频率相关的变量(scale_freq 和 scale_cpu
@@ -754,7 +822,7 @@ scale_delta = scale(delta, scale_freq) = delta * scale_freq / SCHED_CAPACITY_SCA
 
 真正计算 util 的时候, 同时考虑了 FIE 和 CIE.
 
-## 10.3 FI Support
+## 13.3 FI Support
 -------
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -767,7 +835,7 @@ scale_delta = scale(delta, scale_freq) = delta * scale_freq / SCHED_CAPACITY_SCA
 
 
 
-# 7 参考资料
+# 14 参考资料
 -------
 
 [task 的 load_avg_contrib 的更新参考](https://www.codenong.com/cs106477101)
