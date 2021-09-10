@@ -1600,7 +1600,31 @@ Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 p
 | 2021/05/27 | Muchun Song <songmuchun@bytedance.com> | [Optimize list lru memory consumption](https://lore.kernel.org/patchwork/cover/1436887) | 优化列表lru内存消耗<br> | v2 ☐ | [PatchWork v2](https://patchwork.kernel.org/project/linux-mm/cover/20210527062148.9361-1-songmuchun@bytedance.com) |
 
 
-### 4.2.10 其他页面替换算法
+### 4.2.10 slab shrinker
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.0.1 -> v2.4.0.2](https://github.com/gatieme/linux-history/commit/3192b2dcbe00fdfd6a50be32c8c626cf26b66076) | NA | v1 ☑ 2.4.8.4 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/3192b2dcbe00fdfd6a50be32c8c626cf26b66076) |
+
+
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.0.3 -> v2.4.0.4](https://github.com/gatieme/linux-history/commit/6aea16664696367eaab3ec2c00922c942a601073) | NA | v1 ☑ 2.4.8.4 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/6aea16664696367eaab3ec2c00922c942a601073) |
+
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.4.6 -> v2.4.5](https://github.com/gatieme/linux-history/commit/9c6f70be049f5a0439996107e58bf65e9a5d9a09) | NA | v1 ☑ 2.4.8.4 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/9c6f70be049f5a0439996107e58bf65e9a5d9a09) |
+
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.7.3 -> v2.4.7.4](https://github.com/gatieme/linux-history/commit/70d68bd32041d22febb277038641d55c6ac7b57a) | NA | v1 ☑ 2.4.8.4 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/70d68bd32041d22febb277038641d55c6ac7b57a) |
+
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.8.3 -> v2.4.8.4](https://github.com/gatieme/linux-history/commit/0b9ded43ee424791d9283cee2a33dcb4a97da57d) | NA | v1 ☑ 2.4.8.4 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/0b9ded43ee424791d9283cee2a33dcb4a97da57d) |
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.9.10 -> v2.4.9.11](https://github.com/gatieme/linux-history/commit/a880f45a48be2956d2c78a839c472287d54435c1) | NA | v1 ☑ 2.4.13.6 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/a880f45a48be2956d2c78a839c472287d54435c1) |
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.13.3 -> v2.4.13.4](https://github.com/gatieme/linux-history/commit/f97f22cb0b9dca2a797feccc580b3b8fdb238ac3) | NA | v1 ☑ 2.4.13.6 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/f97f22cb0b9dca2a797feccc580b3b8fdb238ac3) |
+| 2002/02/04 | Andrew Morton <akpm@digeo.com> | [v2.4.13.5 -> v2.4.13.6](https://github.com/gatieme/linux-history/commit/857805c6bdc445542e35347e18f1f0d21353a52c) | NA | v1 ☑ 2.4.13.6 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/857805c6bdc445542e35347e18f1f0d21353a52c) |
+| 2002/09/22 | Andrew Morton <akpm@digeo.com> | [low-latency page reclaim](https://github.com/gatieme/linux-history/commit/407ee6c87e477434e3cb8be96885ed27b5539b6f) | NA | v1 ☑ 2.5.39 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/407ee6c87e477434e3cb8be96885ed27b5539b6f) |
+| 2002/09/25 | Andrew Morton <akpm@digeo.com> | [slab reclaim balancing](https://github.com/gatieme/linux-history/commit/b65bbded3935b896d55cb6b3e420a085d3089368) | NA | v1 ☑ 2.5.39 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/b65bbded3935b896d55cb6b3e420a085d3089368) |
+| 2002/10/04 | Andrew Morton <akpm@digeo.com> | [separation of direct-reclaim and kswapd function](https://github.com/gatieme/linux-history/commit/bf3f607a57d27cab30d5ddfd203d873856bc22b7) | NA | v1 ☑ 2.5.41 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/bf3f607a57d27cab30d5ddfd203d873856bc22b7) |
+| 2002/10/13 | Andrew Morton <akpm@digeo.com> | [batched slab shrink and registration API](https://github.com/gatieme/linux-history/commit/71419dc7e039a8953861df2a28fad639d12ae6b9) | 目前系统中存在 dentry、inode 和 dquot 缓存等[多个零散的收缩器](https://elixir.bootlin.com/linux/v2.5.42/source/mm/vmscan.c). 虽然可以正常工作, 但它的 cpu 效率略低. 这个补丁重写了这些收缩器. 引入了 shrinker 框架, 各个子系统可以通过 set_shrinker() 注册自己的 shrink 回调到收缩器. 这些收缩器由一个 shrinker_list 管理. 这些收缩器收缩的速度是一样的, 你们可以用相同的速率对他们进行回收. | v1 ☑ 2.5.43 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/71419dc7e039a8953861df2a28fad639d12ae6b9) |
+
+
+### 4.2.11 其他页面替换算法
 -------
 
 [AdvancedPageReplacement](https://linux-mm.org/AdvancedPageReplacement)
