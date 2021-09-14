@@ -1706,7 +1706,7 @@ Facebook 指出他们也面临过同样的问题, 所有的 workload 都需要�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/08/09 | SeongJae Park <sjpark@amazon.com> | [mm: introduce process_mrelease system call](https://lore.kernel.org/patchwork/patch/1474134) | 引入 process_mrelease() 加速进程的清理.<br>我们经常希望能杀死不必要的进程, 为更重要的进程释放内存. 例如 Facebook 的 OOM killer 守护程序 oomd 和 Android的低内存killer守护程序lmkd. 对于这样的系统组件, 能够快速有效地释放内存非常. 但是重要不幸的是, 在接收到 SIGKILL 后, 进程释放内存所需的时间可能会根据进程的状态(不间断睡眠)、进程正在运行的内核的大小和 OPP 级别而有所不同. 以更可预测的方式释放目标进程资源的机制将提高系统控制内存压力的能力.<br>引入 process_mrelease 系统调用, 该调用从调用方的上下文中释放即将死亡的进程的内存. 这样, 内存将以一种更可控的方式释放, 并具有CPU相关性和调用方的优先级.<br>释放内存的工作量也将由调用方承担. | v9 ☐ | [PatchWork v9,1/2](https://lore.kernel.org/patchwork/cover/1474134) |
+| 2021/08/09 | SeongJae Park <sjpark@amazon.com> | [mm: introduce process_mrelease system call](https://lore.kernel.org/patchwork/patch/1474134) | 引入 process_mrelease() 加速进程的清理, 以更快地释放被杀死的进程的内存.<br>我们经常希望能杀死不必要的进程, 为更重要的进程释放内存. 例如 Facebook 的 OOM killer 守护程序 oomd 和 Android的低内存killer守护程序lmkd. 对于这样的系统组件, 能够快速有效地释放内存非常. 但是不幸的是, 当一个进程接收到 SIGKILL 信号的时候并不一定能及时释放自己的内存, 这可能会受到很多因素的影响, 譬如进程的状态(它可能是处于 uninterruptible sleep 态)、正在运行进程的的 core 的 OPP 级别等. 而通过调用这个新的 process_mrelease() 系统调用, 它会在调用者的上下文中释放被杀死的进程的内存. 这种方式下, 内存的释放更可控, 因为它直接在当前 CPU 上运行, 只取决于调用者任务的优先级大小. 释放内存的工作量也将由调用方承担. | v9 ☑ 5.15-rc1 | [PatchWork v9,1/2](https://lore.kernel.org/patchwork/cover/1474134) |
 
 
 

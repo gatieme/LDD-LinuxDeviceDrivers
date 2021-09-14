@@ -35,6 +35,7 @@
 |  tag  |  LWN  | 泰晓资讯 |
 |:-----:|:-----:|:-------:|
 | 5.14 | [2021/07/12 rc1](https://lwn.net/Articles/861695) | [8月 / 第一期 / 2021](http://tinylab.org/tinylab-weekly-8-1st-2021)<br>*-*-*-*-*-*-*-* <br>[8月 / 第二期 / 2021](http://tinylab.org/tinylab-weekly-8-2nd-2021/)<br>*-*-*-*-*-*-*-* <br>[2021 年 9 月 第 一 期](http://tinylab.org/tinylab-weekly-9-1st-2021) |
+| 5.15 | [2021/07/12 rc1](https://lwn.net/Articles/861695) | [9月 / 第二期 / 2021](http://tinylab.org/tinylab-weekly-9-2nd-2021) |
 
 
 # 4 泰晓资讯
