@@ -52,7 +52,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 **-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* 正文 -*-*-*-*-*-*-*-*-*-*-*-*-*-*-***
 
 
-# 1
+# 1 概述
 -------
 
 
@@ -142,8 +142,25 @@ raw_tracepoint 相比 tracepoint
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/03/01 | Jan H. Schönherr | [bpf: Support calling kernel function](https://patchwork.kernel.org/project/netdevbpf/cover/20210325015124.1543397-1-kafai@fb.com) | BPF 支持直接调用内核函数 | v2 ☑ 5.13-rc1 | [PatchWork v2,bpf-next,00/14](http://patches.linaro.org/cover/221148) |
+| 2021/08/30 | Kumar Kartikeya Dwivedi <memxor@gmail.com> | [Support kernel module function calls from eBPF](https://patchwork.kernel.org/project/netdevbpf/cover/20210830173424.1385796-1-memxor@gmail.com) | 这组补丁允许 BPF 程序调用内核模块的函数, 并修改验证器逻辑以允许无效的内核函数调用, 只要它们作为死代码消除的一部分被修剪. 这样做是为了为 BPF 对象提供更好的运行时可移植性, 它可以有条件地禁用稍后被验证器修剪的部分代码(例如const volatile vars, kconfig选项). libbpf 的修改与内核的修改一起进行, 以支持模块函数调用.
+它还将 TCP 拥塞控制对象转换为使用模块 kfunc 支持, 而不是依赖于 IS_BUILTIN ifdef. | v1 ☐ | [PatchWork bpf-next,RFC,v1,0/8](https://patchwork.kernel.org/project/netdevbpf/cover/20210830173424.1385796-1-memxor@gmail.com) |
 
 
+# 6 printk
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/03/01 | Jan H. Schönherr | [bpf: implement variadic printk helper](https://patchwork.kernel.org/project/netdevbpf/cover/20210913035609.160722-1-davemarchevsky@fb.com) | 这组补丁引入了一个新的接口 bpf_trace_vprintk(), 它的功能与 bpf_trace_printk() 类似, 但通过伪 vararg u64 的数组支持 > 3 个参数, 使用与 bpf_trace_printk() 相同的机制写入 `/sys/kernel/debug/tracing/trace_pipe`, 帮助程序的功能是在 libbpf 问题跟踪程序中请求的. libbpf 的 bpf_printk() 宏被修改为在传递 > 3 个变量时使用 bpf_trace_vprintk(), 否则保留之前的行为, 使用 bpf_trace_printk().<br>
+在实现 bpf_seq_printf() 和 bpf_snprintf() 期间添加的 helper函数和宏为 bpf_trace_vprintk() 完成了大部分繁重的工作. 用例很简单: 为 BPF 开发人员提供一个更强大的 printk 将简化 BPF 程序的开发, 特别是在调试和测试期间, 这里往往使用 printk. 这个特性是由 [Andrii 在 libbpf 的 issue 中提出](https://github.com/libbpf/libbpf/issues/315)的. | v2 ☑ 5.13-rc1 | [PatchWork v5,bpf-next,0/9](https://patchwork.kernel.org/project/netdevbpf/cover/20210913035609.160722-1-davemarchevsky@fb.com) |
+
+
+# 7 MAP
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/08/26 | Kumar Kartikeya Dwivedi <memxor@gmail.com> | [Implement file local storage](https://patchwork.kernel.org/project/netdevbpf/cover/20210826133913.627361-1-memxor@gmail.com/) | 本系列实现了 eBPF LSM 程序的文件本地存储映射. 这允许将映射中数据的生存期与打开的文件描述联系起来. 与其他本地存储映射类型一样, 数据的生存期与结构文件实例相关联. 主要用途是:<br>1. 用于将与 eBPF 程序中打开的文件(而非 fd)关联的数据绑定在一起, 以便在文件消失时释放数据(例如, 检查点checkpoint/恢复用例restore usecase).<br>2. 使用eBPF LSM 在用户空间中实现[辣椒(Capsicum)风格的功能沙盒](https://www.usenix.org/legacy/event/sec10/tech/full_papers/Watson), 使用此机制在文件级别强制执行权限. | v2 ☐ | [PatchWork bpf-next,v2,0/5](https://patchwork.kernel.org/project/netdevbpf/cover/20210826133913.627361-1-memxor@gmail.com) |
 
 <br>
 

@@ -281,7 +281,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2007/03/23 | Christoph Lameter <clameter@sgi.com> | [Quicklists for page table pages V4](https://lore.kernel.org/patchwork/cover/76916) | NA | v1 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/76097)<br>*-*-*-*-*-*-*-* <br> [PatchWork v2](https://lore.kernel.org/patchwork/cover/76244)<br>*-*-*-*-*-*-*-* <br> [PatchWork v3](https://lore.kernel.org/patchwork/cover/76702)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4](https://lore.kernel.org/patchwork/cover/76916)<br>*-*-*-*-*-*-*-* <br>[PatchWork v5](https://lore.kernel.org/patchwork/cover/78116) |
+| 2007/03/23 | Christoph Lameter <clameter@sgi.com> | [Quicklists for page table pages V4](https://lore.kernel.org/patchwork/cover/76916) | NA | v1 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/76097)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/76244)<br>*-*-*-*-*-*-*-* <br> [PatchWork v3](https://lore.kernel.org/patchwork/cover/76702)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4](https://lore.kernel.org/patchwork/cover/76916)<br>*-*-*-*-*-*-*-* <br>[PatchWork v5](https://lore.kernel.org/patchwork/cover/78116) |
 | 2019/08/08 | Christoph Lameter <clameter@sgi.com> | [mm: remove quicklist page table caches](https://lore.kernel.org/patchwork/cover/1112468) | 内核提前直接映射好足够的 PTE 级别的页面, 引入 `__GFP_PTE_MAPPED` 标志, 当使用此标记分配 order 为 0 页面时, 将在直接映射中的 PTE 级别进行映射.<br>目前只是分配页表时使用 `__GFP_PTE_MAPPED` 分配页表, 以便它们在直接映射中具有 4K PTE. | v1  ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/cover/1112468) |
 
 
@@ -298,6 +298,9 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 ### 1.7.3 安全
 -------
 
+#### 1.7.3.1 PKS
+-------
+
 页表是许多类型保护的基础, 因此是攻击者的攻击目标. 将它们映射为只读将使它们更难在攻击中使用. 内核开发者提出了通过 PKS 来对内核页表进行写保护. 这可以防止攻击者获得写入页表的能力. 这并不是万无一失的. 因为能够执行任意代码的攻击者可以直接禁用 PKS. 或者简单地调用内核用于合法页表写入的相同函数.
 
 [PKS](https://lore.kernel.org/lkml/20210401225833.566238-1-ira.weiny@intel.com) 是即将推出的 CPU 功能, 它允许在不刷新 TLB 的情况下更改监控器虚拟内存权限, 就像 PKU 对用户内存所做的那样. 保护页表通常会非常昂贵, 因为您必须通过分页本身来实现. PKS 提供了一种切换页面表可写性的方法, 这只需要 MSR 操作即可完成.
@@ -305,8 +308,28 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/08/30 | Rick Edgecombe <rick.p.edgecombe@intel.com> | [PKS write protected page tables](https://patchwork.kernel.org/project/linux-mm/cover/20210830235927.6443-1-rick.p.edgecombe@intel.com) | 使用 [PKS(Protection Keys for Supervisor)]() 对页表进行写保护. 其基本思想是使页表成为只读的, 除非在需要修改页表时临时基于每个 cpu 来修改. | v1  ☐ | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20210830235927.6443-1-rick.p.edgecombe@intel.com) |
+| 2020/09/04 | Rick Edgecombe <rick.p.edgecombe@intel.com> | [arm64: Memory Tagging Extension user-space support](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) | 使用 [PKS(Protection Keys for Supervisor)]() 对页表进行写保护. 其基本思想是使页表成为只读的, 除非在需要修改页表时临时基于每个 cpu 来修改. | v1  ☐ | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) |
 
+#### 1.7.3.2 内存标签扩展(Arm v8.5 memory tagging extension-MTE)
+-------
+
+[MTE技术在Android上的应用](https://zhuanlan.zhihu.com/p/353807709)
+
+[Memory Tagging Extension (MTE) 简介（一）](https://blog.csdn.net/weixin_47569031/article/details/114694733)
+
+[LWN：Arm64的内存标记扩展功能！](https://blog.csdn.net/Linux_Everything/article/details/109396397)
+
+
+MTE(Memory Tag) 是 ARMV8.5 增加一个硬件特性, 主要用于内存安全. 通过硬件 Arch64 MTE 和 compiler 辅助, 可以增加 64bit 进程的内存安全.
+
+MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内存和密钥上设置锁. 如果钥匙与锁匹配, 则允许进入. 如果不匹配, 则报告错误. 通俗讲就是为每个分配内存都打上一个 TAG(可以认为是访问内存的密钥或者键值), 当通过指针地址访问内存的时候, 硬件会比较指针里面的 TAG 与实际内存 TAG 是否匹配, 如果不匹配则检测出错误.
+
+
+通过在物理内存的每个 16 字节中添加 4 位元数据来标记内存位置. 这是标签颗粒. 标记内存实现了锁. 指针和虚拟地址都被修改为包含键. 为了实现关键位而不需要更大的指针, MTE 使用了 ARMv8-A 体系结构的 Top Byte Ignore (TBI) 特性. 当启用 TBI 时, 当将虚拟地址作为地址转换的输入时, 虚拟地址的上字节将被忽略.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/09/04 | Catalin Marinas <catalin.marinas@arm.com> | [arm64: Memory Tagging Extension user-space support](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) | NA | v9 ☑ 5.10-rc1 | [2019/12/11 PatchWork 00/22](https://patchwork.kernel.org/project/linux-mm/cover/20191211184027.20130-1-catalin.marinas@arm.com)<br>*-*-*-*-*-*-*-* <br>[2020/09/04 PatchWork v9,00/29](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) |
 
 ## 1.8 memory policy
 -------
@@ -314,6 +337,12 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/03 | Feng Tang <feng.tang@intel.com> | [Introduce multi-preference mempolicy](https://lore.kernel.org/patchwork/cover/1471473) | 引入 MPOL_PREFERRED_MANY 的 policy, 该 mempolicy 模式可用于 set_mempolicy 或 mbind 接口.<br>1. 与 MPOL_PREFERRED 模式一样, 它允许应用程序为满足内存分配请求的节点设置首选项.但是与 MPOL_PREFERRED 模式不同, 它需要一组节点.<br>2. 与 MPOL_BIND 接口一样, 它在一组节点上工作, 与 MPOL_BIND 不同, 如果首选节点不可用, 它不会导致 SIGSEGV 或调用 OOM killer. | v7 ☐ | [PatchWork v7,0/5](https://lore.kernel.org/patchwork/cover/1471473) |
+
+## 1.9 page attributes
+-------
+
+
+
 
 
 # 2 内存分配
