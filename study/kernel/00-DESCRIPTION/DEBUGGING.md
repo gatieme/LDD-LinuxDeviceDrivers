@@ -56,6 +56,8 @@ blogexcerpt: FZF 是目前最快的模糊搜索工具. 使用golang编写. 结�
 # 1 UNWIND
 -------
 
+[探索Android平台ARM unwind技术](https://zhuanlan.zhihu.com/p/336916116)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/11/23 | Shile Zhang <shile.zhang@linux.alibaba.com> | [Speed booting by sorting ORC unwind tables at build time](https://lore.kernel.org/patchwork/cover/1162315) | ORC unwind有两个表，.orc_unwind_ip和.orc_unwind 二分搜索需要排序。在构建时对其进行排序可以节省更多CPU周期有助于加快内核引导. 添加ORC表排序在一个独立的线程有助于避免更多的链接. | RFC v6 ☐ | [PatchWork v6](https://lore.kernel.org/patchwork/cover/1162315) |
@@ -310,6 +312,15 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 3.  [Shrinking the kernel with an axe](https://lwn.net/Articles/746780)
 
 4.  [Shrinking the kernel with a hammer](https://lwn.net/Articles/748198)
+
+
+## 13.3 ZERO_CALL_USED_REGS
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/05/05 | Kees Cook <keescook@chromium.org> | [Makefile: Introduce CONFIG_ZERO_CALL_USED_REGS](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.15-Hardening) | 新增 CONFIG_ZERO_CALL_USED_REGS, 启用时使用 "-fzero CALL USED REGS=USED gpr"(在 GCC 11 中)构建内核. 此选项将在函数返回之前将所有调用方使用的寄存器内容归零, 以确保临时值不会泄漏到函数边界之外. 这意味着寄存器内容不太可能用于旁道攻击和信息泄露. 此外，这有助于将内核映像中有用的 ROP 小工具的数量减少约 20%. phoronix 对这个选项进行了[性能影响测试](https://www.phoronix.com/scan.php?page=article&item=linux515-compile-regress). | v2 ☑ 5.15-rc1 | [Patchwork](https://patchwork.kernel.org/project/linux-kbuild/patch/20210505191804.4015873-1-keescook@chromium.org)<br>*-*-*-*-*-*-*-* <br>[commit a82adfd5c7cb](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a82adfd5c7cb4b8bb37ef439aed954f9972bb618) |
+
 
 # 14 FTRACE
 -------

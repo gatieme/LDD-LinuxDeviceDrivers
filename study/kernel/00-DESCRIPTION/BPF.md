@@ -162,6 +162,17 @@ raw_tracepoint 相比 tracepoint
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/08/26 | Kumar Kartikeya Dwivedi <memxor@gmail.com> | [Implement file local storage](https://patchwork.kernel.org/project/netdevbpf/cover/20210826133913.627361-1-memxor@gmail.com/) | 本系列实现了 eBPF LSM 程序的文件本地存储映射. 这允许将映射中数据的生存期与打开的文件描述联系起来. 与其他本地存储映射类型一样, 数据的生存期与结构文件实例相关联. 主要用途是:<br>1. 用于将与 eBPF 程序中打开的文件(而非 fd)关联的数据绑定在一起, 以便在文件消失时释放数据(例如, 检查点checkpoint/恢复用例restore usecase).<br>2. 使用eBPF LSM 在用户空间中实现[辣椒(Capsicum)风格的功能沙盒](https://www.usenix.org/legacy/event/sec10/tech/full_papers/Watson), 使用此机制在文件级别强制执行权限. | v2 ☐ | [PatchWork bpf-next,v2,0/5](https://patchwork.kernel.org/project/netdevbpf/cover/20210826133913.627361-1-memxor@gmail.com) |
 
+
+
+# 8 Kernel
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/09/09 | Kumar Kartikeya Dwivedi <memxor@gmail.com> | [bmc-cache](https://www.phoronix.com/scan.php?page=news_item&px=Orange-BPF-Memory-Cache-BMC) | 法国电信巨头奥兰治公司(Orange)已经发布了 "BMC", 作为 (e)BPF 内存缓存缓存, 提供了一个专注于 Linux 内核中模棱两两的用法的缓存. Orange 的开源 BPF 内存缓存允许在标准网络堆栈之前处理模组请求, 据说防撞安全, 并且此模块不需要其他内核模块. 此外, 模组用户空间软件本身可以在 BMC 上运行未经修改的软件. 这种内核 eBPF 缓存可将 Memcached 的吞吐量提高 18 倍, 而没有此内核缓存的夹层则提高了 18
+倍. 参考 [GitHub](https://github.com/Orange-OpenSource/bmc-cache) | v2 ☐ | [github Orange-OpenSource/bmc-cache](https://github.com/Orange-OpenSource/bmc-cache) |
+| 2021/09/15 | Roman Gushchin <guro@fb.com> | [Scheduler BPF](https://www.phoronix.com/scan.php?page=news_item&px=Orange-BPF-Memory-Cache-BMC) | NA | RFC ☐ | [PatchWork rfc,0/6](https://lore.kernel.org/bpf/CA+khW7i460ey-UFzpMSJ8AP9QeD8ufa4FzLA4PQckNP00ShQSw@mail.gmail.com)<br>*-*-*-*-*-*-*-* <br>[](https://linuxplumbersconf.org/event/11/contributions/954) |
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.
