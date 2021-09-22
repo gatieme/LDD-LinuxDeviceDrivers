@@ -559,6 +559,13 @@ Mel Gorman 发现了这一问题, 开发了 [Calculate pcp->high based on zone s
 | 2021/06/03 | Mel Gorman <mgorman@techsingularity.net> | [Allow high order pages to be stored on PCP v2](https://lore.kernel.org/patchwork/cover/1440776) | PCP 支持缓存高 order 的页面. | v2 ☑ 5.14-rc1 | [OLD v6](https://lore.kernel.org/patchwork/cover/740779)<br>*-*-*-*-*-*-*-* <br>[OLD v7](https://lore.kernel.org/patchwork/cover/741937)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1440776) |
 
 
+*   per-cpu page list drain support
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/06/03 | Mel Gorman <mgorman@techsingularity.net> | [mm: Remote LRU per-cpu pagevec cache/per-cpu page list drain support](https://patchwork.kernel.org/project/linux-mm/cover/20210921161323.607817-1-nsaenzju@redhat.com) | PCP 支持缓存高 order 的页面. | v2 ☑ 5.14-rc1 | [PatchWork 0/6](https://patchwork.kernel.org/project/linux-mm/cover/20210921161323.607817-1-nsaenzju@redhat.com) |
+
+
 ### 2.1.5 ALLOC_NOFRAGMENT 优化
 -------
 
@@ -823,6 +830,10 @@ https://lore.kernel.org/patchwork/cover/91223
 https://lore.kernel.org/patchwork/cover/145184
 https://lore.kernel.org/patchwork/cover/668967
 
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/09/20 | Hyeonggon Yoo <42.hyeyoo@gmail.com> | [mm, sl[au]b: Introduce lockless cache](https://patchwork.kernel.org/project/linux-mm/patch/20210920154816.31832-1-42.hyeyoo@gmail.com) | 板上无锁缓存的 RFC v2, 用于 IO 轮询等场景.<br>最近块层实现了 percpu, 在板分配器顶部实现了无锁缓存. 它可以用于 IO 轮询, 因为 IO 轮询禁用中断. | v1 ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-mm/patch/20210919164239.49905-1-42.hyeyoo@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork](https://lore.kernel.org/patchwork/cover/922092)) |
 
 
 ## 2.3 内核级别的 malloc 分配器之-大内存分配
@@ -3290,6 +3301,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2005/11/01 | Christoph Lameter <clameter@sgi.com> | [Swap Migration V5: Overview](https://lwn.net/Articles/157066) | 交换迁移允许在进程运行时通过交换在 NUMA 系统中的节点之间移动页的物理位置.<br>1. 这组补丁不会自动迁移已移动的进程的内存, 相反, 它把迁移决策留给了用户空间. 因此并没有直接解决进程跨接点迁移后内存不能跟随迁移的问题, 但它确实试图建立了迁移的通用框架, 以便最终能够发展出完整的迁移解决方案.<br>2. 引入个新的系统调用 migrate_pages 尝试将属于给定进程的任何页面从 old_nodes 移动到 new_nodes.<br>3. 新的 MPOL_MF_MOVE 选项, 在 set_mempolicy() 系统调用中使用, 可用于相同的效果. | v5 ☑ 2.6.16-rc1 | [PatchWork v5,0/5](https://lore.kernel.org/patchwork/cover/45422) |
 | 2006/01/10 | Christoph Lameter <clameter@sgi.com> | [Direct Migration V9: Overview](https://lore.kernel.org/patchwork/cover/49754) | NA | v9 ☑ 2.6.16-rc2 | [PatchWork v9,0/5](https://lore.kernel.org/patchwork/cover/49754) |
 | 2021/08/05 | Christoph Lameter <clameter@sgi.com> | [Some cleanup for page migration](https://lore.kernel.org/patchwork/cover/1472581) | NA | v1 ☐ | [PatchWork 0/5](https://lore.kernel.org/patchwork/cover/49754) |
+| 2021/09/22 | John Hubbard <jhubbard@nvidia.com> | [mm/migrate: de-duplicate migrate_reason strings](https://patchwork.kernel.org/project/linux-mm/patch/20210922041755.141817-2-jhubbard@nvidia.com/) | NA | v1 ☐ | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-mm/patch/20210922041755.141817-2-jhubbard@nvidia.com/) |
 
 
 
