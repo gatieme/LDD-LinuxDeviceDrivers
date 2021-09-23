@@ -1254,7 +1254,11 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 
 
 
-## 9.2 Google Fibers 用户空间调度框架
+## 9.2 用户态调度框架
+-------
+
+
+### 9.2.1 Google Fibers 用户空间调度框架
 -------
 
 "Google Fibers" 是一个用户空间调度框架, 在谷歌广泛使用并成功地用于改善进程内工作负载隔离和响应延迟. 我们正在开发这个框架, UMCG(用户管理并发组)内核补丁是这个框架的基础.
@@ -1269,7 +1273,43 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 | 2021/09/08 | Peter Oskolkov <posk@google.com>/<posk@posk.io> | [google ghOSt](https://github.com/google/ghost-kernel) | ghOSt 是在 Linux 内核上实现的用户态调度策略的通用代理. ghOSt 框架提供了一个丰富的 API, 该 API 从用户空间接收进程的调度决策, 并将其作为事务执行. 程序员可以使用任何语言或工具来开发策略, 这些策略可以在不重新启动机器的情况下升级. ghOSt 支持一系列调度目标的策略, 从 µs 级延迟到吞吐量, 再到能源效率, 等等, 并且调度操作的开销较低. 许多策略只是几百行代码. 总之, ghOSt 提供了一个性能框架, 用于将线程调度策略委托给用户空间进程, 从而实现策略优化、无中断升级和故障隔离. | [github kernel](https://github.com/google/ghost-kernel)<br>*-*-*-*-*-*-*-* <br>[github userspace](https://github.com/google/ghost-userspace) |
 
 
-## 9.3 其他
+### 9.2.2 Scheduler BPF
+-------
+
+
+CFS 调度器为用户和开发人员提供了非常多的调试接口和参数供大家调优, 这些设置现在大多数都位于 debugfs 中. 其中一些参数可以归结为改变任务抢占的可能性, 比如通过将 wakeup_granularity_ns 设置为 latency_ns 的一半以上来禁用任务抢占.
+
+从这点可以看出, 我们的一些工作负载受益于处理短期运行请求的任务抢占长时间运行的任务, 而一些只运行短期请求的工作负载受益于从不被抢占.
+
+
+这导致了一些观察和想法:
+
+
+1.  不同的工作量需要不同的策略, 能够为每个工作负载配置策略可能会很有用.
+
+2.  一个工作负载从自己不被抢占中受益, 仍然可以从抢占(低优先级)后台系统任务中受益.
+
+3.  在生产中快速(且安全地)试验不同的策略是有用的, 而不必关闭应用程序或重新启动系统, 以确定不同工作负载的策略应该是什么.
+
+4.  只有少数任务的工作量足够大和敏感, 值得他们自己调整策略. CFS 本身就足以解决其他问题, 我们可能不希望政策调整取代 CFS 所做的任何事情.
+
+
+BPF 钩子(它已经成功地用于各种内核子系统)为外部代码(安全地)更改一些内核决策提供了一种方法, BPF 工具使这变得非常容易, 部署 BPF 脚本的开发者已经非常习惯于为新的内核版本更新它们.
+
+XXX 发起了 BPF 对调度器的潜在应用的讨论, 它提交的 patchset 旨在为调度器提供一些非常基本的 BPF 基础设施, 以便向调度器添加新的 BPF钩子、一组最小的有用助手以及相应的 libbpf 更改等等. 他们在 CFS 中使用 BPF 的第一次实验看起来非常有希望. 虽然还处于非常早期的阶段, 但在 Facebook 的主网页工作量已经获得了不错的延迟和约 1% 的 RPS.
+
+这与谷歌的 ghOSt 非常类似, 但是 ghOSt 比 BPF 的方式要激进很多, ghOSt 的目标是将调度代码转移到用户空间. 它们的核心动机似乎有些相似:使调度器更改更容易开发、验证和部署. 尽管他们的方法不同, 他们也使用 BPF 来加速一些热点路径. 但是作者认为使用 BPF 的方式也可以达到他们的目的.
+
+作者提供了一个用户空间部分的示例 [github/rgushchin/atc](https://github.com/rgushchin/atc), 它加载了一些简单的钩子. 它非常简单, 只是为了简化使用所提供的内核补丁.
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/09/15 | Roman Gushchin <guro@fb.com> | [Scheduler BPF](https://www.phoronix.com/scan.php?page=news_item&px=Orange-BPF-Memory-Cache-BMC) | NA | RFC ☐ | [PatchWork rfc,0/6](https://lore.kernel.org/bpf/CA+khW7i460ey-UFzpMSJ8AP9QeD8ufa4FzLA4PQckNP00ShQSw@mail.gmail.com)<br>*-*-*-*-*-*-*-* <br>[LPC 2021](https://linuxplumbersconf.org/event/11/contributions/954)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2021/9/16/1049), [LWN](https://lwn.net/Articles/869433) |
+
+
+## 9.4 其他
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
