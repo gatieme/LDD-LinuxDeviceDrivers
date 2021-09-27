@@ -298,6 +298,16 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 | 2021/4/29 | Wende Tan <twd2.me@gmail.com> | [x86: Enable clang LTO for 32-bit as well](https://patchwork.kernel.org/project/linux-riscv/cover/20210719205208.1023221-1-twd2.me@gmail.com) | CLANG LTO 支持 X86 32 位. | v1 ☑ 5.14-rc1 | [LKML](https://lkml.org/lkml/2021/4/29/873) |
 | 2021/07/19 | Wende Tan <twd2.me@gmail.com> | [RISC-V: build: Allow LTO to be selected](https://patchwork.kernel.org/project/linux-riscv/cover/20210719205208.1023221-1-twd2.me@gmail.com) | NA | v1 ☐ | [Patchwork 0/3](https://patchwork.kernel.org/project/linux-riscv/cover/20210719205208.1023221-1-twd2.me@gmail.com) |
 
+4.  BOLT'ing
+
+几年来, Facebook 的工程师们一直在研究 [BOLT](https://www.phoronix.com/scan.php?page=news_item&px=Facebook-BOLT-Optimize-Binaries), 以此加速 Linux/ELF 二进制文件.
+
+BOLT 是一个二进制优化和布局工具, 它是一个 Facebook 孵化器项目, 用于加速Linux x86-64/AArch64 ELF 二进制文件. 这个工具能够分析和重新排布的可执行程序, 以产生比编译器的 LTO 和 PGO 优化所能实现的更快的性能.
+
+facebook 在 LPC-2021 公布了其[最新基于 BOLT 优化 Linux 内核的进展](https://www.phoronix.com/scan.php?page=news_item&px=Facebook-BOLTing-The-Kernel), 这项工作与允许 Linux 内核的配置文件引导优化(PGO)的挑战类似, 与现有的 BOLT 专注于仅优化 ELF 应用程序可执行性相比, BOLT'ing 的 Linux 内核在正确分析/采样内核和相关优化工作负载、内核的大规模代码基数、模块与内核代码等方面面临着类似的复杂障碍. 从公布的信息上看效果不错, 在 PGO + LTO 编译器优化的基础之上仍然带来了两位数的提升(double digit speedups"). 这些提速是通过优化可执行工具的代码布局来实现更高效的硬件页面使用和指令缓存. 参见 [slides](https://linuxplumbersconf.org/event/11/contributions/974/attachments/923/1793/Optimizing%20Linux%20Kernel%20with%20BOLT.pdf).
+
+BOLT 代码在 [github 开源](https://github.com/facebookincubator/BOLT).
+
 
 ## 13.2 Shrinking the kernel
 -------
@@ -321,6 +331,16 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/05/05 | Kees Cook <keescook@chromium.org> | [Makefile: Introduce CONFIG_ZERO_CALL_USED_REGS](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.15-Hardening) | 新增 CONFIG_ZERO_CALL_USED_REGS, 启用时使用 "-fzero CALL USED REGS=USED gpr"(在 GCC 11 中)构建内核. 此选项将在函数返回之前将所有调用方使用的寄存器内容归零, 以确保临时值不会泄漏到函数边界之外. 这意味着寄存器内容不太可能用于旁道攻击和信息泄露. 此外，这有助于将内核映像中有用的 ROP 小工具的数量减少约 20%. phoronix 对这个选项进行了[性能影响测试](https://www.phoronix.com/scan.php?page=article&item=linux515-compile-regress). | v2 ☑ 5.15-rc1 | [Patchwork](https://patchwork.kernel.org/project/linux-kbuild/patch/20210505191804.4015873-1-keescook@chromium.org)<br>*-*-*-*-*-*-*-* <br>[commit a82adfd5c7cb](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a82adfd5c7cb4b8bb37ef439aed954f9972bb618) |
 
+
+## 13.4 zero initialization for stack variables
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/01/23 | Kees Cook <keescook@chromium.org> | [gcc-plugins: Introduce stackinit plugin](https://patchwork.kernel.org/project/linux-kbuild/cover/20190123110349.35882-1-keescook@chromium.org) | 使用 GCC 编译内核时, 提供插件来实现早期提议的 gcc 选项 [`-finit-local-vars`](https://gcc.gnu.org/ml/gcc-patches/2014-06/msg00615.html)(未被 GNU/gcc 社区接纳)类似的功能, 以实现[未初始化局部变量初始化为 0 的诉求](https://gcc.gnu.org/ml/gcc-patches/2014-06/msg00615.html). 通过 CONFIG_GCC_PLUGIN_STACKINIT 来开启. | v1 ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-kbuild/cover/20190123110349.35882-1-keescook@chromium.org) |
+| 2019/04/10 | Kees Cook <keescook@chromium.org> | [security: Implement Clang's stack initialization](https://patchwork.kernel.org/project/linux-kbuild/cover/20190423194925.32151-1-keescook@chromium.org) | clang 中提供了 `-ftrivial-auto-var-init` 来进行未初始化局部变量的默认初始化, 引入 CONFIG_INIT_STACK_ALL 来为内核开启此选项, 这比 CONFIG_GCC_PLUGINS_STRUCTLEAK_BYREF_ALL 的覆盖更广. 当启用 CONFIG_INIT_STACK_ALL 时, 当前补丁仅使用 "pattern" 模式. 开发人员可以通过使用 `__attribute__((uninitialized))` 在每个变量的基础上选择不使用该特性. | v1 ☑ 5.2-rc1 | [PatchWork v1,3/3](https://patchwork.kernel.org/project/linux-kbuild/patch/20190410161612.18545-4-keescook@chromium.org)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,3/3](https://patchwork.kernel.org/project/linux-kbuild/patch/20190411180117.27704-4-keescook@chromium.org)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,3/3](https://patchwork.kernel.org/project/linux-kbuild/patch/20190423194925.32151-4-keescook@chromium.org), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=709a972efb01efaeb97cad1adc87fe400119c8ab) |
+| 2020/06/14 | Alexander Potapenko <glider@google.com> | [security: allow using Clang's zero initialization for stack variables](https://lore.kernel.org/patchwork/cover/1255765) | 支持 clang 的局部变量零初始化. 通过 CONFIG_INIT_STACK_ALL_ZERO 来启用, clang 可以通过选项 `-ftrivial-auto-var-init=zero -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang` 来保证未初始化局部变量初始化为 0. | RFC v2 ☑ 5.9-rc1 | [PatchWork v2,RFC](https://lore.kernel.org/patchwork/cover/1255765)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC](https://lore.kernel.org/patchwork/patch/1256566), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f0fe00d4972a8cd4b98cc2c29758615e4d51cdfe) |
+| 2021/02/18 | NA | [gcc Stack variable initialization-无需合入补丁, GCC 支持即可](https://lwn.net/Articles/870045) | gcc 也引入了 [Auto Initialize Automatic Variables](https://www.phoronix.com/scan.php?page=news_item&px=GCC-12-Auto-Var-Init) 通过 `-ftrivial-auto-var-init` 选项将未初始化的[变量默认初始化为 0](https://gcc.gnu.org/pipermail/gcc-patches/2021-February/565514.html). | RFC v2 ☑ 5.9-rc1 | NA |
 
 # 14 FTRACE
 -------
