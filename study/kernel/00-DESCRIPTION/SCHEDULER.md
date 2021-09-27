@@ -1296,17 +1296,30 @@ CFS 调度器为用户和开发人员提供了非常多的调试接口和参数�
 
 BPF 钩子(它已经成功地用于各种内核子系统)为外部代码(安全地)更改一些内核决策提供了一种方法, BPF 工具使这变得非常容易, 部署 BPF 脚本的开发者已经非常习惯于为新的内核版本更新它们.
 
-XXX 发起了 BPF 对调度器的潜在应用的讨论, 它提交的 patchset 旨在为调度器提供一些非常基本的 BPF 基础设施, 以便向调度器添加新的 BPF钩子、一组最小的有用助手以及相应的 libbpf 更改等等. 他们在 CFS 中使用 BPF 的第一次实验看起来非常有希望. 虽然还处于非常早期的阶段, 但在 Facebook 的主网页工作量已经获得了不错的延迟和约 1% 的 RPS.
 
-这与谷歌的 ghOSt 非常类似, 但是 ghOSt 比 BPF 的方式要激进很多, ghOSt 的目标是将调度代码转移到用户空间. 它们的核心动机似乎有些相似:使调度器更改更容易开发、验证和部署. 尽管他们的方法不同, 他们也使用 BPF 来加速一些热点路径. 但是作者认为使用 BPF 的方式也可以达到他们的目的.
+*   Facebook 的尝试
+
+Roman Gushchin 发起了 BPF 对调度器的潜在应用的讨论, 它提交的 patchset 旨在为调度器提供一些非常基本的 BPF 基础设施, 以便向调度器添加新的 BPF钩子、一组最小的有用助手以及相应的 libbpf 更改等等. 他们在 CFS 中使用 BPF 的第一次实验看起来非常有希望. 虽然还处于非常早期的阶段, 但在 Facebook 的主网页工作量已经获得了不错的延迟和约 1% 的 RPS.
 
 作者提供了一个用户空间部分的示例 [github/rgushchin/atc](https://github.com/rgushchin/atc), 它加载了一些简单的钩子. 它非常简单, 只是为了简化使用所提供的内核补丁.
+
+*   Google 的尝试
+
+于此同时, google 团队的 Hao Luo 和 Barret Rhoden 等也在 eBPF 在  CPU Scheduler 领域的应用进行了探索, 并在 LPC-2021 上做了分享. 当前的工作集中在几个方向:
+
+1.  调度延迟分析以及依据 profiling 来指导调度
+
+2.  核心调度中的强制空闲时间计算
+
+3.  使用 BPF 加速 ghOSt 内核调度器
+
+这与谷歌的 ghOSt 非常类似, 但是 ghOSt 比 BPF 的方式要激进很多, ghOSt 的目标是将调度代码转移到用户空间. 它们的核心动机似乎有些相似:使调度器更改更容易开发、验证和部署. 尽管他们的方法不同, 他们也使用 BPF 来加速一些热点路径. 但是作者认为使用 BPF 的方式也可以达到他们的目的. , 参见 [eBPF in CPU Scheduler](https://linuxplumbersconf.org/event/11/contributions/954/attachments/776/1463/eBPF%20in%20CPU%20Scheduler.pdf)
 
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/09/15 | Roman Gushchin <guro@fb.com> | [Scheduler BPF](https://www.phoronix.com/scan.php?page=news_item&px=Orange-BPF-Memory-Cache-BMC) | NA | RFC ☐ | [PatchWork rfc,0/6](https://lore.kernel.org/bpf/CA+khW7i460ey-UFzpMSJ8AP9QeD8ufa4FzLA4PQckNP00ShQSw@mail.gmail.com)<br>*-*-*-*-*-*-*-* <br>[LPC 2021](https://linuxplumbersconf.org/event/11/contributions/954)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2021/9/16/1049), [LWN](https://lwn.net/Articles/869433) |
+| 2021/09/15 | Roman Gushchin <guro@fb.com> | [Scheduler BPF](https://www.phoronix.com/scan.php?page=news_item&px=Linux-BPF-Scheduler) | NA | RFC ☐ | [PatchWork rfc,0/6](https://patchwork.kernel.org/project/netdevbpf/cover/20210916162451.709260-1-guro@fb.com)<br>*-*-*-*-*-*-*-* <br>[LPC 2021](https://linuxplumbersconf.org/event/11/contributions/954)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2021/9/16/1049), [LWN](https://lwn.net/Articles/869433) |
 
 
 ## 9.4 其他
