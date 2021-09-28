@@ -342,6 +342,25 @@ BOLT 代码在 [github 开源](https://github.com/facebookincubator/BOLT).
 | 2020/06/14 | Alexander Potapenko <glider@google.com> | [security: allow using Clang's zero initialization for stack variables](https://lore.kernel.org/patchwork/cover/1255765) | 支持 clang 的局部变量零初始化. 通过 CONFIG_INIT_STACK_ALL_ZERO 来启用, clang 可以通过选项 `-ftrivial-auto-var-init=zero -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang` 来保证未初始化局部变量初始化为 0. | RFC v2 ☑ 5.9-rc1 | [PatchWork v2,RFC](https://lore.kernel.org/patchwork/cover/1255765)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC](https://lore.kernel.org/patchwork/patch/1256566), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f0fe00d4972a8cd4b98cc2c29758615e4d51cdfe) |
 | 2021/02/18 | NA | [gcc Stack variable initialization-无需合入补丁, GCC 支持即可](https://lwn.net/Articles/870045) | gcc 也引入了 [Auto Initialize Automatic Variables](https://www.phoronix.com/scan.php?page=news_item&px=GCC-12-Auto-Var-Init) 通过 `-ftrivial-auto-var-init` 选项将未初始化的[变量默认初始化为 0](https://gcc.gnu.org/pipermail/gcc-patches/2021-February/565514.html). | RFC v2 ☑ 5.9-rc1 | NA |
 
+## 13.5 Randomizing structure layout
+-------
+
+将来自 grsecurity 的[结构布局随机化(Randomizing structure layout)](http://xuxinting.cn/2020/12/20/2020-12-20-kernel-randomize-layout) 推送到 linux 主线. 这个特性通过在编译时将所选结构的布局随机化, 作为对需要知道内核中结构布局的攻击的概率防御. 这对于"内部"内核构建非常有用, 因为攻击者既不能使用随机种子也不能使用其他构建工件.
+
+通过引入一个 gcc 插件 [commit 313dd1b62921 ("gcc-plugins: Add the randstruct plugin")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=313dd1b629219db50cad532dba6a3b3b22ffe622) 来完成这项工作, 这个功能的大部分都是从 grsecurity 移植过来的. 该实现几乎与 PaX 团队和 Brad Spengler 编写的原始代码完全相同. 这些变化是添加了改进的指定初始值设定项标记、白名单机制、许多假阳性修复, 以及处理任务结构随机化的不同方法.
+
+该插件通过两种方式选择结构：手动使用新的 ` __randomize_layout` 进行标记, 或者在发现结构完全由函数指针组成时由编译器自动进行标记(可以使用 `__no_randomize_layout` 通知编译器不要进行随机化).
+
+task_struct 是一种在利用漏洞时特别敏感且经常被滥用的结构, 但由于某些字段需要在开头和结尾, 因此对其进行随机化需要一些特殊处理. 为了解决这个问题, 使用一个[内部匿名结构](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=29e48ce87f1eaaa4b1fe3d9af90c586ac2d1fb74) 来标记将随机化的部分. 随机的这部分(匿名结构)字段用 randomized_struct_fields_start 和 randomized_struct_fields_end 来标记.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/10/21 | Michael Leibowitz <michael.leibowitz@intel.com> | [Add the randstruct gcc plugin](https://patchwork.kernel.org/project/kernel-hardening/patch/1477071466-19256-1-git-send-email-michael.leibowitz@intel.com) | 这个插件在编译时随机化某些结构的布局. 这引入了两个定义 `__randomize_layout` 和 `__no_randomize_layout`. 这两个选项用于通知编译器尝试随机化或不随机化有问题的结构. 这个特性是从 grsecurity 移植过来的. 实现与 PaX 团队和 Spender 编写的原始代码几乎相同. 为了简化集成, 当前只支持显式标记结构. 但是, 它保留了对 `__no_randomize_layout` 的支持. UAPI 检查也被保留. 要随机化的结构必须使用C99指定的初始化式形式. | v1 ☐ | [PatchWork](https://lkml.org/lkml/2017/5/26/558)<br>*-*-*-*-*-*-*-* <br>[PatchWork](https://patchwork.kernel.org/project/kernel-hardening/patch/1495829844-69341-20-git-send-email-keescook@chromium.org) |
+| 2017/05/26 | Kees Cook <keescook@chromium.org> | [Introduce struct layout randomization plugin](https://lore.kernel.org/patchwork/cover/1471548) | 引入结构体布局随机化插件, 通过 CONFIG_GCC_PLUGIN_RANDSTRUCT 使能. | v2 ☑ 4.13-rc2 | [2017/04/06 PatchWork 16/18](https://patchwork.kernel.org/project/kernel-hardening/patch/1491513513-84351-17-git-send-email-keescook@chromium.org)<br>*-*-*-*-*-*-*-* <br>[2017/05/26 PatchWork v2,00/20](https://lkml.org/lkml/2017/5/26/558)<br>*-*-*-*-*-*-*-* <br>[2017/05/26 PatchWork RFC,v2,19/20](https://patchwork.kernel.org/project/kernel-hardening/patch/1495829844-69341-20-git-send-email-keescook@chromium.org)<br>*-*-*-*-*-*-*-* <br>[2017/06/19 PatchWork 1/4](https://patchwork.kernel.org/project/kernel-hardening/patch/1497905801-69164-2-git-send-email-keescook@chromium.org) |
+| 2017/11/09 | Sandipan Das <sandipan@linux.vnet.ibm.com> | [compiler, clang: handle randomizable anonymous structs](https://lists.archive.carbon60.com/linux/kernel/2848189) | 为 clang 支持处理 randomized_struct_fields_start 和 randomized_struct_fields_end 标记 | v1 ☑ 4.15-rc1 | [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4ca59b14e588f873795a11cdc77a25c686a29d2) |
+
+
 # 14 FTRACE
 -------
 
