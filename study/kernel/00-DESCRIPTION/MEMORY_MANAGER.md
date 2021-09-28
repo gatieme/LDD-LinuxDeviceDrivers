@@ -2642,8 +2642,6 @@ git://github.com/glommer/linux.git kmemcg-slab
 
 
 
-
-
 ## 10.2 初步的内存逻辑热拔除支持
 -------
 
@@ -2688,6 +2686,19 @@ git://github.com/glommer/linux.git kmemcg-slab
 
 在完成这一步之后, 内核已经可以提供基本的内存热插拔支持. 值得一提的是, 内存热插拔的工作, Fujitsu 中国这边的内核开放者贡献了很多 patch. 谢谢他们!
 
+
+## 10.5 虚拟机内存热缩
+-------
+
+新上线的页面通常会被放置在 freelist 的前面, 这意味着它们很快会在下一次内存分配时就被使用, 这将造成添加的内存通常立即无法删除.
+
+使用 virtio-mem 和 dimm 可以经常观察到这个现象: 当通过 `add_memory*()` 添加单独的内存块并立即联机使用它们时, 内核通常会把下一个块的元数据(特别是 memmap 的数据)被放置到刚刚添加并上线的内存块上. 这是一个不可移动的内存分配链, 如果最后一个内存块不能脱机并 remove(), 那么所有依赖的内存块也会脱机.
+
+其实新页面通常是冷的, 尝试分配其他页面(可能是热的)本身是一件非常自然的事情. 因此一个非常简单有效的尝试是: 新上线的内存其空闲页面不要放置到 freelist 的前面, 尝试放置到 freelist 的最后即可.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/09/16 | David Hildenbrand <david@redhat.com> | [mm: place pages to the freelist tail when onling and undoing isolation](https://patchwork.kernel.org/project/linux-mm/cover/20200916183411.64756-1-david@redhat.com) | 新上线的内存其空闲页面放置到 freelist 的最后 | RFC,v1 ☑ 5.10-rc1 | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20200916183411.64756-1-david@redhat.com) |
 
 
 # 11 超然内存(Transcendent Memory)支持
