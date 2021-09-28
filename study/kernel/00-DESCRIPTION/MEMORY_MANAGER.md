@@ -267,10 +267,15 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/08/19 | Qi Zheng <zhengqi.arch@bytedance.com> | [Free user PTE page table pages](https://lore.kernel.org/patchwork/cover/1461972) | 这个补丁系列的目的是在所有 PTE 条目都为空时释放用户 PTE 页表页面.<br>一些malloc库(例如 jemalloc 或 tcmalloc) 通常通过 mmap() 分配 VAs 的数量, 而不取消这些 VAs 的映射. 如果需要, 他们将使用 madvise(MADV_DONTNEED) 来释放物理内存. 但是 madvise() 不会释放页表, 因此当进程接触到巨大的虚拟地址空间时, 它会生成许多页表.<br>PTE 页表占用大量内存的原因是 madvise(MADV_DONTNEED) 只清空 PTE 并释放物理内存, 但不释放 PTE 页表页. 这组补丁通过释放那些空的 PTE 页表来节省内存. | v1 ☐ | [PatchWork 0/7](https://lore.kernel.org/patchwork/cover/1461972)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://lore.kernel.org/patchwork/cover/1478844) |
 | 2020/07/20 | Anthony Yznaga <anthony.yznaga@oracle.com> | [madvise MADV_DOEXEC](https://lore.kernel.org/patchwork/cover/1280469) | 这组补丁引入了 madvise MADV_DOEXEC 参数实现了跨 exec 金恒地址空间保留匿名页范围的支持. 与重新附加到命名共享内存段不同, 以这种方式共享内存的主要好处是确保新进程中的内存映射到与旧进程相同的虚拟地址. 这样做的目的是为使用 vfio 的 guest 保留 guest 的内存, 通过 qemu 使用 exec 可以生成一份其自身的更新版本. 通过确保内存保留在固定地址, vfio 映射及其相关的内核数据结构可以保持有效. | RFC ☐ | [PatchWork RFC,0/5](https://lore.kernel.org/patchwork/cover/1280469) |
 | 2019/07/14 | Minchan Kim <minchan@kernel.org> | [Introduce MADV_COLD and MADV_PAGEOUT](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) | NA | v5 ☑ 5.4-rc1 | [PatchWork v5,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) |
 
+*   MADV_DONTNEED
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/19 | Qi Zheng <zhengqi.arch@bytedance.com> | [Free user PTE page table pages](https://patchwork.kernel.org/project/linux-mm/cover/20210819031858.98043-1-zhengqi.arch@bytedance.com) | 这个补丁系列的目的是在所有 PTE 条目都为空时释放用户 PTE 页表页面.<br>一些malloc库(例如 jemalloc 或 tcmalloc) 通常通过 mmap() 分配 VAs 的数量, 而不取消这些 VAs 的映射. 如果需要, 他们将使用 madvise(MADV_DONTNEED) 来释放物理内存. 但是 madvise() 不会释放页表, 因此当进程接触到巨大的虚拟地址空间时, 它会生成许多页表.<br>PTE 页表占用大量内存的原因是 madvise(MADV_DONTNEED) 只清空 PTE 并释放物理内存, 但不释放 PTE 页表页. 这组补丁通过释放那些空的 PTE 页表来节省内存. | v1 ☐ | [PatchWork 0/7](https://lore.kernel.org/patchwork/cover/1461972)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20210819031858.98043-1-zhengqi.arch@bytedance.com) |
+| 2021/09/26 | Anthony Yznaga <anthony.yznaga@oracle.com> | [mm/madvise: support process_madvise(MADV_DONTNEED)](https://patchwork.kernel.org/project/linux-mm/cover/20210926161259.238054-1-namit@vmware.com) | 这些补丁的目标是添加对 process_madvise(MADV_DONTNEED) 的支持. 然而, 在这个过程中, 执行了一些(可以说)有用的清理、bug修复和性能增强. 这些补丁试图整合不同行为之间的逻辑, 并在一定程度上解决与之前[比较出彩的补丁](https://lore.kernel.org/linux-mm/CAJuCfpFDBJ_W1y2tqAT4BGtPbWrjjDud_JuKO8ZbnjYfeVNvRg@mail.gmail.com) 的冲突.<br>process_madvise(MADV_DONTNEED) 之所以有用有两个原因:<br>(a)它允许 userfaultfd 监视器从被监控的进程中取消内存映射;<br>(b) 它 比 madvise() 更有效, 因为它是矢量化的, 批处理 TLB 刷新更积极. | RFC ☐ | [PatchWork RFC,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210926161259.238054-1-namit@vmware.com) |
 
 
 ## 1.7 page table pages
@@ -2059,12 +2064,12 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 
 
 
-它的实现是在系统启动时, 按照用户指定需求的最大大页个数, 每个页的大小. 预留如此多个数的大. . 用户在程序中可以使用 **mmap()** 系统调用或共享内存的方式访问这些大页, 例子网上很多, 或者参考官方文档:[hugetlbpage.txt [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/375098) . 当然, 现在也存在一些用户态工具, 可以帮助用户更便捷地使用. 具体可参考此文章: [Huge pages part 2: Interfaces [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/375096)
+它的实现是在系统启动时, 按照用户指定需求的最大大页个数, 每个页的大小. 预留如此多个数的大. 用户在程序中可以使用 **mmap()** 系统调用或共享内存的方式访问这些大页, 例子网上很多, 或者参考官方文档:[hugetlbpage.txt [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/375098) . 当然, 现在也存在一些用户态工具, 可以帮助用户更便捷地使用. 具体可参考此文章: [Huge pages part 2: Interfaces [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/375096)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/12/22 | Liang Li <liliang.opensource@gmail.com> | [add support for free hugepage reporting](https://lore.kernel.org/patchwork/cover/1355899) | Free page reporting 只支持伙伴系统中的页面, 它不能报告为 hugetlbfs 预留的页面. 这个补丁在 hugetlb 的空闲列表中增加了对报告巨大页的支持, 它可以被 virtio_balloon 驱动程序用于内存过载和预归零空闲页, 以加速内存填充和页面错误处理. | RFC ☐ | [PatchWork RFC,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20201222074538.GA30029@open-light-1.localdomain) |
-| 2021/08/16 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: add demote/split page functionality](https://lore.kernel.org/patchwork/cover/1465517) | 实现了 hugetlb 降低策略. 提供了一种“就地”将 hugetlb 页面分割为较小的页面的方法. | v1 ☐ 5.14 | [2021/07/21 PatchWork 0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210721230511.201823-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/08/16 PatchWork RESEND,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210816224953.157796-1-mike.kravetz@oracle.com) |
+| 2021/09/23 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: add demote/split page functionality](https://lore.kernel.org/patchwork/cover/1465517) | 实现了 hugetlb 降低策略. 提供了一种“就地”将 hugetlb 页面分割为较小的页面的方法. | v1 ☐ 5.14 | [2021/07/21 PatchWork 0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210721230511.201823-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/08/16 PatchWork RESEND,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210816224953.157796-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/23 PatchWork v2,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20210923175347.10727-1-mike.kravetz@oracle.com) |
 | 2021/08/20 | yaozhenguo <yaozhenguo1@gmail.com> | [hugetlbfs: add hugepages_node kernel parameter](https://lore.kernel.org/patchwork/cover/1479318) | 当前内核允许指定启动时要分配的 hugepages 数目. 但目前所有节点的 hugepages 都是平衡的. 在某些场景中, 我们只需要在一个节点中使用 hugepags.<br>例如: DPDK 需要与 NIC 位于同一节点的 hugepages. 如果 DPDK 在 node1 中需要 4 个 1G 大小的 HugePage, 并且系统有 16 个 numa 节点. 我们必须在内核 cmdline 中保留 64 个 HugePage. 但是, 只使用了 4 个 hugepages. 其他的应该在引导后释放. 如果系统内存不足(例如: 64G), 这将是一项不可能完成的任务. 因此, 添加 hugepages_node 内核参数以指定启动时要分配的 hugepages 的节点数. | v1 ☐ 5.14-rc7 | [2021/07/21 PatchWork 0/8](https://lore.kernel.org/patchwork/cover/1479318) |
 | 2021/07/30 | Mina Almasry <almasrymina@google.com> | [mm, hugepages: add mremap() support for hugepage backed vma](https://patchwork.kernel.org/project/linux-mm/patch/20210730221522.524256-1-almasrymina@google.com) | 只需重新定位页表条目, 即可为 hugepage 的 vma 段支持 mremap(). 页面表条目将重新定位到 mremap() 上的新虚拟地址. | v1 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.12#Memory_management) | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20210730221522.524256-1-almasrymina@google.com) |
 
@@ -2229,6 +2234,7 @@ khugepaged 处理流程
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2011/01/13 | Andrea Arcangeli <aarcange@redhat.com> | [thp: khugepaged](https://lkml.org/lkml/2010/12/23/306) | 实现了一个 khugepaged 的内核线程, 用来完成将标准的小页面合并成大页的操作. | ☑ 2.6.38-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ba76149f47d8c939efa0acc07a191237af900471) |
 | 2015/09/14 | Ebru Akagunduz <ebru.akagunduz@gmail.com> | [mm: add tracepoint for scanning pages](https://lkml.org/lkml/2015/9/14/611) | [mm: make swapin readahead to gain more THP performance](https://lore.kernel.org/lkml/1442259105-4420-1-git-send-email-ebru.akagunduz@gmail.com) 系列的其中一个补丁, 为 khuagepaged 引入了 tracepoint 跟踪点. 用 scan_result 标记了 khugepaged 扫描的结果. | v5 ☑ 4.5-rc1 | [PatchWork RFC,v5,0/3](https://lore.kernel.org/lkml/1442259105-4420-2-git-send-email-ebru.akagunduz@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2015/9/14/611)<br>*-*-*-*-*-*-*-* <br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7d2eba0557c18f7522b98befed98799990dd4fdb) |
+| 2011/01/13 | Peter Xu <peterx@redhat.com> | [mm/khugepaged: Detecting uffd-wp vma more efficiently](https://patchwork.kernel.org/project/linux-mm/patch/20210922175156.130228-1-peterx@redhat.com) | 实现了一个 khugepaged 的内核线程, 用来完成将标准的小页面合并成大页的操作. | ☑ 2.6.38-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ba76149f47d8c939efa0acc07a191237af900471) |
 
 
 # 8 进程虚拟地址空间(VMA)
@@ -2687,8 +2693,11 @@ git://github.com/glommer/linux.git kmemcg-slab
 在完成这一步之后, 内核已经可以提供基本的内存热插拔支持. 值得一提的是, 内存热插拔的工作, Fujitsu 中国这边的内核开放者贡献了很多 patch. 谢谢他们!
 
 
-## 10.5 虚拟机内存热缩
+## 10.5  improving in-kernel auto-online support
 -------
+
+*   虚拟机内存热缩优化
+
 
 新上线的页面通常会被放置在 freelist 的前面, 这意味着它们很快会在下一次内存分配时就被使用, 这将造成添加的内存通常立即无法删除.
 
@@ -2698,8 +2707,15 @@ git://github.com/glommer/linux.git kmemcg-slab
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/09/16 | David Hildenbrand <david@redhat.com> | [mm: place pages to the freelist tail when onling and undoing isolation](https://patchwork.kernel.org/project/linux-mm/cover/20200916183411.64756-1-david@redhat.com) | 新上线的内存其空闲页面放置到 freelist 的最后 | RFC,v1 ☑ 5.10-rc1 | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20200916183411.64756-1-david@redhat.com) |
+| 2020/09/16 | David Hildenbrand <david@redhat.com> | [mm: place pages to the freelist tail when onling and undoing isolation](https://patchwork.kernel.org/project/linux-mm/cover/20200916183411.64756-1-david@redhat.com) | 新上线的内存其空闲页面或者隔离页放置到 freelist 的最后 | RFC,v1 ☑ 5.10-rc1 | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20200916183411.64756-1-david@redhat.com) |
 
+*   "auto-movable" online policy
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/06/02 | David Hildenbrand <david@redhat.com> | [virtio-mem: prioritize unplug from ZONE_MOVABLE](https://patchwork.kernel.org/project/linux-mm/cover/20210602185720.31821-1-david@redhat.com) | NA | v1  ☑ 5.14-rc1 | [PatchWork v1,0/7]https://patchwork.kernel.org/project/linux-mm/cover/20210602185720.31821-1-david@redhat.com) |
+| 2021/08/06 | David Hildenbrand <david@redhat.com> | [mm/memory_hotplug: "auto-movable" online policy and memory groups](https://patchwork.kernel.org/project/linux-mm/cover/20210806124715.17090-1-david@redhat.com) | NA | v3 ☑ 5.15-rc1 | [PatchWork v3,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20210806124715.17090-1-david@redhat.com) |
 
 # 11 超然内存(Transcendent Memory)支持
 -------
