@@ -585,9 +585,43 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 ## 4.1 拓扑域构建
 -------
 
+### 4.1.1 拓扑域
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:----:|:---:|:----------:|:---:|
 | 2018/05/30 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [Skip numa distance for offline nodes](https://lore.kernel.org/patchwork/patch/1433871) | NA | v1 ☐ | [select_idle_sibling rework](https://lore.kernel.org/patchwork/patch/1433871) |
+
+
+### 4.1.2 3-hops 问题
+-------
+
+
+
+最早的时候是 Valentin Schneider 在 HUAWEI KunPeng 920 上发现了一个问题, 构建调度域的过程中在部分 CPU 构建时 报了 `ERROR: groups don't span domain->span`. 参见 [sched/topology: Fix overlapping sched_group build](https://lore.kernel.org/lkml/20200324125533.17447-1-valentin.schneider@arm.com). 这台机器由 2 socket(每个 scoker 由 2 个 DIE 组成, 每个 DIE 包含 24 个 CPU).
+
+社区经过讨论发现, 这是由于内核当前调度域构建的方式存在诸多限制, 对超过 2 个 NUMA 层级的系统支持不完善. 暂时没有想到好的解决方法. 因此 Valentin Schneider 决定先通过 WARN_ON 警告此问题 [sched/topology: Warn when NUMA diameter > 2](https://lore.kernel.org/lkml/20201110184300.15673-1-valentin.schneider@arm.com).
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:----:|:---:|:----------:|:---:|
+| 2020/3/24 | Valentin Schneider <valentin.schneider@arm.com> | [sched/topology: Fix overlapping sched_group build](https://lore.kernel.org/lkml/20200324125533.17447-1-valentin.schneider@arm.com) | NA | v1 ☐ | [LKML](https://lkml.org/lkml/2020/3/24/615) |
+| 2020/8/14 | Valentin Schneider | [sched/topology: NUMA topology limitations](https://lkml.org/lkml/2020/8/14/214) | 修复 | v1 | [LKML](https://lkml.org/lkml/2020/8/14/214) |
+| 2020/11/10 | Valentin Schneider | [sched/topology: Warn when NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1336369) | WARN | v1 ☑ 5.11-rc1 | [PatchWork](https://lore.kernel.org/lkml/20201110184300.15673-1-valentin.schneider@arm.com), [LKML](https://lkml.org/lkml/2020/11/10/925), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b5b217346de85ed1b03fdecd5c5076b34fbb2f0b) |
+
+随后告警的合入, 越来越多的人发现了这个问题, 并进行了讨论 [5.11-rc4+git: Shortest NUMA path spans too many nodes](https://lkml.org/lkml/2021/1/21/726).
+
+| 时间  | 提问者 | 问题描述 |
+|:----:|:-----:|:-------:|
+| 2021/1/21 | Meelis Roos | [Shortest NUMA path spans too many nodes](https://lkml.org/lkml/2021/1/21/726) |
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:--:|:----:|:---------:|:----:|
+| 2021/01/22 | Valentin Schneider | [sched/topology: NUMA distance deduplication](https://lore.kernel.org/patchwork/cover/1369363) | 修复 | v1 ☑ 5.12-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1369363), [LKML](https://lkml.org/lkml/2021/1/22/460), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=620a6dc40754dc218f5b6389b5d335e9a107fd29) |
+| 2021/01/15 | Song Bao Hua (Barry Song) | [sched/fair: first try to fix the scheduling impact of NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1366256) | 尝试修复 3 跳问题导致的性能蜕化 | RFC | [PatchWork](https://lore.kernel.org/patchwork/cover/1366256) |
+| 2021/01/27 | Song Bao Hua (Barry Song) | [sched/topology: fix the issue groups don't span domain->span for NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1371875)| 修复 | v2 | [PatchWork](https://lore.kernel.org/patchwork/cover/1371875), [LKML]() |
 
 
 ## 4.2 负载均衡
