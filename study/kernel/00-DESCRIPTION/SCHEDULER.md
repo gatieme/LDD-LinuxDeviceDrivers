@@ -777,6 +777,7 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2013/08/29 | Jason Low <jason.low2@hp.com> | [sched: Limiting idle balance](https://lore.kernel.org/patchwork/patch/403138) | 限制 idle balance  | v1 ☑ 4.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/403138) |
+| 2021/10/04 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: Improve cost accounting of newidle_balance](https://lore.kernel.org/patchwork/patch/403138) | 通过考虑更新阻塞负载 update_blocked_averages() 所花费的时间, 在没有机会运行至少一个负载平衡循环的情况下完全跳过负载平衡循环. 因此在 newidle_balance()中, 当 this_rq 的第一个 sd 满足 `this_rq->avg_idle < sd->max_newidle_lb_cost` 时, 认为执行 update_blocked_averages() 是非常昂贵且没有收益的, 只会增加开销. 因此在 newidle_balance() 中尽早检查条件, 尽可能跳过 update_blocked_averages() 的执行. | v1 ☐ | [PatchWork](https://lore.kernel.org/lkml/20211004171451.24090-1-vincent.guittot@linaro.org), [LKML](https://lkml.org/lkml/2021/10/4/1188) |
 
 
 ## 4.7 active load_balance
@@ -789,8 +790,16 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2021/06/02 | Valentin Schneider <valentin.schneider@arm.com> | [sched/fair: Active balancer RT/DL preemption fix](https://lore.kernel.org/patchwork/patch/1115663) |  | v2 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/patch/1115663) |
+| 2021/06/02 | Valentin Schneider <valentin.schneider@arm.com> | [sched/fair: Active balancer RT/DL preemption fix](https://lore.kernel.org/patchwork/patch/1115663) | NA | v2 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/patch/1115663) |
 | 2021/06/02 | Yafang Shao <laoar.shao@gmail.com> | [sched, fair: try to prevent migration thread from preempting non-cfs task](https://lore.kernel.org/patchwork/patch/1440172) | 规避问题 [a race between active_load_balance and sched_switch](https://lkml.org/lkml/2021/6/14/204), []() | v1 ☐ | [PatchWork v1 old](https://lore.kernel.org/patchwork/patch/1440172), [PatchWork v1](https://lore.kernel.org/patchwork/patch/1446860) |
+
+
+## 4.8 WAKEUP
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2021/09/20 | Mel Gorman <mgorman@techsingularity.net> | [Scale wakeup granularity relative to nr_running](https://lore.kernel.org/lkml/20210920142614.4891-1-mgorman@techsingularity.net) | 在任务迁移或唤醒期间, 将决定是否抢占当前任务. 为了限制过度调度, 可以通过设置 sysctl_sched_wakeup_granularity 来延迟抢占, 以便在抢占之前允许至少一定的运行时间. 但是, 当任务堆叠而造成域严重过载时(例如 hackbench 测试), 过度调度的程度仍然很严重. 而且由于许多时间被调度器浪费在重新安排任务(切换等)上, 这会进一步延长过载状态. 这组补丁根据 CPU 上正在运行的任务数在 wakeup_gran() 中扩展唤醒粒度, 默认情况下最大可达 8ms. 其目的是允许任务在过载时运行更长时间, 以便某些任务可以更快地完成, 并降低域过载的程度. | v1 ☐ | [PatchWork v1](https://lore.kernel.org/lkml/20210920142614.4891-1-mgorman@techsingularity.net), [LKML](https://lkml.org/lkml/2021/9/20/478) |
 
 
 # 5 select_task_rq
@@ -1212,7 +1221,40 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 | 2020/09/17 | Peter Zijlstra | [sched: Remove FIFO priorities from modules](https://lore.kernel.org/patchwork/cover/1229354) | 显示驱动中 RT/FIFO 线程的优先级设定  | v1 ☑ 5.9-rc1 | [PatchWork](https://lwn.net/Articles/1307272) |
 | 2020/09/17 | Dietmar Eggemann | [sched: Task priority related cleanups](https://lore.kernel.org/patchwork/cover/1372514) | 清理了优先级设置过程中一些老旧的接口. | v1 ☐ 5.12-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1372514) |
 
-## 8.6  Migrate disable support && kmap_local
+
+
+## 8.6 PREEMPT_RT
+-------
+
+标准的 Linux 内核中不可中断的系统调用、中断屏蔽等因素, 都会导致系统在时间上的不可预测性, 对硬实时限制没有保证. 目前, 针对 real-time Linux 的修改有两种成功的方案.
+
+1.  直接修改 Linux 内核, 使其直接具有 real-time 能力; 其中有代表性的就是 PREEMPT-RT kernel.
+
+2.  先运行一个 real-time 核心, 然后将 Linux 内核作为该 real-time 核心的 idle task 来运行. 称为 dual kernel (如 RTLinux 等).
+
+
+其中 [PREEMPT_RT](https://rt.wiki.kernel.org/index.php/Main_Page) 是 Linux 内核的一个实时补丁. 一直由 [Thomas Gleixner](https://git.kernel.org/pub/scm/linux/kernel/git/tglx) 负责维护. 这组补丁曾经得到 Linus 的高度评价:
+
+> Controlling a laser with Linux is crazy, but everyone in this room is crazy in his own way. So if you want to use Linux to control an industrial welding laser, I have no problem with your using PREEMPT_RT.
+>    -- Linus Torvalds
+
+
+PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码, 同时将为支持抢占性必须要修改的代码量最小化. 对临界区、中断处理函数、关中断等代码序列进行抢占改进. 重点改动参见 : [Linux 优化 - Preempt RT 关键点](https://blog.csdn.net/jackailson/article/details/51045796), [PREEMPT-RT](https://blog.csdn.net/Binp0209/article/details/41241703). 目前(2021 年) PREEMPT_RT 的特性正在逐步往社区主线合并, 在完全合入之前, 所有的补丁都可以在 [PatchSet 镜像地址](https://mirrors.edge.kernel.org/pub/linux/kernel/projects/rt) 找到.
+
+1. 可抢占支持(临界区可抢占, 中断处理函数可抢占, "关中断" 代码序列可抢占).
+
+2. rt lock 改动, 锁支持优先级继承.
+
+3. 降低延迟的措施.
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/7/15 | Thomas Gleixner <tglx@linutronix.de> | [locking, sched: The PREEMPT-RT locking infrastructure](https://lkml.org/lkml/2019/7/15/1386) | m在抢占菜单中添加一个新条目 PREEMPT_RT, 以支持内核的实时支持. 该选项仅在体系结构支持时启用. 它选择抢占, 因为 RT 特性依赖于它. 为了实现将现有的 PREEMPT 选项重命名为 `PREEMPT_LL`, 该选项也会选择 PREEMPT. 没有功能上的改变. | v1 ☑ 5.3-rc1 | [LKML](https://lkml.org/lkml/2019/7/15/1386) |
+
+
+### 8.6.1  Migrate disable support && kmap_local
 -------
 
 
@@ -1239,13 +1281,37 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 
 后来主线上 Dexuan Cui 报 Migrate Disable 合入后引入了问题, [5.10: sched_cpu_dying() hits BUG_ON during hibernation: kernel BUG at kernel/sched/core.c:7596!](https://lkml.org/lkml/2020/12/22/141). Valentin Schneider 怀疑是有些 kworker 线程在 CPU 下线后又选到了下线核上运行, 因此建议去测试这组补丁 [workqueue: break affinity initiatively](https://lkml.org/lkml/2020/12/18/406). Dexuan Cui 测试以后可以解决这个问题, 但是会有其他 WARN. Peter Zijlstra 的 解决方案如下 [sched: Fix hot-unplug regression](https://lore.kernel.org/patchwork/cover/1368710).
 
-## 8.7 RT LOCK
+
+### 8.6.2 RT LOCK
 -------
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/08/15 | Thomas Gleixner <tglx@linutronix.de> | [locking, sched: The PREEMPT-RT locking infrastructure](https://lore.kernel.org/patchwork/cover/1476862) | mutex, ww_mutex, rw_semaphore, spinlock, rwlock | v5 ☐ | [PatchWork V5,00/72](https://lore.kernel.org/patchwork/cover/1476862) |
+| 2021/08/15 | Thomas Gleixner <tglx@linutronix.de> | [locking, sched: The PREEMPT-RT locking infrastructure](https://lore.kernel.org/patchwork/cover/1476862) | mutex, ww_mutex, rw_semaphore, spinlock, rwlock | v5 ☑ 5.15-rc1 | [PatchWork V5,00/72](https://lore.kernel.org/all/20210815203225.710392609@linutronix.de), [LKML](https://lkml.org/lkml/2021/8/15/209) |
+
+
+### 8.6.3 中断线程化
+-------
+
+[Linux RT (2)－硬实时 Linux (RT-Preempt Patch) 的中断线程化](https://blog.csdn.net/21cnbao/article/details/8090398)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2009/3/23 | Thomas Gleixner <tglx@linutronix.de> | [Add support for threaded interrupt handlers - V3](https://lkml.org/lkml/2009/3/23/344) | 线程化中断的支持, 这组补丁提供一个能力, 驱动可以通过 request_threaded_irq 申请一个线程化的 IRQ. kernel 会为中断的底版本创建一个名字为 irq/%d-%s 的线程, %d 对应着中断号. 其中上半部(硬中断) handler 在做完必要的处理工作之后, 会返回 IRQ_WAKE_THREAD, 之后 kernel 会唤醒 irq/%d-%s 线程, 而该 kernel 线程会调用 thread_fn 函数, 因此, 该线程处理中断下半部. 该机制目前在 kernel 中使用已经十分广泛, 可以认为是继 softirq(含 tasklet) 和 workqueue 之后的又一大中断下半部方式. | v3 ☑ 2.6.30-rc1 | [PatchWork V5,00/72](https://lkml.org/lkml/2009/3/23/344), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3aa551c9b4c40018f0e261a178e3d25478dc04a9) |
+| 2009/8/15 | Thomas Gleixner <tglx@linutronix.de> | [genirq: Support nested threaded irq handlinge](https://lkml.org/lkml/2009/8/15/130) | 中断线程化支持 nested/oneshot 以及 buslock 等. | v1 ☑ [2.6.32-rc1](https://kernelnewbies.org/Linux_2_6_32#Various_core_changes) | [LKML](https://lkml.org/lkml/2009/8/15/130), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=399b5da29b9f851eb7b96e2882097127f003e87c) |
+| 2011/2/23 | Thomas Gleixner <tglx@linutronix.de> | [genirq: Forced threaded interrupt handlers](https://lkml.org/lkml/2011/2/23/510) | 引入 CONFIG_IRQ_FORCED_THREADING, 增加了命令行参数 ["threadirqs"](https://elixir.bootlin.com/linux/v2.6.39/source/kernel/irq/manage.c#L28), 强制所有中断(除了标记为 IRQF_NO_THREAD 的中断)包括软中断[均以线程方式运行](https://elixir.bootlin.com/linux/v2.6.39/source/Documentation/kernel-parameters.txt#L2474), 这主要是一个调试选项, 允许从崩溃的中断处理程序中检索更好的调试数据. 如果在内核命令行上没有启用 "threadirqs", 那么对中断热路径没有影响. 架构代码需要在标记了不能被线程化的中断 IRQF_NO_THREAD 之后选择 CONFIG_IRQ_FORCED_THREADING. 所有设置了 IRQF_TIMER 的中断都是隐式标记的 IRQF_NO_THREAD. 所有的 PER_CPU 中断也被排除在外.<br>当启用它时, 可能会降低一些速度, 但对于调试中断代码中的问题, 这是一个合理的惩罚, 因为当中断处理程序有 bug 时, 它不会立即崩溃和烧毁机器. | v1 ☑ [2.6.39-rc1](https://kernelnewbies.org/Linux_2_6_39#Core) | [LKML](https://lkml.org/lkml/2011/2/23/510), [LWN](https://lwn.net/Articles/429690), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8d32a307e4faa8b123dc8a9cd56d1a7525f69ad3) |
+| 2021/8/22 | Thomas Gleixner <tglx@linutronix.de> | [softirq: Introduce SOFTIRQ_FORCED_THREADING](https://lkml.org/lkml/2021/8/22/417) | CONFIG_IRQ_FORCED_THREADING 中强制软中断也做了线程化, 作者认为这不合理, 因此引入 SOFTIRQ_FORCED_THREADING 单独控制软中断的线程化.<br>1. 中断退出时是否执行 softirq 由 IRQ_FORCED_THREADING 控制, 这是不合理的. 应该将其拆分, 并允许其单独生效.<br>2. 同时, 当中断退出时, 我们应该增加 ksoftirqd 的优先级, 作者参考了 PREEMPT_RT 的实现, 认为它是合理的. | v1 ☐ | [PatchWork](https://lore.kernel.org/lkml/1629689583-25324-1-git-send-email-wangqing@vivo.com), [LKML](https://lkml.org/lkml/2021/8/22/417) |
+
+
+### 8.6.x 零碎的修修补补
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/9/28 | Thomas Gleixner <tglx@linutronix.de> | [sched: Miscellaneous RT related tweaks](https://lkml.org/lkml/2021/9/28/617) | 启用 RT 的内核在调度程序的内部工作方面存在一些问题:<br>1. 远程 TTWU 队列机制导致最大延迟增加 5 倍;<br>2. 32 个任务的批处理迁移限制会导致较大的延迟.<br>3. kprobes 的清理、死任务的 vmapped 堆栈和 mmdrop() 是导致延迟增大的源头, 这些路径从禁用抢占的调度程序核心中获取常规的自旋锁. | v1 ☐ | [PatchWork 0/5](https://lkml.org/lkml/2021/9/28/617) |
+
+
 
 # 9 进程管理
 -------
