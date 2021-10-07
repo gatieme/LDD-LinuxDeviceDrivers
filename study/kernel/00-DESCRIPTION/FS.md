@@ -59,6 +59,13 @@ blogexcerpt: 虚拟化 & KVM 子系统
 [add ksmbd kernel server](https://lore.kernel.org/patchwork/patch/1480152/)
 
 
+# 1 EAFS
+-------
+
+[Design and Implementation of an Energy-Aware File System](https://os.itec.kit.edu/deutsch/mitarbeiter_622.php)
+
+[Energy-Aware Reorganization in Log-Structured File Systems](https://os.itec.kit.edu/deutsch/mitarbeiter_600.php)
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

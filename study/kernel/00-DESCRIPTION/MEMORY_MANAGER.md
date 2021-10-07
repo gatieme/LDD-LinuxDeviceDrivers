@@ -1462,11 +1462,15 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 | 2010/02/22 | Johannes Weiner <hannes@cmpxchg.org> | [vmscan: detect mapped file pages used only once](https://lore.kernel.org/patchwork/patch/189878) | 在文件页面线性流的场景, 源源不断的文件页面在被一次引用后, 被激活到 active LRU list 中, 将导致 active LRU list 中充斥着这样的页面. 为了解决这个问题, 通过重用 PG_referenced 页面标志检测和识别这类引用, 设置其只有在第二次引用后, 才能被激活. | v2 ☑ 2.6.31-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/189878), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=645747462435d84c6c6a64269ed49cc3015f753d) |
 | 2011/08/08 | Konstantin Khlebnikov <khlebnikov@openvz.org> | [vmscan: promote shared file mapped pages](https://lore.kernel.org/patchwork/patch/262019) | 上面的补丁极大地减少了一次性使用的映射文件页的生存期. 不幸的是, 它还减少了所有共享映射文件页面的生存时间. 在这个补丁之后, 如果这个页面已经通过几个 ptes 被多次使用, page_check_references() 也会在第一次非活动列表扫描时激活文件映射页面. | v2 ☑ 3.3-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/262019), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=34dbc67a644f11ab3475d822d72e25409911e760) |
 
-多级 LRU
+*   多级 LRU
+
+原来内核只维护了 active 和 inactive 两个 LRU LIST, Multigenerational LRU 则尝试将 LRU 列表划分为多级. 当前实现试图增加两个中间状态, 即 likely to be active 和 likely to be unused. 这样不至于错误的回收 likely to be active 的页面, 也不至于对 likely to be unused 的页面置之不理. 设想是希望更有效的回收页面, 确保能够及时的回收内存. 参见 [Multi-generational LRU: the next generation](https://lwn.net/Articles/856931).
+
+Google 测试多代 LRU 为 Linux 带来更好的性能提升, 参见 [Google Proposes Multi-Generational LRU For Linux To Yield Much Better Performance](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Multigen-LRU).
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/05/20 | Yu Zhao <yuzhao@google.com> | [Multigenerational LRU](https://lwn.net/Articles/1394674) | 将 LRU 的列表划分为多代老化. 通过 CONFIG_LRU_GEN 来控制. | v3 ☐ | [Patchwork v1,00/14](https://lore.kernel.org/patchwork/patch/1394674)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2,00/16](https://lore.kernel.org/patchwork/cover/1412560)<br>*-*-*-*-*-*-*-*<br>[PatchWork v3,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210520065355.2736558-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/08/18 PatchWork v4,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20210818063107.2696454-1-yuzhao@google.com) |
+| 2021/05/20 | Yu Zhao <yuzhao@google.com> | [Multigenerational LRU](https://lwn.net/Articles/856931) | 将 LRU 的列表划分为多代老化. 通过 CONFIG_LRU_GEN 来控制. | v3 ☐ | [Patchwork v1,00/14](https://lore.kernel.org/patchwork/patch/1394674)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2,00/16](https://lore.kernel.org/patchwork/cover/1412560)<br>*-*-*-*-*-*-*-*<br>[PatchWork v3,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210520065355.2736558-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/08/18 PatchWork v4,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20210818063107.2696454-1-yuzhao@google.com) |
 
 
 
@@ -2071,7 +2075,7 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/12/22 | Liang Li <liliang.opensource@gmail.com> | [add support for free hugepage reporting](https://lore.kernel.org/patchwork/cover/1355899) | Free page reporting 只支持伙伴系统中的页面, 它不能报告为 hugetlbfs 预留的页面. 这个补丁在 hugetlb 的空闲列表中增加了对报告巨大页的支持, 它可以被 virtio_balloon 驱动程序用于内存过载和预归零空闲页, 以加速内存填充和页面错误处理. | RFC ☐ | [PatchWork RFC,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20201222074538.GA30029@open-light-1.localdomain) |
 | 2021/09/23 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: add demote/split page functionality](https://lore.kernel.org/patchwork/cover/1465517) | 实现了 hugetlb 降低策略. 提供了一种“就地”将 hugetlb 页面分割为较小的页面的方法. | v1 ☐ 5.14 | [2021/07/21 PatchWork 0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210721230511.201823-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/08/16 PatchWork RESEND,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210816224953.157796-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/23 PatchWork v2,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20210923175347.10727-1-mike.kravetz@oracle.com) |
-| 2021/08/20 | yaozhenguo <yaozhenguo1@gmail.com> | [hugetlbfs: add hugepages_node kernel parameter](https://lore.kernel.org/patchwork/cover/1479318) | 当前内核允许指定启动时要分配的 hugepages 数目. 但目前所有节点的 hugepages 都是平衡的. 在某些场景中, 我们只需要在一个节点中使用 hugepags.<br>例如: DPDK 需要与 NIC 位于同一节点的 hugepages. 如果 DPDK 在 node1 中需要 4 个 1G 大小的 HugePage, 并且系统有 16 个 numa 节点. 我们必须在内核 cmdline 中保留 64 个 HugePage. 但是, 只使用了 4 个 hugepages. 其他的应该在引导后释放. 如果系统内存不足(例如: 64G), 这将是一项不可能完成的任务. 因此, 添加 hugepages_node 内核参数以指定启动时要分配的 hugepages 的节点数. | v1 ☐ 5.14-rc7 | [2021/07/21 PatchWork 0/8](https://lore.kernel.org/patchwork/cover/1479318) |
+| 2021/10/05 | yaozhenguo <yaozhenguo1@gmail.com> | [hugetlbfs: Extend the definition of hugepages parameter to support node allocation](https://lore.kernel.org/patchwork/cover/1479318) | 当前内核允许指定启动时要分配的 hugepages 数目. 但目前所有节点的 hugepages 都是平衡的. 在某些场景中, 我们只需要在一个节点中使用 hugepags.<br>例如: DPDK 需要与 NIC 位于同一节点的 hugepages. 如果 DPDK 在 node1 中需要 4 个 1G 大小的 HugePage, 并且系统有 16 个 numa 节点. 我们必须在内核 cmdline 中保留 64 个 HugePage. 但是, 只使用了 4 个 hugepages. 其他的应该在引导后释放. 如果系统内存不足(例如: 64G), 这将是一项不可能完成的任务. 因此, 添加 hugepages_node 内核参数以指定启动时要分配的 hugepages 的节点数. | v1 ☐ 5.14-rc7 | [2021/08/20 PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/patch/20210820030536.25737-1-yaozhenguo1@gmail.com)<br>*-*-*-*-*-*-*-* <br>[2021/08/23 PatchWork v1](](https://patchwork.kernel.org/project/linux-mm/patch/20210823130154.75070-1-yaozhenguo1@gmail.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/05 PatchWork  v8](https://patchwork.kernel.org/project/linux-mm/patch/20211005054729.86457-1-yaozhenguo1@gmail.com) |
 | 2021/07/30 | Mina Almasry <almasrymina@google.com> | [mm, hugepages: add mremap() support for hugepage backed vma](https://patchwork.kernel.org/project/linux-mm/patch/20210730221522.524256-1-almasrymina@google.com) | 只需重新定位页表条目, 即可为 hugepage 的 vma 段支持 mremap(). 页面表条目将重新定位到 mremap() 上的新虚拟地址. | v1 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.12#Memory_management) | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20210730221522.524256-1-almasrymina@google.com) |
 
 
@@ -2124,13 +2128,7 @@ khugepaged 中如果发现当前连续的映射区间内有[超过 `khugepaged_m
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/01/29 | Ebru Akagunduz <ebru.akagunduz@gmail.com> | [mm: incorporate read-only pages into transparent huge pages](https://lore.kernel.org/patchwork/cover/538503) | 允许 THP 转换只读 pte, 就像 do_swap_page 在读取错误后留下的那些pte. 当在 2MB 范围内存在最多数量为 `khugepaged_max_ptes_none` 的 pte_none ptes 时, THP可以将4kB的页面压缩为一个 THP. 这个补丁增加了对只读页面的大页支持. 该补丁使用一个程序进行测试, 该程序分配了800MB的内存, 对其进行写入, 然后休眠. 迫使系统通过触摸其他内存来交换除190MB外的所有程序. 然后, 测试程序对其内存进行混合的读写操作, 并将内存交换回来. 没有补丁的情况下, 只有没有被换出的内存保留在 THP 中, 这相当于程序内存的 24%, 这个百分比并没有随着时间的推移而增加. 有了这个补丁, 经过 5分钟的等待, khugepageage 将 60% 的程序内存还原为 THP. | v4 ☑ [4.0-rc1](https://kernelnewbies.org/Linux_4.0#Memory_management) | [PatchWork v4](https://lore.kernel.org/patchwork/cover/538503), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10359213d05acf804558bda7cc9b8422a828d1cd) |
 | 2015/04/14 | Ebru Akagunduz <ebru.akagunduz@gmail.com> | [mm: incorporate zero pages into transparent huge pages](https://lore.kernel.org/patchwork/cover/541944) | 通过大页允许零页面, 该补丁提高了 THP 的大页转换率. 目前, 当在 2MB 范围内存在最多数量为 khugepaged_max_ptes_none 的 pte_none ptes 时, THP可以将4kB的页面压缩为一个 THP. 这个补丁支持了将零页映射为大页. 该补丁使用一个程序进行测试, 该程序分配了800MB的内存, 并执行交错读写操作, 其模式导致大约2MB的区域首先看到读访问, 从而导致影射了较多的零 pfn 映射. 没有补丁的情况下, 只有 50% 的程序被压缩成THP, 并且百分比不会随着时间的推移而增加. 有了这个补丁, 等待10分钟后, khugepage 转换了 99% 的程序内存.  | v2 ☑ [4.1-rc1](https://kernelnewbies.org/Linux_4.1#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/541944), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ca0984caa8235762dc4e22c1c47ae6719dcc4064) |
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/09/14 | Ebru Akagunduz <ebru.akagunduz@gmail.com> | [mm: make swapin readahead to gain more THP performance](https://lore.kernel.org/patchwork/cover/597392) | 支持在对匿名页 swapin 的时候 readahead 及逆行大页的转换.<br>当 khugepaged 扫描页面时, 交换区中可能有一些页面. 有了这个补丁, 当 2MB 范围内 swap_ptes 的数目达到 max_ptes_swap 时, THP 可以将 4kB 页面转换成一个 THP 的大页.<br>这个补丁用来处理那些在被调出内存后访问大部分(但不是全部)内存的程序的. 补丁合入后, 这些程序不会在内存换出(swapout)后将内存转换成到 THPs 中, 而会在内存从交换分区读入(swapin)时进行转换.<br>测试使用了用一个测试程序, 该程序分配了 400B 的内存, 写入内存, 然后休眠. 然后强制将所有页面都换出. 之后, 测试程序通过对该内存区域进行写曹祖, 但是它在该区域的每 20 页中跳过一页.<br>1. 如果没有补丁, 系统就不能在 readahead 中交换. THP率为程序内存的65%, 不随时间变化.<br>2. 有了这个补丁, 经过10分钟的等待, khugepaged已经崩溃了程序99%的内存. | v2 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork RFC,v5,0/3](https://lore.kernel.org/patchwork/cover/597392)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v5,0/3](https://lore.kernel.org/lkml/1442259105-4420-1-git-send-email-ebru.akagunduz@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2015/9/14/610) |
-| 2021/05/10 | Muchun Song <songmuchun@bytedance.com> | [Free some vmemmap pages of HugeTLB page](https://lore.kernel.org/patchwork/cover/1422994) | NA | v23 ☑ 5.14-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/1422994) |
-| 2021/07/14 | Muchun Song <songmuchun@bytedance.com> | [Free the 2nd vmemmap page associated with each HugeTLB page](https://lore.kernel.org/patchwork/cover/1459641) | NA  | v2 ☐ | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20210714091800.42645-1-songmuchun@bytedance.com) |
 
 ### 7.2.2 THP splitting/reclaim/migration
 -------
@@ -2237,6 +2235,30 @@ khugepaged 处理流程
 | 2015/09/14 | Ebru Akagunduz <ebru.akagunduz@gmail.com> | [mm: add tracepoint for scanning pages](https://lkml.org/lkml/2015/9/14/611) | [mm: make swapin readahead to gain more THP performance](https://lore.kernel.org/lkml/1442259105-4420-1-git-send-email-ebru.akagunduz@gmail.com) 系列的其中一个补丁, 为 khuagepaged 引入了 tracepoint 跟踪点. 用 scan_result 标记了 khugepaged 扫描的结果. | v5 ☑ 4.5-rc1 | [PatchWork RFC,v5,0/3](https://lore.kernel.org/lkml/1442259105-4420-2-git-send-email-ebru.akagunduz@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2015/9/14/611)<br>*-*-*-*-*-*-*-* <br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7d2eba0557c18f7522b98befed98799990dd4fdb) |
 | 2011/01/13 | Peter Xu <peterx@redhat.com> | [mm/khugepaged: Detecting uffd-wp vma more efficiently](https://patchwork.kernel.org/project/linux-mm/patch/20210922175156.130228-1-peterx@redhat.com) | 实现了一个 khugepaged 的内核线程, 用来完成将标准的小页面合并成大页的操作. | ☑ 2.6.38-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ba76149f47d8c939efa0acc07a191237af900471) |
 
+### 7.2.6 优化 struct page 的内存占用
+--------
+
+*   DMEMFS
+
+
+针对 kernel 中元数据对内存资源占用过高的问题, 腾讯云设计了全新的文件系统 Dmemfs(Direct Memory File System), 可以直接管理部分系统预留的虚拟机内存服务, 提高系统的资源利用率降低平台成本. 这个方案不仅提高了系统的资源利用率, 能够降低平台成本并最终让利于用户, 同时也给系统开销降低提供了一种新的思路.
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/12/07 | Yulei Zhang <yulei.kernel@gmail.com>/<yuleixzhang@tencent.com> | [Enhance memory utilization with DMEMFS](https://lwn.net/ml/linux-kernel/cover.1607332046.git.yuleixzhang@tencent.com) | DMEMFS 目的非常明确, 减少云场景下 struct page 结构体本身的内存消耗. 效果也是非常明显, 320G 可以省出 5G 的内存. | RFC, v2 ☐ | [2020/10/8 LKML 00/35](https://lkml.org/lkml/2020/10/8/139)<br>*-*-*-*-*-*-*-* <br>[2020/12/07 PatchWork RFC,V2,00/37](https://patchwork.kernel.org/project/linux-mm/cover/cover.1607332046.git.yuleixzhang@tencent.com) |
+
+
+
+*   Free some vmemmap pages of HugeTLB page
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/05/10 | Muchun Song <songmuchun@bytedance.com> | [Free some vmemmap pages of HugeTLB page](https://patchwork.kernel.org/project/linux-mm/cover/20210510030027.56044-1-songmuchun@bytedance.com) | HugeTLB 使用的大量 struct page 里面有一部分没啥用可以省略. 复合页中只有头页面(compound_head)中的信息, 剩余尾页面(tail pages)中填充的信息是一样的. 因此一个 2M 的 HugeTLB 在 4K page size 的 x86_64 上会用到 512 个 struct page, 这 512 个 struct page 结构体本身占用了 sizeof(struct page) * 512 / PAGE_SIZE = 8 pages. 所以, 其实可以将最后 7 个 tail pages 的信息有点冗余, 将他们合并为一个页面(将 page 2~7 全部映射到 page 1), 这样只需要实际占用 2 个 page 就完成了映射. 这组补丁节省了大量的内存空间, 当然负面作用是分配和释放的时候会慢个 2 倍, 不过都比较小, MS 级别. | v23 ☑ 5.14-rc1 | [PatchWork v23,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20210510030027.56044-1-songmuchun@bytedance.com) |
+| 2021/07/14 | Muchun Song <songmuchun@bytedance.com> | [Free the 2nd vmemmap page associated with each HugeTLB page](https://lore.kernel.org/patchwork/cover/1459641) | NA  | v2 ☐ | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20210714091800.42645-1-songmuchun@bytedance.com) |
+
+
 
 # 8 进程虚拟地址空间(VMA)
 -------
@@ -2328,6 +2350,8 @@ https://events.static.linuxfound.org/sites/events/files/slides/mm.pdf
 | 2020/02/24 | Michel Lespinasse <walken@google.com> | [Fine grained MM locking](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) | 细粒度 MM MMAP lock | RFC ☐  | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com), [fine_grained_mm.pdf](https://linuxplumbersconf.org/event/4/contributions/556/attachments/304/509/fine_grained_mm.pdf) |
 
 * Maple Tree
+
+[Maple Tree "RFC" Patches Sent Out As New Data Structure To Help With Linux Performance](https://www.phoronix.com/scan.php?page=news_item&px=Maple-Tree-Linux-RFC)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -2568,6 +2592,7 @@ git://github.com/glommer/linux.git kmemcg-slab
 ## 9.4 memcg LRU
 -------
 
+[memcg lru lock 血泪史](https://blog.csdn.net/bjchenxu/article/details/112504932)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -3297,9 +3322,12 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2018/09/17 | Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com> | [x86/mm/cpa: Improve large page preservation handling](https://lore.kernel.org/patchwork/cover/987147) | 优化 页面属性(CPA) 代码中的 try_preserve_large_page(), 降低 CPU 消耗. | v3 ☑ 4.20-rc1 | [PatchWork RFC v3](https://lore.kernel.org/patchwork/cover/987147) |
 
 
-## 14.5 功耗管理
+## 14.5 能耗感知(EAMM)
 -------
 
+[Energy-Aware Memory Management for Embedded Multimedia Systems: A Computer-Aided Design Approach: 24](https://www.amazon.com.mx/Energy-Aware-Management-Embedded-Multimedia-Systems/dp/1439814007)
+
+[HpMC: An Energy-aware Management System of Multi-level Memory Architectures](https://www.researchgate.net/publication/280580086_HpMC_An_Energy-aware_Management_System_of_Multi-level_Memory_Architectures)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

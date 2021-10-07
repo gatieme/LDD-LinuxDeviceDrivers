@@ -36,6 +36,9 @@
 
 在 Linux 发展过程中, 存在诸多场景以及诸多特性和优化无法合入主线, 其中一些特性在特定场景往往表现极为出色, 当然也存在一些开发者出于兴趣, 自行进行了维护, 因此 Linux 衍生出了诸多(野)分支.
 
+## 3.1 那些没有进主线的演进特性
+-------
+
 | 分支 | 描述 | 内核 |
 |:---:|:---:|:----:|
 | [linux-rt(RTLinux)](https://rt.wiki.kernel.org/index.php/Main_Page) | 提供 realtime 支持 | NA |
@@ -49,6 +52,13 @@
 | [mptcp(MultiPath TCP)](https://www.multipath-tcp.org) | 支持多路径 TCP 的 Linux 内核和模块. | NA |
 | [pf](https://pf.natalenko.name) | 名字取自作者 post-factum, 提供一些未加入主线内核的特性集. | NA |
 | [linux-vfio](https://github.com/awilliam/linux-vfio) | 出自 Alex Williamson 之手, 启用在某些计算机上使用 KVM 进行 PCI 直通的功能. | [github.com, awilliam/linux-vfio](https://github.com/awilliam/linux-vfio) |
+
+
+
+## 3.2 微内核
+-------
+
+
 
 # 4 Linux Version
 -------

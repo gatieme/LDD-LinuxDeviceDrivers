@@ -64,8 +64,10 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 3.  [Moving Google toward the mainline](https://lwn.net/Articles/871195)
 
-# 2 编译
+# 2 调试工具
 -------
+
+systrace, perfetto, drgn
 
 
 
