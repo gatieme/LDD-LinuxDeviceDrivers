@@ -129,6 +129,8 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 ## 4.1 VMExit less
 -------
 
+[Using perf-probe To Analyse VM Exits](https://www.codeblueprint.co.uk/2017/02/26/using-perf-probe-to-analyse-vmexits.html)
+
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
