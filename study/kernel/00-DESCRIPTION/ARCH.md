@@ -144,6 +144,15 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/07/24 | Will Deacon <will.deacon@arm.com> | [arm64: support for 8.1 LSE atomic instructions](https://lwn.net/Articles/650900) | 为 Linux 内核添加了对[新原子指令(LSE atomic instructions)的支持](https://mysqlonarm.github.io/ARM-LSE-and-MySQL), 这是作为 ARMv8.1 中大系统扩展(LSE-LSE atomic instructions)的一部分引入的. 新的指令可以在编译时通过 CONFIG_ARM64_LSE_ATOMICS 选项配置出来.<br>之前测试发现, 核少的时候关 LSE 性能更好, 核多的时候, 开 LSE 性能更好. | v1 ☑ 4.3-rc1 | [2015/07/13 Patchwork 00/18](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200625080314.230-1-yezhenyu2@huawei.com)<br>*-*-*-*-*-*-*-* <br>[2015/07/24 Patchwork v2,07/20](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1437734531-10698-8-git-send-email-will.deacon@arm.com/) |
 
+## 2.4 pseudo-NMI
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/01/31 | Julien Thierry <julien.thierry@arm.com> | [arm64: provide pseudo NMI with GICv3](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1548946743-38979-1-git-send-email-julien.thierry@arm.com) | ARM64 通过中断优先级实现(伪)NMI | v10 ☑ [5.1-rc1](https://kernelnewbies.org/Linux_5.1#ARM) | [Patchwork v10,00/25](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1548946743-38979-1-git-send-email-julien.thierry@arm.com), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bc3c03ccb4641fb940b27a0d369431876923a8fe) |
+| 2019/06/11 | Julien Thierry <julien.thierry@arm.com> | [arm64: IRQ priority masking and Pseudo-NMI fixes](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1560245893-46998-1-git-send-email-julien.thierry@arm.com) | 修复伪 NMI 的诸多问题 | v4 ☑ 5.10-rc1 | [Patchwork v4,0/8](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1560245893-46998-1-git-send-email-julien.thierry@arm.com) |
+| 2019/07/17 | Julien Thierry <julien.thierry@arm.com> | [arm_pmu: Use NMI for perf interrupt](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1563351432-55652-1-git-send-email-julien.thierry@arm.com) | ARM64 perf 的中断通过伪 NMI 上报, 这样会使 perf 的热点采样更加精准. | v4 ☑ 5.10-rc1 | [Patchwork v4,0/9](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1563351432-55652-1-git-send-email-julien.thierry@arm.com) |
 
 
 # 3 RISC-V

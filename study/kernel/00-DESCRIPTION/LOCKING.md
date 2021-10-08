@@ -150,6 +150,15 @@ PV_SPINLOCKS 的合入引起了[性能问题 Performance overhead of paravirt_op
 | 2021/05/14 | Alex Kogan <alex.kogan@oracle.com> | [Add NUMA-awareness to qspinlock](https://lore.kernel.org/patchwork/cover/1428910) | NUMA 感知的 spinlock, 基于 CNA. | v15 ☐ | [PatchWork v15](https://lore.kernel.org/patchwork/cover/1428910) |
 
 
+
+## 1.6 SPINlOCK DEBUG
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/05/14 | Alex Kogan <alex.kogan@oracle.com> | [x86, locking/qspinlock: Allow lock to store lock holder cpu number](https://lkml.org/lkml/2020/7/16/1066) | struct raw_spinlock 中有 owner_cpu, 但是需要开启 CONFIG_DEBUG_SPINLOCK, 这个选项对 spinlock 的性能影响较大. 这个补丁集修改 x86 的 qspinlock 和 qrwlock 代码, 允许它在可行的情况下将锁持有者的 cpu 号 (qrwlock 的锁写入器 cpu 号) 存储在锁结构本身, 这对调试和崩溃转储分析很有用. 通过定义宏 `__cpu_number_sadd1` (用于 qrwlock) 和 `__cpu_number_sadd2` (用于 qspinlock), 以达到饱和的 + 1 和 + 2 cpu 数, 可以在 qspinlock 和 qrwlock 的锁字节中使用. 可以在每个体系结构的基础上启用该功能, 当前只提供了 x86 下的实现.| v2 ☐ | [PatchWork v2,0/5](https://lkml.org/lkml/2020/7/16/1066) |
+
+
 # 2 RWSEM
 -------
 

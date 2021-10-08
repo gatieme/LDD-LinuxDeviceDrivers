@@ -1548,6 +1548,11 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 
 [A survey of scheduler benchmarks](https://lwn.net/Articles/725238)
 
+
+| benchmark | 描述 | 测试目的 |
+|:---------:|:---:|:-------:|
+| [hackbench](http://manpages.ubuntu.com/manpages/xenial/man8/hackbench.8.html) | 启动一组进程(或者线程)进行通讯(pipe/soket) | 输出是调度器的平均唤醒延迟, 可以测试调度器的扩展性. 告诉任务需要醒来执行工作和在 CPU 上运行的任务之间的持续时间. |
+| [Schbench](https://git.kernel.org/pub/scm/linux/kernel/git/mason/schbench.git/) |
 **引用: **
 
 <div id="ref-anchor-1"></div>
