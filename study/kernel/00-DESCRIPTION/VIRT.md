@@ -123,7 +123,10 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 
 
 
-# 4 VMExit
+# 4 LAPIC
+-------
+
+## 4.1 VMExit less
 -------
 
 

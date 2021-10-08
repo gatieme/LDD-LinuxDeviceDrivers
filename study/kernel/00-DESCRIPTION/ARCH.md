@@ -170,7 +170,10 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 
 用于评价 CPU 性能指标的标准主要有三种: Dhrystone、MIPS、CoreMark.
 
-20 世纪 70-80 年代开始流行的几个性能测试标准, 它们分别是 Livermore、Whetstone、Linpack、Dhrystone, 这四个性能测试标准也被合称为 Classic Benchmark. 这个网址简单介绍了四大经典性能测试标准历史 http://www.roylongbottom.org.uk/classic.htm。
+20 世纪 70-80 年代开始流行的几个性能测试标准, 它们分别是 Livermore、Whetstone、Linpack、Dhrystone, 这四个性能测试标准也被合称为 Classic Benchmark. 这个网址简单介绍了四大经典性能测试标准历史 http://www.roylongbottom.org.uk/classic.htm.
+
+[Magisk-Modules-Repo/benchkit](https://github.com/Magisk-Modules-Repo/benchkit) 项目汇总整理了 Android/Linux 上非常多的 benchmarks
+
 
 
 
