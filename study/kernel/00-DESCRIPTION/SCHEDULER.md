@@ -1555,9 +1555,9 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 | benchmark | 描述 | 测试目的 |
 |:---------:|:---:|:-------:|
 | [hackbench](http://manpages.ubuntu.com/manpages/xenial/man8/hackbench.8.html) | 启动一组进程(或者线程)进行通讯(pipe/soket) | 输出是调度器的平均唤醒延迟, 可以测试调度器的扩展性. 告诉任务需要醒来执行工作和在 CPU 上运行的任务之间的持续时间. |
-| [Schbench](https://git.kernel.org/pub/scm/linux/kernel/git/mason/schbench.git) | 提供了调度器详细唤醒延迟分布统计数据的基准测试程序, hackbench 在分析延迟时, 只提供了均值, 而异常值(高延迟值)可能被汇总统计(如算术平均值)隐藏, 但是查看尽可能多的延迟样本非常重要. | 调度器唤醒延迟的详细分布(百分位图) |
-| [adrestia](https://github.com/mfleming/adrestia) | 更简单的调度器唤醒延迟微基准测试, hackbench 等进行 pipe 测试往往都经过了 futex 路径. 因此 [Matt Fleming](https://www.codeblueprint.co.uk) 在 2016 年编写了此 benchmark, 以便通过在唤醒路径中覆盖测试到不同的路径. 仅提供第 95 百分位唤醒延迟值. |
-| [unixbench/context1]()
+| [Schbench](https://git.kernel.org/pub/scm/linux/kernel/git/mason/schbench.git) | 提供了调度器详细唤醒延迟分布统计数据的基准测试程序, hackbench 在分析延迟时, 只提供了均值, 而异常值(高延迟值)可能被汇总统计(如算术平均值)隐藏, 但是查看尽可能多的延迟样本非常重要. 特别地, 关注 P99(99分位点) 延迟而不是平均延迟是非常有意义的, 只有当开始查看延迟图中的长尾时, 才会发现很多问题. 因此作者认为这是一个真正的微观基准. | 调度器唤醒延迟的详细分布(百分位图) |
+| [adrestia](https://github.com/mfleming/adrestia) | 更简单的调度器唤醒延迟微基准测试, hackbench 等进行 pipe 测试往往都经过了 futex 路径. 因此 [Matt Fleming](https://www.codeblueprint.co.uk) 在 2016 年编写了此 benchmark, 以便通过在唤醒路径中覆盖测试到不同的路径. 同时提供了第 95 百分位唤醒延迟值. | 第 95 百分位唤醒延迟值 |
+| [unixbench/context1]() | NA | NA |
 
 
 
