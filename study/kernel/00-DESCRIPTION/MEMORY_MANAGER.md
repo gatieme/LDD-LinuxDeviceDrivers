@@ -565,11 +565,12 @@ Mel Gorman 发现了这一问题, 开发了 [Calculate pcp->high based on zone s
 | 2021/06/03 | Mel Gorman <mgorman@techsingularity.net> | [Allow high order pages to be stored on PCP v2](https://lore.kernel.org/patchwork/cover/1440776) | PCP 支持缓存高 order 的页面. | v2 ☑ 5.14-rc1 | [OLD v6](https://lore.kernel.org/patchwork/cover/740779)<br>*-*-*-*-*-*-*-* <br>[OLD v7](https://lore.kernel.org/patchwork/cover/741937)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1440776) |
 
 
-*   per-cpu page list drain support
+*   Remote per-cpu cache access
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/06/03 | Mel Gorman <mgorman@techsingularity.net> | [mm: Remote LRU per-cpu pagevec cache/per-cpu page list drain support](https://patchwork.kernel.org/project/linux-mm/cover/20210921161323.607817-1-nsaenzju@redhat.com) | PCP 支持缓存高 order 的页面. | v2 ☑ 5.14-rc1 | [PatchWork 0/6](https://patchwork.kernel.org/project/linux-mm/cover/20210921161323.607817-1-nsaenzju@redhat.com) |
+| 2021/09/21 | Sebastian Andrzej Siewior <bigeasy@linutronix.de> | [mm/swap: Add static key dependent pagevec locking](https://patchwork.kernel.org/project/linux-mm/cover/20190424111208.24459-1-bigeasy@linutronix.de) | 本系列实现了swap 的代码路径中通过禁用抢占来同步它对 per-cpu pagevec 结构体的访问. 这是可行的, 需要从中断上下文访问的结构体是通过禁用中断来保护的.<br>有一种情况下, 需要访问远程 CPU 的 per-cpu 数据, 在 v1 版本中, 试图添加每个 cpu 的自旋锁来访问结构体. 这将增加 lockdep 覆盖率和从远程 CPU 的访问, 不需要 worker.<br>在 v2 中这是通过在远程 CPU 上启动一个 worker 并等待它完成来解决的.<br>关于无争用 spin_lock () 的代价, 以及避免每个 cpu worker 的好处很少, 因为它很少被使用. 然后听从社区的建议使用 static key use_pvec_lock, 在某些情况下(如 NOHZ_FULL 情况), 它支持每个 cpu 的锁定. | v1 ☐ | [PatchWork 0/4,v2](https://patchwork.kernel.org/project/linux-mm/cover/20190424111208.24459-1-bigeasy@linutronix.de) |
+| 2021/09/21 | Nicolas Saenz Julienne <nsaenzju@redhat.com> | [mm: Remote LRU per-cpu pagevec cache/per-cpu page list drain support](https://patchwork.kernel.org/project/linux-mm/cover/20210921161323.607817-1-nsaenzju@redhat.com) | 本系列介绍了 mm/swap.c 的每个 CPU LRU pagevec 缓存和 mm/page_alloc 的每个 CPU 页面列表的另一种锁定方案 remote_pcpu_cache_access, 这将允许远程 CPU 消耗它们.<br>目前, 只有一个本地 CPU 被允许更改其每个 CPU 列表, 并且当进程需要它时, 它会按需这样做 (通过在本地 CPU 上排队引流任务).<br>大多数系统会迅速处理这个问题, 但它会给 NOHZ_FULL CPU 带来问题, 这些 CPU 无法在不破坏其功能保证(延迟、带宽等) 的情况下接受任何类型的中断. 如果这些进程能够远程耗尽列表本身, 就可以与隔离的 CPU 共存, 但代价是更多的锁约束.<br>通过 static key remote_pcpu_cache_access 来控制该特性的开启与否, 对于非 nohz_full 用户来说, 默认禁用它, 这保证了最小的功能或性能退化. 而只有当 NOHZ_FULL 的初始化过程成功时, 该特性才会被启用. | v1 ☐ | [PatchWork 0/6](https://patchwork.kernel.org/project/linux-mm/cover/20210921161323.607817-1-nsaenzju@redhat.com) |
 
 
 ### 2.1.5 ALLOC_NOFRAGMENT 优化
@@ -1830,6 +1831,8 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 | 2020/04/22 | Jan Kara <jack@suse.cz> | [mm: Speedup page cache truncation](https://lore.kernel.org/patchwork/cover/1229535) | 页面缓存到 xarray 的转换(关键 commit 69b6c1319b6 "mm:Convert truncate to xarray") 使页面缓存截断的性能降低了约 10%, 参见 [Truncate regression due to commit 69b6c1319b6](https://lore.kernel.org/linux-mm/20190226165628.GB24711@quack2.suse.cz). 本系列补丁旨在改进截断, 以恢复部分回归.<br>1.
 第一个补丁修复了一个长期存在的错误, 我在调试补丁时发现了 xas_for_each_marked().<br>2. 剩下的补丁则致力于停止清除 xas_store() 中的标记, 从而将截断性能提高约 6%. | v2 ☐ | [PatchWork 0/23,v2](https://patchwork.kernel.org/project/linux-mm/cover/20200204142514.15826-1-jack@suse.cz) |
 | 2020/10/25 | Kent Overstreet <kent.overstreet@gmail.com> | [generic_file_buffered_read() improvements](https://lore.kernel.org/patchwork/cover/1324435) | 这是一个小补丁系列, 已经在 bcachefs 树中出现了一段时间. 在缓冲读取路径中, 我们在页面缓存中查找一个页面, 然后在循环中从该页面进行复制, 即在查找每个页面之间混合数据副本. 当我们从页面缓存中进行大量读取时, 这是相当大的开销.<br>这只是重写了 generic_file_buffered_read() 以使用 find_get_pages_contig() 并处理页面数组. 对于大型缓冲读取, 这是一个非常显著的性能改进, 并且不会降低单页读取的性能.<br>generic_file_buffered_read() 被分解成多个函数, 这些函数在某种程度上更容易理解. | v2 ☑ 5.11-rc1 | [2020/06/10](https://lore.kernel.org/patchwork/cover/1254393)<br>*-*-*-*-*-*-*-* <br>[2020/06/19 v2](https://lore.kernel.org/patchwork/cover/1254398)<br>*-*-*-*-*-*-*-* <br>[2020/06/19 v3](https://lore.kernel.org/patchwork/cover/1258432)<br>*-*-*-*-*-*-*-* <br>[2020/10/17 v4](https://lore.kernel.org/patchwork/cover/1322156)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/2](https://lore.kernel.org/patchwork/cover/1324435) |
+| 2021/09/30 | Yang Shi <shy828301@gmail.com> | [Solve silent data loss caused by poisoned page cache (shmem/tmpfs)](https://patchwork.kernel.org/project/linux-mm/cover/20210930215311.240774-1-shy828301@gmail.com) | 为了让文件系统意识到有毒的(poisoned)页面.<br>在讨论拆分页面缓存 THP 以脱机有毒页面的补丁时, Noaya 提到了一个[更大的问题](https://lore.kernel.org/linux-mm/CAHbLzkqNPBh_sK09qfr4yu4WTFOzRy+MKj+PA7iG-adzi9zGsg@mail.gmail.com/T/#m0e959283380156f1d064456af01ae51fdff91265), 它阻止了这一工作的进行, 因为如果发生不可纠正的错误, 页面缓存页面将被截断. 深入研究后发现, 如果页面脏, 这种方法 (截断有毒页面) 可能导致所有非只读文件系统的静默数据丢失. 对于内存中的文件系统, 例如 shmem/tmpfs, 情况可能更糟, 因为数据块实际上已经消失了. 为了解决这个问题, 我们可以将有毒的脏页面保存在页面缓存中, 然后在任何后续访问时通知用户, 例如页面错误、读 / 写等. 可以按原样截断干净的页, 因为稍后可以从磁盘重新读取它们. 结果是, 文件系统可能会发现有毒的页面, 并将其作为健康页面进行操作, 因为除了页面错误之外, 所有文件系统实际上都不会检查页面是否有毒或是否在所有相关路径中. 通常, 在将有毒页面保存在页面缓存中以解决数据丢失问题之前, 我们需要让文件系统知道有毒页面. | v3 ☐ | [PatchWork RFC,v3,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20210930215311.240774-1-shy828301@gmail.com) |
+
 
 
 
@@ -3364,7 +3367,14 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 -------
 
 
-*   内核地址随机化
+*   地址随机化 ASLR
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/13 | Kefeng Wang <wangkefeng.wang@huawei.com> | [riscv: Improve stack randomisation on RV64](https://www.phoronix.com/scan.php?page=news_item&px=RISC-V-Better-Stack-Rand) | NA | v1 ☑ 5.15-rc1 | [PatchWork](https://patchwork.kernel.org/project/linux-riscv/patch/20210812114702.44936-1-wangkefeng.wang@huawei.com), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d5935537c8256fc63c77d5f4914dfd6e3ef43241) |
+
+
+*   内核地址随机化 KASLR
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -3402,7 +3412,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/03/29 | Elena Reshetova <elena.reshetova@intel.com> | [x86/entry/64: randomize kernel stack offset upon syscall](https://lore.kernel.org/kernel-hardening/20190329081358.30497-1-elena.reshetova@intel.com) | 引入了 CONFIG_RANDOMIZE_KSTACK_OFFSET, 在 pt_regs 的固定位置之后, 系统调用的每个条目都会随机化内核堆栈偏移量. | v1 ☐ | [PatchWork](https://lore.kernel.org/kernel-hardening/20190329081358.30497-1-elena.reshetova@intel.com/) |
-| 2021/04/01 | Kees Cook <keescook@chromium.org> | [Optionally randomize kernel stack offset each syscall](https://patchwork.kernel.org/project/kernel-hardening/cover/20210401232347.2791257-1-keescook@chromium.org) | Elena 先前添加内核堆栈基偏移随机化的工作的延续和重构. | v4 ☐ | [PatchWork v4,00/10](https://patchwork.kernel.org/project/kernel-hardening/cover/20210401232347.2791257-1-keescook@chromium.org) |
+| 2021/04/06 | Kees Cook <keescook@chromium.org> | [Optionally randomize kernel stack offset each syscall](https://patchwork.kernel.org/project/linux-mm/cover/20200406231606.37619-1-keescook@chromium.org) | Elena 先前添加内核堆栈基偏移随机化的工作的延续和重构. | v4 ☐ | [PatchWork v3,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20200406231606.37619-1-keescook@chromium.org) |
 
 
 
