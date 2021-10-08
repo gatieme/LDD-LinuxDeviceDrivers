@@ -51,7 +51,13 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 **-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* 正文 -*-*-*-*-*-*-*-*-*-*-*-*-*-*-***
 
-# 1 PV_SPINLOCK
+
+
+
+# 1 VIRT LOCK
+-------
+
+## 1.1 PV_SPINLOCK
 -------
 
 spinlock 在非虚拟化的环境下, 它是可以认为 CPU 不会被抢占的, 所以 A 拿锁干活, B 死等 A, A 干完自己的活, 就释放了, 中间不会被调度.
@@ -87,10 +93,6 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 目前来看, 已经有一种较为成熟的软件方法来解决类似问题, 期待后续是否会有硬件的一些特性来支持, 或许已经有了.
 
 
-# 1 VIRT LOCK
--------
-
-
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2013/08/09 | Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com> | [Paravirtualized ticket spinlocks](https://lore.kernel.org/patchwork/cover/398912) | PV_SPINLOCK 的 ticket lock 实现. | v13 ☑ 3.12-rc1 | [PatchWork v13](https://lore.kernel.org/patchwork/cover/398912) |
@@ -118,6 +120,18 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/12/22 | Xie Yongji <xieyongji@bytedance.com> | [kvm: arm64: Dynamic IPA and 52bit IPA](https://lore.kernel.org/patchwork/cover/992057) | arm/arm64 上 VM 的物理地址空间大小(IPA 大小)被限制为 40 位的静态限制. 这组补丁增加了对使用特定于 VM 的 IPA 大小的支持, 允许使用主机支持的大小(基于主机内核配置和 CPU 支持). | v6 ☐ | [PatchWork v6,00/18](https://lore.kernel.org/patchwork/cover/992057) |
+
+
+
+# 4 VMExit
+-------
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/07/23 | Wanpeng Li <kernellwp@gmail.com>/<wanpengli@tencent.com> | [KVM: X86: Implement Exit-less IPIs support](https://patchwork.kernel.org/project/kvm/cover/1532327996-17619-1-git-send-email-wanpengli@tencent.com) | 对于 xAPIC/x2APIC 物理模式, 使用 hypercall 通过一个 vmexit 发送 ip, 而不是逐个发送, 对于 x2APIC 集群模式, 每个集群使用一个 vmexit. 在 qemu 中启用中断重映射时, Intel guest 可以进入 x2apic 集群模式, 而最新的 AMD EPYC 仍然只支持 xapic 模式, 而 xapic 模式可以通过无 exit IPIs 得到很大的改进. 这个补丁集允许 guest 发送多播 ip, 64 位模式下每个超级调用最多有 128 个目的地, 32 位模式下每个超级调用最多有 64 个 vcpu. | v5 ☑ 4.19-rc1 | [PatchWork v5,0/6](https://patchwork.kernel.org/project/kvm/cover/1562376411-3533-1-git-send-email-wanpengli@tencent.com) |
+| 2019/07/06 | Wanpeng Li <kernellwp@gmail.com>/<wanpengli@tencent.com> | [KVM: LAPIC: Implement Exitless Timer](https://patchwork.kernel.org/project/kvm/cover/1562376411-3533-1-git-send-email-wanpengli@tencent.com) | KVM 实现 pi_inject_timer. 由于模拟的 lapic 定时器以及虚拟中断等总是在在 VCPU 驻留的 PCPU 上触发, 这会造成 pcpu 上的 vcpu 退出虚拟化(VMExit), 而执行 VMExit 的开销是非常大的. 这组补丁优化了虚拟 timer 中断的模拟流程, 把虚拟集中放到某些固定的 pcpu 上, 这样其他 pcpu 上的 vcpu 就不需要退出了. | v7 ☑ 5.3-rc1 | [PatchWork v7,0/2](https://patchwork.kernel.org/project/kvm/cover/1562376411-3533-1-git-send-email-wanpengli@tencent.com) |
 
 
 相关的文章介绍: [47].
