@@ -67,9 +67,18 @@ blogexcerpt: 虚拟化 & KVM 子系统
 # 2 调试工具
 -------
 
+## 2.1 debug
+-------
+
 systrace, perfetto, drgn
 
+## 2.2 call kernel func from userspace
+-------
 
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2012/06/23 | Peiyong Feng <peiyong.feng.kernel@gmail.com> | [Implement uhook(call kernel func from userspace) driver](https://lwn.net/Articles/503414) | 提供了 uhook(userspace kernel hook) 驱动和工具用于在用户态直接调用内核态的函数, 这对于调试内核非常有帮助. | v1 ☐ | [LWN](https://lwn.net/Articles/503414), [bigfeng12/uhook](https://github.com/bigfeng12/uhook)<br>*-*-*-*-*-*-*-* <br>[LKML1](https://lkml.org/lkml/2012/6/22/570), [LKML2](https://lkml.org/lkml/2012/6/22/572) |
 
 
 <br>
