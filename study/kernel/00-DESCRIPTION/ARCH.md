@@ -205,7 +205,7 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 [Magisk-Modules-Repo/benchkit](https://github.com/Magisk-Modules-Repo/benchkit) 项目汇总整理了 Android/Linux 上非常多的 benchmarks
 
-
+[Linux Benchmark Suite Homepage](http://lbs.sourceforge.net)
 
 
 相关的文章介绍: [47].

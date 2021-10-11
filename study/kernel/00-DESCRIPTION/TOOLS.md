@@ -80,6 +80,22 @@ systrace, perfetto, drgn
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2012/06/23 | Peiyong Feng <peiyong.feng.kernel@gmail.com> | [Implement uhook(call kernel func from userspace) driver](https://lwn.net/Articles/503414) | 提供了 uhook(userspace kernel hook) 驱动和工具用于在用户态直接调用内核态的函数, 这对于调试内核非常有帮助. | v1 ☐ | [LWN](https://lwn.net/Articles/503414), [bigfeng12/uhook](https://github.com/bigfeng12/uhook)<br>*-*-*-*-*-*-*-* <br>[LKML1](https://lkml.org/lkml/2012/6/22/570), [LKML2](https://lkml.org/lkml/2012/6/22/572) |
 
+## 2.3 stack backtrace
+-------
+
+在内核态尝试 dump 用户态的栈对调试是非常有帮助的.
+
+[how to print stack trace in-your-user](http://kungjohan.blogspot.com/2012/06/how-to-print-stack-trace-in-your-user.html)
+
+[how-to-dump-user-space-stack-in-kernel-space](https://stackoverflow.com/questions/38384259/how-to-dump-user-space-stack-in-kernel-space)
+
+[](https://groups.google.com/g/linux.kernel/c/ca3lZGlbnmo)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/06/23 | 胡俊鹏 and <dongzhiyan_linux@163.com> | [dongzhiyan-stack/user_stack_backstrace-in-kernel](https://github.com/dongzhiyan-stack/user_stack_backstrace-in-kernel) | 海康 CLK 2019 的一个 slides, 内核态回溯用户态栈. 对于一些比较难解析符号的场景也有对策 | v1 ☐ | [github](https://github.com/dongzhiyan-stack/user_stack_backstrace-in-kernel) |
+| 2012/4/11 | "Tu, Xiaobing" <xiaobing.tu@intel.com> | [kernel patch for dump user space stack tool](https://lkml.org/lkml/2012/4/11/49) | 内核态回溯用户态栈. | v1 ☐ | [LKML RFC 1/2](https://lkml.org/lkml/2012/4/11/49) |
+
 
 <br>
 
