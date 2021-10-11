@@ -131,6 +131,8 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 ## 2.2 TLB
 -------
 
+[郭健： 进程切换分析之——TLB处理](https://blog.csdn.net/21cnbao/article/details/110675822)
+
 ### 2.2.1 TLB range
 -------
 
@@ -139,12 +141,31 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 | 2020/06/25 | Tianjia Zhang <tianjia.zhang@linux.alibaba.com> | [arm64: tlb: add support for TTL feature](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200625080314.230-1-yezhenyu2@huawei.com) | 为了降低 TLB 失效的成本, ARMv8.4 在 TLBI 指令中提供了 TTL 字段. TTL 字段表示保存被失效地址的叶条目的页表遍历级别. 这组补丁实现了对 TTL 的支持. | v4 ☑ 5.9-rc1 | [Patchwork RESEND,v5,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200625080314.230-1-yezhenyu2@huawei.com) |
 | 2020/07/15 | Zhenyu Ye <yezhenyu2@huawei.com> | [arm64: tlb: Use the TLBI RANGE feature in arm64](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) | 为 ARM64 实现 CONFIG_ARM64_TLB_RANGE, 在实现了 ARM64_HAS_TLB_RANGE 的机器上使用此 feature 实现了 `__flush_tlb_range()` | v3 ☑ 5.9-rc1 | [2020/07/08 PatchWork RFC,v5,0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200708124031.1414-1-yezhenyu2@huawei.com)<br>*-*-*-*-*-*-*-* <br>[2020/07/09 PatchWork v1,0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200710094420.517-1-yezhenyu2@huawei.com)<br>*-*-*-*-*-*-*-* <br>[2020/07/10 PatchWork v2,0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200710094420.517-1-yezhenyu2@huawei.com)<br>*-*-*-*-*-*-*-* <br>[2020/07/15 Patchwork v3,0/3](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200715071945.897-1-yezhenyu2@huawei.com) |
 
-### 2.2.2 TLB IPI
+### 2.2.2 TLB Shootdown
 -------
+
+TLB entry shootdown 常常或多或少的带来一些性能问题.
+
+
+[stackoverflow: What is tlb shootdown ?](https://stackoverflow.com/questions/3748384/what-is-tlb-shootdown)
+
+[深入理解 Linux 内核--jemalloc 引起的 TLB shootdown 及优化](https://blog.csdn.net/weixin_46837673/article/details/105379768)
+
+在多核系统中, 进程可以调度到任何一个 CPU 上执行, 从而导致 task 处处留情. 如果 CPU 支持 PCID 并且在进程切换的时候不 flush tlb, 那么系统中各个 CPU 中的 tlb entry 则保留各种 task 的 tlb entry, 当在某个 CPU 上, 一个进程被销毁, 或者修改了自己的页表(修改了VA PA映射关系)的时候, 我们必须将该 task 的相关 tlb entry 从系统中清除出去. 这时候, 不仅仅需要 flush 本 CPU 上对应的 TLB entry, 还需要 shootdown 其他 CPU 上的和该 task 相关的 tlb 残余.
+
+通知其他 CPU shootdown 到指定 task 的 TLB entry 有两种方式: 广播 和 IPI.
+
+1.  广播的方式, 当进程销毁或者页表修改时, 则本地 CPU 通过广播的方式将请求发送出去. 各个 CPU 接受到请求之后, 如果 TLB 中包含了对应的 TLB entry, 则 flush, 否则则抛弃此请求. 这种方式主要由硬件参与完成, 在 shootdown 请求比较少的时候, 硬件处理及时且迅速, 开销也小.
+
+2.  IPI 的方式, 需要先由软件(内核)识别到哪些 CPU 中包含了这些需要 flush 的 TLB entry, 然后由本地 CPU 通过 IPI 请求的方式, 通知对应的 CPU 进行 shootdown 操作. 这种方式由硬件软件交互完成, 在 CPU 核数比较多, 且shootdown 请求比较多的时候, 可能造成 TLB entry shootdown 广播风暴, 硬件(NM)处理不过来, 造成性能下降. 此时对于单个 task 的 TLB entry 来说, 残留的 CPU 往往是明确且有限的, 通过 IPI 的方式, 给硬件压力反而会小很多, 这时采用 IPI 的方式性能反而会好.
+
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/06/25 | Tianjia Zhang <tianjia.zhang@linux.alibaba.com> | [arm64, mm: Use IPIs for TLB invalidation.](http://lists.infradead.org/pipermail/linux-arm-kernel/2015-July/355866.htm) | 在 Cavium ThunderX (ARM64) 的机器上, 某些场景下不能使用广播 TLB, TLB 广播风暴会导致严重的性能问题, 所以我们在必要时使用 IPIs. 测试发现, 它还使内核构建的速度更快. | v1 ☐ | [Patchwork 0/3](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200625080314.230-1-yezhenyu2@huawei.com) |
+| 2015/07/11 | David Daney <ddaney.cavm@gmail.com>/<david.daney@cavium.com> | [arm64, mm: Use IPIs for TLB invalidation.](http://lists.infradead.org/pipermail/linux-arm-kernel/2015-July/355866.html) | 在 Cavium ThunderX (ARM64) 的机器上, 某些场景下不能使用广播 TLB, TLB 广播风暴会导致严重的性能问题, 所以我们在必要时使用 IPIs. 测试发现, 它还使内核构建的速度更快. | v1 ☐ | [Patchwork 0/3](http://lists.infradead.org/pipermail/linux-arm-kernel/2015-July/355866.html) |
+| 2016/08/04 | Matthias Brugger <mbrugger@suse.com> | [arm64, mm: Use IPIs for TLB invalidation.](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1470302117-32296-3-git-send-email-mbrugger@suse.com/) | NA | v1 ☐ | [Patchwork 2/4](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1470302117-32296-3-git-send-email-mbrugger@suse.com) |
+| 2020/11/03 |  David Daney <ddaney.cavm@gmail.com>/<david.daney@cavium.com> | [KVM: arm64: Don't force broadcast tlbi when guest is running](hhttps://lists.cs.columbia.edu/pipermail/kvmarm/2020-November/043071.html) | KVM 当 guest 在运行的时候, 避免 tlbi 广播. | RFC v1 ☐ | [Patchwork RTC](https://lists.cs.columbia.edu/pipermail/kvmarm/2020-November/043071.html) |
 
 
 ## 2.3 指令加速
