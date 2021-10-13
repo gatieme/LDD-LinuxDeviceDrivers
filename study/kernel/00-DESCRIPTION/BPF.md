@@ -66,7 +66,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 [BCC & libbpf](https://zhuanlan.zhihu.com/p/111037013)
 
-
+[使用 bpftrace 分析内核](https://developer.aliyun.com/article/741492)
 
 # 2 kprobe
 -------

@@ -66,6 +66,35 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 [Energy-Aware Reorganization in Log-Structured File Systems](https://os.itec.kit.edu/deutsch/mitarbeiter_600.php)
 
+
+# 2 NVDIMM
+-------
+
+*   [nvfs: a filesystem for persistent memory](https://lore.kernel.org/linux-nvdimm/alpine.LRH.2.02.2102021307370.4109@file01.intranet.prod.int.rdu2.redhat.com)
+
+*   [pmfs](https://github.com/linux-pmfs/pmfs)
+
+*   [nova](https://github.com/NVSL/linux-nova)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

@@ -321,7 +321,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 [MTE技术在Android上的应用](https://zhuanlan.zhihu.com/p/353807709)
 
-[Memory Tagging Extension (MTE) 简介（一）](https://blog.csdn.net/weixin_47569031/article/details/114694733)
+[Memory Tagging Extension (MTE) 简介(一)](https://blog.csdn.net/weixin_47569031/article/details/114694733)
 
 [LWN：Arm64的内存标记扩展功能！](https://blog.csdn.net/Linux_Everything/article/details/109396397)
 
@@ -362,11 +362,43 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 
 另外一种方法称为 buddy memory allocation, 是一种更快的内存分配技术, 它将内存划分为 2 的幂次方个分区, 并使用 best-fit 方法来分配内存请求. 当用户释放内存时, 就会检查 buddy 块, 查看其相邻的内存块是否也已经被释放. 如果是的话, 将合并内存块以最小化内存碎片. 这个算法的时间效率更高, 但是由于使用 best-fit 方法的缘故, 会产生内存浪费.
 
-## 2.1 页分配器: 伙伴分配器[<sup>12<sup>](#ref-anchor-12)
+
+## 2.1 早期内存分配器
+-------
+
+[A quick history of early-boot memory allocators](https://lwn.net/Articles/761215)
+
+
+### 2.1.1 bootmem
+-------
+
+2.3.23pre3 版本的引入入了第一个版本的 bootmem 分配器. 使用一个位图来表示每个物理内存页的使用状态. 清零标志位表示该物理页可用, 而设置该位则意味着相应的物理页已被占用或者不存在. 所有原先使用 memory_start 的通用部分代码, 以及 i386 架构下的初始化代码在该版本中都转换为使用 bootmem. 其他架构暂时没有跟上, 直到版本 2.3.48 时才全部完成了转换. 与此同时, Linux 被移植到 Itanium(ia64)上, 这是第一个从一开始就使用 bootmem 的架构.
+
+bootmem 的主要缺点在于如何初始化位图. 要创建此位图, 必须基于实际的物理内存配置. 位图的大小取决于实际物理内存的大小. 并且内核需要确保能够找到一个合适的内存 bank, 其必须要拥有足够大的、连续的物理内存来存储该位图. 系统的内存越多, bootmem 所使用的位图所占用的内存也越大. 对于一个具有 32 GB 内存的系统, 位图需要占用 1 MB 的内存.
+
+### 2.1.2 memblock
+-------
+
+随着时间的推移, 对内存的检测已经从简单地询问 BIOS 有关扩展内存块的大小发展为处理更复杂的拓扑关系, 譬如 tables, pieces , banks 和 clusters 等. 特别地, 内核对 Power64 架构的支持也已经准备就绪, 同时还引入了逻辑内存块分配器(Logical Memory Block allocator, 下文简称 LMB)的概念. 对于 LMB, 其管理的内存区域通过两个数组来标识, 第一个数组描述系统中可用的连续的物理存储区域, 而第二个数组用于跟踪这些区域的分配情况. 在内核整合 PowerPC 的 32 位和 64 位代码过程中, LMB 分配器被 32 位 的 PowerPC 架构所采纳. 后来它又被 SPARC 架构使用. 最终, 所有的体系架构都开始使用 LMB, 现在它被叫做 memblock.
+
+
+memblock 分配器提供了两个最基本原语, 其他更复杂的 API 内部都会调用它们： 一个是 memblock_add(), 用于发现并注册一个可用的物理内存范围, 还有一个是 memblock_reserve() 用于申请某段内存范围并将其标记为已使用. 这两个 API 内部都会调用同一个函数 memblock_add_range(), 由该函数将相关内存区域分别添加到前面介绍的两个数组中的一个, 从而参与管理.
+
+memblock 的内存占用是非常小的, 它采用静态数组的方式, 数组的大小确保至少可以支持系统最开始运行时的内存需要(包括执行基本的对内存区域的注册和分配动作). 如果运行过程中出现数组大小不够用的情况, 则 memblock 处理的方法很简单, 就是直接将数组的大小增加一倍. 当然这么做有一个潜在的假设, 就是, 在扩大数组时, 总有足够的内存存在.
+
+
+为了减轻从 bootmem 迁移到 memblock 的痛苦, 内核引入了一个名为 nobootmem 的适配层. nobootmem 提供了大部分与 bootmem 相同的接口, 但在接口的内部没有使用位图, 而是封装了 memblock 的调用接口. 截至 v4.17, 内核所支持的 24 个架构中只有 5 个仍然在使用 bootmem 作为唯一的内核初始化早期内存分配器; 14 个使用 memblock(以 nobootmem 封装的方式); 其余五个同时支持 memblock 和 bootmem.
+
+从 4.20 开始, 随着 bootmem 被完全清除, nobootmem 这个适配层也不再存在.
+
+
+
+
+## 2.2 页分配器: 伙伴分配器[<sup>12<sup>](#ref-anchor-12)
 -------
 
 
-### 2.1.1 BUDDY 伙伴系统
+### 2.2.1 BUDDY 伙伴系统
 -------
 
 古老, 具体时间难考 , 应该是生而有之. orz...
@@ -415,7 +447,7 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 | 2007/03/01 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Rationalise `__alloc_pages` wrappers](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) | NA | v3 ☑ 5.13-rc1 | [PatchWork v6](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) |
 
 
-### 2.1.2 zone 分区管理
+### 2.2.2 zone 分区管理
 -------
 
 
@@ -427,7 +459,7 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 
 
 
-### 2.1.2 fair allocation zone policy
+### 2.2.3 fair allocation zone policy
 -------
 
 每个拥有一个工作负载的用户空间页面的区域必须以与区域大小成比例的速度老化. 否则, 单个页面在内存中停留的时间取决于它碰巧被分配的区域. 区域老化的不对称造成相当不可预测的老化行为, 并导致错误的页面被回收, 激活等.
@@ -450,7 +482,7 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 | 2016/07/08 | Mel Gorman <mgorman@techsingularity.net> | [mm, page_alloc: remove fair zone allocation policy](https://lore.kernel.org/patchwork/patch/696437/) | [Move LRU page reclaim from zones to nodes v9](https://lore.kernel.org/patchwork/cover/696437)系列中的一个补丁. 公平区域分配策略在区域之间交叉分配请求, 以避免年龄倒置问题, 即回收新页面来平衡区域. LRU 回收现在是基于节点的, 所以这应该不再是一个问题, 公平区域分配策略本身开销也不小, 因此这个补丁移除了它. | v9 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork v21](https://lore.kernel.org/patchwork/cover/696437), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e6cbd7f2efb433d717af72aa8510a9db6f7a7e05) |
 
 
-### 2.1.3 内存水线
+### 2.2.4 内存水线
 -------
 
 Linux 为每个 zone 都设置了独立的 min, low 和 high 三个档位的 watermark 值, 在代码中以struct zone中的 `_watermark[NR_WMARK]` 来表示.
@@ -472,7 +504,7 @@ Linux 为每个 zone 都设置了独立的 min, low 和 high 三个档位的 wat
 | 2020/05/01 |Charan Teja Kalla <charante@codeaurora.org> | [mm: Limit boost_watermark on small zones.](https://lore.kernel.org/patchwork/cover/1234105) | NA | v1 ☑ 5.11-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1234105) |
 
 
-### 2.1.4 PCP(Per CPU Page) Allocation
+### 2.2.5 PCP(Per CPU Page) Allocation
 -------
 
 *   [Hot and cold pages](https://lwn.net/Articles/14768)
@@ -573,7 +605,7 @@ Mel Gorman 发现了这一问题, 开发了 [Calculate pcp->high based on zone s
 | 2021/09/21 | Nicolas Saenz Julienne <nsaenzju@redhat.com> | [mm: Remote LRU per-cpu pagevec cache/per-cpu page list drain support](https://patchwork.kernel.org/project/linux-mm/cover/20210921161323.607817-1-nsaenzju@redhat.com) | 本系列介绍了 mm/swap.c 的每个 CPU LRU pagevec 缓存和 mm/page_alloc 的每个 CPU 页面列表的另一种锁定方案 remote_pcpu_cache_access, 这将允许远程 CPU 消耗它们.<br>目前, 只有一个本地 CPU 被允许更改其每个 CPU 列表, 并且当进程需要它时, 它会按需这样做 (通过在本地 CPU 上排队引流任务).<br>大多数系统会迅速处理这个问题, 但它会给 NOHZ_FULL CPU 带来问题, 这些 CPU 无法在不破坏其功能保证(延迟、带宽等) 的情况下接受任何类型的中断. 如果这些进程能够远程耗尽列表本身, 就可以与隔离的 CPU 共存, 但代价是更多的锁约束.<br>通过 static key remote_pcpu_cache_access 来控制该特性的开启与否, 对于非 nohz_full 用户来说, 默认禁用它, 这保证了最小的功能或性能退化. 而只有当 NOHZ_FULL 的初始化过程成功时, 该特性才会被启用. | v1 ☐ | [PatchWork 0/6](https://patchwork.kernel.org/project/linux-mm/cover/20210921161323.607817-1-nsaenzju@redhat.com) |
 
 
-### 2.1.5 ALLOC_NOFRAGMENT 优化
+### 2.2.6 ALLOC_NOFRAGMENT 优化
 -------
 
 页面分配最容易出现的就是外碎片化问题, 因此主线进行了锲而不舍的优化, Mel Gorman 提出的 [Fragmentation avoidance improvements v5](https://lore.kernel.org/patchwork/cover/1016503) 是比较有特色的一组.
@@ -612,7 +644,7 @@ Mel Gorman 发现了这一问题, 开发了 [Calculate pcp->high based on zone s
 整个补丁在测试场景下将外碎片时间减少 94% 以上, 这收益大部分来自于补丁 1-4, 但补丁 5 可以处理罕见的特例, 并为THP分配成功率提供调整系统的选项, 以换取一些档位来控制碎片化.
 
 
-### 2.1.6 页面窃取 page stealing
+### 2.2.7 页面窃取 page stealing
 -------
 
 
@@ -640,7 +672,7 @@ Date:   Wed Sep 11 14:20:35 2013 -0700
     mm/page_allo.c: restructure free-page stealing code and fix a bug
 
 
-### 2.1.7 页面清 0 优化
+### 2.2.8 页面清 0 优化
 -------
 
 将页面内容归零通常发生在分配页面时, 这是一个耗时的操作, 它会使 pin 和 mlock 操作非常慢, 特别是对于大量内存.
@@ -649,7 +681,7 @@ Date:   Wed Sep 11 14:20:35 2013 -0700
 | 2020/12/21 | Liang Li <liliang.opensource@gmail.com> | [speed up page allocation for `__GFP_ZERO`](https://patchwork.kernel.org/project/linux-mm/cover/20201221162519.GA22504@open-light-1.localdomain) | mm: Add PG_zero support](https://lore.kernel.org/patchwork/cover/1222960) 系列的再版和延续. | RFC v2 ☐ | [PatchWork RFC,v2,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20201221162519.GA22504@open-light-1.localdomain) |
 
 
-### 2.1.8 优化
+### 2.2.9 优化
 -------
 
 
@@ -666,7 +698,7 @@ Date:   Wed Sep 11 14:20:35 2013 -0700
 | 2016/04/15 | Mel Gorman <mgorman@techsingularity.net> | [Rationalise `__alloc_pages` wrappers](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) | NA | v3 ☑ 4.7-rc1 | [PatchWork v3,0/7](https://patchwork.kernel.org/project/linux-mm/cover/20210225150642.2582252-1-willy@infradead.org) |
 
 
-### 2.1.8 其他
+### 2.2.10 其他
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -676,7 +708,7 @@ Date:   Wed Sep 11 14:20:35 2013 -0700
 
 
 
-## 2.2 内核级别的 malloc 分配器之-对象分配器(小内存分配)
+## 2.3 内核级别的 malloc 分配器之-对象分配器(小内存分配)
 -------
 
 伙伴系统是每次分配内存最小都是以页(4KB)为单位的, 页面分配和回收起来很方便, 但是在实际使用过程中还是有一些问题的.
@@ -705,7 +737,7 @@ https://lore.kernel.org/patchwork/patch/46671/
 https://lore.kernel.org/patchwork/cover/408914
 
 
-### 2.2.1 SLAB
+### 2.3.1 SLAB
 -------
 
 
@@ -738,7 +770,7 @@ Linux slab 分配器使用了这种思想和其他一些思想来构建一个在
 与传统的内存管理模式相比,  slab 缓存分配器提供了很多优点. 首先, 内核通常依赖于对小对象的分配, 它们会在系统生命周期内进行无数次分配. slab 缓存分配器通过对类似大小的对象进行缓存而提供这种功能, 从而避免了常见的碎片问题. slab 分配器还支持通用对象的初始化, 从而避免了为同一目而对一个对象重复进行初始化. 最后, slab 分配器还可以支持硬件缓存对齐和着色, 这允许不同缓存中的对象占用相同的缓存行, 从而提高缓存的利用率并获得更好的性能.
 
 
-### 2.2.2 SLUB
+### 2.3.2 SLUB
 -------
 
 随着大规模多处理器系统和NUMA系统的广泛应用, slab终于暴露出不足:
@@ -773,7 +805,7 @@ SLUB 在解决了上述的问题之上, 提供与 SLAB 完全一样的接口, �
 
 
 
-### 2.2.3 SLOB
+### 2.3.3 SLOB
 -------
 
 **2.6.16(2006年3月发布)**
@@ -785,14 +817,14 @@ SLUB 在解决了上述的问题之上, 提供与 SLAB 完全一样的接口, �
 
 这是第三个对象分配器, 提供同样的接口, 它是为适用于嵌入式小内存小机器的环境而引入的, 所以实现上很精简, 大大减小了内存 footprint, 能在小机器上提供很不错的性能.
 
-### 2.2.4 SLQB
+### 2.3.4 SLQB
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2009/01/23 | Nick Piggin <npiggin@suse.de> | [SLQB slab allocator](https://lwn.net/Articles/311502) | 实现 SLQB 分配器 | v2 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/1385629)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/141837) |
 
-### 2.2.5 改进与优化
+### 2.3.5 改进与优化
 -------
 
 *   slab_merge
@@ -843,10 +875,10 @@ https://lore.kernel.org/patchwork/cover/668967
 | 2021/09/20 | Hyeonggon Yoo <42.hyeyoo@gmail.com> | [mm, sl[au]b: Introduce lockless cache](https://patchwork.kernel.org/project/linux-mm/patch/20210920154816.31832-1-42.hyeyoo@gmail.com) | 板上无锁缓存的 RFC v2, 用于 IO 轮询等场景.<br>最近块层实现了 percpu, 在板分配器顶部实现了无锁缓存. 它可以用于 IO 轮询, 因为 IO 轮询禁用中断. | v1 ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-mm/patch/20210919164239.49905-1-42.hyeyoo@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork](https://lore.kernel.org/patchwork/cover/922092)) |
 
 
-## 2.3 内核级别的 malloc 分配器之-大内存分配
+## 2.4 内核级别的 malloc 分配器之-大内存分配
 -------
 
-#### 2.3.1 VMALLOC 大内存分配器
+### 2.4.1 VMALLOC 大内存分配器
 -------
 
 小内存的问题算是解决了, 但还有一个大内存的问题: 用伙伴系统分配 8 x 4KB 大小以上的的数据时, 只能从 16 x 4KB 的空闲列表里面去找(这样得到的物理内存是连续的), 但很有可能系统里面有内存, 但是伙伴系统分配不出来, 因为他们被分割成小的片段. 那么, vmalloc 就是要用这些碎片来拼凑出一个大内存, 相当于收集一些"边角料", 组装成一个成品后"出售".
@@ -879,7 +911,7 @@ https://lore.kernel.org/patchwork/cover/668967
 
 
 
-#### 2.3.2 VMALLOC 中的 RBTREE 和 LIST 以及保护它们的锁
+#### 2.4.1.2 VMALLOC 中的 RBTREE 和 LIST 以及保护它们的锁
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -896,7 +928,7 @@ https://lore.kernel.org/patchwork/cover/668967
 
 
 
-#### 2.3.1.3 lazy drain
+#### 2.4.1.3 lazy drain
 -------
 
 
@@ -917,7 +949,7 @@ vmalloc 分配的内存并不是内核预先分配好的, 而是需要动态分�
 | 2020/08/14 | Joerg Roedel <joro@8bytes.org> | [x86: Retry to remove vmalloc/ioremap synchronzation](https://lore.kernel.org/patchwork/cover/1287505) | 删除同步 x86-64 的 vmalloc 和 ioremap 上页表同步的代码 arch_sync_kernel_mappings(). 页表页现在都是预先分配的, 因此不再需要同步. | v1 ☑ 5.10-rc1 | [PatchWork 0/2](https://lore.kernel.org/patchwork/cover/1287505)<br>*-*-*-*-*-*-*-* <br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=58a18fe95e83b8396605154db04d73b08063f31b) |
 
 
-#### 2.3.1.4 per cpu vmap block
+#### 2.4.1.4 per cpu vmap block
 -------
 
 [mm: vmap rewrite](https://lwn.net/Articles/304188) 新增了 per-cpu vmap block 缓存. 通过 vm_map_ram()/vm_unmap_ram() 显式调用. 当分配的空闲小于 VMAP_MAX_ALLOC 的时候, 将使用 per-cpu 缓存的 vmap block 来进行 vmap 映射.
@@ -947,7 +979,7 @@ Date:   Thu Mar 17 14:17:49 2016 -0700
 
 
 
-#### 2.3.1.5 other vmalloc interface
+#### 2.4.1.5 other vmalloc interface
 -------
 
 vread 用于读取指定地址的内存数据.
@@ -978,7 +1010,7 @@ vmalloc_to_page 则提供了通过 vmalloc 地址查找到对应 page 的操作.
 | 2020/10/02 | Christoph Hellwig <hch@lst.de> | [mm: remove alloc_vm_area and add a vmap_pfn function](https://lore.kernel.org/patchwork/patch/1316291) | NA | ☑ 5.10-rc1 | [PatchWork 0/11](https://lore.kernel.org/patchwork/cover/1316291) |
 
 
-#### 2.3.1.6 huge vmap
+#### 2.4.1.6 huge vmap
 -------
 
 
@@ -989,7 +1021,7 @@ vmalloc_to_page 则提供了通过 vmalloc 地址查找到对应 page 的操作.
 | 2021/05/12 | Christophe Leroy <christophe.leroy@csgroup.eu> | [Implement huge VMAP and VMALLOC on powerpc 8xx](https://lore.kernel.org/patchwork/cover/1425630) | 本系列在 powerpc 8xx 上实现了大型 VMAP 和 VMALLOC. Powerpc 8xx 有 4 个页面大小: 4k, 16k, 512k, 8M. 目前, vmalloc() 和 vmap() 只支持 PMD 级别的大页. 这里的 PMD 级别是 4M, 它不对应于任何受支持的页面大小. 现在, 实现 16k 和 512k 页的使用, 这是在PTE级别上完成的. 对 8M 页面的支持将在以后实现, 这需要使用 gepd表. 为了实现这一点, 该体系结构提供了两个功能: <br>1. arch_vmap_pte_range_map_size() 告诉 vmap_pte_range() 使用什么页面大小. <br>2. arch_vmap_pte_supported_shift() 告诉 `__vmalloc_node_range()` 对于给定的区域大小使用什么分页移位.<br>当体系结构不提供这些函数时, 将返回PAGE_SHIFT. | v2 ☑ 5.14-rc1 | [PatchWork v2,0/5](https://lore.kernel.org/patchwork/cover/1425630) |
 
 
-#### 2.3.1.7 vmallocinfo
+#### 2.4.1.7 vmallocinfo
 -------
 
 
@@ -1001,7 +1033,7 @@ vmalloc_to_page 则提供了通过 vmalloc 地址查找到对应 page 的操作.
 
 
 
-### 2.3.2 连续内存分配器(CMA)
+### 2.4.2 连续内存分配器(CMA)
 -------
 
 **3.5(2012年7月发布)**
@@ -2905,6 +2937,7 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 
 
+
 另一方面, 非可易失性内存也并不是新鲜产物. 然而实质要么是一块DRAM, 后端加上一块 NAND FLASH 闪存, 以及一个超级电容, 以在系统断电时的提供保护; 要么就是一块简单的 NAND FLASH, 提供类似 SSD 一样的存储特性. 所有这些, 从访问速度上看, 都谈不上真正的内存, 并且, NAND FLASH 的物理特性, 使其免不了磨损(wear out); 并且在长时间使用后, 存在写性能下降的问题.
 
 
@@ -3419,6 +3452,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 ## 14.8 页面迁移
 -------
 
+*   migration
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -3426,6 +3460,15 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2006/01/10 | Christoph Lameter <clameter@sgi.com> | [Direct Migration V9: Overview](https://lore.kernel.org/patchwork/cover/49754) | NA | v9 ☑ 2.6.16-rc2 | [PatchWork v9,0/5](https://lore.kernel.org/patchwork/cover/49754) |
 | 2021/08/05 | Christoph Lameter <clameter@sgi.com> | [Some cleanup for page migration](https://lore.kernel.org/patchwork/cover/1472581) | NA | v1 ☐ | [PatchWork 0/5](https://lore.kernel.org/patchwork/cover/49754) |
 | 2021/09/22 | John Hubbard <jhubbard@nvidia.com> | [mm/migrate: de-duplicate migrate_reason strings](https://patchwork.kernel.org/project/linux-mm/patch/20210922041755.141817-2-jhubbard@nvidia.com/) | NA | v1 ☐ | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-mm/patch/20210922041755.141817-2-jhubbard@nvidia.com/) |
+
+
+* numa balancing
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/09/22 | John Hubbard <jhubbard@nvidia.com> | [Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines](https://research.vmware.com/files/attachments/0/0/0/0/1/0/3/aspl0359a-achermanna.pdf) | 迁移的时候考虑迁移 page-table. | v1 ☐ | [GitHub](https://github.com/mitosis-project/mitosis-linux) |
+
 
 
 
@@ -3467,7 +3510,6 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/10/04 | Kees Cook <keescook@chromium.org> | [mm: Hardened usercopy](https://lore.kernel.org/all/1467843928-29351-1-git-send-email-keescook@chromium.org) | 将 PAX_USERCOPY 推到主线. PAX_USERCOPY 的设计是为了发现在使用 copy_to_user()/copy_from_user() 时存在的几类缺陷. | v1 ☑ 4.8-rc2 | [PatchWork 0/9](https://patchwork.kernel.org/project/linux-mm/cover/20211004224224.4137992-1-willy@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LWN v2](https://lwn.net/Articles/691012/) |
-
 | 2021/10/04 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Assorted improvements to usercopy](https://lore.kernel.org/patchwork/cover/856356) | usercopy 的各种改进 | v1 ☐ | [PatchWork 0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211004224224.4137992-1-willy@infradead.org) |
 
 
