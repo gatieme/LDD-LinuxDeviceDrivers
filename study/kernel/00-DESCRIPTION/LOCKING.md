@@ -96,6 +96,8 @@ spinlock 的值出现变化时, 所有试图获取这个 spinlock 的 CPU 都需
 ## 1.4 PV_SPINLOCK
 -------
 
+[PV qspinlock 原理](https://blog.csdn.net/bemind1/article/details/118224344)
+
 spinlock 在非虚拟化的环境下, 它是可以认为 CPU 不会被抢占的, 所以 A 拿锁干活, B 死等 A, A 干完自己的活, 就释放了, 中间不会被调度.
 
 但是在虚拟化下, CPU 对应到 vcpu, 每个 vcpu 跟之前裸机上的进程调度一样, 所以 A 拿锁干活, 并不一定不会被抢占, 很有可能被调度走了, 因为 cpu 这时候还不知道 vcpu 在干嘛. B 死等 A, 但是 A 被调度了, 运行了 C, C 也要死等 A, 在一些设计不够好的系统里面, 这样就会变得很糟糕.
@@ -144,10 +146,15 @@ PV_SPINLOCKS 的合入引起了[性能问题 Performance overhead of paravirt_op
 ## 1.5 NumaAware SPINLOCK
 -------
 
+[关于多核 CPU 自旋锁 (spinlock) 的优化](https://blog.csdn.net/cpongo1/article/details/89539933)
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/05/14 | Alex Kogan <alex.kogan@oracle.com> | [Add NUMA-awareness to qspinlock](https://lore.kernel.org/patchwork/cover/1428910) | NUMA 感知的 spinlock, 基于 CNA. | v15 ☐ | [PatchWork v15](https://lore.kernel.org/patchwork/cover/1428910) |
+| 2019/08/24 | H.J. Lu  | [numa-spinlock](https://sanidhya.github.io/pubs/2019/shfllock.pdf) | 阿里实现的用户态 numa aware spinlock. | ☐ |[GitLab](https://gitlab.com/numa-spinlock/numa-spinlock) |
+| 2019/08/24 | sanidhya | [Scalable and Practical Locking with Shuffling](https://sanidhya.github.io/pubs/2019/shfllock.pdf) | Shuffling 锁实现了洗牌技术. 将等待锁的线程更指定的策略进行重新排序. 类似于通过定义的比较功能对 waiter 进行排序. 实现 NUMA 感知的唤醒和阻塞策略. 洗牌的动作通常不会在关键路径上执行. | ☐ | [GitHub](https://github.com/sslab-gatech/shfllock) |
+| 2019/08/08 | dozenow | ShortCut: Accelerating Mostly-Deterministic Code Regions | NA | ☐ | [GitHub](hhttps://github.com/shortcut-sosp19/shortcut) |
+| 2021/05/14 | Alex Kogan <alex.kogan@oracle.com> | [Add NUMA-awareness to qspinlock](https://lwn.net/Articles/856387) | NUMA 感知的 spinlock, 基于 [CNA-compact-numa-aware-locks](https://deepai.org/publication/compact-numa-aware-locks). | v15 ☐ | [PatchWork v15](https://lore.kernel.org/patchwork/cover/1428910), [PatchWork v15,0/6 ARM](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210514200743.3026725-1-alex.kogan@oracle.com) |
 
 
 
