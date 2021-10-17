@@ -53,11 +53,23 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 # 1 SPINLOCK
 -------
+https://zhuanlan.zhihu.com/p/80727111
 
-
-## 1.1 CAS LOCK
+## 1.1 CAS(compare and swap) LOCK
 -------
 
+CAS 的原理是, 将旧值与一个期望值进行比较, 如果相等, 则更新旧值.
+
+这种是实现 spinlock 用一个整形变量表示, 其初始值为 1, 表示 available 的状态(可以被 1 用户独占).
+
+1.  当一个 CPU A 获得 spinlock 后, 会将该变量的值设为 0(不能被任何用户再占有), 之后其他 CPU 试图获取这个 spinlock 时, 会一直等待, 直到 CPU A 释放 spinlock, 并将该变量的值设为 1.
+
+2.  等待该 spinlock 的 CPU B 不断地把 「期望的值」 1 和 「实际的值」 (1 或者 0)进行比较(compare), 当它们相等时, 说明持有 spinlock 当前未被任何人持有(持有的 CPU 已经释放了锁或者锁一直未被任何人持有), 那么试图获取 spinlock 的 CPU 就会尝试将 "new" 的值(0) 写入 "p"(swap), 以表明自己成为占有了 spinlock, 成为新的 owner.
+
+这里只用了 0 和 1 两个值来表示 spinlock 的状态, 没有充分利用 spinlock 作为整形变量的属性, 为此还有一种衍生的方法, 可以判断当前 spinlock 的争用情况. 具体规则是: 每个 CPU 在试图获取一个 spinlock 时, 都会将这个 spinlock 的值减1, 所以这个值可以是负数，而「负」的越多（负数的绝对值越大），说明当前的争抢越激烈。
+
+存在的问题
+基于CAS的实现速度很快，尤其是在没有真正竞态的情况下（事实上大部分时候就是这种情况）， 但这种方法存在一个缺点：它是「不公平」的。 一旦spinlock被释放，第一个能够成功执行CAS操作的CPU将成为新的owner，没有办法确保在该spinlock上等待时间最长的那个CPU优先获得锁，这将带来延迟不能确定的问题。
 
 ## 1.2 ticket LOCK
 -------
