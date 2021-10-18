@@ -141,11 +141,41 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 | 2020/06/25 | Tianjia Zhang <tianjia.zhang@linux.alibaba.com> | [arm64: tlb: add support for TTL feature](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200625080314.230-1-yezhenyu2@huawei.com) | 为了降低 TLB 失效的成本, ARMv8.4 在 TLBI 指令中提供了 TTL 字段. TTL 字段表示保存被失效地址的叶条目的页表遍历级别. 这组补丁实现了对 TTL 的支持. | v4 ☑ 5.9-rc1 | [Patchwork RESEND,v5,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200625080314.230-1-yezhenyu2@huawei.com) |
 | 2020/07/15 | Zhenyu Ye <yezhenyu2@huawei.com> | [arm64: tlb: Use the TLBI RANGE feature in arm64](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) | 为 ARM64 实现 CONFIG_ARM64_TLB_RANGE, 在实现了 ARM64_HAS_TLB_RANGE 的机器上使用此 feature 实现了 `__flush_tlb_range()` | v3 ☑ 5.9-rc1 | [2020/07/08 PatchWork RFC,v5,0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200708124031.1414-1-yezhenyu2@huawei.com)<br>*-*-*-*-*-*-*-* <br>[2020/07/09 PatchWork v1,0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200710094420.517-1-yezhenyu2@huawei.com)<br>*-*-*-*-*-*-*-* <br>[2020/07/10 PatchWork v2,0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200710094420.517-1-yezhenyu2@huawei.com)<br>*-*-*-*-*-*-*-* <br>[2020/07/15 Patchwork v3,0/3](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200715071945.897-1-yezhenyu2@huawei.com) |
 
-### 2.2.2 TLB Shootdown
+### 2.2.2 ASID
 -------
+
+[arm linux 的 ASID (Address Space ID)](https://blog.csdn.net/adaptiver/article/details/70228767)
+
+[ARMv8 ARM64 架构中 ASID](https://zhuanlan.zhihu.com/p/55265099)
+
+[多核 MMU 和 ASID 管理逻辑](https://zhuanlan.zhihu.com/p/118244515)
+
+[TLB 中 ASID 和 nG bit 的关系](https://blog.csdn.net/rockrockwu/article/details/81090883)
+
+### 2.2.3 TLB Shootdown
+-------
+
+[arm64 中的 TLB 失效指令](https://blog.csdn.net/choumin/article/details/108936006)
+
+arm64 架构提供了一条 TLB 失效指令:
+
+```cpp
+TLBI <type><level>{IS}, {, <Xt>}
+```
+
+
+| 字段 | 描述 |
+|:----:|:---:|
+| type | 指定了刷新规则, 即只刷新满足特定条件的 tlb 表项, 例如 all 表示所有表项, vmall 表示当前虚拟机的阶段 1 1 的所有表项, asid 表示匹配寄存器 Xt 指定的 ASID 的表项, va 匹配寄存器 Xt 指定的虚拟地址和 ASID 的表项, 等等. |
+| level | 异常级别, 取值有: E1、E2、E3. |
+| IS | 表示内部共享, 即多个核共享, 如果不使用 IS 字段, 则表示非共享, 只被一个核使用. |
+| Xt | 表示 X0 ~ X31 中的任何一个寄存器. |
+
 
 TLB entry shootdown 常常或多或少的带来一些性能问题.
 
+[TLB flush 操作](http://www.wowotech.net/memory_management/tlb-flush.html)
+[进程切换分析（2）：TLB 处理](http://www.wowotech.net/process_management/context-switch-tlb.html)
 
 [stackoverflow: What is tlb shootdown ?](https://stackoverflow.com/questions/3748384/what-is-tlb-shootdown)
 
@@ -167,6 +197,7 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | 2016/08/04 | Matthias Brugger <mbrugger@suse.com> | [arm64, mm: Use IPIs for TLB invalidation.](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1470302117-32296-3-git-send-email-mbrugger@suse.com/) | NA | v1 ☐ | [Patchwork 2/4](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1470302117-32296-3-git-send-email-mbrugger@suse.com) |
 | 2020/11/03 |  David Daney <ddaney.cavm@gmail.com>/<david.daney@cavium.com> | [KVM: arm64: Don't force broadcast tlbi when guest is running](hhttps://lists.cs.columbia.edu/pipermail/kvmarm/2020-November/043071.html) | KVM 当 guest 在运行的时候, 避免 tlbi 广播. | RFC v1 ☐ | [Patchwork RTC](https://lists.cs.columbia.edu/pipermail/kvmarm/2020-November/043071.html) |
 
+> 注: x86 由于没有 tlb IS 方案, 因此只能采用 IPI 的方式来完成 TLB shootdown.
 
 ## 2.3 指令加速
 -------
