@@ -89,6 +89,7 @@
 |:----:|:----:|:---:|:----------:|:---:|
 | 1991/01/01 | [示例 sched: Improve the scheduler]() | 此处填写描述【示例】 | ☑ ☒☐ v3/5.4-rc1 | [LWN](), [PatchWork](), [lkml]() |
 | 2016/06/27 | [mm: mirrored memory support for page buddy allocations](http://lore.kernel.org/patchwork/patch/574230) | 内存镜像的功能 | RFC v2 ☐  | [PatchWork](https://lore.kernel.org/patchwork/patch/574230) |
+| 2016/01/08 | [mm: Introduce kernelcore=mirror option](http://lore.kernel.org/patchwork/patch/574230) | 内存镜像的功能 | RFC v2 ☐  | [LKML](https://lkml.org/lkml/2016/1/8/88), [PatchWork](https://lore.kernel.org/lkml/1452241523-19559-1-git-send-email-izumi.taku@jp.fujitsu.com) |
 
 
 ## 0.3 主线内存管理分支合并窗口
@@ -3264,6 +3265,11 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 
 2.  自适应区域调整机制使 DAMON 在保持用户配置的权衡的同时, 最大限度地提高精度, 减少开销.
 
+作者 SeongJae Park
+> github :https://github.com/sjp38/linux   /
+> 后期切到了 git.kernel.org https://git.kernel.org/pub/scm/linux/kernel/git/sj/linux.git
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/07/16 | SeongJae Park <sjpark@amazon.com>/<sj38.park@gmail.com> | [Introduce Data Access MONitor (DAMON)](https://damonitor.github.io) | 数据访问监视器 DAMON | v34 ☑ 5.15-rc1 | [PatchWork v24,00/14](https://lore.kernel.org/patchwork/cover/1375732), [LWN](https://lwn.net/Articles/1461471)<br>*-*-*-*-*-*-*-* <br>[PatchWork v34,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20210716081449.22187-1-sj38.park@gmail.com) |
@@ -3516,6 +3522,36 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/10/04 | Kees Cook <keescook@chromium.org> | [mm: Hardened usercopy](https://lore.kernel.org/all/1467843928-29351-1-git-send-email-keescook@chromium.org) | 将 PAX_USERCOPY 推到主线. PAX_USERCOPY 的设计是为了发现在使用 copy_to_user()/copy_from_user() 时存在的几类缺陷. | v1 ☑ 4.8-rc2 | [PatchWork 0/9](https://patchwork.kernel.org/project/linux-mm/cover/20211004224224.4137992-1-willy@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LWN v2](https://lwn.net/Articles/691012/) |
 | 2021/10/04 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Assorted improvements to usercopy](https://lore.kernel.org/patchwork/cover/856356) | usercopy 的各种改进 | v1 ☐ | [PatchWork 0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211004224224.4137992-1-willy@infradead.org) |
+
+
+## 14.13 ZONE_MOVABLE
+
+
+### 14.13.1 ZONE_MOVABLE
+-------
+
+[Preserving the mobility of ZONE_MOVABLE](https://lwn.net/Articles/843326/)
+
+https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2a1e274acf0b1c192face19a4be7c12d4503eaaf
+https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7e63efef857575320fb413fbc3d0ee704b72845f
+
+### 14.13.1 内存镜像
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/01/08 | Taku Izumi <izumi.taku@jp.fujitsu.com> | [handle kernelcore=: generic](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed7ed365172e27b0efe9d43cc962723c7193e34e) | 之前 kernelcore 启动参数的处理是架构相关的, 可能导致某些架构出现问题. 这个补丁使用通用代码来处理 `kernelcore` 参数. 适用于支持独立于 arch 的区域大小调整(即定义 CONFIG_ARCH_POPULATES_NODE_MAP) 的架构, 其他架构将忽略引导参数. | v1 ☑ 2.6.23-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed7ed365172e27b0efe9d43cc962723c7193e34e) |
+
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/01/08 | Taku Izumi <izumi.taku@jp.fujitsu.com> | [mm: Introduce kernelcore=mirror option](http://lore.kernel.org/patchwork/patch/574230) | 内存镜像, 提供内存可靠性分级的功能.<br>通过 BIOS 上报高可靠(mirrored/reliable)和低可靠的两种内存. 使用标记区分, 内核默认使用高可靠的内存, 用 NORMAL ZONE 管理, 用户态优先使用普通(低可靠的)内存, 使用 MOVABLE ZONE 管理. | v4 ☑ 4.6-rc1 | [LKML](https://lkml.org/lkml/2016/1/8/88), [PatchWork v4,0/2](https://lore.kernel.org/lkml/1452241523-19559-1-git-send-email-izumi.taku@jp.fujitsu.com) |
+| 2016/06/27 | Xishi Qiu <qiuxishi@huawei.com> | [mm: mirrored memory support for page buddy allocations](http://lore.kernel.org/patchwork/patch/574230) | 内存镜像的功能 | RFC v2 ☐  | [PatchWork RFC,v2,0/8](https://lore.kernel.org/lkml/558E084A.60900@huawei.com) |
+| 2018/2/12 | David Rientjes <rientjes@google.com> | [mm: Introduce kernelcore=mirror option](http://lore.kernel.org/patchwork/patch/574230) | `kernelcore=` 和 `movablecore=` 都可以分别用于定义系统上 ZONE_NORMAL 和 ZONE_MOVABLE 的数量. 然而, 这需要在指定命令行时知道系统内存容量. 这个补丁引入了将 `kernelcore` 和 `movablecore` 定义为系统总内存的百分比的能力. 这对于希望将 ZONE_MOVABLE 的数量定义为系统内存的比例(而不是硬编码的字节值)的系统软件来说是很方便的. 要定义百分比, 参数的最后一个字符应该是 '%'. | v4 ☑ 4.17-rc1 | [LKML 1/2](https://lkml.org/lkml/2018/2/12/1024) |
+
+
 
 
 ---

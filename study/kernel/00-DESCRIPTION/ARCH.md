@@ -217,6 +217,11 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | 2019/07/17 | Julien Thierry <julien.thierry@arm.com> | [arm_pmu: Use NMI for perf interrupt](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1563351432-55652-1-git-send-email-julien.thierry@arm.com) | ARM64 perf 的中断通过伪 NMI 上报, 这样会使 perf 的热点采样更加精准. | v4 ☑ 5.10-rc1 | [Patchwork v4,0/9](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1563351432-55652-1-git-send-email-julien.thierry@arm.com) |
 
 
+## 2.5 PAN
+-------
+
+[armv8/arm64 PAN 深入分析](https://cloud.tencent.com/developer/article/1413360)
+
 # 3 RISC-V
 -------
 
