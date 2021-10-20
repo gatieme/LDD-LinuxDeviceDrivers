@@ -3532,17 +3532,28 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 
 [Preserving the mobility of ZONE_MOVABLE](https://lwn.net/Articles/843326/)
 
-https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2a1e274acf0b1c192face19a4be7c12d4503eaaf
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2007/01/25 | Mel Gorman <mel@csn.ul.ie> | [Create ZONE_MOVABLE to partition memory between movable and non-movable pages](https://www.lkml.org/lkml/2007/1/25/295) | NA | v1 ☑ 2.6.23-rc1 | [LKML 0/8](https://www.lkml.org/lkml/2007/1/25/295), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed7ed365172e27b0efe9d43cc962723c7193e34e) |
+| 2021/01/21 | Mel Gorman <mel@csn.ul.ie> | [prohibit pinning pages in ZONE_MOVABLE](https://lwn.net/Articles/843326) | NA | v1 ☑ 2.6.23-rc1 | [LWN v7 00/14](https://lwn.net/ml/linux-kernel/20210122033748.924330-1-pasha.tatashin@soleen.com/), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed7ed365172e27b0efe9d43cc962723c7193e34e) |
+
+
 https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7e63efef857575320fb413fbc3d0ee704b72845f
 
-### 14.13.1 内存镜像
+### 14.13.2 配置参数
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2007/07/17  | Mel Gorman <mel@csn.ul.ie> | [Add a movablecore= parameter for sizing ZONE_MOVABLE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7e63efef857575320fb413fbc3d0ee704b72845f) | NA | v1 ☑ 2.6.23-rc1 | [LWN v7,00/14](https://lwn.net/ml/linux-kernel/20210122033748.924330-1-pasha.tatashin@soleen.com/), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7e63efef857575320fb413fbc3d0ee704b72845f) |
 | 2016/01/08 | Taku Izumi <izumi.taku@jp.fujitsu.com> | [handle kernelcore=: generic](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed7ed365172e27b0efe9d43cc962723c7193e34e) | 之前 kernelcore 启动参数的处理是架构相关的, 可能导致某些架构出现问题. 这个补丁使用通用代码来处理 `kernelcore` 参数. 适用于支持独立于 arch 的区域大小调整(即定义 CONFIG_ARCH_POPULATES_NODE_MAP) 的架构, 其他架构将忽略引导参数. | v1 ☑ 2.6.23-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed7ed365172e27b0efe9d43cc962723c7193e34e) |
+| 2013/01/14 | Mel Gorman <mel@csn.ul.ie> | [Add movablecore_map boot option](https://lkml.org/lkml/2013/1/14/87) | NA | v5 ☑ 3.9-rc1 | [LKML v5,0/5](https://lkml.org/lkml/2013/1/14/87) |
+| 2018/04/02 | Dou Liyang | [x86/boot/KASLR: Extend movable_node option for KASLR](https://lkml.org/lkml/2018/4/2/600) | NA | v1 ☐  | [LKML v5,0/5](https://lkml.org/lkml/2018/4/2/600) |
 
 
+
+### 14.13.3 内存镜像
+-------
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
