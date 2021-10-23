@@ -64,6 +64,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 3.  [Moving Google toward the mainline](https://lwn.net/Articles/871195)
 
+
 # 2 调试工具
 -------
 
@@ -95,6 +96,21 @@ systrace, perfetto, drgn
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/06/23 | 胡俊鹏 and <dongzhiyan_linux@163.com> | [dongzhiyan-stack/user_stack_backstrace-in-kernel](https://github.com/dongzhiyan-stack/user_stack_backstrace-in-kernel) | 海康 CLK 2019 的一个 slides, 内核态回溯用户态栈. 对于一些比较难解析符号的场景也有对策 | v1 ☐ | [github](https://github.com/dongzhiyan-stack/user_stack_backstrace-in-kernel) |
 | 2012/4/11 | "Tu, Xiaobing" <xiaobing.tu@intel.com> | [kernel patch for dump user space stack tool](https://lkml.org/lkml/2012/4/11/49) | 内核态回溯用户态栈. | v1 ☐ | [LKML RFC 1/2](https://lkml.org/lkml/2012/4/11/49) |
+
+
+## 2.4 patchwork
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/01/10 | Joe Perches <joe@perches.com> | [Documentation: Replace lkml.org links with lore](https://patchwork.kernel.org/project/linux-omap/patch/77cdb7f32cfb087955bfc3600b86c40bed5d4104.camel@perches.com/#23968747) | 补丁将内核中 lkml 的链接转换为 lore.kernel.org 的链接. 补丁描述中提供了一个脚本来完整这个工作. | v1 ☑ 5.12-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=05a5f51ca566674e6a6ee9cef0af1b00bf100d67) |
+| 2020/02/06 | Joe Perches <joe@perches.com> | [B4 Better tools for kernel developers](https://lwn.net/Articles/811528) | 补丁将内核中 lkml 的链接转换为 lore.kernel.org 的链接. 补丁描述中提供了一个脚本来完整这个工作. | v1 ☑ 5.12-rc1 | [GIT](https://git.kernel.org/pub/scm/utils/b4/b4.git), [elinux](https://elinux.org/images/9/93/Kernel_email_tools_elce_2020.pdf) |
+
+## 2.5 Static code checking
+-------
+
+[Static code checking In the Linux kernel](https://elinux.org/images/d/d3/Bargmann.pdf)
+
 
 
 <br>
