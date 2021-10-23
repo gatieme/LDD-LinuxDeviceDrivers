@@ -284,6 +284,23 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 | 2019/09/18 | Yafang Shao <laoar.shao@gmail.com> | [introduce new perf-script page-reclaim](https://lore.kernel.org/patchwork/cover/1128886) | 为 perf 引入了一个新的 python 脚本 page-reclaim.py 页面回收, 用于报告页面回收详细信息.<br>此脚本目前的用途如下:<br>1. 识别由直接回收引起的延迟峰值<br>2. 延迟峰值与 pageout 是否相关<br>3. 请求页面回收的原因, 即是否是内存碎片<br>4. 页面回收效率等. 将来, 我们还可以将其增强以分析 memcg 回收. | v1 ☐ | [PatchWork 0/2](https://lore.kernel.org/patchwork/cover/1128886) |
 
 
+## 11.2 ARM SPE
+-------
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2017/10/12 | Will Deacon <will.deacon@arm.com> | [Add support for the ARMv8.2 Statistical Profiling Extension](https://lore.kernel.org/lkml/1507811438-2267-1-git-send-email-will.deacon@arm.com) | perf PMU 驱动支持 SPE | v1 ☑ 4.15-rc1 | [PatchWork v6 0/7](https://lore.kernel.org/lkml/1507811438-2267-1-git-send-email-will.deacon@arm.com) |
+| 2018/01/14 | Kim Phillips <kim.phillips@arm.com> | [perf tools: Add ARM Statistical Profiling Extensions (SPE) support](https://lore.kernel.org/lkml/1507811438-2267-1-git-send-email-will.deacon@arm.com) | perf tools 支持 SPE. 这个版本实现的功能还比较简单, 直接把 SPE 的 format 数据导出到了用户态, 由 perf 直接解析, 并没有提供更进一步的 profiling 的功能. | v1 ☑ 4.16-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/1128886) |
+| 2020/05/30 | Leo Yan <leo.yan@linaro.org> | [perf arm-spe: Add support for synthetic events](https://lore.kernel.org/lkml/20200530122442.490-1-leo.yan@linaro.org) | 支持将 SPE 的事件进行分类解析, 可以显示热点以及汇编等信息. | v1 ☑ 5.8-rc1 | [PatchWork v8 0/3](https://lore.kernel.org/lkml/20200530122442.490-1-leo.yan@linaro.org) |
+| 2020/11/06 | Leo Yan <leo.yan@linaro.org> | [perf mem/c2c: Support AUX trace](https://lore.kernel.org/lkml/20201106094853.21082-1-leo.yan@linaro.org) | NA. | v1 ☑ 5.8-rc1 | [PatchWork v4 0/9](https://lore.kernel.org/lkml/20201106094853.21082-1-leo.yan@linaro.org) |
+| 2021/02/12 | James Clark <james.clark@arm.com> | [perf arm-spe: Enable sample type PERF_SAMPLE_DATA_SRC](https://lore.kernel.org/all/20210211133856.2137-1-james.clark@arm.com) | 在 perf 数据中为 Arm SPE 支持解析 PERF_SAMPLE_DATA_SRC 数据, 当输出跟踪数据时, 它告诉 perf 它在内存事件中包含数据源. | v1 ☑ 5.8-rc1 | [PatchWork v2 1/6](https://lore.kernel.org/all/20210211133856.2137-1-james.clark@arm.com/) |
+| 2020/12/13 |  Leo Yan <leo.yan@linaro.org>| [perf c2c: Sort cacheline with all loads](https://lore.kernel.org/all/20201213133850.10070-1-leo.yan@linaro.org) | 实现类似 x86 下 c2c 的功能, 由于 ARM SPE 中没有默认实现类似 X86 hitM 的 data_src, 因此不能有效地判断伪共享. 当前实现方案是将所有的 load 操作排序, 方便开发人员针对伪共享进行分析. | v1 ☐ | [PatchWork v2 00/11](https://lohttps://lore.kernel.org/all/20201213133850.10070-1-leo.yan@linaro.org) |
+
+
+
+
 # 12 KPROBE
 -------
 
