@@ -804,17 +804,28 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 ## 4.6 idle balance
 -------
 
+
+*   idle_balance
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2013/08/29 | Jason Low <jason.low2@hp.com> | [sched: Limiting idle balance](https://lore.kernel.org/patchwork/patch/403138) | 限制 idle balance  | v1 ☑ 4.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/403138) |
 
-idle balance 中执行 update_blocked_average 是很费时费力的, 可以做不少优化.
+*   idle balance 中执行 update_blocked_average 是很费时费力的, 可以做不少优化.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/2/24 | Vincent Guittot | [move update blocked load outside newidle_balance](https://lore.kernel.org/patchwork/cover/1383963) | Joel报告了 newidle_balance 中的抢占和irq关闭序列很长, 因为大量的 CPU cgroup 正在使用, 并且需要更新. 这个补丁集将更新 update_blocked_average 移动到 newidle_imblance 之外. | v2 ☑ 5.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1383963), [LKML  0/7 v4](https://lkml.org/lkml/2021/2/24/627) |
 | 2021/10/19 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: Improve cost accounting of newidle_balance](https://lore.kernel.org/patchwork/patch/403138) | 通过考虑更新阻塞负载 update_blocked_averages() 所花费的时间, 在没有机会运行至少一个负载平衡循环的情况下完全跳过负载平衡循环. 因此在 newidle_balance()中, 当 this_rq 的第一个 sd 满足 `this_rq->avg_idle < sd->max_newidle_lb_cost` 时, 认为执行 update_blocked_averages() 是非常昂贵且没有收益的, 只会增加开销. 因此在 newidle_balance() 中尽早检查条件, 尽可能跳过 update_blocked_averages() 的执行. | v3 ☐ | [2021/10/4 LKML v1](https://lkml.org/lkml/2021/10/4/1188)<br>*-*-*-*-*-*-*-* <br>[2021/10/04 PatchWork](https://lore.kernel.org/lkml/20211004171451.24090-1-vincent.guittot@linaro.org), [LKML](https://lkml.org/lkml/2021/10/4/1188)<br>*-*-*-*-*-*-*-* <br>[LKML v3, 0/5](https://lkml.org/lkml/2021/10/19/590)  |
 
+*   steal tasks
+
+
+[Load balancing via scalable task stealing](http://linuxplumbersconf.org/event/2/contributions/155/attachments/13/12/lpc2018_steal.pdf)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2013/08/29 | Jason Low <jason.low2@hp.com> | [steal tasks to improve CPU utilization](http://lwn.net/Articles/769225) | 限制 idle balance  | v1 ☑ 4.13-rc1 | [](https://lore.kernel.org/lkml/1540220381-424433-1-git-send-email-steven.sistare@oracle.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4 00/10](https://lore.kernel.org/patchwork/patch/403138) |
 
 ## 4.7 active load_balance
 -------
