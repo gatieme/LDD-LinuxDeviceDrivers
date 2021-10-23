@@ -885,35 +885,104 @@ b725e2580207 alinux: Revert "mm/compaction.c: clear total_{migrate,free}_scanned
 ```
 
 
-## 2.13 memcg QoS
+## 2.13 memcg
 -------
 
-OOM 优先级以及水线控制
+[内核功能与接口概述](https://help.aliyun.com/document_detail/177687.html)
+
+
+### 2.13.1 Memcg Exstat
+-------
+
+| 文档链接 | 说明 |
+|:-------:|:---:|
+| [Memcg Exstat 功能](https://help.aliyun.com/document_detail/169534.htm) | Alibaba Cloud Linux 2 在 4.19.91-18.al7 内核版本开始支持的 Memcg Exstat（Extend/Extra）功能. 相较于社区版内核额外提供了以下 memcg 统计项:<br>1. 在 cgroup v1 接口支持了 memory.events、memory.events.local 及 memory.stat 接口.<br>2. 增加 memcg 全局最低水位调整产生的延迟统计.<br>3. 增加 memcg 后台异步回收产生的延迟统计. |
+
+cgroup v1 引入 cgroup v2 才支持的 memory.events 和 memory.events.local, 支持查询 memcg 内发生特定事件的次数统计信息.
+
 
 ```cpp
-ec661706b1c9 alinux: mm, memcg: abort priority oom if with oom victim
-2061acd6c236 alinux: mm, memcg: account number of processes in the css
-7bf04cbb80f0 mm: memcontrol: use CSS_TASK_ITER_PROCS at mem_cgroup_scan_tasks()
-fb4c5ea64934 alinux: mm, memcg: fix soft lockup in priority oom
-
-40969475355a alinux: mm, memcg: record latency of memcg wmark reclaim
+942855175c77 alinux: mm,memcg: export memory.{events,events.local} to v1
+de7ca7468c5d mm, memcg: introduce memory.events.local
+0a198bb99132 mm, memcg: consider subtrees in memory.events
 ```
 
+v1 引入 v2 新增的 memory.stat 接口, 支持查询 workingset refault、workingset activate、workingset nodereclaim 及 workingset restore 四个统计项, 同时新增的统计项 workingset restore.
+
+27393b9b965a alinux: mm, memcg: export workingset counters on memcg v1
+
+
+### 2.13.2 cgroup v1 接口支持 memcg QoS 功能
+-------
+
+| 文档链接 | 说明 |
+|:-------:|:---:|
+| [cgroup v1 接口支持 memcg QoS 功能](https://help.aliyun.com/document_detail/169536.htm) | 内存子系统服务质量(memcg QoS) 可以用来控制内存子系统(memcg)的内存使用量的保证(锁定)与限制. Alibaba Cloud Linux 2 在 4.19.91-18.al7 内核版本, 新增 cgroup v1 接口支持 memcg QoS 的相关功能. |
+
+[Memory Controller](https://facebookmicrosites.github.io/cgroup2/docs/memory-controller.html)
+
+| 接口 | 描述 |
+|:---:|:---:|
+| memory.min | hard memory protection, 绝对锁定内存. 指定了 cgroup 必须保护的最小内存, 即系统永远无法回收的内存. 即使系统中已经没有其他可回收的内存, 这部分内存也不会被回收. 这时候只能触发 OOM |
+| memory.low | best-effort memory protection, 相对锁定内存. 系统尽力去保证的最小内存, 是一种软保证. 如果 cgroup 及其所有子 cgroup 中的内存低于此阈值, 则不会尝试回收 cgroup 的内存, 而是优先尝试从其他 cgroup 回收内存. 除非无法从任何未受保护的 cgroup 回收内存, 才会从当前 cgroup 中进行回收. |
+| memory.high |  memory usage throttle limit, 限制 memcg 的内存使用. 当前 cgroup 被限制不能使用超过当前阈值的内存. 如果使用的内存量超过了该阈值, 则加大内存回收的力度. |
 
 ```cpp
-a60721b9211a alinux: doc: use unified official project name Cloud Kernel
-5028e358bcd4 alinux: mm: oom_kill: show killed task's cgroup info in global oom
-7d41295cc97f alinux: mm: memcontrol: enable oom.group on cgroup-v1
-0c8648d9554d alinux: doc: alibaba: Add priority oom descriptions
-52e375fcb7a7 alinux: mm: memcontrol: introduce memcg priority oom
+3e655c51650c alinux: mm,memcg: export memory.{min,low} to cgroup v1
+942855175c77 alinux: mm,memcg: export memory.{events,events.local} to v1
+5213c279abc9 mm: don't raise MEMCG_OOM event due to failed high-order allocation
+de7ca7468c5d mm, memcg: introduce memory.events.local
+0a198bb99132 mm, memcg: consider subtrees in memory.events
+7d36553bd29d alinux: mm,memcg: export memory.high to v1
+```
 
-1e91d392d9e8 alinux: kernel: cgroup: account number of tasks in the css and its descendants
+### 2.13.3 Memcg 全局最低水位线分级
+-------
 
+
+| 文档链接 | 说明 |
+|:-------:|:---:|
+| [Memcg 全局最低水位线分级](https://help.aliyun.com/document_detail/169537.htm) | Alibaba Cloud Linux 2 新增了 memcg 全局最低水位线分级功能. 在 global wmark_min 的基础上, 将资源消耗型任务的 global wmark_min 上移, 使其提前进入直接内存回收. 将时延敏感型业务的 global wmark_min 下移, 使其尽量避免直接内存回收. 这样当资源消耗型任务瞬间申请大量内存的时候, 会通过上移的 global wmark_min 将其短时间抑制, 避免时延敏感型业务发生直接内存回收. 等待全局 kswapd 回收一定量的内存后, 再解除资源消耗型任务的短时间抑制. |
+
+
+在 Linux 内核中, 全局内存回收对系统性能影响很大. 当时延敏感型业务和资源消耗型任务共同部署时, 资源消耗型任务时常会瞬间申请大量的内存, 使得系统的空闲内存触及全局最低水位线(global wmark_min), 引发系统所有任务进入直接内存回收的慢速路径, 引发时延敏感型业务的性能抖动. 在此场景下, 无论是全局 kswapd 后台回收还是 memcg 后台回收, 都将无法处理该问题.
+
+基于上述场景下的问题, Alibaba Cloud Linux 2 新增了 memcg 全局最低水位线分级功能.
+
+在 global wmark_min 的基础上
+
+*   将资源消耗型任务的 global wmark_min 上移, 使其提前进入直接内存回收.
+
+*   将时延敏感型业务的 global wmark_min 下移, 使其尽量避免直接内存回收.
+
+这样当资源消耗型任务瞬间申请大量内存的时候, 会通过上移的 global wmark_min 将其短时间抑制, 避免时延敏感型业务发生直接内存回收. 等待全局 kswapd 回收一定量的内存后, 再解除资源消耗型任务的短时间抑制.
+
+```cpp
 279df2ffcc1d alinux: doc: Add Documentation/alibaba/interfaces.rst
 ef467b9ddbc0 alinux: memcg: Account throttled time due to memory.wmark_min_adj
 60be0f545fac alinux: memcg: Introduce memory.wmark_min_adj
 63442ea9f838 alinux: memcg: Provide users the ability to reap zombie memcgs
 ```
+
+### 2.13.4 OOM 优先级(priority oom)
+-------
+
+
+```cppzec661706b1c9 alinux: mm, memcg: abort priority oom if with oom victim
+2061acd6c236 alinux: mm, memcg: account number of processes in the css
+7bf04cbb80f0 mm: memcontrol: use CSS_TASK_ITER_PROCS at mem_cgroup_scan_tasks()
+fb4c5ea64934 alinux: mm, memcg: fix soft lockup in priority oom
+
+40969475355a alinux: mm, memcg: record latency of memcg wmark reclaim
+
+a60721b9211a alinux: doc: use unified official project name Cloud Kernel
+5028e358bcd4 alinux: mm: oom_kill: show killed task's cgroup info in global oom
+7d41295cc97f alinux: mm: memcontrol: enable oom.group on cgroup-v1
+0c8648d9554d alinux: doc: alibaba: Add priority oom descriptions
+52e375fcb7a7 alinux: mm: memcontrol: introduce memcg priority oom
+1e91d392d9e8 alinux: kernel: cgroup: account number of tasks in the css and its descendants
+```
+
 
 ## 2.14 Introduce MADV_COLD and MADV_PAGEOUT
 -------
@@ -1383,6 +1452,9 @@ e7c5f0283a52 blk-iocost: fix incorrect vtime comparison in iocg_is_idle()
 9ab225fe51e7 iocost: over-budget forced IOs should schedule async delay
 ```
 
+[启用 cgroup writeback 功能](https://help.aliyun.com/document_detail/155509.htm)
+
+CONFIG_CGROUP_WRITEBACK
 
 ```cpp
 817f2cbf863e alinux: net/hookers: fix link error with ipv6 disabled
