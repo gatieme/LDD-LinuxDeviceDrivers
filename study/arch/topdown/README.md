@@ -45,17 +45,57 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 
 
 
+# 2 背景知识解析
+-------
+
+| 类型 | 描述 |
+|:---:|:----:|
+| [uOps](https://www.intel.com/content/www/us/en/develop/documentation/vtune-help/top/reference/cpu-metrics-reference/uops.html) | micro-ops/micro-operations/微指令 是一种底层硬件操作, CPU 前端负责获取体系结构指令中表示的程序代码, 并将其解码为一个或多个 uops. |
+| [Pipeline Slots](https://www.intel.com/content/www/us/en/develop/documentation/vtune-help/top/reference/cpu-metrics-reference/pipeline-slots.html) | 一个 pipeline slot 表示处理一个 uOp 需要的硬件资源. Top-Down 分析方法假定对于每个 CPU 核, 在每个时钟周期, 有多个可用的 Pipeline Slots. 这些 Pipeline Slots 的数量被称为 Pipeline Width. |
+
+## 2.1 uOps
+-------
+
+
+## 2.2 Pipeline Slots
+-------
+
+在下图的示例中, 是用 4-wide(4-way) 的 CPU 将代码执行 10个时钟周期.
+
+![Pipeline Slots 的示例 1](./original_pipeline_slots.png)
+
+在这个示例中, 包含了 40 个 Pipeline Slots(4 * 10) 资源. 如果一个 Pipeline Slot 没有 retire, 则认为有一个 uOp 产生阻塞(Stall).
+
+如下图所示, 有 20 个 slots(红色) 产生阻塞(没有使一个 uOp 达到 Retire). 这表示从该微架构的角度来看, 代码的执行效率只有 50%.
+
+![Pipeline Slots 的示例 2](./example_pipeline_slots.png)
+
+以 Pipeline Slots 为基础资源所观测和统计到的 Top-Down 数据(如 Front-End Bound 和 Back-End Bound 等), 则表示因各种原因(如 Front-End 问题和 Back-End 问题)导致的 Pipeline Slots 阻塞占总体的百分比.
+
+## 2.3 为什么以 Pipeline Slots 为粒度统计
+-------
+
+我们统计 top-down 数据是以 Pipeline Slots 为基准的, 而没有采用 cycle(Clockticks) 作为基准. 理论上将我们统计每个周期内阻塞的占比岂不是更有意义 ?
+
+我们同样用一个示例来看下这个疑问 ?
+
+![Pipeline Slots 的示例 2](./clockticks_pipeline_slots.png)
+
+在这里, 每个周期有两个 Pipeline Slots 被阻塞, 也就是 50% 的 Stalls 和 50% 的 Retiring. 如果使用 Clockticks 而言, 却认为是 100% 的 Stalls, 因为每个周期(cycle)都有一些 Pipeline Slots 被占用.
+
+可见, 与以 Pipeline Slots 测量的指标相比, 以 Clockticks 测量的指标不太精确. 但是, 此类指标对于识别代码中的主要性能瓶颈仍然很有用.
+
 
 # 1 参考资料
 -------
 
 | 编号 | 链接 | 描述 |
 |:---:|:----:|:---:|
-|  1 | [A Journey Through the CPU Pipeline](https://www.gamedev.net/tutorials/_/technical/general-programming/a-journey-through-the-cpu-pipeline-r3115) | 讲述了 CPU 流水线的前世今生(不断演进和完善) |
+| 1 | [A Journey Through the CPU Pipeline](https://www.gamedev.net/tutorials/_/technical/general-programming/a-journey-through-the-cpu-pipeline-r3115) | 讲述了 CPU 流水线的前世今生(不断演进和完善) |
 | 2 | [Top-down Microarchitecture Analysis Method](https://www.intel.com/content/www/us/en/develop/documentation/vtune-cookbook/top/methodologies/top-down-microarchitecture-analysis-method.html) |
+| 3 | [A Top-Down method for performance analysis and counters architecture](https://www.researchgate.net/publication/269302126_A_Top-Down_method_for_performance_analysis_and_counters_architecture) | Intel 关于 topdown 分析方法的论文, 以及 [slide](https://pdfs.semanticscholar.org/b5e0/1ab1baa6640a39edfa06d556fabd882cdf64.pdf) |
+| 4 |
 
-[A Top-Down Method for Performance Analysis and Counters Architecture](https://pdfs.semanticscholar.org/b5e0/1ab1baa6640a39edfa06d556fabd882cdf64.pdf)
-[A Top-Down method for performance analysis and counters architecture](https://www.researchgate.net/publication/269302126_A_Top-Down_method_for_performance_analysis_and_counters_architecture)
 
 <br>
 
