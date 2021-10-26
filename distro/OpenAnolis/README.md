@@ -909,7 +909,9 @@ de7ca7468c5d mm, memcg: introduce memory.events.local
 
 v1 引入 v2 新增的 memory.stat 接口, 支持查询 workingset refault、workingset activate、workingset nodereclaim 及 workingset restore 四个统计项, 同时新增的统计项 workingset restore.
 
+```cpp
 27393b9b965a alinux: mm, memcg: export workingset counters on memcg v1
+```
 
 
 ### 2.13.2 cgroup v1 接口支持 memcg QoS 功能
