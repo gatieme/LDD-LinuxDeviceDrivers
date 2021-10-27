@@ -61,7 +61,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 编号 | 过程 | 描述 | 是否乱序 |
 |:---:|:---:|:----:|:----:|
 | 1 | 取指(fetch)  | 从 Icache 中取出多条指令, 在取指阶段, 除了需要取出多条指令, 同时还需决定下个周期的取指地址, 因此一般会由分支预测器来决定下一条指令的PC, 再从 I-cache 中取指. | In Program Order |
-| 2 | 译码(decode) | 识别指令类型、操作数及控制信号, RISC简单, CISC复杂 | In Program Order |
+| 2 | 译码(decode) | 识别指令类型、操作数及控制信号, 将指令翻译成一条或者多条硬件可直接处理的 uOps | In Program Order |
 | 3 | 寄存器重命名 | 寄存器重命名使得处理器可调度更多指令并行执行, 通过表格存储ARF和PRF的映射关系、未使用的PRF等信息, 分析并标记RAW相关性的指令, 一般会把该步骤单独放一流水段 | In Program Order |
 |:---:|:---:|:----:|
 | 4 | 分发(dispatch) | 被重命名后的指令顺序写入发射队列、ROB和SB中, 如果没有空间则需要在重命名阶段等待, 分发可和重命名放一个流水段, 也可分开 | In Program Order |
@@ -139,6 +139,7 @@ riscv-boom 是用 Chisel 硬件构造语言编写的 RV64G RISC-V 超标量 Berk
 
 在每个 CPU 周期中, pipeline slot 可以是空的或者被 uOp 填充. 如果在一个 CPU 周期内某个 pipeline slot 是空的, 称之为一次停顿(stall). 如果 CPU 经常停顿, 系统性能肯定是受到影响的. TMAM 的目标就是确定系统性能问题的主要瓶颈.
 
+![topdown 划分](./topdown.png)
 
 *   如果一个 Pipeline Slot 被某个 uOps 占用, 它将被分类到 Retring 或者 Bad Speculation, 具体取决于他是否被提交(commit).
 
