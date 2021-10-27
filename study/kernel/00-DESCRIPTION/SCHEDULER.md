@@ -825,7 +825,7 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2013/08/29 | Jason Low <jason.low2@hp.com> | [steal tasks to improve CPU utilization](http://lwn.net/Articles/769225) | 限制 idle balance  | v1 ☑ 4.13-rc1 | [](https://lore.kernel.org/lkml/1540220381-424433-1-git-send-email-steven.sistare@oracle.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4 00/10](https://lore.kernel.org/patchwork/patch/403138) |
+| 2013/08/29 | Jason Low <jason.low2@hp.com> | [steal tasks to improve CPU utilization](http://lwn.net/Articles/769225) | 限制 idle balance  | v1 ☑ 4.13-rc1 | [PatchWork v1](https://lore.kernel.org/lkml/1540220381-424433-1-git-send-email-steven.sistare@oracle.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4 00/10](https://lore.kernel.org/patchwork/patch/403138) |
 
 ## 4.7 active load_balance
 -------
@@ -848,7 +848,7 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/09/12 | Yang Yang <yang.yang29@zte.com.cn>/<cgel.zte@gmail.com> | [sched: Add a new version sysctl to control child runs first](https://lkml.org/lkml/2021/9/12/4) | 旧版本的 sysctl_sched_child_runs_first 有一些问题. 首先, 它允许设置值大于 1, 这是不必要的. 其次, 它没有遵循能力法则. 第三, 它没有使用 static key. 这个新版本修复了所有问题. | v1 ☐ | [LKML](https://lkml.org/lkml/2021/9/12/4) |
 | 2021/09/20 | Mel Gorman <mgorman@techsingularity.net> | [Scale wakeup granularity relative to nr_running](https://lore.kernel.org/lkml/20210920142614.4891-1-mgorman@techsingularity.net) | 在任务迁移或唤醒期间, 将决定是否抢占当前任务. 为了限制过度调度, 可以通过设置 sysctl_sched_wakeup_granularity 来延迟抢占, 以便在抢占之前允许至少一定的运行时间. 但是, 当任务堆叠而造成域严重过载时(例如 hackbench 测试), 过度调度的程度仍然很严重. 而且由于许多时间被调度器浪费在重新安排任务(切换等)上, 这会进一步延长过载状态. 这组补丁根据 CPU 上正在运行的任务数在 wakeup_gran() 中扩展唤醒粒度, 默认情况下最大可达 8ms. 其目的是允许任务在过载时运行更长时间, 以便某些任务可以更快地完成, 并降低域过载的程度. | v1 ☐ | [PatchWork v1](https://lore.kernel.org/lkml/20210920142614.4891-1-mgorman@techsingularity.net), [LKML](https://lkml.org/lkml/2021/9/20/478) |
-| 2021/10/21 | Mel Gorman | [sched: Add a new version sysctl to control child runs first](https://lkml.org/lkml/2021/10/21/661) | NA | v1 ☐ | [LKML](https://lkml.org/lkml/2021/10/21/661) |
+| 2021/10/21 | Mel Gorman | [Reduce stacking and overscheduling](https://lkml.org/lkml/2021/10/21/661) | NA | v1 ☐ | [LKML](https://lkml.org/lkml/2021/10/21/661) |
 
 
 # 5 select_task_rq
@@ -1190,7 +1190,8 @@ schedtune 与 uclamp 都是由 ARM 公司的 Patrick Bellasi 主导开发.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2021/01/18 | Frederic Weisbecker & Peter Zijlstra 等 | [preempt: Tune preemption flavour on boot v4](https://lore.kernel.org/patchwork/cover/1366962) | 增加了 PREEMPT_DYNAMIC 配置选项, 允许内核启动阶段选择使用哪种抢占模式(none, voluntary, full) 等, 同时支持 debugfs 中提供开关, 在系统运行过程中动态的修改这个配置. | RFC v4 ☑ 5.12-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1366962) |
+| 2021/01/18 | Frederic Weisbecker & Peter Zijlstra 等 | [preempt: Tune preemption flavour on boot v4](https://lore.kernel.org/patchwork/cover/1366962) | 增加了 PREEMPT_DYNAMIC 配置选项, 允许内核启动阶段选择使用哪种抢占模式(none, voluntary, full) 等, 同时支持 debugfs 中提供开关, 在系统运行过程中动态的修改这个配置. | RFC v4 ☑ 5.12-rc1 | [PatchWork](https://lkml.org/lkml/2021/1/18/672), [LORE](https://lore.kernel.org/all/20210118141223.123667-1-frederic@kernel.org) |
+| 2021/01/18 | Frederic Weisbecker <frederic@kernel.org> | [preempt: Tune preemption flavour on boot v4](https://lore.kernel.org/patchwork/cover/1366962) | 增加了 PREEMPT_DYNAMIC 配置选项, 允许内核启动阶段选择使用哪种抢占模式(none, voluntary, full) 等, 同时支持 debugfs 中提供开关, 在系统运行过程中动态的修改这个配置. | RFC v4 ☑ 5.12-rc1 | [PatchWork](https://lkml.org/lkml/2021/10/25/500) |
 
 
 
