@@ -108,7 +108,12 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 2.  硬件将进程的运行能效换算后, 直接填写到内存中. 当进程在 P/E core 上运行时负责某种规则时(比如进程行为特征发生变化, 即能效发生变化), 直接通知 OS/Kernel 调度器进行决策, 以达到最好的能效.
 
 
+## 1.5 RAPL
+-------
 
+[RUNNING AVERAGE POWER LIMIT – RAPL](https://01.org/blogs/2014/running-average-power-limit-%E2%80%93-rapl)
+
+[Understanding Intel's RAPL Driver On Linux](https://www.phoronix.com/scan.php?page=news_item&px=MTcxMjY)
 
 # 2 ARM64
 -------
@@ -164,6 +169,7 @@ TLBI <type><level>{IS}, {, <Xt>}
 ```
 
 
+
 | 字段 | 描述 |
 |:----:|:---:|
 | type | 指定了刷新规则, 即只刷新满足特定条件的 tlb 表项, 例如 all 表示所有表项, vmall 表示当前虚拟机的阶段 1 1 的所有表项, asid 表示匹配寄存器 Xt 指定的 ASID 的表项, va 匹配寄存器 Xt 指定的虚拟地址和 ASID 的表项, 等等. |
@@ -195,9 +201,22 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/07/11 | David Daney <ddaney.cavm@gmail.com>/<david.daney@cavium.com> | [arm64, mm: Use IPIs for TLB invalidation.](http://lists.infradead.org/pipermail/linux-arm-kernel/2015-July/355866.html) | 在 Cavium ThunderX (ARM64) 的机器上, 某些场景下不能使用广播 TLB, TLB 广播风暴会导致严重的性能问题, 所以我们在必要时使用 IPIs. 测试发现, 它还使内核构建的速度更快. | v1 ☐ | [Patchwork 0/3](http://lists.infradead.org/pipermail/linux-arm-kernel/2015-July/355866.html) |
 | 2016/08/04 | Matthias Brugger <mbrugger@suse.com> | [arm64, mm: Use IPIs for TLB invalidation.](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1470302117-32296-3-git-send-email-mbrugger@suse.com/) | NA | v1 ☐ | [Patchwork 2/4](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1470302117-32296-3-git-send-email-mbrugger@suse.com) |
-| 2020/11/03 |  David Daney <ddaney.cavm@gmail.com>/<david.daney@cavium.com> | [KVM: arm64: Don't force broadcast tlbi when guest is running](hhttps://lists.cs.columbia.edu/pipermail/kvmarm/2020-November/043071.html) | KVM 当 guest 在运行的时候, 避免 tlbi 广播. | RFC v1 ☐ | [Patchwork RTC](https://lists.cs.columbia.edu/pipermail/kvmarm/2020-November/043071.html) |
+| 2020/11/03 | Nianyao Tang <tangnianyao@huawei.com> | [KVM: arm64: Don't force broadcast tlbi when guest is running](https://lists.cs.columbia.edu/pipermail/kvmarm/2020-November/043071.html) | KVM 当 guest 在运行的时候, 避免 tlbi 广播. | RFC v1 ☐ | [Patchwork RTC](https://lore.kernel.org/linux-arm-kernel/1603331829-33879-1-git-send-email-zhangshaokun@hisilicon.com) |
+| 2019/06/17 |  Takao Indoh <indou.takao@jp.fujitsu.com> | [arm64: Introduce boot parameter to disable TLB flush instruction within the same inner shareable domain](hhttps://lists.cs.columbia.edu/pipermail/kvmarm/2020-November/043071.html) | 富士通的开发人员发现 ARM64 TLB.IS 广播在 HPC 上造成了严重的性能下降, 因此新增一个 disable_tlbflush_is 参数来禁用 TLB.IS 广播, 使用原始的 TLB IPI 方式. | RFC v1 ☐ | [Patchwork 0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20190617143255.10462-1-indou.takao@jp.fujitsu.com), [LORE](https://lore.kernel.org/linux-arm-kernel/20190617143255.10462-1-indou.takao@jp.fujitsu.com) |
+| 2016/10/24 | Marc Zyngier <marc.zyngier@arm.com> | [arm/arm64: KVM: Perform local TLB invalidation when multiplexing vcpus on a single CPU](https://patchwork.kernel.org/project/kvm/patch/1477323088-18768-1-git-send-email-marc.zyngier@arm.com) | KVM 当 guest 在运行的时候, 避免 tlbi 广播. | RFC v1 ☐ | [Patchwork RTC](https://lore.kernel.org/linux-arm-kernel/1603331829-33879-1-git-send-email-zhangshaokun@hisilicon.com) |
+
 
 > 注: x86 由于没有 tlb IS 方案, 因此只能采用 IPI 的方式来完成 TLB shootdown.
+
+目前 ARM64 中 TLUSH TLB 的接口:
+
+| 接口 | 描述 |
+|:---:|:---:|
+| flush_tlb_all | 无效掉所有的 TLB entry.(包括内核的和用户态的) |
+| flush_tlb_mm | 无效掉 mm_struct 指向的所有 TLB entry.<br>1. mm_struct 指向的都是进程的用户态空间.<br>2. ARM64 上每个 mm_struct 有自己单独的 ASID. 当前只需要对指定的 ASID 执行 TLB.IS 即可 |
+| flush_tlb_range | 无效掉用户态地址 start ~ end 区间内的所有 tlb entry |
+| flush_tlb_kernel_range | 无效掉内核态 start ~ end 区间内的所有 TLB entry |
+| local_flush_tlb_all | 无效掉本 CPU 上所有的 TLB entry. 无需使用 TLB.IS |
 
 ## 2.3 指令加速
 -------
