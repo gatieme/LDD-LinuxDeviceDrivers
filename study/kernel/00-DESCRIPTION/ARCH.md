@@ -98,7 +98,12 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2012/09/17 | Catalin Marinas <catalin.marinas@arm.com> | [x86: Add initial support to discover Intel hybrid CPUs](https://lore.kernel.org/lkml/20201002201931.2826-1-ricardo.neri-calderon@linux.intel.com) | 支持 ARM64 | v3 ☑ 3.7-rc1 | [Patchwork 0/3](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1347035226-18649-8-git-send-email-catalin.marinas@arm.com) |
+| 2020/10/02 | Catalin Marinas <catalin.marinas@arm.com> | [x86: Add initial support to discover Intel hybrid CPUs](https://lore.kernel.org/lkml/20201002201931.2826-1-ricardo.neri-calderon@linux.intel.com) | 支持混合微架构的 CPU(Alder Lake CPU) | v3 ☐ | [Patchwork 0/3](https://lore.kernel.org/lkml/20201002201931.2826-1-ricardo.neri-calderon@linux.intel.com) |
+| 2021/05/12  | Rafael J. Wysocki <rafael.j.wysocki@intel.com> | [cpufreq: intel_pstate: hybrid: CPU-specific scaling factors](https://www.phoronix.com/scan.php?page=news_item&px=P-State-Preps-For-Hybrid) | Hybrid CPU 的 P-state 增强 | v1 ☑ 5.14-rc1 | [Patchwork 0/3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eb3693f0521e020dd8617c7fa3ddf5c9f0d8dea0) |
+| 2021/02/08  | Kan Liang <kan.liang@linux.intel.com> | [Add Alder Lake support for perf](https://lkml.org/lkml/2021/2/8/1142) | perf 支持 Hybrid CPU.  | v1 ☑ 5.14-rc1 | [LKML 00/49](https://lkml.org/lkml/2021/2/8/1142) |
+| 2021/04/05  | Kan Liang <kan.liang@linux.intel.com> | [Add Alder Lake support for perf (kernel)](https://lkml.org/lkml/2021/4/5/775) | perf 支持 Hybrid CPU(内核态). | v1 ☑ 5.13-rc1 | [LKML V5 00/25](https://lkml.org/lkml/2021/4/5/775), [LKML V3 00/25](https://lkml.org/lkml/2021/3/26/964) |
+| 2021/04/23  | Kan Liang <kan.liang@linux.intel.com> | [perf tool: AlderLake hybrid support series 1](https://lkml.org/lkml/2021/4/23/52) | perf 支持 Hybrid CPU(内核态). | v1 ☑ 5.13-rc1 | [LKML v5 00/26](https://lkml.org/lkml/2021/4/23/52) |
+| 2021/05/27  | Kan Liang <kan.liang@linux.intel.com> | [perf: Support perf-mem/perf-c2c for AlderLake](https://lkml.org/lkml/2021/4/5/775) | perf 支持 Hybrid CPU(内核态). | v2 ☑ 5.14-rc1 | [LKML v1 0/8](https://lkml.org/lkml/2021/4/5/775), [LKML v2 0/8](https://lkml.org/lkml/2021/5/27/191) |
 
 
 为了更好的发挥这种混合架构的优势, Intel 提供了一项名为 [Thread Director 的技术](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/2).
@@ -221,9 +226,19 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 ## 2.3 指令加速
 -------
 
+### 2.3.1 LSE
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/07/24 | Will Deacon <will.deacon@arm.com> | [arm64: support for 8.1 LSE atomic instructions](https://lwn.net/Articles/650900) | 为 Linux 内核添加了对[新原子指令(LSE atomic instructions)的支持](https://mysqlonarm.github.io/ARM-LSE-and-MySQL), 这是作为 ARMv8.1 中大系统扩展(LSE-LSE atomic instructions)的一部分引入的. 新的指令可以在编译时通过 CONFIG_ARM64_LSE_ATOMICS 选项配置出来.<br>之前测试发现, 核少的时候关 LSE 性能更好, 核多的时候, 开 LSE 性能更好. | v1 ☑ 4.3-rc1 | [2015/07/13 Patchwork 00/18](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200625080314.230-1-yezhenyu2@huawei.com)<br>*-*-*-*-*-*-*-* <br>[2015/07/24 Patchwork v2,07/20](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1437734531-10698-8-git-send-email-will.deacon@arm.com/) |
+
+
+### 2.3.2 SME
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/10/27 | Mark Brown <broonie@kernel.org> | [arm64/sme: Initial support for the Scalable Matrix Extension](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211027184424.166237-1-broonie@kernel.org) | SME 指令的支持. | v5 ☐ | [2021/10/27 Patchwork v5,00/38](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211027184424.166237-1-broonie@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2015/07/24 Patchwork v2,07/20](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1437734531-10698-8-git-send-email-will.deacon@arm.com/) |
 
 ## 2.4 pseudo-NMI
 -------
