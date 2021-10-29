@@ -106,12 +106,23 @@ systrace, perfetto, drgn
 | 2021/01/10 | Joe Perches <joe@perches.com> | [Documentation: Replace lkml.org links with lore](https://patchwork.kernel.org/project/linux-omap/patch/77cdb7f32cfb087955bfc3600b86c40bed5d4104.camel@perches.com/#23968747) | 补丁将内核中 lkml 的链接转换为 lore.kernel.org 的链接. 补丁描述中提供了一个脚本来完整这个工作. | v1 ☑ 5.12-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=05a5f51ca566674e6a6ee9cef0af1b00bf100d67) |
 | 2020/02/06 | Joe Perches <joe@perches.com> | [B4 Better tools for kernel developers](https://lwn.net/Articles/811528) | 补丁将内核中 lkml 的链接转换为 lore.kernel.org 的链接. 补丁描述中提供了一个脚本来完整这个工作. | v1 ☑ 5.12-rc1 | [GIT](https://git.kernel.org/pub/scm/utils/b4/b4.git), [elinux](https://elinux.org/images/9/93/Kernel_email_tools_elce_2020.pdf) |
 
+patchwork 提供了 [API](https://patchwork.kernel.org/api/projects) 可以获取到各个 patchwork 子项目的 ID 等信息.
+[xuliker/kde](https://github.com/xuliker/kde) 接着 patchwork 的 API, 提供了一个获取制定日期各个 patchwork 项目上邮件的脚本 [get_mm_patch_series_today.sh](https://github.com/xuliker/kde/blob/master/kernel_mailing_list/mm_community/get_mm_patch_series_today.sh)
+
+
 ## 2.5 Static code checking
 -------
 
 [Static code checking In the Linux kernel](https://elinux.org/images/d/d3/Bargmann.pdf)
 
 
+## 2.6 topology 获取工具
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| NA | RRZE-HPC | [likwid:Performance monitoring and benchmarking suite](https://github.com/RRZE-HPC/likwid) | NA | ☐ | [github](https://github.com/RRZE-HPC/likwid) |
 
 <br>
 
