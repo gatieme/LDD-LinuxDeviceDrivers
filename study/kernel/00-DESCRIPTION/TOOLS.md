@@ -110,7 +110,7 @@ patchwork 提供了 [API](https://patchwork.kernel.org/api/projects) 可以获�
 [xuliker/kde](https://github.com/xuliker/kde) 接着 patchwork 的 API, 提供了一个获取制定日期各个 patchwork 项目上邮件的脚本 [get_mm_patch_series_today.sh](https://github.com/xuliker/kde/blob/master/kernel_mailing_list/mm_community/get_mm_patch_series_today.sh)
 
 
-## 2.5 Static code checking
+## 2.5 静态扫描工具
 -------
 
 [Static code checking In the Linux kernel](https://elinux.org/images/d/d3/Bargmann.pdf)
@@ -120,9 +120,18 @@ patchwork 提供了 [API](https://patchwork.kernel.org/api/projects) 可以获�
 -------
 
 
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| NA | RRZE-HPC | [likwid:Performance monitoring and benchmarking suite](https://github.com/RRZE-HPC/likwid) | NA | ☐ | [github](https://github.com/RRZE-HPC/likwid) |
+RRZE-HPC 的 [likwid(Like I knew what I am doing):Performance monitoring and benchmarking suite](https://github.com/RRZE-HPC/likwid/wiki) 工具集提供了多个工具辅助开发人员获取硬件的信息和性能数据. 虽然 LIKWID 的重点最初是 x86 处理器, 但后期逐渐开始支持 x86、ARM 和 POWERPC 以及 Nvidia 等处理器. 代码仓库地址 [github](https://github.com/RRZE-HPC/likwid).
+
+
+| 编号 | 应用 | 功能 |
+|:---:|:----:|:---:|
+| 1 | likwid-topology | 获取 CPU 硬件的拓扑结构. |
+| 2 | [likwid-perfCtr](https://blog.csdn.net/u010099177/article/details/108864013) | 测量CPU的硬件性能计数器. |
+| 3 | [likwid-powermeter]() | . |
+| 4 | [likwid-pin](https://github.com/RRZE-HPC/likwid/wiki/Likwid-Pin) | 开发多线程(pthread_create)以及 OpenMP 并发应用的时候经常希望各个线程绑定在不同的 CPU 上, pin 工具提供了一个灵活的配置来完成这个功能, 而不需要开发者修改代码. |
+| 5 | [likwid-bench](https://github.com/RRZE-HPC/likwid/wiki/Likwid-Bench) | 快速创建和运行不同类型的基准测试程序 |
+| 6 | [likwid-features](https://github.com/RRZE-HPC/likwid/wiki/likwid-features): 获取和修改 CPU 硬件上的一些特性/功能 |
+| 7 | likwid-genTopoCfg | NA |
 
 <br>
 
