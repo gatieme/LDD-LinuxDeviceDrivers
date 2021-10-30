@@ -131,7 +131,13 @@ RRZE-HPC 的 [likwid(Like I knew what I am doing):Performance monitoring and ben
 | 4 | [likwid-pin](https://github.com/RRZE-HPC/likwid/wiki/Likwid-Pin) | 开发多线程(pthread_create)以及 OpenMP 并发应用的时候经常希望各个线程绑定在不同的 CPU 上, pin 工具提供了一个灵活的配置来完成这个功能, 而不需要开发者修改代码. |
 | 5 | [likwid-bench](https://github.com/RRZE-HPC/likwid/wiki/Likwid-Bench) | 快速创建和运行不同类型的基准测试程序 |
 | 6 | [likwid-features](https://github.com/RRZE-HPC/likwid/wiki/likwid-features): 获取和修改 CPU 硬件上的一些特性/功能 |
-| 7 | likwid-genTopoCfg | NA |
+| 7 | [likwid-mpirun](https://github.com/RRZE-HPC/likwid/wiki/Likwid-Mpirun) | NA |
+| 8 | [likwid-powermeter](https://github.com/RRZE-HPC/likwid/wiki/Likwid-Powermeter) |  获取通过 MSR 寄存器读取和配置 RAPL 计数的工具, 可以进行控制配置和读取 Intel 处理器和内存的能耗信息, 查询给定时间段内包内消耗的能量并计算产生的功耗. |
+| 9 | [likwid-memsweeper](https://github.com/RRZE-HPC/likwid/wiki/Likwid-Memsweeper) | 清理 ccNUMA/Cache Coherent NUMA 结构中缓存的 cache 以及 last level cache 的数据 |
+| 10 | [likwid-setFrequencies](https://github.com/RRZE-HPC/likwid/wiki/likwid-setFrequencies) | 操纵频率的工具 |
+| 11 | [likwid-agent](https://github.com/RRZE-HPC/likwid/wiki/likwid-agent) | likwid-agent 是一种守护应用程序, 它使用 likwid-perfctr 来测量硬件性能计数器. |
+| 12 | [likwid-genTopoCfg](https://github.com/RRZE-HPC/likwid/wiki/likwid-genTopoCfg) | 获取当前系统的硬件 CPU 拓扑信息. |
+| 13 | [likwid-perfscope](https://github.com/RRZE-HPC/likwid/wiki/likwid-perfscope) |使用 gnuplot 执行实时性能数据绘图的工具. |
 
 <br>
 
