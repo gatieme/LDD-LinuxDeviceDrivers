@@ -139,6 +139,15 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 | 2019/07/06 | Wanpeng Li <kernellwp@gmail.com>/<wanpengli@tencent.com> | [KVM: LAPIC: Implement Exitless Timer](https://patchwork.kernel.org/project/kvm/cover/1562376411-3533-1-git-send-email-wanpengli@tencent.com) | KVM 实现 pi_inject_timer. 由于模拟的 lapic 定时器以及虚拟中断等总是在在 VCPU 驻留的 PCPU 上触发, 这会造成 pcpu 上的 vcpu 退出虚拟化(VMExit), 而执行 VMExit 的开销是非常大的. 这组补丁优化了虚拟 timer 中断的模拟流程, 把虚拟集中放到某些固定的 pcpu 上, 这样其他 pcpu 上的 vcpu 就不需要退出了. | v7 ☑ 5.3-rc1 | [PatchWork v7,0/2](https://patchwork.kernel.org/project/kvm/cover/1562376411-3533-1-git-send-email-wanpengli@tencent.com) |
 
 
+
+# 5 VIRTIO-MEM
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/10/05 | David Hildenbrand <david@redhat.com> | [proc/vmcore: sanitize access to virtio-mem memory](https://patchwork.kernel.org/project/linux-mm/cover/20211005121430.30136-1-david@redhat.com) | NA | v2 ☑ 4.19-rc1 | [PatchWork v2,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20211005121430.30136-1-david@redhat.com) |
+
 相关的文章介绍: [47].
 
 
