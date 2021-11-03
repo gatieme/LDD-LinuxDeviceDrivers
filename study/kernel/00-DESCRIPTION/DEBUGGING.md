@@ -310,6 +310,19 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/18 | Qi Liu <liuqi115@huawei.com> | [arm64: Enable OPTPROBE for arm64](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210818073336.59678-1-liuqi115@huawei.com) | 为 ARM64 引入了 optprobe, 使用分支指令替换探测指令.<br>作者在 Hip08 平台上的进行了测试, optprobe 可以将延迟降低到正常 kprobe 的 `1/4` | v4 ☐ | [Patchwork v4,0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210818073336.59678-1-liuqi115@huawei.com) |
+| 2021/11/02 | Janet Liu <jianhua.ljh@gmail.com> | [arm64: implement KPROBES_ON_FTRACE](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1635858706-27320-1-git-send-email-jianhua.ljh@gmail.com) | 为 ARM64 引入了 optprobe. | v2 ☐ | [Patchwork v2,1/2](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1635858706-27320-1-git-send-email-jianhua.ljh@gmail.com) |
+
+
+
+## 12.2 KPROBE_ON_FTRACE
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/12/25 | Jisheng Zhang <Jisheng.Zhang@synaptics.com> | [arm64: implement KPROBES_ON_FTRACE](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20191225172625.69811b3e@xhacker.debian) | 为 ARM64 引入了 kprobe on ftrace, 对函数开头注册 kprobe 的时候, 直接用 ftrace 来实现. | v7 ☐ | [Patchwork v7,0/3](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20191225172625.69811b3e@xhacker.debian) |
+| 2021/11/02 | Janet Liu <jianhua.ljh@gmail.com> | [arm64: implement KPROBES_ON_FTRACE](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1635858706-27320-2-git-send-email-jianhua.ljh@gmail.com) | 为 ARM64 引入了 kprobe on ftrace, 对函数开头注册 kprobe 的时候, 直接用 ftrace 来实现. | v7 ☐ | [Patchwork v2,1/2](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1635858706-27320-2-git-send-email-jianhua.ljh@gmail.com) |
+
+
 
 # 13 编译
 -------

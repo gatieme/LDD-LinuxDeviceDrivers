@@ -53,7 +53,17 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 # 1 SPINLOCK
 -------
-https://zhuanlan.zhihu.com/p/80727111
+
+[Linux 中的 spinlock 机制 [一] - CAS 和 ticket spinlock](https://zhuanlan.zhihu.com/p/80727111)
+
+[Linux 中的 spinlock 机制 [二] - MCS Lock](https://zhuanlan.zhihu.com/p/89058726)
+
+[Linux 中的 spinlock 机制 [三] - qspinlock](https://zhuanlan.zhihu.com/p/100546935)
+
+[Non-scalable locks are dangerous](https://pdos.csail.mit.edu/papers/linux:lock.pdf)
+[Non-scalable locks are dangerous](https://andreybleme.com/2021-01-24/non-scalable-locks-are-dangerous-summary)
+[Non-scalable locks are dangerous](https://www.jianshu.com/p/d058fb620f89)
+[Scalable   Locking](https://pdos.csail.mit.edu/6.828/2018/lec/l-mcs.pdf)
 
 ## 1.1 CAS(compare and swap) LOCK
 -------
@@ -80,6 +90,7 @@ https://lwn.net/Articles/267968
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2007/11/01 | Nick Piggin <npiggin@suse.de> | [ticket spinlocks for x86](https://lore.kernel.org/patchwork/cover/95892) | X86 架构 ticket spinlocks 的实现. | v1 ☑ 2.6.25-rc1(部分合入) | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/85789)<br>*-*-*-*-*-*-*-* <br>[PatchWork](https://lore.kernel.org/patchwork/cover/95892), [PatchWork](https://lore.kernel.org/patchwork/cover/95894) |
+| 2021/09/19 | Guo Ren <guoren@kernel.org> | [riscv: locks: introduce ticket-based spinlock implementation](https://patchwork.kernel.org/project/linux-riscv/patch/20210919165331.224664-1-guoren@kernel.org) | riscv 架构 ticket spinlocks 的实现. | v1 ☐ |[PatchWork](https://patchwork.kernel.org/project/linux-riscv/patch/20210919165331.224664-1-guoren@kernel.org) |
 
 
 [Linux中的spinlock机制[一] - CAS和ticket spinlock](https://zhuanlan.zhihu.com/p/80727111)
@@ -88,6 +99,7 @@ https://lwn.net/Articles/267968
 ## 1.3 MCS lock
 -------
 
+[MCS locks and qspinlocks](https://lwn.net/Articles/590243)
 
 spinlock 的值出现变化时, 所有试图获取这个 spinlock 的 CPU 都需要读取内存, 刷新自己对应的 cache line, 而最终只有一个 CPU 可以获得锁, 也只有它的刷新才是有意义的. 锁的争抢越激烈(试图获取锁的CPU数目越多), 无谓的开销也就越大.
 
@@ -98,14 +110,32 @@ spinlock 的值出现变化时, 所有试图获取这个 spinlock 的 CPU 都需
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2008/08/28 | Nick Piggin <npiggin@suse.de> | [queueing spinlocks?](https://lore.kernel.org/patchwork/cover/127444) | X86 架构 qspinlocks 的实现. | RFC ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/127444) |
-| 2015/04/07 | Waiman Long <Waiman.Long@hp.com> | [qspinlock: a 4-byte queue spinlock with PV support](https://lore.kernel.org/patchwork/cover/558505) | PV SPINLOCK | v15 ☑ 4.2-rc1 | [PatchWork v15](https://lore.kernel.org/patchwork/cover/558505) |
-| 2014/01/21 | Tim Chen <tim.c.chen@linux.intel.com> | [MCS Lock: MCS lock code cleanup and optimizations](https://lore.kernel.org/patchwork/cover/435770) | MCS LOCK 优化 | v9 ☑ 4.2-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/435770) |
-| 2014/02/10 | Peter Zijlstra <peterz@infradead.org> | [locking/core patches](https://lore.kernel.org/patchwork/cover/440565) | PV SPINLOCK | v1 ☑ 4.2-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/440565) |
+| 2015/04/24 | Waiman Long <Waiman.Long@hp.com> | [qspinlock: a 4-byte queue spinlock with PV support](https://lore.kernel.org/patchwork/cover/127444) | X86 架构 qspinlocks 的实现. | v16 ☑ 4.2-rc1 | [PatchWork RFC](https://lore.kernel.org/lkml/20140310154236.038181843@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LORE v16 00/14](https://lore.kernel.org/all/1429901803-29771-1-git-send-email-Waiman.Long@hp.com/) |
+| 2014/01/21 | Tim Chen <tim.c.chen@linux.intel.com> | [MCS Lock: MCS lock code cleanup and optimizations](https://lore.kernel.org/patchwork/cover/435770) | MCS LOCK 重构, 增加了新的文件 `include/linux/mcs_spinlock.h` | v9 ☑ 3.15-rc1 | [LKML v6 0/6](https://lkml.org/lkml/2013/9/25/532)<br>*-*-*-*-*-*-*-* <br>[PatchWork v9 0/6](https://lore.kernel.org/patchwork/cover/435770), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e72246748ff006ab928bc774e276e6ef5542f9c5) |
+| 2014/02/10 | Peter Zijlstra <peterz@infradead.org> | [locking/core patches](https://lore.kernel.org/patchwork/cover/440565) | PV SPINLOCK | v1 ☑ 4.2-rc1 | [PatchWork](https://lore.kernelorg/lkml/20140210195820.834693028@infradead.org) |
+
+## 1.4 qspinlock
+-------
+
+### 1.4.1 X86
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2008/08/28 | Nick Piggin <npiggin@suse.de> | [queueing spinlocks?](https://lore.kernel.org/patchwork/cover/127444) | X86 架构 qspinlocks 的实现. | RFC ☐ | [PatchWork RFC](https://lore.kernel.org/lkml/20080828073428.GA19638@wotan.suse.de) |
+| 2015/04/24 | Waiman Long <Waiman.Long@hp.com> | [qspinlock: a 4-byte queue spinlock with PV support](https://lore.kernel.org/patchwork/cover/127444) | X86 架构 qspinlocks 的实现. | v16 ☑ 4.2-rc1 | [PatchWork RFC](https://lore.kernel.org/lkml/20140310154236.038181843@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LORE v16 00/14](https://lore.kernel.org/all/1429901803-29771-1-git-send-email-Waiman.Long@hp.com/) |
+
+### 1.4.2 ARM64
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2017/04/10 | Yury Norov <ynorov@caviumnetworks.com> | [arm64: queued spinlocks and rw-locks](http://patches.linaro.org/cover/98492) | X86 架构 qspinlocks 的实现. | RFC ☐ | [PatchWork RFC](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1491860104-4103-4-git-send-email-ynorov@caviumnetworks.com) |
+| 2018/04/26 | Will Deacon <will.deacon@arm.com> | [kernel/locking: qspinlock improvements](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1524738868-31318-2-git-send-email-will.deacon@arm.com/) | qspinlocks 优化. | v3 ☑ 4.18-rc1 | [LWN](https://lwn.net/Articles/751105))<br>*-*-*-*-*-*-*-* <br>[LKML v3 00/14](https://lkml.org/lkml/2018/4/26/340) |
+| 2018/06/16 | Will Deacon <will.deacon@arm.com> | [arm64: locking: Replace ticket lock implementation with qspinlock](http://patches.linaro.org/cover/98492) | ARM64 架构 qspinlocks 的实现. | RFC ☑ 4.19-rc1 | [PatchWork RFC](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1530010812-17161-3-git-send-email-will.deacon@arm.com) |
 
 
-
-## 1.4 PV_SPINLOCK
+## 1.5 PV_SPINLOCK
 -------
 
 [PV qspinlock 原理](https://blog.csdn.net/bemind1/article/details/118224344)
@@ -160,6 +190,7 @@ PV_SPINLOCKS 的合入引起了[性能问题 Performance overhead of paravirt_op
 
 [关于多核 CPU 自旋锁 (spinlock) 的优化](https://blog.csdn.net/cpongo1/article/details/89539933)
 
+[NUMA-aware qspinlocks](https://lwn.net/Articles/852138)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -188,6 +219,7 @@ PV_SPINLOCKS 的合入引起了[性能问题 Performance overhead of paravirt_op
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/11/21 | Waiman Long <longman@redhat.com> | [locking/rwsem: Rework reader optimistic spinning](https://lore.kernel.org/patchwork/cover/1342950) | 当读者的评论部分很短, 周围没有那么多读者时, 读者乐观旋转(osq_lock)是有帮助的. 它还提高了读者获得锁的机会, 因为写入器乐观旋转对写入器的好处远远大于读者. 由于提交d3681e269fff ("locking/rwsem: Wake up almost all reader in wait queue"), 所有等待的reader都会被唤醒, 这样它们就都能获得读锁并并行运行. 当竞争的读者数量很大时, 允许读者乐观自旋很可能会导致读者碎片, 多个较小的读者组可以以顺序的方式(由写入器分隔)获得读锁. 这降低了读者的并行性. 解决这个缺点的一种可能方法是限制能够进行乐观旋转的读者的数量(最好是一个). 这些读者作为等待队列中所有等待的读者的代表, 因为一旦获得锁, 它们将唤醒所有等待的读者.  | v2 ☐ | [PatchWork v2,0/5](https://lore.kernel.org/patchwork/cover/1342950) |
 
+
 ## 2.2 PER-CPU RWSEM
 -------
 
@@ -197,8 +229,45 @@ PV_SPINLOCKS 的合入引起了[性能问题 Performance overhead of paravirt_op
 | 2020/11/07 | Oleg Nesterov <oleg@redhat.com> | [percpu_rw_semaphore: reimplement to not block the readers unnecessarily](https://lore.kernel.org/patchwork/cover/1342950) | NA | v2 ☑ 3.8-rc1 | [PatchWork v2,0/5](https://lore.kernel.org/patchwork/cover/339247), [PatchWork](https://lore.kernel.org/patchwork/cover/339702)<br>*-*-*-*-*-*-*-* <br>[PatchWork](https://lore.kernel.org/patchwork/patch/339064) |
 | 2020/11/18 | Oleg Nesterov <oleg@redhat.com> | [percpu_rw_semaphore: lockdep + config](https://lore.kernel.org/patchwork/cover/1342950) | NA | v1 ☑ 3.8-rc1 | [PatchWork 0/3](https://lore.kernel.org/patchwork/cover/341521) |
 
+# 3 MUTEX
+-------
 
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2013/4/17 | Waiman Long <Waiman.Long@hp.com> | [mutex: Improve mutex performance by doing less atomic-ops & better spinning](https://lkml.org/lkml/2013/4/17/418) | NA | v4 ☑ 3.10-rc1 | [LKML 0/3 v2](https://lkml.org/lkml/2013/4/15/245)<br>*-*-*-*-*-*-*-* <br>[LKML v4 0/4](https://lkml.org/lkml/2013/4/17/418) |
+
+
+# 4 membarrier
+-------
+
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2017/10/19 | Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com> | [membarrier: Provide register expedited private command](https://lore.kernel.org/patchwork/cover/843003) | 引入 MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED. | v6 ☑ 4.14-rc6 | [PatchWork v5](https://lore.kernel.org/patchwork/cover/835747)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6](https://lore.kernel.org/patchwork/cover/398912) |
+| 2017/11/21 | Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com> | [membarrier: Provide core serializing command](https://lore.kernel.org/patchwork/cover/843003) | 引入 MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED. | v6 ☑ 4.16-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/cover/835747)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6](https://lore.kernel.org/patchwork/cover/398912) |
+| 2018/01/29 | Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com> | [membarrier: Provide core serializing command](https://lore.kernel.org/patchwork/cover/843003) | 引入 MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED. | v6 ☑ 4.16-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/cover/835747)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6](https://lore.kernel.org/patchwork/cover/398912) |
+
+
+5 RC]()
+-------
+
+[What is RCU, Fundamentally?](https://lwn.net/Articles/262464)
+
+[What is RCU? Part 2: Usage](https://lwn.net/Articles/263130)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/06/01 | "Joel Fernandes (Google)" <joel@joelfernandes.org> | [Harden list_for_each_entry_rcu() and family](https://lore.kernel.org/patchwork/cover/1082845) | 本系列增加了一个新的内部函数rcu_read_lock_any_held(), 该函数在调用这些宏时检查reader节是否处于活动状态. 如果不存在reader section, 那么list_for_each_entry_rcu()的可选第四个参数可以是一个被计算的lockdep表达式(类似于rcu_dereference_check()的工作方式). . | RFC ☑ 5.4-rc1 | [PatchWork RFC,0/6](https://lore.kernel.org/patchwork/cover/1082845) |
+
+
+
+# 6 FUTEX
+-------
+
+[FUTEX2's sys_futex_waitv() Sent In For Linux 5.16 To Help Linux Gaming](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.16-sys_futex_waitv)
 
 <br>
 
