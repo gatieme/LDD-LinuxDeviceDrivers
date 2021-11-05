@@ -222,7 +222,10 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 | 2019/08/07 | Steve Capper <steve.capper@arm.com> | [arm64/mm: Enable FEAT_LPA2 (52 bits PA support on 4K|16K pages)](https://lwn.net/Articles/849538) | arm64 使能 FEAT_LPA2.<br>4K/16K PAGE_SIZE 下支持 52 bit PA. | RFC,V2 ☐ 5.14 | [PatchWork v5 52-bit userspace VAs](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20181206225042.11548-1-steve.capper@arm.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,V2,00/10](https://patchwork.kernel.org/project/linux-mm/cover/1627281445-12445-1-git-send-email-anshuman.khandual@arm.com) |
 
 
-## 1.3 延迟页表缓存冲刷 (Lazy-TLB flushing)
+## 1.3 TLB flushing
+-------
+
+### 1.3.1 延迟页表缓存冲刷 (Lazy-TLB flushing)
 -------
 
 **极早引入, 时间难考**
@@ -231,13 +234,22 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 有个硬件机构叫 TLB, 用来缓存页表查寻结果, 根据程序局部性, 即将访问的数据或代码很可能与刚访问过的在一个页面, 有了 TLB 缓存, 页表查找很多时候就大大加快了. 但是, 内核在切换进程时, 需要切换页表, 同时 TLB 缓存也失效了, 需要冲刷掉. 内核引入的一个优化是, 当切换到内核线程时, 由于内核线程不使用用户态空间, 因此切换用户态的页表是不必要, 自然也不需要冲刷 TLB. 所以引入了 Lazy-TLB 模式, 以提高效率. 关于细节, 可参考[kernel 3.10内核源码分析--TLB相关--TLB概念、flush、TLB lazy模式](https://www.cnblogs.com/sky-heaven/p/5133747.html)
 
 
+### 1.3.2 avoid unnecessary TLB flushes
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/01/31 | Nadav Amit <nadav.amit@gmail.com> | [TLB batching consolidation and enhancements](https://patchwork.kernel.org/project/linux-mm/cover/20210131001132.3368247-1-namit@vmware.com) | TLB 批处理整合和增强. 内核中目前至少有 5 种不同的 TLB 处理方案. 对这种情况做了合并和规整. | v2 ☐ | [PatchWork RFC,00/20](https://patchwork.kernel.org/project/linux-mm/cover/20210131001132.3368247-1-namit@vmware.com) |
+| 2021/10/21 | Nadav Amit <nadav.amit@gmail.com> | [mm/mprotect: avoid unnecessary TLB flushes](https://patchwork.kernel.org/project/linux-mm/cover/20211021122112.592634-1-namit@vmware.com) | 用于删除不必要的 TLB 刷新. | v2 ☐ | [2021/09/25 PatchWork v1,0/2](https://patchwork.kernel.org/project/linux-mm/cover/20210925205423.168858-1-namit@vmware.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/21 PatchWork v2,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20211021122112.592634-1-namit@vmware.com) |
+
+
 ## 1.4 [Clarifying memory management with page folios](https://lwn.net/Articles/849538)
 -------
 
 
 [LWN：利用page folio来明确内存操作！](https://blog.csdn.net/Linux_Everything/article/details/115388078)
 
-[带有“memory folios”的 Linux：编译内核时性能提升了 7%](https://www.heikewan.com/item/27509944)
+[带有 "memory folios" 的 Linux：编译内核时性能提升了 7%](https://www.heikewan.com/item/27509944)
 
 
 最终该特性与 5.16 合入, [Memory Folios Merged For Linux 5.16](https://www.phoronix.com/scan.php?page=news_item&px=Memory-Folios-Lands-Linux-5.16), 代码仓库 [willy/pagecache.git](http://git.infradead.org/users/willy/pagecache.git), 合入链接 [GIT,PULL Memory folios for v5.1](https://patchwork.kernel.org/project/linux-mm/patch/YX4RkYNNZtO9WL0L@casper.infradead.org), [Merge tag 'folio-5.16' of git://git.infradead.org/users/willy/pagecache](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49f8275c7d9247cf1dd4440fc8162f784252c849)
@@ -279,6 +291,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/07/20 | Anthony Yznaga <anthony.yznaga@oracle.com> | [madvise MADV_DOEXEC](https://lore.kernel.org/patchwork/cover/1280469) | 这组补丁引入了 madvise MADV_DOEXEC 参数实现了跨 exec 金恒地址空间保留匿名页范围的支持. 与重新附加到命名共享内存段不同, 以这种方式共享内存的主要好处是确保新进程中的内存映射到与旧进程相同的虚拟地址. 这样做的目的是为使用 vfio 的 guest 保留 guest 的内存, 通过 qemu 使用 exec 可以生成一份其自身的更新版本. 通过确保内存保留在固定地址, vfio 映射及其相关的内核数据结构可以保持有效. | RFC ☐ | [PatchWork RFC,0/5](https://lore.kernel.org/patchwork/cover/1280469) |
 | 2019/07/14 | Minchan Kim <minchan@kernel.org> | [Introduce MADV_COLD and MADV_PAGEOUT](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) | NA | v5 ☑ 5.4-rc1 | [PatchWork v5,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) |
+| 2021/10/19 | Suren Baghdasaryan <surenb@google.com> | [mm: rearrange madvise code to allow for reuse](https://patchwork.kernel.org/project/linux-mm/patch/20211019215511.3771969-1-surenb@google.com) | 重构 madvise 系统调用, 以允许影响 vma 的 prctl 系统调用重用其中的一部分. 将遍历虚拟地址范围内 vma 的代码移动到以函数指针为参数的函数中. 目前唯一的调用者是 sys_madvise, 它使用它在每个 vma 上调用 madvise_vma_behavior. | v11 ☐ | [PatchWork v11,1/3](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) |
 
 
 *   MADV_DONTNEED
@@ -3327,6 +3340,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2021/10/12 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon/dbgfs: add region_stat interface](https://patchwork.kernel.org/project/linux-mm/patch/20211012054948.90381-1-xhao@linux.alibaba.com) | DAMON 中使用 damon-dbgfs 操作带来了很大的便利, 有时候如果我希望能够查看任务的划分区域 nr_access 等值, 当前这不能直接通过 dbgfs 接口查看, 所以添加一个接口 "region_stat" 来显示. | v1 ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-mm/patch/20211012054948.90381-1-xhao@linux.alibaba.com/) |
 | 2021/10/13 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon: Adjust the size of kbuf array to avoid overflow](https://patchwork.kernel.org/project/linux-mm/patch/20211013114854.15705-1-xhao@linux.alibaba.com) | NA | v1 ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-mm/patch/20211013114854.15705-1-xhao@linux.alibaba.com) |
 | 2021/10/16 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon/core: Optimize kdamod.%d thread creation code](https://patchwork.kernel.org/project/linux-mm/patch/20211016165914.96049-1-xhao@linux.alibaba.com) | 当 ctx->adaptive_targets 列表为空, 无需创建并调用kdamond. 只有当 ctx->adaptive_targets 列表不为空, 且 ctx->kdamond 指针为 NULL 时, 才调用__damon_start函数. | v1 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211016165616.95849-1-xhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211016165914.96049-1-xhao@linux.alibaba.com) |
+| 2021/10/21 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon/dbgfs: Optimize target_ids interface write operation](https://patchwork.kernel.org/project/linux-mm/patch/bc341f48b5558f6816dcef22eca4f4a590efdc67.1634834628.git.xhao@linux.alibaba.com) | NA | v2 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211021085611.81211-1-xhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/bc341f48b5558f6816dcef22eca4f4a590efdc67.1634834628.git.xhao@linux.alibaba.com) |
 
 
 ### 13.4.5 vmstat
