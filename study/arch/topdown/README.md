@@ -71,18 +71,6 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 8 | 写回(write back) | 将计算结果顺序写入 PRF, 还需要通过电路网络送出, 该电路布线非常重要直接影响速度, 一般使用cluster结构将FU分组, 同组FU紧挨, 可在一个周期送出, 跨组则需更多周期 | In Program Order |
 | 9 | 提交(commit) | ROB 顺序将结果写入 ARF, 同时处理异常, 所有异常均需到达该阶段后再进行处理以实现精确异常, 指令从ROB离开后无法再修改处理器状态. | In Program Order |
 
-### 2.1.3 真实的例子 RISC-V BOOM
--------
-
-riscv-boom 是用 Chisel 硬件构造语言编写的 RV64G RISC-V 超标量 Berkeley 乱序处理器(The Berkeley Out-of-Order Machine/BOOM).
-
-当前版本 BOOM v3 它拥有 10 级流水线.
-
-![boom 10 级流水线](boom-pipeline.svg)
-
-整体流水线的框架图如下所示:
-
-![boom 流水线](boom-pipeline-detailed.png)
 
 ## 2.2 uOps 与 Pipeline Slots
 -------
