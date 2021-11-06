@@ -120,6 +120,28 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 
 [Understanding Intel's RAPL Driver On Linux](https://www.phoronix.com/scan.php?page=news_item&px=MTcxMjY)
 
+
+## 1.6 安全相关
+-------
+
+### 1.6.1 SGX(Intel Software Guard eXtensions ,英特尔软件保护扩展)
+-------
+
+
+2013 年, Intel 推出 SGX(software guard extensions) 指令集扩展, 能创造出一个可信执行环境来保护代码和数据, 即使 root 权限也无法访问. 这样应用程序可以使用它来隔离代码和数据的特定可信区域, 防止底层OS被 compromise 以后对自己的攻击,
+同时在软件的管理上也可以不用信任云供应商. 比较符合当前要解决的云计算安全问题，比如给安全敏感服务存放密钥等。
+
+SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安全状态, 提供用户空间的可信执行环境, 通过一组新的指令集扩展与访问控制机制, 实现不同程序间的隔离运行, 保障用户关键代码和数据的机密性与完整性不受恶意软件的破坏.
+
+不同于其他安全技术, SGX 可信计算(trusted computing base, 简称TCB) 仅包括硬件, 避免了基于软件的 TCB 自身存在软件安全漏洞与威胁的缺陷, 极大地提升了系统安全保障; 此外, SGX可保障运行时的可信执行环境, 恶意代码无法访问与篡改其他程序运行时的保护内容, 进一步增强了系统的安全性; 基于指令集的扩展与独立的认证方式, 使得应用程序可以灵活调用这一安全功能并进行验证.作为系统安全领域的重大研究进展, Intel SGX是基于CPU的新一代硬件安全机制, 其健壮、可信、灵活的安全功能与硬件扩展的性能保证, 使得这项技术具有广阔的应用空间与发展前景.目前, 学术界和工业界已经对SGX技术展开了广泛的研究, Intel也在其最新的第六代CPU中加入了对SGX的支持.
+
+
+[SGX技术的分析和研究](http://www.jos.org.cn/html/2018/9/5594.htm)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/11/02 | Catalin Marinas <catalin.marinas@arm.com> | [Basic recovery for machine checks inside SGX](https://lore.kernel.org/lkml/20201002201931.2826-1-ricardo.neri-calderon@linux.intel.com) | 支持混合微架构的 CPU(Alder Lake CPU) | v11 ☐ | [Patchwork v11,0/7](https://patchwork.kernel.org/project/linux-mm/cover/20211026220050.697075-1-tony.luck@intel.com) |
+
 # 2 ARM64
 -------
 
