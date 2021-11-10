@@ -214,9 +214,8 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 | 单元 | 描述 |
 |:----:|:---:|
-| Load Queue | NA |
-| Store Buffer |
-
+| SB(Store Buffer) | 通过缓冲存储(store)操作, 从而加快存储操作. 当 CPU 执行 store 操作时, 可能需要通过 WB_BIU 将要写的数据写入 cache 甚至 Memory<br>1. 对于写 cache, CPU 在写入时需要向总线发送 Invalidate 请求, 其他收到 Invalidate 请求之后, 将自己的 cacheline 设置为无效. 并且发回 Invalidate ACK.<br>2. 尤其是在写直通模式下, 每次执行存储操作都要将数据写入外部 Memory, 这样会等待外部 Memory 完成存储操作.<br>所以如果使用同步的方式,  在此期间, CPU 处于暂停状态, 降低了CPU的效率.<br>因此将 store 的操作异步化.<br>CPU 执行 store 操作时, 并不直接将数据写到 cache, 而是将这个修改操作放入到写缓存(Store Buffer)中, 再通过总线通知其他核缓存失效了, 然后这个 CPU 继续执行其他指令操作, 当接受到了其他核返回的 Invalidate ACK 消息之后, 才将写缓存(Store Buffer)中的操作写入到核A中的缓存中, 这时写操作才算完成. |
+| Invalidate Queue | 同样接收到 Invalidate 请求的 CPU 为了能够快速进行回应所以, 先将无效的操作放到队列里面去, 并立刻返回 Invalidate ACK 消息, 等当前的操作执行完再回来真正的把缓存里面的值标识为 I 状态, 这个存放无效操作的队列就叫做无效化队列. |
 
 ## 1.3 真实的例子 RISC-V BOOM
 -------
@@ -239,7 +238,7 @@ riscv-boom 是用 Chisel 硬件构造语言编写的 RV64G RISC-V 超标量 Berk
 | 编号 | 链接 | 描述 |
 |:---:|:----:|:---:|
 | 1 | [A Journey Through the CPU Pipeline](https://bryanwagstaff.com/index.php/a-journey-through-the-cpu-pipeline/) | 讲述了 CPU 流水线的前世今生(不断演进和完善), [翻译版本](https://kb.cnblogs.com/page/179578) |
-| 2 | [Intel P4 CPU](https://www.cnblogs.com/linhaostudy/p/9204107.html) | |
+| 2 | [Intel P4 CPU](https://www.cnblogs.com/linhaostudy/p/9204107.html) | NA |
 | 3 | [The Berkeley Out-of-Order Machine (BOOM)](https://docs.boom-core.org/en/latest/sections/intro-overview/boom.html) | |
 | 4 | [知乎专栏-从零开始学risc-v设计](https://www.zhihu.com/column/c_1247894081075892224) | NA |
 | 5 | [开源处理器Rocket的分支预测机制研究与性能评估(一)](https://blog.csdn.net/leishangwen/article/details/72877452) | | NA |
@@ -247,9 +246,11 @@ riscv-boom 是用 Chisel 硬件构造语言编写的 RV64G RISC-V 超标量 Berk
 | 7 | BOOM微架构学习——[0-前端与分支预测](https://zhuanlan.zhihu.com/p/379874172), [1-取指单元与分支预测](https://zhuanlan.zhihu.com/p/168755384), [2-译码单元与寄存器重命名](https://zhuanlan.zhihu.com/p/194075590), [详解寄存器重命名技术](https://zhuanlan.zhihu.com/p/399543947) | 以 BOOM 为例分析了取值单元以及分支预测器的实现 |
 | 8 | [知乎专栏-大金哥的超标量处理器学习笔记](https://www.zhihu.com/column/c_1253708282457079808) | 总结了 <超标量处理器> 一书的基本内容, 对流水线各个阶段做了一定的解读 |
 | 9 | [Skylake Microarchitecture](https://zhuanlan.zhihu.com/p/419876736) | 对 Skylake 微架构做了比较详细的分析 |
-| 10 | [《手把手教你设计CPU——RISC-V处理器》读书笔记](https://zhuanlan.zhihu.com/p/90104625) | NA |
-| 11 | [RISC-V的“Demo”级项目——Rocket-chip](https://zhuanlan.zhihu.com/p/140360043) | NA |
-
+| 10 | [《手把手教你设计CPU——RISC-V处理器》读书笔记](https://zhuanlan.zhihu.com/p/90104625) | 讲了一些代码实现细节 |
+| 11 | [RISC-V的“Demo”级项目——Rocket-chip](https://zhuanlan.zhihu.com/p/140360043) | 从 rocket-chip 讲到了 CPU 流水线. |
+| 12 | [CPU体系结构](https://my.oschina.net/fileoptions/blog/1633021) | 从流水线开始讲起, 讲到了超标量以及内存一致性模型等, 提到了 load buffer、store buffer |
+| 13 | [Re-Order Buffer](https://www.cnblogs.com/TaigaCon/p/7604152.html)<br>[Intel Core Microarchitecture Pipeline](https://www.cnblogs.com/TaigaCon/p/7678394.html)<br>[micro-fusion & macro-fusion](https://www.cnblogs.com/TaigaCon/p/7702920.html)<br>[Stack Pointer Tracker](https://www.cnblogs.com/TaigaCon/p/7711504.html)<br>[Branch Prediction](https://www.cnblogs.com/TaigaCon/p/7791303.html) | NA |
+| 14 | [Intel X86 优化指南阅读笔记--基础体系结构](https://zhuanlan.zhihu.com/p/354130316) | NA |
 
 <br>
 

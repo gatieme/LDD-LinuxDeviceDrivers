@@ -41,18 +41,30 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 | 编号 | 链接 | 描述 |
 |:---:|:----:|:---:|
-| 1 | [A Journey Through the CPU Pipeline](https://bryanwagstaff.com/index.php/a-journey-through-the-cpu-pipeline/) | 讲述了 CPU 流水线的前世今生(不断演进和完善), [翻译版本](https://kb.cnblogs.com/page/179578) |
-| 2 | [Intel P4 CPU](https://www.cnblogs.com/linhaostudy/p/9204107.html) | |
-| 3 | [The Berkeley Out-of-Order Machine (BOOM)](https://docs.boom-core.org/en/latest/sections/intro-overview/boom.html) | |
-| 4 | [知乎专栏-从零开始学risc-v设计](https://www.zhihu.com/column/c_1247894081075892224) | NA |
-| 5 | [开源处理器Rocket的分支预测机制研究与性能评估(一)](https://blog.csdn.net/leishangwen/article/details/72877452) | | NA |
-| 6 | [简书专栏-Rocket Chip](https://www.jianshu.com/nb/41934049) | NA |
-| 7 | BOOM微架构学习——[0-前端与分支预测](https://zhuanlan.zhihu.com/p/379874172), [1-取指单元与分支预测](https://zhuanlan.zhihu.com/p/168755384), [2-译码单元与寄存器重命名](https://zhuanlan.zhihu.com/p/194075590), [详解寄存器重命名技术](https://zhuanlan.zhihu.com/p/399543947) | 以 BOOM 为例分析了取值单元以及分支预测器的实现 |
-| 8 | [知乎专栏-大金哥的超标量处理器学习笔记](https://www.zhihu.com/column/c_1253708282457079808) | 总结了 <超标量处理器> 一书的基本内容, 对流水线各个阶段做了一定的解读 |
-| 9 | [Skylake Microarchitecture](https://zhuanlan.zhihu.com/p/419876736) | 对 Skylake 微架构做了比较详细的分析 |
-| 10 | [《手把手教你设计CPU——RISC-V处理器》读书笔记](https://zhuanlan.zhihu.com/p/90104625) | NA |
-| 11 | [RISC-V的“Demo”级项目——Rocket-chip](https://zhuanlan.zhihu.com/p/140360043) | NA |
-
+| 1 | [理解Memory Barrier（内存屏障）](https://blog.csdn.net/caoshangpa/article/details/78853919) | NA |
+| 2 | [内存屏障（Memory Barrier）与volatile](https://blog.csdn.net/fedorafrog/article/details/113782404) | NA |
+| 3 | [OR1200处理器的Store Buffer分析](https://blog.csdn.net/leishangwen/article/details/35212811) | NA |
+| 4 | [MESI 与 StoreBuffer 相互独立的猜想](https://www.cnblogs.com/lqlqlq/p/14414091.html) | NA |
+| 5 | [内存屏障的来历](https://zhuanlan.zhihu.com/p/125549632) | NA |
+| 6 | [内存屏障（Memory Barrier）究竟是个什么鬼？](https://www.bilibili.com/read/cv5131208) | NA |
+| 7 | [处理器中的存储问题（三）：从Store Buffer到TSO存储模型](https://zhuanlan.zhihu.com/p/149302247) | NA |
+| 8 | [CPU 缓存和 volatile](https://www.cnblogs.com/xmzJava/p/11417943.html) | MESI 有个图表 | NA |
+| 9 | [CPU多级缓存与缓存一致性，详细的讲解](https://blog.csdn.net/weixin_43649997/article/details/108742221) | NA |
+| 10 | [CPU有缓存一致性协议(MESI)，为何还需要volatile](https://blog.csdn.net/org_hjh/article/details/109626607) | NA |
+| 11 | [笔记：cpu中的cache（二）](https://zhuanlan.zhihu.com/p/144836286) | NA |
+| 12 | [Reducing Design Complexity of the Load/Store Queue](https://engineering.purdue.edu/~vijay/papers/2003/lsq.pdf) | NA |
+| 13 | [乱序处理器中的LSQ简介](https://blog.csdn.net/baidu_35679960/article/details/79554428) | NA |
+| 14 | [简述 典型处理器（如Cortex A9）中一条存储器读写指令的执行全过程](https://blog.csdn.net/baidu_35679960/article/details/78571097) | MA |
+| 15 | [4.2 存储器读写指令的发射与执行1](https://blog.csdn.net/sailing_w/article/details/55003968) | NA |
+| 16 | [乱序处理器中的LSQ简介](https://blog.csdn.net/baidu_35679960/article/details/79554428) | NA |
+| 17 | [Volatile：内存屏障原理应该没有比这篇文章讲的更清楚了](https://www.bilibili.com/read/cv7429219/) | NA |
+| 18 | [内存一致性模型](http://www.wowotech.net/memory_management/456.html) | NA |
+| 19 | [从硬件层面理解memory barrier](https://zhuanlan.zhihu.com/p/184912992) | NA |
+| 20 | [多处理器编程：从缓存一致性到内存模型](https://zhuanlan.zhihu.com/p/35386457) | NA |
+| 21 | [聊聊原子变量、锁、内存屏障那点事（2） ](https://www.sohu.com/a/250274701_467784) | NA |
+| 22 | [Spectre原理详解及分支毒化的实现](https://zhuanlan.zhihu.com/p/114680178) | NA |
+| 23 | [Lecture 11: Memory Data Flow Technique](http://home.eng.iastate.edu/~zzhang/courses/cpre585_f03/slides/lecture11.pdf) | NA |
+| 24 | [cpu 乱序执行与问题](https://blog.csdn.net/lizhihaoweiwei/article/details/50562732) | NA |
 
 <br>
 
