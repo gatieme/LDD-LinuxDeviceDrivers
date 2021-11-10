@@ -856,7 +856,7 @@ idle balance 中执行 update_blocked_average 是很费时费力的, 可以做�
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/06/02 | Valentin Schneider <valentin.schneider@arm.com> | [sched/fair: Active balancer RT/DL preemption fix](https://lore.kernel.org/patchwork/patch/1115663) | NA | v2 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/patch/1115663) |
 | 2021/06/02 | Yafang Shao <laoar.shao@gmail.com> | [sched, fair: try to prevent migration thread from preempting non-cfs task](https://lore.kernel.org/patchwork/patch/1440172) | 规避问题 [a race between active_load_balance and sched_switch](https://lkml.org/lkml/2021/6/14/204) | v1 ☐ | [PatchWork v1 old](https://lore.kernel.org/patchwork/patch/1440172), [PatchWork v1](https://lore.kernel.org/patchwork/patch/1446860) |
-
+| 2021/06/02 | Yafang Shao <laoar.shao@gmail.com> | [sched: Introduce cfs_migration](https://lore.kernel.org/all/20211104145713.4419-1-laoar.shao@gmail.com) | 实现了 per-cpu 的 FIFO 进程 cfs_migration 替代原来的 migration stopper 进程, 在 CFS active load balance 迁移当前进程时使用, 这样如果当前进程已经切换到 RT 进程就不会进行抢占. 从而解决该问题. | RFC ☐ | [LORE 0/4](https://lore.kernel.org/all/20211104145713.4419-1-laoar.shao@gmail.com) |
 
 ## 4.8 WAKEUP
 -------
@@ -1198,6 +1198,7 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----------:|:---:|
 | 2021/08/12 | Viresh Kumar <viresh.kumar@linaro.org> | [Add callback to register with energy model](https://lore.kernel.org/patchwork/cover/1424708) | 当前许多 cpufreq 驱动程序向每个策略的注册了能耗模型, 并通过相同的操作 dev_pm_opp_of_register_em() 来完成. 但是随着  thermal-cooling 的完善, 可以在 cpufreq 层次通过新的回调 register_em 来完成这个工作. | v3 ☐ | [PatchWork V3,0/9](https://patchwork.kernel.org/project/linux-arm-kernel/cover/cover.1628742634.git.viresh.kumar@linaro.org) |
+| 2021/09/08| Viresh Kumar <viresh.kumar@linaro.org> | [Inefficient OPPs](https://patchwork.kernel.org/project/linux-pm/cover/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) | schedutil 中增加了对低能效(inefficient) OPP 的感知, 引入 CPUFREQ_RELATION_E 标记来使得 CPUFREQ 只使用和引用有效的频点.<br>Arm 的 Power 团队在为谷歌的 Pixel4 开发一个实验性内核, 以评估和改进现实生活中 Android 设备上的主线性能和能耗. 发现 SD855 SoC 有几个效率低下的 OPP. 这些 OPP 尽管频率较低, 但功耗却较高, 任务这种频率下工作, 性能不光下降了, 功耗也很高. 通过将它们从 EAS 能效模型中移除, 使得最高效的 CPU 在任务分配上更有吸引力, 有助于减少中、大型 CPU 的运行时间, 同时提高了集群的空闲时间. 由于集群之间存在巨大的能源成本差异, 因此增加空闲时间对该平台来说至关重要. | v7 ☑ 5.16-rc1 | [PatchWork v7,0/9](https://patchwork.kernel.org/project/linux-pm/cover/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) |
 
 
 ## 7.4 uclamp

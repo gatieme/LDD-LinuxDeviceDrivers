@@ -106,7 +106,19 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 | 2021/05/27  | Kan Liang <kan.liang@linux.intel.com> | [perf: Support perf-mem/perf-c2c for AlderLake](https://lkml.org/lkml/2021/4/5/775) | perf 支持 Hybrid CPU(内核态). | v2 ☑ 5.14-rc1 | [LKML v1 0/8](https://lkml.org/lkml/2021/4/5/775), [LKML v2 0/8](https://lkml.org/lkml/2021/5/27/191) |
 
 
-为了更好的发挥这种混合架构的优势, Intel 提供了一项名为 [Thread Director 的技术](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/2).
+性能评测
+
+[Intel Core I9-12900K VS I5-12600K](https://openbenchmarking.org/vs/Processor/Intel%20Core%20i5-12600K,Intel%20Core%20i9-12900K)
+
+[The Intel 12th Gen Core i9-12900K Review: Hybrid Performance Brings Hybrid Complexity](https://www.anandtech.com/show/17047/the-intel-12th-gen-core-i912900k-review-hybrid-performance-brings-hybrid-complexity)
+
+Intel Alder Lake CPU 支持 AVX 512
+
+[Intel Alder Lake Question (Scheduler)](https://lkml.org/lkml/2021/11/5/79)
+
+[Intel Core i9 12900K "Alder Lake" AVX-512 On Linux](https://www.phoronix.com/scan.php?page=article&item=alder-lake-avx512&num=1)
+
+为了更好的发挥这种混合架构的优势, Intel 提供了一项名为 [Thread Director 的技术](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/2), 专利分析 [The Alder Lake hardware scheduler – A brief overview](https://coreteks.tech/articles/index.php/2021/07/02/the-alder-lake-hardware-scheduler-a-brief-overview/)
 
 1.  首席按通过机器学习算法对进程在 P-core/E-core 的性能和功耗进行分析和建模, 识别进程特征, 从而可以预测出不同类型进程或者进程某段时期在 P/E core 上的能效关系.
 
@@ -206,6 +218,9 @@ TLBI <type><level>{IS}, {, <Xt>}
 
 
 TLB entry shootdown 常常或多或少的带来一些性能问题.
+
+[Ptlbmalloc2: Reducing TLB Shootdowns with High Memory Efficiency](https://web.njit.edu/~dingxn/papers/ispa20.pdf)
+[Torwards a more Scalable KVM Hypervisor](https://events19.linuxfoundation.org/wp-content/uploads/2017/12/Update_Wanpeng-LI_Torwards-a-more-Scalable-KVM-Hypervisor.pdf)
 
 [TLB flush 操作](http://www.wowotech.net/memory_management/tlb-flush.html)
 [进程切换分析（2）：TLB 处理](http://www.wowotech.net/process_management/context-switch-tlb.html)
