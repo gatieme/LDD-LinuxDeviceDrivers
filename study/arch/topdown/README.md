@@ -155,8 +155,23 @@ blogexcerpt: 虚拟化 & KVM 子系统
 ## 3.3 Bad Speculation/投机错误
 -------
 
+| 层级 | 名称 | 描述 | 公式 |
+|:---:|:----:|:---:|:---:|
+| Level 1 | Bad Speculation | 表示由于预测错误而浪费掉的 pipeline slots 的占比. 主要包括:<br>1. 触发了 Machine Clear 而浪费了 pipeline slots.<br>2. 分支预测错误(Branch Mispredict) 而浪费的 pipeline slots. | (INST_SPEC - INST_RETIRED) / (4 * CPU_CYCLES).<br>1. INST_SPEC: CPU 执行的指令的数目.<br>2. INST_RETIRED: CPU 执行的指令中正常退休的指令的数目. |
+| Level 2 | Branch Mispredict | 当 CPU 遇到分支指令的时候, 为避免 pipeline stalls, 会进行投机执行. CPU 对分支指令的跳转方向和跳转目的地址进行预测, 然后投机执行预测出的路径, 对预测的分支进行取指和执行,  所有处于流水线中的这些分支预测路径上的指令都其实处于推测(speculative)状态, 但是并不是进行提交. 然后在流水线的后续阶段, 比如分支指令实际执行时, 会对之前分支预测的结果进行校验, 一旦发现预测失败, 则必须丢弃这个预测错误的分支上所有的指令及其执行结果, 并对流水线各部件的状态进行恢复. 最终重新从正确的分支进行取指. 这必然造成流水线资源的浪费. | NA |
+| Level 3 | Indirect Branch | 间接跳转 | NA |
+| Level 3 | Push Branch | 函数调用. 比如 BL/BLR 等. | NA |
+| Level 3 | Pop Branch | 有返回值的跳转. 如函数返回等. | NA |
+| Level 3 | Other Branch | NA | NA |
+| Level 2 | Machine Clear |
+
 ## 3.4 Retring/正常执行
 -------
+
+| 编号 | 描述 | 公式 |
+|:---:|:----:|:---:|
+| Level 1 | Retring | retired 的 uOps 数量占所有 pipeline slots 的比重, 理想情况下, 我们希望看到所有的 pipeline slots 都能归属于 Retiring, 因为它与 IPC 相关. | INST_RETIRED / (4 * CPU_CYCLES) |
+
 
 
 

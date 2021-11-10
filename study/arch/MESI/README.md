@@ -65,6 +65,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 22 | [Spectre原理详解及分支毒化的实现](https://zhuanlan.zhihu.com/p/114680178) | NA |
 | 23 | [Lecture 11: Memory Data Flow Technique](http://home.eng.iastate.edu/~zzhang/courses/cpre585_f03/slides/lecture11.pdf) | NA |
 | 24 | [cpu 乱序执行与问题](https://blog.csdn.net/lizhihaoweiwei/article/details/50562732) | NA |
+| 25 | [store-queue VS store-buffer](https://stackoverflow.com/questions/24975540/what-is-the-difference-between-a-store-queue-and-a-store-buffer) | NA |
 
 <br>
 
