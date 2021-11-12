@@ -1536,7 +1536,7 @@ Google 测试多代 LRU 为 Linux 带来更好的性能提升, 参见 [Google Pr
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/05/20 | Yu Zhao <yuzhao@google.com> | [Multigenerational LRU](https://lwn.net/Articles/856931) | 将 LRU 的列表划分为多代老化. 通过 CONFIG_LRU_GEN 来控制. | v3 ☐ | [Patchwork v1,00/14](https://lore.kernel.org/patchwork/patch/1394674)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2,00/16](https://lore.kernel.org/patchwork/cover/1412560)<br>*-*-*-*-*-*-*-*<br>[PatchWork v3,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210520065355.2736558-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/08/18 PatchWork v4,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20210818063107.2696454-1-yuzhao@google.com) |
+| 2021/11/11 | Yu Zhao <yuzhao@google.com> | [Multigenerational LRU Framework(https://lwn.net/Articles/856931) | 将 LRU 的列表划分为多代老化. 通过 CONFIG_LRU_GEN 来控制. | v3 ☐ | [Patchwork v1,00/14](https://lore.kernel.org/patchwork/patch/1394674)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2,00/16](https://lore.kernel.org/patchwork/cover/1412560)<br>*-*-*-*-*-*-*-*<br>[2021/05/20 PatchWork v3,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210520065355.2736558-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/08/18 PatchWork v4,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20210818063107.2696454-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/11/11 PatchWork v5,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211111041510.402534-1-yuzhao@google.com) |
 
 
 
@@ -1805,7 +1805,7 @@ Facebook 指出他们也面临过同样的问题, 所有的 workload 都需要�
 | 2007/10/09 | Matt Mackall <mpm@selenic.com> | [maps4: pagemap monitoring v4](https://lore.kernel.org/patchwork/cover/95279) | 引入 CONFIG_PROC_PAGE_MONITOR, 管理了 `/proc/pid/clear_refs`, `/proc/pid/smaps`, `/proc/pid/pagemap`, `/proc/kpagecount`, `/proc/kpageflags` 多个接口. | v1 ☑ 2.6.25-rc1 | [PatchWork v4 0/12](https://lore.kernel.org/patchwork/cover/95279) |
 | 2018/12/26 | Fengguang Wu <fengguang.wu@intel.com> | [PMEM NUMA node and hotness accounting/migration](https://lore.kernel.org/patchwork/cover/1027864) | 尝试使用 NVDIMM/PMEM 作为易失性 NUMA 内存, 使其对普通应用程序和虚拟内存透明. 其中引入 `/proc/PID/idle_pages` 接口, 用于用户空间驱动的热点页面进行统计. 实现冷热页扫描, 以及页面回收路径下的被动内核冷页面迁移, 改进了用于活动用户空间热/冷页面迁移的move_pages() | RFC v2 ☐ 4.20 | PatchWork RFC,v2,00/21](https://lore.kernel.org/patchwork/cover/1027864), [LKML](https://lkml.org/lkml/2018/12/26/138), [github/intel/memory-optimizer](http://github.com/intel/memory-optimizer) |
 | 2021/03/18 | liubo <liubo254@huawei.com> | [etmem: swap and scan](https://gitee.com/openeuler/kernel/issues/I3W4XW) | openEuler 实现的内存分级扩展技术. | v1 ☐ 4.19 | [etmem tools](https://gitee.com/src-openeuler/etmem) |
-| 2021/07/20 | SeongJae Park <sjpark@amazon.com> | [Introduce DAMON-based Proactive Reclamation](https://lwn.net/Articles/863753) | 该补丁集改进了用于生产质量的通用数据访问模式内存管理的引擎, 并在其之上实现了主动回收. | v2 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/1438747)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1442732)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3](https://lore.kernel.org/patchwork/cover/1464866) |
+| 2021/10/19 | SeongJae Park <sjpark@amazon.com> | [Introduce DAMON-based Proactive Reclamation](https://lwn.net/Articles/863753) | 该补丁集改进了用于生产质量的通用数据访问模式内存管理的引擎, 并在其之上实现了主动回收. | v4 ☑ 5.16-rc1 | [PatchWork RFC,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/14](https://patchwork.kernel.org/project/linux-mm/patch/20210608115254.11930-15-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v3,00/15](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4 00/15](https://patchwork.kernel.org/project/linux-mm/cover/20211019150731.16699-1-sj@kernel.org) |
 
 
 ### 4.4.2 idle memory tracking
@@ -3326,6 +3326,9 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 1.  基于区域的抽样允许用户在监控质量和开销之间做出自己的权衡, 并限制监控开销的上限.
 
 2.  自适应区域调整机制使 DAMON 在保持用户配置的权衡的同时, 最大限度地提高精度, 减少开销.
+
+
+[DAMON-Based Memory Reclamation Merged For Linux 5.16](https://www.phoronix.com/scan.php?page=news_item&px=DAMON-Reclamation-Linux-5.16)
 
 作者 SeongJae Park
 > github :https://github.com/sjp38/linux   /

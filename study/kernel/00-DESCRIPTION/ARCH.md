@@ -118,6 +118,12 @@ Intel Alder Lake CPU 支持 AVX 512
 
 [Intel Core i9 12900K "Alder Lake" AVX-512 On Linux](https://www.phoronix.com/scan.php?page=article&item=alder-lake-avx512&num=1)
 
+编译器支持
+
+[Intel Updates Alder Lake Tuning For GCC, Reaffirms No Official AVX-512](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Alder-Lake-Tuning-GCC)
+
+调度器优化
+
 为了更好的发挥这种混合架构的优势, Intel 提供了一项名为 [Thread Director 的技术](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/2), 专利分析 [The Alder Lake hardware scheduler – A brief overview](https://coreteks.tech/articles/index.php/2021/07/02/the-alder-lake-hardware-scheduler-a-brief-overview/)
 
 1.  首席按通过机器学习算法对进程在 P-core/E-core 的性能和功耗进行分析和建模, 识别进程特征, 从而可以预测出不同类型进程或者进程某段时期在 P/E core 上的能效关系.
