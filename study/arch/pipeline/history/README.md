@@ -73,12 +73,14 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 　　译码，执行和退出三级流水线组成了 X86 处理器指令执行的基本模式。从最初的 8086 处理器到最新的酷睿 i7 处理器都基本遵循了这样的过程。虽然更新的处理器增加了更多的流水级，但基本的模式没有改变。
 
-# 4 35 年来发生了什么改变
+# 4 N 年来发生了什么改变
 -------
 
-
-## 4.1 微架构发展
--------
+> 在原文的基础上, 本节内容有更新。
+>
+> 因本人技术水平和知识面有限, 内容如有纰漏或者需要修正的地方, 欢迎大家指正。
+>
+> 再次感谢。
 
 　　相较于现今的标准，最初的处理器设计显得太过简单。最初的 8086 处理器的执行过程可以简述为从当前指令指针取得指令，通过译码，执行最后退出，然后继续从指令指针指向的下一条指令处取得指令。
 
@@ -107,64 +109,6 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 Intel 自酷睿处理器以来，奠定了超标量流水线架构的基本形态，这种形态经过 Sandy Bridge，Haswell，Skylake，IceLake 的不断发展，通过更深的缓冲区，更高的访存操作，更宽的SIMD执行能力，微指令缓存等手段，成为了几乎目前所有高性能处理器都有和将要有的形态。
 
-## 4.2 处理器微架构发展路线
--------
-
-### 4.2.1 Tick-Tock 战略
--------
-
-众所周知 Intel 之前有个著名的 [Tick-Tock 战略](https://www.intel.com/content/www/us/en/silicon-innovations/intel-tick-tock-model-general.html)，他指的是每年按照**工艺年-架构年**交替升级产品，持续在前代产品的基础上改进
-
-*   当在工艺年(tick)的时候重点是使用新的制程，小幅修改微架构。
-
-*   当在架构年(tock)的时候，将会推出较大改进的微架构，往往此时 ISA 也会扩展更多指令集，并且优化上年推出的制程，进一步改善功耗和良率，在已经取得成功的产品上持续改进，使得 Intel 始终保持对竞争对手的优势
-
-如果不出意外，产品节奏会是这样。
-
-![Tick-Tock 战略](./intel-tick-tock.jpg)
-
-
-不过不出意外怎么可能呢。但是计划永远赶不上变化。
-
-到 14nm 的时候，Tick-Tock 策略出现了危机，因为 Tick 工艺节点出现了较大的延迟，内部 14nm 的 Broadwell 推出时出现了一点偏差，外围又有 AMD 的紧追不舍， Intel 不得不出了 Haswell-refresh 来解燃眉之急，不过好在没有太大延迟，随着架构年的 Skylake 微架构的如期发布，也还算是赶上了一年一换代的节奏。
-
-
-### 4.2.2 Processor-Architecture-optimization 策略
--------
-
-不过事情远远没有那么简单。在 Skylake 发布之后，10nm 再一次难产，意识到工艺问题预远没有预期那么简单的牙膏厂，只能被迫将 Tick-Tock 战略彻底放弃。
-
-2016年3月22日，Intel在财务报告中宣布，Tick Tock将放缓至三年一循环，增加优化环节，进一步减缓实际更新的速度。至此改为三步走的 PAO(Processor-Architecture-optimization) 策略，即“制程-架构-优化”。
-
-
-*   制程：在架构不变的情况下，缩小晶体管体积，以减少功耗及成本
-
-*   架构：在制程不变的情况下，更新处理器架构，以提高性能
-
-*   优化：在制程及架构不变的情况下，对架构进行修复及优化，将BUG减到最低，并提升处理器时钟频率 [1]
-
-
-于是产品计划变成了这个摸样。
-
-![PAO 策略](./intel-PAO.jpg)
-
-CannonLake 如期作为第一代 10nm 出现，但是 10nm 的问题远比意料中的复杂，CannonLake 产品的发布再次难产，而且随着 AMD 堆核战略在 Ryzen 上取得成效，Intel 决定使用现有产品 14nm 堆核进行应对，这让 Cannonlake 变成了极其尴尬的产品，它将永远成为英特尔推动 10nm 至高无上的努力的障碍。实际仅推出了一款芯片 Core i3-8121U。产品干脆没有上市，实际产品情况变成了这样。
-
-![10nm 的危机](./intel-10nm.jpg)
-
-接着就是大家熟知的事情了:
-
-2019年发布基于微架构 Sunny Cove 的 10nm 处理器，也就是之前就被爆出来的 Ice Lake（注意这是处理器代号，而Sunny Cove则是CPU微架构代号），使用的是10nm工艺，提升了 IPC，增加了新的指令集。接下来是 2020 年 发布 Willow Cove，使用 14nm 工艺。
-
-> Willow Cove vs Cypress Cove
->
-> Rocket Lake 处理器用的内核 Cypress Cove，它应该是把 10nm 的 Willow Cove 改用14nm工艺生产所用的代号，但它并不完全等于 Willow Cove，应该是结合 14nm 工艺重新开发的。因此 Cypress Cove 相比于 Skylake 的IPC提升可能没 Willow Cove 的 25% 这么多，但是现在14nm工艺所能达到的频率比10nm更高，所以 Rocket Lake 的最高频率会比 Tiger Lake 的 4.7GHz 更高。
->
-> [https://www.techpowerup.com/268511/intel-willow-cove-backported-to-14nm-is-cypress-cove](https://www.techpowerup.com/268511/intel-willow-cove-backported-to-14nm-is-cypress-cove)
-
-而 2021 年发布了混合架构的 Alder Lake，同时包含 Golden Cove 微架构的大核和 Grace Mont 微架构的小核，至此以 Cove 架构作为高性能微架构以及 Mont 架构作为其他偏向能耗的处理器的微架构应该是后面几年的主旋律。
-
-![cove 和 mont 架构路线](./intel-cove-and-mont.jpg)
 
 # 5 CPU 指令流水线
 -------
