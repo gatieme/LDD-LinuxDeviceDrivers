@@ -37,6 +37,8 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 自顶向下的微架构分析方法(Top-Down Microarchitecture)
 
+Intel 的可以从 Intel OTC 的网站下载 [perfmon](https://download.01.org/perfmon), [TMA_Metrics.xlsx](https://download.01.org/perfmon/TMA_Metrics.xlsx)
+
 # 2 背景知识解析
 -------
 
@@ -163,7 +165,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | Level 3 | Push Branch | 函数调用. 比如 BL/BLR 等. | NA |
 | Level 3 | Pop Branch | 有返回值的跳转. 如函数返回等. | NA |
 | Level 3 | Other Branch | NA | NA |
-| Level 2 | Machine Clear |
+| Level 2 | Machine Clear | 当 CPU 检测到某些条件时, 便会触发 Machine Clears 操作, 清除流水线上的指令, 以保证 CPU 的合理正确运行. 比如<br>1. 发生错误的 Memory 访问顺序(memory ordering violations);<br>2. 自修改代码(self-modifying code);<br>3. 访问非法地址空间(load illegal address ranges) | NA |
 
 ## 3.4 Retring/正常执行
 -------
@@ -181,11 +183,15 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 编号 | 链接 | 描述 |
 |:---:|:----:|:---:|
 | 1 | [A Journey Through the CPU Pipeline](https://bryanwagstaff.com/index.php/a-journey-through-the-cpu-pipeline/) | 讲述了 CPU 流水线的前世今生(不断演进和完善), [翻译版本](https://kb.cnblogs.com/page/179578) |
-| 2 | [Top-down Microarchitecture Analysis Method](https://www.intel.com/content/www/us/en/develop/documentation/vtune-cookbook/top/methodologies/top-down-microarchitecture-analysis-method.html) |
+| 2 | [Top-down Microarchitecture Analysis Method](https://www.intel.com/content/www/us/en/develop/documentation/vtune-cookbook/top/methodologies/top-down-microarchitecture-analysis-method.html) | NA |
 | 3 | [A Top-Down method for performance analysis and counters architecture](https://www.researchgate.net/publication/269302126_A_Top-Down_method_for_performance_analysis_and_counters_architecture) | Intel 关于 topdown 分析方法的论文, 以及 [slide](https://pdfs.semanticscholar.org/b5e0/1ab1baa6640a39edfa06d556fabd882cdf64.pdf) |
-| 4 | [Intel P4 CPU](https://www.cnblogs.com/linhaostudy/p/9204107.html) | |
-| 5 | [The Berkeley Out-of-Order Machine (BOOM)](https://docs.boom-core.org/en/latest/sections/intro-overview/boom.html) | |
-| 6 | [Top-down Microarchitecture Analysis through Linux perf and toplev tools](http://www.cs.technion.ac.il/~erangi/TMA_using_Linux_perf__Ahmad_Yasin.pdf)
+| 4 | [Intel P4 CPU](https://www.cnblogs.com/linhaostudy/p/9204107.html) | NA |
+| 5 | [The Berkeley Out-of-Order Machine (BOOM)](https://docs.boom-core.org/en/latest/sections/intro-overview/boom.html) | NA |
+| 6 | [Top-down Microarchitecture Analysis through Linux perf and toplev tools](http://www.cs.technion.ac.il/~erangi/TMA_using_Linux_perf__Ahmad_Yasin.pdf) | NA |
+| 7 | [让CPU黑盒不再黑——【TMA_自顶向下的CPU架构性能瓶颈分析方法](https://www.zhihu.com/column/CArch)<br>[1. What & Why](https://zhuanlan.zhihu.com/p/60569271)<br>[2. How](https://zhuanlan.zhihu.com/p/60940902)<br>[3. Frontend](https://zhuanlan.zhihu.com/p/61015720)<br>[4. Speculation](https://zhuanlan.zhihu.com/p/64529137)<br>[5. Retiring](https://zhuanlan.zhihu.com/p/64576459) | NA |
+| 8 | [几句话说清楚13：什么是Top-Down性能分析方法](https://decodezp.github.io/2019/01/27/quickwords13-tma) | NA |
+| 9 | [Top-down性能分析模型](https://zhuanlan.zhihu.com/p/34688930) | NA |
+| 10 | [CPU最高性能预估之“理论最大IPC”](https://zhuanlan.zhihu.com/p/364661188) | NA |
 
 <br>
 
