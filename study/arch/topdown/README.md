@@ -181,16 +181,17 @@ sudo perf stat -M TopDownL1 sleeep 1
 | 层级 | 名称 | 描述 | 公式 |
 |:---:|:----:|:---:|:---:|
 | Level 1 | [Backend Bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L28) | 由于后端资源不足造成的流水线停顿的比率. | 1 - (frontend_bound + bad_speculation + retiring) |
-| Level 2 | [Core bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L63) | NA | (EXE_STALL_CYCLE - (MEM_STALL_ANYLOAD + armv8_pmuv3_0@event\\=0x7005@)) / CPU_CYCLES |
+| Level 2 | [Resource bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L70) | NA | RESOURE_BOUND / CPU_CYCLES |
 | Level 3 | [Sync stall](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L154) | NA | armv8_pmuv3_0@event\\=0x2010@ / CPU_CYCLES |
 | Level 3 | [Rob stall](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L161) | NA | armv8_pmuv3_0@event\\=0x2004@ / CPU_CYCLES |
 | Level 3 | [Ptag stall](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L168) | NA | (armv8_pmuv3_0@event\\=0x2006@ + armv8_pmuv3_0@event\\=0x2007@ + armv8_pmuv3_0@event\\=0x2008@) / CPU_CYCLES |
 | Level 3 | [SaveOpQ](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L175) | NA | armv8_pmuv3_0@event\\=0x201e@ / CPU_CYCLES |
 | Level 3 | [PC buffer stall](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L182) | NA | armv8_pmuv3_0@event\\=0x2005@ / CPU_CYCLES |
+| Level 2 | [Core bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L63) | 意味着计算单元不足或者程序指令级别缺乏并行度(流水线中计算单元不能被充分利用). 表明程序这段时间以来大量指令或者长期使用了相同的计算单元.<br>可以进一步细分为 Divider、 FSU stall 和 EXE ports util 等. | (EXE_STALL_CYCLE - (MEM_STALL_ANYLOAD + armv8_pmuv3_0@event\\=0x7005@)) / CPU_CYCLES |
 | Level 3 | [Divider](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L189) | NA | armv8_pmuv3_0@event\\=0x7002@ / CPU_CYCLES |
 | Level 3 | [FSU stall](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L196) | NA | armv8_pmuv3_0@event\\=0x7003@ / CPU_CYCLES |
 | Level 3 | [EXE ports util](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L203) | NA | core_bound - divider - fsu_stall |
-| Level 2 | [Memory bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L70) | NA | (MEM_STALL_ANYLOAD + armv8_pmuv3_0@event\\=0x7005@) / CPU_CYCLES |
+| Level 2 | [Memory bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L70) | 访存等待. 通常是因为存储子系统没法及时提供指令运行的所需的数据而造成的流水线阻塞. | (MEM_STALL_ANYLOAD + armv8_pmuv3_0@event\\=0x7005@) / CPU_CYCLES |
 | Level 3 | [L1 bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L210) | NA | (MEM_STALL_ANYLOAD - MEM_STALL_L1MISS) / CPU_CYCLES |
 | Level 3 | [L2 bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L217) | NA | (MEM_STALL_L1MISS - MEM_STALL_L2MISS) / CPU_CYCLES |
 | Level 3 | [Mem bound L3](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L224) | NA | MEM_STALL_L2MISS / CPU_CYCLES |
