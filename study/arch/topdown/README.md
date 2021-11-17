@@ -165,9 +165,11 @@ sudo perf stat -M TopDownL1 sleeep 1
 | 层级 | 名称 | 描述 | 公式 |
 |:---:|:----:|:---:|:---:|
 | Level 1 | [Frontend Bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L7) | 由于前端生成 uOps 给后端来执行. 通常包含从 icache 中取出指令, 并交给解码器解码出 uOps 给后端处理单元. 此外如果遇到分支指令可以能还需要通过分支预测器进行投机.<br>造成前阻塞的原因一般分为延迟和带宽两部分. |FETCH_BUBBLE / (4 * CPU_CYCLES) |
+| <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
 | Level 2 | [Fetch latency bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L33) | 预取延迟过长, 一般是指无法从 Icache 中取到足够的指令而导致的流水线前端阻塞.<br>引起预取延迟的原因可能有:<br>itlb miss, icache miss 以及 pipeline flush 等. | armv8_pmuv3_0@event\\=0x201d@ / CPU_CYCLES |
 | Level 3 | [idle_by_itlb_miss](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L77) | 因为 TLB Miss 导致的前端流水线停顿. | (((L2I_TLB - L2I_TLB_REFILL) * 15) + (L2I_TLB_REFILL * 100)) / CPU_CYCLES |
 | Level 3 | [idle_by_icache_miss](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L84) | 因为 Icache Miss 导致的前端流水线停顿. | (((L2I_CACHE - L2I_CACHE_REFILL) * 15) + (L2I_CACHE_REFILL * 100)) / CPU_CYCLES |
+| <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
 | Level 2 | [Fetch bandwidth bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L42) | 指令译码器带宽不足译码过慢造成流水线停顿. 译码单元是有限的, 当指令预取完毕后, 必须等之前的指令译码完成, 译码器空闲之后, 才能继续进行译码操作. 否则预取的指令只能等待, 因此造成了流水线阻塞. | frontend_bound - fetch_latency_bound |
 
 
@@ -181,16 +183,19 @@ sudo perf stat -M TopDownL1 sleeep 1
 | 层级 | 名称 | 描述 | 公式 |
 |:---:|:----:|:---:|:---:|
 | Level 1 | [Backend Bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L28) | 由于后端资源不足造成的流水线停顿的比率. | 1 - (frontend_bound + bad_speculation + retiring) |
+| <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
 | Level 2 | [Resource bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L70) | NA | RESOURE_BOUND / CPU_CYCLES |
 | Level 3 | [Sync stall](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L154) | NA | armv8_pmuv3_0@event\\=0x2010@ / CPU_CYCLES |
 | Level 3 | [Rob stall](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L161) | NA | armv8_pmuv3_0@event\\=0x2004@ / CPU_CYCLES |
 | Level 3 | [Ptag stall](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L168) | NA | (armv8_pmuv3_0@event\\=0x2006@ + armv8_pmuv3_0@event\\=0x2007@ + armv8_pmuv3_0@event\\=0x2008@) / CPU_CYCLES |
 | Level 3 | [SaveOpQ](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L175) | NA | armv8_pmuv3_0@event\\=0x201e@ / CPU_CYCLES |
 | Level 3 | [PC buffer stall](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L182) | NA | armv8_pmuv3_0@event\\=0x2005@ / CPU_CYCLES |
+| <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
 | Level 2 | [Core bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L63) | 意味着计算单元不足或者程序指令级别缺乏并行度(流水线中计算单元不能被充分利用). 表明程序这段时间以来大量指令或者长期使用了相同的计算单元.<br>可以进一步细分为 Divider、 FSU stall 和 EXE ports util 等. | (EXE_STALL_CYCLE - (MEM_STALL_ANYLOAD + armv8_pmuv3_0@event\\=0x7005@)) / CPU_CYCLES |
 | Level 3 | [Divider](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L189) | NA | armv8_pmuv3_0@event\\=0x7002@ / CPU_CYCLES |
 | Level 3 | [FSU stall](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L196) | NA | armv8_pmuv3_0@event\\=0x7003@ / CPU_CYCLES |
 | Level 3 | [EXE ports util](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L203) | NA | core_bound - divider - fsu_stall |
+| <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
 | Level 2 | [Memory bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L70) | 访存等待. 通常是因为存储子系统没法及时提供指令运行的所需的数据而造成的流水线阻塞. | (MEM_STALL_ANYLOAD + armv8_pmuv3_0@event\\=0x7005@) / CPU_CYCLES |
 | Level 3 | [L1 bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L210) | NA | (MEM_STALL_ANYLOAD - MEM_STALL_L1MISS) / CPU_CYCLES |
 | Level 3 | [L2 bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L217) | NA | (MEM_STALL_L1MISS - MEM_STALL_L2MISS) / CPU_CYCLES |
@@ -204,6 +209,7 @@ sudo perf stat -M TopDownL1 sleeep 1
 | 层级 | 名称 | 描述 | 公式 |
 |:---:|:----:|:---:|:---:|
 | Level 1 | [Bad Speculation](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L10) | 表示由于预测错误而浪费掉的 pipeline slots 的占比. 主要包括:<br>1. 触发了 Machine Clear 而浪费了 pipeline slots.<br>2. 分支预测错误(Branch Mispredict) 而浪费的 pipeline slots. | (INST_SPEC - INST_RETIRED) / (4 * CPU_CYCLES).<br>1. INST_SPEC: CPU 执行的指令的数目.<br>2. INST_RETIRED: CPU 执行的指令中正常退休的指令的数目. |
+| <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
 | Level 2 | [Branch Mispredict](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L49) | 当 CPU 遇到分支指令的时候, 为避免 pipeline stalls, 会进行投机执行. CPU 对分支指令的跳转方向和跳转目的地址进行预测, 然后投机执行预测出的路径, 对预测的分支进行取指和执行,  所有处于流水线中的这些分支预测路径上的指令都其实处于推测(speculative)状态, 但是并不是进行提交. 然后在流水线的后续阶段, 比如分支指令实际执行时, 会对之前分支预测的结果进行校验, 一旦发现预测失败, 则必须丢弃这个预测错误的分支上所有的指令及其执行结果, 并对流水线各部件的状态进行恢复. 最终重新从正确的分支进行取指. 这必然造成流水线资源的浪费. | (bad_speculation * BR_MIS_PRED) / (BR_MIS_PRED + armv8_pmuv3_0@event\\=0x2013@) |
 | Level 3 | [BP misp flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L91) | 错误的预测 | (BR_MIS_PRED * 5) / CPU_CYCLES |
 | Level 3 | [Static predictor flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L105) | NA | (armv8_pmuv3_0@event\\=0x1001@ * 5) / CPU_CYCLES |
@@ -212,6 +218,7 @@ sudo perf stat -M TopDownL1 sleeep 1
 | Level 3 | [Pop Branch](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L126) | 有返回值的跳转. 如函数返回等. | armv8_pmuv3_0@event\\=0x100c@ / BR_MIS_PRED |
 | Level 3 | [Other Branch](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L133) | 其他的跳转类型. | (BR_MIS_PRED - armv8_pmuv3_0@event\\=0x1010@ - armv8_pmuv3_0@event\\=0x1014@ - armv8_pmuv3_0@event\\=0x1018@ - armv8_pmuv3_0@event\\=0x100c@) / BR_MIS_PRED |
 | Level 3 | [Nuke flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L140) | NA | NA |
+| <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
 | Level 2 | [Machine Clears](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L56) | 当 CPU 检测到某些条件时, 便会触发 Machine Clears 操作, 清除流水线上的指令, 以保证 CPU 的合理正确运行. 比如<br>1. 发生错误的 Memory 访问顺序(memory ordering violations);<br>2. 自修改代码(self-modifying code);<br>3. 访问非法地址空间(load illegal address ranges) | bad_speculation - branch_mispredicts |
 | Level 3 | [OOO flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L98) | Machine Clears 导致的流水线冲刷. | (armv8_pmuv3_0@event\\=0x2013@ * 5) / CPU_CYCLES |
 | Level 3 | [Other flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L147) | NA | NA |
