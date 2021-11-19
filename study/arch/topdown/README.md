@@ -197,9 +197,9 @@ sudo perf stat -M TopDownL1 sleeep 1
 | Level 3 | [EXE ports util](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L203) | NA | core_bound - divider - fsu_stall |
 | <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
 | Level 2 | [Memory bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L70) | 访存等待. 通常是因为存储子系统没法及时提供指令运行的所需的数据而造成的流水线阻塞. | (MEM_STALL_ANYLOAD + armv8_pmuv3_0@event\\=0x7005@) / CPU_CYCLES |
-| Level 3 | [L1 bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L210) | NA | (MEM_STALL_ANYLOAD - MEM_STALL_L1MISS) / CPU_CYCLES |
-| Level 3 | [L2 bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L217) | NA | (MEM_STALL_L1MISS - MEM_STALL_L2MISS) / CPU_CYCLES |
-| Level 3 | [Mem bound L3](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L224) | NA | MEM_STALL_L2MISS / CPU_CYCLES |
+| Level 3 | [L1 bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L210) | 并不是指 L1 Miss 较多, 表示数据已经在 L1 Cache 中但是无法及时返回. 因为如果 L1 Miss 后, 一般会进一步从 L2/L3 甚至 Memory 中去读取, 压力会传递给下层存储单元.<br>出现这种情况的可能原因有: <br>1. load 的数据跟之前的指令(比如一个 store 指令)存在依赖, 那么它必须等待之前的 store 完成才可以执行.<br>2. L1D TLB miss 较多<br>这些情况即使 L1 Dcache 是 HIT 的, 延迟依旧会很大. | (MEM_STALL_ANYLOAD - MEM_STALL_L1MISS) / CPU_CYCLES |
+| Level 3 | [L2 bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L217) | 并不是 L2 Miss 较多造成的, 而是指数据已经在 L2 Cache 中但是无法及时返回. | (MEM_STALL_L1MISS - MEM_STALL_L2MISS) / CPU_CYCLES<br>*-*-*-*-*-*-*-* <br>(L1 Miss - L2 Miss)得到的就是数据不在 L1 Cache, 但是在 L2 Miss 的情况.<br>(MEM_STALL_L1MISS - MEM_STALL_L2MISS) 得到的就是数据在 L2 Cache 中但是阻塞的 cycles 数目. |
+| Level 3 | [Mem bound L3](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L224) | L2 Miss 后访问 L3 或者内存造成的阻塞. | MEM_STALL_L2MISS / CPU_CYCLES |
 | Level 3 | [Store bound L3](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L231) | NA | armv8_pmuv3_0@event\\=0x7005@ / CPU_CYCLES |
 
 
@@ -259,6 +259,12 @@ sudo perf stat -M TopDownL1 sleeep 1
 | 8 | [几句话说清楚13：什么是Top-Down性能分析方法](https://decodezp.github.io/2019/01/27/quickwords13-tma) | NA |
 | 9 | [Top-down性能分析模型](https://zhuanlan.zhihu.com/p/34688930) | NA |
 | 10 | [CPU最高性能预估之“理论最大IPC”](https://zhuanlan.zhihu.com/p/364661188) | NA |
+| 11 | [推荐Linux性能分析的一篇论文和两本书](https://blog.csdn.net/21cnbao/article/details/118124141) | NA |
+| 12 | [从上到下的系统架构分析方法 - Intel PMU](https://blog.csdn.net/juS3Ve/article/details/88802282) | NA |
+| 13 | [Intel CPU 上使用 pmu-tools 进行 TopDown 分析](https://blog.csdn.net/gatieme/article/details/113269052) | NA |
+| 14 | [Intel® 64 and IA-32 Architectures Optimization Reference Manual](https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-optimization-manual.pdf) | NA |
+| 15 | [《A Top-Down Method for Performance Analysis and Counters Architecture》阅读笔记](https://andrewei1316.github.io/2020/12/20/top-down-performance-analysis) | NA |
+| 16 | [鲲鹏BoostKit HPC使能套件-调优指南-Top-Down模型分析调优](https://support.huaweicloud.com/tngg-kunpenghpcs/kunpenghpcsolution_05_0030.html) | NA |
 
 <br>
 
