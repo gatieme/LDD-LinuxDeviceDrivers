@@ -62,6 +62,10 @@ blogexcerpt: FZF 是目前最快的模糊搜索工具. 使用golang编写. 结�
 
 [Linux 内核的栈回溯与妙用](https://blog.csdn.net/qq_40732350/article/details/83649888)
 
+[Stack unwinding](https://zhuanlan.zhihu.com/p/280929169)
+
+[CPU Architectures » x86-specific Documentation » 9. ORC unwinderView page source](https://www.kernel.org/doc/html/latest/x86/orc-unwinder.html)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/11/23 | Shile Zhang <shile.zhang@linux.alibaba.com> | [Speed booting by sorting ORC unwind tables at build time](https://lore.kernel.org/patchwork/cover/1162315) | ORC unwind有两个表, .orc_unwind_ip和.orc_unwind 二分搜索需要排序. 在构建时对其进行排序可以节省更多CPU周期有助于加快内核引导. 添加ORC表排序在一个独立的线程有助于避免更多的链接. | RFC v6 ☐ | [PatchWork v6](https://lore.kernel.org/patchwork/cover/1162315) |
