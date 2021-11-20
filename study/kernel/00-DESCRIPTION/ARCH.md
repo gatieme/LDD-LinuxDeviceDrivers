@@ -104,6 +104,8 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 | 2021/04/05  | Kan Liang <kan.liang@linux.intel.com> | [Add Alder Lake support for perf (kernel)](https://lkml.org/lkml/2021/4/5/775) | perf 支持 Hybrid CPU(内核态). | v1 ☑ 5.13-rc1 | [LKML V5 00/25](https://lkml.org/lkml/2021/4/5/775), [LKML V3 00/25](https://lkml.org/lkml/2021/3/26/964) |
 | 2021/04/23  | Kan Liang <kan.liang@linux.intel.com> | [perf tool: AlderLake hybrid support series 1](https://lkml.org/lkml/2021/4/23/52) | perf 支持 Hybrid CPU(内核态). | v1 ☑ 5.13-rc1 | [LKML v5 00/26](https://lkml.org/lkml/2021/4/23/52) |
 | 2021/05/27  | Kan Liang <kan.liang@linux.intel.com> | [perf: Support perf-mem/perf-c2c for AlderLake](https://lkml.org/lkml/2021/4/5/775) | perf 支持 Hybrid CPU(内核态). | v2 ☑ 5.14-rc1 | [LKML v1 0/8](https://lkml.org/lkml/2021/4/5/775), [LKML v2 0/8](https://lkml.org/lkml/2021/5/27/191) |
+| 2021/11/19  | Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com> | [cpufreq: intel_pstate: ITMT support for overclocked system
+](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Patch-ITMT-OC-ADL) | Intel ITMT (Intel Turbo Boost Max Technology) 感知混合架构, Alder Lake CPU 上 P-Core/E-core 优先级应该有不同的值(P-core 0x40, P-core HT sibling 0x10, E-core 0x26). | v1 ☐ | [Patchwork](https://patchwork.kernel.org/project/linux-pm/patch/20211119051801.1432724-1-srinivas.pandruvada@linux.intel.com) |
 
 
 性能评测
@@ -147,7 +149,7 @@ Intel Alder Lake CPU 支持 AVX 512
 
 
 2013 年, Intel 推出 SGX(software guard extensions) 指令集扩展, 能创造出一个可信执行环境来保护代码和数据, 即使 root 权限也无法访问. 这样应用程序可以使用它来隔离代码和数据的特定可信区域, 防止底层OS被 compromise 以后对自己的攻击,
-同时在软件的管理上也可以不用信任云供应商. 比较符合当前要解决的云计算安全问题，比如给安全敏感服务存放密钥等。
+同时在软件的管理上也可以不用信任云供应商. 比较符合当前要解决的云计算安全问题, 比如给安全敏感服务存放密钥等.
 
 SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安全状态, 提供用户空间的可信执行环境, 通过一组新的指令集扩展与访问控制机制, 实现不同程序间的隔离运行, 保障用户关键代码和数据的机密性与完整性不受恶意软件的破坏.
 
@@ -316,7 +318,31 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | 2021/08/30 | Anup Patel <anup.patel@wdc.com> | [Linux RISC-V ACLINT Support](https://patchwork.kernel.org/project/linux-riscv/cover/20210830041729.237252-1-anup.patel@wdc.com) | RISC-V高级核心本地中断(Advacned Core Local Interruptor-ACLINT) 支持 | v3 ☐ | [Patchwork RFC,v3,00/11](https://patchwork.kernel.org/project/linux-riscv/cover/20210610052221.39958-1-anup.patel@wdc.com) |
 
 
-# 4 benchmark
+# 4 CPU 漏洞
+-------
+
+## 4.1 Straight Line Speculation
+-------
+
+Google 的 SafeSide 小组发现 ARM CPU 存在新的投机执行漏洞, 可导致侧信道攻击. 研究人员在 Armv8-A(Cortex-A) CPU 体系结构中发现了一个名为直线推测( Straight-Line Speculation , SLS) 的新漏洞, 被追踪为 [CVE-2020-13844](https://nvd.nist.gov/vuln/detail/CVE-2020-13844). 该漏洞可导致攻击者对 ARM 架构处理器进行侧边信道攻击(SCA).
+
+让目标处理器通过预先访问数据来提升性能, 然后再扔掉所有使用过的计算分支(computational branches), 而 SLS 则通过类似的侧道攻击就能让黑客从处理器直接获得(窃取)重要数据.
+
+SLS 被认为是 Spectre 漏洞的变体, 但二者的攻击范围略有不同, SLS 漏洞仅影响 Arm Armv-A 处理器, 而 Spectre 漏洞影响所有主要芯片制造商的 CPU. 到目前为止, 该漏洞还没有在野利用.
+
+[Arm CPUs Hit By Straight Line Speculation Vulnerability, LLVM Adds Initial Mitigation](https://www.phoronix.com/scan.php?page=news_item&px=Arm-Straight-Line-Speculation)
+
+很快在 [GCC](https://gcc.gnu.org/pipermail/gcc-patches/2020-June/547520.html) 和 [LLVM](https://reviews.llvm.org/rG9c895aea118a2f50ca8413372363c3ff6ecc21bf) 编译器中推出了针对 SLS 的保障措施, 通过在易受 SLS 影响的指令周围插入投机障碍(SB)指令或其他 DSB + ISB 指令来减少直线预测.
+
+[LLVM Adds Additional Protections For Arm's SLS Speculation Vulnerability Mitigation](https://www.phoronix.com/scan.php?page=news_item&px=Arm-SLS-More-In-LLVM)
+
+11 月 17 日, 将 x86/x86_64 的 SLS 缓解选项 -mharden-SLS 合并到 GCC 12 Git 上，预计不久将推出内核补丁，将 -mharden-SLS 缓解选项作为对 x86 cpu 最新的安全保护. 这个选项包括 none、all、return 或 indirect-branch 四个值, x86/x86_64 架构上的原理是通过在函数返回和间接分支之后添加 INT3 断点指令, 来减少函数返回和间接分支的直线推测(SLS). 参见 [Linux + GCC/Clang Patches Coming For Straight-Line Speculation Mitigation On x86/x86_64](https://www.phoronix.com/scan.php?page=news_item&px=Straight-Line-Speculation-x86).
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/06/10 | Anup Patel <anup.patel@wdc.com> | [ARM: Implement Clang's SLS mitigation](https://patchwork.kernel.org/project/linux-security-module/patch/20210212051500.943179-1-jiancai@google.com) | RISC-V高级核心本地中断(Advacned Core Local Interruptor-ACLINT) 支持 | v8 ☐ | [2021/06/10Patchwork v7,0/8](https://patchwork.kernel.org/project/linux-riscv/cover/20210830041729.237252-1-anup.patel@wdc.com)<br>*-*-*-*-*-*-*-*<br>[LWN v8, 0/8](https://lwn.net/Articles/872513) |
+
+# 5 benchmark
 -------
 
 
@@ -329,7 +355,6 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 [Linux Benchmark Suite Homepage](http://lbs.sourceforge.net)
 
 
-相关的文章介绍: [47].
 
 
 

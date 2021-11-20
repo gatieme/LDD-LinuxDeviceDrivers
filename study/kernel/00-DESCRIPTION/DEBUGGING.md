@@ -391,7 +391,6 @@ facebook 在 LPC-2021 公布了其[最新基于 BOLT 优化 Linux 内核的进�
 
 BOLT 代码在 [github 开源](https://github.com/facebookincubator/BOLT).
 
-
 ## 13.2 Shrinking the kernel
 -------
 
@@ -444,6 +443,7 @@ task_struct 是一种在利用漏洞时特别敏感且经常被滥用的结构, 
 | 2017/11/09 | Sandipan Das <sandipan@linux.vnet.ibm.com> | [compiler, clang: handle randomizable anonymous structs](https://lists.archive.carbon60.com/linux/kernel/2848189) | 为 clang 支持处理 randomized_struct_fields_start 和 randomized_struct_fields_end 标记 | v1 ☑ 4.15-rc1 | [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4ca59b14e588f873795a11cdc77a25c686a29d2) |
 
 
+
 # 14 FTRACE
 -------
 
@@ -479,16 +479,6 @@ task_struct 是一种在利用漏洞时特别敏感且经常被滥用的结构, 
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/10 | Masami Hiramatsu <mhiramat@kernel.org> | [tracing/boot: Add histogram syntax support in boot-time tracing](https://patchwork.kernel.org/project/linux-trace-devel/patch/162936876189.187130.17558311387542061930.stgit@devnote2) | 为 boot-time tracing  添加 Histogram 选项, 目前, 引导时跟踪仅支持设置触发器动作的每事件动作. 对于像 traceon, traceoff, snapshot 等动作来说, 这足够了. 然而, 对于 hist 触发器操作来说, 这并不好, 因为它通常太长了, 无法将其写入单个字符串, 特别是如果它有 onmatch 操作时. | v1 ☑ 5.15-rc1 | [Patchwork](https://lore.kernel.org/all/162856122550.203126.17607127017097781682.stgit@devnote2) |
 
-
-# 15 与性能有关系的补丁
--------
-
-关注与那些引起了一些场景, benchmark 发现的引起性能劣化和优化的补丁
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/06/01 | Shaokun Zhang <zhangshaokun@hisilicon.com> | [fs: Optimized file struct to improve performance](https://patchwork.kernel.org/project/linux-fsdevel/patch%20/1622513557-46189-1-git-send-email-zhangshaokun@hisilicon.com) | 通过调整 struct file 中各字段的布局来提升性能. 在系统调用过程中, 经常使用 struct file 结构体中 `f_count`和 `f_mod` 两个[字段](https://patchwork.kernel.org/project/linux-fsdevel/patch/1592987548-8653-1-git-send-email-zhangshaokun@hisilicon.com), 如果我们将它们放在一起, 将能有效地共享同一 cache line, 这对性能非常有用. intel 0-day CI 工程发现该补丁可以提升 UnixBench System Call Overhead 子项的性能, 参见 [aec499039e: unixbench.score 19.2% improvement](https://lkml.org/lkml/2021/4/20/28). | v1 ☐ | [2021/04/09 Patchwork RESEND](https://patchwork.kernel.org/project/linux-fsdevel/patch/1617940057-52843-1-git-send-email-zhangshaokun@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[2021/06/01 Patchwork RESEND](https://patchwork.kernel.org/project/linux-fsdevel/patch%20/1622513557-46189-1-git-send-email-zhangshaokun@hisilicon.com) |
 
 
 
