@@ -164,7 +164,7 @@ sudo perf stat -M TopDownL1 sleeep 1
 
 | 层级 | 名称 | 描述 | 公式 |
 |:---:|:----:|:---:|:---:|
-| Level 1 | [Frontend Bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L7) | 由于前端生成 uOps 给后端来执行. 通常包含从 icache 中取出指令, 并交给解码器解码出 uOps 给后端处理单元. 此外如果遇到分支指令可以能还需要通过分支预测器进行投机.<br>造成前阻塞的原因一般分为延迟和带宽两部分. |FETCH_BUBBLE / (4 * CPU_CYCLES) |
+| Level 1 | [Frontend Bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L7) | 由于前端生成 uOps 给后端来执行. 通常包含从 icache 中取出指令, 并交给解码器解码出 uOps 给后端处理单元. 此外如果遇到分支指令可以能还需要通过分支预测器进行投机.<br>造成前阻塞的原因一般分为延迟和带宽两部分. | FETCH_BUBBLE / (4 * CPU_CYCLES) |
 | <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
 | Level 2 | [Fetch latency bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L33) | 预取延迟过长, 一般是指无法从 Icache 中取到足够的指令而导致的流水线前端阻塞.<br>引起预取延迟的原因可能有:<br>itlb miss, icache miss 以及 pipeline flush 等. | armv8_pmuv3_0@event\\=0x201d@ / CPU_CYCLES |
 | Level 3 | [idle_by_itlb_miss](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L77) | 因为 TLB Miss 导致的前端流水线停顿. | (((L2I_TLB - L2I_TLB_REFILL) * 15) + (L2I_TLB_REFILL * 100)) / CPU_CYCLES |
@@ -175,7 +175,8 @@ sudo perf stat -M TopDownL1 sleeep 1
 
 | 事件 | 编号 | 描述 |
 |:---:|:---:|:---:|
-| FETCH_BUBBLE | 0x2014 | 在后端仍有足够的资源(没有 Stall)的情况下, 前端出现 Stall 的次数. |
+| FETCH_BUBBLE | 0x2014 | 在后端仍有足够的资源(没有 Stall)的情况下, 前端出现 Stall 的次数(IFU 没有将解码的 uOps 送给后端部件). |
+| NA | 0x201d | NA |
 
 ## 3.2 Back-end Bound/后端阻塞
 -------
@@ -196,12 +197,19 @@ sudo perf stat -M TopDownL1 sleeep 1
 | Level 3 | [FSU stall](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L196) | NA | armv8_pmuv3_0@event\\=0x7003@ / CPU_CYCLES |
 | Level 3 | [EXE ports util](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L203) | NA | core_bound - divider - fsu_stall |
 | <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
-| Level 2 | [Memory bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L70) | 访存等待. 通常是因为存储子系统没法及时提供指令运行的所需的数据而造成的流水线阻塞. | (MEM_STALL_ANYLOAD + armv8_pmuv3_0@event\\=0x7005@) / CPU_CYCLES |
+| Level 2 | [Memory bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L70) | 访存等待. 通常是因为存储子系统没法及时提供指令运行的所需的数据而造成的流水线阻塞. | (MEM_STALL_ANYLOAD + MEM_STALL_ANYSTORE) / CPU_CYCLES |
 | Level 3 | [L1 bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L210) | 并不是指 L1 Miss 较多, 表示数据已经在 L1 Cache 中但是无法及时返回. 因为如果 L1 Miss 后, 一般会进一步从 L2/L3 甚至 Memory 中去读取, 压力会传递给下层存储单元.<br>出现这种情况的可能原因有: <br>1. load 的数据跟之前的指令(比如一个 store 指令)存在依赖, 那么它必须等待之前的 store 完成才可以执行.<br>2. L1D TLB miss 较多<br>这些情况即使 L1 Dcache 是 HIT 的, 延迟依旧会很大. | (MEM_STALL_ANYLOAD - MEM_STALL_L1MISS) / CPU_CYCLES |
 | Level 3 | [L2 bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L217) | 并不是 L2 Miss 较多造成的, 而是指数据已经在 L2 Cache 中但是无法及时返回. | (MEM_STALL_L1MISS - MEM_STALL_L2MISS) / CPU_CYCLES<br>*-*-*-*-*-*-*-* <br>(L1 Miss - L2 Miss)得到的就是数据不在 L1 Cache, 但是在 L2 Miss 的情况.<br>(MEM_STALL_L1MISS - MEM_STALL_L2MISS) 得到的就是数据在 L2 Cache 中但是阻塞的 cycles 数目. |
 | Level 3 | [Mem bound L3](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L224) | L2 Miss 后访问 L3 或者内存造成的阻塞. | MEM_STALL_L2MISS / CPU_CYCLES |
-| Level 3 | [Store bound L3](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L231) | NA | armv8_pmuv3_0@event\\=0x7005@ / CPU_CYCLES |
+| Level 3 | [Store bound L3](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L231) | NA | MEM_STALL_ANYSTORE / CPU_CYCLES |
 
+
+| 事件 | 编号 | 描述 |
+|:---:|:---:|:---:|
+| [MEM_STALL_ANYLOAD](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/core-imp-def.json#L107)  | 0x7004 | 因为 load 指令造成阻塞的 cycles 数目 |
+| MEM_STALL_ANYSTORE | 0x7005 | 因为 store 指令造成阻塞的 cycles 数目(内核 perf 代码 json 文件中未标记此事件, 因此是我自己起的名字). |
+| [MEM_STALL_L1MISS](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/core-imp-def.json#L113) | 0x7006 | 因为 L1 Cache Miss, load 指令不得不等待数据重填(refill) 而造成的阻塞. |
+| [MEM_STALL_L2MISS](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/core-imp-def.json#L119) | 0x7007 | 因为 L2 Cache Miss(此时 L1 必然也 Miss), load 指令不得不等待数据重填(refill) 而造成的阻塞. |
 
 ## 3.3 Bad Speculation/投机错误
 -------
