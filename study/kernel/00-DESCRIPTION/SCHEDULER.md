@@ -407,16 +407,36 @@ linux 调度器定义了多个调度类, 不同调度类的调度优先级不同
 
 从这组补丁可以看出来, 调度器中的算法和数据结构对性能简直到了吹毛求疵的地步, 这里也不得不佩服社区调度和性能大神的脑洞和技术能力.
 
-### 1.5.3 SMT 适配与优化
+### 1.5.3 ASYM_PACKING
 -------
 
-早期调度器上 SMT 的优化, 主要集中在 POWERPC.
+非对称 SMT 封装(SD_ASYM_PCAKING), 最早由 POWER7 在支持 SMT4 时引入了内核.
+
+后来在对 Intel ITMT 技术以及 Alder Lake 等混合架构的 CPU 进行支持的过程中, 不断地对 ASYM_PACKING 进行优化.
+
+其大致思想是通过设置调度域域内不同 CPU 的优先级, 从而使得调度器在为进程选择 CPU(select_task_rq) 时, 按照优先级从高到低的顺序来选择 CPU. 主要使用场景如下:
+
+1.  POWERPC4 等 SMT4 的 CPU 支持动态 SMT 模式, lower SMT 模式因为 CPU 之间共享资源更少(独享的资源更多), 因此性能会更好. 这样进程负载不大的时候, 倾向于使用 lower SMT 模式可以获得更好的性能.
+
+2.  ITMT 技术将 CPU package 中的某些 CPU 提升到更高的 Turbo 频率, 可以获得更好的性能, 这样倾向于将进程打包到 Turbo 的 CPU 上, 也可以获得更好的性能.
+
+3.  Alder Lake 等混合架构的 CPU, P-core 支持 SMT, E-core 不支持 SMT. 这样 CPU 的选择顺序应该倾向于 P-core(ST) > E-core > p-core(SMT).
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2010/06/08 | Michael Neuling | [sched: asymmetrical packing for POWER7 SMT4](https://lore.kernel.org/patchwork/cover/202834) | 这个补丁集实现了非对称 SMT 封装(SD_ASYM_PCAKING), 在任务负载小的时候, 将进程都打包在 SMT 域内的某一个 CPU 上, 从而确保在 POWER7 上始终保持良好的性能. 如果没有这个系列, 在 POWER7 上, 任务的性能将有大约 +/-30% 的抖动. | v2 ☐ |[PatchWork RFC](https://lore.kernel.org/patchwork/cover/1408312)) |
-| 2016/11/01 | Ricardo Neri | [Support Intel® Turbo Boost Max Technology 3.0](https://lore.kernel.org/patchwork/cover/722406) | 支持 Intel 超频 | RFC ☑ 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/722406) |
-| 2021/09/10 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://lore.kernel.org/patchwork/cover/1428441) | 修复 ASYM_PACKING 和 load_balance 的冲突. | v5 ☑ 5.16-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1408312)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1413015)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3 0/6](https://lore.kernel.org/patchwork/cover/1428441)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,0/6](https://lore.kernel.org/patchwork/cover/1474500)<br>*-*-*-*-*-*-*-* <br>[LKML v5,0/6](https://lkml.org/lkml/2021/9/10/913), [LORE v5,0/6](https://lore.kernel.org/all/20210911011819.12184-1-ricardo.neri-calderon@linux.intel.com) |
+| 2010/6/8 | Michael Neuling <mikey@neuling.org> | [sched: asymmetrical packing for POWER7 SMT4](https://lkml.org/lkml/2010/6/8/6) | POWER7 是 SMT4, 并且支持动态 SMT 模式切换, 为内核调度器带来了挑战.<br>1. 首先是[对 CPU power 和 capacity 的处理](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9d5efe05eb0c904545a28b19c18b949f23334de0), 如果简单的认为每个 CPU power 为 total/4, 则值很小, 极容易被调度器认为 CPU capacity 为 0, 无法再容纳新的进程, 从而导致进程在核间来回跳跃.<br>2. POWER7 硬件动态 SMT 模式切换, 但是只有当更高编号的 CPU thread 处于空闲状态时, 它才能转移到 lower SMT 模式(比如从 SMT4 切换到 SMT2/SMT1). 在 lower SMT 模式下, 进程的性能会更好, 因为它们共享的核心资源更少. 为了解决 SMT4 上线程性能下降的问题, 倾向于将进程打包运行在编号小的 CPU 上. 通过 check_asym_packing() 来检查是否需要主动进行打包. 并增加了 [SD_ASYM_PACKING](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=532cb4c401e225b084c14d6bd6a2f8ee561de2f1) 标志, 从而可以以在任何调度域级别启用该特性. 当前[只在 SMT 域级别开启](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=76cbd8a8f8b0dddbff89a6708bd5bd13c0d21a00). | v1 ☑ 2.6.36-rc1 | [PatchWork 0/3](https://patchwork.ozlabs.org/project/linuxppc-dev/patch/20100608045702.2936CCC897@localhost.localdomain) |
+| 2016/11/11 | Tim Chen <tim.c.chen@linux.intel.com> | [Support Intel Turbo Boost Max Technology 3.0](https://lore.kernel.org/all/cover.1479844244.git.tim.c.chen@linux.intel.com) | 支持 [Intel Turbo Boost Max Technology 3.0 (ITMT)](http://www.intel.com/content/www/us/en/architecture-and-technology/turbo-boost/turbo-boost-max-technology.html) 技术, 通过 ITMT 技术硬件可以将 package 中的某些 CPU 提升到更高的 Turbo 频率, 调度器通过对非对称打包(ASYM_PACKING)功能进行扩展, 将关键任务等移动到 Turbo 的 CPU, 从而提升性能. | v8 ☑ 4.10-rc1 | [PatchWork v8,0/8](https://lore.kernel.org/all/cover.1479844244.git.tim.c.chen@linux.intel.com) |
+| 2016/04/06 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [sched/fair: Fix asym packing to select correct cpu](https://lore.kernel.org/all/1459948660-16073-1-git-send-email-srikar@linux.vnet.ibm.com) | NA | v2 ☑ 4.7-rc1 | [PatchWork v2](https://lore.kernel.org/all/1459948660-16073-1-git-send-email-srikar@linux.vnet.ibm.com) |
+| 2016/12/29 | Peter Oskolkov <posk@google.com> | [sched/x86: Change CONFIG_SCHED_ITMT to CONFIG_SCHED_MC_PRIO](https://lore.kernel.org/all/2b2ee29d93e3f162922d72d0165a1405864fbb23.1480444902.git.tim.c.chen@linux.intel.com) | 将 ITMT 的 CONFIG_SCHED_ITMT 更新为 CONFIG_SCHED_MC_PRIO, 这使得该配置在将来可以扩展到希望在调度器中类似地建立 CPU 核心优先级支持的其他体系结构. | v1 ☑ 4.10-rc1 | [PatchWork](https://lore.kernel.org/all/2b2ee29d93e3f162922d72d0165a1405864fbb23.1480444902.git.tim.c.chen@linux.intel.com) |
+| 2019/1/17 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: some fixes for asym_packing](https://lkml.org/lkml/2019/1/17/658) | NA | v2 ☑ 5.1-rc1 | [LKML v3,0/3](https://lkml.org/lkml/2018/12/20/616), [PatchWork v3,0/3](https://lore.kernel.org/all/1545292547-18770-1-git-send-email-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[LKML v4,0/3](https://lkml.org/lkml/2019/1/17/658) |
+| 2021/09/10 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://lore.kernel.org/patchwork/cover/1428441) | 在使用非对称封装(ASM_PACKING)时, 可能存在具有三个优先级的 CPU 拓扑, 其中只有物理核心的子集支持 SMT. 这种架构下 ASM_PACKING 和 SMT 以及 load_balance 都存在冲突.<br>这种拓扑的一个实例是 Intel Alder Lake. 在 Alder Lake 上, 应该通过首先选择 Core(酷睿) cpu, 然后选择 Atoms, 最后再选择 Core 的 SMT 兄弟 cpu 来分散工作. 然而, 当前负载均衡器的行为与使用 ASYM_PACKING 时描述的不一致. 负载平衡器将选择高优先级的 CPU (Intel Core) 而不是中优先级的 CPU (Intel Atom), 然后将负载溢出到低优先级的 SMT 同级 CPU. 这使得中等优先级的 Atoms cpu 空闲, 而低优先级的 cpu sibling 繁忙.<br>1. 首先改善了 SMT 中 sibling cpu 优先级的计算方式, 它将比单个 core 优先级更低.<br>2. 当决定目标 CPU 是否可以从最繁忙的 CPU 提取任务时, 还检查执行负载平衡的 CPU 和最繁忙的候选组的 SMT 同级 CPU 的空闲状态. | v5 ☑ 5.16-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1408312)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1413015)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3 0/6](https://lore.kernel.org/patchwork/cover/1428441)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,0/6](https://lore.kernel.org/patchwork/cover/1474500)<br>*-*-*-*-*-*-*-* <br>[LKML v5,0/6](https://lkml.org/lkml/2021/9/10/913), [LORE v5,0/6](https://lore.kernel.org/all/20210911011819.12184-1-ricardo.neri-calderon@linux.intel.com) |
+
+
+### 1.5.4 SMT
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2011/12/15 | Peter Zijlstra <peterz@infradead.org> | [sched: Avoid SMT siblings in select_idle_sibling() if possible](https://lore.kernel.org/patchwork/cover/274702) | 如果有共享缓存的空闲核心, 避免 select_idle_sibling() 选择兄弟线程. | v1 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/274702) |
 
 
@@ -1588,16 +1608,6 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 | 2021/09/15 | Roman Gushchin <guro@fb.com> | [Scheduler BPF](https://www.phoronix.com/scan.php?page=news_item&px=Linux-BPF-Scheduler) | NA | RFC ☐ | [PatchWork rfc,0/6](https://patchwork.kernel.org/project/netdevbpf/cover/20210916162451.709260-1-guro@fb.com)<br>*-*-*-*-*-*-*-* <br>[LPC 2021](https://linuxplumbersconf.org/event/11/contributions/954)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2021/9/16/1049), [LWN](https://lwn.net/Articles/869433), [LWN](https://lwn.net/Articles/873244) |
 
 
-## 9.3 ASYM_PACKING
--------
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2010/6/8 | Michael Neuling <mikey@neuling.org> | [sched: asymmetrical packing for POWER7 SMT4](https://lkml.org/lkml/2010/6/8/6) | POWER7 是 SMT4, 并且支持动态 SMT 模式切换, 为内核调度器带来了挑战.<br>1. 首先是[对 CPU power 和 capacity 的处理](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9d5efe05eb0c904545a28b19c18b949f23334de0), 如果简单的认为每个 CPU power 为 total/4, 则值很小, 极容易被调度器认为 CPU capacity 为 0, 无法再容纳新的进程, 从而导致进程在核间来回跳跃.<br>2. POWER7 硬件动态 SMT 模式切换, 但是只有当更高编号的 CPU thread 处于空闲状态时, 它才能转移到 lower SMT 模式(比如从 SMT4 切换到 SMT2/SMT1). 在 lower SMT 模式下, 进程的性能会更好, 因为它们共享的核心资源更少. 为了解决 SMT4 上线程性能下降的问题, 倾向于将进程打包运行在编号小的 CPU 上. 通过 check_asym_packing() 来检查是否需要主动进行打包. 并增加了 [SD_ASYM_PACKING](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=532cb4c401e225b084c14d6bd6a2f8ee561de2f1) 标志, 从而可以以在任何调度域级别启用该特性. 当前[只在 SMT 域级别开启](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=76cbd8a8f8b0dddbff89a6708bd5bd13c0d21a00). | v1 ☑ 2.6.36-rc1 | [PatchWork 0/3](https://patchwork.ozlabs.org/project/linuxppc-dev/patch/20100608045702.2936CCC897@localhost.localdomain) |
-| 2016/11/11 | Tim Chen <tim.c.chen@linux.intel.com> | [Support Intel Turbo Boost Max Technology 3.0](https://lore.kernel.org/all/cover.1479844244.git.tim.c.chen@linux.intel.com) | 支持 [Intel Turbo Boost Max Technology 3.0 (ITMT)](http://www.intel.com/content/www/us/en/architecture-and-technology/turbo-boost/turbo-boost-max-technology.html) 技术, 通过 ITMT 技术硬件可以将 package 中的某些 CPU 提升到更高的 Turbo 频率, 调度器通过对非对称打包(ASYM_PACKING)功能进行扩展, 将关键任务等移动到 Turbo 的 CPU, 从而提升性能. | v8 ☑ 4.10-rc1 | [PatchWork v8,0/8](https://lore.kernel.org/all/cover.1479844244.git.tim.c.chen@linux.intel.com) |
-| 2021/11/26 | Peter Oskolkov <posk@google.com> | [sched/x86: Change CONFIG_SCHED_ITMT to CONFIG_SCHED_MC_PRIO](https://lore.kernel.org/all/2b2ee29d93e3f162922d72d0165a1405864fbb23.1480444902.git.tim.c.chen@linux.intel.com) | 将 ITMT 的 CONFIG_SCHED_ITMT 更新为 CONFIG_SCHED_MC_PRIO, 这使得该配置在将来可以扩展到希望在调度器中类似地建立 CPU 核心优先级支持的其他体系结构. | v1 ☑ 4.10-rc1 | [PatchWork](https://lore.kernel.org/all/2b2ee29d93e3f162922d72d0165a1405864fbb23.1480444902.git.tim.c.chen@linux.intel.com) |
-| 2021/09/10 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://lore.kernel.org/patchwork/cover/1428441) | 在使用非对称封装(ASM_PACKING)时, 可能存在具有三个优先级的 CPU 拓扑, 其中只有物理核心的子集支持 SMT. 这种架构下 ASM_PACKING 和 SMT 以及 load_balance 都存在冲突.<br>这种拓扑的一个实例是 Intel Alder Lake. 在 Alder Lake 上, 应该通过首先选择 Core(酷睿) cpu, 然后选择 Atoms, 最后再选择 Core 的 SMT 兄弟 cpu 来分散工作. 然而, 当前负载均衡器的行为与使用 ASYM_PACKING 时描述的不一致. 负载平衡器将选择高优先级的 CPU (Intel Core) 而不是中优先级的 CPU (Intel Atom), 然后将负载溢出到低优先级的 SMT 同级 CPU. 这使得中等优先级的 Atoms cpu 空闲, 而低优先级的 cpu sibling 繁忙.<br>1. 首先改善了 SMT 中 sibling cpu 优先级的计算方式, 它将比单个 core 优先级更低.<br>2. 当决定目标 CPU 是否可以从最繁忙的 CPU 提取任务时, 还检查执行负载平衡的 CPU 和最繁忙的候选组的 SMT 同级 CPU 的空闲状态. | v5 ☑ 5.16-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1408312)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1413015)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3 0/6](https://lore.kernel.org/patchwork/cover/1428441)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,0/6](https://lore.kernel.org/patchwork/cover/1474500)<br>*-*-*-*-*-*-*-* <br>[LKML v5,0/6](https://lkml.org/lkml/2021/9/10/913), [LORE v5,0/6](https://lore.kernel.org/all/20210911011819.12184-1-ricardo.neri-calderon@linux.intel.com) |
 
 
 ## 9.4 其他
