@@ -169,16 +169,53 @@ sudo perf stat -M TopDownL1 sleeep 1
 | Level 2 | [Fetch latency bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L33) | 预取延迟过长, 一般是指无法从 Icache 中取到足够的指令而导致的流水线前端阻塞.<br>引起预取延迟的原因可能有:<br>itlb miss, icache miss 以及 pipeline flush 等. | armv8_pmuv3_0@event\\=0x201d@ / CPU_CYCLES |
 | Level 3 | [idle_by_itlb_miss](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L77) | 因为 TLB Miss 导致的前端流水线停顿. | (((L2I_TLB - L2I_TLB_REFILL) * 15) + (L2I_TLB_REFILL * 100)) / CPU_CYCLES |
 | Level 3 | [idle_by_icache_miss](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L84) | 因为 Icache Miss 导致的前端流水线停顿. | (((L2I_CACHE - L2I_CACHE_REFILL) * 15) + (L2I_CACHE_REFILL * 100)) / CPU_CYCLES |
+| Level 3 | [BP misp flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L91) | 分支预测错误. | (BR_MIS_PRED * 5) / CPU_CYCLES |
+| Level 3 | [OOO flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L98) | 乱序执行部件 ROB 的重刷, 一般说 Machine Clears 导致的. | (armv8_pmuv3_0@event\\=0x2013@ * 5) / CPU_CYCLES |
+| Level 3 | [Static predictor flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L105) | NA | (armv8_pmuv3_0@event\\=0x1001@ * 5) / CPU_CYCLES |
 | <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
 | Level 2 | [Fetch bandwidth bound](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L42) | 指令译码器带宽不足译码过慢造成流水线停顿. 译码单元是有限的, 当指令预取完毕后, 必须等之前的指令译码完成, 译码器空闲之后, 才能继续进行译码操作. 否则预取的指令只能等待, 因此造成了流水线阻塞. | frontend_bound - fetch_latency_bound |
+
 
 
 | 事件 | 编号 | 描述 |
 |:---:|:---:|:---:|
 | FETCH_BUBBLE | 0x2014 | 在后端仍有足够的资源(没有 Stall)的情况下, 前端出现 Stall 的次数(IFU 没有将解码的 uOps 送给后端部件). |
 | NA | 0x201d | NA |
+| [BR_MIS_PRED](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/armv8-common-and-microarch.json#L65) | 0x10 | 分支预测失败的次数 |
+| NA | 0x1001 | NA |
 
-## 3.2 Back-end Bound/后端阻塞
+## 3.2 Bad Speculation/投机错误
+-------
+
+| 层级 | 名称 | 描述 | 公式 |
+|:---:|:----:|:---:|:---:|
+| Level 1 | [Bad Speculation](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L10) | 表示由于预测错误而浪费掉的 pipeline slots 的占比. 主要包括:<br>1. 触发了 Machine Clear 而浪费了 pipeline slots.<br>2. 分支预测错误(Branch Mispredict) 而浪费的 pipeline slots. | (INST_SPEC - INST_RETIRED) / (4 * CPU_CYCLES) |
+| <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
+| Level 2 | [Branch Mispredict](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L49) | 当 CPU 遇到分支指令的时候, 为避免 pipeline stalls, 会进行投机执行. CPU 对分支指令的跳转方向和跳转目的地址进行预测, 然后投机执行预测出的路径, 对预测的分支进行取指和执行,  所有处于流水线中的这些分支预测路径上的指令都其实处于推测(speculative)状态, 但是并不是进行提交. 然后在流水线的后续阶段, 比如分支指令实际执行时, 会对之前分支预测的结果进行校验, 一旦发现预测失败, 则必须丢弃这个预测错误的分支上所有的指令及其执行结果, 并对流水线各部件的状态进行恢复. 最终重新从正确的分支进行取指. 这必然造成流水线资源的浪费. | (bad_speculation * BR_MIS_PRED) / (BR_MIS_PRED + armv8_pmuv3_0@event\\=0x2013@) |
+| Level 3 | [Indirect Branch](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L112) | 间接跳转 | armv8_pmuv3_0@event\\=0x1010@ / BR_MIS_PRED |
+| Level 3 | [Push Branch](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L119) | 函数调用. 比如 BL/BLR 等. | (armv8_pmuv3_0@event\\=0x1014@ + armv8_pmuv3_0@event\\=0x1018@) / BR_MIS_PRED |
+| Level 3 | [Pop Branch](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L126) | 有返回值的跳转. 如函数返回等. | armv8_pmuv3_0@event\\=0x100c@ / BR_MIS_PRED |
+| Level 3 | [Other Branch](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L133) | 其他的跳转类型. | (BR_MIS_PRED - armv8_pmuv3_0@event\\=0x1010@ - armv8_pmuv3_0@event\\=0x1014@ - armv8_pmuv3_0@event\\=0x1018@ - armv8_pmuv3_0@event\\=0x100c@) / BR_MIS_PRED |
+| <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
+| Level 2 | [Machine Clears](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L56) | 当 CPU 检测到某些条件时, 便会触发 Machine Clears 操作, 清除流水线上的指令, 以保证 CPU 的合理正确运行. 比如<br>1. 发生错误的 Memory 访问顺序(memory ordering violations);<br>2. 自修改代码(self-modifying code);<br>3. 访问非法地址空间(load illegal address ranges) | bad_speculation - branch_mispredicts |
+| Level 3 | [Other flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L147) | NA | NA |
+| Level 3 | [Nuke flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L140) | NA | armv8_pmuv3_0@event\\=0x2012@ / armv8_pmuv3_0@event\\=0x2013@ |
+
+其中计算时依赖的一些 PMU 事件如下:
+
+
+| 事件 | 编号 | 描述 |
+|:---:|:---:|:----:|
+| [INST_SPEC](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/armv8-common-and-microarch.json#L131) | 0x1b | CPU 执行的指令的数目. |
+| [INST_RETIRED](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/armv8-common-and-microarch.json#L41) | 0x08 | CPU 执行的指令中正常退休的指令的数目. |
+| NA | 0x1001 | |
+| OOO_FLUSH | 0x2013 | Machine Clears 发生的次数 |
+| INDIRECT_BR | 0x1010 | 间接跳转发生的次数 |
+| BL | 0x1014 | 预测失败的指令中 BL 发生的次数 |
+| BLR | 0x1018 | 预测失败的指令中 BLR 发生的次数 |
+
+
+## 3.3 Back-end Bound/后端阻塞
 -------
 
 | 层级 | 名称 | 描述 | 公式 |
@@ -203,6 +240,7 @@ sudo perf stat -M TopDownL1 sleeep 1
 | Level 3 | [Mem bound L3](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L224) | L2 Miss 后访问 L3 或者内存造成的阻塞. | MEM_STALL_L2MISS / CPU_CYCLES |
 | Level 3 | [Store bound L3](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L231) | NA | MEM_STALL_ANYSTORE / CPU_CYCLES |
 
+其中计算时依赖的一些 PMU 事件如下:
 
 | 事件 | 编号 | 描述 |
 |:---:|:---:|:---:|
@@ -211,35 +249,7 @@ sudo perf stat -M TopDownL1 sleeep 1
 | [MEM_STALL_L1MISS](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/core-imp-def.json#L113) | 0x7006 | 因为 L1 Cache Miss, load 指令不得不等待数据重填(refill) 而造成的阻塞. |
 | [MEM_STALL_L2MISS](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/core-imp-def.json#L119) | 0x7007 | 因为 L2 Cache Miss(此时 L1 必然也 Miss), load 指令不得不等待数据重填(refill) 而造成的阻塞. |
 
-## 3.3 Bad Speculation/投机错误
--------
 
-| 层级 | 名称 | 描述 | 公式 |
-|:---:|:----:|:---:|:---:|
-| Level 1 | [Bad Speculation](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L10) | 表示由于预测错误而浪费掉的 pipeline slots 的占比. 主要包括:<br>1. 触发了 Machine Clear 而浪费了 pipeline slots.<br>2. 分支预测错误(Branch Mispredict) 而浪费的 pipeline slots. | (INST_SPEC - INST_RETIRED) / (4 * CPU_CYCLES).<br>1. INST_SPEC: CPU 执行的指令的数目.<br>2. INST_RETIRED: CPU 执行的指令中正常退休的指令的数目. |
-| <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
-| Level 2 | [Branch Mispredict](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L49) | 当 CPU 遇到分支指令的时候, 为避免 pipeline stalls, 会进行投机执行. CPU 对分支指令的跳转方向和跳转目的地址进行预测, 然后投机执行预测出的路径, 对预测的分支进行取指和执行,  所有处于流水线中的这些分支预测路径上的指令都其实处于推测(speculative)状态, 但是并不是进行提交. 然后在流水线的后续阶段, 比如分支指令实际执行时, 会对之前分支预测的结果进行校验, 一旦发现预测失败, 则必须丢弃这个预测错误的分支上所有的指令及其执行结果, 并对流水线各部件的状态进行恢复. 最终重新从正确的分支进行取指. 这必然造成流水线资源的浪费. | (bad_speculation * BR_MIS_PRED) / (BR_MIS_PRED + armv8_pmuv3_0@event\\=0x2013@) |
-| Level 3 | [BP misp flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L91) | 错误的预测 | (BR_MIS_PRED * 5) / CPU_CYCLES |
-| Level 3 | [Static predictor flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L105) | NA | (armv8_pmuv3_0@event\\=0x1001@ * 5) / CPU_CYCLES |
-| Level 3 | [Indirect Branch](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L112) | 间接跳转 | armv8_pmuv3_0@event\\=0x1010@ / BR_MIS_PRED |
-| Level 3 | [Push Branch](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L119) | 函数调用. 比如 BL/BLR 等. | (armv8_pmuv3_0@event\\=0x1014@ + armv8_pmuv3_0@event\\=0x1018@) / BR_MIS_PRED |
-| Level 3 | [Pop Branch](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L126) | 有返回值的跳转. 如函数返回等. | armv8_pmuv3_0@event\\=0x100c@ / BR_MIS_PRED |
-| Level 3 | [Other Branch](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L133) | 其他的跳转类型. | (BR_MIS_PRED - armv8_pmuv3_0@event\\=0x1010@ - armv8_pmuv3_0@event\\=0x1014@ - armv8_pmuv3_0@event\\=0x1018@ - armv8_pmuv3_0@event\\=0x100c@) / BR_MIS_PRED |
-| Level 3 | [Nuke flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L140) | NA | NA |
-| <br>*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> | <br>*-*-*-*-*-*-*-* <br> |<br>*-*-*-*-*-*-*-* <br> |
-| Level 2 | [Machine Clears](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L56) | 当 CPU 检测到某些条件时, 便会触发 Machine Clears 操作, 清除流水线上的指令, 以保证 CPU 的合理正确运行. 比如<br>1. 发生错误的 Memory 访问顺序(memory ordering violations);<br>2. 自修改代码(self-modifying code);<br>3. 访问非法地址空间(load illegal address ranges) | bad_speculation - branch_mispredicts |
-| Level 3 | [OOO flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L98) | Machine Clears 导致的流水线冲刷. | (armv8_pmuv3_0@event\\=0x2013@ * 5) / CPU_CYCLES |
-| Level 3 | [Other flush](https://elixir.bootlin.com/linux/v5.13/source/tools/perf/pmu-events/arch/arm64/hisilicon/hip08/metrics.json#L147) | NA | NA |
-
-其中
-
-| 事件 | 编号 | 描述 |
-|:---:|:---:|:---:|
-| BR_MIS_PRED | 0x0010 | 分支预测失败的次数 |
-| OOO_FLUSH | 0x2013 | Machine Clears 发生的次数 |
-| INDIRECT_BR | 0x1010 | 间接跳转发生的次数 |
-| BL | 0x1014 | 预测失败的指令中 BL 发生的次数 |
-| BLR | 0x1018 | 预测失败的指令中 BLR 发生的次数 |
 
 
 ## 3.4 Retring/正常执行
