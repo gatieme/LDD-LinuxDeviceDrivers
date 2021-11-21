@@ -332,11 +332,31 @@ char *pointer(const char *fmt, char *buf, char *end, void *ptr,
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2017/11/19 | Tobin C. Harding <me@tobin.cc> | [hash addresses printed with %p](https://lore.kernel.org/patchwork/cover/856356) | 内核中 %p 打印的地址会暴露内核态地址信息, 是极其不安全的, 因此限制 %p 的打印信息, 它将打印一个散列值, 并不是实际的地址. 如果想要打印实际地址, 需要显式指定 %px. | v11 ☑ 4.15-rc2 | [PatchWork](https://lore.kernel.org/patchwork/cover/856356)<br>*-*-*-*-*-*-*-* <br>[关键 commit 57e734423add](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=57e734423adda83f3b05505875343284efe3b39c) |
-| 2017/11/29 | Linus Torvalds <torvalds@linux-foundation.org> | vsprintf: don't use 'restricted_pointer()' when not restricting | 如果发现 kptr_restrict 为 0, 则直接跳过 restricted_pointer() 流程. 这个补丁将影响 kptr_restrict 为 0 时, %pK 等同于 %p 输出散列地址.  | v1 4.15-rc2 | [commit ef0010a30935 ("vsprintf: don't use 'restricted_pointer()' when not restricting")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ef0010a30935de4e0211cbc7bdffc30446cdee9b) |
+| 2017/11/29 | Linus Torvalds <torvalds@linux-foundation.org> | vsprintf: don't use 'restricted_pointer()' when not restricting | 如果发现 kptr_restrict 为 0, 则直接跳过 restricted_pointer() 流程. 这个补丁将影响 kptr_restrict 为 0 时, %pK 等同于 %p 输出散列地址. | v1 4.15-rc2 | [commit ef0010a30935 ("vsprintf: don't use 'restricted_pointer()' when not restricting")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ef0010a30935de4e0211cbc7bdffc30446cdee9b) |
 | 2019/04/17 | Petr Mladek <pmladek@suse.com> | [hvsprintf: Prevent silent crashes and consolidate error handling](https://lore.kernel.org/patchwork/cover/1063203) | 修复上面补丁引入的一个小问题, 限制 restricted_pointer 中 kptr_restrict 为 0 时, 输出散列地址. | v7 ☑ 5.2-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1063193)<br>*-*-*-*-*-*-*-* <br>[关键 commit 1ac2f9789c4b](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1ac2f9789c4b76ad749870c25ffae0cbcd1f510f) |
 
 
-### 3.2.3 v5.7 的修正
+### 3.2.3 kallsymc 符号不再用 %pK 输出
+-------
+
+> 2021/11/21 进一步更新
+
+从上面的实现可以看出, kptr_restrict 设置为 0 时, %pK 等同于 %p, 将输出散列地址. 跟 `/proc/kallsyms` 的期望不符合, 对于此接口来说, 只应该对权限进行控制, 有权限的看到的一定是实际地址. 没有权限的应该看到的是全 0. 给出散列会造成误导, 让一些调试工具出错.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2017/11/08 | Linus Torvalds <torvalds@linux-foundation.org> | [stop using '%pK' for /proc/kallsyms pointer values](https://lore.kernel.org/patchwork/patch/1196790) | 不再使用 %pK 控制 kallsyms 的输出, 而是引入 kallsyms_show_value(), 对 kptr_restrict、系统配置和用户权限进行权限控制. | v1 ☑ 4.15-rc1 | [commit c0f3ea158939](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c0f3ea1589394deac2d840c685f57c69e4ac4243) |
+
+
+| kptr_restrict | 实现 | `cat proc/kallsyms` 输出 |
+|:-------------:|:---:|:----:|
+| 0 | kallsyms_for_perf() | 不限制用户权限, 任何人都可以读取. 但是同时要求系统全局 sysctl_perf_event_paranoid 参数 <= 1 |
+| 1 | has_capability_noaudit(current, CAP_SYSLOG) | 只有拥有 CAP_SYSLOG 的进程才能读取 kallsyms 的地址 |
+| 2 | kallsyms_show_value() 直接返回 0, 此时任何用户没有权限查看 kallsyms 的地址 | 全 0 |
+
+
+## 3.3 v5.7 的修正
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -355,7 +375,7 @@ char *pointer(const char *fmt, char *buf, char *end, void *ptr,
 
 ```
 
-### 3.2.4 示例
+## 3.4 示例
 -------
 
 我们制作一个非常简单的用例, 分别用 %p, %pK, %px 打印一下子驱动中指针指向的数组的地址(指针的值)和指针本身的地址.

@@ -479,12 +479,10 @@ task_struct 是一种在利用漏洞时特别敏感且经常被滥用的结构, 
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/10 | Masami Hiramatsu <mhiramat@kernel.org> | [tracing/boot: Add histogram syntax support in boot-time tracing](https://patchwork.kernel.org/project/linux-trace-devel/patch/162936876189.187130.17558311387542061930.stgit@devnote2) | 为 boot-time tracing  添加 Histogram 选项, 目前, 引导时跟踪仅支持设置触发器动作的每事件动作. 对于像 traceon, traceoff, snapshot 等动作来说, 这足够了. 然而, 对于 hist 触发器操作来说, 这并不好, 因为它通常太长了, 无法将其写入单个字符串, 特别是如果它有 onmatch 操作时. | v1 ☑ 5.15-rc1 | [Patchwork](https://lore.kernel.org/all/162856122550.203126.17607127017097781682.stgit@devnote2) |
 
+# 15 kptr_restrict
+-------
 
-
-
-
-
-# 7 OTHER
+# OTHER
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |

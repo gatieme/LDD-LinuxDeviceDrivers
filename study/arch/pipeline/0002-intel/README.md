@@ -29,7 +29,7 @@ blogexcerpt: Intel CPU 微架构的演进与发展
 
 | 日期 | 作者 | GitHub| CSDN | BLOG |
 | ------- |:-------:|:-------:|:-------:|:-------:|
-| 2021-11-21 | [成坚-gatieme](https://kernel.blog.csdn.net) | [`arch/pipeline/0002-intel`](https://github.com/gatieme/AderXCoding/tree/master/study/arch/pipeline/0002-intel) | [CPU 流水线的前世今生](https://kernel.blog.csdn.net/article/details/121461313) | [A Journey Through the CPU Pipeline](https://oskernellab.com/2021/02/15/2021/0215-0001-Using_FZF_to_Improve_Productivity)|
+| 2021-11-21 | [成坚-gatieme](https://kernel.blog.csdn.net) | [`arch/pipeline/0002-intel`](https://github.com/gatieme/AderXCoding/tree/master/study/arch/pipeline/0002-intel) | [Intel CPU 微架构的演进与发展](https://kernel.blog.csdn.net/article/details/121461546) | [A Journey Through the CPU Pipeline](https://oskernellab.com/2021/02/15/2021/0215-0001-Using_FZF_to_Improve_Productivity)|
 
 
 <br>
