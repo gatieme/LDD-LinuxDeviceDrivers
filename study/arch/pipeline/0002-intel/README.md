@@ -1,15 +1,17 @@
  ---
 
-title: CPU 流水线的探秘之旅
-date: 2021-06-26 09:40
+title: Intel CPU 微架构的演进与发展
+date: 2021-11-21 22:10
 author: gatieme
 tags:
     - linux
-    - tools
+    - architecture
+    - intel
+    - pipeline
 categories:
         - 技术积累
 thumbnail:
-blogexcerpt: 虚拟化 & KVM 子系统
+blogexcerpt: Intel CPU 微架构的演进与发展
 
 ---
 
@@ -27,19 +29,17 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 | 日期 | 作者 | GitHub| CSDN | BLOG |
 | ------- |:-------:|:-------:|:-------:|:-------:|
-| 2021-02-15 | [成坚-gatieme](https://kernel.blog.csdn.net) | [`AderXCoding/system/tools/fzf`](https://github.com/gatieme/AderXCoding/tree/master/system/tools/fzf) | [使用模糊搜索神器 FZF 来提升办公体验](https://blog.csdn.net/gatieme/article/details/113828826) | [Using FZF to Improve Productivit](https://oskernellab.com/2021/02/15/2021/0215-0001-Using_FZF_to_Improve_Productivity)|
+| 2021-11-21 | [成坚-gatieme](https://kernel.blog.csdn.net) | [`arch/pipeline/0002-intel`](https://github.com/gatieme/AderXCoding/tree/master/study/arch/pipeline/0002-intel) | [CPU 流水线的前世今生](https://kernel.blog.csdn.net/article/details/121461313) | [A Journey Through the CPU Pipeline](https://oskernellab.com/2021/02/15/2021/0215-0001-Using_FZF_to_Improve_Productivity)|
 
 
 <br>
 
-| 英文原文 | 描述 |
-|:-------:|:---:|
-| [A Journey Through the CPU Pipeline](https://bryanwagstaff.com/index.php/a-journey-through-the-cpu-pipeline) | 讲述了 CPU 流水线的前世今生(不断演进和完善) |
+
 
 # 1 处理器微架构发展路线
 -------
 
-参见 []()
+参见 [CPU 流水线的前世今生](https://kernel.blog.csdn.net/article/details/121461313)
 
 # 2 Tick-Tock 战略
 -------
@@ -52,7 +52,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 如果不出意外，产品节奏会是这样。
 
-![Tick-Tock 战略](./intel-tick-tock.jpg)
+![Tick-Tock 战略](./0001-intel-tick-tock.jpg)
 
 
 不过不出意外怎么可能呢。但是计划永远赶不上变化。
@@ -77,11 +77,11 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 于是产品计划变成了这个摸样。
 
-![PAO 策略](./intel-PAO.jpg)
+![PAO 策略](./0002-intel-PAO.jpg)
 
 CannonLake 如期作为第一代 10nm 出现，但是 10nm 的问题远比意料中的复杂，CannonLake 产品的发布再次难产，而且随着 AMD 堆核战略在 Ryzen 上取得成效，Intel 决定使用现有产品 14nm 堆核进行应对，这让 Cannonlake 变成了极其尴尬的产品，它将永远成为英特尔推动 10nm 至高无上的努力的障碍。实际仅推出了一款芯片 Core i3-8121U。产品干脆没有上市，实际产品情况变成了这样。
 
-![10nm 的危机](./intel-10nm.jpg)
+![10nm 的危机](./0003-intel-10nm.jpg)
 
 接着就是大家熟知的事情了:
 
@@ -95,7 +95,7 @@ CannonLake 如期作为第一代 10nm 出现，但是 10nm 的问题远比意料
 
 而 2021 年发布了混合架构的 Alder Lake，同时包含 Golden Cove 微架构的大核和 Grace Mont 微架构的小核，至此以 Cove 架构作为高性能微架构以及 Mont 架构作为其他偏向能耗的处理器的微架构应该是后面几年的主旋律。
 
-![cove 和 mont 架构路线](./intel-cove-and-mont.jpg)
+![cove 和 mont 架构路线](./0004-intel-cove-and-mont.jpg)
 
 # 4 Core 和 Atom
 -------
@@ -157,7 +157,7 @@ CannonLake 如期作为第一代 10nm 出现，但是 10nm 的问题远比意料
 
 
 
-# 参开资料
+# 参考资料
 -------
 
 | 编号 | 链接 | 描述 |

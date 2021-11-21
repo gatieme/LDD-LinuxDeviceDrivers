@@ -1,15 +1,17 @@
  ---
 
-title: CPU 流水线的探秘之旅
-date: 2021-06-26 09:40
+title: CPU 流水线的前世今生
+date: 2021-11-21 21:56:40
 author: gatieme
 tags:
     - linux
-    - tools
+    - architecture
+    - intel
+    - pipeline
 categories:
         - 技术积累
 thumbnail:
-blogexcerpt: 虚拟化 & KVM 子系统
+blogexcerpt: CPU 流水线的探秘之旅
 
 ---
 
@@ -27,14 +29,14 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 | 日期 | 作者 | GitHub| CSDN | BLOG |
 | ------- |:-------:|:-------:|:-------:|:-------:|
-| 2021-02-15 | [成坚-gatieme](https://kernel.blog.csdn.net) | [`AderXCoding/system/tools/fzf`](https://github.com/gatieme/AderXCoding/tree/master/system/tools/fzf) | [使用模糊搜索神器 FZF 来提升办公体验](https://blog.csdn.net/gatieme/article/details/113828826) | [Using FZF to Improve Productivit](https://oskernellab.com/2021/02/15/2021/0215-0001-Using_FZF_to_Improve_Productivity)|
+| 2021-11-21 | [成坚-gatieme](https://kernel.blog.csdn.net) | [`arch/pipeline/0001-history`](https://github.com/gatieme/AderXCoding/tree/master/study/arch/pipeline/0001-history) | [CPU 流水线的前世今生](https://kernel.blog.csdn.net/article/details/121461313) | [A Journey Through the CPU Pipeline](https://oskernellab.com/2021/02/15/2021/0215-0001-Using_FZF_to_Improve_Productivity)|
 
 
 <br>
 
 | 英文原文 | 描述 |
 |:-------:|:---:|
-| [A Journey Through the CPU Pipeline](https://bryanwagstaff.com/index.php/a-journey-through-the-cpu-pipeline) | 讲述了 CPU 流水线的前世今生(不断演进和完善) |
+| [A Journey Through the CPU Pipeline](https://bryanwagstaff.com/index.php/a-journey-through-the-cpu-pipeline) | 讲述了 CPU 流水线的前世今生, 本文在此文章基础上翻译并有完善和修改 |
 
 # 1 前言
 -------
@@ -249,7 +251,7 @@ XOR a, b
 
 　　感谢与我一起参与这次旅行！
 
-# 9 参开资料
+# 参考资料
 -------
 
 | 编号 | 链接 | 描述 |
