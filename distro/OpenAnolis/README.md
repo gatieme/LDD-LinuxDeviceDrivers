@@ -963,10 +963,35 @@ de7ca7468c5d mm, memcg: introduce memory.events.local
 279df2ffcc1d alinux: doc: Add Documentation/alibaba/interfaces.rst
 ef467b9ddbc0 alinux: memcg: Account throttled time due to memory.wmark_min_adj
 60be0f545fac alinux: memcg: Introduce memory.wmark_min_adj
+```
+
+在 memcg 中引入 wmark_min_adj 配置参数, 对 memcg 的 WMARK_MIN 进行调整. 其有效值在 [-25, 50] 范围内, 具体来说:
+
+*   负值相对于 [0, WMARK_MIN] 为基准缩小 WMARK_MIN 的值, 如 -25 表示 `WMARK_MIN + (WMARK_MIN - 0) *(-25%)`.
+
+
+*   正值则相对于 [WMARK_MIN, WMARK_LOW] 为基准提高 WMARK_MIN 的值,  如 50 表示 `WMARK_MIN + (WMARK_LOW - WMARK_MIN) * 50%`.
+
+对于时延敏感型的进程, 在快速路径直接优先处理, 在 `__zone_watermark_ok() -=> memcg_get_wmark_min_adj()` 获取到 wmark_min_eadj < 0 后, 直接缩小 min 值, 从而减少其进入内存回收以及慢速路径的概率.
+
+对于非时延敏感型的进程, 在慢速路径中启动处理 `__alloc_pages_slowpath()` 中, 如果通过一系列回收或者规整等操作, 最终获取到了页面, 则为了防止这些进程对系统内存和内存分配的造成进一步的侵扰, 则计划对该进程内存分配进行 throttle. throttle 的时间通过 `memcg_check_wmark_min_adj()` 计算. 计算公式如下所示:
+
+$msec = WMARK\_MIN\_THROTTLE\_MS \times \frac {(wmark\_min\_adj - free_pages)} {(wmark\_min\_adj - wmark\_min)}  $
+
+throttle 时间与 wmark_min_adj 呈线性关系(正相关), 与当前 zone 内空闲页面数目 free_pages(负相关) 和初始 wmark_min(正相关) 的值都有关系.
+
+被 throttle 的线程, 将在内存分配完成返回时, 在路径 `tracehook_notify_resume() -=> mem_cgroup_wmark_min_throttle()` 上休眠一定时间.
+
+
+
+### 2.13.4 reap zombie memcgs
+-------
+
+```cpp
 63442ea9f838 alinux: memcg: Provide users the ability to reap zombie memcgs
 ```
 
-### 2.13.4 OOM 优先级(priority oom)
+### 2.13.5 OOM 优先级(priority oom)
 -------
 
 
@@ -1087,7 +1112,7 @@ e65b696142fc mm: thp: extract split_queue_* into a struct
 
 | 文档链接 | 说明 |
 |:-------:|:----:|
-| Memcg后台异步回收 | Alibaba Cloud Linux 2 增加了 memcg 粒度的后台异步回收功能. 该功能的实现不同于全局kswapd内核线程的实现，并没有创建对应的 memcg kswapd 内核线程，而是采用了 workqueue机制来实现.  |
+| Memcg 后台异步回收 | Alibaba Cloud Linux 2 增加了 memcg 粒度的后台异步回收功能. 该功能的实现不同于全局kswapd内核线程的实现，并没有创建对应的 memcg kswapd 内核线程，而是采用了 workqueue机制来实现.  |
 
 ```cpp
 a29243e2e890 alinux: mm: Support kidled
@@ -1098,6 +1123,9 @@ c69c12cc10ba alinux: mm: vmscan: make memcg kswapd set memcg state to dirty or w
 6967792f8d41 alinux: mm: memcontrol: support background async page reclaim
 49a3b46525f3 alinux: mm: vmscan: make it sane reclaim if cgwb_v1 is enabled
 ```
+
+memcg 中 usage_in_bytes 达到 limits_in_bytes 时, 会在内存分配路径上同步触发直接内存回收的动作, 影响当前进程内存分配的时延.
+
 
 ## 2.20 persistent memory
 -------
@@ -1454,6 +1482,11 @@ e7c5f0283a52 blk-iocost: fix incorrect vtime comparison in iocg_is_idle()
 9ab225fe51e7 iocost: over-budget forced IOs should schedule async delay
 ```
 
+## 3.2 cgroup v1 使能 writeback
+-------
+
+cgroup v1 不支持 cgroup writeback 功能, 导致某个 cgroup 中的 dirty 无法及时进行回写. 因此不能支持对缓存进行限制.
+
 [启用 cgroup writeback 功能](https://help.aliyun.com/document_detail/155509.htm)
 
 CONFIG_CGROUP_WRITEBACK
@@ -1477,6 +1510,13 @@ a7d3a2158cb5 alinux: Revert "x86/tsc: Try to adjust TSC if sync test fails"
 9c4a8e9db790 alinux: drivers/virtio: add vring_force_dma_api boot param
 ```
 
+cgroup v1 中 blkcg 不能支持 writeback 功能的原因分析:
+
+1.  对于 buffer io, v1 中 blkcg 采用了异步 writeback 的方式, 所有的 IO 请求都由后台线程发送给块层, 因此块层和调度层都拿不到真正 IO 发起的进程信息. 因此无法真正有效地跟踪 IO 请求发起的 cgroup 分组.
+
+2.  v1 中 memcg 和 blkcg 是独立的两个层级, 无法协同工作.
+
+通过引入 memcg_blkcg_link 结构, 保存 memcg 和 blkcg 之间 1:1 或者 N:1 的关系. 参见 commit "7396367dbfa2 ("alinux: writeback: add memcg_blkcg_link tree").
 
 # 3 CGROUP
 -------
