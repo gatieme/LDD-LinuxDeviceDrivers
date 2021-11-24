@@ -89,7 +89,7 @@ Scheduler Microconference Accepted into Linux Plumbers Conference
 
 - [x] [Vincent Guittot](https://lore.kernel.org/patchwork/project/lkml/list/?submitter=11990&archive=both&state=*)
 
-
+- [x] [Thomas Gleixner <tglx@linutronix.de>](git://git.kernel.org/pub/scm/linux/kernel/git/tglx/devel.git)
 
 ## 0.5 目录
 -------
@@ -438,6 +438,7 @@ linux 调度器定义了多个调度类, 不同调度类的调度优先级不同
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2011/12/15 | Peter Zijlstra <peterz@infradead.org> | [sched: Avoid SMT siblings in select_idle_sibling() if possible](https://lore.kernel.org/patchwork/cover/274702) | 如果有共享缓存的空闲核心, 避免 select_idle_sibling() 选择兄弟线程. | v1 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/274702) |
+| 2011/12/15 | Peng Wang <rocking@linux.alibaba.com> | [Add busy loop polling for idle SMT](https://lore.kernel.org/all/cover.1637062971.git.rocking@linux.alibaba.com) | SMT 级别的忙轮询等待. 当启用硬件 SMT 时, 在一个 CPU 的空闲和忙碌状态之间切换将导致同一核心上的同级 CPU 的性能波动. 在一个 SMT CPU 上需要稳定的性能时, 无论同一核心上的同级 CPU 是否空闲, 都需要一致的反馈, 而不期望有噪音. 原始 cpu_idle_force_poll 使用 cpu_relax() 等待被 IPI 唤醒, 而此 smt_idle_force_poll 使用忙循环来提供一致的 SMT 管道干扰. 可以使用 cgroup 的 cpu.smt_idle_poll 为特定任务配置启用忙循环轮询. | v1 ☐ | [PatchWork v1](https://lore.kernel.org/all/cover.1637062971.git.rocking@linux.alibaba.com) |
 
 
 
@@ -472,6 +473,7 @@ coscheduling 协同调度是为了解决云服务场景, 为不同用户提供�
 | 2021/04/01 | Peter Zijlstra | [sched: Core scheduling interfaces](https://lore.kernel.org/patchwork/cover/1406301) | Peter 重新设计了 Core scheduling 的接口. | v10 ☐ |[PatchWork v9](https://lore.kernel.org/patchwork/cover/1406301) |
 | 2021/04/22 | Peter Zijlstra | [sched: Core Scheduling](https://lore.kernel.org/patchwork/cover/1417028) | Peter 重构的 Core scheduling, 已经合入 TIP 分支 | v10 ☑ 5.14-rc1 |[PatchWork v10](https://lore.kernel.org/patchwork/cover/1417028) |
 | 2021/10/18 | Josh Don <joshdon@google.com> | [sched/core: forced idle accounting](https://lkml.org/lkml/2021/10/7/1187) | 增加了 "强制空闲" 时间的统计. 当 SMT 某个 CPU pick 了一个任务, 但是 sibling CPU 上找不到与其相互信任(cookie 相同)的任务时, sibling CPU 将不得不进入 force idle 状态, 即使有其他进程(互不信任的)在 RQ 中等待.<br>强制空闲时间是衡量启用 core scheduling 的一种指标. 可以估计强制闲置而导致的 CPU 容量损失. | v10 ☑ 5.14-rc1 | [2021/10/08 LKML v1](https://lkml.org/lkml/2021/10/7/1187)<br>*-*-*-*-*-*-*-* <br>[2021/10/18 LKML v2](https://lkml.org/lkml/2021/10/18/1529) |
+| 2021/11/23 | Christian Brauner | [core scheduling: add PR_SCHED_CORE_SHARE](https://lkml.org/lkml/2021/11/23/474) | NA | v10 ☑ 5.14-rc1 | [2021/10/08 LKML v1](https://lkml.org/lkml/2021/11/23/474) |
 
 
 
@@ -1497,7 +1499,14 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/9/28 | Thomas Gleixner <tglx@linutronix.de> | [sched: Miscellaneous RT related tweaks](https://lkml.org/lkml/2021/9/28/617) | 启用 RT 的内核在调度程序的内部工作方面存在一些问题:<br>1. 远程 TTWU 队列机制导致最大延迟增加 5 倍;<br>2. 32 个任务的批处理迁移限制会导致较大的延迟.<br>3. kprobes 的清理、死任务的 vmapped 堆栈和 mmdrop() 是导致延迟增大的源头, 这些路径从禁用抢占的调度程序核心中获取常规的自旋锁. | v1 ☐ | [PatchWork 0/5](https://lkml.org/lkml/2021/9/28/617) |
 
+# 9 IDLE
+-------
 
+[CPUIDLE 之低功耗定时器](http://kernel.meizu.com/cpuidle.html)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2013/03/21 | Thomas Gleixner <tglx@linutronix.de> | [idle: Consolidate idle implementations](https://lore.kernel.org/all/20130321214930.752934102@linutronix.de) | 当前每个体系结构都实现自己的 cpu_idle() 代码, 这是没有必要的因此实现了一套通用架构无关的 cpu_idle 框架. | v1 ☑ 3.10-rc1 | [PatchWork 00/34](https://lore.kernel.org/all/20130321214930.752934102@linutronix.de) |
 
 # 9 进程管理
 -------
@@ -1524,6 +1533,16 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 2006/04/10 | Dave McCracken <dmccr@us.ibm.com> | [Implement shared page tables](https://patchwork.kernel.org/project/linux-mm/patch/20210701134618.18376-1-zhao776@purdue.edu) | 这组补丁为跨越整个页表页的所有共享内存区域实现页表共享(CONFIG_PTSHARE). 它支持在多个页面级别(PTSHARE_PTE/PTSHARE_PMD/PTSHARE_PUD/PTSHARE_HUGEPAGE)上共享, 具体取决于体系结构.<br>共享页表的主要目的是提高在多个进程之间共享大内存区域的大型应用程序的性能.<br>它消除了冗余页表, 并显著减少了次要页错误的数量. 测试表明, 大型数据库应用程序(包括使用大型页面的应用程序)的性能有了显著提高. 对于小流程, 没有可测量的性能下降. | [2002/10/02 PatchWork](https://lore.kernel.org/patchwork/cover/9505)<br>*-*-*-*-*-*-*-* <br>[2005/08/30 PatchWork 1/1](https://lore.kernel.org/patchwork/cover/42673)<br>*-*-*-*-*-*-*-* <br>[2006/01/05 PatchWork RFC](https://lore.kernel.org/patchwork/cover/49324)<br>*-*-*-*-*-*-*-* <br>[2006/04/10 PatchWork RFC](https://lore.kernel.org/patchwork/cover/55396) |
 | 2021/07/06 | Kaiyang Zhao <zhao776@purdue.edu> | [Shared page tables during fork](https://patchwork.kernel.org/project/linux-mm/patch/20210701134618.18376-1-zhao776@purdue.edu) | 引入 read_ti_thread_flags() 规范对 thread_info 中 flag 的访问. 其中默认使用了 READ_ONCE. 防止开发者忘记了这样做. | [PatchWork v4,00/10](https://lore.kernel.org/patchwork/cover/1471548) |
 
+
+### 9.2 进程退出
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/11/18 | Sebastian Andrzej Siewior <bigeasy@linutronix.de> | [kernel/fork: Move thread stack free otu of the scheduler path](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) | [sched: Delay task stack freeing on RT](https://lore.kernel.org/all/20210928122411.593486363@linutronix.de) 的完善方案. 在 finish_task_switch() 完成后任务可能会死亡并退出, 这时候虽然快速回收任务堆栈有利于繁重的工作负载, 但这是内核实时性延迟的源头. 因此, 延迟启用 RT 的内核上的堆栈清理. | v1 ☐ | [PatchWork 0/8](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) |
+| 2021/11/18 | Linus Torvalds <torvalds@linux-foundation.org> | [task: Making tasks on the runqueue rcu protected](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) | [sched: Delay task stack freeing on RT](https://lore.kernel.org/all/20210928122411.593486363@linutronix.de) 的完善方案. 在 finish_task_switch() 完成后任务可能会死亡并退出, 这时候虽然快速回收任务堆栈有利于繁重的工作负载, 但这是内核实时性延迟的源头. 因此, 延迟启用 RT 的内核上的堆栈清理. | v1 ☐ | [PatchWork 0/8](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) |
+
+
 # 9 其他
 -------
 
@@ -1536,7 +1555,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2016/03/10 | Tejun Heo <tj@kernel.org> | [sched: define and use CPU_PRI_* enums for cpu notifier priorities](https://lore.kernel.org/patchwork/cover/201980) | 重构 migration_call 的 通知方式 | v1 ☑ 2.6.36-rc1 | 注意补丁有 UPATE, [UPDATE](https://lore.kernel.org/patchwork/cover/202907) |
 | 2016/03/10 | Thomas Gleixner <tglx@linutronix.de> | [sched: Migrate disable support](https://lore.kernel.org/patchwork/cover/657710) | 将 CPU 下线时 MIGRATE 的操作放到了 sched_cpu_dying() 中进行 | v1 ☑ 4.7-rc1 | [2020/09/11 preparations](https://lore.kernel.org/patchwork/cover/657710) |
-| 2020/10/23 | Peter Zijlstra | [sched: Migrate disable support](https://lore.kernel.org/patchwork/cover/1323936) | 在启用 PREEMPT_RT 的内核上, 包括spin/rw锁持有部分在内的大部分代码都是可抢占的, 也使得任务可以迁移. 这违反了每个CPU的约束. 因此, PREEMPT_RT 需要一种独立于抢占的机制来控制迁移. 此特性移除了 sched_cpu_dying(), 改为 balance_push 来完成这个操作 | v4 ☑ 5.11-rc1 | [2020/09/11 preparations](https://lore.kernel.org/patchwork/cover/1304210)<br>*-*-*-*-*-*-*-* <br>[2020/09/21 v1 PatchWork](https://lore.kernel.org/patchwork/cover/1309702)<br>*-*-*-*-*-*-*-* <br>[2020/10/23 v4 PatchWork](https://lore.kernel.org/patchwork/cover/1323936) |
+| 2020/10/23 | Peter Zijlstra | [sched: Migrate disable support](https://lkml.org/lkml/2019/9/14/64) | 在启用 PREEMPT_RT 的内核上, 包括spin/rw锁持有部分在内的大部分代码都是可抢占的, 也使得任务可以迁移. 这违反了每个CPU的约束. 因此, PREEMPT_RT 需要一种独立于抢占的机制来控制迁移. 此特性移除了 sched_cpu_dying(), 改为 balance_push 来完成这个操作 | v4 ☑ 5.11-rc1 | [2020/09/11 preparations](https://lore.kernel.org/all/CAHk-=whej3MMKJBHKWp66djfEP5=kyncX7FoqJacYtmBXB6v9w@mail.gmail.com) |
 
 
 
@@ -1555,7 +1574,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/08/03 | Peter Oskolkov <posk@google.com>/<posk@posk.io> | [FUTEX_SWAP](https://lore.kernel.org/patchwork/cover/1433967) | 通过对 futex 的魔改, 使得在用户态使用 switch_to() 指定任务切换的能力. 这就是用户模式线程的用途: 极低的切换开销, 意味着我们操作系统可以支持的数以千计的线程可以提高到 10 倍以上甚至百万级别. | [2020/06/15 PatchWork RFC,0/3](https://lore.kernel.org/patchwork/cover/1256264)<br>*-*-*-*-*-*-*-* <br>[2020/06/16 PatchWork RFC,0/3,v2](https://lore.kernel.org/patchwork/cover/1257233)<br>*-*-*-*-*-*-*-* <br>[2021/07/16 PatchWork RFC,0/3,v3](https://lore.kernel.org/patchwork/cover/1263506)<br>*-*-*-*-*-*-*-* <br>[2020/08/03 PatchWork for,5.9,v2,0/4](https://lore.kernel.org/patchwork/cover/1283798) |
-| 2021/11/04 | Peter Oskolkov <posk@google.com>/<posk@posk.io> | [sched,mm,x86/uaccess: implement User Managed Concurrency Groups](https://lore.kernel.org/patchwork/cover/1433967) | UMCG (User-Managed Concurrency Groups)  | [PatchWork RFC,v0.1,0/9](https://lore.kernel.org/patchwork/cover/1433967)<br>*-*-*-*-*-*-*-* <br>[2021/07/08 PatchWork RFC,0/3,v0.2](https://lore.kernel.org/patchwork/cover/1455166)<br>*-*-*-*-*-*-*-* <br>[2021/07/16 PatchWork RFC,0/4,v0.3](https://lore.kernel.org/patchwork/cover/1461708)<br>*-*-*-*-*-*-*-* <br>[2021/08/01 PatchWork 0/4,v0.4](https://lore.kernel.org/patchwork/cover/1470650)<br>*-*-*-*-*-*-*-* <br>[2021/08/01 LWN 0/4,v0.5](https://lore.kernel.org/patchwork/cover/1470650)<br>*-*-*-*-*-*-*-* <br>[2021/10/12 PatchWork v0.7,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20211012232522.714898-1-posk@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/04 PatchWork v0.8,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211104195804.83240-1-posk@google.com) |
+| 2021/11/23 | Peter Oskolkov <posk@google.com>/<posk@posk.io> | [sched,mm,x86/uaccess: implement User Managed Concurrency Groups](https://lore.kernel.org/patchwork/cover/1433967) | UMCG (User-Managed Concurrency Groups)  | [PatchWork RFC,v0.1,0/9](https://lore.kernel.org/patchwork/cover/1433967)<br>*-*-*-*-*-*-*-* <br>[2021/07/08 PatchWork RFC,0/3,v0.2](https://lore.kernel.org/patchwork/cover/1455166)<br>*-*-*-*-*-*-*-* <br>[2021/07/16 PatchWork RFC,0/4,v0.3](https://lore.kernel.org/patchwork/cover/1461708)<br>*-*-*-*-*-*-*-* <br>[2021/08/01 PatchWork 0/4,v0.4](https://lore.kernel.org/patchwork/cover/1470650)<br>*-*-*-*-*-*-*-* <br>[2021/08/01 LWN 0/4,v0.5](https://lore.kernel.org/patchwork/cover/1470650)<br>*-*-*-*-*-*-*-* <br>[2021/10/12 PatchWork v0.7,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20211012232522.714898-1-posk@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/04 PatchWork v0.8,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211104195804.83240-1-posk@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/21 PatchWork v0.9,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211121212040.8649-1-posk@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/23 PatchWork v0.9.1,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211122211327.5931-1-posk@google.com) |
 | 2021/09/08 | Peter Oskolkov <posk@google.com>/<posk@posk.io> | [google ghOSt](https://github.com/google/ghost-kernel) | ghOSt 是在 Linux 内核上实现的用户态调度策略的通用代理. ghOSt 框架提供了一个丰富的 API, 该 API 从用户空间接收进程的调度决策, 并将其作为事务执行. 程序员可以使用任何语言或工具来开发策略, 这些策略可以在不重新启动机器的情况下升级. ghOSt 支持一系列调度目标的策略, 从 µs 级延迟到吞吐量, 再到能源效率, 等等, 并且调度操作的开销较低. 许多策略只是几百行代码. 总之, ghOSt 提供了一个性能框架, 用于将线程调度策略委托给用户空间进程, 从而实现策略优化、无中断升级和故障隔离. | [github kernel](https://github.com/google/ghost-kernel)<br>*-*-*-*-*-*-*-* <br>[github userspace](https://github.com/google/ghost-userspace) |
 
 
