@@ -101,63 +101,20 @@ https://lwn.net/Articles/422487/
 | 2014/04/14 | Kees Cook <keescook@chromium.org> | [ARM: mm: allow text and rodata sections to be read-only](https://lore.kernel.org/patchwork/cover/456177) | 为 ARM 实现CONFIG_DEBUG_RODATA 特性, 设置内核代码段只读和数据段不可执行的. | v2 ☑ 3.19-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/patch/456177), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=80d6b0c2eed2a504f6740cd1f5ea76dc50abfc4) |
 | 2014/08/19 | Laura Abbott <lauraa@codeaurora.org> | arm64: Add CONFIG_DEBUG_SET_MODULE_RONX support | 为 ARM64 实现 CONFIG_DEBUG_SET_MODULE_RONX, 限制模块中各个不同类型页面的读写和可执行权限. | v2 ☑ 3.18-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=11d91a770f1fff44dafdf88d6089a3451f99c9b6) |
 | 2015/01/21 | Laura Abbott <lauraa@codeaurora.org> | arm64: add better page protections to arm64 | 为 ARM64 实现CONFIG_DEBUG_RODATA 特性, 设置内核代码段只读和数据段不可执行的. | v2 ☑ 4.0-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=da141706aea52c1a9fbd28cb8d289b78819f5436) |
-
-
-80d6b0c2eed2a504f6740cd1f5ea76dc50abfc4d
-commit 57efac2f7108e3255d0dfe512290c9896f4ed55f
-Author: Ard Biesheuvel <ard.biesheuvel@linaro.org>
-Date:   Thu Mar 3 15:10:59 2016 +0100
-
-    arm64: enable CONFIG_DEBUG_RODATA by defaut
-
-    commit 40982fd6b975de4a51ce5147bc1d698c3b075634
-Author: Mark Rutland <mark.rutland@arm.com>
-Date:   Thu Aug 25 17:23:23 2016 +0100
-
-    arm64: always enable DEBUG_RODATA and remove the Kconfig option
-
-
-commit 604c8e676e609da9f17a2abb36f2b2067bb86561
-Author: Mark Rutland <mark.rutland@arm.com>
-Date:   Fri May 13 12:20:36 2016 +0100
-
-    arm64: enable CONFIG_SET_MODULE_RONX by default
-
-
+| 2015/11/06 | Linus Torvalds <torvalds@linux-foundation.org> | [x86: don't make DEBUG_WX default to 'y' even with DEBUG_RODATA](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=54727e6e950aacd14ec9cd4260e9fe498322828c) | NA | v1 ☑ 4.4-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=54727e6e950aacd14ec9cd4260e9fe498322828c) |
+| 2016/01/26 | Stephen Smalley <sds@tycho.nsa.gov> | [x86/mm: Warn on W^X mappings](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e1a58320a38dfa72be48a0f1a3a92273663ba6db) | NA | v1 ☑ 4.9-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e1a58320a38dfa72be48a0f1a3a92273663ba6db) |
 | 2016/02/17 | Kees Cook <keescook@chromium.org> | [introduce post-init read-only memory](https://lore.kernel.org/patchwork/cover/648401) | 许多内容只在 `__init` 期间写入, 并且再也不会更改. 这些不能成为"const", 相反, 这组补丁引入了 `__ro_after_init` 来标记这些内存的方法, 并在 x86 和 arm vDSO 上使用它来. 此外<br>*-*-*-*-*-*-*-*<br>1. 还默认使能了 [DEBUG_RODATA](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9ccaf77cf05915f51231d158abfd5448aedde758)<br>2. 添加了一个新的内核参数(rodata)来帮助调试将来的使用, 可以[使用 rodata=n 来禁用此特性](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d2aa1acad22f1bdd0cfa67b3861800e392254454).<br>3. 并添加了一个名为 [lkdtm 测试驱动来验证结果](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7cca071ccbd2a293ea69168ace6abbcdce53098e). | v3 ☑ 4.6-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/648401) |
 | 2017/01/29 | Laura Abbott <labbott@redhat.com> | [mm: add arch-independent testcases for RODATA](https://lore.kernel.org/patchwork/cover/755615) | 这个补丁为 RODATA 创建了主独立的测试用例. x86和x86_64都已经有了RODATA的测试用例, 用 CONFIG_DEBUG_RODATA_TEST 宏控制. 但是它们是特定于原型的, 因为它们直接使用内联汇编. 如果有人改变了CONFIG_DEBUG_RODATA_TEST的状态, 它会导致内核构建的开销. 为了解决上述问题, 编写独立于拱门的测试用例, 并将其移动到共享位置. | v4 ☑ 4.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/755615), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2959a5f726f6510d6dd7c958f8877e08d0cf589c) |
 | 2017/02/07 | Laura Abbott <labbott@redhat.com> | [Hardening configs refactor/rename](https://lore.kernel.org/patchwork/cover/758092) | 将原来的 CONFIG_DEBUG_RODATA 重命名为 CONFIG_STRICT_KERNEL_RWX, 原来的 DEBUG_SET_MODULE_RONX 重命名为 CONFIG_STRICT_MODULE_RWX. 这些特性已经不再是 DEBUG 特性, 可以安全地被启用. 同时将这些 CONFIG 移动到 arch/Kconfig 架构无关的定义, 同时引入 ARCH_HAS_KERNEL_RWX 和 ARCH_HAS_MODULE_RWX 来标记对应架构是否支持. | v3 ☑ 4.11-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/patch/752526)<br>*-*-*-*-*-*-*-*<br>[PatchWork v3](https://lore.kernel.org/patchwork/cover/758092) |
 | 2017/06/28 | Christophe Leroy <christophe.leroy@c-s.fr> | [powerpc/Kconfig: Enable STRICT_KERNEL_RWX](https://patchwork.ozlabs.org/project/linuxppc-dev/patch/20170628170411.28864-8-bsingharora@gmail.com/) | 为 PPC64 实现 STRICT_KERNEL_RWX. | v3 ☑ 4.13-rc1 | [PatchWork v5](https://patchwork.ozlabs.org/project/linuxppc-dev/patch/20170628170411.28864-8-bsingharora@gmail.com/) |
+| 2017/06/29 | Michael Ellerman <mpe@ellerman.id.au> | [Provide linux/set_memory.h](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d2852a2240509e512712e25de2d0796cda435ecb) | 引入 CONFIG_ARCH_HAS_SET_MEMORY 封装了 set_memory{ro|rw|x|nx} | v1 ☑ 4.11-rc1 | [commit](https://lore.kernel.org/all/1498717781-29151-1-git-send-email-mpe@ellerman.id.au) |
 | 2017/08/02 | Christophe Leroy <christophe.leroy@c-s.fr> | [powerpc/mm: Fix kernel protection and implement STRICT_KERNEL_RWX on PPC32](https://lore.kernel.org/patchwork/cover/816516) | 为 PPC32 实现 STRICT_KERNEL_RWX. | v3 ☑ 4.14-rc1 | [PatchWork v3 OLD](https://lore.kernel.org/patchwork/patch/782821)<br>*-*-*-*-*-*-*-*<br>[PatchWork v3](https://lore.kernel.org/patchwork/cover/816516) |
+| 2021/11/22 | Huangzhaoyang <huangzhaoyang@gmail.com> | [arch: arm64: introduce RODATA_FULL_USE_PTE_CONT](https://patchwork.kernel.org/project/linux-mm/patch/1637558929-22971-1-git-send-email-huangzhaoyang@gmail.com) | 为 PPC32 实现 STRICT_KERNEL_RWX. | v3 ☑ 4.14-rc1 | [PatchWork v3 OLD](https://patchwork.kernel.org/project/linux-mm/patch/1637558929-22971-1-git-send-email-huangzhaoyang@gmail.com) |
+| 2016/01/26 | [ARM: 8501/1: mm: flip priority of CONFIG_DEBUG_RODATA](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=25362dc496edaf17f714c0fecd8b3eb79670207b) | NA | v1 ☑ 4.6-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=25362dc496edaf17f714c0fecd8b3eb79670207b) |
+| 2018/11/07 | Ard Biesheuvel <ardb@kernel.org> | [arm64: mm: apply r/o permissions of VM areas to its linear alias as well](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c55191e96caa9d787e8f682c5e525b7f8172a3b4) | 引入 RODATA_FULL,  | v1 ☑ 5.0-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c55191e96caa9d787e8f682c5e525b7f8172a3b4) |
+| 2021/11/22 | Jinbum Park <jinb.park7@gmail.com> | [arm64: enable CONFIG_DEBUG_RODATA by default](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1457014259-32015-1-git-send-email-ard.biesheuvel@linaro.org) | 当启用 RODATA_FULL 时, 内核线性映射将被分割为最小的粒度, 这可能会导致 TLB 压力. 这个补丁使用了一种在 pte 上应用 PTE_CONT 的方法. | v3 ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1457014259-32015-1-git-send-email-ard.biesheuvel@linaro.org), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=40982fd6b975de4a51ce5147bc1d698c3b075634) |
 
 
-commit 25362dc496edaf17f714c0fecd8b3eb79670207b
-Author: Kees Cook <keescook@chromium.org>
-Date:   Tue Jan 26 01:19:36 2016 +0100
-
-    ARM: 8501/1: mm: flip priority of CONFIG_DEBUG_RODATA
-
-
-| 2017/01/29 | Jinbum Park <jinb.park7@gmail.com> | [arm64: enable CONFIG_DEBUG_RODATA by default](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1457014259-32015-1-git-send-email-ard.biesheuvel@linaro.org) | arm64 架构下默认开启 CONFIG_DEBUG_RODATA, 并不允许手动关闭. | v3 ☑ 4.9-rc1 | [PatchWork](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1457014259-32015-1-git-send-email-ard.biesheuvel@linaro.org), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=40982fd6b975de4a51ce5147bc1d698c3b075634) |
-
-commit e1a58320a38dfa72be48a0f1a3a92273663ba6db
-Author: Stephen Smalley <sds@tycho.nsa.gov>
-Date:   Mon Oct 5 12:55:20 2015 -0400
-
-    x86/mm: Warn on W^X mappings
-
-
-commit 54727e6e950aacd14ec9cd4260e9fe498322828c
-Author: Linus Torvalds <torvalds@linux-foundation.org>
-Date:   Fri Nov 6 09:12:41 2015 -0800
-
-    x86: don't make DEBUG_WX default to 'y' even with DEBUG_RODATA
-
-ommit d2852a2240509e512712e25de2d0796cda435ecb
-Author: Daniel Borkmann <daniel@iogearbox.net>
-Date:   Tue Feb 21 16:09:33 2017 +0100
-
-    arch: add ARCH_HAS_SET_MEMORY config
 
 
 
@@ -167,7 +124,7 @@ Date:   Tue Feb 21 16:09:33 2017 +0100
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2009/08/05 | Arjan van de Ven <arjan@infradead.org> | [Implement crashkernel=auto](https://lore.kernel.org/patchwork/cover/166256) | 实现 crashkernel=auto . | v1  ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/166256) |
+| 2009/08/05 | Arjan van de Ven <arjan@infradead.org> | [Implement crashkernel=auto](https://lore.kernel.org/patchwork/cover/166256) | 实现 crashkernel=auto . | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/166256) |
 
 
 # 5 REFCOUNT

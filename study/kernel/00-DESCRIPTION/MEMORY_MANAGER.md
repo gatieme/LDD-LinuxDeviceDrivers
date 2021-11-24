@@ -321,13 +321,18 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 ### 1.7.2 cached mapped
 -------
 
-
-
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/23 | Mike Rapoport <rppt@linux.ibm.com> | [mm/page_alloc: cache pte-mapped allocations](https://lore.kernel.org/patchwork/cover/1480366) | NA | v1  ☐ | [PatchWork RFC,0/4](https://lore.kernel.org/patchwork/cover/1480366) |
-| 2021/10/26 | Pasha Tatashin <pasha.tatashin@soleen.com> | [Hardening page _refcount](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com) | 目前很难找出原因 `_refcount` 问题的根源, 因为它们通常在损坏发生后才会出现. 然而, 它们可能导致灾难性的故障, 如内存损坏.<br>通过添加更多的检查来提高可调试性, 确保 `page->_refcount` 永远不会变成负数(例如, 双空闲不发生, 或冻结后空闲等).<br>1. 增加了对 `_refcount` 异常值的检测.<br>2. 删除了 set_page_count(), 这样就不会无条件地用不受限制的值覆盖 `_refcount` | RFC,0/8 ☐ | [PatchWork RFC,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com) |
 
+
+### 1.7.3 page table check
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/10/26 | Pasha Tatashin <pasha.tatashin@soleen.com> | [Hardening page _refcount](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com) | 目前很难从根本上解决 `_refcount` 问题, 因为它们通常在损坏发生后才会显现出来. 然而, 它们可能导致灾难性的故障, 如内存损坏.<br>通过添加更多的检查来提高可调试性, 确保 `page->_refcount` 永远不会变成负数(例如, 双空闲不发生, 或冻结后空闲等).<br>1. 增加了对 `_refcount` 异常值的检测.<br>2. 删除了 set_page_count(), 这样就不会无条件地用不受限制的值覆盖 `_refcount` | RFC,0/8 ☐ | [PatchWork RFC,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211117012059.141450-1-pasha.tatashin@soleen.com) |
+| 2021/11/23 | Pasha Tatashin <pasha.tatashin@soleen.com> | [page table check](https://lore.kernel.org/patchwork/cover/1480366) | 在将条目插入用户页表时检查是否存在非法共享, 以确保防止一些内存损坏. | v1 ☐ | [PatchWork 0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211123214814.3756047-1-pasha.tatashin@soleen.com) |
 
 ### 1.7.3 安全
 -------
@@ -841,7 +846,7 @@ SLUB 在解决了上述的问题之上, 提供与 SLAB 完全一样的接口, �
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2005/11/03 | Matt Mackall <mpm@selenic.com> | [slob: introduce the SLOB allocator](https://lore.kernel.org/patchwork/cover/45623) | 实现 SLOB 分配器 | v2 ☑ 2.6.16-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/45623) |
-| 2021/10/18 | Matt Mackall <mpm@selenic.com> | [slob: add size header to all allocations](https://patchwork.kernel.org/project/linux-mm/patch/20211018033841.3027515-1-rkovhaev@gmail.com) | 在所有分配的 (PAGE_SIZE - align_offset) 和 less 前面加上 size 头. 这样, kfree() 和 kfree() 都可以释放 kmem_cache_alloc() 内存, 只要它们小于 (PAGE_SIZE - align_offset). 这个更改的主要原因是稍微简化了 SLOB, 使它在出现问题时更容易调试. | v1 ☐ | [PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211018033841.3027515-1-rkovhaev@gmail.com) |
+| 2021/10/18 | Matt Mackall <mpm@selenic.com> | [slob: add size header to all allocations](https://patchwork.kernel.org/project/linux-mm/patch/20211018033841.3027515-1-rkovhaev@gmail.com) | 在所有分配的 (PAGE_SIZE - align_offset) 和 less 前面加上 size 头. 这样, kfree() 和 kfree() 都可以释放 kmem_cache_alloc() 内存, 只要它们小于 (PAGE_SIZE - align_offset). 这个更改的主要原因是稍微简化了 SLOB, 使它在出现问题时更容易调试. | v1 ☐ | [PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211018033841.3027515-1-rkovhaev@gmail.com)<br>*-*-*-*-*-*-*-*<br>[PatchWork v4](https://patchwork.kernel.org/project/linux-mm/patch/20211122013026.909933-1-rkovhaev@gmail.com) |
 
 
 这是第三个对象分配器, 提供同样的接口, 它是为适用于嵌入式小内存小机器的环境而引入的, 所以实现上很精简, 大大减小了内存 footprint, 能在小机器上提供很不错的性能.
@@ -3217,14 +3222,14 @@ ARM 引入了一个[内存标签扩展](https://community.arm.com/developer/ip-p
 | 2021/02/05 | Andrey Konovalov <andreyknvl@google.com> | [kasan: optimizations and fixes for HW_TAGS](https://lore.kernel.org/patchwork/cover/1376340) | NA | v3 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork mm,v3,mm,00/13](https://patchwork.kernel.org/project/linux-mm/cover/cover.1612546384.git.andreyknvl@google.com) |
 
 
-### 13.3.5 kcsan
+### 13.3.5 KCSAN
 -------
 
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/10/05 | Marco Elver <elver@google.com> | [kcsan: Support detecting a subset of missing memory barriers](https://patchwork.kernel.org/project/linux-mm/cover/20211005105905.1994700-1-elver@google.com) | KCSAN 增加对 LKMM 定义的弱内存子集建模的支持, 它支持检测由于丢失内存障碍而导致的数据竞争子集.<br>当内存操作的结果应该由 barrier 来排序时, KCSAN 可以检测数据竞争, 在这种情况下, 冲突只发生在由于重新排序访问而丢失 barrier 的情况下.<br>KCSAN 检测内存障碍缺失的方法是基于对访问重新排序的建模, 设置了观察点检测对每个内存访问, 也选择在其功能范围内进行模拟重排序. 由于运行时不能"预取"访问, 我们只能对延迟访问效果进行建模, 一旦选择了某个访问进行重新排序, 就会在每次其他访问中检查它, 直到函数范围结束. 如果遇到适当的内存障碍，访问将不再考虑重新排序. | v1 ☐ | [PatchWork 00/23](https://patchwork.kernel.org/project/linux-mm/cover/20211005105905.1994700-1-elver@google.com) |
+| 2020/10/05 | Marco Elver <elver@google.com> | [kcsan: Support detecting a subset of missing memory barriers](https://patchwork.kernel.org/project/linux-mm/cover/20211005105905.1994700-1-elver@google.com) | KCSAN 增加对 LKMM 定义的弱内存子集建模的支持, 它支持检测由于丢失内存障碍而导致的数据竞争子集.<br>当内存操作的结果应该由 barrier 来排序时, KCSAN 可以检测数据竞争, 在这种情况下, 冲突只发生在由于重新排序访问而丢失 barrier 的情况下.<br>KCSAN 检测内存障碍缺失的方法是基于对访问重新排序的建模, 设置了观察点检测对每个内存访问, 也选择在其功能范围内进行模拟重排序. 由于运行时不能"预取"访问, 我们只能对延迟访问效果进行建模, 一旦选择了某个访问进行重新排序, 就会在每次其他访问中检查它, 直到函数范围结束. 如果遇到适当的内存障碍，访问将不再考虑重新排序. | v1 ☐ | [2020/10/05 PatchWork 00/23](https://patchwork.kernel.org/project/linux-mm/cover/20211005105905.1994700-1-elver@google.com)<br>*-*-*-*-*-*-*-* <br>[2020/11/18 PatchWork v2,00/23](https://patchwork.kernel.org/project/linux-mm/cover/20211118081027.3175699-1-elver@google.com) |
 
 
 
