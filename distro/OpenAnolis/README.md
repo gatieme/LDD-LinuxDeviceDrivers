@@ -976,7 +976,7 @@ ef467b9ddbc0 alinux: memcg: Account throttled time due to memory.wmark_min_adj
 
 对于非时延敏感型的进程, 在慢速路径中启动处理 `__alloc_pages_slowpath()` 中, 如果通过一系列回收或者规整等操作, 最终获取到了页面, 则为了防止这些进程对系统内存和内存分配的造成进一步的侵扰, 则计划对该进程内存分配进行 throttle. throttle 的时间通过 `memcg_check_wmark_min_adj()` 计算. 计算公式如下所示:
 
-$msec = WMARK\_MIN\_THROTTLE\_MS \times \frac {(wmark\_min\_adj - free_pages)} {(wmark\_min\_adj - wmark\_min)}  $
+$msec = WMARK_MIN_THROTTLE_MS \times \frac {(wmark\_min\_adj - free_pages)} {(wmark\_min\_adj - wmark\_min)}  $
 
 throttle 时间与 wmark_min_adj 呈线性关系(正相关), 与当前 zone 内空闲页面数目 free_pages(负相关) 和初始 wmark_min(正相关) 的值都有关系.
 
