@@ -106,7 +106,7 @@ I/D cache 的一致性可以直接由硬件来维护.
 
 | 步骤 | 描述 |
 |:---:|:---:|
-| 指令修改 | 将需要修改的指令数据加载到 dCache 中. 修改成新指令后, 写回 dCache. 、
+| 指令修改 | 将需要修改的指令数据加载到 dCache 中. 修改成新指令后, 写回 dCache. |
 | IDC | 保证 icache miss 场景的一致性<br>将 dcache 修改的指令写回到 POU/POC, 这样当所有 icache miss(如果旧指令没有缓存到 iCache) 的情况下, 这样会在 POU/POC 层次 hit, 并重新加载到 icache 中, 由于 POU/POC 层次的指令时新的(与 dcache 一致), 所以 icache 缓存到的也是一致的新指令. |
 | DIC | 保证 icache hit 场景的一致性<br>对于已经缓存在 icache 中的指令, 选择 invalid 掉对应的(层次低于 POU/POC 的所有) cacheline, 保证指令下次读取时将发生 icache miss, 并只能至少从 POU/POC 层次读取. |
 | ISB | 前面 IDC/DIC 保证了不同情形下的 I/D cache 一致性. 但是已经放置在流水线的指令, 他们无能为力. 这种情况下只能选择通过 ISB 冲刷流水线, 要求 CPU 重新取指. |
