@@ -76,7 +76,9 @@ blogexcerpt: 虚拟化 & KVM 子系统
 # 3 IO
 -------
 
-https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Will-Continue-IO
+[Linux 5.17 To Continue With I/O Optimizations, 5~6% Improvement Pending For NVMe](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Will-Continue-IO)
+[Many Block Improvements Land In Linux 5.16 - Multi-Actuator Hard Drive Support](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.16-Block-Changes)
+[Newest Linux Optimizations Can Achieve 10M IOPS Per-Core With IO_uring](https://www.phoronix.com/scan.php?page=news_item&px=Linux-IO_uring-10M-IOPS)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
