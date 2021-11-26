@@ -103,7 +103,7 @@ remote read 和 remote write 分别代表其他CPU读写.
 | 当前状态 | 事件 | 行为 | 下一个状态 |
 |:------:|:----:|:---:|:---------:|
 | I(invalid) | local read | 1. 如果其他处理器中没有这份数据, 本缓存从内存中取该数据, 状态变为E<br>2. 如果其他处理器中有这份数据, 且缓存行状态为M, 则先把缓存行中的内容写回到内存. 本地cache再从内存读取数据, 这时两个cache的状态都变为S<br>3. 如果其他缓存行中有这份数据, 并且其他缓存行的状态为S或E, 则本地cache从内存中取数据, 并且这些缓存行的状态变为S | E 或 S |
-| I(invalid) | local write | 1. 先从内存中取数据, 如果其他缓存中有这份数据, 且状态为M, 则先将数据更新到内存再读取(个人认为顺序是这样的, 其他 CPU 的缓存内容更新到内存中并且被本地 cache 读取时, 两个cache状态都变为S, 然后再写时把其他CPU的状态变为I, 自己的变为M)<br>2. 如果其他缓存中有这份数据, 且状态为E或S, 那么其他缓存行的状态变为I | M |
+| I(invalid) | local write | 1. 先从内存中取数据, 如果其他缓存中有这份数据, 且状态为 M, 则先将数据更新到内存再读取(个人认为顺序是这样的, 其他 CPU 的缓存内容更新到内存中并且被本地 cache 读取时, 两个cache状态都变为S, 然后再写时把其他CPU的状态变为I, 自己的变为M)<br>2. 如果其他缓存中有这份数据, 且状态为E或S, 那么其他缓存行的状态变为I | M |
 | I(invalid) | remote read | remote read 不影响本地 cache 的状态 | I |
 | I(invalid) | remote write | remote read 不影响本地 cache 的状态 | I |
 | <br>*-* <br> | <br>*-* <br> | <br>*-* <br> |<br>*-*-*-* <br> |
@@ -121,6 +121,36 @@ remote read 和 remote write 分别代表其他CPU读写.
 | M(modified) | local write | 状态不变 | M |
 | M(modified) | remote read | 先把 cache 中的数据写到内存中, 其他 CPU 的 cache 再读取, 状态都变为 S | S |
 | M(modified) | remote write | 先把 cache 中的数据写到内存中, 其他 CPU 的 cache 再读取并修改后, 本地 cache 状态变为I. 修改的那个cache状态变为 M | I |
+
+
+# 3 硬件的处理
+-------
+
+## 3.1 Store Buffer
+-------
+
+当然前面的描述隐藏了一些细节, 比如实际 CPU1 在执行写操作, 更新缓存行的时候, 其实并不会等待其他 CPU 的状态都置为 I 状态, 才去做些操作, 这是一个同步行为, 效率很低. 当前的 CPU 都引入了 Store Buffer(写缓存器)技术, 也就是在 CPU 和 cache 之间又加了一层 buffer, 在 CPU 执行写操作时直接写 StoreBuffer, 然后就忙其他事去了, 等接收到其他 CPU 返回的 Invalidate Acknowledge 响应 后, CPU1 才把 buffer 中的数据写入到缓存行中.
+
+引入了 Store Buffer 之后, 后续 CPU1 读取数据的时候, 会先查 Store Buffer, 再查 cache line.
+
+
+## 3.2 Invalidate Queue
+-------
+
+看前面的描述, 执行写操作的CPU1很聪明啦, 引入了 store buffer 不等待其他CPU中的对应缓存行失效就忙别的去了. 而其他 CPU 也不傻, 实际上他们也不会真的把缓存行置为 I 后, 才给 CPU0 发响应. 他们会写入一个 Invalidate Queue(无效化队列), 还没把缓存置为 I 状态就发送响应了.
+
+后续 CPU 会异步扫描 Invalidate Queue, 将缓存置为 I 状态.
+
+和 Store Buffer 不同的是, 在 CPU1 后续读取数据的时候, 会先查 Store Buffer, 再查缓存. 而 CPU0 要读取数据时, 则不会扫描 Invalidate Queue, 所以存在脏读可能.
+
+## 3.3 L3 Cache在 MESI 中的角色
+-------
+
+L3 缓存是所有CPU共享的一个缓存. 纵观刚才描述的MESI, 好像涉及的都是CPU内的缓存更新, 不涉及L3缓存, 那么L3缓存在MESI中扮演什么角色呢 ?
+
+其实在常见的 MESI 的状态流程描述中, 所有提到"内存"的地方都是值得商榷的. 比如我上一节举的例子中, CPU0中某缓存行是I, CPU1 中是M. 当CPU0想到执行local read操作时, 就会触发CPU1中的缓存写入到内存中, 然后CPU0从内存中取最新的缓存行. 其实准确来讲这里是不准确的, 因为由于L3缓存的存在, 这里其实是直接从L3缓存读取缓存行, 而不直接访问内存.
+
+个人猜测是如果描述MESI状态流转的时候引入L3缓存, 会造成描述会极其复杂. 所以一般的描述都好似有意地忽略了L3缓存.
 
 # 1 参考资料
 -------
@@ -153,7 +183,7 @@ remote read 和 remote write 分别代表其他CPU读写.
 | 24 | [cpu 乱序执行与问题](https://blog.csdn.net/lizhihaoweiwei/article/details/50562732) | NA |
 | 25 | [store-queue VS store-buffer](https://stackoverflow.com/questions/24975540/what-is-the-difference-between-a-store-queue-and-a-store-buffer) | NA |
 | 26 | [《大话处理器》Cache一致性协议之MESI](https://blog.csdn.net/muxiqingyang/article/details/6615199) | NA |
-
+| 27 | [并发吹剑录（一）：CPU缓存一致性协议MESI](https://zhuanlan.zhihu.com/p/351550104) | NA |
 
 <br>
 
