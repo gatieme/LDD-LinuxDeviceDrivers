@@ -1276,22 +1276,48 @@ schedtune 与 uclamp 都是由 ARM 公司的 Patrick Bellasi 主导开发.
 
 NOHZ 社区测试用例 [frederic/dynticks-testing.git](https://git.kernel.org/pub/scm/linux/kernel/git/frederic/dynticks-testing.git)
 
+仓库 : git://git.kernel.org/pub/scm/linux/kernel/git/frederic/linux-dynticks.git
+
+当前 NOHZ 有 3 种模式.
+
+| 选项 | select 选项 | 描述 |
+|:---:|:-----------:|:---:|
+| CONFIG_HZ_PERIODIC | NA | 永不忽略调度时钟滴答. |
+| CONFIG_NO_HZ_IDLE | NO_HZ_COMMON | 只忽略空闲 CPU 上的调度时钟滴答, 忽略空闲 CPU 或只有一个可运行任务 CPU 的调度时钟滴答 |
+| CONFIG_NO_HZ_FULL | NO_HZ_COMMON<br>RCU_NOCB_CPU<br>VIRT_CPU_ACCOUNTING_GEN<br>IRQ_WORK<br>CPU_ISOLATION | NA |
+
+[Timers and time management in the Linux kernel. Part 3](https://0xax.gitbooks.io/linux-insides/content/Timers/linux-timers-3.html)
+
+### 8.2.1 NOHZ 的演进
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2007/02/16 | Thomas Gleixner <tglx@linutronix.de> | [New hrtimers/dynticks patches](https://www.lkml.org/lkml/2007/1/29/30) | 引入 CONFIG_TICK_ONESHOT 和 CONFIG_NO_HZNO_HZ, 以支持在 CPU 空闲的时候停掉 tick, 进入 NOHZ 模式.<br>所有进入 NO_HZ 的 CPU 被标记在 [nohz_cpu_mask](https://elixir.bootlin.com/linux/v2.6.21/source/kernel/time/tick-sched.c#L211) 中, 直到<br>1.当进入 [cpu_idle()](https://elixir.bootlin.com/linux/v2.6.21/source/arch/i386/kernel/process.c#L177)已经[中断退出](https://elixir.bootlin.com/linux/v2.6.21/source/kernel/softirq.c#L309)却不需要 RESCHED 时, 则通过 通过 [tick_nohz_stop_sched_tick()](https://elixir.bootlin.com/linux/v2.6.21/source/kernel/time/tick-sched.c#L151).<br> 停掉 tick.<br>2. 当 CPU 从 IDLE 状态被唤醒时, 在 cpu_idle() 中[退出 idle 循环触发重新调度](https://elixir.bootlin.com/linux/v2.6.21/source/arch/i386/kernel/process.c#L196)之前, 再次通过 [tick_nohz_restart_sched_tick()](https://elixir.bootlin.com/linux/v2.6.21/source/kernel/time/tick-sched.c#L262) 重启 tick. | v1 ☑ 2.6.21-rc1 | [COMMIT1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=906568c9c668), [COMMIT2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f8381cba04ba), [COMMIT3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=79bf2bb335b8) |
+| 2021/08/23 | Valentin Schneider <valentin.schneider@arm.com> | [nohz: Full dynticks base interface](https://lwn.net/Articles/543800) | 引入 NO_HZ_EXTENDED, 即后来的 NO_HZ_FULL, 在只有一个进程运行的时候也能停掉 tick. | v1 ☑ [3.10-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com/) | [LORE 0/3](https://lore.kernel.org/all/1363879460-21595-1-git-send-email-fweisbec@gmail.com/) |
+
+3451d0243c3c nohz: Rename CONFIG_NO_HZ to CONFIG_NO_HZ_COMMON
+
+### 8.2.2 NOHZ 的优化
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/01/22 | Joel Fernandes (Google)" <joel@joelfernandes.org> | [sched/fair: Rate limit calls to update_blocked_averages() for NOHZ](https://lore.kernel.org/patchwork/patch/1369598) | 在运行ChromeOS Linux kernel v5.4 的 octacore ARM64 设备上, 发现有很多对 update_blocked_average() 的调用, 导致调度的开销增大, 造成 newilde_balance 有时需要最多500微秒. 我在周期平衡器中也看到了这一点. 将 update_blocked_average() 调用速率限制为每秒 20 次 | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1369598) |
 | 2021/08/23 | Valentin Schneider <valentin.schneider@arm.com> | [sched/fair: nohz.next_balance vs newly-idle CPUs](https://lore.kernel.org/patchwork/patch/1480299) | NA | v3 ☐ | [2021/07/19 v2,0/2](https://lore.kernel.org/patchwork/cover/1462201)<br>*-*-*-*-*-*-*-* <br>[2021/08/23 PatchWork v3,0/2](https://lore.kernel.org/patchwork/cover/1480299) |
-| 2021/10/27 | Paul Gortmaker <paul.gortmaker@windriver.com> | [bind rcu offload (nohz_full/isolation) into cpuset](https://lkml.org/lkml/2021/10/27/1053) | NA | v1 ☐ | [LKML 0/2](https://lkml.org/lkml/2021/10/27/1053) |
 | 2021/05/13 | Frederic Weisbecker <frederic@kernel.org> | [tick/nohz updates v3](https://lore.kernel.org/all/20210512232924.150322-1-frederic@kernel.org) | NA | v1 ☐ | [LKML 0/2](https://lore.kernel.org/all/20210512232924.150322-1-frederic@kernel.org) |
-| 2020/11/17 | Thomas Gleixner <tglx@linutronix.de> | [tick: Cleanups and reduce jiffies_seq held times](https://lore.kernel.org/lkml/20201117131942.515430545@linutronix.de) | 减少 nohz_full 情况下 jiffies_seq 序列计数器的争用. | v1 ☑ 5.11-rc1 | [LORE 0/7](https://lore.kernel.org/lkml/20201117131942.515430545@linutronix.de), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=94ad2e3cedb82af034f6d97c58022f162b669f9b) |
 
 
 
-## 8.3 task/CPU 隔离
+## 8.3 task/CPU 隔离与降噪
 -------
 
 
+### 8.3.1 isolation
+-------
 
-### 8.3.1 降噪
+
+### 8.3.2 降噪
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1300,7 +1326,8 @@ NOHZ 社区测试用例 [frederic/dynticks-testing.git](https://git.kernel.org/p
 | 2017/12/14 | Frederic Weisbecker | [sched/isolation: Make NO_HZ_FULL select CPU_ISOLATION](https://lore.kernel.org/patchwork/patch/863225) | 增加 cpu_capacity 的跟踪点 | v1 ☑ 4.15-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/863225) |
 | 2018/02/21 | FFrederic Weisbecker <frederic@kernel.org> | [isolation: 1Hz residual tick offloading v7](https://lore.kernel.org/lkml/1519186649-3242-1-git-send-email-frederic@kernel.org) | 当CPU在full dynticks模式下运行时, 一个1Hz的滴答保持, 以保持调度器的统计状态活着. 然而, 对于那些根本无法忍受任何中断或想要最小化中断的裸金属任务来说, 这种残留的滴答是一种负担. 这组补丁将这个 1HZ 的 TICK 也从 CPU 上卸载掉. | v7 ☑ 4.17-rc1 | [PatchWork](https://lore.kernel.org/lkml/1519186649-3242-1-git-send-email-frederic@kernel.org) |
 | 2020/12/27 | Frederic Weisbecker | [context_tracking: Flatter archs not using exception_enter/exit() v2](https://lore.kernel.org/patchwork/patch/1327311) | 为了能够在运行时打开/关闭 nohz_full 所做的准备, 需要 arch 放弃在任务堆栈上保存上下文跟踪状态, 因为这将迫使上下文跟踪在整个系统范围内运行, 即使是在没有启用 nohz_full 的 CPU 上 | v2 ☑ 5.11-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1327311) |
-| 2010/12/20 | Frederic Weisbecker | [Nohz task support](https://lwn.net/Articles/420490) | 标记进程进入 NO_HZ 模式. | v2 ☐ | [LWN](https://lwn.net/Articles/420490) |
+| 2021/10/27 | Paul Gortmaker <paul.gortmaker@windriver.com> | [bind rcu offload (nohz_full/isolation) into cpuset](https://lkml.org/lkml/2021/10/27/1053) | NA | v1 ☐ | [LKML 0/2](https://lkml.org/lkml/2021/10/27/1053) |
+| 2020/11/17 | Thomas Gleixner <tglx@linutronix.de> | [tick: Cleanups and reduce jiffies_seq held times](https://lore.kernel.org/lkml/20201117131942.515430545@linutronix.de) | 减少 nohz_full 情况下 jiffies_seq 序列计数器的争用. | v1 ☑ 5.11-rc1 | [LORE 0/7](https://lore.kernel.org/lkml/20201117131942.515430545@linutronix.de), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=94ad2e3cedb82af034f6d97c58022f162b669f9b) |
 
 
 *   隔离 IRQD_AFFINITY_MANAGED 的中断
@@ -1332,7 +1359,7 @@ NOHZ 社区测试用例 [frederic/dynticks-testing.git](https://git.kernel.org/p
 
 第三个补丁 [net: Restrict receive packets queuing to housekeeping CPUs](), 现有的 store_rps_map 机制会将报文发到其他 CPU 的 backlog 队列中接收, 无论该 COU 是否被隔离. 从而导致对隔离核造成干扰. 因此在选择 CPU 时, 只从非隔离核中选择. 使用启动参数开启此功能, isolcpus 和 nohz_full 均可.
 
-### 8.3.2 task_isolation mode
+### 8.3.3 task_isolation mode
 -------
 
 2020 年, 开发社区对 ["task_isolation" mode](https://lwn.net/Articles/816298) 进行了激烈的讨论, 这个特性允许那些对 latency 很敏感的应用程序在没有内核干扰的情况下得以在 CPU 上运行. 这项工作最终没有被 merge, 但人们显然仍然对这种模式很感兴趣. 这组补丁启发了 来自 Redhat 的 Marcelo Tosatti.
@@ -1355,8 +1382,10 @@ Tosatti 的 patch set 增加了一组新的 prctl() 命令来解决这个问题.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2010/12/20 | Frederic Weisbecker | [Nohz task support](https://lwn.net/Articles/420490) | 标记进程进入 NO_HZ 模式. | v2 ☐ | [LWN](https://lwn.net/Articles/420490) |
 | 2020/11/23 | Alex Belits | [support "task_isolation" mode](https://lwn.net/Articles/816298) | NO_HZ_FULL 的进一步优化, 进一步降低 tick 等对隔离核的影响 | v5 ☐ | [2016 Chris Metcalf v16](https://lore.kernel.org/patchwork/cover/847460)<br>*-*-*-*-*-*-*-* <br>[Alex Belits 2020 LWN](https://lwn.net/Articles/813804), [PatchWork](https://lore.kernel.org/patchwork/cover/1344134), [lkml](https://lkml.org/lkml/2020/11/23/1380) |
 | 2021/07/30 | Marcelo Tosatti <mtosatti@redhat.com> | [extensible prctl task isolation interface and vmstat sync](https://lwn.net/Articles/864603) | 添加 prctl 来控制 task isolation 模式. 依赖于之前 "task isolation mode" 的基础代码实现, 内核看到需要进入 isolation 模式的时候, 就会立即执行之前推迟的所有 vmstat 工作, 这样内核就不会在以后不方便清理的时候再做这个工作了. 目前借助这个特性优化了 vmstat 的干扰. | v2 ☐ | [2021/07/27 Chris Metcalf 0/4](https://lore.kernel.org/patchwork/cover/1468441)<br>*-*-*-*-*-*-*-* <br>[2021/07/30 PatchWork v2, 0/4](https://lore.kernel.org/patchwork/cover/1470296)<br>*-*-*-*-*-*-*-* <br> |
+
 
 
 ## 8.4 更精确的调度时钟(HRTICK), 2.6.25(2008年4月发布)**
