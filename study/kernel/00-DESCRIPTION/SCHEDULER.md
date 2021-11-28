@@ -1281,6 +1281,10 @@ NOHZ 社区测试用例 [frederic/dynticks-testing.git](https://git.kernel.org/p
 | 2021/01/22 | Joel Fernandes (Google)" <joel@joelfernandes.org> | [sched/fair: Rate limit calls to update_blocked_averages() for NOHZ](https://lore.kernel.org/patchwork/patch/1369598) | 在运行ChromeOS Linux kernel v5.4 的 octacore ARM64 设备上, 发现有很多对 update_blocked_average() 的调用, 导致调度的开销增大, 造成 newilde_balance 有时需要最多500微秒. 我在周期平衡器中也看到了这一点. 将 update_blocked_average() 调用速率限制为每秒 20 次 | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1369598) |
 | 2021/08/23 | Valentin Schneider <valentin.schneider@arm.com> | [sched/fair: nohz.next_balance vs newly-idle CPUs](https://lore.kernel.org/patchwork/patch/1480299) | NA | v3 ☐ | [2021/07/19 v2,0/2](https://lore.kernel.org/patchwork/cover/1462201)<br>*-*-*-*-*-*-*-* <br>[2021/08/23 PatchWork v3,0/2](https://lore.kernel.org/patchwork/cover/1480299) |
 | 2021/10/27 | Paul Gortmaker <paul.gortmaker@windriver.com> | [bind rcu offload (nohz_full/isolation) into cpuset](https://lkml.org/lkml/2021/10/27/1053) | NA | v1 ☐ | [LKML 0/2](https://lkml.org/lkml/2021/10/27/1053) |
+| 2021/05/13 | Frederic Weisbecker <frederic@kernel.org> | [tick/nohz updates v3](https://lore.kernel.org/all/20210512232924.150322-1-frederic@kernel.org) | NA | v1 ☐ | [LKML 0/2](https://lore.kernel.org/all/20210512232924.150322-1-frederic@kernel.org) |
+| 2020/11/17 | Thomas Gleixner <tglx@linutronix.de> | [tick: Cleanups and reduce jiffies_seq held times](https://lore.kernel.org/lkml/20201117131942.515430545@linutronix.de) | 减少 nohz_full 情况下 jiffies_seq 序列计数器的争用. | v1 ☑ 5.11-rc1 | [LORE 0/7](https://lore.kernel.org/lkml/20201117131942.515430545@linutronix.de), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=94ad2e3cedb82af034f6d97c58022f162b669f9b) |
+
+
 
 ## 8.3 task/CPU 隔离
 -------
