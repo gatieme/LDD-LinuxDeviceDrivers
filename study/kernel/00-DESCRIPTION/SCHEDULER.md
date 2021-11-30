@@ -201,6 +201,9 @@ BFS 的最后版本是 2016 年 12 月发布的 v0.512, 基于 v4.8 内核.
 
 该策略比较适用于非交互且不期望降低 nice 值的负载, 以及需要不因为交互而(在负载之间)造成额外抢占的调度策略的负载
 
+
+[batch/idle priority scheduling, SCHED_BATCH](https://lwn.net/Articles/3866)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2006/01/14 | Ingo Molnar <mingo@elte.hu> | [b0a9499c3dd5 sched: add new SCHED_BATCH policy](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0a9499c3dd5) | NA | v1 ☑ 2.6.24-rc1 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0a9499c3dd5) |
@@ -1098,7 +1101,7 @@ ARM64 机器(如 kunpeng920)和 x86 机器(如 Jacobsville)具有一定的硬件
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2013/10/18 | Vincent Guittot | [sched: packing tasks](https://lwn.net/Articles/520857) | 尝试在繁忙的内核上打包小负载的后台任务, 这样可以通过保持其他核空闲来节省电源. | v1 ☐ | [LKML v5 00/14](https://lkml.org/lkml/2013/10/18/121), [LORE v5 00/14](https://lore.kernel.org/lkml/1382097147-30088-1-git-send-email-vincent.guittot@linaro.org/)<br>*-*-*-*-*-*-*-* <br>[LKML new PART1 v4 0/5 ](https://lkml.org/lkml/2014/4/11/137) |
+| 2013/10/18 | Vincent Guittot | [sched: packing tasks](https://lwn.net/Articles/520857) | 尝试在繁忙的内核上打包小负载的后台任务, 这样可以通过保持其他核空闲来节省电源. | v1 ☐ | [LKML v3 0/6](https://lkml.org/lkml/2013/3/22/183)<br>*-*-*-*-*-*-*-* <br>[LKML new PART1 v4 0/5 ](https://lkml.org/lkml/2014/4/11/137)<br>*-*-*-*-*-*-*-* <br>[LKML v5 00/14](https://lkml.org/lkml/2013/10/18/121), [LORE v5 00/14](https://lore.kernel.org/lkml/1382097147-30088-1-git-send-email-vincent.guittot@linaro.org/) |
 
 
 ### 7.1.2 TurboSched
@@ -1116,6 +1119,9 @@ ARM64 机器(如 kunpeng920)和 x86 机器(如 Jacobsville)具有一定的硬件
 
 ### 7.2.1 能耗感知的调度器
 -------
+
+2009 年 来自 IBM 的 Gautham R Shenoy 提出了 [sched: Nominate a power-efficient ILB.](https://lwn.net/Articles/326909)
+
 
 在 Linaro 开发小任务封包的同时, 2012 年 Intel 的 Alex Shi 发起的讨论中, 提出了更高大上的概念[**能耗感知的调度器**](https://lkml.org/lkml/2012/8/13/139), 功耗和性能本身就是一个矛盾的统一体, 因此由于此特性节省的功耗和降低的性能不成正比, 因此在发到 v7 [PatchWork](https://lore.kernel.org/patchwork/cover/370834) 之后也寿终正寝.
 
@@ -1294,28 +1300,73 @@ NOHZ 社区测试用例 [frederic/dynticks-testing.git](https://git.kernel.org/p
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2007/02/16 | Thomas Gleixner <tglx@linutronix.de> | [New hrtimers/dynticks patches](https://www.lkml.org/lkml/2007/1/29/30) | 引入 CONFIG_TICK_ONESHOT 和 CONFIG_NO_HZNO_HZ, 以支持在 CPU 空闲的时候停掉 tick, 进入 NOHZ 模式.<br>所有进入 NO_HZ 的 CPU 被标记在 [nohz_cpu_mask](https://elixir.bootlin.com/linux/v2.6.21/source/kernel/time/tick-sched.c#L211) 中, 直到<br>1.当进入 [cpu_idle()](https://elixir.bootlin.com/linux/v2.6.21/source/arch/i386/kernel/process.c#L177)已经[中断退出](https://elixir.bootlin.com/linux/v2.6.21/source/kernel/softirq.c#L309)却不需要 RESCHED 时, 则通过 通过 [tick_nohz_stop_sched_tick()](https://elixir.bootlin.com/linux/v2.6.21/source/kernel/time/tick-sched.c#L151).<br> 停掉 tick.<br>2. 当 CPU 从 IDLE 状态被唤醒时, 在 cpu_idle() 中[退出 idle 循环触发重新调度](https://elixir.bootlin.com/linux/v2.6.21/source/arch/i386/kernel/process.c#L196)之前, 再次通过 [tick_nohz_restart_sched_tick()](https://elixir.bootlin.com/linux/v2.6.21/source/kernel/time/tick-sched.c#L262) 重启 tick. | v1 ☑ 2.6.21-rc1 | [COMMIT1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=906568c9c668), [COMMIT2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f8381cba04ba), [COMMIT3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=79bf2bb335b8) |
-| 2021/08/23 | Valentin Schneider <valentin.schneider@arm.com> | [nohz: Full dynticks base interface](https://lwn.net/Articles/543800) | 引入 NO_HZ_EXTENDED, 即后来的 NO_HZ_FULL, 在只有一个进程运行的时候也能停掉 tick. | v1 ☑ [3.10-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com/) | [LORE 0/3](https://lore.kernel.org/all/1363879460-21595-1-git-send-email-fweisbec@gmail.com/) |
+| 2008/07/11 | Heiko Carstens <heiko.carstens@de.ibm.com> | [nohz: don't stop idle tick if softirqs are pending](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=857f3fd7a496) | NA | v1 ☑ [2.6.27-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com/) | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=857f3fd7a496) |
+| 2008/07/18 | Thomas Gleixner <tglx@linutronix.de> | [nohz: prevent tick stop outside of the idle loop](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b8f8c3cf0a4a) | NA | v1 ☑ [2.6.27-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com/) | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b8f8c3cf0a4a) |
+| 2012/03/21 | Joel Fernandes (Google)" <joel@joelfernandes.org> | [Nohz cpusets v2 (adaptive tickless kernel)](https://lwn.net/Articles/487599) | NA | v1 ☐ | [LWN](https://lwn.net/Articles/487599) |
+| 2013/01/11 | Frederic Weisbecker <fweisbec@gmail.com> | [cputime: Full dynticks task/cputime accounting v5](https://lwn.net/Articles/533474) | NA | v1 ☑ 3.9-rc1 | [LWN](https://lwn.net/Articles/533474) |
+| 2013/03/21 | Frederic Weisbecker <fweisbec@gmail.com> | [nohz: Full dynticks base interface](https://lwn.net/Articles/543800) | 引入 NO_HZ_EXTENDED, 即后来的 NO_HZ_FULL, 在只有一个进程运行的时候也能停掉 tick. | v1 ☑ [3.10-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com/) | [LORE 0/3](https://lore.kernel.org/all/1363879460-21595-1-git-send-email-fweisbec@gmail.com/) |
+| 2013/04/03 | Frederic Weisbecker <fweisbec@gmail.com> | [nohz: Kconfig layout improvements](https://lwn.net/Articles/543800) | 引入 NO_HZ_EXTENDED, 即后来的 NO_HZ_FULL, 在只有一个进程运行的时候也能停掉 tick. | v1 ☑ [3.10-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com) | [LORE 0/3](https://lkml.org/lkml/2013/4/3/252) |
+| 2013/04/15 | Frederic Weisbecker <fweisbec@gmail.com> | [nohz: More Kconfig and Rcu improvements](http://lkml.iu.edu/hypermail/linux/kernel/1304.1/05045.html) | 重命名 NO_HZ_EXTENDED 为 NO_HZ_FULL. | v1 ☑ [3.10-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com) | [LKML 0/5](https://lkml.org/lkml/2013/4/15/494) |
+| 2013/04/17 | Frederic Weisbecker <fweisbec@gmail.com> | [nohz: Full dynticks timekeeping and RCU improvement](https://lore.kernel.org/lkml/1366215889-2635-1-git-send-email-fweisbec@gmail.com) | NA | v1 ☑ [3.10-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com) | [LORE 0/5](https://lore.kernel.org/lkml/1366215889-2635-1-git-send-email-fweisbec@gmail.com) |
+| 2013/04/22 | Frederic Weisbecker <fweisbec@gmail.com> | [nohz: Adaptively stop the tick, finally](https://lwn.net/Articles/548110) | NA | v1 ☑ [3.10-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com) | [LORE 0/5](https://lore.kernel.org/lkml/1366657186-20556-1-git-send-email-fweisbec@gmail.com/) |
+| 2013/04/22 | Frederic Weisbecker <fweisbec@gmail.com> | [nohz: Help for testing](https://lkml.org/lkml/2013/4/22/466) | 1. NO_HZ_FULL 直接 select RCU_NOCB_CPU_ALL<br>2. 增加 tick_stop tracepoint. | v1 ☑ [3.10-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com) | [LKML 0/2](https://lkml.org/lkml/2013/4/22/466) |
+| 2013/08/01 | Frederic Weisbecker <fweisbec@gmail.com> | [nohz patches for 3.12 preview v3](https://lore.kernel.org/lkml/1375317100-20651-1-git-send-email-fweisbec@gmail.com) | 通过 static key 等手段, 降低 nohz full off 时候的 overload | v1 ☑ [3.10-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com) | [LORE GIT PULL preview v1 0/18](https://lore.kernel.org/lkml/1374079471-3129-1-git-send-email-fweisbec@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE GIT PULL preview v2 0/21](https://www.mail-archive.com/linux-kernel@vger.kernel.org/msg475929.html)<br>*-*-*-*-*-*-*-* <br>[LORE GIT PULL preview v3 0/23](https://lore.kernel.org/lkml/1375317100-20651-1-git-send-email-fweisbec@gmail.com) |
+| 2014/6/16 | Frederic Weisbecker <fweisbec@gmail.com> | [nohz: Move nohz kick out of scheduler IPI, v4](https://lkml.org/lkml/2014/5/13/478) | kick remote CPU 不再使用 scheduler IPI 接口, 而是使用封装好的 tick_nohz_full_kick_cpu() 接口提交 IRQ_WORK nohz_full_kick_work 来完成. | v1 ☑ 3.17-rc1 | [LKML v4,0/5](https://lkml.org/lkml/2014/5/13/478)<br>*-*-*-*-*-*-*-* <br>[LKML v6,0/5](https://lkml.org/lkml/2014/5/25/45)<br>*-*-*-*-*-*-*-* <br>[LKML v9,0/6](https://lkml.org/lkml/2014/6/16/436) |
+| 2014/09/20 | Frederic Weisbecker <fweisbec@gmail.com> | [nohz: Fix nohz kick irq work on tick](https://lkml.org/lkml/2014/5/13/478) | 开启 nohz_full 之后, 使用 IRQ_WORK 触发了多个 WARNING 和 LOCKUP 等问题. 这是由于 nohz full 需要 IRQ WORK 这一安全的上下文来触发它自己的中断, 以便子系统在 tick 停止时也能工作. 这就要求系统支持在 IRQ_WORK 上下文触发中断, 否则它将引发死循环. 因此引入 [arch_irq_work_has_interrupt()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c5c38ef3d70377dc504a6a3f611a3ec814bc757b) 来标记当前系统是否支持. | v3 ☑ 3.18-rc1 | [LKML RFC,0/9](https://lkml.org/lkml/2014/8/21/391)<br>*-*-*-*-*-*-*-* <br>[LORE 0/8](https://lore.kernel.org/lkml/1411245024-10339-1-git-send-email-fweisbec@gmail.com) |
+| 2015/4/24 | Rik van Riel <riel@redhat.com> | [show isolated & nohz_full cpus in sysfs](https://lkml.org/lkml/2015/4/24/657) | 在 sysfs 中显示 isolcpus 和 nohz_full CPU | v1 ☑ 4.2-rc1 | [LKML 0/2](https://lkml.org/lkml/2015/4/24/657) |
+| 2015/03/10 | Rik van Riel <riel@redhat.com> | [nohz: Enable full dynticks on guest mode](https://lwn.net/Articles/636123/) | GUEST 支持 nohz_full. | v1 ☑ 4.1-rc1 | [LORE 0/7](https://lore.kernel.org/all/1425998238-4954-1-git-send-email-fweisbec@gmail.com) |
+| 2015/06/11 | Frederic Weisbecker <fweisbec@gmail.com> | [tick/nohz: Tick dependency quick check + cleanups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=594493594373) | NA | v1 ☑ 4.3-rc1 | [LORE 0/8](https://lore.kernel.org/all/1434044168-23173-1-git-send-email-fweisbec@gmail.com) |
+| 2015/12/14 | Frederic Weisbecker <fweisbec@gmail.com> | [nohz: Tick dependency mask v4](https://lwn.net/Articles/667775) | NA | v1 ☑ 4.6-rc1 | [LWN](https://lwn.net/Articles/667775) |
+| 2021/05/13 | Frederic Weisbecker <frederic@kernel.org> | [tick/nohz updates v3](https://lore.kernel.org/all/20210512232924.150322-1-frederic@kernel.org) | NA | v1 ☐ | [LKML 0/2](https://lore.kernel.org/all/20210512232924.150322-1-frederic@kernel.org) |
 
-3451d0243c3c nohz: Rename CONFIG_NO_HZ to CONFIG_NO_HZ_COMMON
 
-### 8.2.2 NOHZ 的优化
+### 8.2.2 1 HZ tick
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2015/06/11 | Frederic Weisbecker <fweisbec@gmail.com> | [nohz: Bunch of fixes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=594493594373) | NA | v1 ☑ 4.3-rc1 | [LKML 0/2](https://lkml.org/lkml/2013/5/3/374) |
+| 2017/12/21 | Peter Zijlstra <peterz@infradead.org> | [sched: On remote stats updates](https://lore.kernel.org/lkml/20171221102139.177253391@infradead.org) | 引入 update_nohz_stats(), 通过其他 CPU 更新 nohz CPU 的 blocked_averages. | v1 ☑ 4.17-rc1 | [LORE 0/5](https://lore.kernel.org/lkml/20171221102139.177253391@infradead.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e022e0d38ad475fc650f22efa3deb2fb96e62542) |
+| 2018/02/21 | FFrederic Weisbecker <frederic@kernel.org> | [isolation: 1Hz residual tick offloading v7](https://lore.kernel.org/lkml/1519186649-3242-1-git-send-email-frederic@kernel.org) | 当CPU在full dynticks模式下运行时, 一个1Hz的滴答保持, 以保持调度器的统计状态活着. 然而, 对于那些根本无法忍受任何中断或想要最小化中断的裸金属任务来说, 这种残留的滴答是一种负担. 这组补丁将这个 1HZ 的 TICK 也从 CPU 上卸载掉. | v7 ☑ 4.17-rc1 | [PatchWork](https://lore.kernel.org/lkml/1519186649-3242-1-git-send-email-frederic@kernel.org) |
+
+
+
+### 8.2.3 boot CPU nohz
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2013/03/27 | Frederic Weisbecker <fweisbec@gmail.com> | [nohz: Full dynticks fixes/improvements](https://lwn.net/Articles/543800) | 1. 确保传递给 `nohz_full=` 参数的范围是 `rcu_nocbs=` 的子集, 不符合此要求的 CPU 将被排除在 nohz_full 范围之外.<br>2. 不允许 boot CPU 设置为 nohz_full. | v1 ☑ [3.10-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com) | [LORE 0/3](https://lore.kernel.org/lkml/1364398359-21990-1-git-send-email-fweisbec@gmail.com) |
+| 2014/1/28 | Frederic Weisbecker <fweisbec@gmail.com> | [nohz: ensure users are aware boot CPU is not NO_HZ_FULL](https://lkml.org/lkml/2014/1/28/267) | 修改 NO_HZ_FULL 的 Kconfig 描述, 添加 (except CPU 0), 确保用户明确知道 boot CPU 不支持配置 nohz_full | v1 ☑ 3.15-rc1 | [LKML v1](https://lkml.org/lkml/2014/1/28/267), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f96a34e27df1) |
+| 2015/06/11 | Frederic Weisbecker <fweisbec@gmail.com> | [Allow CPU0 to be nohz full](https://lkml.org/lkml/2019/4/10/1253) | NA | v2 ☑ 5.2-rc1 | [LORE v2 0/5](https://lkml.org/lkml/2019/4/10/1253) |
+
+### 8.2.4 nohz load balance
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2007/02/23 | Thomas Gleixner <tglx@linutronix.de> | [dynticks: idle load balancing](hhttps://lkml.org/lkml/2006/12/11/331) | 修复 dynticks 存在时的进程空闲负载平衡. 停止 TICK 后的 CPU 将休眠, 直到下一个事件将其唤醒. 这些休眠可能会持续很长时间, 在这段时间内, 目前没有进行周期性的空闲负载平衡. 此修补程序指定空闲 CPU 中的所有者, 该所有者代表其他空闲 CPU 执行空闲负载平衡. 一旦所有 CPU 都完全空闲, 那么内核也可以停止这种空闲负载平衡. 将最小化在快速路径中添加的检查. 每当系统中有繁忙的 CPU 时, 就会有一个所有者空闲 CPU 来进行系统范围的空闲负载平衡. | v3 ☑ [2.6.22-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com/) | [LKML v1 0/2](https://lkml.org/lkml/2006/12/11/331)<br>*-*-*-*-*-*-*-* <br>[LKML v2,2/2](https://lkml.org/lkml/2007/2/16/465)<br>*-*-*-*-*-*-*-* <br>[LKML v3](https://lkml.org/lkml/2007/2/23/332)<br>*-*-*-*-*-*-*-* <br>[COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=46cb4b7c88fa5517f64b5bee42939ea3614cddcb) |
+| 2011/10/19 | Tim Chen | [Idle balancer: cache align nohz structure to improve idle load balancing scalability](https://lkml.org/lkml/2011/10/19/390) | NA | v1 ☐ | [LKML](https://lkml.org/lkml/2011/10/19/390) |
+| 2011/12/01 | Suresh Siddha <suresh.b.siddha@intel.com> | [nohz idle load balancing patches](https://lore.kernel.org/all/20111202010731.344451602@sbsiddha-desk.sc.intel.com) | 使 nohz 空闲负载平衡更具可伸缩. | v1 ☑ 3.3-rc1 | [LORE v3,0/6](https://lore.kernel.org/all/20111202010731.344451602@sbsiddha-desk.sc.intel.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0b005cf54eac) |
+| 2014/1/28 | Mike Galbraith <mgalbraith@suse.de> | [sched, nohz: Exclude isolated cores from load balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d987fc7f3228) | isolated CPU 不再进行负载均衡. | v1 ☑ 3.15-rc1 | [LKML](https://lkml.org/lkml/2014/2/21/736) |
+| 2017/12/21 | Peter Zijlstra <peterz@infradead.org> | [sched: On remote stats updates](https://lore.kernel.org/lkml/20171221102139.177253391@infradead.org) | 引入 update_nohz_stats(), 通过其他 CPU 更新 nohz CPU 的 blocked_averages. | v1 ☑ 4.17-rc1 | [LORE 0/5](https://lore.kernel.org/lkml/20171221102139.177253391@infradead.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e022e0d38ad475fc650f22efa3deb2fb96e62542) |
+| 2018/02/13 | Vincent Guittot | [sched: Update blocked load](https://lore.kernel.org/patchwork/patch/1369598) | NA | v4 ☑ 4.17-rc1 | [LKML v4,0/3](https://lkml.org/lkml/2018/2/13/271) |
+| 2019/1/17 | Valentin Schneider | [sched/fair: NOHZ cleanups and misfit improvement](https://lkml.org/lkml/2019/1/17/510) | 降低 ARM big.LITTLE 平台 NOHZ 下不必要的 kick 操作. | v1 ☑ 5.1-rc1 | [LKML 0/5](https://lkml.org/lkml/2019/1/17/510) |
+| 2021/07/19 | Peter Zijlstra <peterz@infradead.org> | [sched/fair: nohz.next_balance vs newly-idle CPUs](https://lore.kernel.org/lkml/20210719103117.3624936-1-valentin.schneider@arm.com) | NA | v1 ☑ 5.16-rc1 | [LORE 0/2](https://lore.kernel.org/lkml/20210719103117.3624936-1-valentin.schneider@arm.com) |
 | 2021/01/22 | Joel Fernandes (Google)" <joel@joelfernandes.org> | [sched/fair: Rate limit calls to update_blocked_averages() for NOHZ](https://lore.kernel.org/patchwork/patch/1369598) | 在运行ChromeOS Linux kernel v5.4 的 octacore ARM64 设备上, 发现有很多对 update_blocked_average() 的调用, 导致调度的开销增大, 造成 newilde_balance 有时需要最多500微秒. 我在周期平衡器中也看到了这一点. 将 update_blocked_average() 调用速率限制为每秒 20 次 | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1369598) |
-| 2021/08/23 | Valentin Schneider <valentin.schneider@arm.com> | [sched/fair: nohz.next_balance vs newly-idle CPUs](https://lore.kernel.org/patchwork/patch/1480299) | NA | v3 ☐ | [2021/07/19 v2,0/2](https://lore.kernel.org/patchwork/cover/1462201)<br>*-*-*-*-*-*-*-* <br>[2021/08/23 PatchWork v3,0/2](https://lore.kernel.org/patchwork/cover/1480299) |
-| 2021/05/13 | Frederic Weisbecker <frederic@kernel.org> | [tick/nohz updates v3](https://lore.kernel.org/all/20210512232924.150322-1-frederic@kernel.org) | NA | v1 ☐ | [LKML 0/2](https://lore.kernel.org/all/20210512232924.150322-1-frederic@kernel.org) |
 
 
-
-## 8.3 task/CPU 隔离与降噪
+### 8.2.5 housekeeping
 -------
 
+https://lore.kernel.org/all/1513275507-29200-1-git-send-email-frederic@kernel.org
+https://lore.kernel.org/all/1509419914-16179-1-git-send-email-frederic@kernel.org
 
-### 8.3.1 isolation
--------
-
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2017/10/27 | Frederic Weisbecker <frederic@kernel.org> | [Introduce housekeeping subsystem](https://lwn.net/Articles/728539/) | nohz_full 有一个设计问题: 它通过 housing 的函数驱动各个相互独立的隔离特性: kthreads、unpinned timer、watchdog 等等. 因此, 我们需要一个子系统来驱动所有这些隔离特性, 包括在稍后的迭代中使用 nohz full. 因此引入 housekeeping 子系统来完成这个工作, 通过 CONFIG_CPU_ISOLATION 控制, 从 CONFIG_NO_HZ_FULL 中拆出来作为一个单独的控制模块, 通过 isolcpus 启动参数来控制 nohz_full 相关特性的配置. | v1 ☑ 4.15-rc1 | [LKML 0/5](https://lore.kernel.org/all/1509072159-31808-1-git-send-email-frederic@kernel.org) |
+| 2017/10/31 | Frederic Weisbecker <frederic@kernel.org> | [sched/isolation: Document isolcpus= boot parameter flags, mark it deprecated](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0d40d2b22fe48cfcbbfb137fd198be0a1cd8a85) | 完善了 isolcpus 启动参数的文档, 详细描述了当前 nohz 以及 domain 两个配置参数的功能和效果. | v1 ☑ 4.15-rc1 | [LORE v7](https://lore.kernel.org/all/1509419914-16179-1-git-send-email-frederic@kernel.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0d40d2b22fe48cfcbbfb137fd198be0a1cd8a85) |
+| 2017/12/14 | Frederic Weisbecker <frederic@kernel.org> | [Nohz and isolation fixes v2](https://lore.kernel.org/all/1513275507-29200-1-git-send-email-frederic@kernel.org) | NO_HZ_FULL 直接 select CPU_ISOLATION | v1 ☑ 4.15-rc6 | [LKML 0/5](https://lore.kernel.org/all/1513275507-29200-1-git-send-email-frederic@kernel.org) |
 
 ### 8.3.2 降噪
 -------
@@ -1385,6 +1436,9 @@ Tosatti 的 patch set 增加了一组新的 prctl() 命令来解决这个问题.
 | 2010/12/20 | Frederic Weisbecker | [Nohz task support](https://lwn.net/Articles/420490) | 标记进程进入 NO_HZ 模式. | v2 ☐ | [LWN](https://lwn.net/Articles/420490) |
 | 2020/11/23 | Alex Belits | [support "task_isolation" mode](https://lwn.net/Articles/816298) | NO_HZ_FULL 的进一步优化, 进一步降低 tick 等对隔离核的影响 | v5 ☐ | [2016 Chris Metcalf v16](https://lore.kernel.org/patchwork/cover/847460)<br>*-*-*-*-*-*-*-* <br>[Alex Belits 2020 LWN](https://lwn.net/Articles/813804), [PatchWork](https://lore.kernel.org/patchwork/cover/1344134), [lkml](https://lkml.org/lkml/2020/11/23/1380) |
 | 2021/07/30 | Marcelo Tosatti <mtosatti@redhat.com> | [extensible prctl task isolation interface and vmstat sync](https://lwn.net/Articles/864603) | 添加 prctl 来控制 task isolation 模式. 依赖于之前 "task isolation mode" 的基础代码实现, 内核看到需要进入 isolation 模式的时候, 就会立即执行之前推迟的所有 vmstat 工作, 这样内核就不会在以后不方便清理的时候再做这个工作了. 目前借助这个特性优化了 vmstat 的干扰. | v2 ☐ | [2021/07/27 Chris Metcalf 0/4](https://lore.kernel.org/patchwork/cover/1468441)<br>*-*-*-*-*-*-*-* <br>[2021/07/30 PatchWork v2, 0/4](https://lore.kernel.org/patchwork/cover/1470296)<br>*-*-*-*-*-*-*-* <br> |
+
+## 8.4 RCU NOCBS
+-------
 
 
 
