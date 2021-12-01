@@ -62,6 +62,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/06/01 | Shaokun Zhang <zhangshaokun@hisilicon.com> | [fs: Optimized file struct to improve performance](https://patchwork.kernel.org/project/linux-fsdevel/patch%20/1622513557-46189-1-git-send-email-zhangshaokun@hisilicon.com) | 通过调整 struct file 中各字段的布局来提升性能. 在系统调用过程中, 经常使用 struct file 结构体中 `f_count`和 `f_mod` 两个[字段](https://patchwork.kernel.org/project/linux-fsdevel/patch/1592987548-8653-1-git-send-email-zhangshaokun@hisilicon.com), 如果我们将它们放在一起, 将能有效地共享同一 cache line, 这对性能非常有用. intel 0-day CI 工程发现该补丁可以提升 UnixBench System Call Overhead 子项的性能, 参见 [aec499039e: unixbench.score 19.2% improvement](https://lkml.org/lkml/2021/4/20/28). | v1 ☐ | [2021/04/09 Patchwork RESEND](https://patchwork.kernel.org/project/linux-fsdevel/patch/1617940057-52843-1-git-send-email-zhangshaokun@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[2021/06/01 Patchwork RESEND](https://patchwork.kernel.org/project/linux-fsdevel/patch%20/1622513557-46189-1-git-send-email-zhangshaokun@hisilicon.com) |
+| 2021/08/03 | Peter Oskolkov <posk@google.com> | [5-10% increase in IO latencies with nohz balance patch](https://lkml.org/lkml/2021/11/29/1108) | [7fd7a9e0caba ("sched/fair: Trigger nohz.next_balance updates when a CPU goes NOHZ-idle")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7fd7a9e0caba) 这个补丁导致了 FIO 性能测试劣化. | v1 ☐ | [PatchWork v4,00/10](https://lore.kernel.org/patchwork/cover/1471548) |
 
 
 # 2 网络
