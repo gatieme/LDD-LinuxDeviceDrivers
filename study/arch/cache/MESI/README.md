@@ -66,21 +66,20 @@ MESI(Modified-Exclusive-Shared-Invalid) 协议是一种广为使用的缓存一�
 | S 共享 (Shared) | 该 Cache line 有效, 数据和内存中的数据一致, 数据存在于很多 Cache 中. | 当前缓存行必须监听其它缓存使该缓存行无效或者独享该缓存行的请求, 并将该缓存行变成无效(Invalid). | 当其他 CPU 修改该缓存行对应的内存时会使该缓存行变成 I 状态. |
 | I 无效 (Invalid) | 该 Cache line 无效. | 无 | 无 |
 
+监听:
+
+1.  一个处于 M 状态的缓存行必须时刻监听所有试图读该缓存行相对就主存的操作, 这种操作必须在缓存将该缓存行写回主存并将状态变成 S 状态之前被延迟执行.
+
+2.  一个处于 S 状态的缓存行也必须监听其它缓存使该缓存行无效或者独享该缓存行的请求, 并将该缓存行变成无效(Invalid).
+
+3.  一个处于 E 状态的缓存行也必须监听其它缓存读主存中该缓存行的操作, 一旦有这种操作, 该缓存行需要变成 S 状态.
+
+
 ## 2.2 请求
 -------
 
 
 首先不同 CPU 之间也是需要沟通的, 这里的沟通是通过在消息总线上传递 message 实现的. 这些在总线上传递的消息有如下几种:
-
-| 请求 | 描述 |
-|:---:|:----:|
-| Read | 带上数据的物理内存地址发起的读请求消息 |
-| Read Response | Read 请求的响应信息, 内部包含了读请求指向的数据 |
-| Invalidate | 该消息包含数据的内存物理地址, 意思是要让其他如果持有该数据缓存行的 CPU 直接失效对应的缓存行 |
-| Invalidate Acknowledge | CPU 对Invalidate 消息的响应, 目的是告知发起 Invalidate 消息的CPU, 这边已经失效了这个缓存行啦 |
-| Read Invalidate | 这个消息其实是 Read 和 Invalidate 的组合消息, 与之对应的响应自然就是一个Read Response 和 一系列的 Invalidate Acknowledge |
-| Writeback | 该消息包含一个物理内存地址和数据内容, 目的是把这块数据通过总线写回内存里. |
-
 
 | 消息 | 类型 | 描述 |
 |:---:|:----:|:---:|
@@ -88,7 +87,7 @@ MESI(Modified-Exclusive-Shared-Invalid) 协议是一种广为使用的缓存一�
 | Read Response | 响应 | Read 请求的响应信息, 该消息内包含了被请求读取的数据. 该消息可能是主内存返回的, 也可能是其他高速缓存嗅探到 Read 消息返回的. |
 | Invalidate | 请求 | 通知其他处理器删除(无效)指定内存地址的数据副本(缓存行中的数据). 该消息包含数据的内存物理地址. |
 | Invalidate Acknowledge | 响应 | 这是 CPU 对 Invalidate 消息的响应, 接收到 Invalidate 消息的处理器必须回复此消息, 表示已经无效掉了其高速缓存内对应的数据副本. |
-| Read Invalidate | 请求 | 这个消息其实是 Read 和 Invalidate 消息组成的复合消息, 主要是用于通知其他 CPU 当前 CPU 准备更新一个数据了, 并请求其他处理器删除其高速缓存内对应的数据副本. 接收到该消息的处理器必须回复 Read Response 和 Invalidate Acknowledge 消息. |
+| Read Invalidate | 请求 | 这个消息其实是 Read 和 Invalidate 消息组成的复合消息, 主要是用于通知其他 CPU 当前 CPU 准备更新一个数据了, 所以获取对该数据的独占权, 并请求其他处理器删除其高速缓存内对应的数据副本. 接收到该消息的处理器必须回复 Read Response 和 Invalidate Acknowledge 消息. |
 | Writeback | 响应 | 消息包含了需要写入内存的数据和其对应的内存地址, 一般用在 modified 状态的 cache line 被置换时发出, 用来将最新的数据写回 memory 或其他下一级 cache 中. |
 
 
@@ -97,41 +96,65 @@ MESI(Modified-Exclusive-Shared-Invalid) 协议是一种广为使用的缓存一�
 
 那么这些请求如何动态的转换呢 ?
 
+MESI 状态转换的规则如下:
+
+1.  一个缓存除在 Invalid 状态外都可以满足 CPU 的读请求, 一个 Invalid 的缓存行必须从主存中读取(变成 S 或者 E 状态)来满足该 CPU 的读请求.
+
+2.  一个写请求只有在该缓存行是 M 或者 E 状态时才能被执行, 如果缓存行处于 S 状态, 必须先将其它缓存中该缓存行变成 Invalid 状态(也既是不允许不同 CPU 同时修改同一缓存行, 即使修改该缓存行中不同位置的数据也不允许). 该操作经常作用广播的方式来完成, 例如: RequestFor Ownership (RFO).
+
+3.  缓存可以随时将一个非 M 状态的缓存行作废, 或者变成 Invalid 状态, 而一个 M 状态的缓存行必须先被写回主存.
+
+4.  从上面的意义看来 E 状态是一种投机性的优化: 如果一个 CPU 想修改一个处于 S 状态的缓存行, 总线事务需要将所有该缓存行的 copy 变成 Invalid 状态, 而修改 E 状态的缓存不需要使用总线事务.
+
+5.  对于 M 和 E 状态而言总是精确的, 他们和该缓存行的实际状态是一致的. 而 S 状态可能是非一致的, 如果一个缓存将处于 S 状态的缓存行作废了, 而另一个缓存实际上可能已经独享了该缓存行, 但是该缓存却不会将该缓存行升迁为 E 状态, 这是因为其它缓存不会广播他们作废掉该缓存行的通知, 同样由于缓存并没有保存该缓存行的 copy 的数量, 因此(即使有这种通知)也没有办法确定自己是否已经独享了该缓存行. 因此上述状态转换的表格中, 中间状态可能并不会发生.
+
+
+
 local read 和 local write 分别代表本地CPU读写.
 remote read 和 remote write 分别代表其他CPU读写.
 
-| 当前状态 | 事件 | 行为 | 请求 | 响应 | 下一个状态 |
-|:------:|:----:|:---:|:----:|:---:|:--------:|
-| I(invalid) | local read | 本 CPU 执行读操作, 发现 local cache 没有数据, 因此通过 read 发起一次 bus transaction, 来自其他的 CPU local cache 或者 memory 会通过 read response 回应, 从而将该 cache line 从 Invalid 状态迁移到 Shared 状态.
-| S |
-| I(invalid) | local write | CPU 想要进行 write 的操作但是数据不在 local cache 中, 因此, 该 CPU 首先发送了 read invalidate 启动了一次总线 transaction. 在收到 read response 回应拿到数据, 并且收集所有其他 CPU 发来的 invalidate acknowledge 之后(确保其他 CPU 没有 local copy), 完成整个 bus transaction. 当 write 操作完成之后, 该 cacheline的状态会从 I 状态迁移到 E 状态. | E |
-| I(invalid) | local write | CPU 需要执行一个原子的 readmodify-write 操作, 并且其 cache 中没有缓存数据. 这时候 CPU 就会在总线上发送一个 read invalidate 消息来请求数据, 并试图独占该数据. CPU 可以通过收到的 read response 消息获取到数据, 并等待所有的 invalidate acknowledge 消息, 然后将状态设置为 modifie. | M |
-| I(invalid) | remote read | remote read 不影响本地 cache 的状态 | I |
-| I(invalid) | remote write | remote read 不影响本地 cache 的状态 | I |
+![MESI 的状态转换图](./MESI.png)
+
+| 当前状态 | 事件 | 行为 | 当前所在核的 cache 状态 | 触发读写事件 CPU 的 cache 状态 | 其他 cache 状态 |
+|:------:|:----:|:---:|:--------------------:|:----------------------------:|:-------------:|
+| M(modified) | local read | 状态不变 | M | M | I |
+| M(modified) | local write | 状态不变 | M | M | I |
+| M(modified) | remote read | 在本 CPU 独自享受独占数据的时候, 其他的 CPU 发起 read 请求, 希望获取数据, 这时候, 本 CPU 必须以其 local cacheline 的数据回应, 并以 read response 回应之前总线上的 read 请求. 这时候, 本 CPU 失去了独占权, 该 cacheline 状态从 Modified 状态变成 Shared 状态(有可能也会进行写回的动作, 写会后, 可能存在中间状态 E). | M->E->S | I->S | I->S |
+| M(modified) | remote write | ~~先把 cache 中的数据写到内存中, 其他 CPU 的 cache 再读取并修改后, 本地 cache 状态变为I. 修改的那个cache状态变为 M~~<br>CPU 收到一个 read invalidate 消息, 此时 CPU 必须将对应 cache line 设置成 invalid 状态, 并且响应一个 read response 消息和 invalidate acknowledge 消息. | I | M->E->S->I | I->S->E->M | I->S->I |
+| M(modified) | write back | cache 通过 writeback 将数据回写到 memory 或者下一级 cache 中. 这时候状态由 modified 变成了 exclusive | E | E | I |
 | <br>*-* <br> | <br>*-* <br> | <br>*-* <br> |<br>*-*-*-* <br> |
-| E(exclusive) | local read | 状态不变 | E |
-| E(exclusive) | local write | CPU 直接将数据写入 cache line, 导致状态变为了 M | M |
-| E(exclusive) | remote read | 这个迁移和(M-=>S)的转换类似, 只不过开始 cacheline 的状态是 exclusive, cacheline 和 memory 的数据都是最新的, 不存在写回的问题. 总线上的操作也是在收到 read 请求之后, 以read response 回应. 本 CPU 失去了独占权, 该 cacheline 状态从 Modified 状态变成 shared 状态(不会进行写回的动作) | S |
-| E(exclusive) | remote write | 其他的 CPU 进行一个原子的 read-modify-write 操作, 但是, 数据在本 CPU 的 cacheline 中, 因此, 其他的那个 CPU 会发送 read invalidate, 请求对该数据以及独占权. 本 CPU 回送 read response 和 invalidate acknowledge, 一方面把数据转移到其他 CPU 的 cache 中, 另外一方面, 清空自己的cacheline. | I |
+| E(exclusive) | local read | 状态不变 | E | E | I |
+| E(exclusive) | local write | CPU 直接将数据写入 cache line, 导致状态变为了 M | E->M | E->M | I |
+| E(exclusive) | remote read | 这个迁移和(M-=>S)的转换类似, 只不过开始 cacheline 的状态是 exclusive, cacheline 和 memory 的数据都是最新的, 不存在写回的问题. 总线上的操作也是在收到 read 请求之后, 以read response 回应. 本 CPU 失去了独占权, 该 cacheline 状态从 Modified 状态变成 shared 状态(不会进行写回的动作) | E->S | E->S | I->S |
+| E(exclusive) | remote write | 其他的 CPU 进行一个原子的 read-modify-write 操作, 但是, 数据在本 CPU 的 cacheline 中, 因此, 其他的那个 CPU 会发送 read invalidate, 请求该数据(可能存在存在中间状态 S)以及获取独占权(可能存在存在中间状态 E). 本 CPU 回送 read response 和 invalidate acknowledge, 一方面把数据转移到其他 CPU 的 cache 中(存在中间状态 S), 另外一方面, 清空自己的 cacheline. | E->S->I | I->S->E->M | I->S->I |
 | <br>*-* <br> | <br>*-* <br> | <br>*-* <br> |<br>*-*-*-* <br> |
-| S(shared) | local read | 不影响状态 | S |
-| S(shared) | local write | CPU 需要执行一个原子的 readmodify-write 操作, 并且其 local cache 中有 read only 的缓存数据(cacheline处于shared状态), 这时候, CPU 就会在总线上发送一个 invalidate 请求其他 CPU 清空自己的 local copy, 以便完成其独自霸占对该数据的所有权的梦想. 同样的, 该 CPU 必须收集所有其他 CPU 发来的 invalidate acknowledge 之后才能更改状态为 modified. | M |
-| S(shared) | remote read | 不影响状态 | S |
-| S(shared) | remote write | 当 cache line 处于 shared 状态的时候, 说明在多个 CPU 的 local cache 中存在副本, 因此, 这些 cacheline 中的数据都是 read only 的, 一旦其中一个 CPU 想要执行数据写入的动作, 必须先通过 invalidate 获取该数据的独占权, 而其他的 CPU 会以 invalidate acknowledge 回应, 清空数据并将其 cacheline 从 shared 状态修改成 invalid 状态. | I |
-| S | NA | 如果 CPU 认为自己很快就会启动对处于 shared 状态的 cacheline 进行 write 操作, 因此想提前先霸占上该数据. 因此, 该 CPU 会发送 invalidate 敦促其他 CPU 清空自己的 local copy, 当收到全部其他 CPU 的 invalidate acknowledge 之后, transaction 完成, 本 CPU 上对应的 cacheline 从 shared 状态切换 exclusive 状态.<br>还有另外一种方法也可以完成这个状态切换: 当所有其他的 CPU 对其 local copy 的 cacheline 进行写回操作, 同时将 cacheline 中的数据设为无效(主要是为了为新的数据腾些地方), 这时候, 本CPU坐享其成, 直接获得了对该数据的独占权. | E |
+| S(shared) | local read | 不影响状态 | S | S | S |
+| S(shared) | local write | CPU 需要执行一个原子的 readmodify-write 操作, 并且其 local cache 中有 read only 的缓存数据(cache line 处于 Shared 状态), 这时候, CPU 就会在总线上发送一个 invalidate 请求其他 CPU 清空自己的 local copy, 以便完成其独自霸占对该数据的所有权的梦想(存在中间状态 E). 同样的, 该 CPU 必须收集所有其他 CPU 发来的 invalidate acknowledge 之后才能更改状态为 modified. | S->E->M | S->E->M | S->I |
+| S(shared) | remote read | 不影响状态 | S | S | S |
+| S(shared) | remote write | 当 cache line 处于 shared 状态的时候, 说明在多个 CPU 的 local cache 中存在副本, 因此, 这些 cache line 中的数据都是 read only 的, 一旦其中一个 CPU 想要执行数据写入的动作, 必须先通过 invalidate 获取该数据的独占权(可能存在中间状态 E), 而其他的 CPU 会以 invalidate acknowledge 回应, 清空数据并将其 cacheline 从 shared 状态修改成 invalid 状态. 在写完成后, 本次 cache line 变成 modified 状态 | S->I | S->E->M | S->I |
+| S(shared) | NA | 如果 CPU 认为自己很快就会启动对处于 shared 状态的 cacheline 进行 write 操作, 因此想提前先霸占上该数据. 因此, 该 CPU 会发送 invalidate 敦促其他 CPU 清空自己的 local copy, 当收到全部其他 CPU 的 invalidate acknowledge 之后, transaction 完成, 本 CPU 上对应的 cacheline 从 shared 状态切换 exclusive 状态.<br>还有另外一种方法也可以完成这个状态切换: 当所有其他的 CPU 对其 local copy 的 cacheline 进行写回操作, 同时将 cacheline 中的数据设为无效(主要是为了为新的数据腾些地方), 这时候, 本 CPU 坐享其成, 直接获得了对该数据的独占权. | E | E/I | I |
 | <br>*-* <br> | <br>*-* <br> | <br>*-* <br> |<br>*-*-*-* <br> |
-| M(modified) | local read | 状态不变 | M |
-| M(modified) | local write | 状态不变 | M |
-| M(modified) | remote read | 在本 CPU 独自享受独占数据的时候, 其他的 CPU 发起 read 请求, 希望获取数据, 这时候, 本 CPU 必须以其 local cacheline 的数据回应, 并以 read response 回应之前总线上的 read 请求. 这时候, 本 CPU 失去了独占权, 该 cacheline 状态从 Modified 状态变成 shared 状态(有可能也会进行写回的动作). | S |
-| M(modified) | remote write | ~~先把 cache 中的数据写到内存中, 其他 CPU 的 cache 再读取并修改后, 本地 cache 状态变为I. 修改的那个cache状态变为 M~~<br>CPU 收到一个 read invalidate 消息, 此时 CPU 必须将对应 cache line 设置成 invalid 状态, 并且响应一个 read response 消息和 invalidate acknowledge 消息. | I |
-| M(modified) | write back | cache 通过 writeback 将数据回写到 memory 或者下一级 cache 中. 这时候状态由 modified 变成了 exclusive | E |
+| I(invalid) | local read | 本 CPU 执行读操作, 发现 local cache 没有数据, 因此通过 read 发起一次 bus transaction, 来自其他的 CPU local cache 或者 memory 会通过 read response 回应,<br>1. 如果数据来自其他 CPU 的 cache, 将该 cache line 从 Invalid 状态迁移到 Shared 状态.<br>2. 如果来自于内存, 则本地从 Invalid 状态迁移到 Exclusive 状态. | I->S/I->E | I->S/I->E | E/M/I->S/I |
+| I(invalid) | local write | CPU 想要进行 write 的操作但是数据不在 local cache 中, 因此, 该 CPU 首先发送了 read invalidate 启动了一次总线 transaction. 在收到 read response 回应拿到数据, 并且收集所有其他 CPU 发来的 invalidate acknowledge 之后(确保其他 CPU 没有 local copy), 完成整个 bus transaction. 当 write 操作完成之后, 该 cacheline的状态会从 I 状态迁移到 E 状态. | E | E | E |
+| I(invalid) | local write | CPU 需要执行一个原子的 readmodify-write 操作, 并且其 cache 中没有缓存数据. 这时候 CPU 就会在总线上发送一个 read invalidate 消息来请求数据(可能存在中间状态 S), 并试图独占该数据(可能存在中间状态 E). CPU 可以通过收到的 read response 消息获取到数据, 并等待所有的 invalidate acknowledge 消息, 然后将状态设置为 modifie. | I->S->E->M | I->S->E->M | M,E,S->S->I |
+| I(invalid) | remote read | remote read 不影响本地 cache 的状态 | I | NA | NA |
+| I(invalid) | remote write | remote read 不影响本地 cache 的状态 | I | NA | NA |
 
 
-4.
+下图示意了，当本地 cache line 的调整的状态的时候, 其他 CPU 的 cache line 需要调整到的状态.
 
-5.
+| M | E | S | I |
+|:-:|:-:|:-:|:-:|
+| M | × | × | × | √ |
+| E | × | × | × | √ |
+| S | × | × | √ | √ |
+| I | √ | √ | √ | √ |
 
-6.
+举个栗子来说:
+
+假设 CPU 1 的 cache line 中有一个变量 x = 0 的 cache line 处于 S 状态(共享).
+那么其他拥有 x 变量的 CPU 2, CPU 3 等的 cache line 可能调整到的状态就是 S 状态(共享)或者调整为 I 状态(无效).
+
 
 # 3 硬件的处理
 -------
@@ -162,7 +185,7 @@ L3 缓存是所有CPU共享的一个缓存. 纵观刚才描述的MESI, 好像涉
 
 个人猜测是如果描述MESI状态流转的时候引入L3缓存, 会造成描述会极其复杂. 所以一般的描述都好似有意地忽略了L3缓存.
 
-# 1 参考资料
+# 4 参考资料
 -------
 
 | 编号 | 链接 | 描述 |
@@ -193,11 +216,14 @@ L3 缓存是所有CPU共享的一个缓存. 纵观刚才描述的MESI, 好像涉
 | 24 | [CPU 乱序执行与问题](https://blog.csdn.net/lizhihaoweiwei/article/details/50562732) | NA |
 | 25 | [store-queue VS store-buffer](https://stackoverflow.com/questions/24975540/what-is-the-difference-between-a-store-queue-and-a-store-buffer) | NA |
 | 26 | [《大话处理器》Cache一致性协议之MESI](https://blog.csdn.net/muxiqingyang/article/details/6615199) | NA |
-| 27 | [并发吹剑录（一）：CPU缓存一致性协议MESI](https://zhuanlan.zhihu.com/p/351550104) | NA |
+| 27 | [并发吹剑录(一)：CPU缓存一致性协议MESI](https://zhuanlan.zhihu.com/p/351550104) | NA |
 | 28 | [缓存一致性协议 MESI(转载)](https://zhuanlan.zhihu.com/p/147704505) | NA |
 | 29 | [CPU缓存一致性保障原理](https://zhuanlan.zhihu.com/p/54876718) | NA |
 | 30 | [Cache一致性的那些事儿 (3)--Directory方案](https://zhuanlan.zhihu.com/p/419722803) | NA |
-
+| 31 | [CPU缓存一致性协议MESI](https://www.cnblogs.com/yanlong300/p/8986041.html)<br>[知乎](https://zhuanlan.zhihu.com/p/79777058) | NA |
+| 32 | [【并发编程】MESI--CPU缓存一致性协议](https://zhuanlan.zhihu.com/p/112605471) | NA |
+| 33 | [MESI 缓存一致性协议引发的一些思考](https://zhuanlan.zhihu.com/p/435009820) | NA |
+| 34 | [MESI Cache Coherency Protocol](https://www.scss.tcd.ie/Jeremy.Jones/vivio/caches/MESIHelp.htm?utm_source=wechat_session&utm_medium=social&utm_oi=714537833427136512) | 一个非常好的模拟网站, 模拟各种操作后, 多核之间 cache 和总线的交互以及状态变换 |
 
 <br>
 

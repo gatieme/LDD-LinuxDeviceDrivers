@@ -1281,9 +1281,13 @@ schedtune 与 uclamp 都是由 ARM 公司的 Patrick Bellasi 主导开发.
 ## 8.2 NO_HZ
 -------
 
+[NO_HZ: 减少调度时钟的滴答](https://blog.csdn.net/zhoudawei/article/details/86427101)
+
 NOHZ 社区测试用例 [frederic/dynticks-testing.git](https://git.kernel.org/pub/scm/linux/kernel/git/frederic/dynticks-testing.git)
 
 仓库 : git://git.kernel.org/pub/scm/linux/kernel/git/frederic/linux-dynticks.git
+
+
 
 当前 NOHZ 有 3 种模式.
 
