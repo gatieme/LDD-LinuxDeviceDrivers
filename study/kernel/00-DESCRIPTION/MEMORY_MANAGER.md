@@ -2092,19 +2092,6 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/07/13 | Jan Kara <jack@suse.cz> | [writeback: Fix bandwidth estimates](https://patchwork.kernel.org/project/linux-mm/cover/20210712165811.13163-1-jack@suse.cz) | NA | v2 ☐ | [PatchWork 0/5,v2](https://patchwork.kernel.org/project/linux-mm/cover/20210712165811.13163-1-jack@suse.cz) |
 
-## 6.4 page cache THP
--------
-
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/06/10 | Matthew Wilcox <willy@infradead.org> | [Large pages in the page cache](https://lore.kernel.org/patchwork/cover/1254710) | NA | RFC v6 ☐  | [PatchWork RFC,v6,00/51](https://patchwork.kernel.org/project/linux-mm/cover/20200610201345.13273-1-willy@infradead.org) |
-| 2020/06/29 | Matthew Wilcox <willy@infradead.org> | [THP prep patches](https://patchwork.kernel.org/project/linux-mm/cover/20200629151959.15779-1-willy@infradead.org) | NA | v1 ☑ 5.9-rc1 | [PatchWork 0/7](https://patchwork.kernel.org/project/linux-mm/cover/20200629151959.15779-1-willy@infradead.org) |
-| 2020/09/10 | Matthew Wilcox <willy@infradead.org> | [THP iomap patches for 5.10](https://lore.kernel.org/patchwork/cover/1304097) | NA | v2 ☑ 5.10-rc1 | [PatchWork v2,0/9](https://lore.kernel.org/patchwork/cover/1304097) |
-| 2020/09/16 | Matthew Wilcox <willy@infradead.org> | [fs: Add a filesystem flag for THPs](https://lore.kernel.org/patchwork/cover/1306507) | NA | v1 ☑ 5.10-rc1 | [PatchWork 1/2](https://lore.kernel.org/patchwork/cover/1306507) |
-| 2020/08/24 | Matthew Wilcox <willy@infradead.org> | [iomap/fs/block patches for 5.11](https://lore.kernel.org/patchwork/cover/1294511) | NA | v1 ☑ 5.11-rc1 | [PatchWork 00/11](https://lore.kernel.org/patchwork/cover/1294511) |
-| 2021/05/10 | Muchun Song <songmuchun@bytedance.com> | [Overhaul multi-page lookups for THP](https://lore.kernel.org/patchwork/cover/1337675) | 提升大量页面查找时的效率 | v4 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.12#Memory_management) | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20201112212641.27837-1-willy@infradead.org) |
 
 
 # 7 大内存页支持
@@ -2190,8 +2177,8 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/09/28 | Zi Yan <ziy@nvidia.com> | [1GB PUD THP support on x86_64](https://lkml.org/lkml/2020/9/28/973) | X86_64 支持 PUD 级别(1G)的匿名大页 | RFC,v2 ☐ | [2020/09/02 PatchWork RFC,00/16](https://patchwork.kernel.org/project/linux-mm/cover/20200902180628.4052244-1-zi.yan@sent.com)<br>*-*-*-*-*-*-*-* <br>[2020/09/28 PatchWork v2 00/30](https://patchwork.kernel.org/project/linux-mm/cover/20200928175428.4110504-1-zi.yan@sent.com) |
 | 2021/05/10 | Muchun Song <songmuchun@bytedance.com> | [Overhaul multi-page lookups for THP](https://lore.kernel.org/patchwork/cover/1337675) | 提升大量页面查找时的效率 | v4 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.12#Memory_management) | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20201112212641.27837-1-willy@infradead.org) |
-| 2019/07/17 | Yang Shi <yang.shi@linux.alibaba.com> | [Fix false negative of shmem vma's THP eligibility](https://lore.kernel.org/patchwork/cover/1101422) | 提交7635d9cbe832 ("mm, THP, proc: report THP qualified for each vma") 为进程的 map 引入了 THPeligible bit. 但是, 当检查 shmem vma 的资格时, `__transparent_hugepage_enabled()` 被调用以覆盖来自 shmem_huge_enabled() 的结果. 它可能导致匿名 vma 的 THP 标志覆盖 shmem 的.<br>通过使用 transhuge_vma_suitable() 来检查 vma, 来修复此问题 | v4 ☑ 5.3-rc1 | [PatchWork v4,0/2](https://lore.kernel.org/patchwork/cover/1101422) |
 | 2021/05/10 | Ankur Arora <ankur.a.arora@oracle.com> | [Use uncached stores while clearing huge pages](https://patchwork.kernel.org/project/linux-mm/cover/20211020170305.376118-1-ankur.a.arora@oracle.com) | 本系列增加了对大页的非缓存页面清除的支持. [清除大页内存](https://patchwork.kernel.org/project/linux-mm/patch/20211020170305.376118-11-ankur.a.arora@oracle.com)时, 使用基于 [MOVNTI 指令](https://www.felixcloutier.com/x86/movnti) 的 [uncached clear page 接口](https://patchwork.kernel.org/project/linux-mm/patch/20211020170305.376118-4-ankur.a.arora@oracle.com).<br>其动机是加快大型预分配虚拟机的创建, 并支持巨大的页面.<br>支持非缓存页面清除有两种帮助:<br>1. 对于小于 LLC 大小的数据块, 未缓存的存储通常比缓存的存储慢, 而对于较大的数据块, 则更快.2. 避免用无用的零替换潜在有用的缓存行.<br>性能测试: 虚拟机创建(对于预分配 2MB 后台页面的虚拟机)在运行时有了显著的改进. | v2 ☐ | [PatchWork v2,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20211020170305.376118-1-ankur.a.arora@oracle.com) |
 
 
@@ -2215,6 +2202,8 @@ khugepaged 中如果发现当前连续的映射区间内有[超过 `khugepaged_m
 ### 7.2.2 THP splitting/reclaim/migration
 -------
 
+*   splitting
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/07/31 | Yu Zhao <yuzhao@google.com> | [mm: optimize thp for reclaim and migration](https://lore.kernel.org/patchwork/patch/1470432) | 对 THP 的回收和迁移进行优化.<br>使用配置 THP 为 always 的时候, 大量 THP 的内部碎片会造成不小的内存压力. 用户空间可以保留许多子页面不变, 但页面回收不能简单的根据 dirty bit 来识别他们.<brr>但是, 仍然可以通过检查子页面的内容来确定它是否等同于干净. 当拆分 THP 用于回收或迁移时, 我们可以删除只包含0的子页面, 从而避免将它们写回或复制它们. | v1 ☐ | [PatchWork 0/3](https://patchwork.kernel.org/project/linux-mm/cover/20210731063938.1391602-1-yuzhao@google.com) |
@@ -2222,6 +2211,16 @@ khugepaged 中如果发现当前连续的映射区间内有[超过 `khugepaged_m
 | 2018/01/03 | Michal Hocko <mhocko@kernel.org> | [unclutter thp migration](https://lore.kernel.org/patchwork/cover/869414) | THP 迁移以令人惊讶的语义侵入了通用迁移. 迁移分配回调应该检查 THP 是否可以立即迁移, 如果不是这样, 则分配一个简单的页面进行迁移. 取消映射和移动, 然后通过将 THP 拆分为小页面, 同时将标题页面移动到新分配的 order-0 页面来修复此问题. 剩余页面通过拆分页面移动到 LRU 列表. 如果 THP 分配失败, 也会发生同样的情况. 这真的很难看而且容易出错. | v1 ☐ | [PatchWork 0/3](https://lore.kernel.org/patchwork/cover/869414) |
 | 2019/08/22 | Yang Shi <yang.shi@linux.alibaba.com> | [Make deferred split shrinker memcg aware](https://lore.kernel.org/patchwork/cover/869414) | 目前, THP 延迟分割收缩器不了解 memcg, 这可能会导致某些配置过早地处罚 OOM.<br>通过引入每个 memcg 延迟拆分队列, 转换延迟拆分收缩器 memcg aware. THP 应位于每个节点或每个 memcg 延迟拆分队列上(如果它属于 memcg). 当页面迁移到另一个 memcg 时, 它也将迁移到目标 memcg 的延迟分割队列.<br>对于每个 memcg 列表, 重复使用第二个尾页的延迟列表, 因为同一个 THP 不能位于多个延迟拆分队列上.<br>使延迟分割收缩器不依赖于 memcg kmem, 因为它不是 slab. 过上述更改, 即使禁用了 memcg kmem(配置 cgroup.memory=nokmem), 测试也不会触发OOM. | v6 ☑ 5.4-rc1 | [PatchWork v6,0/4](https://patchwork.kernel.org/project/linux-mm/cover/1566496227-84952-1-git-send-email-yang.shi@linux.alibaba.com) |
 | 2018/01/03 | Michal Hocko <mhocko@kernel.org> | [unclutter thp migration](https://lore.kernel.org/patchwork/cover/869414) | THP 迁移以令人惊讶的语义侵入了通用迁移. 迁移分配回调应该检查 THP 是否可以立即迁移, 如果不是这样, 则分配一个简单的页面进行迁移. 取消映射和移动, 然后通过将 THP 拆分为小页面, 同时将标题页面移动到新分配的 order-0 页面来修复此问题. 剩余页面通过拆分页面移动到 LRU 列表. 如果 THP 分配失败, 也会发生同样的情况. 这真的很难看而且容易出错. | v1 ☐ | [PatchWork 0/3](https://lore.kernel.org/patchwork/cover/869414) |
+| 2020/11/19 | Zi Yan <ziy@nvidia.com> | [Split huge pages to any lower order pages and selftests.](https://patchwork.kernel.org/project/linux-mm/cover/20201119160605.1272425-1-zi.yan@sent.com) | NA | v1 ☐ | [PatchWork 0/7](https://patchwork.kernel.org/project/linux-mm/cover/20201119160605.1272425-1-zi.yan@sent.com) |
+
+*   splitting test
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/01/15 | Kirill A. Shutemov <kirill.shutemov@linux.intel.com> | [thp: add debugfs handle to split all huge pages](https://www.spinics.net/lists/linux-mm/msg99353.html) | 将 1 写入 "split_huge_pages" 接口将尝试查找并拆分系统中的所有 THP. 这对于调试非常有用. | v1 ☑ 4.5-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49071d436b51b58aeaf7abcd1877f38ca0146e31) |
+| 2020/11/19 | Zi Yan <ziy@nvidia.com> | [mm: huge_memory: a new debugfs interface for splitting THP tests.](https://patchwork.kernel.org/project/linux-mm/cover/20201119160605.1272425-1-zi.yan@sent.com) | 提供了一个直接的用户接口来拆分 THP. 使用  `<debugfs>/split` 接受一个新命令来执行此操作. 通过将 "<pid>,<vaddr_start>,<vaddr_end>" 写入 "<debugfs>/split_huge_pages"将 分割具有给定 pid 的进程中给定虚拟地址范围内的 thp. 用于测试拆分页面功能. 此外, 还向 `tools/testing/selftests/vm` 添加了一个自检程序, 通过拆分 PMD THP 和 PTE 映射 THP 来利用该接口. 这不会改变旧的行为, 即向接口写入 1 仍然会拆分系统中的所有 THP. | v8 ☑ 5.13-rc1 | [PatchWork v8,1/2](https://patchwork.kernel.org/project/linux-mm/patch/20210331235309.332292-1-zi.yan@sent.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fa6c02315f745f00b62c634b220c3fb5c3310258) |
 
 
 
@@ -2265,6 +2264,7 @@ Anthony Yznaga 接替了之前同事 Nitin Gupta 的工作, 并基于 Mel 的思
 ### 7.2.4 THP FS/Page Cache
 -------
 
+[dhowells/linux-fs: fscache-thp](https://git.kernel.org/pub/scm/linux/kernel/git/dhowells/linux-fs.git/log/?h=fscache-thp)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -2273,6 +2273,29 @@ Anthony Yznaga 接替了之前同事 Nitin Gupta 的工作, 并基于 Mel 的思
 | 2016/06/15 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [THP-enabled tmpfs/shmem](https://lore.kernel.org/patchwork/cover/701302) | 这是我的补丁集的第一个版本, 它旨在将 THO 带到 ext4, 它还没有准备好应用或正式使用, 但足以展示该方法.<br>基本原理与 tmpfs 相同, 并构建在它的基础上. 主要区别在于, 我们需要处理从备份存储器的读取和回写. | v9 ☑ 4.8-rc1 | [PatchWork v1,RFC,00/33](https://lore.kernel.org/patchwork/cover/658181)<br>*-*-*-*-*-*-*-* <br>[PatchWork v9,00/32](https://lore.kernel.org/patchwork/cover/685554)<br>*-*-*-*-*-*-*-* <br>[PatchWork v9-rebased2,00/37](https://lore.kernel.org/patchwork/cover/689355)  |
 | 2016/07/26 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [ext4: support of huge pages](https://lore.kernel.org/patchwork/cover/701302) | 这是我的补丁集的第一个版本, 它旨在将 THO 带到 ext4, 它还没有准备好应用或正式使用, 但足以展示该方法.<br>基本原理与 tmpfs 相同, 并构建在它的基础上. 主要区别在于, 我们需要处理从备份存储器的读取和回写. | RFC,v1 ☐ | [PatchWork v1,RFC,00/33](https://lore.kernel.org/patchwork/cover/701302) |
 | 2021/07/30 | Hugh Dickins <hughd@google.com> | [tmpfs: HUGEPAGE and MEM_LOCK fcntls and memfds](https://patchwork.kernel.org/project/linux-mm/cover/2862852d-badd-7486-3a8e-c5ea9666d6fb@google.com) | 一系列 HUGEPAGE 和 MEM_LOCK tmpfs fcntls 和 memfd_create 标志的清理和修复工作. | v1 ☐ | [PatchWork 00/16](https://patchwork.kernel.org/project/linux-mm/cover/2862852d-badd-7486-3a8e-c5ea9666d6fb@google.com) |
+
+
+Matthew Wilcox (Oracle) 在这方面也做了很多工作.
+代码仓库参见 : http://git.infradead.org/users/willy/pagecache.git
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/06/10 | Matthew Wilcox <willy@infradead.org> | [Large pages in the page cache](https://lore.kernel.org/patchwork/cover/1254710) | NA | RFC v6 ☐  | [PatchWork RFC,v6,00/51](https://patchwork.kernel.org/project/linux-mm/cover/20200610201345.13273-1-willy@infradead.org) |
+| 2020/06/29 | Matthew Wilcox <willy@infradead.org> | [THP prep patches](https://patchwork.kernel.org/project/linux-mm/cover/20200629151959.15779-1-willy@infradead.org) | NA | v1 ☑ 5.9-rc1 | [PatchWork 0/7](https://patchwork.kernel.org/project/linux-mm/cover/20200629151959.15779-1-willy@infradead.org) |
+| 2020/09/10 | Matthew Wilcox <willy@infradead.org> | [THP iomap patches for 5.10](https://lore.kernel.org/patchwork/cover/1304097) | NA | v2 ☑ 5.10-rc1 | [PatchWork v2,0/9](https://lore.kernel.org/patchwork/cover/1304097) |
+| 2020/09/16 | Matthew Wilcox <willy@infradead.org> | [fs: Add a filesystem flag for THPs](https://lore.kernel.org/patchwork/cover/1306507) | NA | v1 ☑ 5.10-rc1 | [PatchWork 1/2](https://lore.kernel.org/patchwork/cover/1306507) |
+| 2020/08/24 | Matthew Wilcox <willy@infradead.org> | [iomap/fs/block patches for 5.11](https://lore.kernel.org/patchwork/cover/1294511) | NA | v1 ☑ 5.11-rc1 | [PatchWork 00/11](https://lore.kernel.org/patchwork/cover/1294511) |
+| 2020/10/26 | Matthew Wilcox <willy@infradead.org> | [Remove nrexceptional tracking](https://lore.kernel.org/patchwork/cover/1294511) | NA | v1 ☐ | [PatchWork 00/11](https://patchwork.kernel.org/project/linux-mm/cover/20201026151849.24232-1-willy@infradead.org) |
+| 2020/11/12 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Overhaul multi-page lookups for THP](https://lore.kernel.org/patchwork/cover/1337675) | 提升大量页面查找时的效率 | v4 ☐ | [PatchWork v4,00/16](https://patchwork.kernel.org/project/linux-mm/cover/20201112212641.27837-1-willy@infradead.org) |
+| 2020/10/29 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Transparent Hugepages for non-tmpfs filesystems](https://patchwork.kernel.org/project/linux-mm/cover/2862852d-badd-7486-3a8e-c5ea9666d6fb@google.com) | 一系列 HUGEPAGE 和 MEM_LOCK tmpfs fcntls 和 memfd_create 标志的清理和修复工作. | v1 ☐ | [PatchWork 00/16](https://patchwork.kernel.org/project/linux-mm/cover/20201029193405.29125-1-willy@infradead.org) |
+
+
+### 7.2.5 THP SHMEM
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/07/17 | Yang Shi <yang.shi@linux.alibaba.com> | [Fix false negative of shmem vma's THP eligibility](https://lore.kernel.org/patchwork/cover/1101422) | 提交7635d9cbe832 ("mm, THP, proc: report THP qualified for each vma") 为进程的 map 引入了 THPeligible bit. 但是, 当检查 shmem vma 的资格时, `__transparent_hugepage_enabled()` 被调用以覆盖来自 shmem_huge_enabled() 的结果. 它可能导致匿名 vma 的 THP 标志覆盖 shmem 的.<br>通过使用 transhuge_vma_suitable() 来检查 vma, 来修复此问题 | v4 ☑ 5.3-rc1 | [PatchWork v4,0/2](https://lore.kernel.org/patchwork/cover/1101422) |
 
 
 ### 7.2.5 khugepaged
