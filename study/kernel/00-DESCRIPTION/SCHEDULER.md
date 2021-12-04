@@ -1029,7 +1029,15 @@ avg_idle 可以反应目前 RQ 进入 idle 的时间长短.
 ## 5.5 cluster_scheduler
 -------
 
-ARM64 机器(如 kunpeng920)和 x86 机器(如 Jacobsville)具有一定的硬件拓扑级别 cluster, 其中一些 CPU 核(通常为 4 核)共享 L3 tag 或二级缓存. 这意味着在 cluster 之间分散这些任务将带来更多的内存带宽并减少缓存争用, 但是打包任务可能有助于减少缓存同步的延迟.
+
+
+在最后一级缓存中, 可以有多个 cluster, 每个 cluster 下的多个 CPU 有一些共享资源.
+
+例如 ARM64 机器(如 kunpeng920)和 x86 机器(如 Jacobsville)具有一定的硬件拓扑级别 cluster, 其中一些 CPU 核(通常为 4 核)共享 L3 tag 或二级缓存. cluster 之间分散这些任务将带来更多的内存带宽并减少缓存争用, 但是打包任务可能有助于减少缓存同步的延迟.
+
+
+在 5.16 中引入了 Cluster Scheduling Domain, 让系统调度域感知 cluster 这一层次. 通过 Cluster Scheduling 可以减少对 cluster 资源 (例如 L2 缓存) 的争用, 从而获得更好的性能.
+
 
 [Cluster Scheduler Support Queued Ahead Of Linux 5.16](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.16-Cluster-Scheduler)
 
@@ -1048,6 +1056,7 @@ ARM64 机器(如 kunpeng920)和 x86 机器(如 Jacobsville)具有一定的硬件
 |:----:|:----:|:----:|:---:|:----------:|:---:|
 | 2021/09/20 | Barry Song <song.bao.hua@hisilicon.com> | [scheduler: expose the topology of clusters and add cluster scheduler](https://lore.kernel.org/patchwork/cover/1415806) | 增加了 cluster 层次的 CPU select. 多个架构都是有 CLUSTER 域的概念的, 比如 Kunpeng 920 一个 NODE(DIE) 24个 CPU 分为 8 个 CLUSTER, 整个 DIE 共享 L3 tag, 但是一个 CLUSTER 使用一个 L3 TAG. 这种情况下对于有数据共享的进程, 在一个 cluster 上运行, 通讯的时延更低.  | RFC v6 ☐ | [2020/12/01 PatchWork RFC,v2,0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20201201025944.18260-1-song.bao.hua@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[2021/03/01 PatchWork RFC,v4,0/4](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210301225940.16728-1-song.bao.hua@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[2021/03/19 PatchWork RFC,v5,0/4](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210319041618.14316-1-song.bao.hua@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/20 PatchWork v6,0/4](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210420001844.9116-1-song.bao.hua@hisilicon.com) |
 | 2021/06/15 | Peter Zijlstra | [Represent cluster topology and enable load balance between clusters](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210820013008.12881-1-21cnbao@gmail.com) | 第一个系列(series): 让拓扑域感知 cluster 的存在, 在 sysfs 接口中提供 cluster 的信息(包括 id 和 cpumask 等), 并添加 CONFIG_SCHED_CLUSTER, 可以在 cluster 之间实现负载平衡, 从而使大量工作负载受益. 测试表明, 在 Jacobsville 上增加 25.1% 的 SPECrate mcf, 在 kunpeng920 上增加 13.574% 的 mcf. 但是社区测试在 alder lake 上造成了一定的性能回归, [Linux 5.16's New Cluster Scheduling Is Causing Regression, Further Hurting Alder Lake](https://www.phoronix.com/scan.php?page=article&item=linux-516-regress&num=1), [Windows 11 Better Than Linux Right Now For Intel Alder Lake Performance](https://www.phoronix.com/scan.php?page=article&item=alderlake-windows-linux&num=1) | RFC ☑ [5.16-rc1](https://lore.kernel.org/lkml/163572864855.3357115.17938524897008353101.tglx@xen13/) | [2021/09/20 PatchWork 0/3](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210820013008.12881-1-21cnbao@gmail.com), [2021/09/20 PatchWork RESEND,0/3](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210924085104.44806-1-21cnbao@gmail.com), [LKML](https://lkml.org/lkml/2021/9/24/178), [LWN](https://lwn.net/Articles/866914) |
+| 2021/12/03 | Tim Chen <tim.c.chen@linux.intel.com> | [Make Cluster Scheduling Configurable](https://lkml.org/lkml/2021/12/3/891 ) | Cluster Scheduling 并不适用于所有场景, 因此这组补丁支持了在运行时和引导时可以动态配置 Cluster Scheduling. 可以通过启动参数 `sched_cluster={1|0}` 来在启动时开启和关闭, 也可以通过 `/proc/sys/kernel/sched_cluster` 接口在运行时动态开启和关闭.<br>当系统负载适中时, 值得做额外的负载平衡来平衡 cluster 之间的负载, 以减少 cluster 内资源的争用. 但是如果系统负载较大, 各个资源已经得到充分利用, cluster 之间的负载平衡不太可能有助于减少 cluster 的资源争用, 因为 cluster 内已经完全繁忙.<br>同时由于不感知性能异构的 CPU 类型, 造成了 Intel Alder Lake CPU 上性能退化, 参见 [Linux 5.16's New Cluster Scheduling Is Causing Regression, Further Hurting Alder Lake](https://www.phoronix.com/scan.php?page=article&item=linux-516-regress&num=3). 因此在 x86 hybrid 类型的 CPU 上禁用 Cluster Scheduling.<br>在一个有 24 个 Atom 内核的 Jacobsville 系统上 (每个 cluster 有 4 个 Atom CPU 核共享一个 L2), 在 24 个 CPU 的系统上运行 mcf 基准测试, 从非常低的负载 1 个基准测试副本到 24 个基准测试副本. 我们看到, 在中等负载时吞吐量得到了提高, 但当系统满负载时, Cluster Scheduling 几乎没有什么提升. | | v1 ☐ | [LORE 0/5](https://lkml.kernel.org/lkml/cover.1638563225.git.tim.c.chen@linux.intel.com) |
 
 
 
