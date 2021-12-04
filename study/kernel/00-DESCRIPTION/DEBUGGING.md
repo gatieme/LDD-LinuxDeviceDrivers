@@ -436,10 +436,28 @@ task_struct 是一种在利用漏洞时特别敏感且经常被滥用的结构, 
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/10 | Masami Hiramatsu <mhiramat@kernel.org> | [tracing/boot: Add histogram syntax support in boot-time tracing](https://patchwork.kernel.org/project/linux-trace-devel/patch/162936876189.187130.17558311387542061930.stgit@devnote2) | 为 boot-time tracing  添加 Histogram 选项, 目前, 引导时跟踪仅支持设置触发器动作的每事件动作. 对于像 traceon, traceoff, snapshot 等动作来说, 这足够了. 然而, 对于 hist 触发器操作来说, 这并不好, 因为它通常太长了, 无法将其写入单个字符串, 特别是如果它有 onmatch 操作时. | v1 ☑ 5.15-rc1 | [Patchwork](https://lore.kernel.org/all/162856122550.203126.17607127017097781682.stgit@devnote2) |
 
-## 14.5 osnoise
+## 14.5 OSNOISE & TimerLat
 -------
 
-[[for-next,01/14] tracing/osnoise: Do not follow tracing_cpumask](https://patchwork.kernel.org/project/linux-trace-devel/patch/20211102201156.678148671@goodmis.org/)
+在高性能计算 (HPC) 的上下文中, 操作系统噪声 (OSNOISE) 是指应用程序由于操作系统内部的活动而遭受的干扰. 在 Linux 的上下文中, NMI、IRQ、softirqs 和任何其他系统线程都可能对应用程序造成噪音. 此外, 与硬件相关的作业也会产生噪音, 例如, 通过 SMIs.
+
+关心操作系统窃取的每一微秒的 HPC 用户和开发人员不仅需要一种精确的方法来测量 OSNOISE, 而且主要是找出谁在窃取 CPU 时间, 以便他们可以追求系统的完美调谐. 因此为 linux 内核设计了 [OSNOISE Tracer](https://docs.kernel.org/trace/OSNOISE-tracer.html) 来分析和发现干扰源. OSNOISE Tracer 运行内核内循环, 测量有多少时间可用. 它通过启用抢占, softirq 和 IRQ 来做到这一点, 从而在其执行期间允许所有 OSNOISE 源.
+
+渗透噪声示踪剂会记录任何干扰源的进入点和退出点. 当噪声发生时, 操作系统级别没有任何干扰, Tracer 可以安全地指向与硬件相关的噪声. 通过这种方式, OSNOISE 可以解释任何干扰源. OSNOISE Tracer 还添加了新的内核跟踪点, 这些跟踪点可辅助用户以精确直观的方式指向噪声的罪魁祸首.
+
+在周期结束时, 渗透噪声Tracer 打印所有噪声的总和、最大单个噪声、线程可用的 CPU 百分比以及噪声源的计数器, 用作基准测试工具.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/06/22 | Daniel Bristot de Oliveira <bristot@redhat.com> | [hwlat improvements and osnoise/timerlat tracers](https://patchwork.kernel.org/project/linux-trace-devel/patch/162936876189.187130.17558311387542061930.stgit@devnote2) | NA | v5 ☑ 5.14-rc1 | [Patchwork v5,09/14](https://lore.kernel.org/all/e649467042d60e7b62714c9c6751a56299d15119.1624372313.git.bristot@redhat.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bce29ac9ce0bb0b0b146b687ab978378c21e9078) |
+| 2021/11/29 | Daniel Bristot de Oliveira <bristot@kernel.org> | [osnoise: Support multiple instances (for RTLA)](https://patchwork.kernel.org/project/linux-trace-devel/patch/162936876189.187130.17558311387542061930.stgit@devnote2) | 为 osnoise/timerlat 跟踪器启用多个实例. 目前, osnoise 和 timerlat 仅在单个实例上运行. 为了减少这种限制, 本系列增加了对同一跟踪程序的并行实例的支持. 也就是说, 可以使用不同的跟踪配置运行 osnoise tracer 的两个实例. 例如, 一个仅用于跟踪器输出, 另一个用于跟踪器和一组跟踪点. 这个补丁集是 RTLA 的内核依赖项. 此修补程序集与 [RTLA](https://patchwork.kernel.org/project/linux-trace-devel/cover/cover.1638182284.git.bristot@kernel.org) 一起发送, 但我们将内核和用户空间修补程序集分开. | v9 ☑ 5.16-rc1 | [Patchwork V9,0/9](https://patchwork.kernel.org/project/linux-trace-devel/cover/cover.1635702894.git.bristot@kernel.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2fac8d6486d5c34e2ec7028580142b8209da3f92) |
+| 2021/11/29 | Daniel Bristot de Oliveira <bristot@kernel.org> | [RTLA: An interface for osnoise/timerlat tracers](https://patchwork.kernel.org/project/linux-trace-devel/patch/162936876189.187130.17558311387542061930.stgit@devnote2) | [rtla](https://github.com/bristot/rtsl) 是一个旨在分析 Linux 实时属性的工具集. rtla 并没有将 Linux 作为一个黑盒来测试, 而是利用内核跟踪功能来提供关于属性和意外结果的根本原因的精确信息. 首先, 它提供了一个 osnoise 和 timerlat 示踪器的接口. 在未来, 它还将作为 rtsl 和其他延迟 / 噪声跟踪器的基础. V6 版本前五个补丁是 [osnoise: Support multiple instances](https://lore.kernel.org/lkml/cover.1628775552.git.bristot@kernel.org) 的重新发送, 它为 osnoise/timerlat 跟踪器启用多个实例. 接下来的七个补丁是 rtla, rtla osnoise 和 rtla timerlat. 后面的版本都将内核态和用户态拆开来提交. | v5 ☐ 5.14-rc1 | [2021/10/27 Patchwork v6,00/20](https://lore.kernel.org/lkml/cover.1635284863.git.bristot@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2021/11/29 Patchwork V8,00/14](https://patchwork.kernel.org/project/linux-trace-devel/cover/cover.1638182284.git.bristot@kernel.org) |
+
+
+https://patchwork.kernel.org/project/linux-trace-devel/list/?submitter=200911&state=*&archive=both&param=1&page=2
+
+[[for-next,01/14] tracing/OSNOISE: Do not follow tracing_cpumask](https://patchwork.kernel.org/project/linux-trace-devel/patch/20211102201156.678148671@goodmis.org/)
 
 # 15 kptr_restrict
 -------

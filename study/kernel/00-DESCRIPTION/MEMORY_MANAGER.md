@@ -2465,7 +2465,7 @@ https://events.static.linuxfound.org/sites/events/files/slides/mm.pdf
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/10/05 | Liam Howlett <liam.howlett@oracle.com> | [Introducing the Maple Tree](https://lore.kernel.org/patchwork/cover/1477973) | Maple Tree 是一种基于 RCU 安全范围的 B树, 旨在高效使用现代处理器缓存. 在内核中有许多地方, 基于范围的非重叠树是有益的, 尤其是具有简单接口的树. Maple Tree 的第一个用户是 vm_area_struct, 当前替换了三个结构: 增强 rbtree、vma 缓存和 mm_struct 中的 vma linked 链表. 长期目标是减少或消除 mmap_sem 争用. | v3 ☐ | [2021/08/17 PatchWork v2,00/61](https://patchwork.kernel.org/project/linux-mm/cover/20210817154651.1570984-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/05 PatchWork v3](https://patchwork.kernel.org/project/linux-mm/cover/20211005012959.1110504-1-Liam.Howlett@oracle.com) |
+| 2021/12/01 | Liam Howlett <liam.howlett@oracle.com> | [Introducing the Maple Tree](https://lore.kernel.org/patchwork/cover/1477973) | Maple Tree 是一种基于 RCU 安全范围的 B树, 旨在高效使用现代处理器缓存. 在内核中有许多地方, 基于范围的非重叠树是有益的, 尤其是具有简单接口的树. Maple Tree 的第一个用户是 vm_area_struct, 当前替换了三个结构: 增强 rbtree、vma 缓存和 mm_struct 中的 vma linked 链表. 长期目标是减少或消除 mmap_sem 争用. | v3 ☐ | [2021/08/17 PatchWork v2,00/61](https://patchwork.kernel.org/project/linux-mm/cover/20210817154651.1570984-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/05 PatchWork v3](https://patchwork.kernel.org/project/linux-mm/cover/20211005012959.1110504-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/01 PatchWork v4,00/66](https://patchwork.kernel.org/project/linux-mm/cover/20211201142918.921493-1-Liam.Howlett@oracle.com) |
 
 
 ## 8.3 反向映射 RMAP(Reverse Mapping)
@@ -3530,6 +3530,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/13 | Xiongwei Song <sxwjean@gmail.com> | [Use generic code for randomization of virtual address of x86](https://patchwork.kernel.org/project/linux-mm/cover/20211011143150.318239-1-sxwjean@me.com) | ASLR 的重构. | v1 ☐ | [PatchWork v2,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211011143150.318239-1-sxwjean@me.com) |
+| 2017/09/03 | Ard Biesheuvel <ard.biesheuvel@linaro.org> | [implement KASLR for ARM](https://lwn.net/Articles/732891) | ARM 支持 KASLR. | v1 ☐ | [PatchWork v2,0/6](https://git.kernel.org/pub/scm/linux/kernel/git/ardb/linux.git/log/?h=arm-kaslr-latest) |
 
 
 *   随机函数偏移
