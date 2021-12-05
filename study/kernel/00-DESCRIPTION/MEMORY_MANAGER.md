@@ -1066,7 +1066,7 @@ vmalloc_to_page 则提供了通过 vmalloc 地址查找到对应 page 的操作.
 #### 2.4.1.8 vmallocinfo
 -------
 
-根据最近与 Dave 和 Neil 的讨论 [congestion_wait() and GFP_NOFAIL](http://lkml.kernel.org/r/163184741778.29351.16920832234899124642.stgit@noble.brown), 需要尝试实现对 vmalloc 的 NOFS, NOIO, NOFAIL 支持， 以使 kvmalloc 用户的使用更方便.
+根据最近与 Dave 和 Neil 的讨论 [congestion_wait() and GFP_NOFAIL](http://lkml.kernel.org/r/163184741778.29351.16920832234899124642.stgit@noble.brown), 需要尝试实现对 vmalloc 的 NOFS, NOIO, NOFAIL 支持,  以使 kvmalloc 用户的使用更方便.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -1075,6 +1075,17 @@ vmalloc_to_page 则提供了通过 vmalloc 地址查找到对应 page 的操作.
 
 
 ### 2.4.2 连续内存分配器(CMA)
+-------
+
+物理上连续的大页面对于 gpu、fpga、nic 和 RDMA 控制器等设备非常重要, 因为它们在大页面上操作时通常可以获得更好的性能. 当然, CPU 的性能也是如此, 但是有一个重要的区别:
+
+gpu 和高吞吐量设备在 TLB 丢失和随后的页表遍行情况下, 与 CPU 相比, 通常会遭受更严重的性能打击. 这种影响非常大, 以至于这些设备迫切想要一种高度可靠的方式来分配大页面, 以最小化潜在的 TLB 遗漏数量和诱导页表遍历所花费的时间.
+
+因此各个厂商(如 Oracle、Mellanox、IBM、NVIDIA 等)对生成超过 THP 大小的物理连续内存都非常感兴趣, 并寻找解决方案.
+
+[Improving support for large, contiguous allocations](https://lwn.net/Articles/753167)
+
+#### 2.4.2.1 CMA
 -------
 
 **3.5(2012年7月发布)**
@@ -1089,11 +1100,20 @@ vmalloc_to_page 则提供了通过 vmalloc 地址查找到对应 page 的操作.
 
 [A reworked contiguous memory allocator](https://lwn.net/Articles/447405)
 
-顾名思义,这是一个分配连续物理内存页面的分配器. 也许你会疑惑伙伴分配器不是也能分配连续物理页面吗? 诚然, 但是一个系统在运行若干时间后, 可能很难再找到一片足够大的连续内存了, 伙伴系统在这种情况下会分配失败. 但连续物理内存的分配需求是刚需: 一些比较低端的 DMA 设备只能访问连续的物理内存; 还有下面会讲的透明大页的支持, 也需要连续的物理内存.
+[linux 内核CMA笔记](https://blog.csdn.net/zjy900507/article/details/105328190)
 
-一个解决办法就是在系统启动时,在内存还很充足的时候, 先预留一部分连续物理内存页面, 留作后用. 但这有个代价, 这部分内存就无法被作其他使用了, 为了可能的分配需求, 预留这么一大块内存, 不是一个明智的方法.
 
-CMA 的做法也是启动时预留, 但不同的是, 它允许这部分内存被正常使用, 在有连续内存分配需求时, 把这部分内存里的页面迁移走, 从而空出位置来作分配.
+连续内存的分配需求来自形形色色的驱动. 例如现在大家的手机都有视频功能, camer 功能, 这类驱动都需要非常大块的内存, 而且有 DMA 用来进行外设和大块内存之间的数据交换. 对于嵌入式设备, 一般不会有 IOMMU, 而且 DMA 也不具备 scatter-getter 功能, 这时候, 驱动分配的大块内存(DMA buffer)必须是物理地址连续的.
+
+通过内存管理系统分配大且物理地址空间连续的的内存, 压力可是不小. 当然, 在系统启动之处, 伙伴系统中的大块内存比较大, 也许分配大块内存 不算什么, 但是随着系统的运行, 内存不断的分配、释放, 大块内存不断的裂解, 再裂解, 这时候, 内存碎片化导致分配地址连续的大块内存变得不是那么的容易了, 怎么办?
+
+通常大家可能有两个选择:
+
+1.  一是在启动时分配为驱动预留足够的 DMA buffer 空间, 这种方式非常可靠的, 当设备使用 DMA buffer 时就能立即使用, 不会有延时. 但它有一个缺点, 即当设备不使用时, 预留的那些 DMA BUFFER 的内存实际上是浪费了.
+
+2.  另外一个方案是当实际使用设备的时候分配 DMA buffer. 不会浪费内存, 但是不可靠, 随着内存碎片化, 大的、连续的内存分配变得越来越困难, 一旦内存分配失败, 设备分配内存会有极大的延迟, 甚至可能分配失败, 导致设备功能不可用, 这种情况下用户也不会答应.
+
+这就是驱动工程师面临的困境, 为了解决这个问题, 各个驱动各出奇招, 但是都不能非常完美的解决问题. 最终来自Michal Nazarewicz 的 CMA 将可以把各个驱动工程师的烦恼"一洗了之". 对于 CMA 内存, 当前驱动没有分配使用的时候, 这些 memory 可以内核的被其他的模块使用(当然有一定的要求), 而当驱动分配 CMA 内存后, 那些被其他模块使用的内存需要吐出来, 形成物理地址连续的大块内存, 给具体的驱动来使用.
 
 因此 DMA 设备对 CMA 区域有优先使用权, 被称为 primary client, 而其他模块的页面则是 secondary client.
 
@@ -1106,7 +1126,13 @@ CMA 的做法也是启动时预留, 但不同的是, 它允许这部分内存被
 | 2015/02/12 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm/compaction: enhance compaction finish condition](https://lore.kernel.org/patchwork/patch/542063) | 同样的, 之前 NULL 指针和错误指针的输出也很混乱, 进行了归一化. | v1 ☑ 4.1-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/542063)<br>*-*-*-*-*-*-*-* <br>[关键 commit 2149cdaef6c0](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2149cdaef6c0eb59a9edf3b152027392cd66b41f) |
 | 2015/02/23 | SeongJae Park <sj38.park@gmail.com> | [introduce gcma](https://lore.kernel.org/patchwork/patch/544555) | [GCMA(Guaranteed Contiguous Memory Allocator)方案](http://ceur-ws.org/Vol-1464/ewili15_12.pdf), 倾向于使用 writeback 的page cache 和 完成 swap out 的 anonymous pages 来做 seconday client, 进行迁移. 从而确保 primary client 的分配. | RFC v2 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/544555), [GitHub](https://github.com/sjp38/linux.gcma/releases/tag/gcma/rfc/v2) |
 
+#### 2.4.2.2 contiguous pages
+-------
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2007/08/02 | Mike Kravetz <mike.kravetz@oracle.com> | [Add mmap(MAP_CONTIG) support](https://lwn.net/Articles/736170) | 当以较高的阶数应用回收时, 可能会启动大量IO. 这组补丁尝试修复这个问题, 用于在 VM 事件记录器中中将页面标记为非活动时修复, 并在直接回收连续区域时等待页面写回. | v3 ☑ 2.6.23-rc4 | [Patchwork V5](https://lore.kernel.org/patchwork/cover/87667) |
+| 2019/02/15 | Zi Yan <zi.yan@sent.com> | [Generating physically contiguous memory after page allocation](https://lwn.net/Articles/779979) | 这个补丁集通过移动正在使用的页面而不分配任何新页面来产生物理上连续的内存. 与在页面分配时分配物理上连续的内存相比, 这个补丁集提供了一种替代方法, 可以在页面分配后生成物理上连续的内存. 这种方法可以避免在页面分配过程中发生的页面回收和内存压缩, 但仍然产生相当的物理上连续的内存. 使用这个补丁集, 我们可以生成比 PMD 级别的 THP 更大的页面, 而不需要在  buddy allocator 中更改MAX_ORDER. 它的目标是两个场景:<br>1. 当系统处于内存压力下时, 避免页面回收和内存压缩, 因为这个补丁集不分配任何新页面<br>2. 生成大于 2^MAX_ORDER 的页面, 而不更改 buddy allocator.<br>为了演示它的使用, 作者添加了非常基本的 1GB THP支持, 并在补丁集中将 512 2MB THP 提升为 1GB THP. 还实现了将 512 个 4KB 页面升级到到 2MB THP. 它只适用于可移动页面, 因此它也面临与内存压缩相同的碎片问题, 即, 如果不可移动页面分布在整个内存中, 那么这个补丁集只能在任何两个不可移动页面之间生成连续性. 这个补丁集有三个组件:<br>1. 一个新的页面迁移机制, 称为交换页面, 它交换两个正在使用的页面的内容, 而不是执行两个背靠背的页面迁移. 它节省了开销, 并避免了页面分配路径中的页面回收和内存压缩, 不过如果系统中有足够的空闲内存, 则并不严格要求这样做.<br>2. 一个新的机制, 它利用页面迁移和交换页面来生成物理上连续的内存/任意大小的页面, 而不需要分配任何新页面, 这与khugepage所做的不同. 它在每个VMA的基础上工作, 从每个VMA中创建物理上连续的内存, 而这些内存实际上是连续的.<br>3. 一个新的物理连续内存产生机制的用例, 通过迁移和交换页面, 并将512个连续2MB THP提升为1GB THP, 尽管可以生成更大的物理连续内存范围. 1GB THP实现是非常基本的, 当buddy allocator被修改为分配1GB页面时, 它可以处理1GB THP故障, 支持1GB THP分裂到2MB THP, 并支持从2MB THP就地提升到1GB THP, 以及PMD/ pte映射1GB THP. 这些都没有经过充分的测试. | v7 ☐ | [PatchWork RFC,00/31](https://patchwork.kernel.org/project/linux-mm/cover/20190215220856.29749-1-zi.yan@sent.com) |
 
 # 3 内存去碎片化
 -------
@@ -3254,7 +3280,7 @@ ARM 引入了一个[内存标签扩展](https://community.arm.com/developer/ip-p
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/11/30 | Andrey Konovalov <andreyknvl@google.com> | [kcsan: Support detecting a subset of missing memory barriers](https://patchwork.kernel.org/project/linux-mm/cover/20211005105905.1994700-1-elver@google.com) | KCSAN 增加对 LKMM 定义的弱内存子集建模的支持, 它支持检测由于丢失内存障碍而导致的数据竞争子集.<br>当内存操作的结果应该由 barrier 来排序时, KCSAN 可以检测数据竞争, 在这种情况下, 冲突只发生在由于重新排序访问而丢失 barrier 的情况下.<br>KCSAN 检测内存障碍缺失的方法是基于对访问重新排序的建模, 设置了观察点检测对每个内存访问, 也选择在其功能范围内进行模拟重排序. 由于运行时不能"预取"访问, 我们只能对延迟访问效果进行建模, 一旦选择了某个访问进行重新排序, 就会在每次其他访问中检查它, 直到函数范围结束. 如果遇到适当的内存障碍，访问将不再考虑重新排序. | v3 ☐ | [2021/10/05 PatchWork 00/23](https://patchwork.kernel.org/project/linux-mm/cover/20211005105905.1994700-1-elver@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/18 PatchWork v2,00/23](https://patchwork.kernel.org/project/linux-mm/cover/20211118081027.3175699-1-elver@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/30 PatchWork v3,00/25](https://patchwork.kernel.org/project/linux-mm/cover/20211130114433.2580590-1-elver@google.com) |
+| 2021/11/30 | Andrey Konovalov <andreyknvl@google.com> | [kcsan: Support detecting a subset of missing memory barriers](https://patchwork.kernel.org/project/linux-mm/cover/20211005105905.1994700-1-elver@google.com) | KCSAN 增加对 LKMM 定义的弱内存子集建模的支持, 它支持检测由于丢失内存障碍而导致的数据竞争子集.<br>当内存操作的结果应该由 barrier 来排序时, KCSAN 可以检测数据竞争, 在这种情况下, 冲突只发生在由于重新排序访问而丢失 barrier 的情况下.<br>KCSAN 检测内存障碍缺失的方法是基于对访问重新排序的建模, 设置了观察点检测对每个内存访问, 也选择在其功能范围内进行模拟重排序. 由于运行时不能"预取"访问, 我们只能对延迟访问效果进行建模, 一旦选择了某个访问进行重新排序, 就会在每次其他访问中检查它, 直到函数范围结束. 如果遇到适当的内存障碍, 访问将不再考虑重新排序. | v3 ☐ | [2021/10/05 PatchWork 00/23](https://patchwork.kernel.org/project/linux-mm/cover/20211005105905.1994700-1-elver@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/18 PatchWork v2,00/23](https://patchwork.kernel.org/project/linux-mm/cover/20211118081027.3175699-1-elver@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/30 PatchWork v3,00/25](https://patchwork.kernel.org/project/linux-mm/cover/20211130114433.2580590-1-elver@google.com) |
 
 
 
