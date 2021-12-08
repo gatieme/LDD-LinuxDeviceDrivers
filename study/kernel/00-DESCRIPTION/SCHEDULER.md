@@ -1475,7 +1475,7 @@ Tosatti 的 patch set 增加了一组新的 prctl() 命令来解决这个问题.
 
 
 
-## 8.4 更精确的调度时钟(HRTICK), 2.6.25(2008年4月发布)**
+## 8.5 更精确的调度时钟(HRTICK), 2.6.25(2008年4月发布)**
 -------
 
 
@@ -1490,7 +1490,7 @@ CPU的周期性调度, 和基于时间片的调度, 是要基于时钟中断来�
 2.6.25 引入了所谓的**高清嘀哒(High Resolution Tick)**, 以提供更精确的调度时钟中断．这个功能是基于**高精度时钟(High Resolution Timer)框架**, 这个框架让内核支持可以提供纳秒级别的精度的硬件时钟(将会在时钟子系统里讲).
 
 
-## 8.5 混乱的 RT 优先级(RT 进程优先级管控)
+## 8.6 混乱的 RT 优先级(RT 进程优先级管控)
 -------
 
 Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中, 这些线程是在内核地址空间中运行的特殊进程. 大多数内核线程运行在 SCHED_NORMAL 类中, 必须与普通用户空间进程争夺CPU时间. 但是有一些内核线程它的开发者们认为它们非常特殊, 应该比用户空间进程要有更高优先级. 因此也会把这些内核线程放到 SCHED_FIFO 中去.
@@ -1531,7 +1531,7 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 
 
 
-## 8.6 PREEMPT_RT
+## 8.7 PREEMPT_RT
 -------
 
 标准的 Linux 内核中不可中断的系统调用、中断屏蔽等因素, 都会导致系统在时间上的不可预测性, 对硬实时限制没有保证. 目前, 针对 real-time Linux 的修改有两种成功的方案.
@@ -1562,7 +1562,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 2019/7/15 | Thomas Gleixner <tglx@linutronix.de> | [locking, sched: The PREEMPT-RT locking infrastructure](https://lkml.org/lkml/2019/7/15/1386) | m在抢占菜单中添加一个新条目 PREEMPT_RT, 以支持内核的实时支持. 该选项仅在体系结构支持时启用. 它选择抢占, 因为 RT 特性依赖于它. 为了实现将现有的 PREEMPT 选项重命名为 `PREEMPT_LL`, 该选项也会选择 PREEMPT. 没有功能上的改变. | v1 ☑ 5.3-rc1 | [LKML](https://lkml.org/lkml/2019/7/15/1386) |
 
 
-### 8.6.1  Migrate disable support && kmap_local
+### 8.7.1  Migrate disable support && kmap_local
 -------
 
 
@@ -1590,7 +1590,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 后来主线上 Dexuan Cui 报 Migrate Disable 合入后引入了问题, [5.10: sched_cpu_dying() hits BUG_ON during hibernation: kernel BUG at kernel/sched/core.c:7596!](https://lkml.org/lkml/2020/12/22/141). Valentin Schneider 怀疑是有些 kworker 线程在 CPU 下线后又选到了下线核上运行, 因此建议去测试这组补丁 [workqueue: break affinity initiatively](https://lkml.org/lkml/2020/12/18/406). Dexuan Cui 测试以后可以解决这个问题, 但是会有其他 WARN. Peter Zijlstra 的 解决方案如下 [sched: Fix hot-unplug regression](https://lore.kernel.org/patchwork/cover/1368710).
 
 
-### 8.6.2 RT LOCK
+### 8.7.2 RT LOCK
 -------
 
 
@@ -1599,7 +1599,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 2021/08/15 | Thomas Gleixner <tglx@linutronix.de> | [locking, sched: The PREEMPT-RT locking infrastructure](https://lore.kernel.org/patchwork/cover/1476862) | mutex, ww_mutex, rw_semaphore, spinlock, rwlock | v5 ☑ 5.15-rc1 | [PatchWork V5,00/72](https://lore.kernel.org/all/20210815203225.710392609@linutronix.de), [LKML](https://lkml.org/lkml/2021/8/15/209) |
 
 
-### 8.6.3 中断线程化
+### 8.7.3 中断线程化
 -------
 
 [Linux RT (2)－硬实时 Linux (RT-Preempt Patch) 的中断线程化](https://blog.csdn.net/21cnbao/article/details/8090398)
@@ -1612,12 +1612,36 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 2021/8/22 | Thomas Gleixner <tglx@linutronix.de> | [softirq: Introduce SOFTIRQ_FORCED_THREADING](https://lkml.org/lkml/2021/8/22/417) | CONFIG_IRQ_FORCED_THREADING 中强制软中断也做了线程化, 作者认为这不合理, 因此引入 SOFTIRQ_FORCED_THREADING 单独控制软中断的线程化.<br>1. 中断退出时是否执行 softirq 由 IRQ_FORCED_THREADING 控制, 这是不合理的. 应该将其拆分, 并允许其单独生效.<br>2. 同时, 当中断退出时, 我们应该增加 ksoftirqd 的优先级, 作者参考了 PREEMPT_RT 的实现, 认为它是合理的. | v1 ☐ | [PatchWork](https://lore.kernel.org/lkml/1629689583-25324-1-git-send-email-wangqing@vivo.com), [LKML](https://lkml.org/lkml/2021/8/22/417) |
 
 
-### 8.6.x 零碎的修修补补
+### 8.7.x 零碎的修修补补
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/9/28 | Thomas Gleixner <tglx@linutronix.de> | [sched: Miscellaneous RT related tweaks](https://lkml.org/lkml/2021/9/28/617) | 启用 RT 的内核在调度程序的内部工作方面存在一些问题:<br>1. 远程 TTWU 队列机制导致最大延迟增加 5 倍;<br>2. 32 个任务的批处理迁移限制会导致较大的延迟.<br>3. kprobes 的清理、死任务的 vmapped 堆栈和 mmdrop() 是导致延迟增大的源头, 这些路径从禁用抢占的调度程序核心中获取常规的自旋锁. | v1 ☐ | [PatchWork 0/5](https://lkml.org/lkml/2021/9/28/617) |
+
+## 8.8 Interrupt Aware
+-------
+
+中断对进程的干扰是非常大的, 传统的规避方法都是通过将中断和进程分别绑核, 从而减少干扰, 这样可以达到非常好的效果, 但是需要用户手动配置.
+
+如果内核在为进程选核的时候, 能够感知中断的影响, 将进程唤醒到中断负载很小的核上, 这样就不需要用户的参与, 调度器可以自己完成工作.
+
+[IAS: Interrupt Aware Scheduler](https://lkml.org/lkml/2017/5/12/512) 就是一次很好的尝试,
+为 CFS 增加了中断感知的功能.
+
+1.  当中断处理, 开始和结束时间指出每个中断情况.
+
+2.  在一个周期性的基础上, 中断负载被处理为每个运行队列, 这是按照百分比映射在一个全局数组. 给定 CPU 的中断负载也会随着时间的推移而衰减, 因此最近的中断负载在中断负载计算中具有最大的贡献. 这意味着调度器在调度最近忙于处理硬件中断的线程时, 将尽量避免使用 cpu (如果可能的话).
+
+3.  当 CPU 上中断负载超过 80%U 被认为是中断重的. 从调度器的角度来看, 在空闲 CPU 搜索期间, 如果有更好的 CPU 可用, 应该跳过中断负载重的 CPU.
+
+
+
+5) 如果没有一个 CPU 在空闲和中断负载方面更好, 那么中断重的 CPU 被认为是最好的可用 CPU.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2017/05/12 | Rohit Jain <rohit.k.jain@oracle.com> | [Interrupt Aware Scheduler](https://lkml.org/lkml/2017/5/12/512) | NA | v1 ☐ | [LORE 0/5](https://lore.kernel.org/lkml/1494612267-29465-1-git-send-email-rohit.k.jain@oracle.com) |
 
 # 9 IDLE
 -------
