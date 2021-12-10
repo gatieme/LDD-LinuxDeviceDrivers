@@ -140,6 +140,8 @@ spinlock 的值出现变化时, 所有试图获取这个 spinlock 的 CPU 都需
 
 [PV qspinlock 原理](https://blog.csdn.net/bemind1/article/details/118224344)
 
+[Hook 内核之 PVOPS](https://diting0x.github.io/20170101/pvops)
+
 spinlock 在非虚拟化的环境下, 它是可以认为 CPU 不会被抢占的, 所以 A 拿锁干活, B 死等 A, A 干完自己的活, 就释放了, 中间不会被调度.
 
 但是在虚拟化下, CPU 对应到 vcpu, 每个 vcpu 跟之前裸机上的进程调度一样, 所以 A 拿锁干活, 并不一定不会被抢占, 很有可能被调度走了, 因为 cpu 这时候还不知道 vcpu 在干嘛. B 死等 A, 但是 A 被调度了, 运行了 C, C 也要死等 A, 在一些设计不够好的系统里面, 这样就会变得很糟糕.
@@ -171,6 +173,10 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 
 
 PV_SPINLOCKS 的合入引起了[性能问题 Performance overhead of paravirt_ops on native identified](https://lore.kernel.org/patchwork/patch/156045), yinru
+
+
+当开启了 CONFIG_PARAVIRT_SPINLOCKS 之后, queued_spin_lock_slowpath() 将作为[宏函数被展开多份](https://elixir.bootlin.com/linux/v4.2/source/kernel/locking/qspinlock.c#L281), 一份 [native_queued_spin_lock_slowpath()](https://elixir.bootlin.com/linux/v4.2/source/kernel/locking/qspinlock.c#L255) 用于传统的 spinlock 场景, 一份 [`__pv_queued_spin_lock_slowpath()`](https://elixir.bootlin.com/linux/v4.2/source/kernel/locking/qspinlock.c#L468) 用于虚拟化场景. 参见 [v4.2: commit a23db284fe0d locking/pvqspinlock: Implement simple paravirt support for the qspinlock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a23db284fe0d1879ca2002bf31077b5efa2fe2ca). 在启动阶段, 通过 PVOPS 机制动态的的将 spinlock 替换为内核实际所需的 spinlock 处理函数. 虚拟化 guest 中将在 kvm_spinlock_init() 中被替换为虚拟化场景[所需的 `__pv_queued_spin_lock_slowpath()` ](https://elixir.bootlin.com/linux/v4.2/source/arch/x86/kernel/kvm.c#L868) 等函数.
+
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |

@@ -751,10 +751,16 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2013/10/07 | Mel Gorman <mgorman@suse.de> | [Basic scheduler support for automatic NUMA balancing V9](https://lwn.net/Articles/557427/) |  | v9 ☑ 3.13-rc1 | [LWN v2](https://lwn.net/Articles/568619), [LKML v8](https://lkml.org/lkml/2013/9/27/211), [LORE 00/63](https://lore.kernel.org/all/1381141781-10992-1-git-send-email-mgorman@suse.de) |
 | 2021/10/27 | Gang Li <ligang.bdlg@bytedance.com> | [sched/numa: add per-process numa_balancing](https://lkml.org/lkml/2021/10/27/517) | 这个补丁在 prctl 中添加了一个新的 api PR_NUMA_BALANCING 来控制当个进程参与和禁止 numa_balancing. 在执行 numa_balancing 时, 大量的页面错误会导致性能损失. 因此, 那些关心最坏情况下性能的进程需要禁用 numa_balancing. 相反, 另一些则允许暂时的性能损失以换取更高的平均性能, 因此启用 numa 平衡对它们来说更好. 但是当前 numa balancing 只能由 `/proc/sys/kernel/numa_balancing` 全局控制. 因此这个特性希望禁用/启用每个进程的 numa_balancing. 在 mm_struct 下添加 numa_balancing. 然后在 task_tick_numa 中使用来控制. mm ->numa_balancing 仅在全局 numa_balancing 启用时有效. 当全局 numa_balancing 被禁用时, mm->numa_blancing 不会改变, 当你想要获得进程 numa_balancing 状态时, 你总是会得到 0, 并且当你使用 prctl set 它时, 内核将返回 err. | v1 ☐ | [LKML](https://lkml.org/lkml/2021/10/27/517) |
+| 2014/05/14 | Rik van Riel <riel@redhat.com> | [sched/numa: Allow task switch if load imbalance improves](https://linuxplumbersconf.org/event/4/contributions/480) | 目前 NUMA 平衡代码只允许在 NUMA 节点上的负载处于平衡状态时在 NUMA 节点之间移动任务. 当负载开始不平衡时, 它就崩溃了. 因此这个补丁引入 load_too_imbalanced() 来判定, 如果不平衡较小, 或者新的不平衡小于原来的不平衡, 则允许在 NUMA 节点之间移动任务. | v1 ☑ 3.16-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e63da03639cc9e6e83b62e7ef8ffdbb92421416a) |
+| 2018/09/21 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [sched/numa: Avoid task migration for small NUMA improvement](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6fd98e775f24fd41520928d345f5db3ff52bb35d) | 如果 NUMAC 层次的任务迁移带来的改进非常小(小于 SMALLIMP), 那么应该尽量避免任务迁移. 否则可能会带来 pingpong(进程来回迁移颠簸), 甚至 cache-miss 引起的性能下降. | v1 ☑ 4.19-rc7 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6fd98e775f24fd41520928d345f5db3ff52bb35d) |
+
 
 ## 4.4 rework_load_balance
 -------
+
+[Rework load_balance](http://retis.sssup.it/luca/ospm-summit/2019/Downloads/01_05-Rework_load_balance_OSPM_19.pdf)
 
 2019 年的 [Vincent Guittot](https://www.youtube.com/watch?v=cfv63BMnIug) 的 [sched/fair: rework the CFS load balance](https://lwn.net/Articles/793427) 是近几年特别有亮点的补丁.
 . 博主个人一直是计算机先驱"高德纳"教授"文学化编程"思想的坚定追随者, 小米创始人雷军雷布斯先生也说"写代码要有写诗一样的感觉". 这种代码才真的让人眼前一亮, 如沐春风. 这个就是我看到 [rework_load_balance 这组补丁](https://lore.kernel.org/patchwork/cover/1141687) 的感觉. 这组补丁通过重构 (CFS) load_balance 的逻辑, 将原来逻辑混乱的 load_balance 变成了内核中一抹亮丽的风景, 不光使得整个 load_balance 的框架更清晰, 可读性更好. 更带来了性能的提升.
@@ -764,7 +770,7 @@ NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2019/10/18 | | [sched/fair: rework the CFS load balance](https://linuxplumbersconf.org/event/4/contributions/480) | 重构 load balance | v4 ☑ | [LWN](https://lwn.net/Articles/793427), [PatchWork](https://lore.kernel.org/patchwork/patch/1141687), [lkml](https://lkml.org/lkml/2019/10/18/676) |
+| 2019/10/18 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: rework the CFS load balance](https://linuxplumbersconf.org/event/4/contributions/480) | 重构 load balance | v4 ☑ 5.5-rc1 | [LWN](https://lwn.net/Articles/793427), [PatchWork](https://lore.kernel.org/patchwork/patch/1141687), [lkml](https://lkml.org/lkml/2019/10/18/676), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0b0695f2b34a4afa3f6e9aa1ff0e5336d8dad912) |
 | 2019/10/22 | | [sched/fair: fix rework of find_idlest_group()](https://lore.kernel.org/patchwork/patch/1143049) | fix 补丁 | | |
 | 2019/11/29 | | [sched/cfs: fix spurious active migration](https://lore.kernel.org/patchwork/patch/1160934) | fix 补丁 | | |
 | 2019/12/20 | | [sched/fair : Improve update_sd_pick_busiest for spare capacity case 1171109 diffmboxseries](https://lore.kernel.org/patchwork/patch/1171109/) | | |
@@ -854,13 +860,26 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 -------
 
 
-*   Limiting idle_balance
+### 4.6.1 Limiting idle_balance
+-------
+
+
+avg_idle 可以反应目前 RQ 进入 idle 的时间长短. 用来评估 idle balance 的收益. 如果一个 CPU 的 rq->avg_idle 小于
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:----:|:---:|:----------:|:---:|
+| 2009/11/04 | Valentin Schneider | [sched: Rate-limit newidle](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1b9508f6831e10d53256825de8904caa22d1ca2c) | 引入 rq->avg_idle 跟踪 CPU 的平均 idle 时间, 如果 rq->avg_idle 小于 sysctl_sched_migration_cost, 则不再进行 idle balance. 因为有可能 CPU 还没把进程 pull 过来运行, CPU 上原来的进程可能已经唤醒投入运行了, 执行 idle balance 反而会造成 CPU 的负载和调度时延增大. | v1 ☑ 2.6.33-rc1 | [2021/06/15 v2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1b9508f6831e10d53256825de8904caa22d1ca2c) |
+| 2020/03/30 | Valentin Schneider | [sched: Align rq->avg_idle and rq->avg_scan_cost](https://lore.kernel.org/patchwork/patch/1217584) | NA | RFC | [2021/06/15 v2](https://lore.kernel.org/patchwork/patch/1217584) |
+| 2021/06/15 | Peter Zijlstra | [sched/fair: Age the average idle time](https://lore.kernel.org/patchwork/patch/1446838) | NA | RFC | [2021/06/15 v2](https://lore.kernel.org/all/20210615111611.GH30378@techsingularity.net), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=94aafc3ee31dc199d1078ffac9edd976b7f47b3d) |
+
+max_idle_balance_cost 则跟踪了当前调度域最近一段时间执行 idle balance 的最大开销.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2013/08/29 | Jason Low <jason.low2@hp.com> | [sched: Limiting idle balance](https://lore.kernel.org/patchwork/patch/403138) | 限制 idle balance  | v1 ☑ 4.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/403138) |
+| 2013/09/13 | Jason Low <jason.low2@hp.com> | [sched: Limiting idle balance](https://lore.kernel.org/patchwork/patch/403138) | 这些补丁修改和添加了限制 idle balance 的方式. [第一个补丁](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=abfafa54db9aba404e8e6763503f04d35bd07138)减少了我们高估 avg_idle 的可能性. [第二个补丁](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9bd721c55c8a886b938a45198aab0ccb52f1f7fa)引入了 sd->max_idle_balance_cost 跟踪了跟踪每个调度域执行 idle balance 所花费的最大成本, 如果当前 CPU 的平均 idle 时间 rq->avg_idle 小于 sd->max_idle_balance_cost, 则限制 idle balance, 此时没必要再通过 idle balance 从其他 CPU 上 pull 一个进程过来, 因此可能 idle balance 还没有完成, 就本核上其他进程就可以已经唤醒准备投入运行. [第三个补丁](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f48627e686a69f5215cb0761e731edb3d9859dd9) 则周期性地衰减每个 sched_domain 的 max_idle_balance_cost. 当 CPU 保持空闲的时间很短且不超过执行平衡的成本时, 这些更改进一步减少了我们尝试 idle balance 的机会. | v5 ☑ 3.13-rc1 | [LORE v5,0/3](https://lore.kernel.org/all/1379096813-3032-1-git-send-email-jason.low2@hp.com) |
 
-*   Improve cost accounting of newidle_balance
+### 4.6.2 Improve cost accounting of newidle_balance
+-------
 
 
 idle balance 中执行 update_blocked_average 是很费时费力的, 可以做不少优化.
@@ -872,7 +891,9 @@ idle balance 中执行 update_blocked_average 是很费时费力的, 可以做�
 | 2021/2/24 | Vincent Guittot | [move update blocked load outside newidle_balance](https://lore.kernel.org/patchwork/cover/1383963) | Joel报告了 newidle_balance 中的抢占和irq关闭序列很长, 因为大量的 CPU cgroup 正在使用, 并且需要更新. 这个补丁集将更新 update_blocked_average 移动到 newidle_imblance 之外. | v2 ☑ 5.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1383963), [LKML  0/7 v4](https://lkml.org/lkml/2021/2/24/627) |
 | 2021/10/19 | Vincent Guittot <vincent.guittot@linaro.org> | [Improve newidle lb cost tracking and early abort](https://lore.kernel.org/patchwork/patch/403138) | 通过考虑更新阻塞负载 update_blocked_averages() 所花费的时间, 在没有机会运行至少一个负载平衡循环的情况下完全跳过负载平衡循环. 因此在 newidle_balance()中, 当 this_rq 的第一个 sd 满足 `this_rq->avg_idle < sd->max_newidle_lb_cost` 时, 认为执行 update_blocked_averages() 是非常昂贵且没有收益的, 只会增加开销. 因此在 newidle_balance() 中尽早检查条件, 尽可能跳过 update_blocked_averages() 的执行. | v3 ☐ | [2021/10/4 LKML v1](https://lkml.org/lkml/2021/10/4/1188)<br>*-*-*-*-*-*-*-* <br>[2021/10/04 PatchWork](https://lore.kernel.org/lkml/20211004171451.24090-1-vincent.guittot@linaro.org), [LKML](https://lkml.org/lkml/2021/10/4/1188)<br>*-*-*-*-*-*-*-* <br>[LKML v3,0/5](https://lkml.org/lkml/2021/10/19/590)  |
 
-*   steal tasks
+
+### 4.6.3 steal tasks
+-------
 
 
 [Load balancing via scalable task stealing](http://linuxplumbersconf.org/event/2/contributions/155/attachments/13/12/lpc2018_steal.pdf)
@@ -880,6 +901,7 @@ idle balance 中执行 update_blocked_average 是很费时费力的, 可以做�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2013/08/29 | Jason Low <jason.low2@hp.com> | [steal tasks to improve CPU utilization](http://lwn.net/Articles/769225) | 限制 idle balance  | v1 ☑ 4.13-rc1 | [PatchWork v1](https://lore.kernel.org/lkml/1540220381-424433-1-git-send-email-steven.sistare@oracle.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4 00/10](https://lkml.org/lkml/2018/12/6/1253) |
+
 
 ## 4.7 active load_balance
 -------
@@ -944,7 +966,7 @@ Mike Galbraith 调试发现, 触发这个问题的原因是因为 wake_affine_we
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/09/20 | Mel Gorman <mgorman@techsingularity.net> | [Scale wakeup granularity relative to nr_running](https://lore.kernel.org/lkml/20210920142614.4891-1-mgorman@techsingularity.net) | 在任务迁移或唤醒期间, 将决定是否抢占当前任务. 为了限制过度调度, 可以通过设置 sysctl_sched_wakeup_granularity 来延迟抢占, 以便在抢占之前允许至少一定的运行时间. 但是, 当任务堆叠而造成域严重过载时(例如 hackbench 测试), 过度调度的程度仍然很严重. 而且由于许多时间被调度器浪费在重新安排任务(切换等)上, 这会进一步延长过载状态. 这组补丁根据 CPU 上正在运行的任务数在 wakeup_gran() 中扩展唤醒粒度, 默认情况下最大可达 8ms. 其目的是允许任务在过载时运行更长时间, 以便某些任务可以更快地完成, 并降低域过载的程度. | v1 ☐ | [PatchWork v1](https://lore.kernel.org/lkml/20210920142614.4891-1-mgorman@techsingularity.net), [LKML](https://lkml.org/lkml/2021/9/20/478) |
-| 2021/10/28 | Mel Gorman <mgorman@techsingularity.net> | [Reduce stacking and overscheduling](https://lkml.org/lkml/2021/10/21/661) | Mike Galbraith 发现引起 CPU 上任务堆积的原因是 wake_affine_weight() 流程与 cpu_load() 更新路径的互不感知造成的, 因此进行了修复. | v1 ☐ | [2021/10/21 LKML 0/2](https://lkml.org/lkml/2021/10/21/661), [2021/10/28 LKML v4 0/2](https://lkml.org/lkml/2021/10/28/226),[LORE 1/1](https://lore.kernel.org/all/20211125151915.8628-1-mgorman@techsingularity.net/) |
+| 2021/10/28 | Mel Gorman <mgorman@techsingularity.net> | [Reduce stacking and overscheduling](https://lkml.org/lkml/2021/10/21/661) | Mike Galbraith 发现引起 CPU 上任务堆积的原因是 wake_affine_weight() 流程与 cpu_load() 更新路径的互不感知造成的, 因此进行了修复. | v1 ☐ | [2021/10/21 LKML 0/2](https://lkml.org/lkml/2021/10/21/661), [2021/10/28 LKML v4 0/2](https://lkml.org/lkml/2021/10/28/226),[LORE 1/1](https://lore.kernel.org/all/20211125151915.8628-1-mgorman@techsingularity.net/), [LORE v4,0/2](https://lore.kernel.org/lkml/20211028094834.1312-1-mgorman@techsingularity.net) |
 
 
 # 5 select_task_rq
@@ -1026,16 +1048,6 @@ Mike Galbraith 调试发现, 触发这个问题的原因是因为 wake_affine_we
 | 2021/08/04 | Mel Gorman <mgorman@techsingularity.net> | [Reduce SIS scanning](https://lore.kernel.org/patchwork/cover/1472054) | 将 [Modify and/or delete SIS_PROP](https://lore.kernel.org/patchwork/cover/1467090) 拆开进行提交. | RFC ☐ | [PatchWork 0/2](https://lore.kernel.org/patchwork/cover/1472054) |
 
 
-
-### 5.4.3 avg_idle bypass
--------
-
-avg_idle 可以反应目前 RQ 进入 idle 的时间长短.
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:----:|:---:|:----------:|:---:|
-| 2020/03/30 | Valentin Schneider | [sched: Align rq->avg_idle and rq->avg_scan_cost](https://lore.kernel.org/patchwork/patch/1217584) | NA | RFC | [2021/06/15 v2](https://lore.kernel.org/patchwork/patch/1217584) |
-| 2021/06/15 | Peter Zijlstra | [sched/fair: Age the average idle time](https://lore.kernel.org/patchwork/patch/1446838) | NA | RFC | [2021/06/15 v2](https://lore.kernel.org/patchwork/patch/1446838) |
 
 ## 5.5 cluster_scheduler
 -------
@@ -1637,6 +1649,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2017/05/12 | Rohit Jain <rohit.k.jain@oracle.com> | [Interrupt Aware Scheduler](https://lkml.org/lkml/2017/5/12/512) | NA | v1 ☐ | [LORE 0/5](https://lore.kernel.org/lkml/1494612267-29465-1-git-send-email-rohit.k.jain@oracle.com) |
+| 2021/09/20 | Libo Chen <libo.chen@oracle.com> | [Overeager pulling from wake_wide() in interrupt heavy workloads](https://lkml.org/lkml/2017/5/12/512) | 当前 wake_affine() 机制并不感知 ISR 唤醒的场景, 在这种场景下, 在中断上下文发起唤醒 wakee 进程的请求, 其实的 waker 并不是真正的 waker, 而是因为唤醒发生时中断正好打断了这个 waker 进程. wake_affine() 机制仍旧比较 waker/wakee 进程的 wakee_flips 到导致错误的唤醒. 作者讲了一个 IST 唤醒的场景, 导致 CPU 唤醒到中断所在的 NUMA NODE, 但是系统中其他 NODE 却是空闲的. | v1 ☐ | [Slide](https://linuxplumbersconf.org/event/11/contributions/1044/attachments/801/1508/lpc21_wakeup_pulling_libochen.pdf) |
 
 # 9 IDLE
 -------

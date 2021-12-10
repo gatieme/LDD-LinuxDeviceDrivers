@@ -73,6 +73,8 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 systrace, perfetto, drgn
 
+
+
 ## 2.2 call kernel func from userspace
 -------
 
@@ -138,6 +140,11 @@ RRZE-HPC 的 [likwid(Like I knew what I am doing):Performance monitoring and ben
 | 11 | [likwid-agent](https://github.com/RRZE-HPC/likwid/wiki/likwid-agent) | likwid-agent 是一种守护应用程序, 它使用 likwid-perfctr 来测量硬件性能计数器. |
 | 12 | [likwid-genTopoCfg](https://github.com/RRZE-HPC/likwid/wiki/likwid-genTopoCfg) | 获取当前系统的硬件 CPU 拓扑信息. |
 | 13 | [likwid-perfscope](https://github.com/RRZE-HPC/likwid/wiki/likwid-perfscope) |使用 gnuplot 执行实时性能数据绘图的工具. |
+
+## 2.7 eBPF
+-------
+
+[Kernel analysis with bpftrace](https://lwn.net/Articles/793749)
 
 <br>
 
