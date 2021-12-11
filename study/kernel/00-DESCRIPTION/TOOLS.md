@@ -73,6 +73,10 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 systrace, perfetto, drgn
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/05/29 | Sandoval @ Facebook | [A kernel debugger in Python: drgn](https://lwn.net/Articles/789641) | 一款 kernel 调试器, 可以利用 Python 脚本来访问正在运行的 kernel 里的数据结构<br>Drgn 在 [LSFMM2019](https://lwn.net/Articles/lsfmm2019) 被公开, LWN 随即进行了报道  [A kernel debugger in Python: drgn](https://lwn.net/Articles/789641), 随后 [2021 年报道](https://lwn.net/Articles/878309/)了 [drgn: How the Linux Kernel Team at Meta Debugs the Kernel at Scale (Meta)](https://developers.facebook.com/blog/post/2021/12/09/drgn-how-linux-kernel-team-meta-debugs-kernel-scale), Meta 的内核团队使用了 Drgn 跟踪内核中出现的问题, 并贡献了非常分布的用例集合. | ☐ | [Github](https://github.com/osandov/drgn), [User Guide](https://drgn.readthedocs.io/en/latest/user_guide.html), [BPF drgn tools](https://www.kernel.org/doc/html/latest/bpf/drgn.html) |
+| 2021/11/21 | David Woodhouse <dwmw2@infradead.org> | [Microsoft-Performance-Tools-Linux-Android](https://www.phoronix.com/scan.php?page=news_item&px=MS-Performance-Tools-Linux) | Microsoft [发布了](https://devblogs.microsoft.com/performance-diagnostics/new-tools-for-analyzing-android-linux-and-chromium-browser-performance)一款 Linux/Android 的性能分析工具 [Performance Tools For Linux/Android](https://github.com/microsoft/Microsoft-Performance-Tools-Linux-Android), 一组跟踪处理工具, 它提供了许多强大的功能、功能、方法和生态系统, 这些功能、功能、方法和生态系统在过去 15 年多的时间里一直用于通过不断发展和更新的工具集来推动系统的性能. 支持通过 LTTng、perf 和 Perfetto 对系统进行分析. | v1 ☐ | [LWN](https://github.com/microsoft/Microsoft-Performance-Tools-Linux-Android) |
 
 
 ## 2.2 call kernel func from userspace
