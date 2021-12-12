@@ -1075,9 +1075,9 @@ Mike Galbraith 调试发现, 触发这个问题的原因是因为 wake_affine_we
 ### 5.3.5 SIS avg_idle
 -------
 
-不管是 SIS_AVG_CPU 还是 SIS_PROP 阻断和限制 select_idle_cpu() 的现实意义都是: 不要花比 CPU 空闲时间更多的时间来扫描空闲 CPU, 否则对性能不会有任何改观, 反而会造成进程互相对
+不管是 SIS_AVG_CPU 还是 SIS_PROP 阻断和限制 select_idle_cpu() 的现实意义都是: 不要花比 CPU 空闲时间更多的时间来扫描空闲 CPU, 否则对性能不会有任何改观, 反而会造成进程相互之间争抢 CPU.
 
-早期 SIS_AVG_CPU/SIS_PROP 中跟踪 select_idle_cpu() 的开销使用的是之前 [commit 1b9508f6831e ("sched: Rate-limit newidle")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1b9508f6831e10d53256825de8904caa22d1ca2c) 所引入的 CPU 平均 IDLE 时间. 这其实是非常不合适的. 因此 [commit 94aafc3ee31d ("sched/fair: Age the average idle time")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=94aafc3ee31dc199d1078ffac9edd976b7f47b3d) 为 wakeup 路径 select_idle_cpu() 跟踪了
+早期 SIS_AVG_CPU/SIS_PROP 中 select_idle_cpu() 比较查询 IDLE CPU 的开销以及 CPU 空闲时间使用的是之前 [commit 1b9508f6831e ("sched: Rate-limit newidle")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1b9508f6831e10d53256825de8904caa22d1ca2c) 所引入的 CPU 平均 IDLE 时间 rq->avg_idle.这其实是非常不合适的. 因此 [commit 94aafc3ee31d ("sched/fair: Age the average idle time")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=94aafc3ee31dc199d1078ffac9edd976b7f47b3d) 为 wakeup 路径 select_idle_cpu() 重新计算了 CPU 的空闲时间 rq->wake_avg_idle, 这个时间刨去了 select_idle_cpu() 的耗时, 并每个 jiffies 衰减为原来的一半.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:----:|:---:|:----------:|:---:|
