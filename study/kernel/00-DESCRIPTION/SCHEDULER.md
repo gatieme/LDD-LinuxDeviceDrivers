@@ -110,9 +110,13 @@ Scheduler Microconference Accepted into Linux Plumbers Conference
 
 - [x] 8. 实时性 linux PREEMPT_RT
 
-- [x] 9. 其他
+- [x] 9. IDLE
 
-- [x] 10. 调试信息
+- [x] 10. 进程管理
+
+- [x] 11. 其他
+
+- [x] 12. 调试信息
 
 
 # 1 进程调度类
@@ -1695,14 +1699,14 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2013/03/21 | Thomas Gleixner <tglx@linutronix.de> | [idle: Consolidate idle implementations](https://lore.kernel.org/all/20130321214930.752934102@linutronix.de) | 当前每个体系结构都实现自己的 cpu_idle() 代码, 这是没有必要的因此实现了一套通用架构无关的 cpu_idle 框架. | v1 ☑ 3.10-rc1 | [PatchWork 00/34](https://lore.kernel.org/all/20130321214930.752934102@linutronix.de) |
 
-# 9 进程管理
+# 10 进程管理
 -------
 
 
-## 9.1 进程创建
+## 10.1 进程创建
 -------
 
-### 9.1.1 shared page tables
+### 10.1.1 shared page tables
 -------
 
 对 shared page tables 的研究由来已久, Dave McCracken提出了一种共享页面表的方法[Implement shared page tables](https://lore.kernel.org/patchwork/cover/42673), 可以参见 [Shared Page Tables Redux](https://www.kernel.org/doc/ols/2006/ols2006v2-pages-125-130.pdf). 但从未进入内核.
@@ -1721,7 +1725,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 2021/07/06 | Kaiyang Zhao <zhao776@purdue.edu> | [Shared page tables during fork](https://patchwork.kernel.org/project/linux-mm/patch/20210701134618.18376-1-zhao776@purdue.edu) | 引入 read_ti_thread_flags() 规范对 thread_info 中 flag 的访问. 其中默认使用了 READ_ONCE. 防止开发者忘记了这样做. | [PatchWork v4,00/10](https://lore.kernel.org/patchwork/cover/1471548) |
 
 
-### 9.2 进程退出
+### 10.2 进程退出
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1730,10 +1734,10 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 2021/11/18 | Linus Torvalds <torvalds@linux-foundation.org> | [task: Making tasks on the runqueue rcu protected](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) | [sched: Delay task stack freeing on RT](https://lore.kernel.org/all/20210928122411.593486363@linutronix.de) 的完善方案. 在 finish_task_switch() 完成后任务可能会死亡并退出, 这时候虽然快速回收任务堆栈有利于繁重的工作负载, 但这是内核实时性延迟的源头. 因此, 延迟启用 RT 的内核上的堆栈清理. | v1 ☐ | [PatchWork 0/8](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) |
 
 
-# 9 其他
+# 11 其他
 -------
 
-## 9.1 CPU HOTPLUG 中的调度处理
+## 11.1 CPU HOTPLUG 中的调度处理
 -------
 
 
@@ -1746,11 +1750,11 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 
 
 
-## 9.2 用户态调度框架
+## 11.2 用户态调度框架
 -------
 
 
-### 9.2.1 Google Fibers 用户空间调度框架
+### 11.2.1 Google Fibers 用户空间调度框架
 -------
 
 "Google Fibers" 是一个用户空间调度框架, 在谷歌广泛使用并成功地用于改善进程内工作负载隔离和响应延迟. 我们正在开发这个框架, UMCG(用户管理并发组)内核补丁是这个框架的基础.
@@ -1765,7 +1769,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 2021/09/08 | Peter Oskolkov <posk@google.com>/<posk@posk.io> | [google ghOSt](https://github.com/google/ghost-kernel) | ghOSt 是在 Linux 内核上实现的用户态调度策略的通用代理. ghOSt 框架提供了一个丰富的 API, 该 API 从用户空间接收进程的调度决策, 并将其作为事务执行. 程序员可以使用任何语言或工具来开发策略, 这些策略可以在不重新启动机器的情况下升级. ghOSt 支持一系列调度目标的策略, 从 µs 级延迟到吞吐量, 再到能源效率, 等等, 并且调度操作的开销较低. 许多策略只是几百行代码. 总之, ghOSt 提供了一个性能框架, 用于将线程调度策略委托给用户空间进程, 从而实现策略优化、无中断升级和故障隔离. | [github kernel](https://github.com/google/ghost-kernel)<br>*-*-*-*-*-*-*-* <br>[github userspace](https://github.com/google/ghost-userspace) |
 
 
-### 9.2.2 Scheduler BPF
+### 11.2.2 Scheduler BPF
 -------
 
 
@@ -1816,7 +1820,7 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 
 
 
-## 9.4 其他
+## 11.4 其他
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1826,11 +1830,11 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 
 
 
-# 10 调试信息
+# 12 调试信息
 -------
 
 
-## 10.1 统计信息
+## 12.1 统计信息
 -------
 
 阿里的王贇 [sched/numa: introduce numa locality](https://lore.kernel.org/patchwork/cover/1190383) 提供了 per-cgroup 的 NUMASTAT 功能, 发到了 2020/02/07 v8, 但是最终还是没能合入主线.
@@ -1841,7 +1845,7 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 | 2021/09/05 | Yafang Shao | [sched: support schedstats for RT sched class](https://lore.kernel.org/patchwork/cover/1403138) | 我们希望使用 schedstats 工具测量生产环境中 RT 任务的延迟, 但目前只支持公平调度类的 schedstats.  将 sched_statistics 修改为独立于 task_struct 或 task_group 的调度统计数据, 从而完成了 RT 的 schedstats 支持 | v6 ☑ 5.16-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1403138)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3](http://patches.linaro.org/cover/502064)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/8](https://lore.kernel.org/all/20210905143547.4668-1-laoar.shao@gmail.com) |
 
 
-## 10.2 tracepoint
+## 12.2 tracepoint
 -------
 
 [`tracepoints-helpers`](https://github.com/auldp/tracepoints-helpers.git)
@@ -1856,7 +1860,7 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 | 2020/06/19 | | [Sched: Add a tracepoint to track rq->nr_running](https://lore.kernel.org/patchwork/patch/1258690) | 增加 nr_running 的跟踪点 | v1 ☑ 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1258690)<br>*-*-*-*-*-*-*-* <br>[FixPatch](https://lore.kernel.org/patchwork/patch/1284621) |
 | 2020/08/28 | | [sched/debug: Add new tracepoint to track cpu_capacity](https://lore.kernel.org/patchwork/patch/1296761) | 增加 cpu_capacity 的跟踪点 | v1 ☐ |  [PatchWork](https://lore.kernel.org/patchwork/cover/1296761) |
 
-## 10.3 debug 接口
+## 12.3 debug 接口
 -------
 
 
@@ -1875,14 +1879,14 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 | 2021/01/06 | Vincent Guittot | [sched: Remove per rq load array](https://lore.kernel.org/patchwork/cover/1079333) | 自 LB_BIAS 被禁用之后, 调度器只使用 rq->cpu_load[0] 作为cpu负载值, 因此 cpu_load 这个数组的其他之其实没意义了, 直接去掉了. 注意这对 load_balance 的调优是有一定影响的, 之前 sched_domain 中可以通过 sysctl 接口修改比较负载使用的 index, 这些 index 对应的 cpu_load 数组的下标. 干掉了这个数组, 那么这些 sysctl 也就没必要了 | v2 ☑ 5.10-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1079333) |
 | 2021/04/12 | Peter Zijlstra | [sched: Clean up SCHED_DEBUG](https://lore.kernel.org/patchwork/cover/1402660) | 目前内核有 sysctl, procfs 和 debugfs SCHED_DEBUG 接口, 比较混乱.<br>1. 将 CONFIG_LATENCYTOP 以及 sched_schedstats 和 NUMA balance 的 sysctl 开关都不再依赖于 CONFIG_SCHED_DEBUG<br>2. 将 [所有接口信息都转移到 debugfs 中](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d27e9ae2f244805bbdc730d85fba28685d2471e5).<br>3. 添加 ALT_PERIOD 和 BASE_SLICE feature. 考虑 cgroup 的情况, 添加了 ALT_PERIOD 计算__sched_period 实际实际的 h_nr_running, 添加 BASE_SLICE 保证进程的 sched_slice 至少达到 sysctl_sched_min_granularity]https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0c2de3f054a59f15e01804b75a04355c48de628c) | v2 ☑ 5.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1402660), [LKML](https://lkml.org/lkml/2021/3/26/395), [LORE](https://lore.kernel.org/all/20210412101421.609526370@infradead.org) |
 
-## 10.5 benchmark
+## 12.4 benchmark
 -------
 
 [A survey of scheduler benchmarks](https://lwn.net/Articles/725238)
 
 
 
-## 10.5.1 调度器延迟基准测试
+### 12.5.1 调度器延迟基准测试
 
 | benchmark | 描述 | 测试目的 |
 |:---------:|:---:|:-------:|
