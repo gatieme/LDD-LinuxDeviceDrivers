@@ -951,6 +951,9 @@ idle balance 中执行 update_blocked_average 是很费时费力的, 可以做�
 | 2017/12/18 | Mel Gorman | [Reduce scheduler migrations due to wake_affine](https://lore.kernel.org/patchwork/cover/864391) | 优化 wake_affine 减少迁移次数 | | [PatchWork](https://lore.kernel.org/patchwork/cover/864391) |
 | 2018/01/30 | Mel Gorman | [Reduce migrations and unnecessary spreading of load to multiple CPUs](https://lore.kernel.org/patchwork/cover/878789) | 减少不合理的迁移 | v1 ☑ 4.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/878789) |
 | 2021/05/13 |  Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [sched/fair: wake_affine improvements](https://lore.kernel.org/patchwork/cover/1416963) | 通过根据 LLC 域内 idle CPU 的信息, 优化 wake_affine, 如果当前待选的 LLC 域没有空闲 CPU, 尝试从之前的 LLC 域中选择. | v3 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1428244) |
+| 2021/09/20 | Libo Chen <libo.chen@oracle.com> | [Overeager pulling from wake_wide() in interrupt heavy workloads](https://linuxplumbersconf.org/event/11/contributions/1044) | LPC2021 的议题, 当前 wake_affine() 机制并不感知 ISR 唤醒的场景, 在这种场景下, 在中断上下文发起唤醒 wakee 进程的请求, 其实的 waker 并不是真正的 waker, 而是因为唤醒发生时中断正好打断了这个 waker 进程. wake_affine() 机制仍旧比较 waker/wakee 进程的 wakee_flips 到导致错误的唤醒. 作者讲了一个 IST 唤醒的场景, 导致 CPU 唤醒到中断所在的 NUMA NODE, 但是系统中其他 NODE 却是空闲的. | v1 ☐ | [Slide](https://linuxplumbersconf.org/event/11/contributions/1044/attachments/801/1508/lpc21_wakeup_pulling_libochen.pdf) |
+| 2021/09/20 | Libo Chen <libo.chen@oracle.com> | [New challenges in using LLC sched domain on wakeup path](https://linuxplumbersconf.org/event/11/contributions/1045) | LPC2021 的议题, 一些架构 LLC 域 CPU 很少, 甚至不体现 LLC 域. 如何优化这些架构下的唤醒选核路径. | v1 ☐ | [Slide](https://linuxplumbersconf.org/event/11/contributions/1045/attachments/800/1507/lpc21_sd_llc_libochen.pdf) |
+
 
 *   FIX wake_affine
 
@@ -1027,6 +1030,11 @@ Mike Galbraith 调试发现, 触发这个问题的原因是因为 wake_affine_we
 
 ## 5.3 快速路径 select_idle_sibling
 -------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:----:|:---:|:----------:|:---:|
+| 2021/09/20 | Vincent Guittot 等 | [Challenge of selecting an idle CPU](https://linuxplumbersconf.org/event/11/contributions/1117/) | LPC2021 的议题, select_idle_cpu() 主线社区当前的一些优化思路 | v1 ☐ | [Slide](https://linuxplumbersconf.org/event/11/contributions/1117/attachments/804/1514/LPC2021_scheduler_mc_selecting_idle_cpu.pdf) |
+
 
 ### 5.3.1 提升 CPU 的查找效率
 -------

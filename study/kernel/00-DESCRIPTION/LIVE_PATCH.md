@@ -406,8 +406,12 @@ kpatch 的实现一直是根据内核的进展而演进的, 对 JUMP_LABEL 的�
 
 [Current status about arm64 livepatch support](https://www.spinics.net/lists/arm-kernel/msg790495.html)
 
+[Some questions about arm64 live-patching support](https://lore.kernel.org/live-patching/75f1c581d61d48ec88925ebb4f83d7fd@huawei.com)
+
+
 | 时间  | 作者 |特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:--:|:----:|:---------:|:----:|
+| 2015/04/24 | AKASHI Takahiro <takahiro.akashi@linaro.org> | [arm64: add livepatch support](https://lwn.net/Articles/641759) | 使能 ARM64 DYNAMIC_TRACE_WITH_REGS 和热补丁. | RFC ☐ | [LORE RFC,0/4](https://lore.kernel.org/lkml/1429843449-7388-1-git-send-email-takahiro.akashi@linaro.org/) |
 | 2015/05/28 | Li Bin <huawei.libin@huawei.com> | [livepatch: add support on arm64](https://lore.kernel.org/patchwork/cover/947588) | NA | RFC ☐ 5.14-rc1  | [PatchWork RFC,0/5](https://lore.kernel.org/patchwork/cover/947588), [LKML](https://lkml.org/lkml/2015/5/28/54)<br>*-*-*-*-*-*-*-* <br>[libin2015/livepatch-for-arm64](https://github.com/libin2015/livepatch-for-arm64)<br>*-*-*-*-*-*-*-* <br>[gcc/arm64: support -mfentry feature for arm64](https://gcc.gnu.org/legacy-ml/gcc-patches/2016-03/msg00755.html) |
 | 2019/02/08 | Torsten Duwe <duwe@lst.de> | [arm64: implement live patching](https://lore.kernel.org/patchwork/cover/1003832) | NA | RFC ☐ 5.14-rc1  | [PatchWork RFC,1/1](https://lore.kernel.org/patchwork/cover/1003832)<br>*-*-*-*-*-*-*-* <br>[PatchWork v8,0/5 arm64: ftrace with regs](https://lore.kernel.org/patchwork/cover/1039969)<br>*-*-*-*-*-*-*-* <br>[gcc/arm64: add -fpatchable-function-entry=N,M option](https://patchwork.ozlabs.org/project/gcc/list/?submitter=66400) |
 | 2021/06/07 | Suraj Jitindar Singh <surajjs@amazon.com> | [arm64: implement live patching](https://lore.kernel.org/patchwork/cover/1441385) | NA | RFC ☐ 5.14-rc1  | [PatchWork RFC,1/1](https://lore.kernel.org/patchwork/cover/1441385) |

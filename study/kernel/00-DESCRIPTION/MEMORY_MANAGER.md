@@ -1316,6 +1316,10 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 ## 4.1 内存回收机制
 -------
 
+
+| 2021/09/20 | BVlastimil Babka <vbabka@suse.cz> @ Linux Kernel Developer, SUSE Labs | [Overview of memory reclaim in the current upstream kernel](https://lkml.org/lkml/2017/8/25/189) | LPC2021 Refereed Track 议题. 主要阐述了目前内存回收的基本思路和发展，对了解整个内核内存回收是一个非常好的材料. | NA | [SLIDE](https://linuxplumbersconf.org/event/11/contributions/896/attachments/793/1493/slides-r2.pdf) |
+
+
 ### 4.1.1 快速内存回收机制 `node_reclaim()`
 -------
 
