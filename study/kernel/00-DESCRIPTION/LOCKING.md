@@ -257,7 +257,7 @@ PV_SPINLOCKS 的合入引起了[性能问题 Performance overhead of paravirt_op
 | 2018/01/29 | Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com> | [membarrier: Provide core serializing command](https://lore.kernel.org/patchwork/cover/843003) | 引入 MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED. | v6 ☑ 4.16-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/cover/835747)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6](https://lore.kernel.org/patchwork/cover/398912) |
 
 
-5 RC]()
+# 5 RCU()
 -------
 
 [What is RCU, Fundamentally?](https://lwn.net/Articles/262464)
@@ -274,6 +274,19 @@ PV_SPINLOCKS 的合入引起了[性能问题 Performance overhead of paravirt_op
 -------
 
 [FUTEX2's sys_futex_waitv() Sent In For Linux 5.16 To Help Linux Gaming](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.16-sys_futex_waitv)
+
+
+# 7 Semaphores
+-------
+
+[The Little Book of Semaphores](https://www.greenteapress.com/semaphores/LittleBookOfSemaphores.pdf)
+
+# 8 LockLess
+-------
+
+
+[An introduction to lockless algorithms](https://lwn.net/Articles/844224)
+
 
 <br>
 

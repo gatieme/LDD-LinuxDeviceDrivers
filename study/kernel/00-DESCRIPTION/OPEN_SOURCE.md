@@ -73,8 +73,8 @@
 |  tag  |  LWN  | 泰晓资讯 | phoronix |
 |:-----:|:-----:|:-------:|:--------:|
 | [5.14](https://lwn.net/Articles/867540) | [2021/07/12 rc1](https://lwn.net/Articles/861695)<br>*-*-*-*-*-*-*-* <br>[2021/07/12 5.14 conclusion](https://lwn.net/Articles/861695) | [8月 / 第一期 / 2021](http://tinylab.org/tinylab-weekly-8-1st-2021)<br>*-*-*-*-*-*-*-* <br>[8月 / 第二期 / 2021](http://tinylab.org/tinylab-weekly-8-2nd-2021/)<br>*-*-*-*-*-*-*-* <br>[2021 年 9 月 第 一 期](http://tinylab.org/tinylab-weekly-9-1st-2021) |
-| [5.15](https://lwn.net/Articles/874283) | [2021/09/02 5.15 Merge window, part 1](https://lwn.net/Articles/867821)<br>*-*-*-*-*-*-*-* <br>[2021/09/13 The rest of the 5.15 merge window](https://lwn.net/Articles/868221) | [2021/07/12 rc1](https://lwn.net/Articles/861695) | [9月 / 第二期 / 2021](http://tinylab.org/tinylab-weekly-9-2nd-2021) | [Linux 5.15 Delivers Many Features](https://www.phoronix.com/scan.php?page=article&item=linux-515-features&num=1) |
-| [5.16](https://lwn.net/Articles/874283) | [2021/09/02 5.15 Merge window, part 1](https://lwn.net/Articles/867821)<br>*-*-*-*-*-*-*-* <br>[2021/09/13 The rest of the 5.15 merge window](https://lwn.net/Articles/868221) | [2021/07/12 rc1](https://lwn.net/Articles/861695) | [9月 / 第二期 / 2021](http://tinylab.org/tinylab-weekly-9-2nd-2021) | [Linux 5.16-rc1 ](https://www.phoronix.com/scan.php?page=article&item=linux-516-features&num=1) |
+| [5.15](https://lwn.net/Articles/874283) | [2021/09/02 5.15 Merge window, part 1](https://lwn.net/Articles/867821)<br>*-*-*-*-*-*-*-* <br>[2021/09/13 The rest of the 5.15 merge window](https://lwn.net/Articles/868221) | [9月 / 第二期 / 2021](http://tinylab.org/tinylab-weekly-9-2nd-2021) | [Linux 5.15 Delivers Many Features](https://www.phoronix.com/scan.php?page=article&item=linux-515-features&num=1) |
+| [5.16](https://lwn.net/Articles/874283) | [2021/11/04 5.16 Merge window, part 1](https://lwn.net/Articles/875135)<br>*-*-*-*-*-*-*-* <br>[2021/11/15 5.16 Merge window, part 2](https://lwn.net/Articles/868221) | [2021/07/12 rc1](https://lwn.net/Articles/875135) | [9月 / 第二期 / 2021](http://tinylab.org/tinylab-weekly-9-2nd-2021) | [Linux 5.16-rc1 ](https://www.phoronix.com/scan.php?page=article&item=linux-516-features&num=1) |
 
 
 # 5 业界会议
@@ -88,3 +88,12 @@
 |:---:|:----:|
 | 2021/09 | [Watch Live (Free)](https://www.linuxplumbersconf.org/event/11/page/107-watch-live-free) |
 
+
+# 6 统计信息
+-------
+
+
+| 网站 | 描述 |
+|:---:|:---:|
+| [LWN](https://lwn.net/Kernel/Index/#Releases) | LWN 每个版本都会在合并窗口发布 Merge Window, 在版本发布之后还会发布 [development statistics](https://lwn.net/Articles/867540) 信息. |
+|

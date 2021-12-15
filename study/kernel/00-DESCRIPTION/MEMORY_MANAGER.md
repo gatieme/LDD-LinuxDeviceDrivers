@@ -108,6 +108,17 @@ git log --oneline | grep -E "Merge |Linux"  | grep -E "akpm|Linux" | less
 | 5.15 |  [2021/10/31](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8bb7eca972ad) | [2021/09/08, 5.15-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2d338201d531)<br>[2021/09/08, 5.15-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a3fa7a101dcf)<br>[2021/09/25, 5.15-rc3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a3b397b4fffb)<br>[2021/10/19, 5.15-rc6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d9abdee5fd5a)<br>[2021/10/29, 5.15](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2c04d67ec1eb) |
 | 5.16 | [2021/10/31](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8bb7eca972ad) | [2021/11/06, 5.16-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=512b7931ad05)<br>[2021/11/09, 5.16-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=59a2ceeef6d6)<br>[2021/11/11, 5.16-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dbf49896187f)<br>[2021/11/20, 5.16-rc2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=923dcc5eb0c1)<br>[2021/11/20, 5.16-rc5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=df442a4ec740)
 
+cgit 上查看 MM 所有的 log 信息 :
+
+[GIT LOG: linux/mm](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/mm)
+
+
+| 时间  | 记者 | 报道 | 描述 |
+|:----:|:----:|:---:|:----:|
+| 2021/11/12 | Jonathan Corbet | [Some upcoming memory-management patches](https://lwn.net/Articles/875587) | NA | 介绍了如下几个特性:<br>1. Freeing page-table pages: [Free user PTE page table pages](https://patchwork.kernel.org/project/linux-mm/cover/20210819031858.98043-1-zhengqi.arch@bytedance.com)<br>2. More flags in vmalloc(): [extend vmalloc support for constrained allocations](https://patchwork.kernel.org/project/linux-mm/cover/20211018114712.9802-1-mhocko@kernel.org)<br>3. Uncached memory clearing: [Use uncached stores while clearing huge pages](https://patchwork.kernel.org/project/linux-mm/cover/20211020170305.376118-1-ankur.a.arora@oracle.com)<br>4. Setting a home NUMA node:  |
+
+
+
 ## 0.4 社区会议
 -------
 
@@ -377,9 +388,16 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 ## 1.8 memory policy
 -------
 
+NUMA 系统中 CPU 访问不同节点的内存速度很有大的差别. 位于本地 NUMA 节点(或附近节点)上的内存比远程节点上的内存访问速度更快. 因此如果能通过策略去控制优先在哪些节点上内存分配, 能有效地提升业务的性能.
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/08/03 | Feng Tang <feng.tang@intel.com> | [Introduce multi-preference mempolicy](https://lore.kernel.org/patchwork/cover/1471473) | 引入 MPOL_PREFERRED_MANY 的 policy, 该 mempolicy 模式可用于 set_mempolicy 或 mbind 接口.<br>1. 与 MPOL_PREFERRED 模式一样, 它允许应用程序为满足内存分配请求的节点设置首选项.但是与 MPOL_PREFERRED 模式不同, 它需要一组节点.<br>2. 与 MPOL_BIND 接口一样, 它在一组节点上工作, 与 MPOL_BIND 不同, 如果首选节点不可用, 它不会导致 SIGSEGV 或调用 OOM killer. | v7 ☐ | [PatchWork v7,0/5](https://lore.kernel.org/patchwork/cover/1471473) |
+| 2021/08/03 | Feng Tang <feng.tang@intel.com> | [Introduce multi-preference mempolicy](https://lore.kernel.org/patchwork/cover/1471473) | 参见 LWN 报道 [NUMA policy and memory types](https://lwn.net/Articles/862707).<br>引入 MPOL_PREFERRED_MANY 的 policy, 该 mempolicy 模式可用于 set_mempolicy 或 mbind 接口.<br>1. 与 MPOL_PREFERRED 模式一样, 它允许应用程序为满足内存分配请求的节点设置首选项. 但是与 MPOL_PREFERRED 模式不同, 它需要一组节点.<br>2. 与 MPOL_BIND 接口一样, 它在一组节点上工作, 与 MPOL_BIND 不同, 如果首选节点不可用, 它不会导致 SIGSEGV 或调用 OOM killer. | v7 ☑ 5.15-rc1 | [PatchWork v7,0/5](https://patchwork.kernel.org/project/linux-mm/cover/1627970362-61305-1-git-send-email-feng.tang@intel.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/tools/perf/builtin-record.c?id=a38a59fdfa10be55d08e4530923d950e739ac6a2) |
+| 2021/11/01 | "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com> | [mm: add new syscall set_mempolicy_home_node](https://patchwork.kernel.org/project/linux-mm/cover/20211101050206.549050-1-aneesh.kumar@linux.ibm.com) | 增加了 set_mempolicy_home_node() 来为用户空间的一段地址 [start, srart + len] 指定内存分配的主节点 home_node. 主节点 home_node 应与 MPOL_PREFERRED_MANY 或 MPOL_BIND 内存分配策略结合使用. 这些策略可以指定一组将用于新内存分配的节点, 但不能说明这些节点中的哪个节点(如果有)是首选节点. 如果设置了 home_node, 则分配内存时将优先在该节点上进行分配; 否则, 主节点 home_node 内存不足, 则将回退到有效策略允许的其他节点上分配, 首选最接近主节点的节点. 其目的是让应用程序能够更好地控制内存分配, 同时避免来自慢速节点的内存. 参见 LWN 报道 [Some upcoming memory-management patches](https://lwn.net/Articles/875587). | v1 ☐ | [PatchWork v4,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211101050206.549050-1-aneesh.kumar@linux.ibm.com) |
+
+
+
 
 ## 1.9 page attributes
 -------
@@ -1758,7 +1776,7 @@ Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 p
 | 2010/09/15 | Mel Gorman <mel@csn.ul.ie> | [Reduce latencies and improve overall reclaim efficiency v2](https://lore.kernel.org/patchwork/cover/215977) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/215977) |
 | 2010/10/28 | Mel Gorman <mel@csn.ul.ie> | [Reduce the amount of time spent in watermark-related functions V4](https://lore.kernel.org/patchwork/cover/222014) | NA | v4 ☐ | [PatchWork v4](https://lore.kernel.org/patchwork/cover/222014) |
 | 2010/07/30 | Mel Gorman <mel@csn.ul.ie> | [Reduce writeback from page reclaim context V6](https://lore.kernel.org/patchwork/cover/209074) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/209074) |
-| 2021/09/14 | Muchun Song <songmuchun@bytedance.com> | [Optimize list lru memory consumption](https://lore.kernel.org/patchwork/cover/1436887) | 优化列表lru内存消耗<br> | v3 ☐ | [2021/05/27 PatchWork v2,00/21](https://patchwork.kernel.org/project/linux-mm/cover/20210527062148.9361-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/14 PatchWork v3,00/76](https://patchwork.kernel.org/project/linux-mm/cover/20210914072938.6440-1-songmuchun@bytedance.com) |
+| 2021/12/13 | Muchun Song <songmuchun@bytedance.com> | [Optimize list lru memory consumption](https://lore.kernel.org/patchwork/cover/1436887) | 优化列表lru内存消耗<br> | v3 ☐ | [2021/05/27 PatchWork v2,00/21](https://patchwork.kernel.org/project/linux-mm/cover/20210527062148.9361-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/14 PatchWork v3,00/76](https://patchwork.kernel.org/project/linux-mm/cover/20210914072938.6440-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/13 PatchWork v4,00/17](https://patchwork.kernel.org/project/linux-mm/cover/20211213165342.74704-1-songmuchun@bytedance.com/) |
 
 
 ### 4.2.10 slab shrinker
@@ -3081,10 +3099,6 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 2015 年 4 月发布的 [ACPI 6.0 规范](https://uefi.org/sites/default/files/resources/ACPI/_6.0.pdf](https://link.zhihu.com/?target=http%3A//www.uefi.org/sites/default/files/resources/ACPI_6.0.pdf), 定义了NVDIMM Firmware Interface Table (NFIT), 详细地规定了 NVDIMM 的访问模式, 接口数据规范等细节. 在 Linux 4.2 中, 内核开始支持一个叫 libnvdimm 的子系统, 它实现了 NFIT 的语义, 提供了对 NVDIMM 两种基本访问模式的支持, 一种即内核所称之的 PMEM 模式, 即把 NVDIMM 设备当作持久性的内存来访问; 另一种则提供了块设备模式的访问. 开始奠定 Linux 内核对这一新兴技术的支持.
 
-
-
-
-
 ## 12.2 DAX
 -------
 
@@ -3102,11 +3116,22 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 ## 12.3 NUMA nodes for persistent-memory management
 -------
 
+多亏了 Dave Hansen 的补丁 [Allow persistent memory to be used like normal RAM](https://lore.kernel.org/patchwork/cover/1045596), 它使 PMEM 作为 NUMA 节点的一部分当普通内存一样来使用.
+
+如何同时使用 PMEM 和普通 DRAM 仍然是一个悬而未决的问题. 各家厂商提出了不同的思路和想法.
+
+Intel 的吴峰光 [PMEM NUMA node and hotness accounting/migration](https://lore.kernel.org/linux-mm/20181226131446.330864849@intel.com)
+
+[Page demotion for memory reclaim](https://lore.kernel.org/linux-mm/20190321200157.29678-1-keith.busch@intel.com)
+
+阿里巴巴的 Yang Shi [Another Approach to Use PMEM as NUMA Node](https://lore.kernel.org/linux-mm/1553316275-21985-1-git-send-email-yang.shi@linux.alibaba.com), [mm: vmscan: demote anon DRAM pages to PMEM node](https://lore.kernel.org/linux-mm/6A903D34-A293-4056-B135-6FA227DE1828@nvidia.com)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2019/02/25 | Dave Hansen <dave.hansen@linux.intel.com><br>Huang Ying <ying.huang@intel.com> | [Allow persistent memory to be used like normal RAM](https://lore.kernel.org/patchwork/cover/1045596) | 通过memory hotplug的方式把PMEM添加到Linux的buddy allocator里面. 新添加的PMEM会以一个或多个NUMA node的形式出现, Linux Kernel就可以分配PMEM上的memory, 这样和使用一般DRAM没什么区别 | v5 ☑ 5.1-rc1 | [PatchWork v5,0/5](https://lore.kernel.org/patchwork/cover/1045596) |
 | 2018/12/26 | Fengguang Wu <fengguang.wu@intel.com> | [PMEM NUMA node and hotness accounting/migration](https://lore.kernel.org/patchwork/cover/1027864) | 1. 隔离DRAM和PMEM. 为PMEM单独构造了一个zonelist, 这样一般的内存分配是不会分配到PMEM上的<br>2. 跟踪内存的冷热. 利用内核中已经有的 idle page tracking 功能(目前主线内核只支持系统全局的tracking), 在per process的粒度上跟踪内存的冷热 <br>3. 利用现有的page reclaim, 在 reclai m时将冷内存迁移到 PMEM 上(只能迁移匿名页).  <br>4. 利用一个 userspace 的 daemon 和 idle page tracking, 来将热内存(在PMEM上的)迁移到 DRA M中. | RFC v2 ☐ 4.20 | PatchWork RFC,v2,00/21](https://lore.kernel.org/patchwork/cover/1027864), [LKML](https://lkml.org/lkml/2018/12/26/138), [github/intel/memory-optimizer](http://github.com/intel/memory-optimizer) |
+| 2019/02/25 | Dave Hansen <dave.hansen@linux.intel.com><br>Huang Ying <ying.huang@intel.com> | [Allow persistent memory to be used like normal RAM](https://lore.kernel.org/patchwork/cover/1045596) | 通过memory hotplug的方式把PMEM添加到Linux的buddy allocator里面. 新添加的PMEM会以一个或多个NUMA node的形式出现, Linux Kernel就可以分配PMEM上的memory, 这样和使用一般DRAM没什么区别 | v5 ☑ 5.1-rc1 | [PatchWork v5,0/5](https://lore.kernel.org/patchwork/cover/1045596) |
 | 2019/04/11 | Fengguang Wu <fengguang.wu@intel.com> | [Another Approach to Use PMEM as NUMA Node](https://patchwork.kernel.org/project/linux-mm/cover/1554955019-29472-1-git-send-email-yang.shi@linux.alibaba.com) | 通过 memory reclaim 把"冷" 内存迁移到慢速的 PMEM node 中, NUMA Balancing 访问到这些冷 page 的时候可以选择是否把这个页迁移回 DRAM, 相当于是一种比较粗粒度的"热"内存识别. | RFC v2 ☐ 4.20 | [PatchWork v2,RFC,0/9](https://patchwork.kernel.org/project/linux-mm/cover/1554955019-29472-1-git-send-email-yang.shi@linux.alibaba.com) |
+| 2019/04/04 | Zi Yan <zi.yan@sent.com> | [Accelerate page migration and use memcg for PMEM management](https://patchwork.kernel.org/project/linux-mm/cover/20190404020046.32741-1-zi.yan@sent.com) | TODO | RFC ☐ | [PatchWork RFC,00/25](https://patchwork.kernel.org/project/linux-mm/cover/20190404020046.32741-1-zi.yan@sent.com) |
 
 
 
@@ -3124,7 +3149,7 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 | 2021/07/15 | Dave Hansen <dave.hansen@linux.intel.com><br>Huang Ying <ying.huang@intel.com> | [Migrate Pages in lieu of discard](https://lore.kernel.org/patchwork/cover/1393431) | 页面回收阶段引入页面降级(demote pages)策略. 在一个具备了持久性内存的系统中(这些系统具有多种类型的内存, 具有不同的性能特征, 而不是普通 NUMA 系统, 在普通 NUMA 系统中, 相同类型的内存存在于不同的距离), 在回收期间允许页面迁移使这些系统能够在快速层承受压力时将页面从快速层迁移到慢速层. 具体做法是可以把一些需要回收的 page 从 DRAM 迁移到较慢的 memory 中, 后面如果再次需要这些数据了, 也是仍然可以直接访问到, 只是速度稍微慢一些. 目前的版本还不完善, 被迁移的 page 将被永远困在慢速内存区域中, 没有机制使其回到更快的 DRAM.(Huang Ying 后续工作, 重新调整 autonuma 的用途, 将热门页面推广回 DRAM). 这个降级策略可以通过 sysctl 的 ~~vm.zone_reclaim_mode 中把 bitmask 设置为 8 从而启用这个功能~~ `/sys/kernel/mm/numa/demotion_enabled` 开关来控制. 参见报道 [Linux 5.15 Has A Critical Improvement For Tiered Memory Servers](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.15-Demote-During-Reclai). | v10 ☑ 5.15-rc1 | [PatchWork -V10,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20210715055145.195411-1-ying.huang@intel.com), [PatchWork -V10,0/9](https://lore.kernel.org/all/20210715055145.195411-1-ying.huang@intel.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=26aa2d199d6f2cfa6f2ef2a5dfe891f2250e71a0) |
 | 2021/11/16 | Huang Ying <ying.huang@intel.com> | [NUMA balancing: optimize memory placement for memory tiering system](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Optimize-PMEM-Place-v9) | 将经常使用的 page 从慢速内存迁移到快速内存的方案. 对 Linux 内核的 NUMA balancing 行为进行了调整, 以优化内存分层系统的内存位置. 这些补丁进一步优化了内核在持久内存存在的情况下对页面的处理, 同时将最重要的页面保留在 DRAM 中.<br>优化 numa balancing 的页面迁移策略, 利用了这些 numa fault 来对哪些 page 属于常用 page 进行更准确地估算. 新的策略依据从 page unmmap 到发生 page fault 之间的时间差来判断 page 是否常用, 并提供了一个 sysctl 开关来定义阈值: kernel.numa_balancing_hot_threshold_ms. 所有 page fault 时间差低于阈值的 page 都被判定是常用 page. 由于对于系统管理员来说可能很难决定这个阈值应该设置成什么值, 所以这组 patch 中的实现了自动调整的方法. 为了实现这个自动调整, kernel 会根据用户设置的平衡速率限制(balancing rate limit). 内核会对迁移的 page 数量进行监控, 通过增加或减少阈值来使 balancing rate 更接近该目标值. 仓库地址 [vishal/tiering.git](https://git.kernel.org/pub/scm/linux/kernel/git/vishal/tiering.git/log/?h=tiering-0.72). 参见报道 [Intel Continues Optimizing Linux For Optane DC Persistent Memory Servers](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Optimize-PMEM-Place-v9) | v10 ☐ 5.15 | [PatchWork RFC,-V6,0/6](https://lore.kernel.org/patchwork/cover/1393431)<br>*-*-*-*-*-*-*-* <br>[PatchWork -V8,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20210914013701.344956-1-ying.huang@intel.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork -V9,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211008083938.1702663-1-ying.huang@intel.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork -V10,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211116013522.140575-1-ying.huang@intel.com) |
 | 2021/11/24 | Hasan Al Maruf <hasan3050@gmail.com> | [Transparent Page Placement for Tiered-Memory](https://patchwork.kernel.org/project/linux-mm/cover/cover.1637778851.git.hasanalmaruf@fb.com) | 由于不同类型的内存对性能的影响程度不同, 因此如何跨 NUMA 节点管理页面应该是一个值得关注的问题.  Dave Hansen 的补丁集 ["Migrate Pages in replace of discard"](https://lwn.net/Articles/860215) 在回收过程中将顶级页面降级到慢级节点. 然而, 他的补丁集不包括将慢层内存节点上的页面提升到顶级内存节点的功能. 因此, 在慢层节点上降级或新分配的页面将经历 NUMA 延迟, 并损害应用程序性能. 在这个补丁集中,<br>1. 通过增强现有的 AutoNUMA 机制, 将页面从慢级节点提升到顶级节点.<br>2. 将顶级节点的回收和分配逻辑解耦, 以便回收在更高的水印处触发, 并将较冷的页面降级到慢层内存中. 因此, 顶级节点可以保留一些空闲空间, 以接受来自慢级节点的新分配和提升.<br>在对页面升级期间, 添加滞后性, 只升级那些在短时间内不太可能被降级页面. 这减少了页面在短时间内频繁降级和提升而在 NUMA 节点之间来回跳转的机会. 作者在支持 cxl 的 DRAM 和 PMEM 层的系统上测试了这个补丁集. 可以将较热的页面转移到顶级节点, 而将较冷的页面移动到慢层节点, 从而产生大量的 Meta 生产工作负载和实时流量. 因此, 顶级节点提供更多的热页面, 应用程序的性能也得到了提高. 将 80% 的匿名者带到顶级节点. 慢层内存中的匿名页大多是冷页. 由于顶级节点不能承载所有热内存, 一些热文件仍然留在慢级节点上. 尽管如此, 远程 NUMA 读带宽从 80% 减少到 40%. 与服务于整个工作集的顶级节点的基线相比, 使用这个补丁集的吞吐量回归仅为 5%. 参见报道 [Facebook/Meta Tackling Transparent Page Placement For Tiered-Memory Linux Systems](https://www.phoronix.com/scan.php?page=news_item&px=Meta-Hot-Pages-High-Tiers). | v1 ☐ | [PatchWork 0/5]https://patchwork.kernel.org/project/linux-mm/cover/cover.1637778851.git.hasanalmaruf@fb.com) |
-| 2021/12/11 | Baolin Wang <baolin.wang@linux.alibaba.com> | [Add speculative numa fault support](https://lore.kernel.org/patchwork/patch/1479229) | 这个 RFC 补丁集为分级内存等场景添加了推测性的 numa 错误支持. 在分层内存系统上, 它将依靠 numa 平衡将慢内存和热内存提升为快内存, 以提高性能. 因此, 我们可以根据某些工作负载的数据局部性, 提前在低速内存中提升多个顺序页面, 以提高性能. 那么现在有多少页面需要提升到最快的内存是最好的? 现在这个 RFC 补丁集只实现了一个基本而简单的机制来推测每个 VMA 的 numa 故障窗口. 它将为每个 VMA 引入一个新的原子成员来记录 numa 故障窗口信息, 该信息用于确定它是扩展还是减少 numa 故障窗口的顺序流. 在分层内存系统中测试 mysql 可以看到大约 6% 的改进. 注意: 这个补丁集是[基于实现分级内存提升的补丁集 NUMA balancing: optimize page placement for memory tiering system](https://lore.kernel.org/lkml/87bl2gsnrd.fsf@yhuang6-desk2.ccr.corp.intel.com). 参见报道 [Speculative NUMA Fault Support Proposed For Improving Tiered Memory Linux Performance](https://www.phoronix.com/scan.php?page=news_item&px=Speculative-NUMA-Fault) | v1 ☐ | [PatchWork](https://lore.kernel.org/lkml/cover.1639306956.git.baolin.wang@linux.alibaba.com) |
+| 2021/12/11 | Baolin Wang <baolin.wang@linux.alibaba.com> | [Add speculative numa fault support](https://lore.kernel.org/patchwork/patch/1479229) | 这个 RFC 补丁集为分级内存等场景添加了推测性的 numa 错误支持. 在分层内存系统上, 它将依靠 numa 平衡将慢内存和热内存提升为快内存, 以提高性能. 因此, 我们可以根据某些工作负载的数据局部性, 提前在低速内存中提升多个顺序页面, 以提高性能. 那么现在有多少页面需要提升到最快的内存是最好的? 现在这个 RFC 补丁集只实现了一个基本而简单的机制来推测每个 VMA 的 numa 故障窗口. 它将为每个 VMA 引入一个新的原子成员来记录 numa 故障窗口信息, 该信息用于确定它是扩展还是减少 numa 故障窗口的顺序流. 在分层内存系统中测试 mysql 可以看到大约 6% 的改进. 注意: 这个补丁集是[基于实现分级内存提升的补丁集 NUMA balancing: optimize page placement for memory tiering system](https://lore.kernel.org/lkml/87bl2gsnrd.fsf@yhuang6-desk2.ccr.corp.intel.com). 参见报道 [Speculative NUMA Fault Support Proposed For Improving Tiered Memory Linux Performance](https://www.phoronix.com/scan.php?page=news_item&px=Speculative-NUMA-Fault) | v1 ☐ | [LORE](https://lore.kernel.org/lkml/cover.1639306956.git.baolin.wang@linux.alibaba.com), [PatchWork](https://patchwork.kernel.org/project/linux-mm/cover/cover.1639306956.git.baolin.wang@linux.alibaba.com) |
 
 
 ## 12.5 异构内存(CPU & GPU)
@@ -3279,21 +3304,43 @@ ARM 引入了一个[内存标签扩展](https://community.arm.com/developer/ip-p
 | 2020/11/23 | Andrey Konovalov <andreyknvl@google.com> | [kasan: boot parameters for hardware tag-based mode](https://lore.kernel.org/patchwork/cover/1344258) | NA | v4 ☑ [5.11-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork mm,v4,00/19](https://patchwork.kernel.org/project/linux-mm/patch/748daf013e17d925b0fe00c1c3b5dce726dd2430.1606162397.git.andreyknvl@google.com) |
 | 2021/01/15 | Andrey Konovalov <andreyknvl@google.com> | [kasan: HW_TAGS tests support and fixes](https://lore.kernel.org/patchwork/cover/1366086) | NA | v4 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork mm,v4,00/15](https://patchwork.kernel.org/project/linux-mm/cover/cover.1610733117.git.andreyknvl@google.com) |
 | 2021/02/05 | Andrey Konovalov <andreyknvl@google.com> | [kasan: optimizations and fixes for HW_TAGS](https://lore.kernel.org/patchwork/cover/1376340) | NA | v3 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork mm,v3,mm,00/13](https://patchwork.kernel.org/project/linux-mm/cover/cover.1612546384.git.andreyknvl@google.com) |
-| 2021/11/30 | andrey.konovalov@linux.dev | [kasan, vmalloc, arm64: add vmalloc tagging support for SW/HW_TAGS](https://patchwork.kernel.org/project/linux-mm/cover/cover.1638308023.git.andreyknvl@google.com/) | NA | v1 ☐ | [PatchWork 00/31](https://patchwork.kernel.org/project/linux-mm/cover/cover.1638308023.git.andreyknvl@google.com) |
+| 2021/12/13 | andrey.konovalov@linux.dev | [kasan, vmalloc, arm64: add vmalloc tagging support for SW/HW_TAGS](https://patchwork.kernel.org/project/linux-mm/cover/cover.1638308023.git.andreyknvl@google.com/) | NA | v1 ☐ | [2021/11/30 PatchWork 00/31](https://patchwork.kernel.org/project/linux-mm/cover/cover.1638308023.git.andreyknvl@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/13 PatchWork v3,00/38](https://patchwork.kernel.org/project/linux-mm/cover/cover.1639432170.git.andreyknvl@google.com) |
 
 
 ### 13.3.5 KCSAN
 -------
 
 
+[KernelDOC: The Kernel Concurrency Sanitizer (KCSAN)](https://www.kernel.org/doc/html/latest/dev-tools/kcsan.html)
+
+开源书籍 [PerfBook](https://mirrors.edge.kernel.org/pub/linux/kernel/people/paulmck/perfbook/perfbook.html), 由前 IBM 开发者, RCU 的作者和 Maintainer Paul 撰写. 国内的书籍 <<深入理解并行编程>> 就是其翻译版本.
+
+[An introduction to lockless algorithms](https://lwn.net/Articles/844224)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/11/30 | Andrey Konovalov <andreyknvl@google.com> | [kcsan: Support detecting a subset of missing memory barriers](https://patchwork.kernel.org/project/linux-mm/cover/20211005105905.1994700-1-elver@google.com) | KCSAN 增加对 LKMM 定义的弱内存子集建模的支持, 它支持检测由于丢失内存障碍而导致的数据竞争子集.<br>当内存操作的结果应该由 barrier 来排序时, KCSAN 可以检测数据竞争, 在这种情况下, 冲突只发生在由于重新排序访问而丢失 barrier 的情况下.<br>KCSAN 检测内存障碍缺失的方法是基于对访问重新排序的建模, 设置了观察点检测对每个内存访问, 也选择在其功能范围内进行模拟重排序. 由于运行时不能"预取"访问, 我们只能对延迟访问效果进行建模, 一旦选择了某个访问进行重新排序, 就会在每次其他访问中检查它, 直到函数范围结束. 如果遇到适当的内存障碍, 访问将不再考虑重新排序. | v3 ☐ | [2021/10/05 PatchWork 00/23](https://patchwork.kernel.org/project/linux-mm/cover/20211005105905.1994700-1-elver@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/18 PatchWork v2,00/23](https://patchwork.kernel.org/project/linux-mm/cover/20211118081027.3175699-1-elver@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/30 PatchWork v3,00/25](https://patchwork.kernel.org/project/linux-mm/cover/20211130114433.2580590-1-elver@google.com) |
+| 2021/11/30 | Andrey Konovalov <andreyknvl@google.com> | [kcsan: Support detecting a subset of missing memory barriers](https://lwn.net/Articles/877200) | KCSAN 增加对 LKMM 定义的弱内存子集建模的支持, 它支持检测由于丢失内存障碍而导致的数据竞争子集.<br>当内存操作的结果应该由 barrier 来排序时, KCSAN 可以检测数据竞争, 在这种情况下, 冲突只发生在由于重新排序访问而丢失 barrier 的情况下.<br>KCSAN 检测内存障碍缺失的方法是基于对访问重新排序的建模, 设置了观察点检测对每个内存访问, 也选择在其功能范围内进行模拟重排序. 由于运行时不能"预取"访问, 我们只能对延迟访问效果进行建模, 一旦选择了某个访问进行重新排序, 就会在每次其他访问中检查它, 直到函数范围结束. 如果遇到适当的内存障碍, 访问将不再考虑重新排序. | v3 ☐ | [2021/10/05 PatchWork 00/23](https://patchwork.kernel.org/project/linux-mm/cover/20211005105905.1994700-1-elver@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/18 PatchWork v2,00/23](https://patchwork.kernel.org/project/linux-mm/cover/20211118081027.3175699-1-elver@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/30 PatchWork v3,00/25](https://patchwork.kernel.org/project/linux-mm/cover/20211130114433.2580590-1-elver@google.com) |
+
+### 13.3.6 KMSAN
+-------
+
+
+KernelMemorySanitizer (KMSAN) 是一个检测与未初始化内存使用相关的错误的检测器. 它依赖于 Clang 工具实现, 类似于用户空间 [MemorySanitizer](https://clang.llvm.org/docs/MemorySanitizer.html), 并跟踪内核内存的每一位状态, 如果在条件(condition)、解引用(dereferenced)或转译(escapes)到用户空间 或者 DMA时使用了未初始化的值, 则能够报告错误.
+
+KMSAN 最早的 github 仓库位于 : https://github.com/google/kmsan
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/12/14 | Alexander Potapenko <glider@google.com> | [Add KernelMemorySanitizer infrastructure](https://patchwork.kernel.org/project/linux-mm/cover/20211214162050.660953-1-glider@google.com) | 该补丁集包含 KMSAN 运行时实现, 以及使 KMSAN 工作所需的对其他子系统的修改.<br>1. 添加KMSAN所需的现有代码的更改和重构.<br>2. 通用代码中的 KMSAN 相关声明、KMSAN 运行时库.<br>3. 添加来自不同子系统的钩子, 以通知 KMSAN 有关内存的信息.<br>4. 通过显式初始化内存、禁用可能欺骗KMSAN的优化代码、有选择地跳过检测来防止错误报告的更改.<br>5. Noinstr 的处理.<br>这个补丁集允许在 QEMU 上启动并运行 defconfig + KMSAN 内核, 而不会出现已知的误报. 然而, 它不能保证在某些设备或测试较少的子系统的驱动程序中没有误报, 尽管 KMSAN 在 syzbot 上使用较大的配置进行了积极的测试. | v1 ☐ | [PatchWork 00/43](https://patchwork.kernel.org/project/linux-mm/cover/20211214162050.660953-1-glider@google.com) |
 
 
 
-### 13.3.6 KFENCE 一个新的内存安全检测工具
+
+
+
+补丁集是相对于Linux v5.16-rc5生成的。
+
+### 13.3.7 KFENCE 一个新的内存安全检测工具
 -------
 
 5.12 引入一个[新的内存错误检测工具 : KFENCE (Kernel Electric-Fence, 内核电子栅栏)](https://mp.weixin.qq.com/s/62Oht7WRnKPUBdOJfQ9cBg), 是一个低开销的基于采样的内存安全错误检测器, 用于检测堆后释放、无效释放和越界访问错误. 该系列使 KFENCE 适用于 x86 和 arm64 体系结构, 并将 KFENCE 钩子添加到 SLAB 和 SLUB 分配器.

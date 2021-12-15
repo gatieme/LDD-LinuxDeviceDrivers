@@ -351,11 +351,11 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 ## 2.7 Linux to Apple Silicon Macs
 -------
 
-目前有两个团队在做这块工作
+2020 年 11 月 11 日在苹果新品发布会上发布了适用于部分Mac、iPad设备 ARM64 芯片 Apple M1, 社区开始有不少团队开始着手于 Linux 支持 Apple M1 芯片. 目前有两个团队在做这块工作 Corellium 的 [corellium/linux-m1](https://github.com/corellium/linux-m1) 以及 [AsahiLinux/linux](https://github.com/AsahiLinux/linux). 其中
 
-[corellium/linux-m1](https://github.com/corellium/linux-m1)
+*   [Corellium](https://github.com/corellium) 一直致力于为用户提供虚拟 iOS 系统桌面解决方案, 这个团队从 A10 芯片开始就开始做 Linux 的适配, 因此 M1 刚出来就做了快速的适配.
 
-[AsahiLinux/linux](https://github.com/AsahiLinux/linux)
+*   [AsahiLinux]() 国外一名资深操作系统移植专家 Hector Martin(网名为 Marcan) 主导发起的一个开源项目, 其目标是让用户可以在 Apple M1 上把基于 Linux 的发行版作为日常操作系统来使用.
 
 # 3 RISC-V
 -------
