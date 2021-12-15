@@ -348,7 +348,14 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | 2018/12/07 | Kristina Martsenko <kristina.martsenko@arm.com> | [ARMv8.3 pointer authentication userspace support](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20181207183931.4285-1-kristina.martsenko@arm.com) | RISC-V高级核心本地中断(Advacned Core Local Interruptor-ACLINT) 支持 | v8 ☐ | [Patchwork v5,00/17](https://patchwork.kernel.org/project/linux-riscv/cover/20210830041729.237252-1-anup.patel@wdc.com)<br>*-*-*-*-*-*-*-*<br>[Patchwork v6,00/13](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20181207183931.4285-1-kristina.martsenko@arm.com) |
 | 2019/03/19 | Kristina Martsenko <kristina.martsenko@arm.com> | [arm64: pac: Optimize kernel entry/exit key installation code paths](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20181207183931.4285-1-kristina.martsenko@arm.com) | PAC 合入后, svc(SYSCALL) 进入和退出以及进程切换的过程中, 会进行 key 的切换, 会存在 10+ 个 MSR 操作, 因此造成了性能劣化. | v8 ☑ 5.13-rc1 | [Patchwork v8,3/3](https://patchwork.kernel.org/project/linux-arm-kernel/patch/2d653d055f38f779937f2b92f8ddd5cf9e4af4f4.1616123271.git.pcc@google.com)<br>*-*-*-*-*-*-*-*<br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b90e483938ce387c256e03fb144f82f64551847b) |
 
+## 2.7 Linux to Apple Silicon Macs
+-------
 
+目前有两个团队在做这块工作
+
+[corellium/linux-m1](https://github.com/corellium/linux-m1)
+
+[AsahiLinux/linux](https://github.com/AsahiLinux/linux)
 
 # 3 RISC-V
 -------
