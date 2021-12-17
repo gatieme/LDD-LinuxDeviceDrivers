@@ -1942,7 +1942,12 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 | 2021/07/30 | Tiberiu A Georgescu <tiberiu.georgescu@nutanix.com> | [pagemap: swap location for shared pages](https://lore.kernel.org/patchwork/cover/1470271) | NA | v2 ☐ v5.14-rc4 | [PatchWork RFC,0/4](https://lore.kernel.org/patchwork/cover/1470271) |
 | 2021/08/17 | Peter Xu <peterx@redhat.com> | [mm: Enable PM_SWAP for shmem with PTE_MARKER](https://lore.kernel.org/patchwork/cover/1473423) | 这个补丁集在 shmem 上启用 pagemap 的 PM_SWAP. IOW 用户空间将能够检测 shmem 页面是否被换出, 就像匿名页面一样.<br>可以使用  CONFIG_PTE_MARKER_PAGEOUT 来启用该特性. 当启用时, 它会在 shmem 页面上带来 0.8% 的换入性能开销, 所以作者还没有将它设置为默认值. 然而, 以作者的看法, 0.8% 仍然在一个可接受的范围内, 我们甚至可以使它最终默认. | v2 ☐ v5.14-rc4 | [PatchWork RFC,0/4](https://lore.kernel.org/patchwork/cover/1473423) |
 
+## 5.4 swap IO
+-------
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/12/16 | NeilBrown <neilb@suse.de> | [Repair SWAP-over-NFS](https://patchwork.kernel.org/project/linux-mm/cover/163969801519.20885.3977673503103544412.stgit@noble.brown) | NA | v2 ☐ | [PatchWork 00/18,V2](https://patchwork.kernel.org/project/linux-mm/cover/163969801519.20885.3977673503103544412.stgit@noble.brown) |
 
 # 6 PageCache
 -------
@@ -2475,6 +2480,22 @@ copy_mm
                         -=> copy_one_pte
                             -=> ptep_set_wrprotect
 ```
+
+
+Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty COW and clean commit messages](https://lwn.net/Articles/704231). 也让内核开发者开始关注 COW 机制可能引起的安全问题.
+
+随后在 2019 年Andrew Baumann, Jonathan Appavoo, Orran Krieger 和 Timothy Roscoe 在 Microsoft Research 网站上发表的一篇研究论文 [A fork() in the road](https://www.microsoft.com/en-us/research/uploads/prod/2019/04/fork-hotos19.pdf), 认为 fork() 系统调用是一个基本的设计错误. 他们认为 fork 作为一流的 OS 原语的持续存在阻碍了系统研究, 应该弃用它. 我们应该把 fork 当作历史文物来研究, 而不是作为进程的第一道工序创造机制. [LWN 上当时也对此进行了讨论](https://lwn.net/Articles/785430). 以及知乎上一些[(赵俊民)大佬的分析](https://zhuanlan.zhihu.com/p/272675052). 当时掀起了轩然大波, 讨论了很多方面, 包括性能, 安全等. 甚至有人质疑这篇论文是微软对 linux 发起的攻击.
+
+2021 年 Redhat 的开发者 David Hildenbrand 总结了上游社区中存在的 COW 问题. 并发布在邮件列表中. [Summary of COW (Copy On Write) Related Issues in Upstream Linux](https://lore.kernel.org/all/3ae33b08-d9ef-f846-56fb-645e3b9b4c66@redhat.com). 随后在某个阳光明媚的周三进行的 linux-mm alignment session 中对这些问题进行了讨论:
+
+| [CVE-2020-29374](https://nvd.nist.gov/vuln/detail/CVE-2020-29374)  | Observing Memory Modifications of Private Pages From A Child Process |
+|:---------------:|:--------------------------------------------------------------------:|
+| 参考资料 | 摘要: [Patching until the COWs come home (part 1)](https://lwn.net/Articles/849638).<br>详情: [Patching until the COWs come home (part 2)](https://lwn.net/Articles/849876). |
+| 描述 | 一旦 fork(), 进程私有内存可能不像你想的那样私有, 子进程仍然可以观察到父进程中私有内存区域的连续修改, 例如, 通过使用 vmsplice() + munmap(). 核心问题是, 将可读页面固定在子进程中(比如通过 vmsplice 系统调用), 可能会导致子进程观察父进程所做的内存修改, 而子进程不应该观察父进程. |
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/12/17 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 1: fix the COW security issue for THP and hugetlb](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com) | NA | v1 ☐ | [PatchWork v1,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com) |
 
 
 ### 8.2.1 enhance
@@ -3358,7 +3379,7 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 
 
 
-## 13.4 debugfs & sysfs 接口
+## 13.4 Debugging
 -------
 
 ### 13.4.1 ptdump
@@ -3477,13 +3498,26 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/05 | Mel Gorman <mgorman@techsingularity.net> | [Protect vmstats on PREEMPT_RT](https://lore.kernel.org/patchwork/cover/1472709) | NA | v2 ☐ | [PatchWork 0/1,v2](https://patchwork.kernel.org/project/linux-mm/cover/20210723100034.13353-1-mgorman@techsingularity.net) |
 
+### 13.4.6 meminfo
+-------
 
-### 13.4.5 其他
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/12/16 | Qi Zheng <zhengqi.arch@bytedance.com> | [add MemAvailable to per-node meminfo](https://patchwork.kernel.org/project/linux-mm/cover/20211216124655.32247-1-zhengqi.arch@bytedance.com) | 在 `/proc/meminfo` 中, 展示了所有可用内存的总和显示为 "MemAvailable". 将相同的计数器也添加到 `/sys` 下的每个节点 `meminfo` 中. | v1 ☐ | [PatchWork 0/1,v2](https://patchwork.kernel.org/project/linux-mm/cover/20211216124655.32247-1-zhengqi.arch@bytedance.com/) |
+
+
+
+
+### 13.4.7 DEBUG
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2016/02/03 | Christian Borntraeger <borntraeger@de.ibm.com> | [Optimize CONFIG_DEBUG_PAGEALLOC (x86 and s390)](https://damonitor.github.io) | 优化 CONFIG_DEBUG_PAGEALLOC, 提供了 debug_pagealloc_enabled(), 可以动态的开启 DEBUG_PAGEALLOC. | v4 ☑ 4.6-rc1 | [PatchWork v4,0/4](https://lore.kernel.org/patchwork/cover/642851) |
+
+
+
+
 
 # 14 杂项
 -------
@@ -3719,7 +3753,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/10/04 | Kees Cook <keescook@chromium.org> | [mm: Hardened usercopy](https://lore.kernel.org/all/1467843928-29351-1-git-send-email-keescook@chromium.org) | 将 PAX_USERCOPY 推到主线. PAX_USERCOPY 的设计是为了发现在使用 copy_to_user()/copy_from_user() 时存在的几类缺陷. | v1 ☑ 4.8-rc2 | [PatchWork 0/9](https://patchwork.kernel.org/project/linux-mm/cover/20211004224224.4137992-1-willy@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LWN v2](https://lwn.net/Articles/691012/) |
-| 2021/10/04 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Assorted improvements to usercopy](https://lore.kernel.org/patchwork/cover/856356) | usercopy 的各种改进 | v1 ☐ | [PatchWork 0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211004224224.4137992-1-willy@infradead.org) |
+| 2021/12/16 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Assorted improvements to usercopy](https://lore.kernel.org/patchwork/cover/856356) | usercopy 的各种改进 | v1 ☐ | [2021/10/04 PatchWork 0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211004224224.4137992-1-willy@infradead.org)<br>*-*-*-*-*-*-*-* <br>[2021/12/16 PatchWork v4,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20211216215351.3811471-1-willy@infradead.org) |
 
 
 ## 14.13 ZONE_MOVABLE
