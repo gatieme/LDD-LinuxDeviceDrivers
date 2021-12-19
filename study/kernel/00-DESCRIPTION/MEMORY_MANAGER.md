@@ -71,6 +71,7 @@
 **- 匿名页(Anonymous Page):** 这种页面的内容都是在内存中建立的,没有后备的外设, 这些页面在回收时不能简单的丢弃, 需要写入到交换设备中. **典型的代表有进程的栈, 使用 _malloc()_ 分配的内存所在的页等 .**
 
 
+一篇对数据库中内存行为进行分析的博文 [Optimizing Linux Memory Management for Low-latency / High-throughput Databases](https://engineering.linkedin.com/performance/optimizing-linux-memory-management-low-latency-high-throughput-databases#numarebalance).
 
 ## 0.2 概述
 -------
@@ -481,6 +482,18 @@ memblock 的内存占用是非常小的, 它采用静态数组的方式, 数组�
 | 2016-06-14 | 伙伴系统之伙伴系统概述--Linux内存管理(十五) | [CSDN](https://kernel.blog.csdn.net/article/details/52420444), [GitHub](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/02-memory/04-buddy/01-buddy_system) |
 | 2016-09-28 | 伙伴系统之避免碎片--Linux内存管理(十六) | [CSDN](https://blog.csdn.net/gatieme/article/details/52694362), [GitHub](https://github.com/gatieme/LDD-LinuxDeviceDrivers/tree/master/study/kernel/02-memory/04-buddy/03-fragmentation) |
 
+
+内存分配可以分成快速 fast path(`get_page_from_freelist()`) 和 慢速 slow path(`__alloc_pages_slowpath()`), fast path 失败会走 slow path. 慢速路径中则倾向于先通过一些内存回收和规整等方式回收一些内存出来, 然后再尝试进行分配.
+
+一般来说 slow path 的基本操作如下(顺序分先后, 但是表中顺序不代表实际顺序, 不同版本中各操作顺序等可能存在差异):
+
+| 操作 | 条件 | 描述 |
+|:---:|:----:|:----:|
+| `wake_all_kswapds()` | alloc_flags & ALLOC_KSWAPD | 唤醒 kswapd 进行异步回收. |
+| `get_page_from_freelist()` | checking watermark |                 | get_page_from_freelist | ALLOC_NO_WATERMARKS | 如果继续分配失败, 则通过 `__gfp_pfmemalloc_flags()` 重设 alloc_flags. 尝试不检查水线等条件, 强制无条件99进行内存分配. |
+| `__alloc_pages_direct_compact()` | NA | 尝试通过内存规整, 获得足够的空闲页面. |
+| `__alloc_pages_direct_reclaim()` || NA | 尝试通过内回收, 获得足够的空闲页面. |
+| `__alloc_pages_may_oom ()`| NA |
 
 
 **关于 NUMA 支持:** Linux 内核中, 每个 zone 都有上述的链表数组, 从而提供精确到某个 node 的某个 zone 的伙伴分配需求.
@@ -1268,7 +1281,7 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 | 2013/12/05 | Mel Gorman <mel@csn.ul.ie> | [Removal of lumpy reclaim V2](https://lore.kernel.org/patchwork/cover/296609) | 添加了 start 和 end 两个 tracepoint, 用于内存规整的开始和结束. 通过这两个 tracepoint 可以计算工作负载在规整过程中花费了多少时间, 并可能调试与用于扫描的缓存 pfns 相关的问题. 结合直接回收和 slab 跟踪点, 应该可以估计工作负载的大部分与分配相关的开销. | v2 ☑ 3.14-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/296609) |
 | 2014/02/14 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [compaction related commits](https://lore.kernel.org/patchwork/cover/441817) | 内存规整相关清理和优化. 降低了内存规整 9% 的运行时间. | v2 ☑ 3.15-rc1 | [PatchWork v2 0/5](https://lore.kernel.org/patchwork/cover/441817) |
 | 2015/07/02 | Mel Gorman <mel@csn.ul.ie> | [Outsourcing compaction for THP allocations to kcompactd](https://lore.kernel.org/patchwork/cover/575290) | 实现 per node 的 kcompactd 内核线程来定期触发内存规整. | RFC v2 ☑ 4.6-rc1 | [PatchWork RFC v2](https://lore.kernel.org/patchwork/cover/575290) |
-| 2016/08/10 | Mel Gorman <mel@csn.ul.ie> | [make direct compaction more deterministic](https://lore.kernel.org/patchwork/cover/692460) | 更有效地直接压缩. 在内存分配的慢速路径 `__alloc_pages_slowpath` 中的一直会先尝试直接回收和压缩, 直到分配成功或返回失败.<br>1. 当回收先于压缩时更有可能成功, 因为压缩需要满足某些苛刻的条件和水线要求, 并且在有更多的空闲页面时会增加压缩成功的概率.<br>2. 另一方面, 从轻异步压缩(如果水线允许的话)开始也可能更有效, 特别是对于较小 order 的申请. 因此这个补丁慢速路径下的尝试流程修正为将先进行 MIGRATE_ASYNC 异步迁移(规整), 再尝试内存直接回收, 接着进行 MIGRATE_SYNC_LIGHT 轻度同步迁移(规整). 并引入了[直接规整的优先级](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a5508cd83f10f663e05d212cb81f600a3af46e40). | RFC v2 ☑ 4.8-rc1 & 4.9-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/cover/692460)<br>*-*-*-*-*-*-*-* <br>[PatchWork series 1 v5](https://lore.kernel.org/patchwork/cover/700017)<br>*-*-*-*-*-*-*-* <br>[PatchWork series 2 v6](https://lore.kernel.org/patchwork/cover/705827) |
+| 2016/08/10 | Mel Gorman <mel@csn.ul.ie> | [make direct compaction more deterministic](https://lore.kernel.org/patchwork/cover/692460) | 更有效地直接规整(压缩迁移). 在内存分配的慢速路径 `__alloc_pages_slowpath` 中的之前一直会先尝试直接回收和规整, 直到分配成功或返回失败.<br>1. 当回收先于压缩时更有可能成功, 因为压缩需要满足某些苛刻的条件和水线要求, 并且在有更多的空闲页面时会增加压缩成功的概率.<br>2. 另一方面, 从轻异步压缩(如果水线允许的话)开始也可能更有效, 特别是对于较小 order 的申请. 因此[这个补丁])(https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a8161d1ed6098506303c65b3701dedba876df42a)将慢速路径下的尝试流程修正为将先进行 MIGRATE_ASYNC 异步迁移(规整), 再尝试内存直接回收, 接着进行 MIGRATE_SYNC_LIGHT 轻度同步迁移(规整). 并引入了[直接规整的优先级](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a5508cd83f10f663e05d212cb81f600a3af46e40). | RFC v2 ☑ 4.8-rc1 & 4.9-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/cover/692460)<br>*-*-*-*-*-*-*-* <br>[PatchWork series 1 v5](https://lore.kernel.org/patchwork/cover/700017)<br>*-*-*-*-*-*-*-* <br>[PatchWork series 2 v6](https://lore.kernel.org/patchwork/cover/705827) |
 | 2017/03/07 | Vlastimil Babka <vbabka@suse.cz> | [try to reduce fragmenting fallbacks](https://lore.kernel.org/patchwork/cover/766804) | 修复 [Regression in mobility grouping?](https://lkml.org/lkml/2016/9/28/94) 上报的碎片化问题, 通过修改 fallback 机制和 compaction 机制来减少永久随便化的可能性. 其中 fallback 修改时, 仅尝试从不同 migratetype 的 pageblock 中窃取的页面中挑选最小(但足够)的页面. | v3 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v6](https://lore.kernel.org/patchwork/cover/766804), [KernelNewbies](https://kernelnewbies.org/Linux_4.12#Memory_management), [关键 commit 3bc48f96cf11 ("mm, page_alloc: split least stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) |
 | 2019/01/18 |Mel Gorman <mgorman@techsingularity.net> | [Increase success rates and reduce latency of compaction v3](https://lore.kernel.org/patchwork/cover/1033508) | 提高内存规整成功率并减少规整的延迟, 将用于迁移的扫描页面数减少 65%, 将用于迁移目标的可用页面数减少97%, 同时显著提高透明的hugepage分配成功率.<br>这组补丁通过使用自由列表来缩短扫描, 更好地控制跳过信息, 以及是否多个扫描可以瞄准同一块并在被并行请求窃取之前捕获页块, 从而降低了扫描率和压缩成功率.<br>使用了 THPscale 来衡量和测试这组补丁的影响. 基准测试创建一个大文件, 映射它, 使它出错, 在映射中打洞, 使虚拟地址空间碎片化, 然后试图分配THP. 对于不同数量的线程, 它将重新执行. 从碎片的角度来看, 工作负载是相对良性的, 但它会压缩压力. 为迁移而扫描的页面数量减少了65%, 空闲扫描器减少了97.5%. 更少的工作换来更低的延迟和更高的成功率.<br>这组补丁还使用了严重碎片内存的工作负载进行了评估, 但也有很大的好处. | v3 ☑ [5.1-rc1](https://kernelnewbies.org/Linux_5.1#Memory_management) | [PatchWork 00/22](https://lore.kernel.org/patchwork/cover/1033508) |
 
@@ -1317,52 +1330,121 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 
 [Linux内存回收机制](https://zhuanlan.zhihu.com/p/348873183)
 
+[Linux内存源码分析 - 内存回收(整体流程)](https://www.cnblogs.com/tolimit/p/5435068.html)
+
 内核之所以要进行内存回收, 主要原因有两个:
 
 1.  内核需要为任何时刻突发到来的内存申请提供足够的内存, 以便 cache 的使用和其他相关内存的使用不至于让系统的剩余内存长期处于很少的状态.
 
 2.  当真的有大于空闲内存的申请到来的时候, 会触发强制内存回收.
 
-在不同的内存分配路径中, 会触发不同的内存回收方式, 内存回收针对的目标有两种, 一种是针对zone的, 另一种是针对一个memcg的, 把针对zone的内存回收方式分为三种, 分别是快速内存回收、直接内存回收、kswapd内存回收.
+在大多数情况下内存回收和内存分配总是紧密联系在一起的, 在通常情况下, 总是因为内存分配的过程中发现内存可能不足以分配所需的内存, 因此才需要进行内存回收.
+
+内存分配可以分成快速 fast path(`get_page_from_freelist()`) 和 慢速 slow path(`__alloc_pages_slowpath()`), fast path 失败会走 slow path. 在不同的内存分配路径中, 会触发不同的内存回收方式.
+
+内存回收针对的目标有两种, 一种是针对 zone 的, 另一种是针对一个 memcg 的, 把针对 zone 的内存回收方式分为三种, 分别是快速内存回收、直接内存回收、kswapd 内存回收.
 
 | 回收机制 | 描述 |
 |:-------:|:---:|
-| 快速内存回收机制 `node_reclaim()` | 处于get_page_from_freelist()函数中, 在遍历zonelist过程中, 对每个zone都在分配前进行判断, 如果分配后zone的空闲内存数量 < 阀值 + 保留页框数量, 那么此zone就会进行快速内存回收. 其中阀值可能是min/low/high的任何一种, 因为在快速内存分配, 慢速内存分配和oom分配过程中如果回收的页框足够, 都会调用到get_page_from_freelist()函数, 所以快速内存回收不仅仅发生在快速内存分配中, 在慢速内存分配过程中也会发生. |
-| 直接内存回收 `__alloc_pages_direct_reclaim` | 处于慢速分配过程中, 直接内存回收只有一种情况下会使用, 在慢速分配中无法从zonelist的所有zone中以min阀值分配页框, 并且进行异步内存压缩后, 还是无法分配到页框的时候, 就对zonelist中的所有zone进行一次直接内存回收. 注意, 直接内存回收是针对zonelist中的所有zone的, 它并不像快速内存回收和kswapd内存回收, 只会对zonelist中空闲页框不达标的zone进行内存回收. 在直接内存回收中, 有可能唤醒flush内核线程. |
+| 快速内存回收机制 `node_reclaim()` | get_page_from_freelist() 函数中进行内存分配时, 在遍历 zonelist 过程中, 对每个 zone 的水线进行判断, 如果分配后 zone 的空闲内存数量 < 阀值 + 保留页框数量, 那么此 zone 就会进行快速内存回收. 其中阀值可能是 min/low/high 的任何一种, 因为在快速内存分配, 慢速内存分配和 oom 分配过程中如果回收的页框足够, 都会调用到 get_page_from_freelist() 函数, 所以快速内存回收不仅仅发生在快速内存分配中, 在慢速内存分配过程中也会发生. |
+| 直接内存回收 `__alloc_pages_direct_reclaim()` | 处于慢速分配过程中, 直接内存回收只有一种情况下会使用, 在慢速分配中无法从zonelist的所有zone中以min阀值分配页框, 并且进行异步内存压缩后, 还是无法分配到页框的时候, 就对zonelist中的所有zone进行一次直接内存回收. 注意, 直接内存回收是针对zonelist中的所有zone的, 它并不像快速内存回收和kswapd内存回收, 只会对zonelist中空闲页框不达标的zone进行内存回收. 在直接内存回收中, 有可能唤醒flush内核线程. |
 | kswapd 内存回收 | 发生在 kswapd 内核线程中, 当前每个 node 有一个 kswapd 内核线程, 也就是kswapd内核线程中的内存回收, 是只针对所在node的, 并且只会对分配了order页框数量后空闲页框数量 < 此zone的high阀值 + 保留页框数量的zone进行内存回收, 并不会对此node的所有zone进行内存回收. |
+
+页面回收的方式有页回写、页交换和页丢弃三种方式
+
+| 行为 | 描述 |
+|:---:|:----:|
+| 页面交换 | 对于匿名页, 内存回收过程中会筛选出一些不经常使用的匿名页, 将它们写入到 swap 分区中, 然后作为空闲页框释放到伙伴系统. |
+| 页面丢弃 | 对于文件页, 内存回收过程中也会筛选出一些不经常使用的文件页, 如果此文件页中保存的内容与磁盘中文件对应内容一致, 说明此文件页是一个干净的文件页, 就不需要进行回写, 直接将此页丢弃, 作为空闲页框释放到伙伴系统中. |
+| 页面写回 | 相反, 如果文件页保存的数据与磁盘中文件对应的数据不一致, 则认定此文件页为脏页, 需要先将此文件页回写到磁盘中对应数据所在位置上, 然后再将此页作为空闲页框释放到伙伴系统中. 内存对匿名页和文件缓存一共用了四条链表进行组织, 回收过程主要是针对这四条链表进行扫描和操作. |
+
 
 ## 4.1 内存回收机制
 -------
 
 
-| 2021/09/20 | BVlastimil Babka <vbabka@suse.cz> @ Linux Kernel Developer, SUSE Labs | [Overview of memory reclaim in the current upstream kernel](https://lkml.org/lkml/2017/8/25/189) | LPC2021 Refereed Track 议题. 主要阐述了目前内存回收的基本思路和发展，对了解整个内核内存回收是一个非常好的材料. | NA | [SLIDE](https://linuxplumbersconf.org/event/11/contributions/896/attachments/793/1493/slides-r2.pdf) |
+| 2021/09/20 | BVlastimil Babka <vbabka@suse.cz> @ Linux Kernel Developer, SUSE Labs | [Overview of memory reclaim in the current upstream kernel](https://lkml.org/lkml/2017/8/25/189) | LPC2021 Refereed Track 议题. 主要阐述了目前内存回收的基本思路和发展, 对了解整个内核内存回收是一个非常好的材料. | NA | [SLIDE](https://linuxplumbersconf.org/event/11/contributions/896/attachments/793/1493/slides-r2.pdf) |
 
 
 ### 4.1.1 快速内存回收机制 `node_reclaim()`
 -------
 
-快速内存回收机制 `node_reclaim()` 在内存分配的快速路径进行, 因此一直是优化的重点.
+快速内存回收机制 `node_reclaim()` 也叫本地(区域)内存回收, 在内存分配的关键路径 get_page_from_freelist() 上进行, 因此一直是优化的重点.
+
+*   配置
+
+内核提供了 zone_reclaim_mode 配置参数用来控制内存 zone 回收模式的开启以及回收行为, 通过 `/proc/sys/vm/zone_reclaim_mode` 结点来设置.
+
+> 早期的本地快速回收也是基于 zone 的, 因此控制参数名称为 zone_reclaim_mode.
+> 随后 [Move LRU page reclaim from zones to nodes v9](https://lore.kernel.org/patchwork/cover/696428) 切到基于 node 的管理方式后, 仍然保留了此配置接口不变.
+
+| zone_reclaim_mode BIT 值 | 行为 |
+|:--------------------:|:---:|
+| 0 | 禁用快速内存回收机制 `node_reclaim()`, 此时内存分配时如果某个 zone 的内存不足(不满足水线要求), 则不会尝试触发直接内存回收工作 zone_reclaim, 而是直接尝试从下一个 zone 中窃取页面. |
+| 1(RECLAIM_ZONE) | 通过 shrink_node 进行 shrink_lruvec() 和 shrink_slab() 的回收. |
+| 2(RECLAIM_WRITE) | 可以将 cache 中的脏数据写回硬盘, 以回收内存. |
+| 4(RECLAIM_UNMAP) | 可以用 swap 方式回收内存 |
+
+*   适用场景
+
+参考 [Documentation/admin-guide/sysctl/vm](https://elixir.bootlin.com/linux/v5.12/source/Documentation/admin-guide/sysctl/vm.rst#L981).
+
+默认情况下, zone_reclaim 是禁用的. 因为它处在 get_page_from_freelist() 关键流程中. 且可能会释放 page cache 等页面, 开启它可能增加(快速路径)内存分配的时延, 影响应用的性能. 关掉 zone_reclaim 在很多应用场景下可以提高效率, 比如文件服务器, 或者依赖内存中 page cache 比较多的应用场景. 这样的场景对内存中 page cache 速度的依赖要高于进程进程本身对内存速度的依赖, 所以我们宁可让内存从其他 zone 申请使用, 也不愿意清本地 page cache.
+
+当然如果确定应用场景是内存需求大于缓存 page cache 的, 而且尽量要避免内存访问跨越 NUMA 节点造成的性能下降的话, 则可以打开 zone_reclaim. 此时 zone_reclaim 会优先回收容易回收的可回收内存(主要是当前不用的page cache页), 然后再回收其他内存.
+
+打开本地回收模式的写回可能会引发其他内存节点上的大量的脏数据写回处理. 如果一个内存zone已经满了, 那么脏数据的写回也会导致进程处理速度收到影响, 产生处理瓶颈. 这会降低某个内存节点相关的进程的性能, 因为进程不再能够使用其他节点上的内存. 但是会增加节点之间的隔离性, 其他节点的相关进程运行将不会因为另一个节点上的内存回收导致性能下降.
+
+
+*   early zone reclaim
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2005/06/21 | Martin Hicks <mort@sgi.com> | [VM: early zone reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=753ee728964e5afb80c17659cc6c3a6fd0a42fe0) | 引入 zone_reclaim syscall, 用来回收 zone 的内存. | v1 ☑ 2.6.13-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=753ee728964e5afb80c17659cc6c3a6fd0a42fe0) |
-| 2005/12/08 | Christoph Lameter <clameter@sgi.com> | [Zone reclaim V3: main patch](https://lore.kernel.org/patchwork/cover/47638) | 实现快速内存回收机制 `node_reclaim()`. 当前版本 LRU 是在 zone 上管理的, 因此引入快速页面内存回收的时候, 也是 Zone reclaim 的. 引入了 zone_reclaim_mode. | v14 ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/cover/90742)<br>*-*-*-*-*-*-*-* <br>[PatchWork v14](https://lore.kernel.org/patchwork/cover/47638) |
-| 2005/12/21 | Christoph Lameter <clameter@sgi.com> | [Zone reclaim Reclaim logic based on zoned counters](https://lore.kernel.org/patchwork/cover/48460) | NA | v4 ☐ | [PatchWork v4 0/3](https://lore.kernel.org/patchwork/cover/48460) |
-| 2006/01/18 | Christoph Lameter <clameter@sgi.com> | [Zone reclaim: Reclaim logic](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9eeff2395e3cfd05c9b2e6074ff943a34b0c5c21) | 重构 zone reclaim. | v1 ☑ v2.6.16-rc2 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9eeff2395e3cfd05c9b2e6074ff943a34b0c5c21) |
+| 2005/06/21 | Martin Hicks <mort@sgi.com> | [VM: early zone reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=753ee728964e5afb80c17659cc6c3a6fd0a42fe0) | 实现了最初版本的 zone reclaim, 在 `__alloc_pages()` 的过程中, 如果水线不满足要求 !zone_watermark_ok(), 则通过 zone_reclaim() 尝试回收本地 zone 的内存. 引入了 set_zone_reclaim syscall, 用来开启和关闭 zone reclaim. | v1 ☑ 2.6.13-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=753ee728964e5afb80c17659cc6c3a6fd0a42fe0) |
+| 2005/08/01 | Mel Gorman <mel@csn.ul.ie> | [remove sys_set_zone_reclaim()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6cb54819d7b1867053e2dfd8c0ca3a8dc65a7eff) | 删除了 set_zone_reclaim syscall | v1 ☑ 2.6.13-rc5 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6cb54819d7b1867053e2dfd8c0ca3a8dc65a7eff) |
+| 2005/08/01 | Mel Gorman <mel@csn.ul.ie> | [kill last zone_reclaim() bits](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7756b9e4e321c3c83c7aa5b9532d3e7fd7ddeb4a) | 删除了 set_zone_reclaim syscall. | v1 ☑ 2.6.16-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7756b9e4e321c3c83c7aa5b9532d3e7fd7ddeb4a) |
+
+
+*   zone reclaim
+
+当前版本 LRU 是在 zone 上管理的, 因此引入快速页面内存回收的时候, 也是 Zone reclaim 的.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2006/01/18 | Christoph Lameter <clameter@sgi.com> | [Zone reclaim V3: main patch](https://lore.kernel.org/patchwork/cover/47638) | 重构了快速内存回收机制 `zone_reclaim()`.<br>本地快速回收允许在空闲页面数量低于水线的情况下从本地 node/zone 区域内回收页面, 即使其他区域仍然有足够的可用页面. 区域回收对于 NUMA 机器特别重要, 与在远程区域上分配页面所带来的性能损失相比, 回收页面可能更有好处.<br>如果到另一个节点的最大距离高于 RECLAIM_DISTANCE. 如果区域回收没有成功, 那么在一定的时间段内将不会发生进一步的回收尝试(ZONE_RECLAIM_INTERVAL).<br>引入了 [zone_reclaim_mode](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1743660b911bfb849b1fb33830522254561b9f9b). 可以通过 procfs 接口控制. | v4 ☑ v2.6.16-rc2 | [PatchWork v3](https://lore.kernel.org/lkml/20051208203707.30456.57439.sendpatchset@schroedinger.engr.sgi.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4, 0/3](https://lore.kernel.org/all/20051221210828.3354.23467.sendpatchset@schroedinger.engr.sgi.com), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9eeff2395e3cfd05c9b2e6074ff943a34b0c5c21) |
 | 2006/01/18 | Christoph Lameter <clameter@sgi.com> | [mm, numa: reclaim from all nodes within reclaim distance](https://lore.kernel.org/patchwork/patch/326889) | NA | v1 ☑ v2.6.16-rc2 | [PatchWork](https://lore.kernel.org/patchwork/cover/326889)<br>*-*-*-*-*-*-*-* <br>[PatchWork fix](https://lore.kernel.org/patchwork/cover/328345)<br>*-*-*-*-*-*-*-* <br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=957f822a0ab95e88b146638bad6209bbc315bedd) |
+| 2006/02/01 | Christoph Lameter <clameter@sgi.com> | [Zone reclaim: Allow modification of zone reclaim behavior](https://lore.kernel.org/patchwork/cover/48460) | NA | v1 ☑ 2.6.16.28 | [PatchWork v4 0/3](https://lore.kernel.org/patchwork/cover/48460), [关键 commit1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1b2ffb7896ad46067f5b9ebf7de1891d74a4cdef), [关键 commit2](https://lore.kernel.org/patchwork/cover/48460), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2a16e3f4b0c408b9e50297d2ec27e295d490267a) |
+
+随后 zone_reclaim() 中开始支持回收 slab 的内存.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2006/02/01 | Christoph Lameter <clameter@engr.sgi.com> | [Reclaim slab during zone reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2a16e3f4b0c408b9e50297d2ec27e295d490267) | 引入 RECLAIM_SLAB 全局回收 SLAB 页面.<br>如果大量的 zone 内存被空的 slab 占用, 那么 zone_reclaim 将变得无效. 这个补丁的问题是, slab 回收不能包含到一个区域. 因此, 板坯回收可能会影响整个系统, 而且速度极慢. 这也意味着我们无法确定在这个区域中释放了多少页. 因此, 我们需要离开节点进行至少一次分配. 缺省情况下，该功能是禁用的. | v1 ☑ 2.6.16-rc2 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2a16e3f4b0c408b9e50297d2ec27e295d490267) |
+| 2006/02/01 | Christoph Lameter <clameter@engr.sgi.com> | [zone_reclaim: dynamic slab reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0ff38490c836dc379ff7ec45b10a15a662f4e5f6) | 如果释放未映射的文件备份页面不足以释放, 只能通过手动配置 RECLAIM_SLAB 来启用 slab 回收, 释放更多内存. 但是这样并不好控制. 因此这个补丁将 slab 回收修改为在 zone reclaim 过程中自动进行. 因此删除了 zone_reclaim_mode 中 RECLAIM_SLAB 选项<br>1. 如果 page cache 数量不足, 则收缩每个节点的页面缓存, 页面大于区域中页面的min_unmapped_ratio百分比.<br>2. 如果可回收 slab 页面的节点数量不足, 则收缩 slab 缓存. 引入了一个 min_slab_ratio 参数控制 slab 的比例. | v1 ☑ 2.6.19-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0ff38490c836dc379ff7ec45b10a15a662f4e5f6) |
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2009/06/11 | Mel Gorman <mel@csn.ul.ie> | [Fix malloc() stall in zone_reclaim() and bring behaviour more in line with expectations V3](https://lore.kernel.org/patchwork/patch/159963) | NA | v1 ☑ v2.6.16-rc2 | [PatchWork](https://lore.kernel.org/patchwork/cover/159963) |
 | 2014/04/08 | Mel Gorman <mel@csn.ul.ie> | [Disable zone_reclaim_mode by default v2](https://lore.kernel.org/patchwork/patch/454625) | NA | v2 ☑ 3.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/454625) |
 | 2015/09/21 | Mel Gorman <mgorman@techsingularity.net> | [remove zonelist cache and high-order watermark checking v4](https://lore.kernel.org/patchwork/cover/599755) | 引入分区列表缓存(zonelist cache/zlc)是为了跳过最近已知已满的区域. 这避免了昂贵的操作, 如cpuset检查、水印计算和zone_reclaim. 今天的情况不同了, zlc的复杂性更难证明. <br>1. cpuset检查是no-ops, 除非一个cpuset是活动的, 而且通常是非常便宜的.<br>2. zone_reclaim在默认情况下是禁用的, 我怀疑这是zlc想要避免的成本的主要来源. 当启用该功能时, 它将成为节点满时导致暂停的主要原因, 并且让所有其他用户都承受开销是不明智的.<br>3. 对于高阶分配请求, 水印检查的计算代价是昂贵的. 本系列的后续补丁将减少水印检查的成本.<br>4. 最重要的问题是, 在当前的实现中, THP分配失败可能会导致order-0分配的区域被填满, 并导致回退到远程节点.<br>因此这个补丁尝试删除了 zlc, 这带来了诸多好处. | v1 ☑ 4.4-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/599762), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f77cf4e4cc9d40310a7224a1a67c733aeec78836) |
 | 2016/04/20 | Dave Hansen <dave.hansen@linux.intel.com> | [OOM detection rework](https://lwn.net/Articles/668126) | 只要还存在可回收的页框, 内核就有充分的理由不启动 OOM Killer. 因此 zone_reclaimable 允许多次重新扫描可回收列表, 并在页面被释放时进行重试. 但是问题在于, 由于多种原因, 我们并不知道内核需要花费多长的时间才可以完成对这些理论上"可回收"的内存页框的实际回收动作. 一种可以预见的情况是, 在回收单个页框时, 分配器会进入无休止的重试, 而那个回收的页框也无法被用于当前的分配请求. 最终的结果是分配尝试一直无法成功, 这导致了内核被挂起, 而且还无法触发 OOM 的处理. 这个补丁更改了 OOM 检测逻辑, 并将其从 shrink_zone() 中提取出来, shrink_zone 太底层, 不适合任何高层决策, 这个决策更适合放在 __alloc_pages_slowpath(), 因为它知道已经做了多少次尝试, 以及到目前为止的进展情况, 因此更适合实现这个逻辑. 新的启发式是在 __alloc_pages_slowpath() 中调用的 should_reclaim_retry() 实现的. 它试图更有确定性, 更容易遵循. 它建立在一个假设上, 即只有当当前可回收的内存+空闲页面允许当前分配请求成功(按照__zone_watermark_ok)时, 重试才有意义, 至少对于可用分区列表中的一个区域. | v6 ☑ 4.7-rc1 | [PatchWork v5,1/11](https://lore.kernel.org/patchwork/cover/664978)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6,10/14](https://lore.kernel.org/patchwork/cover/670859))<br>*-*-*-*-*-*-*-* <br>[关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0a0337e0d1d134465778a16f5cbea95086e8e9e0) |
 | 2016/06/13 | Minchan Kim <minchan@kernel.org> | [mm: per-process reclaim](https://lore.kernel.org/patchwork/patch/688097) | 这个补丁允许用户空间主动回收进程的页面, 通过把手 "/proc/PID/reclaim" 有效地管理内存, 这样平台可以在任何时候回收任何进程. 一个有用的用例是避免在android中为了获得空闲内存而杀死进程, 这是非常糟糕的体验, 因为当我在享受游戏的同时切换电话后, 我失去了我所拥有的最好的游戏分数, 以及由于冷启动而导致的缓慢启动. 因为冷启动需要加载大量资源数据, 有些游戏需要 15~20 秒, 而成功启动只需要1~5秒. 通过使用新的管理策略来回收perproc, 我们可以大大减少冷启动(即. (171-72), 从而大大减少了应用启动. 该特性的另一个有用功能是方便切换, 这对于测试切换压力和工作负载很有用.  | v2 ☑ 3.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/688097) |
-| 2016/07/08 | Mel Gorman <mgorman@techsingularity.net> | [Move LRU page reclaim from zones to nodes v9](https://lore.kernel.org/patchwork/cover/696428) | 将 LRU 页面的回收从 ZONE 切换到 NODE. 当前我们关注的是快速内存回收从 zone_reclaim() 切换到了 node_reclaim. | v9 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork v21](https://lore.kernel.org/patchwork/cover/696428), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a5f5f91da6ad647fb0cc7fce0e17343c0d1c5a9a) |
+
+
+
+
+*   node reclaim
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/07/08 | Mel Gorman <mgorman@techsingularity.net> | [Move LRU page reclaim from zones to nodes v9](https://lore.kernel.org/patchwork/cover/696428) | 将 LRU 页面的回收从 ZONE 切换到 NODE. 当前我们关注的是[快速内存回收从 zone_reclaim() 切换到了 node_reclaim()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a5f5f91da6ad647fb0cc7fce0e17343c0d1c5a9a). | v9 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork v21](https://lore.kernel.org/patchwork/cover/696428), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a5f5f91da6ad647fb0cc7fce0e17343c0d1c5a9a) |
 | 2016/05/31 | Minchan Kim <minchan@kernel.org> | [Support non-lru page migration](https://lore.kernel.org/patchwork/patch/683233) | 支持非lru页面迁移, 主要解决zram和GPU驱动程序造成的碎片问题<br>到目前为止, 我们只允许对 LRU 页面进行迁移, 这足以生成高阶页面. 但是最近, 嵌入式系统以及终端等设备使用了大量不可移动的页面(如zram、GPU内存), 因此我们看到了一些关于小高阶分配问题的报道. 问题主要是由<br>1. zram 和 GPU 驱动造成的碎片. 在内存压力下, 它们的页面被分散到所有的页块中, 无法进行迁移, 内存规整也不能很好地工作, 所以收缩业务所有的页面, 使得系统非常慢.<br>2. 另一个问题是他们不能使用CMA内存空间, 所以当OOM kill发生时, 我可以在CMA区域看到很多空闲页面, 这不是内存效率. 我们的产品有很大的CMA内存, 虽然CMA中有很大的空闲空间, 但是过多的回收区域来分配GPU和zram页面, 很容易使系统变得很慢. 之前为了解决这个问题, 我们做了几项努力(例如, 增强压缩算法、SLUB回退到0阶页、保留内存、vmalloc等), 但如果系统中存在大量不可移动页, 则从长远来看, 它们的解决方案是无效的. 因此尝试了当前这种方案.  | v2 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/683233) |
+| 2020/07/01 | Dave Hansen <dave.hansen@linux.intel.com> | [Repair and clean up vm.zone_reclaim_mode sysctl ABI](https://lore.kernel.org/all/20200701152621.D520E62B@viggo.jf.intel.com) | 修正了 zone_reclaim 的文档, 显式声明了 RECLAIM_ZONE, 同时实现了 node_reclaim_enabled() 供其他接口使用. | v3 ☑ 5.12-rc1 | [PatchWork](https://lore.kernel.org/all/20200701152621.D520E62B@viggo.jf.intel.com) |
 | 2021/01/26 | Dave Hansen <dave.hansen@linux.intel.com> | [mm/vmscan: replace implicit RECLAIM_ZONE checks with explicit checks](https://lore.kernel.org/patchwork/cover/1266424) | 后来作为 [Migrate Pages in lieu of discard](https://lore.kernel.org/patchwork/patch/1370630) 的前几个补丁, 但是由于逻辑跟这组补丁无关, 被直接先合入. 引入 node_reclaim_mode() 替代了原来的 `node_reclaim_mode == 0` 判断条件. | v1 ☑ 5.13-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1266424), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=202e35db5e71) |
 
 
-
-
-### 4.1.2 快速内存回收机制 `node_reclaim()`
+### 4.1.2 直接内存回收 direct_reclaim
 -------
 
 
@@ -1779,24 +1861,6 @@ Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 p
 | 2021/12/13 | Muchun Song <songmuchun@bytedance.com> | [Optimize list lru memory consumption](https://lore.kernel.org/patchwork/cover/1436887) | 优化列表lru内存消耗<br> | v3 ☐ | [2021/05/27 PatchWork v2,00/21](https://patchwork.kernel.org/project/linux-mm/cover/20210527062148.9361-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/14 PatchWork v3,00/76](https://patchwork.kernel.org/project/linux-mm/cover/20210914072938.6440-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/13 PatchWork v4,00/17](https://patchwork.kernel.org/project/linux-mm/cover/20211213165342.74704-1-songmuchun@bytedance.com/) |
 
 
-### 4.2.10 slab shrinker
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.0.1 -> v2.4.0.2 VM balancing tuning](https://github.com/gatieme/linux-history/commit/3192b2dcbe00fdfd6a50be32c8c626cf26b66076) | NA | v1 ☑ 2.4.0.2 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/3192b2dcbe00fdfd6a50be32c8c626cf26b66076) |
-| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.4.6 -> v2.4.5 md graceful alloc failure](https://github.com/gatieme/linux-history/commit/9c6f70be049f5a0439996107e58bf65e9a5d9a09) | NA | v1 ☑ 2.4.8.4 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/9c6f70be049f5a0439996107e58bf65e9a5d9a09) |
-| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.7.3 -> v2.4.7.4](https://github.com/gatieme/linux-history/commit/70d68bd32041d22febb277038641d55c6ac7b57a) | NA | v1 ☑ 2.4.8.4 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/70d68bd32041d22febb277038641d55c6ac7b57a) |
-| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.8.3 -> v2.4.8.4](https://github.com/gatieme/linux-history/commit/0b9ded43ee424791d9283cee2a33dcb4a97da57d) | NA | v1 ☑ 2.4.8.4 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/0b9ded43ee424791d9283cee2a33dcb4a97da57d) |
-| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.9.10 -> v2.4.9.11](https://github.com/gatieme/linux-history/commit/a880f45a48be2956d2c78a839c472287d54435c1) | NA | v1 ☑ 2.4.13.6 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/a880f45a48be2956d2c78a839c472287d54435c1) |
-| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.13.3 -> v2.4.13.4](https://github.com/gatieme/linux-history/commit/f97f22cb0b9dca2a797feccc580b3b8fdb238ac3) | NA | v1 ☑ 2.4.13.6 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/f97f22cb0b9dca2a797feccc580b3b8fdb238ac3) |
-| 2002/02/04 | Andrew Morton <akpm@digeo.com> | [v2.4.13.5 -> v2.4.13.6 me: shrink dcache/icache more aggressively](https://github.com/gatieme/linux-history/commit/857805c6bdc445542e35347e18f1f0d21353a52c) | NA | v1 ☑ 2.4.13.6 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/857805c6bdc445542e35347e18f1f0d21353a52c) |
-| 2002/09/22 | Andrew Morton <akpm@digeo.com> | [low-latency page reclaim](https://github.com/gatieme/linux-history/commit/407ee6c87e477434e3cb8be96885ed27b5539b6f) | NA | v1 ☑ 2.5.39 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/407ee6c87e477434e3cb8be96885ed27b5539b6f) |
-| 2002/09/25 | Andrew Morton <akpm@digeo.com> | [slab reclaim balancing](https://github.com/gatieme/linux-history/commit/b65bbded3935b896d55cb6b3e420a085d3089368) | NA | v1 ☑ 2.5.39 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/b65bbded3935b896d55cb6b3e420a085d3089368) |
-| 2002/10/04 | Andrew Morton <akpm@digeo.com> | [separation of direct-reclaim and kswapd function](https://github.com/gatieme/linux-history/commit/bf3f607a57d27cab30d5ddfd203d873856bc22b7) | NA | v1 ☑ 2.5.41 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/bf3f607a57d27cab30d5ddfd203d873856bc22b7) |
-| 2002/10/13 | Andrew Morton <akpm@digeo.com> | [batched slab shrink and registration API](https://github.com/gatieme/linux-history/commit/71419dc7e039a8953861df2a28fad639d12ae6b9) | 目前系统中存在 dentry、inode 和 dquot 缓存等[多个零散的收缩器](https://elixir.bootlin.com/linux/v2.5.42/source/mm/vmscan.c). 虽然可以正常工作, 但它的 cpu 效率略低. 这个补丁重写了这些收缩器. 引入了 shrinker 框架, 各个子系统可以通过 set_shrinker() 注册自己的 shrink 回调到收缩器. 这些收缩器由一个 shrinker_list 管理. 这些收缩器收缩的速度是一样的, 你们可以用相同的速率对他们进行回收. | v1 ☑ 2.5.43 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/71419dc7e039a8953861df2a28fad639d12ae6b9) |
-
-
 ### 4.2.11 其他页面替换算法
 -------
 
@@ -1820,11 +1884,52 @@ Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 p
 | 2015/12/30 | Minchan Kim | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/622178) | madvise 支持页面延迟回收(MADV_FREE)的再一次尝试  | v5 ☑ 4.5-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/622178), [KernelNewbies](https://kernelnewbies.org/Linux_4.5#Add_MADV_FREE_flag_to_madvise.282.29) |
 | 2017/02/24 | Minchan Kim | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/622178) | MADV_FREE 有几个问题, 使它不能在 jemalloc 这样的库中使用: 不支持系统没有交换启用, 增加了内存的压力, 另外统计也存在问题. 这个版本将 MADV_FREE 页面放到 LRU_INACTIVE_FILE 列表中, 为无交换系统启用 MADV_FREE, 并改进了统计计费.  | v5 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v5](https://lore.kernel.org/patchwork/cover/622178) |
 
-
-## 4.4 主动的页面回收
+## 4.4 shrinker
 -------
 
-### 4.4.1 [Proactively reclaiming idle memory](https://lwn.net/Articles/787611)
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2010/11/09 | Glauber Costa <glommer@openvz.org> | [vmscan: per-node deferred work](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1d3d4437eae1bb2963faab427f65f90663c64aa1) | 实现 per node 的内存回收. | v1 ☑ 3.19-rc1 | [LORE](https://lore.kernel.org/lkml/20101109123246.GA11477@amd), [LORE v9,00/17](https://lore.kernel.org/all/153112469064.4097.2581798353485457328.stgit@localhost.localdomain), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1d3d4437eae1bb2963faab427f65f90663c64aa1) |
+| 2010/11/09 | Nick Piggin <npiggin@kernel.dk> | [mm: vmscan implement per-zone shrinkers](https://lore.kernel.org/all/153063036670.1818.16010062622751502.stgit@localhost.localdomain/) | 实现 per zone 的内存回收. | v1 ☑ 3.19-rc1 | [LORE](https://lore.kernel.org/lkml/20101109123246.GA11477@amd), [LORE v9,00/17](https://lore.kernel.org/all/153112469064.4097.2581798353485457328.stgit@localhost.localdomain), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6b4f7799c6a5703ac6b8c0649f4c22f00fa07513) |
+
+
+### 4.4.1 shrinker 的引入
+-------
+
+早期各个模块的回收和释放各自为政.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.0.1 -> v2.4.0.2 VM balancing tuning](https://github.com/gatieme/linux-history/commit/3192b2dcbe00fdfd6a50be32c8c626cf26b66076) | NA | v1 ☑ 2.4.0.2 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/3192b2dcbe00fdfd6a50be32c8c626cf26b66076) |
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.4.6 -> v2.4.5 md graceful alloc failure](https://github.com/gatieme/linux-history/commit/9c6f70be049f5a0439996107e58bf65e9a5d9a09) | NA | v1 ☑ 2.4.8.4 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/9c6f70be049f5a0439996107e58bf65e9a5d9a09) |
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.7.3 -> v2.4.7.4](https://github.com/gatieme/linux-history/commit/70d68bd32041d22febb277038641d55c6ac7b57a) | NA | v1 ☑ 2.4.8.4 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/70d68bd32041d22febb277038641d55c6ac7b57a) |
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.8.3 -> v2.4.8.4](https://github.com/gatieme/linux-history/commit/0b9ded43ee424791d9283cee2a33dcb4a97da57d) | NA | v1 ☑ 2.4.8.4 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/0b9ded43ee424791d9283cee2a33dcb4a97da57d) |
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.9.10 -> v2.4.9.11](https://github.com/gatieme/linux-history/commit/a880f45a48be2956d2c78a839c472287d54435c1) | NA | v1 ☑ 2.4.13.6 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/a880f45a48be2956d2c78a839c472287d54435c1) |
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.13.3 -> v2.4.13.4](https://github.com/gatieme/linux-history/commit/f97f22cb0b9dca2a797feccc580b3b8fdb238ac3) | NA | v1 ☑ 2.4.13.6 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/f97f22cb0b9dca2a797feccc580b3b8fdb238ac3) |
+| 2002/02/04 | Andrew Morton <akpm@digeo.com> | [v2.4.13.5 -> v2.4.13.6 me: shrink dcache/icache more aggressively](https://github.com/gatieme/linux-history/commit/857805c6bdc445542e35347e18f1f0d21353a52c) | NA | v1 ☑ 2.4.13.6 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/857805c6bdc445542e35347e18f1f0d21353a52c) |
+| 2002/09/22 | Andrew Morton <akpm@digeo.com> | [low-latency page reclaim](https://github.com/gatieme/linux-history/commit/407ee6c87e477434e3cb8be96885ed27b5539b6f) | NA | v1 ☑ 2.5.39 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/407ee6c87e477434e3cb8be96885ed27b5539b6f) |
+| 2002/09/25 | Andrew Morton <akpm@digeo.com> | [slab reclaim balancing](https://github.com/gatieme/linux-history/commit/b65bbded3935b896d55cb6b3e420a085d3089368) | NA | v1 ☑ 2.5.39 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/b65bbded3935b896d55cb6b3e420a085d3089368) |
+| 2002/10/04 | Andrew Morton <akpm@digeo.com> | [separation of direct-reclaim and kswapd function](https://github.com/gatieme/linux-history/commit/bf3f607a57d27cab30d5ddfd203d873856bc22b7) | NA | v1 ☑ 2.5.41 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/bf3f607a57d27cab30d5ddfd203d873856bc22b7) |
+
+v2.5 的时候引入了 shrink 机制, 并提供了 API 统一了各个模块的内存回收的接口.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2002/10/13 | Andrew Morton <akpm@digeo.com> | [batched slab shrink and registration API](https://github.com/gatieme/linux-history/commit/71419dc7e039a8953861df2a28fad639d12ae6b9) | 目前系统中存在 dentry、inode 和 dquot 缓存等[多个零散的收缩器](https://elixir.bootlin.com/linux/v2.5.42/source/mm/vmscan.c). 虽然可以正常工作, 但它的 cpu 效率略低. 这个补丁重写了这些收缩器. 引入了 shrinker 框架, 各个子系统可以通过 set_shrinker() 注册自己的 shrink 回调到收缩器. 这些收缩器由一个 shrinker_list 管理. 这些收缩器收缩的速度是一样的, 你们可以用相同的速率对他们进行回收. | v1 ☑ 2.5.43 | [PATCH HISTORY](https://github.com/gatieme/linux-history/commit/71419dc7e039a8953861df2a28fad639d12ae6b9) |
+
+### 4.4.2 shrink_slab
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/07/03 | Kirill Tkhai <ktkhai@virtuozzo.com> | [Improve shrink_slab() scalability (old complexity was O(n^2), new is O(n))](https://lore.kernel.org/all/153063036670.1818.16010062622751502.stgit@localhost.localdomain/) | 降低 shrink_slab 的算法复杂度, 从 O(N^2) 降低到 O(N). | v8 ☑ 4.19-rc1 | [LORE v8,00/17](https://lore.kernel.org/all/153063036670.1818.16010062622751502.stgit@localhost.localdomain), [LORE v9,00/17](https://lore.kernel.org/all/153112469064.4097.2581798353485457328.stgit@localhost.localdomain) |
+| 2018/08/07 | Kirill Tkhai <ktkhai@virtuozzo.com> | [ Introduce lockless shrink_slab()](https://patchwork.kernel.org/project/linux-mm/cover/153365347929.19074.12509495712735843805.stgit@localhost.localdomain) | NA | RFC ☐ | [LORE v8,00/17](https://patchwork.kernel.org/project/linux-mm/cover/153365347929.19074.12509495712735843805.stgit@localhost.localdomain) |
+
+
+## 4.5 主动的页面回收
+-------
+
+### 4.5.1 [Proactively reclaiming idle memory](https://lwn.net/Articles/787611)
 -------
 
 [LWN：主动回收较少使用的内存页面](https://blog.csdn.net/Linux_Everything/article/details/96416633)
@@ -1871,7 +1976,7 @@ Facebook 指出他们也面临过同样的问题, 所有的 workload 都需要�
 | 2021/10/19 | SeongJae Park <sjpark@amazon.com> | [Introduce DAMON-based Proactive Reclamation](https://lwn.net/Articles/863753) | 该补丁集改进了用于生产质量的通用数据访问模式内存管理的引擎, 并在其之上实现了主动回收. | v4 ☑ 5.16-rc1 | [PatchWork RFC,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/14](https://patchwork.kernel.org/project/linux-mm/patch/20210608115254.11930-15-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v3,00/15](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4 00/15](https://patchwork.kernel.org/project/linux-mm/cover/20211019150731.16699-1-sj@kernel.org) |
 
 
-### 4.4.2 idle memory tracking
+### 4.5.2 idle memory tracking
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1880,7 +1985,7 @@ Facebook 指出他们也面临过同样的问题, 所有的 workload 都需要�
 | 2015/07/19 | Vladimir Davydov <vdavydov@parallels.com> | [idle memory tracking](https://lore.kernel.org/patchwork/cover/580794) | Google 的 idle page 跟踪技术, CONFIG_IDLE_PAGE_TRACKING 跟踪长期未使用的页面. | v9 ☑ 4.3-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/580794), [REDHAT Merge](https://lists.openvz.org/pipermail/devel/2015-October/067103.html), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=33c3fc71c8cfa3cc3a98beaa901c069c177dc295) |
 
 
-### 4.4.3 其他释放手段
+### 4.5.3 其他释放手段
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -2491,11 +2596,18 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 | [CVE-2020-29374](https://nvd.nist.gov/vuln/detail/CVE-2020-29374)  | Observing Memory Modifications of Private Pages From A Child Process |
 |:---------------:|:--------------------------------------------------------------------:|
 | 参考资料 | 摘要: [Patching until the COWs come home (part 1)](https://lwn.net/Articles/849638).<br>详情: [Patching until the COWs come home (part 2)](https://lwn.net/Articles/849876). |
-| 描述 | 一旦 fork(), 进程私有内存可能不像你想的那样私有, 子进程仍然可以观察到父进程中私有内存区域的连续修改, 例如, 通过使用 vmsplice() + munmap(). 核心问题是, 将可读页面固定在子进程中(比如通过 vmsplice 系统调用), 可能会导致子进程观察父进程所做的内存修改, 而子进程不应该观察父进程. |
+| 影响 | 一旦 fork(), 进程私有内存可能不像你想的那样私有, 子进程仍然可以观察到父进程中私有内存区域的连续修改, 例如, 通过使用 vmsplice() + munmap(). |
+| 核心问题 | 将可读页面固定在子进程中(比如通过 vmsplice 系统调用), 可能会导致子进程观察父进程所做的内存修改, 而子进程不应该观察父进程. |
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/12/17 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 1: fix the COW security issue for THP and hugetlb](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com) | NA | v1 ☐ | [PatchWork v1,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com) |
+
+| [CVE-2020-29374](https://nvd.nist.gov/vuln/detail/CVE-2020-29374)  | Intra Process Memory Corruptions due to Wrong COW (FOLL_GET) |
+|:---------------:|:--------------------------------------------------------------------:|
+| 参考资料 | NA |
+| 影响 | NA |
+| 根本问题 | NA |
 
 
 ### 8.2.1 enhance
@@ -3359,7 +3471,7 @@ KMSAN 最早的 github 仓库位于 : https://github.com/google/kmsan
 
 
 
-补丁集是相对于Linux v5.16-rc5生成的。
+补丁集是相对于Linux v5.16-rc5生成的.
 
 ### 13.3.7 KFENCE 一个新的内存安全检测工具
 -------
