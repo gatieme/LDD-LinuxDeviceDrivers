@@ -1346,7 +1346,7 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 
 | 回收机制 | 描述 |
 |:-------:|:---:|
-| 快速内存回收机制 `node_reclaim()` | get_page_from_freelist() 函数中进行内存分配时, 在遍历 zonelist 过程中, 对每个 zone 的水线进行判断, 如果分配后 zone 的空闲内存数量 < 阀值 + 保留页框数量, 那么此 zone 就会进行快速内存回收. 其中阀值可能是 min/low/high 的任何一种, 因为在快速内存分配, 慢速内存分配和 oom 分配过程中如果回收的页框足够, 都会调用到 get_page_from_freelist() 函数, 所以快速内存回收不仅仅发生在快速内存分配中, 在慢速内存分配过程中也会发生. |
+| 本地快速内存回收机制 `node_reclaim()` | get_page_from_freelist() 函数中进行内存分配时, 在遍历 zonelist 过程中, 对每个 zone 的水线进行判断, 如果分配后 zone 的空闲内存数量 < 阀值 + 保留页框数量, 那么此 zone 就会进行快速内存回收. 其中阀值可能是 min/low/high 的任何一种, 因为在快速内存分配, 慢速内存分配和 oom 分配过程中如果回收的页框足够, 都会调用到 get_page_from_freelist() 函数, 所以快速内存回收不仅仅发生在快速内存分配中, 在慢速内存分配过程中也会发生. |
 | 直接内存回收 `__alloc_pages_direct_reclaim()` | 处于慢速分配过程中, 直接内存回收只有一种情况下会使用, 在慢速分配中无法从zonelist的所有zone中以min阀值分配页框, 并且进行异步内存压缩后, 还是无法分配到页框的时候, 就对zonelist中的所有zone进行一次直接内存回收. 注意, 直接内存回收是针对zonelist中的所有zone的, 它并不像快速内存回收和kswapd内存回收, 只会对zonelist中空闲页框不达标的zone进行内存回收. 在直接内存回收中, 有可能唤醒flush内核线程. |
 | kswapd 内存回收 | 发生在 kswapd 内核线程中, 当前每个 node 有一个 kswapd 内核线程, 也就是kswapd内核线程中的内存回收, 是只针对所在node的, 并且只会对分配了order页框数量后空闲页框数量 < 此zone的high阀值 + 保留页框数量的zone进行内存回收, 并不会对此node的所有zone进行内存回收. |
 
@@ -1369,7 +1369,7 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 ### 4.1.1 快速内存回收机制 `node_reclaim()`
 -------
 
-快速内存回收机制 `node_reclaim()` 也叫本地(区域)内存回收, 在内存分配的关键路径 get_page_from_freelist() 上进行, 因此一直是优化的重点.
+本地快速内存回收机制 `node_reclaim()`, 在内存分配的关键路径 get_page_from_freelist() 上进行, 因此一直是优化的重点.
 
 *   配置
 
@@ -1396,7 +1396,9 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 打开本地回收模式的写回可能会引发其他内存节点上的大量的脏数据写回处理. 如果一个内存zone已经满了, 那么脏数据的写回也会导致进程处理速度收到影响, 产生处理瓶颈. 这会降低某个内存节点相关的进程的性能, 因为进程不再能够使用其他节点上的内存. 但是会增加节点之间的隔离性, 其他节点的相关进程运行将不会因为另一个节点上的内存回收导致性能下降.
 
 
-*   early zone reclaim
+#### 4.1.1.1 early zone reclaim
+-------
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -1405,7 +1407,9 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 | 2005/08/01 | Mel Gorman <mel@csn.ul.ie> | [kill last zone_reclaim() bits](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7756b9e4e321c3c83c7aa5b9532d3e7fd7ddeb4a) | 删除了 set_zone_reclaim syscall. | v1 ☑ 2.6.16-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7756b9e4e321c3c83c7aa5b9532d3e7fd7ddeb4a) |
 
 
-*   zone reclaim
+#### 4.1.1.2 zone reclaim
+-------
+
 
 当前版本 LRU 是在 zone 上管理的, 因此引入快速页面内存回收的时候, 也是 Zone reclaim 的.
 
@@ -1413,7 +1417,34 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2006/01/18 | Christoph Lameter <clameter@sgi.com> | [Zone reclaim V3: main patch](https://lore.kernel.org/patchwork/cover/47638) | 重构了快速内存回收机制 `zone_reclaim()`.<br>本地快速回收允许在空闲页面数量低于水线的情况下从本地 node/zone 区域内回收页面, 即使其他区域仍然有足够的可用页面. 区域回收对于 NUMA 机器特别重要, 与在远程区域上分配页面所带来的性能损失相比, 回收页面可能更有好处.<br>如果到另一个节点的最大距离高于 RECLAIM_DISTANCE. 如果区域回收没有成功, 那么在一定的时间段内将不会发生进一步的回收尝试(ZONE_RECLAIM_INTERVAL).<br>引入了 [zone_reclaim_mode](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1743660b911bfb849b1fb33830522254561b9f9b). 可以通过 procfs 接口控制. | v4 ☑ v2.6.16-rc2 | [PatchWork v3](https://lore.kernel.org/lkml/20051208203707.30456.57439.sendpatchset@schroedinger.engr.sgi.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4, 0/3](https://lore.kernel.org/all/20051221210828.3354.23467.sendpatchset@schroedinger.engr.sgi.com), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9eeff2395e3cfd05c9b2e6074ff943a34b0c5c21) |
 | 2006/01/18 | Christoph Lameter <clameter@sgi.com> | [mm, numa: reclaim from all nodes within reclaim distance](https://lore.kernel.org/patchwork/patch/326889) | NA | v1 ☑ v2.6.16-rc2 | [PatchWork](https://lore.kernel.org/patchwork/cover/326889)<br>*-*-*-*-*-*-*-* <br>[PatchWork fix](https://lore.kernel.org/patchwork/cover/328345)<br>*-*-*-*-*-*-*-* <br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=957f822a0ab95e88b146638bad6209bbc315bedd) |
-| 2006/02/01 | Christoph Lameter <clameter@sgi.com> | [Zone reclaim: Allow modification of zone reclaim behavior](https://lore.kernel.org/patchwork/cover/48460) | NA | v1 ☑ 2.6.16.28 | [PatchWork v4 0/3](https://lore.kernel.org/patchwork/cover/48460), [关键 commit1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1b2ffb7896ad46067f5b9ebf7de1891d74a4cdef), [关键 commit2](https://lore.kernel.org/patchwork/cover/48460), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2a16e3f4b0c408b9e50297d2ec27e295d490267a) |
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2009/06/11 | Mel Gorman <mel@csn.ul.ie> | [Fix malloc() stall in zone_reclaim() and bring behaviour more in line with expectations V3](https://lore.kernel.org/patchwork/patch/159963) | NA | v1 ☑ v2.6.16-rc2 | [PatchWork](https://lore.kernel.org/patchwork/cover/159963) |
+| 2015/09/21 | Mel Gorman <mgorman@techsingularity.net> | [remove zonelist cache and high-order watermark checking v4](https://lore.kernel.org/patchwork/cover/599755) | 引入分区列表缓存(zonelist cache/zlc)是为了跳过最近已知已满的区域. 这避免了昂贵的操作, 如cpuset检查、水印计算和zone_reclaim. 今天的情况不同了, zlc的复杂性更难证明. <br>1. cpuset检查是no-ops, 除非一个cpuset是活动的, 而且通常是非常便宜的.<br>2. zone_reclaim在默认情况下是禁用的, 我怀疑这是zlc想要避免的成本的主要来源. 当启用该功能时, 它将成为节点满时导致暂停的主要原因, 并且让所有其他用户都承受开销是不明智的.<br>3. 对于高阶分配请求, 水印检查的计算代价是昂贵的. 本系列的后续补丁将减少水印检查的成本.<br>4. 最重要的问题是, 在当前的实现中, THP分配失败可能会导致order-0分配的区域被填满, 并导致回退到远程节点.<br>因此这个补丁尝试删除了 zlc, 这带来了诸多好处. | v1 ☑ 4.4-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/599762), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f77cf4e4cc9d40310a7224a1a67c733aeec78836) |
+| 2016/04/20 | Dave Hansen <dave.hansen@linux.intel.com> | [OOM detection rework](https://lwn.net/Articles/668126) | 只要还存在可回收的页框, 内核就有充分的理由不启动 OOM Killer. 因此 zone_reclaimable 允许多次重新扫描可回收列表, 并在页面被释放时进行重试. 但是问题在于, 由于多种原因, 我们并不知道内核需要花费多长的时间才可以完成对这些理论上"可回收"的内存页框的实际回收动作. 一种可以预见的情况是, 在回收单个页框时, 分配器会进入无休止的重试, 而那个回收的页框也无法被用于当前的分配请求. 最终的结果是分配尝试一直无法成功, 这导致了内核被挂起, 而且还无法触发 OOM 的处理. 这个补丁更改了 OOM 检测逻辑, 并将其从 shrink_zone() 中提取出来, shrink_zone 太底层, 不适合任何高层决策, 这个决策更适合放在 __alloc_pages_slowpath(), 因为它知道已经做了多少次尝试, 以及到目前为止的进展情况, 因此更适合实现这个逻辑. 新的启发式是在 __alloc_pages_slowpath() 中调用的 should_reclaim_retry() 实现的. 它试图更有确定性, 更容易遵循. 它建立在一个假设上, 即只有当当前可回收的内存+空闲页面允许当前分配请求成功(按照__zone_watermark_ok)时, 重试才有意义, 至少对于可用分区列表中的一个区域. | v6 ☑ 4.7-rc1 | [PatchWork v5,1/11](https://lore.kernel.org/patchwork/cover/664978)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6,10/14](https://lore.kernel.org/patchwork/cover/670859))<br>*-*-*-*-*-*-*-* <br>[关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0a0337e0d1d134465778a16f5cbea95086e8e9e0) |
+| 2016/06/13 | Minchan Kim <minchan@kernel.org> | [mm: per-process reclaim](https://lore.kernel.org/patchwork/patch/688097) | 这个补丁允许用户空间主动回收进程的页面, 通过把手 "/proc/PID/reclaim" 有效地管理内存, 这样平台可以在任何时候回收任何进程. 一个有用的用例是避免在android中为了获得空闲内存而杀死进程, 这是非常糟糕的体验, 因为当我在享受游戏的同时切换电话后, 我失去了我所拥有的最好的游戏分数, 以及由于冷启动而导致的缓慢启动. 因为冷启动需要加载大量资源数据, 有些游戏需要 15~20 秒, 而成功启动只需要1~5秒. 通过使用新的管理策略来回收perproc, 我们可以大大减少冷启动(即. (171-72), 从而大大减少了应用启动. 该特性的另一个有用功能是方便切换, 这对于测试切换压力和工作负载很有用.  | v2 ☑ 3.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/688097) |
+
+
+#### 4.1.1.3 zone reclaim mode
+-------
+
+*   zone_reclaim_mode
+
+[commit 1743660b911b zone_reclaim_mode](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1743660b911bfb849b1fb33830522254561b9f9b) 引入了 zone_reclaim_mode 作为本地快速回收 zone_reclaim() 的开关.
+
+随后,  [commit 1b2ffb7896ad ("Zone reclaim: Allow modification of zone reclaim behavior")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1b2ffb7896ad46067f5b9ebf7de1891d74a4cdef) 修改了 zone_reclaim_mode 接口配置, 允许控制 zone_reclaim_mode 的不同 bit, 来更灵活的控制 zone_reclaim() 的行为.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2006/02/01 | Christoph Lameter <clameter@sgi.com> | [Zone reclaim: Allow modification of zone reclaim behavior](https://lore.kernel.org/patchwork/cover/48460) | 某些情况下, 人们可能希望 zone_reclaim 有不同的行为. 这个补丁允许用户设置 zone_reclaim_mode 的值, 来操纵 zone_reclaim_mode 的行为.<br>最初版引入了以下几种行为控制.<br>1. RECLAIM_ZONE  /* Run shrink_cache on the zone */<br>2. RECLAIM_WRITE /* Writeout pages during reclaim */<br>3. RECLAIM_SWAP  /* Swap pages out during reclaim */<br>在 例如, 一个写大量内存的进程将会溢出到其他节点来缓存写入, 如果一个区域中的许多页面变成脏的. 这可能会影响运行在其他节点上的进程的性能.  在回收期间允许写操作会停止这种行为, 并通过将页面限制在本地区域来限制进程. | v1 ☑ 2.6.16.28 | [PatchWork v4 0/3](https://lore.kernel.org/patchwork/cover/48460), [关键 commit1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1b2ffb7896ad46067f5b9ebf7de1891d74a4cdef) |
+| 2014/04/08 | Mel Gorman <mel@csn.ul.ie> | [Disable zone_reclaim_mode by default v2](https://lore.kernel.org/patchwork/patch/454625) | NA | v2 ☑ 3.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/454625) |
+| 2020/07/01 | Dave Hansen <dave.hansen@linux.intel.com> | [Repair and clean up vm.zone_reclaim_mode sysctl ABI](https://lore.kernel.org/all/20200701152621.D520E62B@viggo.jf.intel.com) | 修正了 zone_reclaim 的文档, 显式声明了 RECLAIM_ZONE, 同时实现了 node_reclaim_enabled() 供其他接口使用. | v3 ☑ 5.12-rc1 | [PatchWork](https://lore.kernel.org/all/20200701152621.D520E62B@viggo.jf.intel.com) |
+| 2021/01/26 | Dave Hansen <dave.hansen@linux.intel.com> | [mm/vmscan: replace implicit RECLAIM_ZONE checks with explicit checks](https://lore.kernel.org/patchwork/cover/1266424) | 后来作为 [Migrate Pages in lieu of discard](https://lore.kernel.org/patchwork/patch/1370630) 的前几个补丁, 但是由于逻辑跟这组补丁无关, 被直接先合入. 引入 node_reclaim_mode() 替代了原来的 `node_reclaim_mode == 0` 判断条件. | v1 ☑ 5.13-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1266424), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=202e35db5e71) |
+
+*   RECLAIM_SLAB
 
 随后 zone_reclaim() 中开始支持回收 slab 的内存.
 
@@ -1422,26 +1453,22 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 | 2006/02/01 | Christoph Lameter <clameter@engr.sgi.com> | [Reclaim slab during zone reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2a16e3f4b0c408b9e50297d2ec27e295d490267) | 引入 RECLAIM_SLAB 全局回收 SLAB 页面.<br>如果大量的 zone 内存被空的 slab 占用, 那么 zone_reclaim 将变得无效. 这个补丁的问题是, slab 回收不能包含到一个区域. 因此, 板坯回收可能会影响整个系统, 而且速度极慢. 这也意味着我们无法确定在这个区域中释放了多少页. 因此, 我们需要离开节点进行至少一次分配. 缺省情况下，该功能是禁用的. | v1 ☑ 2.6.16-rc2 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2a16e3f4b0c408b9e50297d2ec27e295d490267) |
 | 2006/02/01 | Christoph Lameter <clameter@engr.sgi.com> | [zone_reclaim: dynamic slab reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0ff38490c836dc379ff7ec45b10a15a662f4e5f6) | 如果释放未映射的文件备份页面不足以释放, 只能通过手动配置 RECLAIM_SLAB 来启用 slab 回收, 释放更多内存. 但是这样并不好控制. 因此这个补丁将 slab 回收修改为在 zone reclaim 过程中自动进行. 因此删除了 zone_reclaim_mode 中 RECLAIM_SLAB 选项<br>1. 如果 page cache 数量不足, 则收缩每个节点的页面缓存, 页面大于区域中页面的min_unmapped_ratio百分比.<br>2. 如果可回收 slab 页面的节点数量不足, 则收缩 slab 缓存. 引入了一个 min_slab_ratio 参数控制 slab 的比例. | v1 ☑ 2.6.19-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0ff38490c836dc379ff7ec45b10a15a662f4e5f6) |
 
+*   RECLAIM_UNMAP
 
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2009/06/11 | Mel Gorman <mel@csn.ul.ie> | [Fix malloc() stall in zone_reclaim() and bring behaviour more in line with expectations V3](https://lore.kernel.org/patchwork/patch/159963) | NA | v1 ☑ v2.6.16-rc2 | [PatchWork](https://lore.kernel.org/patchwork/cover/159963) |
-| 2014/04/08 | Mel Gorman <mel@csn.ul.ie> | [Disable zone_reclaim_mode by default v2](https://lore.kernel.org/patchwork/patch/454625) | NA | v2 ☑ 3.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/454625) |
-| 2015/09/21 | Mel Gorman <mgorman@techsingularity.net> | [remove zonelist cache and high-order watermark checking v4](https://lore.kernel.org/patchwork/cover/599755) | 引入分区列表缓存(zonelist cache/zlc)是为了跳过最近已知已满的区域. 这避免了昂贵的操作, 如cpuset检查、水印计算和zone_reclaim. 今天的情况不同了, zlc的复杂性更难证明. <br>1. cpuset检查是no-ops, 除非一个cpuset是活动的, 而且通常是非常便宜的.<br>2. zone_reclaim在默认情况下是禁用的, 我怀疑这是zlc想要避免的成本的主要来源. 当启用该功能时, 它将成为节点满时导致暂停的主要原因, 并且让所有其他用户都承受开销是不明智的.<br>3. 对于高阶分配请求, 水印检查的计算代价是昂贵的. 本系列的后续补丁将减少水印检查的成本.<br>4. 最重要的问题是, 在当前的实现中, THP分配失败可能会导致order-0分配的区域被填满, 并导致回退到远程节点.<br>因此这个补丁尝试删除了 zlc, 这带来了诸多好处. | v1 ☑ 4.4-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/599762), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f77cf4e4cc9d40310a7224a1a67c733aeec78836) |
-| 2016/04/20 | Dave Hansen <dave.hansen@linux.intel.com> | [OOM detection rework](https://lwn.net/Articles/668126) | 只要还存在可回收的页框, 内核就有充分的理由不启动 OOM Killer. 因此 zone_reclaimable 允许多次重新扫描可回收列表, 并在页面被释放时进行重试. 但是问题在于, 由于多种原因, 我们并不知道内核需要花费多长的时间才可以完成对这些理论上"可回收"的内存页框的实际回收动作. 一种可以预见的情况是, 在回收单个页框时, 分配器会进入无休止的重试, 而那个回收的页框也无法被用于当前的分配请求. 最终的结果是分配尝试一直无法成功, 这导致了内核被挂起, 而且还无法触发 OOM 的处理. 这个补丁更改了 OOM 检测逻辑, 并将其从 shrink_zone() 中提取出来, shrink_zone 太底层, 不适合任何高层决策, 这个决策更适合放在 __alloc_pages_slowpath(), 因为它知道已经做了多少次尝试, 以及到目前为止的进展情况, 因此更适合实现这个逻辑. 新的启发式是在 __alloc_pages_slowpath() 中调用的 should_reclaim_retry() 实现的. 它试图更有确定性, 更容易遵循. 它建立在一个假设上, 即只有当当前可回收的内存+空闲页面允许当前分配请求成功(按照__zone_watermark_ok)时, 重试才有意义, 至少对于可用分区列表中的一个区域. | v6 ☑ 4.7-rc1 | [PatchWork v5,1/11](https://lore.kernel.org/patchwork/cover/664978)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6,10/14](https://lore.kernel.org/patchwork/cover/670859))<br>*-*-*-*-*-*-*-* <br>[关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0a0337e0d1d134465778a16f5cbea95086e8e9e0) |
-| 2016/06/13 | Minchan Kim <minchan@kernel.org> | [mm: per-process reclaim](https://lore.kernel.org/patchwork/patch/688097) | 这个补丁允许用户空间主动回收进程的页面, 通过把手 "/proc/PID/reclaim" 有效地管理内存, 这样平台可以在任何时候回收任何进程. 一个有用的用例是避免在android中为了获得空闲内存而杀死进程, 这是非常糟糕的体验, 因为当我在享受游戏的同时切换电话后, 我失去了我所拥有的最好的游戏分数, 以及由于冷启动而导致的缓慢启动. 因为冷启动需要加载大量资源数据, 有些游戏需要 15~20 秒, 而成功启动只需要1~5秒. 通过使用新的管理策略来回收perproc, 我们可以大大减少冷启动(即. (171-72), 从而大大减少了应用启动. 该特性的另一个有用功能是方便切换, 这对于测试切换压力和工作负载很有用.  | v2 ☑ 3.16-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/688097) |
+
+| 2015/06/24 | Zhihui Zhang <zzhsuny@gmail.com> | [mm: rename RECLAIM_SWAP to RECLAIM_UNMAP](https://lore.kernel.org/patchwork/patch/454625) | NA | v2 ☑ 3.16-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=95bbc0c7210a7397fec1cd219f896ca95bf29e3e) |
 
 
 
+#### 4.1.1.4 node reclaim
+-------
 
-*   node reclaim
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2016/07/08 | Mel Gorman <mgorman@techsingularity.net> | [Move LRU page reclaim from zones to nodes v9](https://lore.kernel.org/patchwork/cover/696428) | 将 LRU 页面的回收从 ZONE 切换到 NODE. 当前我们关注的是[快速内存回收从 zone_reclaim() 切换到了 node_reclaim()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a5f5f91da6ad647fb0cc7fce0e17343c0d1c5a9a). | v9 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork v21](https://lore.kernel.org/patchwork/cover/696428), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a5f5f91da6ad647fb0cc7fce0e17343c0d1c5a9a) |
 | 2016/05/31 | Minchan Kim <minchan@kernel.org> | [Support non-lru page migration](https://lore.kernel.org/patchwork/patch/683233) | 支持非lru页面迁移, 主要解决zram和GPU驱动程序造成的碎片问题<br>到目前为止, 我们只允许对 LRU 页面进行迁移, 这足以生成高阶页面. 但是最近, 嵌入式系统以及终端等设备使用了大量不可移动的页面(如zram、GPU内存), 因此我们看到了一些关于小高阶分配问题的报道. 问题主要是由<br>1. zram 和 GPU 驱动造成的碎片. 在内存压力下, 它们的页面被分散到所有的页块中, 无法进行迁移, 内存规整也不能很好地工作, 所以收缩业务所有的页面, 使得系统非常慢.<br>2. 另一个问题是他们不能使用CMA内存空间, 所以当OOM kill发生时, 我可以在CMA区域看到很多空闲页面, 这不是内存效率. 我们的产品有很大的CMA内存, 虽然CMA中有很大的空闲空间, 但是过多的回收区域来分配GPU和zram页面, 很容易使系统变得很慢. 之前为了解决这个问题, 我们做了几项努力(例如, 增强压缩算法、SLUB回退到0阶页、保留内存、vmalloc等), 但如果系统中存在大量不可移动页, 则从长远来看, 它们的解决方案是无效的. 因此尝试了当前这种方案.  | v2 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/683233) |
-| 2020/07/01 | Dave Hansen <dave.hansen@linux.intel.com> | [Repair and clean up vm.zone_reclaim_mode sysctl ABI](https://lore.kernel.org/all/20200701152621.D520E62B@viggo.jf.intel.com) | 修正了 zone_reclaim 的文档, 显式声明了 RECLAIM_ZONE, 同时实现了 node_reclaim_enabled() 供其他接口使用. | v3 ☑ 5.12-rc1 | [PatchWork](https://lore.kernel.org/all/20200701152621.D520E62B@viggo.jf.intel.com) |
-| 2021/01/26 | Dave Hansen <dave.hansen@linux.intel.com> | [mm/vmscan: replace implicit RECLAIM_ZONE checks with explicit checks](https://lore.kernel.org/patchwork/cover/1266424) | 后来作为 [Migrate Pages in lieu of discard](https://lore.kernel.org/patchwork/patch/1370630) 的前几个补丁, 但是由于逻辑跟这组补丁无关, 被直接先合入. 引入 node_reclaim_mode() 替代了原来的 `node_reclaim_mode == 0` 判断条件. | v1 ☑ 5.13-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1266424), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=202e35db5e71) |
+
 
 
 ### 4.1.2 直接内存回收 direct_reclaim
