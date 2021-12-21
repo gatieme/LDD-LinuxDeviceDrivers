@@ -460,6 +460,15 @@ https://patchwork.kernel.org/project/linux-trace-devel/list/?submitter=200911&st
 
 [[for-next,01/14] tracing/OSNOISE: Do not follow tracing_cpumask](https://patchwork.kernel.org/project/linux-trace-devel/patch/20211102201156.678148671@goodmis.org/)
 
+
+## 14.6 MMIO register read/write tracing
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/11/09 | Sai Prakash Ranjan <quic_saipraka@quicinc.com> | [tracing/rwmmio/arm64: Add support to trace register reads/writes](https://patchwork.kernel.org/project/linux-arm-kernel/cover/cover.1636452784.git.quic_saipraka@quicinc.com) | MMIO register read/write tracing. | v3 ☐ | [Patchwork v3,0/3](https://patchwork.kernel.org/project/linux-arm-kernel/cover/cover.1636452784.git.quic_saipraka@quicinc.com) |
+
 # 15 kptr_restrict
 -------
 
