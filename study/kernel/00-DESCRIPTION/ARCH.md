@@ -407,6 +407,28 @@ SLS 被认为是 Spectre 漏洞的变体, 但二者的攻击范围略有不同, 
 [Linux Benchmark Suite Homepage](http://lbs.sourceforge.net)
 
 
+# 6 总线
+-------
+
+FireBox: Warehouse-Scale Computers
+[FireBox: A Hardware Building Block for 2020 Warehouse-Scale Computers](https://www.usenix.org/conference/fast14/technical-sessions/presentation/keynote)
+
+[Flash and Chips" The FireBox Warehouse-Scale Compute](https://www.fujitsu.com/us/imagesgig5/Panel4_Krste_Asanovic.pdf)
+
+
+[FireBox](https://bar.eecs.berkeley.edu/projects/firebox.html)
+
+
+The Machine:HPE Memory driven compute
+https://www.hc32.hotchips.org/assets/program/conference/day1/HotChips2020_Server_Processors_IBM_Starke_POWER10_v33.pdf
+https://www.nextplatform.com/2020/09/03/the-memory-area-network-at-the-heart-of-ibms-power10/
+
+Memory Cluster IBM
+
+VMware Project Capitola
+https://www.servethehome.com/vmware-project-capitola-enables-local-and-cluster-memory-tiering/#:~:text=First%20off%2C%20Capitola%20is%20a%20beach%20town%20just,other%20side%20of%20the%20Monterey%20bay%20from%20Capitola.
+
+https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 
 
 
