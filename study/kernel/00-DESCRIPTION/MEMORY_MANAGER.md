@@ -2301,6 +2301,19 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 
 但是, 过去几十年, 物理内存的大小翻了几番, 但 TLB 空间依然局限, 4KB大小的页面就显得捉襟见肘了. 当运行内存需求量大的程序时, 这样就存在更大的机率出现 TLB miss, 从而需要访问内存进入页表翻译. 此外, 访问更多的内存, 意味着更多的缺页中断. 这两方面, 都对程序性能有着显著的影响.
 
+
+LWN 上 Mel 写的关于 Huge Page 的连载.
+
+[Huge pages part 1 (Introduction)](https://lwn.net/Articles/374424)
+
+[Huge pages part 2: Interfaces](https://lwn.net/Articles/375096)
+
+[Huge pages part 3: Administration](https://lwn.net/Articles/376606)
+
+[Huge pages part 4: benchmarking with huge pages](https://lwn.net/Articles/378641)
+
+[Huge pages part 5: A deeper look at TLBs and costs](https://lwn.net/Articles/379748)
+
 [[v2,0/4] x86, mm: Handle large PAT bit in pud/pmd interfaces](https://lore.kernel.org/patchwork/cover/579540)
 
 [[v12,0/10] Support Write-Through mapping on x86](https://lore.kernel.org/patchwork/cover/566256/)
@@ -2323,12 +2336,31 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 如果能使用更大的页面, 则能很好地解决上述问题. 试想如果使用2MB的页(一个页相当于512个连续的4KB 页面), 则所需的 TLB 表项由原来的 512个变成1个, 这将大大提高 TLB hit 的机率; 缺页中断也由原来的512次变为1次, 这对性能的提升是不言而喻的.
 
 
-
 然而, 前面也说了 Linux 对4KB大小的页面认知是根植其中的, 想要支持更大的页面, 需要对非常多的核心的代码进行大改动, 这是不现实的. 于是, 为了支持大页面, 有了一个所谓 HUGETLB 的实现.
 
 
+它的实现是在系统启动时, 按照用户指定需求的最大大页个数, 每个页的大小. 预留如此多个数的大. 用户在程序中可以使用 **mmap()** 系统调用或共享内存的方式访问这些大页, 例子网上很多, 或者参考官方文档: [HugeTLB Pages](https://www.kernel.org/doc/html/latest/admin-guide/mm/hugetlbpage.html).
 
-它的实现是在系统启动时, 按照用户指定需求的最大大页个数, 每个页的大小. 预留如此多个数的大. 用户在程序中可以使用 **mmap()** 系统调用或共享内存的方式访问这些大页, 例子网上很多, 或者参考官方文档:[hugetlbpage.txt [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/375098) . 当然, 现在也存在一些用户态工具, 可以帮助用户更便捷地使用. 具体可参考此文章: [Huge pages part 2: Interfaces [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/375096)
+当然, 现在也存在一些用户态工具, 可以帮助用户更便捷地使用. 具体可参考此文章: [Huge pages part 2: Interfaces [LWN.net]](https://lwn.net/Articles/375096).
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2002/09/15 | Rohit Seth/Andrew Morton <akpm@digeo.com> | [hugetlb pages](https://github.com/gatieme/linux-history/commit/c9d3808fc28fc873dcf0dc95315f644997fde1d0) | 实现 ia32 的 CONFIG_HUGETLB_PAGE. | v1 ☑ 2.5.36 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/c9d3808fc28fc873dcf0dc95315f644997fde1d0) |
+| 2002/09/15 | Bill Irwin/Andrew Morton <akpm@digeo.com> | [hugetlbfs file system](https://github.com/gatieme/linux-history/commit/9f3336ab7c42d631f5ed50d73e1eea7bd9268892) | 为 hugetlb page 实现了一个小巧的  ram-backed 的文件系统. | v1 ☑ 2.5.46 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/9f3336ab7c42d631f5ed50d73e1eea7bd9268892) |
+| 2002/10/30 | Bill Irwin/Andrew Morton <akpm@digeo.com> | [hugetlbfs backing for SYSV shared memory](https://github.com/gatieme/linux-history/commit/bba2dd58c14a371b1062e585a280059fc6e9364f) | 实现 SHM_HUGETLB, 为进程的 SHEM 支持 hugetlb .<br>对于 hugetlb 接口的用户来说, 最常见的请求之一就是使用 shm 的数据库. 这个补丁导出的功能基本上相当于 tmpfs, 将调用序列添加到 ipc/shm.c, 并在 fs/hugetlbfs/inode.c 中散列出一个小的支持函数, 这样如果用户空间将一个标志传递给 shmget(), shm 段可能是 hugetlbpage 支持的. | v1 ☑ 2.5.46 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/bba2dd58c14a371b1062e585a280059fc6e9364f) |
+
+
+
+同 tmpfs 类似, 基于 hugetlbfs 创建文件后, 再进行 mmap() 映射, 就可以访问这些 huge page 了, 使用方法可参考内核源码 "tools/testing/selftests/vm" 中的示例.
+
+过去使用大页面内存主要透过 hugetlbfs 需要 mount 文件系统到某个点去, 部署起来很不方便, 我们只想要点匿名页面, 要搞的那么麻烦吗?
+新的 2.6.32 内核通过支持 MAP_HUGETLB 方式来使用内存, 避免了烦琐的 mount 操作, 对用户更友好.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2009/08/14 | Eric B Munson <ebmunson@us.ibm.com> | [Add pseudo-anonymous huge page mappings V3](https://lore.kernel.org/linux-man/cover.1250258125.git.ebmunson@us.ibm.com) | 这个补丁集为 mmap 添加了一个标志 [MAP_HUGETLB](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4e52780d41a741fb4861ae1df2413dd816ec11b1), 允许用户请求使用大页面支持映射.<br>这个映射借用[大页 shm 代码的功能](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6bfde05bf5c9682e255c6a2c669dc80f91af6296), 在内核内部挂载上创建一个文件, 并使用它近似于匿名映射 MAP_ANONYMOUS.<br>1. MAP_HUGETLB 标志是 MAP_ANONYMOUS 的修饰符, 如果两个标志都没有被预设, 它就不能工作.<br>2. 一个新的标志是必要的, 因为当前除了在 hugetlbfs 挂载上创建一个文件外, 没有其他方法可以映射到到大页.<br>3. 对于用户空间, 这个映射的行为就像匿名映射, 因为这个文件在内核之外是不可访问的. | RFC ☐ | [PatchWork 0/3](https://lore.kernel.org/linux-man/cover.1250258125.git.ebmunson@us.ibm.com) |
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
