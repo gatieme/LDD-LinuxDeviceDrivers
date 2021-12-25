@@ -2350,12 +2350,10 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 | 2002/09/15 | Bill Irwin/Andrew Morton <akpm@digeo.com> | [hugetlbfs file system](https://github.com/gatieme/linux-history/commit/9f3336ab7c42d631f5ed50d73e1eea7bd9268892) | 为 hugetlb page 实现了一个小巧的  ram-backed 的文件系统. | v1 ☑ 2.5.46 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/9f3336ab7c42d631f5ed50d73e1eea7bd9268892) |
 | 2002/10/30 | Bill Irwin/Andrew Morton <akpm@digeo.com> | [hugetlbfs backing for SYSV shared memory](https://github.com/gatieme/linux-history/commit/bba2dd58c14a371b1062e585a280059fc6e9364f) | 实现 SHM_HUGETLB, 为进程的 SHEM 支持 hugetlb .<br>对于 hugetlb 接口的用户来说, 最常见的请求之一就是使用 shm 的数据库. 这个补丁导出的功能基本上相当于 tmpfs, 将调用序列添加到 ipc/shm.c, 并在 fs/hugetlbfs/inode.c 中散列出一个小的支持函数, 这样如果用户空间将一个标志传递给 shmget(), shm 段可能是 hugetlbpage 支持的. | v1 ☑ 2.5.46 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/bba2dd58c14a371b1062e585a280059fc6e9364f) |
 
-
-
 同 tmpfs 类似, 基于 hugetlbfs 创建文件后, 再进行 mmap() 映射, 就可以访问这些 huge page 了, 使用方法可参考内核源码 "tools/testing/selftests/vm" 中的示例.
 
-过去使用大页面内存主要透过 hugetlbfs 需要 mount 文件系统到某个点去, 部署起来很不方便, 我们只想要点匿名页面, 要搞的那么麻烦吗?
-新的 2.6.32 内核通过支持 MAP_HUGETLB 方式来使用内存, 避免了烦琐的 mount 操作, 对用户更友好.
+但是每次使用大页面内存主要透过 hugetlbfs 需要 mount 文件系统到某个点去, 部署起来很不方便, 我们只想要点匿名页面, 要搞的那么麻烦吗?
+于是 2.6.32 内核通过支持 MAP_HUGETLB 方式来使用内存, 避免了烦琐的 mount 操作, 对用户更友好.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -2384,10 +2382,30 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 | 0 | [Huge pages](https://lwn.net/Kernel/Index/#Huge_pages) |
 | 1 | [Memory management/Huge pages](https://lwn.net/Kernel/Index/#Memory_management-Huge_pages) |
 
-[Transparent huge pages in 2.6.38](https://lwn.net/Articles/423584)
+
+### 7.2.1 THP
+-------
+
+2011 年 v2.6.38 期间 Andrea Arcangeli 为 linux 引入了 THP(Transparent huge page), 在应用需要 huge page 的时候, 可通过内存规整等操作, 为当前 VMA 分配一个 huge page, 因为该过程不会被应用感知到, 所以被称为 "transparent". 参见 [Transparent huge pages in 2.6.38](https://lwn.net/Articles/423584).
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2010/12/15 | Andrea Arcangeli <aarcange@redhat.com> | [Transparent Hugepage Support #33](https://lore.kernel.org/lkml/20101215051540.GP5638@random.random) | 实现透明大页. | v1 ☑ 2.6.38-rc1 | [LORE](https://lore.kernel.org/lkml/20101215051540.GP5638@random.random), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=71e3aac0724ffe8918992d76acfe3aad7d872) |
+
+1.      当发生 page fault 时, 内核将尝试使用 [do_huge_pmd_anonymous_page()](https://elixir.bootlin.com/linux/v2.6.38/source/mm/memory.c#L3305) 分配一个 huge page 来满足它. 如果分配成功, huge page 的页表就会被设置, 而该地址范围内的[任何现有的普通页面都将被释放](https://elixir.bootlin.com/linux/v2.6.38/source/mm/memory.c#L3313), 同时将 huge page 插入到进程 VMA 中. 如果没有 huge page 可用, 内核就会通过 [do_huge_pmd_wp_page_fallback()](https://elixir.bootlin.com/linux/v2.6.38/source/mm/huge_memory.c#L910) 退回到普通页面, 应用程序永远不会感知到这些差异. [commit ("71e3aac0724f thp: transparent hugepage core")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=71e3aac0724ffe8918992d76acfe3aad7d872).
+
+2.      但是分配时能够分配出 huge page 取决于物理上连续的大的内存块, 这是 Linux 内核程序员永远不能指望的. 因此在一个进程出现若干次小页面的 pge fault 之后, THP 补丁试图通过添加 "khugepaged" 内核线程来改善这种情况. 这个线程偶尔会尝试分配一个巨大的页面; 如果成功, 它会扫描内存, 寻找一个巨大的页面可以替代一堆较小的页面的位置. 因此, 可用的巨大页面应该快速放置到服务中, 最大限度地利用整个系统中的 hugepage. 内核还提供了一整套参数控制 khugepaged 线程的操作. 参见 [commit ("ba76149f47d8 thp: khugepaged")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ba76149f47d8).
+
+3.      同时引入了 defrag 功能, 控制内核是否应该积极地使用内存规整/压缩(compaction) 以使更多的 hugepage 可用.
+
+
+最早的实现只能用于匿名页面, 将 huge page 与 page cache 集成的工作尚未完成. 它也只处理一个页面大小为(2 MB) 的 PMD level 的大页. 当时 Mel Gorman 运行了一些[基准测试](https://lwn.net/Articles/423590), 在某些情况下可以提高 10% 左右. 一般来说, 结果不如 hugetlbfs 那样好, 但是 THP 更有可能被普遍的运用在生产环境中.
+
+
 
 [Transparent huge page reference counting](https://lwn.net/Articles/619738)
 
+[THP 和 mapcount 之间的恩恩怨怨](https://richardweiyang-2.gitbook.io/kernel-exploring/00-index/02-thp_mapcount)
 
 7.1 介绍的这种使用大页的方式看起来是挺怪异的, 需要用户程序做出很多修改. 而且, 内部实现中, 也需要系统预留一大部分内存. 基于此, 2.6.38 引入了一种叫[透明大页 Transparent huge pages](https://lwn.net/Articles/423584) 的实现. 如其名字所示, 这种大页的支持对用户程序来说是透明的.
 
