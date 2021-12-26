@@ -271,7 +271,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 | 2019/10/24 | NA | [sched/fair: Make sched-idle cpu selection consistent throughout 1143783 diffmboxseries](https://lore.kernel.org/patchwork/patch/1143783) | 重构了 SCHED_IDLE 时的选核逻辑, 所有的选核流程都将 avaliable_idle_cpu 和 sched_idle_cpu 同等对待 | v1 ☑ 5.4-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1143783) |
 | 2020/12/23 | NA | [sched/fair: Load balance aggressively for SCHED_IDLE CPUs](https://lkml.org/lkml/2020/1/8/112) | LOAD_BALANCE 感知 SCHED_IDLE 优化, SCHED_IDLE 的 CPU 虽然运行着进程但是在调度器看来其实也是空闲的, 应该积极地进行负载均衡 |  v1 ☑ 5.6-rc1 | [LKML](https://lkml.org/lkml/2020/1/8/112) |
 | 2021/02/22 | NA | [sched: pull tasks when CPU is about to run SCHED_IDLE tasks](https://lore.kernel.org/patchwork/patch/1382990) | 在 CPU 从 SCHED_NORMAL 进程切换到 SCHED_IDLE 任务之前, 尝试通过 load_balance 从其他核上 PULL SCHED_NORMAL 进程过来执行. | v2 | [2020/12/27 v1](https://lore.kernel.org/patchwork/patch/1356241), [2021/02/22 v2](https://lore.kernel.org/patchwork/patch/1143783) |
-| 2021/08/20 | Josh Don <joshdon@google.com> |[cgroup SCHED_IDLE support/SCHED_IDLE extensions](https://lore.kernel.org/patchwork/patch/1443542) | 1. cgroup [组支持 SCHED_IDLE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=304000390f88)<br>2. RQ 上维护了 [idle_nr_running](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a480addecc0d) 的跟踪.<br>3. 引入 [`sysctl_sched_idle_min_granularity`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=51ce83ed523b), 当 SCHED_IDLE 任务与正常任务竞争时适用, 表示 SCHED_IDLE 任务的最小抢占粒度. 这样在与普通实体竞争时, 通过对 SCHED_IDLE 的调度实体使用较小的、无伸缩性的最小抢占粒度(由 sched_slice 计算). 可以减少普通调度实体切回来的延迟, 但代价是增加了SCHED_IDLE实体的上下文切换频率. 有效地减少了普通调度实体在与 SCHED_IDLE 调度实体竞争时的轮询延迟.<br>4. 在 place_entity() 中对于 `SCHED_IDLE` 实体唤醒时得到的补偿减少到 `sysctl_sched_min_granularity`. 因此, 唤醒的 SCHED_IDLE 实体将花费更长的时间来抢占正常实体. 此更改的好处是, 降低了新唤醒的 `SCHED_IDLE` 实体在阻塞之前抢占短期运行的普通调度实体的可能性. | v1 ☑ 5.16 | [2021/06/08 v1](https://lore.kernel.org/lkml/20210608231132.32012-1-joshdon@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/7/29 LKML v2 0/2](https://lkml.org/lkml/2021/7/29/1201)<br>*-*-*-*-*-*-*-* <br>[2021/08/20 LORE v3,0/4](https://lore.kernel.org/all/20210820010403.946838-1-joshdon@google.com)<br>*-*-*-*-*-*-*-* <br>[关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=304000390f88d049c85e9a0958ac5567f38816ee) |
+| 2021/08/20 | Josh Don <joshdon@google.com> |[cgroup SCHED_IDLE support/SCHED_IDLE extensions](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=304000390f88d049c85e9a0958ac5567f38816ee) | 1. cgroup [组支持 SCHED_IDLE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=304000390f88)<br>2. RQ 上维护了 [idle_nr_running](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a480addecc0d) 的跟踪.<br>3. 引入 [`sysctl_sched_idle_min_granularity`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=51ce83ed523b), 当 SCHED_IDLE 任务与正常任务竞争时适用, 表示 SCHED_IDLE 任务的最小抢占粒度. 这样在与普通实体竞争时, 通过对 SCHED_IDLE 的调度实体使用较小的、无伸缩性的最小抢占粒度(由 sched_slice 计算). 可以减少普通调度实体切回来的延迟, 但代价是增加了SCHED_IDLE实体的上下文切换频率. 有效地减少了普通调度实体在与 SCHED_IDLE 调度实体竞争时的轮询延迟.<br>4. 在 place_entity() 中对于 `SCHED_IDLE` 实体唤醒时得到的补偿减少到 `sysctl_sched_min_granularity`. 因此, 唤醒的 SCHED_IDLE 实体将花费更长的时间来抢占正常实体. 此更改的好处是, 降低了新唤醒的 `SCHED_IDLE` 实体在阻塞之前抢占短期运行的普通调度实体的可能性. | v3 ☑ [5.15-rc1](https://kernelnewbies.org/LinuxChanges#Linux_5.15.cgroup_support_for_SCHED_IDLE) | [2021/06/08 v1](https://lore.kernel.org/lkml/20210608231132.32012-1-joshdon@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/7/29 LKML v2 0/2](https://lkml.org/lkml/2021/7/29/1201)<br>*-*-*-*-*-*-*-* <br>[2021/08/20 LORE v3,0/4](https://lore.kernel.org/all/20210820010403.946838-1-joshdon@google.com)<br>*-*-*-*-*-*-*-* <br>[关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=304000390f88d049c85e9a0958ac5567f38816ee) |
 
 
 ### 1.1.6 吭哧吭哧跑计算 SCHED\_BATCH
@@ -504,15 +504,36 @@ coscheduling 协同调度是为了解决云服务场景, 为不同用户提供�
 2.6.23 引入的 CFS 调度器对所有进程完全公平对待. 但这有个问题, 设想当前机器有２个用户, 有一个用户跑着 9个进程, 还都是 CPU 密集型进程; 另一个用户只跑着一个 X 进程, 这是交互性进程. 从 CFS 的角度看, 它将平等对待这 10 个进程, 结果导致的是跑 X 进程的用户受到不公平对待, 他只能得到约 10% 的 CPU 时间, 让他的体验相当差.
 
 
-基于此, 组调度的概念被引入[<sup>6</sup>](#refer-anchor-6). CFS 处理的不再是一个进程的概念, 而是调度实体(sched entity), 一个调度实体可以只包含一个进程, 也可以包含多个进程. 因此, 上述例子的困境可以这么解决: 分别为每个用户建立一个组, 组里放该用户所有进程, 从而保证用户间的公平性.
+基于此, [组调度](https://lwn.net/Articles/240474)的概念被引入. CFS 处理的不再是一个进程的概念, 而是调度实体(sched entity), 一个调度实体可以只包含一个进程, 也可以包含多个进程. 因此, 上述例子的困境可以这么解决: 分别为每个用户建立一个组, 组里放该用户所有进程, 从而保证用户间的公平性.
 
-该功能是基于控制组(control group, cgroup)的概念, 需要内核开启 CGROUP 的支持才可使用. 关于 CGROUP, 以后可能会写.
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2007/06/23 | Ingo Molnar <mingo@elte.hu> | [Add group awareness to CFS - v2](https://lwn.net/Articles/239619) | 实现 CFS 组调度. | v2 ☑ 2.6.23 | [LWN](https://lwn.net/Articles/239619) |
 
 
-### 2.1.2 CFS BANDWIDTH 带宽控制
+该功能是基于控制组(control group, cgroup)的概念, 需要内核开启 CGROUP 的支持才可使用.
+
+
+### 2.1.2 autogroup
 -------
 
-内核中的 `CFS BANDWIDTH Controller` 是控制每个 CGROUP 可以使用多少 CPU 时间的一种有效方式. 它可以避免某些进程消耗过多的 CPU 时间, 并确保所有需要 CPU 的进程都能拿到足够的时间.
+CFS 用户反复在社区抱怨并行 kbuild 对桌面交互性有负面影响, 因此 Linus 提出了一个想法 autogroup, 即自动创建任务组.
+[Group scheduling and alternatives](https://lwn.net/Articles/418884)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2010/12/05 | Con Kolivas <kernel@kolivas.org> | [sched: automated per session task groups](https://lwn.net/Articles/239619) | 实现 CFS 组调度. | v4 ☑ [2.6.38-rc1](https://kernelnewbies.org/2.6.38-rc1#Automatic_process_grouping_.28a.k.a._.22the_patch_that_does_wonders.22.29) | [LWN](https://lwn.net/Articles/239619), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5091faa449ee0b7d73bc296a93bca9540fc51d0a) |
+
+
+### 2.1.3 CFS BANDWIDTH 带宽控制
+-------
+
+内核中的 [`CFS BANDWIDTH Controller`](https://lwn.net/Articles/428230) 是控制每个 CGROUP 可以使用多少 CPU 时间的一种有效方式. 它可以避免某些进程消耗过多的 CPU 时间, 并确保所有需要 CPU 的进程都能拿到足够的时间.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |368685
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2010/01/05 | Paul Turner <pjt@google.com> | [CFS Hard limits - v5](https://lwn.net/Articles/368685) | 实现 CFS 组调度. | v5 ☐ | [LWN v5,0/8](https://lwn.net/Articles/368685) |
+| 2011/02/15 | Paul Turner <pjt@google.com> | [CFS Bandwidth Control: Introduction](https://lwn.net/Articles/428175) | 实现 CFS 组调度. | v2 ☑ 2.6.23 | [LWN](https://lwn.net/Articles/428175) |
 
 这个 bandwidth controller 提供了两个参数来管理针对各个 cgroup 的限制.
 
@@ -1277,6 +1298,9 @@ ARM 的 Morten Rasmussen 一直致力于ANDROID 调度器优化的:
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2016/10/14 | Vincent Guittot | [sched: Clean-ups and asymmetric cpu capacity support](https://lore.kernel.org/patchwork/cover/725608) | 调度程序目前在非对称计算能力的系统上没有做太多的工作来提高性能(读ARM big.LITTLE). 本系列主要通过对任务唤醒路径进行一些调整来改善这种情况, 这些调整主要考虑唤醒时的计算容量, 而不仅仅考虑cpu对这些系统是否空闲. 在部分使用的场景中, 这为我们提供了一致的、可能更高的吞吐量. SMP的行为和性能应该是不受影响. <br>注意这组补丁是分批合入的 | v1 ☑ 4.10-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/725608) |
 | 2021/06/03 | Valentin Schneider | [Rework CPU capacity asymmetry detection](https://lore.kernel.org/patchwork/cover/1424708) | 当前版本 asym_cpu_capacity_level 存在几个问题.<br>1. 只能支持到最低的拓扑级别, 对全局的拓扑域不可见.<br>2. 不支持 NUMA 级别的异构, 因为初始化 NUMA 级别的 sd_numa_mask 中不包含其他 NODE, 最终 sched_domain_span 是在构建调度域的时候进行的更新的.<br>这对于大多数现有的不对称设计很实用, 但是却不支持普适的性能异构架构.这可能不是最好的方法, 在一些领域可能看不到任何不对称. 这对于不合适的迁移和能量感知的安置可能会有问题. 因此, 对于受影响的平台, 它可能导致对唤醒和 CPU 选择路径的自定义更改.<br>这组补丁修改了执行非对称检测的方式, 允许将非对称拓扑级别固定在最低的拓扑级别上, 在最低的拓扑级别上, 给定调度域中的所有 CPU 都可以看到整个 CPU 容量范围. asym_cpu_capacity_level 还将跟踪那些观察到任何非对称范围的级别, 以使用 SD_ASYM_CPUCAPACITY 标志表示相应的调度域, 并为这些域启用不匹配迁移. 为了区分局部和全范围 CPU 容量不对称的调度域, 引入了新的调度域标志: SD_ASYM_CPUCAPACITY_FULL. | v7 ☑ 5.14-rc1  | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1414557)<br>*-*-*-*-*-*-*-* <br>[PatchWork v7](https://lore.kernel.org/all/20210603140627.8409-1-beata.michalska@arm.com) |
+| 2021/07/30 | Will Deacon <will@kernel.org> | [Add support for 32-bit tasks on asymmetric AArch32 systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=702f43872665) | 一些体系结构, 特别是 ARM, 配置了一些 CPU 支持传统的 32 位应用程序, 但是一些 CPU 只支持 64 位. 这组补丁增加了对 32 位程序调度的支持, 这些 32 位的程序只能在支持传统 32 位任务的 CPU 中执行. | v1 ☑ [5.15-rc1](https://kernelnewbies.org/LinuxChanges#Linux_5.15.Support_for_asymmetric_scheduling_affinity) | [PatchWork v11,00/16](https://lore.kernel.org/all/20210730112443.23245-1-will@kernel.org) |
+
+
 
 *   capacity aware wakeup
 
