@@ -386,6 +386,15 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/09/04 | Catalin Marinas <catalin.marinas@arm.com> | [arm64: Memory Tagging Extension user-space support](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) | NA | v9 ☑ 5.10-rc1 | [2019/12/11 PatchWork 00/22](https://patchwork.kernel.org/project/linux-mm/cover/20191211184027.20130-1-catalin.marinas@arm.com)<br>*-*-*-*-*-*-*-* <br>[2020/09/04 PatchWork v9,00/29](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) |
 
+#### 1.7.3.4 Linear Address Masking
+-------
+
+代码参见
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/02/05 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [Linear Address Masking enabling](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com) | [线性地址屏蔽(LAM)](https://software.intel.com/content/dam/develop/external/us/en/documents-tps/architecture-instruction-set-extensions-programming-reference.pdf) 修改应用于 64 位线性地址的检查, 允许软件将未翻译的地址位用于元数据. 手册参见 [ISE, Chapter 14](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com). 代码参见 [kas/linux.git](https://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git/log/?h=lam). | RFC ☐ | [PatchWork RFC,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com) |
+
 ## 1.8 memory policy
 -------
 
@@ -2435,8 +2444,16 @@ THP 虽然实现了, 但是依旧存在着不少问题. 在 LSFMM 2015 进行了
 ### 7.2.2 THP reference counting
 -------
 
-首先来看 THP 的引用计数的问题, 参见 [THP 和 mapcount 之间的恩恩怨怨](https://richardweiyang-2.gitbook.io/kernel-exploring/00-index/02-thp_mapcount).
+首先来看 THP 的引用计数的问题, 参见:
 
+[Transparent huge page reference counting](https://lwn.net/Articles/619738)
+
+[THP 和 mapcount 之间的恩恩怨怨](https://richardweiyang-2.gitbook.io/kernel-exploring/00-index/02-thp_mapcount).
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2014/11/05 | Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [THP refcounting redesign](https://lwn.net/Articles/619191) | NA | RFC v2 ☐ | [LORE RFC v2,00/19](http://lore.kernel.org/lkml/1415198994-15252-1-git-send-email-kirill.shutemov@linux.intel.com) |
 
 ### 7.2.3 THP allocations latencies
 -------
