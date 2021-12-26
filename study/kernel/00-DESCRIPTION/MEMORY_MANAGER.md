@@ -2420,15 +2420,9 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 | 2021/05/10 | Muchun Song <songmuchun@bytedance.com> | [Overhaul multi-page lookups for THP](https://lore.kernel.org/patchwork/cover/1337675) | 提升大量页面查找时的效率 | v4 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.12#Memory_management) | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20201112212641.27837-1-willy@infradead.org) |
 | 2021/05/10 | Ankur Arora <ankur.a.arora@oracle.com> | [Use uncached stores while clearing huge pages](https://patchwork.kernel.org/project/linux-mm/cover/20211020170305.376118-1-ankur.a.arora@oracle.com) | 本系列增加了对大页的非缓存页面清除的支持. [清除大页内存](https://patchwork.kernel.org/project/linux-mm/patch/20211020170305.376118-11-ankur.a.arora@oracle.com)时, 使用基于 [MOVNTI 指令](https://www.felixcloutier.com/x86/movnti) 的 [uncached clear page 接口](https://patchwork.kernel.org/project/linux-mm/patch/20211020170305.376118-4-ankur.a.arora@oracle.com).<br>其动机是加快大型预分配虚拟机的创建, 并支持巨大的页面.<br>支持非缓存页面清除有两种帮助:<br>1. 对于小于 LLC 大小的数据块, 未缓存的存储通常比缓存的存储慢, 而对于较大的数据块, 则更快.2. 避免用无用的零替换潜在有用的缓存行.<br>性能测试: 虚拟机创建(对于预分配 2MB 后台页面的虚拟机)在运行时有了显著的改进. | v2 ☐ | [PatchWork v2,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20211020170305.376118-1-ankur.a.arora@oracle.com) |
 
-
-
-### 7.2.2 THP allocations latencies
--------
-
-
 THP 虽然实现了, 但是依旧存在着不少问题. 在 LSFMM 2015 进行了讨论, 参见 [Improving huge page handling](https://lwn.net/Articles/636162)
 
-1.  Kirill Shutemov 首先描述了他提出的如何处理透明巨大页面的引用计数的改变, 这个补丁集在 LWN 2014 年 11 月的文章 [Transparent huge page reference counting](https://lwn.net/Articles/619738) 中有详细的描述. 该补丁的关键部分是, 它允许在 PMD (巨大页面)和 PTE (常规页面)模式下同时映射一个巨大的页面. 正如作者所言, 这是一个大的补丁集, 而且仍然存在一些错误, 所以这组补丁并没有被合入主线. 参见 [THP 和 mapcount 之间的恩恩怨怨](https://richardweiyang-2.gitbook.io/kernel-exploring/00-index/02-thp_mapcount).
+1.  Kirill Shutemov 首先描述了他提出的如何处理 THP 的引用计数的改变, 这个补丁集在 LWN 2014 年 11 月的文章 [Transparent huge page reference counting](https://lwn.net/Articles/619738) 中有详细的描述. 该补丁的关键部分是, 它允许在 PMD (巨大页面)和 PTE (常规页面)模式下同时映射一个巨大的页面. 正如作者所言, 这是一个大的补丁集, 而且仍然存在一些错误, 所以这组补丁并没有被合入主线. 参见 [THP 和 mapcount 之间的恩恩怨怨](https://richardweiyang-2.gitbook.io/kernel-exploring/00-index/02-thp_mapcount).
 
 2.  剩下的一个问题是关于部分取消巨大页面的映射. 当一个进程取消映射一个 huge page 的一部分页面时, 有多种想法可以执行这种操作.
 
@@ -2437,7 +2431,20 @@ THP 虽然实现了, 但是依旧存在着不少问题. 在 LSFMM 2015 进行了
 | 直接分割 | 将该页面拆分, 并将与释放的区域对应的单个页面返回给系统. |
 | 延迟分割 | 也可以将这个 huge page 拆解成普通页面, 但是并不释放它们, 而是内核仍然维护组成这个 huge page 的普通页面, 将它们保持在一起. 这使得 huge page 在需要时允许它快速重新构建. 但是, 这也意味着没有任何内存实际上将被释放, 同时有必要将这个 huge page 及组成它的普通页面添加到一个特殊的列表中, 如果系统遇到内存压力, 可以在该列表中真正地进行分割. |
 
-3.  最关键的问题在于, 我们分配出的 huge page 是否能带来性能的提升, 不管是处理 page fault 时分配出 huge page, 还是通过 khugepaged 合并出 huge page, 以及通过内存规整整出 huge page. 都是存在开销的. 首先在处理页面 page fault 上进行相当激进的 THP 分配尝试是否是一种良好的性能权衡. 参见 [LSF/MM TOPIC ATTEND](https://marc.info/?l=linux-mm&m=142056088232484&w=2)
+
+### 7.2.2 THP reference counting
+-------
+
+首先来看 THP 的引用计数的问题, 参见 [THP 和 mapcount 之间的恩恩怨怨](https://richardweiyang-2.gitbook.io/kernel-exploring/00-index/02-thp_mapcount).
+
+
+### 7.2.3 THP allocations latencies
+-------
+
+
+LSFMM 2015 讨论了 THP 的诸多问题, 参见 [Improving huge page handling](https://lwn.net/Articles/636162)
+
+最关键的问题在于, 我们分配出的 huge page 是否能带来性能的提升, 不管是处理 page fault 时分配出 huge page, 还是通过 khugepaged 合并出 huge page, 以及通过内存规整整出 huge page. 都是存在开销的. 首先在处理页面 page fault 上进行相当激进的 THP 分配尝试是否是一种良好的性能权衡. 参见 [LSF/MM TOPIC ATTEND](https://marc.info/?l=linux-mm&m=142056088232484&w=2)
 
     *   THP 分配增加了页面错误延迟, 因为高阶分配是出了名的昂贵. 页面分配 slowpath 现在会对 gfp_transshuge && !PF_KTHREAD 进行额外的检查, 以避免对用户页面错误进行更昂贵的同步压缩. 但即使是异步压缩也可能代价高昂.
 
@@ -2446,33 +2453,42 @@ THP 虽然实现了, 但是依旧存在着不少问题. 在 LSFMM 2015 进行了
 因此很多时候, THP 的效果可能远不如想象中那么美好. 比如 SAP 建议为他们的应用程序[禁用 THPs](https://blogs.sap.com/2014/05/22/sap-iq-and-linux-hugepagestransparent-hugepages), 以提高性能.
 
 
-#### 7.2.2.1 Outsourcing THP allocations
+#### 7.2.3.1 Improving huge page handling
 -------
+
+在 page fault 时分配 huge page 会带来较大的延迟.
 
 Vlastimil 在 [LSFMM 2015 对 THP 的讨论中](https://lwn.net/Articles/636162) 提到, 由于不可能预测在 page fault 时提供 huge page 的好处, 所以最好少做一些. 相反, 应该主要在 khugepaged 守护进程中创建透明的巨大页面, 该守护进程可以在后台查看内存使用情况和折叠页面. 这样做需要重新设计 khugepaged, 这主要是为了在其他方法失败时填充巨大的页面. 但是它扫描速度很慢, 不能确定一个进程是否会从巨大的页面中受益; 特别是, 它不知道该进程是否会花费大量时间运行. 这可能是因为这个过程大多潜伏着等待外部事件的发生, 也可能是因为它即将退出.
 
-他的方法是通过将寻找 huge page 机会的扫描工作移动到进程上下文中来改进 khugepaged. 在某些时候, 例如从系统调用返回时, 每个进程都会扫描一部分内存, 或许还会将某些页折叠成 huge page. 它会部分基于成功率自动调整自身, 但也仅仅基于一个进程运行更频繁将做更多的扫描这一事实. 因为不涉及守护进程, 所以不会有额外的唤醒; 如果一个系统完全空闲, 就不会有页面扫描. 不过在 khugepaged 中折叠页面比在 page fault 时分配 huge page 要昂贵得多.
+Vlastimil 方法是通过将寻找 huge page 机会的扫描工作移动到进程上下文中来改进 khugepaged. 在某些时候, 例如从系统调用返回时, 每个进程都会扫描一部分内存, 或许还会将某些页折叠成 huge page. 它会部分基于成功率自动调整自身, 但也仅仅基于一个进程运行更频繁将做更多的扫描这一事实. 因为不涉及守护进程, 所以不会有额外的唤醒; 如果一个系统完全空闲, 就不会有页面扫描. 不过在 khugepaged 中折叠页面比在 page fault 时分配 huge page 要昂贵得多.
 
+之前的想法太激进了, Andrea 等人有不同意见.
+
+*   Andrea 认为在 khugepaged 中折叠页面比在 page fault 时分配 huge page 要昂贵得多. 要折叠一个页面, 内核必须将所有单独的小页面迁移(复制)到包含它们的新的巨大页面, 这需要花费较多的时间. 在需要之前, 进程上下文扫描可能有地方创建 huge page, 所以最好尽可能避免折叠页面.
+
+*   Andi Kleen 认为, 在进程上下文中运行内存规整是一个糟糕的主意, 它会夺走并行性的机会. 规整扫描就应该在守护进程中完成, 这样它就可以在单独的核心上运行; 否则就会为受影响的进程创建过多的延迟.
+
+
+Andrea 建议将工作放入工作队列中.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2014/10/22 |  Alex Thorlton | [Convert khugepaged to a task_work function](https://lwn.net/Articles/634384) | 将 huge page 的折叠扫描从 khugepaged 移动到 task_work 上下文. 在这个实现中, 扫描是由 `__khugepaged_enter()` 驱动的, 它在 vma_merge、fork 和 THP page fault 的尝试等事件中被调用, 例如不是完全周期性的事件. | RFC ☐ | [LKML 0/4](https://lkml.org/lkml/2014/10/22/931) |
 | 2015/02/23 | Vlastimil Babka <vbabka@suse.cz> | [the big khugepaged redesign](https://lwn.net/Articles/634384) | 解决 huge page<br>1. 停止在 khugepaged 中预先分配大页面.<br>2. 只有在我们预期它们会成功的情况下才尝试错误分配.<br>3. 将折叠从 khugepaged 移动到 task_work 上下文.<br>4. thp 分配失败时唤醒 khugepaged. | RFC ☐ | [LORE RFC,0/6](https://lore.kernel.org/lkml/1424696322-21952-1-git-send-email-vbabka@suse.cz) |
 
+但是上面的手段还是太激进了, 因此 Vlastimil 又进一步做了调整.
+
+#### 7.2.3.2 Outsourcing THP allocations
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2015/05/11 | Vlastimil Babka <vbabka@suse.cz> | [Outsourcing page fault THP allocations to khugepaged](https://lwn.net/Articles/643891) | 由于 [the big khugepaged redesign](https://lwn.net/Articles/634384) 的改动过于激进, 社区建议被拆开重新适配, 将争议最小的一部分先提交到社区. 这组补丁不会将折叠扫描移动到 task_work 上下文, 而是专注于减少回收和压缩在 page fault 上下文中完成的工作, 通过将这一工作转移到 khugepaged. 这有两个好处: | RFC ☐ | [PatchWork RFC,0/4](https://lore.kernel.org/lkml/1431354940-30740-1-git-send-email-vbabka@suse.cz) |
+| 2015/05/11 | Vlastimil Babka <vbabka@suse.cz> | [Outsourcing page fault THP allocations to khugepaged](https://lwn.net/Articles/643891) | 由于 [the big khugepaged redesign](https://lwn.net/Articles/634384) 的改动过于激进, 社区建议被拆开重新适配, 将争议最小的一部分先提交到社区. 这组补丁不会将折叠扫描移动到 task_work 上下文, 而是专注于减少回收和压缩在 page fault 上下文中完成的工作, 通过将这一工作转移到 khugepaged. 这有两个好处:<br>1. 在 page fault 上下文中回收和规整会增加 page fault 的处理延迟, 这可能会抵消 THP 带来的收益, 特别是对于短期的分配, 这在 page fault 时都无法区分和甄别.<br>2. THP 分配在 page fault 仅使用异步规整(asynchronous compaction), 这减少了延迟, 也提高了成功的概率, 失败不会导致延迟规整(deferred compaction). khugepaged 则使用更彻底的同步规整(synchronous compaction), 不会因为 need_resched() 而中途退出, 并将正确地配合延迟规整(deferred compaction)机制. | RFC ☐ | [PatchWork RFC,0/4](https://lore.kernel.org/lkml/1431354940-30740-1-git-send-email-vbabka@suse.cz) |
+| 2015/07/02 | Vlastimil Babka <vbabka@suse.cz> | [Outsourcing compaction for THP allocations to kcompactd](https://lwn.net/Articles/650051) | 本 RFC 系列是处理 THP 分配延迟尝试的另一个演进. 与前一个版本 [Outsourcing page fault THP allocations to khugepaged](https://lwn.net/Articles/643891) 的主要区别是借用了每个节点的 kcompactd. 试着把所有东西都放进 khugepaged 太笨拙了, 而 kcompactd 可以有更多的好处. 作者用 mmtests/thpscale 对它进行了简单的测试, 但是目前效果并不明显. | RFC ☐ | [PatchWork RFC v2,0/4](https://lore.kernel.org/lkml/1435826795-13777-1-git-send-email-vbabka@suse.cz) |
 
 
 
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2015/07/02 | Vlastimil Babka <vbabka@suse.cz> | [Outsourcing compaction for THP allocations to kcompactd](https://lwn.net/Articles/650051) | NA | RFC ☐ | [PatchWork RFC v2,0/4](https://lore.kernel.org/lkml/1435826795-13777-1-git-send-email-vbabka@suse.cz) |
-
-
-
-### 7.2.3 improve THP collapse rate
+### 7.2.4 improve THP collapse rate
 -------
 
 
@@ -2487,10 +2503,11 @@ khugepaged 中如果发现当前连续的映射区间内有[超过 `khugepaged_m
 | 2015/04/14 | Ebru Akagunduz <ebru.akagunduz@gmail.com> | [mm: incorporate zero pages into transparent huge pages](https://lore.kernel.org/patchwork/cover/541944) | 通过大页允许零页面, 该补丁提高了 THP 的大页转换率. 目前, 当在 2MB 范围内存在最多数量为 khugepaged_max_ptes_none 的 pte_none ptes 时, THP可以将4kB的页面压缩为一个 THP. 这个补丁支持了将零页映射为大页. 该补丁使用一个程序进行测试, 该程序分配了800MB的内存, 并执行交错读写操作, 其模式导致大约2MB的区域首先看到读访问, 从而导致影射了较多的零 pfn 映射. 没有补丁的情况下, 只有 50% 的程序被压缩成THP, 并且百分比不会随着时间的推移而增加. 有了这个补丁, 等待10分钟后, khugepage 转换了 99% 的程序内存.  | v2 ☑ [4.1-rc1](https://kernelnewbies.org/Linux_4.1#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/541944), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ca0984caa8235762dc4e22c1c47ae6719dcc4064) |
 | 2015/09/14 | Ebru Akagunduz <ebru.akagunduz@gmail.com> | [mm: make swapin readahead to gain more THP performance](https://lore.kernel.org/patchwork/cover/597392) | 支持在对匿名页 swapin 的时候 readahead 及逆行大页的转换.<br>当 khugepaged 扫描页面时, 交换区中可能有一些页面. 有了这个补丁, 当 2MB 范围内 swap_ptes 的数目达到 max_ptes_swap 时, THP 可以将 4kB 页面转换成一个 THP 的大页.<br>这个补丁用来处理那些在被调出内存后访问大部分(但不是全部)内存的程序的. 补丁合入后, 这些程序不会在内存换出(swapout)后将内存转换成到 THPs 中, 而会在内存从交换分区读入(swapin)时进行转换.<br>测试使用了用一个测试程序, 该程序分配了 400B 的内存, 写入内存, 然后休眠. 然后强制将所有页面都换出. 之后, 测试程序通过对该内存区域进行写曹祖, 但是它在该区域的每 20 页中跳过一页.<br>1. 如果没有补丁, 系统就不能在 readahead 中交换. THP率为程序内存的65%, 不随时间变化.<br>2. 有了这个补丁, 经过10分钟的等待, khugepaged已经崩溃了程序99%的内存. | v2 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork RFC,v5,0/3](https://lore.kernel.org/patchwork/cover/597392)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v5,0/3](https://lore.kernel.org/lkml/1442259105-4420-1-git-send-email-ebru.akagunduz@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2015/9/14/610) |
 
-### 7.2.4 THP splitting/reclaim/migration
+### 7.2.5 THP splitting/reclaim/migration
 -------
 
-*   splitting
+#### 7.2.5.1 splitting
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -2502,8 +2519,8 @@ khugepaged 中如果发现当前连续的映射区间内有[超过 `khugepaged_m
 | 2020/11/19 | Zi Yan <ziy@nvidia.com> | [Split huge pages to any lower order pages and selftests.](https://patchwork.kernel.org/project/linux-mm/cover/20201119160605.1272425-1-zi.yan@sent.com) | NA | v1 ☐ | [PatchWork 0/7](https://patchwork.kernel.org/project/linux-mm/cover/20201119160605.1272425-1-zi.yan@sent.com) |
 
 
-*   splitting test
-
+#### 7.2.5.2 splitting test
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -2512,7 +2529,7 @@ khugepaged 中如果发现当前连续的映射区间内有[超过 `khugepaged_m
 
 
 
-### 7.2.5 Reduce memory bloat
+### 7.2.6 Reduce memory bloat
 -------
 
 首先是 HZP(huge zero page) 零页的支持.
@@ -2549,14 +2566,14 @@ Anthony Yznaga 接替了之前同事 Nitin Gupta 的工作, 并基于 Mel 的思
 | 2021/10/28 | Ning Zhang <ningzhang@linux.alibaba.com> | [Reclaim zero subpages of thp to avoid memory bloat](https://patchwork.kernel.org/project/linux-mm/cover/1635422215-99394-1-git-send-email-ningzhang@linux.alibaba.com) | 这个补丁集引入了一种新的机制来分割没有子页面的大页并回收这些子页面. thp 可能会导致内存膨胀, 从而导致 OOM. 通过对一些应用程序的测试, 作者发现内存膨胀的原因是一个巨大的页面可能包含一些零子页面(可能被访问或没有). 而且大多数零子页面集中在几个大页面中.<br>通过将匿名大页面添加到列表中, 以减少查找大页面的成本. 当内存回收被触发时, 列表将被遍历, 包含足够的零子页面的大页面可能会被回收. 同时, 用 ZERO_PAGE(0) 替换零子页面. 之前 Yu Zhao 已经做了一些类似的工作 [PatchWork 0/3](https://patchwork.kernel.org/project/linux-mm/cover/20210731063938.1391602-1-yuzhao@google.com), 当巨大的页面被交换或迁移来加速. 当我们在 swap 场景的正常内存收缩路径中这样做时, 以避免 OOM. 未来, 作者可能将尝试主动回收 "冷" 大页面. 为了尽可能在保持 thp 性能的同时. 使得开启了 thp 的内存使用量等于使用普通页的内存使用量. | RFC ☐ | [PatchWork RFC,0/6](https://patchwork.kernel.org/project/linux-mm/cover/1635422215-99394-1-git-send-email-ningzhang@linux.alibaba.com) |
 
 
-### 7.2.6 THP Page Cache
+### 7.2.7 THP Page Cache
 -------
 
 
 [dhowells/linux-fs: fscache-thp](https://git.kernel.org/pub/scm/linux/kernel/git/dhowells/linux-fs.git/log/?h=fscache-thp)
 
 
-#### 7.2.6.1 THP RAMFS
+#### 7.2.7.1 THP RAMFS
 -------
 
 
@@ -2566,7 +2583,7 @@ Anthony Yznaga 接替了之前同事 Nitin Gupta 的工作, 并基于 Mel 的思
 | 2013/09/23 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [Transparent huge page cache: phase 1, everything but mmap()](https://lore.kernel.org/patchwork/cover/408000) | 这组补丁集为内核页面缓存增加了巨页的支持. 为了证明建议的更改是功能性的, 为最简单的文件系统 ramfs 启用了该特性, 但是 mmap 除外, 这将在后续的合入中修复. | v4 ☐ | [PatchWork v6,00/22](https://lore.kernel.org/patchwork/cover/408000) |
 
 
-#### 7.2.6.2 THP TMPFS/SHMEM
+#### 7.2.7.2 THP TMPFS/SHMEM
 -------
 
 
@@ -2589,7 +2606,7 @@ Anthony Yznaga 接替了之前同事 Nitin Gupta 的工作, 并基于 Mel 的思
 | 2016/06/15 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [THP-enabled tmpfs/shmem (using compound pages)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1b5946a84d6eb096158e535bdb9bda06e7cdd941) | 支持 tmpfs 和 shmem page cache 的透明大页支持.<br>1. 引入了 [CONFIG_TRANSPARENT_HUGE_PAGECACHE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e496cf3d782135c1cca0d154d4b924517ff58de0).<br>2. 实现了 [shmem page cache 大页](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=800d8c63b2e989c2e349632d1648119bf5862f01)的支持.<br>3. 完成了 khugepaged [对 tmpfs/shmem page cache 页面合并](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f3f0e1d2150b2b99da2cbdfaad000089efe9bf30)的支持. | v9 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Support_for_using_Transparent_Huge_Pages_in_the_page_cache) | [PatchWork v4,00/25](https://lore.kernel.org/patchwork/patch/658181)<br>*-*-*-*-*-*-*-* <br>[PatchWork v9,00/32](https://lore.kernel.org/lkml/1465222029-45942-1-git-send-email-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v9-rebased2,00/37](https://lore.kernel.org/lkml/1466021202-61880-1-git-send-email-kirill.shutemov@linux.intel.com)  |
 
 
-#### 7.2.6.3 THP EXT4
+#### 7.2.7.3 THP EXT4
 -------
 
 
@@ -2599,7 +2616,7 @@ Anthony Yznaga 接替了之前同事 Nitin Gupta 的工作, 并基于 Mel 的思
 | 2019/07/17 | Yang Shi <yang.shi@linux.alibaba.com> | [Fix false negative of shmem vma's THP eligibility](https://lore.kernel.org/patchwork/cover/1101422) | 提交7635d9cbe832 ("mm, THP, proc: report THP qualified for each vma") 为进程的 map 引入了 THPeligible bit. 但是, 当检查 shmem vma 的资格时, `__transparent_hugepage_enabled()` 被调用以覆盖来自 shmem_huge_enabled() 的结果. 它可能导致匿名 vma 的 THP 标志覆盖 shmem 的.<br>通过使用 transhuge_vma_suitable() 来检查 vma, 来修复此问题 | v4 ☑ 5.3-rc1 | [PatchWork v4,0/2](https://lore.kernel.org/patchwork/cover/1101422) |
 | 2021/07/30 | Hugh Dickins <hughd@google.com> | [tmpfs: HUGEPAGE and MEM_LOCK fcntls and memfds](https://patchwork.kernel.org/project/linux-mm/cover/2862852d-badd-7486-3a8e-c5ea9666d6fb@google.com) | 一系列 HUGEPAGE 和 MEM_LOCK tmpfs fcntls 和 memfd_create 标志的清理和修复工作. | v1 ☐ | [PatchWork 00/16](https://patchwork.kernel.org/project/linux-mm/cover/2862852d-badd-7486-3a8e-c5ea9666d6fb@google.com) |
 
-#### 7.2.6.4 non-tmpfs filesystems
+#### 7.2.7.4 non-tmpfs filesystems
 -------
 
 Matthew Wilcox 在这方面也做了很多工作.
@@ -2617,7 +2634,7 @@ Matthew Wilcox 在这方面也做了很多工作.
 | 2020/10/29 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Transparent Hugepages for non-tmpfs filesystems](https://patchwork.kernel.org/project/linux-mm/cover/2862852d-badd-7486-3a8e-c5ea9666d6fb@google.com) | 一系列 HUGEPAGE 和 MEM_LOCK tmpfs fcntls 和 memfd_create 标志的清理和修复工作. | v1 ☐ | [PatchWork 00/16](https://patchwork.kernel.org/project/linux-mm/cover/20201029193405.29125-1-willy@infradead.org) |
 
 
-### 7.2.7 khugepaged
+### 7.2.8 khugepaged
 -------
 
 khugepaged 是透明巨页的守护进程, 它会被定时唤醒, 并根据配置尝试将 page_size(比如 4K) 大小的普通 page 转成巨页, 减少 TLB 压力, 提高内存使用效率.
@@ -2663,7 +2680,7 @@ khugepaged 处理流程
 | 2015/09/14 | Ebru Akagunduz <ebru.akagunduz@gmail.com> | [mm: add tracepoint for scanning pages](https://lkml.org/lkml/2015/9/14/611) | [mm: make swapin readahead to gain more THP performance](https://lore.kernel.org/lkml/1442259105-4420-1-git-send-email-ebru.akagunduz@gmail.com) 系列的其中一个补丁, 为 khuagepaged 引入了 tracepoint 跟踪点. 用 scan_result 标记了 khugepaged 扫描的结果. | v5 ☑ 4.5-rc1 | [PatchWork RFC,v5,0/3](https://lore.kernel.org/lkml/1442259105-4420-2-git-send-email-ebru.akagunduz@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2015/9/14/611)<br>*-*-*-*-*-*-*-* <br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7d2eba0557c18f7522b98befed98799990dd4fdb) |
 | 2011/01/13 | Peter Xu <peterx@redhat.com> | [mm/khugepaged: Detecting uffd-wp vma more efficiently](https://patchwork.kernel.org/project/linux-mm/patch/20210922175156.130228-1-peterx@redhat.com) | 实现了一个 khugepaged 的内核线程, 用来完成将标准的小页面合并成大页的操作. | ☑ 2.6.38-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ba76149f47d8c939efa0acc07a191237af900471) |
 
-### 7.2.8 优化 struct page 的内存占用
+### 7.2.9 优化 struct page 的内存占用
 --------
 
 *   DMEMFS
@@ -3758,6 +3775,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2021/10/16 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon/core: Optimize kdamod.%d thread creation code](https://patchwork.kernel.org/project/linux-mm/patch/20211016165914.96049-1-xhao@linux.alibaba.com) | 当 ctx->adaptive_targets 列表为空, 无需创建并调用kdamond. 只有当 ctx->adaptive_targets 列表不为空, 且 ctx->kdamond 指针为 NULL 时, 才调用__damon_start函数. | v1 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211016165616.95849-1-xhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211016165914.96049-1-xhao@linux.alibaba.com) |
 | 2021/10/21 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon/dbgfs: Optimize target_ids interface write operation](https://patchwork.kernel.org/project/linux-mm/patch/bc341f48b5558f6816dcef22eca4f4a590efdc67.1634834628.git.xhao@linux.alibaba.com) | NA | v2 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211021085611.81211-1-xhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/bc341f48b5558f6816dcef22eca4f4a590efdc67.1634834628.git.xhao@linux.alibaba.com) |
 | 2021/10/27 | Changbin Du <changbin.du@gmail.com> | [mm/damon: simplify stop mechanism](https://patchwork.kernel.org/project/linux-mm/patch/20211027130517.4404-1-changbin.du@gmail.com) | NA | v2 ☐ | [PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211027130517.4404-1-changbin.du@gmail.com) |
+| 2021/12/21 | Changbin Du <changbin.du@gmail.com> | [Add a new scheme to support demotion on tiered memory system](https://patchwork.kernel.org/project/linux-mm/cover/cover.1640077468.git.baolin.wang@linux.alibaba.com) | 现在, 在具有不同内存类型的分级内存系统上, shrink_page_list() 中的回收路径已经支持将页面降级以减慢内存节点的速度, 而不是丢弃页面. 然而, 此时快速内存节点的内存水印已经紧张, 这将增加页面降级期间的内存分配延迟. 因此, 从用户空间主动降格冷页面的新方法将更有帮助. 我们可以依靠用户空间中的 DAMON 来帮助监控快速内存节点上的冷内存, 并主动降级冷页面来降低内存节点的速度, 以保持快速内存节点处于健康状态. 这个补丁集引入了一个名为 DAMOS_DEMOTE 的新模式来支持这个特性. | v2 ☐ | [PatchWork 0/2](https://patchwork.kernel.org/project/linux-mm/cover/cover.1640077468.git.baolin.wang@linux.alibaba.com) |
 
 
 ### 13.4.5 vmstat
