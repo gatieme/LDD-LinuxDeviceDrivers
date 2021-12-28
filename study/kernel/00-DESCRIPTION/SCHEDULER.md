@@ -957,6 +957,8 @@ idle balance 中执行 update_blocked_average 是很费时费力的, 可以做�
 - [x] 2. select_task_rq WF_TTWU: waker 为 wakee 选择一个合适的 CPU 供其运行.
 
 
+[深入理解 Linux 内核之进程唤醒](https://blog.csdn.net/21cnbao/article/details/119881140)
+
 ### 4.8.1 Optimize TTWU(try_to_wake_up)
 -------
 

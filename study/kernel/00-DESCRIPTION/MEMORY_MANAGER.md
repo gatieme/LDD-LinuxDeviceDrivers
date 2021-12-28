@@ -264,9 +264,9 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 -------
 
 
-[LWN：利用page folio来明确内存操作！](https://blog.csdn.net/Linux_Everything/article/details/115388078)
+[LWN: 利用page folio来明确内存操作！](https://blog.csdn.net/Linux_Everything/article/details/115388078)
 
-[带有 "memory folios" 的 Linux：编译内核时性能提升了 7%](https://www.heikewan.com/item/27509944)
+[带有 "memory folios" 的 Linux: 编译内核时性能提升了 7%](https://www.heikewan.com/item/27509944)
 
 
 最终该特性与 5.16 合入, [Memory Folios Merged For Linux 5.16](https://www.phoronix.com/scan.php?page=news_item&px=Memory-Folios-Lands-Linux-5.16), 代码仓库 [willy/pagecache.git](http://git.infradead.org/users/willy/pagecache.git), 合入链接 [GIT,PULL Memory folios for v5.1](https://patchwork.kernel.org/project/linux-mm/patch/YX4RkYNNZtO9WL0L@casper.infradead.org), [Merge tag 'folio-5.16' of git://git.infradead.org/users/willy/pagecache](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49f8275c7d9247cf1dd4440fc8162f784252c849)
@@ -372,7 +372,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 [Memory Tagging Extension (MTE) 简介(一)](https://blog.csdn.net/weixin_47569031/article/details/114694733)
 
-[LWN：Arm64的内存标记扩展功能！](https://blog.csdn.net/Linux_Everything/article/details/109396397)
+[LWN: Arm64的内存标记扩展功能！](https://blog.csdn.net/Linux_Everything/article/details/109396397)
 
 
 MTE(Memory Tag) 是 ARMV8.5 增加一个硬件特性, 主要用于内存安全. 通过硬件 Arch64 MTE 和 compiler 辅助, 可以增加 64bit 进程的内存安全.
@@ -447,7 +447,7 @@ bootmem 的主要缺点在于如何初始化位图. 要创建此位图, 必须�
 随着时间的推移, 对内存的检测已经从简单地询问 BIOS 有关扩展内存块的大小发展为处理更复杂的拓扑关系, 譬如 tables, pieces , banks 和 clusters 等. 特别地, 内核对 Power64 架构的支持也已经准备就绪, 同时还引入了逻辑内存块分配器(Logical Memory Block allocator, 下文简称 LMB)的概念. 对于 LMB, 其管理的内存区域通过两个数组来标识, 第一个数组描述系统中可用的连续的物理存储区域, 而第二个数组用于跟踪这些区域的分配情况. 在内核整合 PowerPC 的 32 位和 64 位代码过程中, LMB 分配器被 32 位 的 PowerPC 架构所采纳. 后来它又被 SPARC 架构使用. 最终, 所有的体系架构都开始使用 LMB, 现在它被叫做 memblock.
 
 
-memblock 分配器提供了两个最基本原语, 其他更复杂的 API 内部都会调用它们： 一个是 memblock_add(), 用于发现并注册一个可用的物理内存范围, 还有一个是 memblock_reserve() 用于申请某段内存范围并将其标记为已使用. 这两个 API 内部都会调用同一个函数 memblock_add_range(), 由该函数将相关内存区域分别添加到前面介绍的两个数组中的一个, 从而参与管理.
+memblock 分配器提供了两个最基本原语, 其他更复杂的 API 内部都会调用它们:  一个是 memblock_add(), 用于发现并注册一个可用的物理内存范围, 还有一个是 memblock_reserve() 用于申请某段内存范围并将其标记为已使用. 这两个 API 内部都会调用同一个函数 memblock_add_range(), 由该函数将相关内存区域分别添加到前面介绍的两个数组中的一个, 从而参与管理.
 
 memblock 的内存占用是非常小的, 它采用静态数组的方式, 数组的大小确保至少可以支持系统最开始运行时的内存需要(包括执行基本的对内存区域的注册和分配动作). 如果运行过程中出现数组大小不够用的情况, 则 memblock 处理的方法很简单, 就是直接将数组的大小增加一倍. 当然这么做有一个潜在的假设, 就是, 在扩大数组时, 总有足够的内存存在.
 
@@ -1811,7 +1811,7 @@ Johannes Weiner 认为这种经验公式过于简单且不够灵活, 为此他�
 
 2. 将一个非活跃列表中槽位为 N 位置的页面(移向列表尾部并)释放需要至少N个非活动页面访问.
 
-结合这些：
+结合这些:
 
 从宏观时间轴来看, eviction 过程处理的页面数量与 activation 过程处理的页数量的和等于不活跃链表的长度 NR_INACTIVE. 即要将新加入不活跃链表的页面释放, 需要移动 NR_INACTIVE 个页面.
 
@@ -1973,7 +1973,7 @@ v2.5 的时候引入了 shrink 机制, 并提供了 API 统一了各个模块的
 ### 4.5.1 [Proactively reclaiming idle memory](https://lwn.net/Articles/787611)
 -------
 
-[LWN：主动回收较少使用的内存页面](https://blog.csdn.net/Linux_Everything/article/details/96416633)
+[LWN: 主动回收较少使用的内存页面](https://blog.csdn.net/Linux_Everything/article/details/96416633)
 
 [[RFC,-V6,0/6] NUMA balancing: optimize memory placement for memory tiering system](https://lore.kernel.org/patchwork/cover/1393431)
 
@@ -2330,9 +2330,10 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2007/10/04 | Christoph Lameter <clameter@sgi.com> | [Virtual Compound Page Support V2](https://lore.kernel.org/patchwork/cover/93090) | NA | ☑ 4.11-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/93090) |
 | 2017/01/26 | Matthew Wilcox <willy@infradead.org><br>Dave Jiang <dave.jiang@intel.com> | [Support for transparent PUD pages](https://lwn.net/Articles/669232) | NA | ☑ 4.11-rc1 | [PatchWork RFC](https://patchwork.kernel.org/project/linux-nvdimm/patch/148545059381.17912.8602162635537598445.stgit@djiang5-desk3.ch.intel.com) |
 | 2021/07/30 | Hugh Dickins <hughd@google.com> | [tmpfs: HUGEPAGE and MEM_LOCK fcntls and memfds](https://lwn.net/Articles/669232) | NA  | ☑ 4.11-rc1 | [PatchWork 00/16](https://patchwork.kernel.org/project/linux-mm/cover/2862852d-badd-7486-3a8e-c5ea9666d6fb@google.com) |
+
+
 
 
 ## 7.1 标准大页 HUGETLB 支持
@@ -2453,7 +2454,7 @@ THP 虽然实现了, 但是依旧存在着不少问题. 在 LSFMM 2015 进行了
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2014/11/05 | Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [THP refcounting redesign](https://lwn.net/Articles/619191) | NA | RFC v2 ☐ | [LORE RFC v2,00/19](http://lore.kernel.org/lkml/1415198994-15252-1-git-send-email-kirill.shutemov@linux.intel.com) |
+| 2015/10/06 | Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [THP refcounting redesign](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ddc58f27f9ee) | NA | v12 ☑ 4.5-rc1 | [LWN RFC 00/10](https://lwn.net/Articles/601781)<br>*-*-*-*-*-*-*-* <br>[LORE RFC v2,00/19](https://lore.kernel.org/lkml/1415198994-15252-1-git-send-email-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE RFC v12,00/37](https://lore.kernel.org/lkml/1444145044-72349-1-git-send-email-kirill.shutemov@linux.intel.com) |
 
 ### 7.2.3 THP allocations latencies
 -------
@@ -2586,6 +2587,15 @@ Anthony Yznaga 接替了之前同事 Nitin Gupta 的工作, 并基于 Mel 的思
 ### 7.2.7 THP Page Cache
 -------
 
+参见 [Linux 中的 Memory Compaction [三] - THP](https://zhuanlan.zhihu.com/p/117239320)
+
+早期的 THP 还只支持匿名页(Anonymous Pages), 而不支持 Page Cache, 这是因为:
+
+1. 匿名页(Anonymous Pages)通常只能通过 [mmap 映射](https://zhuanlan.zhihu.com/p/71517406)访问, 而 Page Cache 还可以通过直接调用 read() 和 write() 访问, huge page 区别于 normal page 的体现就是少了一级(或者几级)页表转换, 不通过映射访问的话, 对 huge page 的使用就比较困难.
+
+2.  如果使用 THP 的话, 需要文件本身足够大, 才能充分利用 huge page 带来的好处, 而现实中大部分的文件都是比较小的, 参见 [Transparent huge pages in the page cache](https://lwn.net/Articles/686690).
+
+不过在某些场景下, 让 THP 支持 page cache 的需求还是存在的.
 
 [dhowells/linux-fs: fscache-thp](https://git.kernel.org/pub/scm/linux/kernel/git/dhowells/linux-fs.git/log/?h=fscache-thp)
 
@@ -2597,18 +2607,20 @@ Anthony Yznaga 接替了之前同事 Nitin Gupta 的工作, 并基于 Mel 的思
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2013/05/12 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [Transparent huge page cache](https://lore.kernel.org/patchwork/cover/378803) | 这组补丁集为内核页面缓存增加了巨页的支持. 为了证明建议的更改是功能性的, 为最简单的文件系统 ramfs 启用了该特性. 每个 THP 在页面缓存基数树中由 HPAGE_PMD_NR(x86-64 上的 512)条目表示: 一个条目用于首页, HPAGE_PMD_NR-1条目用于尾页. 可以通过三种方式将大型页面添加到页面缓存:<br>1. 向文件或页面写入;<br>2. 从稀疏文件中读取;<br>3. 稀疏文件上触发 page_fault.<br>当然可能存在第三种方法可能是折叠小页面, 但它超出了最初的实现范围. | v4 ☐ | [PatchWork v4,00/39](https://lore.kernel.org/patchwork/cover/378803) |
-| 2013/09/23 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [Transparent huge page cache: phase 1, everything but mmap()](https://lore.kernel.org/patchwork/cover/408000) | 这组补丁集为内核页面缓存增加了巨页的支持. 为了证明建议的更改是功能性的, 为最简单的文件系统 ramfs 启用了该特性, 但是 mmap 除外, 这将在后续的合入中修复. | v4 ☐ | [PatchWork v6,00/22](https://lore.kernel.org/patchwork/cover/408000) |
+| 2013/09/23 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [Transparent huge page cache: phase 1, everything but mmap()](https://lore.kernel.org/patchwork/cover/408000) | 这组补丁集为内核页面缓存增加了巨页的支持. 为了证明建议的更改是功能性的, 为最简单的文件系统 ramfs 启用了该特性, 但是 mmap 除外, 这将在后续的合入中修复. | v6 ☐ | [PatchWork v6,00/22](https://lore.kernel.org/patchwork/cover/408000) |
 
 
 #### 7.2.7.2 THP TMPFS/SHMEM
 -------
 
 
-社区不少开发者在做 (TMPFS) Page Cache 的 THP 支持. 参见 [Two transparent huge page cache implementations](https://lwn.net/Articles/684300) 所述:
+随后社区不少开发者在做 (TMPFS) Page Cache 的 THP 支持. 参见 [Two transparent huge page cache implementations](https://lwn.net/Articles/684300) 所述:
 
 1.  一个解决方案是 Kirill Shutemov 提出的, 他完成了 THP 启用 tmpfs 补丁集. Kirill 的工作基于社区已有的[复合页面 compound pages](https://lwn.net/Articles/619514), 这是一种相当精细的机制, 可以将单个内存页面绑定到一个更大的页面上. 作者个人仓库 [`kas/linux.git`](https://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git).
 
 2.  另一个竞争者是由 Hugh Dickins 实现的团队页面(team pages)方案. "团队页面"可以被认为是一种新的、更轻量级的页面分组方式. 它的工作有一个优势, 据作者所言, 这个方案已经在谷歌的产品部署了一年多, 效果和稳定性都有保障.
+
+社区开发者争相选择 tmpfs 入手是因为作为一个文件系统, 它很特殊, 从某种意义上说, 它不算一个 "货真价实" 的文件系统. 但它这种模棱两可的特性正好是一个绝佳的过渡, 实现了 THP 对 tmpfs 的支持之后, 可以进一步[推广到 ext4 这种标准的磁盘文件系统](https://lwn.net/Articles/718102)中去, 但......, 还很多问题要解决, 比如磁盘文件系统的 readahead 机制, [预读窗口通常是 128KB](https://zhuanlan.zhihu.com/p/71217136), 这远小于一个 huge page 的大小. 参见 LSFMM 2017 的报道 [Huge pages in the ext4 filesystem](https://lwn.net/Articles/718102)
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -2721,6 +2733,13 @@ khugepaged 处理流程
 | 2021/10/18 | Muchun Song <songmuchun@bytedance.com> | [Free the 2nd vmemmap page associated with each HugeTLB page](https://lore.kernel.org/patchwork/cover/1459641) | NA  | v2 ☐ | [2021/07/14 PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20210714091800.42645-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/18 PatchWork v6,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20211018102043.78685-1-songmuchun@bytedance.com) |
 
 
+## 7.3 复合页 Compound Page
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2003/02/05 | Andrew Morton <akpm@digeo.com> | [Infrastructure for correct hugepage refcounting](https://github.com/gatieme/linux-history/commit/eefb08ee7da81e1548ffd5b664682dc5b229ddc2) | 实现了复合页(Compound Page), 如果用户的地址在一个大页面中, 设置页面的 refcount 是一个有歧义的事情, 我们应该设置的是组成这个大页的 4K 普通页, 而不是高阶分配单元的头页. 为了方便处理, 实现了一种处理高阶页面的通用方式:<br>1. 高阶页面称为 "复合页面", 复合页面的第一个 (控制) 4k 页面称为 "head" 页面, 剩余页面为尾页.<br>2. 所有复合页面都有 PG_compound 集合, 所有页面都有自己的 lru, 尾页面都指向头页面.<br>3. 紧接着就完成了 [convert hugetlb code to use compound pages](https://github.com/gatieme/linux-history/commit/b3a656b6d36622e628974bad5cf19c006c395efe) | v1 ☑ 2.5.60~33 | [COMMIT](https://github.com/gatieme/linux-history/commit/eefb08ee7da81e1548ffd5b664682dc5b229ddc2) |
+| 2007/10/04 | Christoph Lameter <clameter@sgi.com> | [Virtual Compound Page Support V2](https://lore.kernel.org/patchwork/cover/93090) | NA | ☑ 4.11-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/93090) |
 
 
 # 8 进程虚拟地址空间(VMA)
@@ -2847,7 +2866,7 @@ https://events.static.linuxfound.org/sites/events/files/slides/mm.pdf
 ## 8.3 反向映射 RMAP(Reverse Mapping)
 -------
 
-[郭健： Linux内存逆向映射(reverse mapping) 技术的前世今生](https://blog.51cto.com/u_15015138/2557286)
+[郭健:  Linux内存逆向映射(reverse mapping) 技术的前世今生](https://blog.51cto.com/u_15015138/2557286)
 
 [Reverse-Mapping VM Performance](https://www.usenix.org/conference/2003-linux-kernel-developers-summit/presentation/reverse-mapping-vm-performance)
 
@@ -2865,7 +2884,7 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 
 那内核在哪些路径下需要进行反向映射呢?
 
-反向映射的典型应用场景：
+反向映射的典型应用场景:
 
 1.  kswapd 进行页面回收时, 需要断开所有映射了该匿名页面的PTE表项;
 
@@ -2929,7 +2948,7 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 2.  即使一开始就没有在父子进程之间共享的页面, 当首次访问的时候(无论是父进程还是子进程), 通过 do_anonymous_page 函数分配的 page frame 也是同样的指向一个 anon_vma.
 
 
-在有些网路服务器中, 系统非常依赖fork, 某个服务程序可能会fork巨大数量的子进程来处理服务请求, 在这种情况下, 系统性能严重下降. Rik van Riel给出了一个具体的示例：系统中有1000进程, 都是通过fork生成的, 每个进程的VMA有 1000个匿名页. 根据目前的软件架构, anon_vma链表中会有1000个vma 的节点, 而系统中有一百万个匿名页面属于同一个anon_vma.
+在有些网路服务器中, 系统非常依赖fork, 某个服务程序可能会fork巨大数量的子进程来处理服务请求, 在这种情况下, 系统性能严重下降. Rik van Riel给出了一个具体的示例: 系统中有1000进程, 都是通过fork生成的, 每个进程的VMA有 1000个匿名页. 根据目前的软件架构, anon_vma链表中会有1000个vma 的节点, 而系统中有一百万个匿名页面属于同一个anon_vma.
 
 
 这可能导致这样的系统 : 一个 CPU 遍历 page_referenced_one 中的 1000 个进程的页表, 而其他所有 CPU 都被 anon_vma 锁卡住. 这将导致像 AIM7 这样的基准测试出现灾难性的故障, 在那里进程的总数可能达到数万个. 实际工作量仍然比AIM7少10倍, 但它们正在迎头赶上.
@@ -3739,7 +3758,7 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 
 [linux data access monitor (DAMON)](https://blog.csdn.net/zqh1630/article/details/109954910)
 
-[LWN：用DAMON来优化memory-management!](https://blog.csdn.net/Linux_Everything/article/details/104707923)
+[LWN: 用DAMON来优化memory-management!](https://blog.csdn.net/Linux_Everything/article/details/104707923)
 
 对指定的程序进行内存相关优化, 了解业务给定工作负载的数据访问模式至关重要. 但是, 从庞大和复杂的工作量中手动提取此类模式非常详尽. 更糟糕的是, 现有的内存访问分析工具会为不必要的详细分析结果带来不可接受的高开销.
 
@@ -3847,7 +3866,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 
 值得一提的是, 在匹配相同页面时, 一种常规的算法是对页面进行哈希, 放入哈希列表, 用哈希值来进行匹配. 最开始 KSM 确定是用这种方法, 不过 VMWare 公司拥有跟该做法很相近的算法专利, 所以后来采用了另一种算法, 用红黑树代替哈希表, 把页面内容当成一个字符串来做内容比对, 以代替哈希比对. 由于在红黑树中也是以该"字符串值"大小作为键, 因此查找两个匹配的页面速度并不慢, 因为大部分比较只要比较开始若干位即可. 关于算法细节, 感兴趣者可以参考这两篇文章:
 
-1.  [Linux内存管理： Linux Kernel Shared Memory 剖析 Linux 内核中的内存去耦合](https://www.cnblogs.com/ajian005/archive/2012/12/18/2841108.html).
+1.  [Linux内存管理:  Linux Kernel Shared Memory 剖析 Linux 内核中的内存去耦合](https://www.cnblogs.com/ajian005/archive/2012/12/18/2841108.html).
 
 2.  [KSM tries again](https://lwn.net/Articles/330589)
 

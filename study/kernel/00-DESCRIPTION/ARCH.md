@@ -94,6 +94,10 @@ blogexcerpt: 虚拟化 & KVM 子系统
 ### 1.4.1 hybrid CPUs
 -------
 
+
+### 1.4.1.1 架构支持
+-------
+
 Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的异构(或者混合架构)处理器架构 [Alder Lake](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures), 与 ARM 的 big.LITTLE 以及 DynamIQ 架构, 包含了基于 Golden Cove 微架构的性能核(P-core/Performance cores)以及基于新的 Gracemont 架构的能效核(E-core/Efficiency cores). P-core 优先用于需要低延迟的单线程任务, 而 E-core 在功率有限或多线程情景方面更好.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -109,7 +113,15 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 | 2021/11/06 | Ricardo Neri <ricardo.neri-calderon-AT-linux.intel.com> | [Thermal: Introduce the Hardware Feedback Interface for thermal and performance management](https://lwn.net/Articles/875296) | 支持 Intel HFI.<br>英特尔硬件反馈接口(HFI) 提供系统中每个 CPU 的性能(performance)和能效(Energy efficiency)的信息. 它使用一个在硬件和操作系统之间共享的表. 该表的内容可能由于系统运行条件的变化(如达到热极限)或外部因素的作用(如热设计功率的变化)而更新.<br>HFI 提供的信息被指定为相对于系统中其他 cpu 的数字、单元较少的能力. 这些功能的范围为 [0-255], 其中更高的数字表示更高的功能. 如果 CPU 的性能效率或能量能力效率为 0, 硬件建议分别出于性能、能量效率或热原因, 不要在该 CPU 上调度任何任务.<br>内核或用户空间可以使用来自 HFI 的信息来修改任务放置或调整功率限制. 当前这个补丁集中于用户空间. 热通知框架(thermal notification framework)被扩展以支持 CPU capacity 的更新. | v1 ☐ | [LWN](https://lwn.net/Articles/875296)<br>*-*-*-*-*-*-*-* <br>[Patchwork](https://patchwork.kernel.org/project/linux-pm/patch/20211119051801.1432724-1-srinivas.pandruvada@linux.intel.com) |
 
 
-性能评测
+#### 1.4.1.2 编译器支持
+-------
+
+
+[Intel Updates Alder Lake Tuning For GCC, Reaffirms No Official AVX-512](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Alder-Lake-Tuning-GCC)
+
+
+#### 1.4.1.3 性能评测
+-------
 
 [Intel Core I9-12900K VS I5-12600K](https://openbenchmarking.org/vs/Processor/Intel%20Core%20i5-12600K,Intel%20Core%20i9-12900K)
 
@@ -121,17 +133,29 @@ Intel Alder Lake CPU 支持 AVX 512
 
 [Intel Core i9 12900K "Alder Lake" AVX-512 On Linux](https://www.phoronix.com/scan.php?page=article&item=alder-lake-avx512&num=1)
 
-编译器支持
-
-[Intel Updates Alder Lake Tuning For GCC, Reaffirms No Official AVX-512](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Alder-Lake-Tuning-GCC)
-
-调度器优化
+#### 1.4.1.4 调度器优化
+-------
 
 为了更好的发挥这种混合架构的优势, Intel 提供了一项名为 [Thread Director 的技术](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/2), 专利分析 [The Alder Lake hardware scheduler – A brief overview](https://coreteks.tech/articles/index.php/2021/07/02/the-alder-lake-hardware-scheduler-a-brief-overview/)
 
 1.  首席按通过机器学习算法对进程在 P-core/E-core 的性能和功耗进行分析和建模, 识别进程特征, 从而可以预测出不同类型进程或者进程某段时期在 P/E core 上的能效关系.
 
 2.  硬件将进程的运行能效换算后, 直接填写到内存中. 当进程在 P/E core 上运行时负责某种规则时(比如进程行为特征发生变化, 即能效发生变化), 直接通知 OS/Kernel 调度器进行决策, 以达到最好的能效.
+
+
+#### 1.4.1.5 理论研究
+-------
+
+2012 年 Intel 发布了一篇关于大小核的论文 [Scheduling Heterogeneous Multi-Cores through Performance Impact Estimation (PIE)](http://www.jaleels.org/ajaleel/publications/isca2012-PIE.pdf). 论文中小核使用了 In-Order 的微架构, 大核则使用了 Out-Order 的微架构, 传统的想法都是计算密集型(compute-intensive)的进程跑到大核上, 访存密集型(memory-intensive)的进程跑到小核上去. 但是论文中提出了不一样的想法. 因为内存访问的密集程序并不是一个能反应进程的负载对 CPU 需求的好指标.
+
+1.  如果应用的指令流拥有较高水平的 ILP, 那么它在 In-Order 的小核上, 也能获得很好的性能.
+
+2.  如果应用有较大的 MLP(访存的并发) 以及动态的 ILP, 那么它在 Out-Order 的大核上, 才能获得很好的性能.
+
+因此在大小核上应该分析和利用进程的 ILP/MLP 等特征, 这样才能获得更好的性能.
+
+这应该是 Intel 关于大小核混合架构(single-ISA heterogeneous multi-cores)最早的研究, 此后 Intel 发表了陆续发表了关于大小核混合架构的多项研究.
+
 
 
 ## 1.5 RAPL
