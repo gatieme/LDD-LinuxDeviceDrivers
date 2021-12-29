@@ -2455,6 +2455,7 @@ THP 虽然实现了, 但是依旧存在着不少问题. 在 LSFMM 2015 进行了
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/10/06 | Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [THP refcounting redesign](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ddc58f27f9ee) | NA | v12 ☑ 4.5-rc1 | [LWN RFC 00/10](https://lwn.net/Articles/601781)<br>*-*-*-*-*-*-*-* <br>[LORE RFC v2,00/19](https://lore.kernel.org/lkml/1415198994-15252-1-git-send-email-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE RFC v12,00/37](https://lore.kernel.org/lkml/1444145044-72349-1-git-send-email-kirill.shutemov@linux.intel.com) |
+| 2016/05/06 | Andrea Arcangeli <aarcange@redhat.com> | [mm: thp: mapcount updates](https://lore.kernel.org/all/1462547040-1737-1-git-send-email-aarcange@redhat.com) | NA | v1 ☑ 4.6 | [LORE 0/3](https://lore.kernel.org/all/1462547040-1737-1-git-send-email-aarcange@redhat.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6d0a07edd17c) |
 
 ### 7.2.3 THP allocations latencies
 -------
