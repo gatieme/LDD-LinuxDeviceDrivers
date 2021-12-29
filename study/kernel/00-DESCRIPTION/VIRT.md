@@ -150,8 +150,16 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 | 2021/11/11 | Chao Peng <chao.p.peng@linux.intel.com> | [KVM: mm: fd-based approach for supporting KVM guest private memory](https://patchwork.kernel.org/project/linux-mm/cover/20211111141352.26311-1-chao.p.peng@linux.intel.com) | NA | RFC ☐ | [PatchWork RFC,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211111141352.26311-1-chao.p.peng@linux.intel.com) |
 
 
-相关的文章介绍: [47].
 
+# 6 Guest page hinting
+-------
+
+[Guest page hinting](https://lwn.net/Articles/198380)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/03/06 | Nitesh Narayan Lal <nitesh@redhat.com> | [mm: Support for page hinting](https://lkml.org/lkml/2019/7/10/742) | NA | v11 ☐  | [LWN RFC v9,0/6](https://lwn.net/Articles/782470), [LKML v11,0/2](https://lkml.org/lkml/2019/7/10/742) |
+| 2019/07/24 | Alexander Duyck <alexander.duyck-AT-gmail.com> | [mm / virtio: Provide support for page hinting](https://lwn.net/Articles/794540) | NA | v2 ☐ | [LKML v2,0/5](https://lwn.net/Articles/794540) |
 
 
 <br>
