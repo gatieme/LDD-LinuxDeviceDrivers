@@ -2340,8 +2340,8 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 -------
 
 
-**(2.6前引入)**
-
+### 7.1.1 引入
+-------
 
 
 如果能使用更大的页面, 则能很好地解决上述问题. 试想如果使用2MB的页(一个页相当于512个连续的4KB 页面), 则所需的 TLB 表项由原来的 512个变成1个, 这将大大提高 TLB hit 的机率; 缺页中断也由原来的512次变为1次, 这对性能的提升是不言而喻的.
@@ -2350,25 +2350,54 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 然而, 前面也说了 Linux 对4KB大小的页面认知是根植其中的, 想要支持更大的页面, 需要对非常多的核心的代码进行大改动, 这是不现实的. 于是, 为了支持大页面, 有了一个所谓 HUGETLB 的实现.
 
 
-它的实现是在系统启动时, 按照用户指定需求的最大大页个数, 每个页的大小. 预留如此多个数的大. 用户在程序中可以使用 **mmap()** 系统调用或共享内存的方式访问这些大页, 例子网上很多, 或者参考官方文档: [HugeTLB Pages](https://www.kernel.org/doc/html/latest/admin-guide/mm/hugetlbpage.html).
+它的实现是在系统启动时, 按照用户指定需求的最大大页的大小和个数, 预留足够的物理内存空间. 用户在程序中可以使用 **mmap()** 系统调用或共享内存的方式映射和访问这些大页, 参考官方文档: [HugeTLB Pages](https://www.kernel.org/doc/html/latest/admin-guide/mm/hugetlbpage.html).
 
 当然, 现在也存在一些用户态工具, 可以帮助用户更便捷地使用. 具体可参考此文章: [Huge pages part 2: Interfaces [LWN.net]](https://lwn.net/Articles/375096).
 
+同 tmpfs 类似, 基于 hugetlbfs 创建文件后, 再进行 mmap() 映射, 就可以访问这些 huge page 了, 使用方法可参考内核源码 "tools/testing/selftests/vm" 中的示例.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2002/09/15 | Rohit Seth/Andrew Morton <akpm@digeo.com> | [hugetlb pages](https://github.com/gatieme/linux-history/commit/c9d3808fc28fc873dcf0dc95315f644997fde1d0) | 实现 ia32 的 CONFIG_HUGETLB_PAGE. | v1 ☑ 2.5.36 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/c9d3808fc28fc873dcf0dc95315f644997fde1d0) |
 | 2002/09/15 | Bill Irwin/Andrew Morton <akpm@digeo.com> | [hugetlbfs file system](https://github.com/gatieme/linux-history/commit/9f3336ab7c42d631f5ed50d73e1eea7bd9268892) | 为 hugetlb page 实现了一个小巧的  ram-backed 的文件系统. | v1 ☑ 2.5.46 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/9f3336ab7c42d631f5ed50d73e1eea7bd9268892) |
-| 2002/10/30 | Bill Irwin/Andrew Morton <akpm@digeo.com> | [hugetlbfs backing for SYSV shared memory](https://github.com/gatieme/linux-history/commit/bba2dd58c14a371b1062e585a280059fc6e9364f) | 实现 SHM_HUGETLB, 为进程的 SHEM 支持 hugetlb .<br>对于 hugetlb 接口的用户来说, 最常见的请求之一就是使用 shm 的数据库. 这个补丁导出的功能基本上相当于 tmpfs, 将调用序列添加到 ipc/shm.c, 并在 fs/hugetlbfs/inode.c 中散列出一个小的支持函数, 这样如果用户空间将一个标志传递给 shmget(), shm 段可能是 hugetlbpage 支持的. | v1 ☑ 2.5.46 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/bba2dd58c14a371b1062e585a280059fc6e9364f) |
 
-同 tmpfs 类似, 基于 hugetlbfs 创建文件后, 再进行 mmap() 映射, 就可以访问这些 huge page 了, 使用方法可参考内核源码 "tools/testing/selftests/vm" 中的示例.
 
-但是每次使用大页面内存主要透过 hugetlbfs 需要 mount 文件系统到某个点去, 部署起来很不方便, 我们只想要点匿名页面, 要搞的那么麻烦吗?
+### 7.1.2 SHM_HUGETLB
+-------
+
+
+通过 shmget()/shmat() 也可以使用 hugetlb, 调用 shmget() 申请共享内存时要加上 SHM_HUGETLB 标志即可. 具体使用可以参考 selftests 用例中的 `hugepage-shm.c`.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2002/10/30 | Bill Irwin/Andrew Morton <akpm@digeo.com> | [hugetlbfs backing for SYSV shared memory](https://github.com/gatieme/linux-history/commit/bba2dd58c14a371b1062e585a280059fc6e9364f) | 实现 SHM_HUGETLB, 为进程的 SHEM 支持 hugetlb .<br>对于 hugetlb 接口的用户来说, 最常见的请求之一就是使用 shm 的数据库. 这个补丁导出的功能基本上相当于 tmpfs, 将调用序列添加到 `ipc/shm.c`, 并在 `fs/hugetlbfs/inode.c` 中散列出一个小的支持函数, 这样如果用户空间将一个标志传递给 shmget(), shm 段可能是 hugetlbpage 支持的. | v1 ☑ 2.5.46 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/bba2dd58c14a371b1062e585a280059fc6e9364f) |
+| 2002/10/30 | Rohit Seth | [hugetlbpage documentation update](https://github.com/gatieme/linux-history/commit/a2f6cc8614e920b7b86782ac8391a15165631157) | 更新 hugetlb 的文档, 同时增加了 SHM_HUGETLB 的测试用例 `Documentation/vm/hugetlbpage.txt`, 该用例随后被重命名为 [`Documentation/vm/hugepage-shm.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=70bace8c1edefa700c7f7af522c5374ef63860ae), 最终被[移动到了 selftests 路径下](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f0f57b2b1488). | v1 ☑ 2.5.64 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/a2f6cc8614e920b7b86782ac8391a15165631157) |
+
+
+### 7.1.3 MAP_HUGETLB
+-------
+
+
+但是每次使用 huge page 都需要将 hugetlbfs 挂载到文件系统到某个节点上, 部署起来很不方便, 我们只想要点匿名页面, 要搞的那么麻烦吗?
 于是 2.6.32 内核通过支持 MAP_HUGETLB 方式来使用内存, 避免了烦琐的 mount 操作, 对用户更友好.
+
+至此, 通过 mmap(), 调用时指定 MAP_HUGETLB 标志就可以使用 hugetlb 了, 方便了很多.
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2009/08/14 | Eric B Munson <ebmunson@us.ibm.com> | [Add pseudo-anonymous huge page mappings V3](https://lore.kernel.org/linux-man/cover.1250258125.git.ebmunson@us.ibm.com) | 这个补丁集为 mmap 添加了一个标志 [MAP_HUGETLB](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4e52780d41a741fb4861ae1df2413dd816ec11b1), 允许用户请求使用大页面支持映射.<br>这个映射借用[大页 shm 代码的功能](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6bfde05bf5c9682e255c6a2c669dc80f91af6296), 在内核内部挂载上创建一个文件, 并使用它近似于匿名映射 MAP_ANONYMOUS.<br>1. MAP_HUGETLB 标志是 MAP_ANONYMOUS 的修饰符, 如果两个标志都没有被预设, 它就不能工作.<br>2. 一个新的标志是必要的, 因为当前除了在 hugetlbfs 挂载上创建一个文件外, 没有其他方法可以映射到到大页.<br>3. 对于用户空间, 这个映射的行为就像匿名映射, 因为这个文件在内核之外是不可访问的. | RFC ☐ | [PatchWork 0/3](https://lore.kernel.org/linux-man/cover.1250258125.git.ebmunson@us.ibm.com) |
+
+
+### 7.1.3 More huge page sizes
+-------
+
+
+huge page 最开始只支持 PMD 级别(基础页 4K, 则 PMD 级别为 2MB)的大页, 自 3.8 版本加入这个 [commit 42d7395feb56 ("mm: support more pagesizes for MAP_HUGETLB/SHM_HUGETLB")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=42d7395feb56f0655cd8b68e06fc6063823449f8) 之后, 利用 shmget()/mmap() 的 flag 参数中未使用的 bits, 可以支持其他的 huge page 大小(比如 1GB).
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/12/05 | Andi Kleen <ak@linux.intel.com> | [mm: support more pagesizes for MAP_HUGETLB/SHM_HUGETLB](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=42d7395feb56f0655cd8b68e06fc6063823449f8) | Free page reporting 只支持伙伴系统中的页面, 它不能报告为 hugetlbfs 预留的页面. 这个补丁在 hugetlb 的空闲列表中增加了对报告巨大页的支持, 它可以被 virtio_balloon 驱动程序用于内存过载和预归零空闲页, 以加速内存填充和页面错误处理. | v7 ☑ 3.8-rc1 | [LWN v7](https://lwn.net/Articles/533650), [LORE v7](https://lore.kernel.org/lkml/1352157848-29473-2-git-send-email-andi@firstfloor.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=42d7395feb56f0655cd8b68e06fc6063823449f8) |
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -2382,9 +2411,15 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 | 2021/11/17 | Mina Almasry <almasrymina@google.com> | [hugetlb: Add `hugetlb.*.numa_stat` file](https://patchwork.kernel.org/project/linux-mm/patch/20211019215437.2348421-1-almasrymina@google.com) | 添加 `hugetlb.*.numa_stat`, 它显示 hugetlb 在 cgroup 的 numa 使用信息. 类似于 memory.numa_stat. | v2 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211019215437.2348421-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211020190952.2658759-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v7](https://patchwork.kernel.org/project/linux-mm/patch/20211117201825.429650-1-almasrymina@google.com) |
 
 
+
+
+
 ## 7.2 透明大页的支持
 -------
 
+hugetlb 的使用依赖于用户主动预留并使用, 适用于用户明确需要使用大量连续大块页面或者使用大页可以带来明显性能提升的场景. 但是多数情况下, 开发者并不知道自己是否需要 huge page. 这时候如果内核通过某种机制自动把普通的页面合并为 huge page, 或者在用户分配时就直接分配成 huge page, 让用户丝毫不感知 huge page 的存在, 但是却能享受到 huge page 带来的性能提升. 那自然是极好的. 鉴于此 THP(Transparent huge page) 孕育而生.
+
+因为该过程不会被用户和应用感知, 所以被称为 "transparent", 也被称为动态大页. 与之相对的, 之前的 hugetlb 则被称为静态大页(static huge page), 那么自然. 一个是动态的, 一个是静态的. 两者的关系, 就类似于 CMA 和预留 DMA 的关系.
 
 **2.6.38(2011年3月发布)**
 
@@ -2664,7 +2699,60 @@ Matthew Wilcox 在这方面也做了很多工作.
 | 2020/10/29 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Transparent Hugepages for non-tmpfs filesystems](https://patchwork.kernel.org/project/linux-mm/cover/2862852d-badd-7486-3a8e-c5ea9666d6fb@google.com) | 一系列 HUGEPAGE 和 MEM_LOCK tmpfs fcntls 和 memfd_create 标志的清理和修复工作. | v1 ☐ | [PatchWork 00/16](https://patchwork.kernel.org/project/linux-mm/cover/20201029193405.29125-1-willy@infradead.org) |
 
 
-### 7.2.8 khugepaged
+### 7.2.8 Huge Page(THP) SWAP
+-------
+
+
+THP 和 hugetlb 看起来样子差不多, 但在 Linux 中的归属和行为却完全不同. 后者一体成型, 而前者更像是焊接起来的. THP 虽然勉强拼凑成了 huge page 的模样, 但骨子里还是 normal page, 还和 normal page 同处一个世界.
+
+在它诞生之初, 面对这个庞然大物, 既有的内存管理子系统的机制还没做好充分的应对准备, 比如 THP 要 swap 的时候怎么办啊? 这个时候, 只能调用 split_huge_page(), 将 THP 重新打散成 normal page.
+
+swap out 的时候打散, swap in 的时候可能又需要重新聚合回来, 这对性能的影响是不言而喻的. 一点一点地找到空闲的 pages, 然后辛辛苦苦地把它们组合起来, 现在到好, 一切都白费了（路修了又挖, 挖了又修……）. 虽然动态地生成 huge page 确实能更充分利用物理内存, 但其带来的收益, 有时还真不见得能平衡掉这一来一去的损耗.
+
+不过呢, 内核开发者也在积极努力, 希望能够实现 THP 作为一个整体被 swap out 和 swap in（参考这篇文章）, 但这算是对 “牵一发而动全身” 的内存子系统的一次重大调整, 所以更多的 regression 测试还在进行中.
+
+可见啊, THP 并没有想象的那么美好, 用还是不用, 怎么用, 就成了一个需要思考和选择的问题.
+
+[The final step for huge-page swapping](https://lwn.net/Articles/758677)
+
+#### 7.2.8.1 optimize the performance of Transparent
+-------
+
+后来随着存储设备的性能提升, 普通页面换入换出已无法使磁盘带宽达到饱和. 而另一方面内存容量不断增加, THP 的使用已经越来越广泛. 因此有必要对 THP 交换性能进行优化.
+
+
+引入 THP SWAP 是有诸多好处的:
+
+1. 批量处理 THP 的交换操作以减少锁的获取/释放, 包括分配/释放交换空间, 增加/删除交换缓存, 读写交换空间等. 这将有助于提高 THP 交换的性能.
+
+2. THP 交换空间的读写最小也是 2M 的顺序 IO(sequential IO). 而 swap read 交换读取通常是 4k 随机 IO. 这也将提高 THP 交换的性能.
+
+3. 使用 THP swap 也有助于减少内存碎片, 特别是对 THP 被大量使用的应用程序. 在 THP 被 swap out 之后, 至少可以释放 2M 的连续页面.
+
+4. 使能 swap 也能有效地将提高系统的 THP 利用率. 因为 khugepaged 将普通页面折叠成 THP 的速度相当慢. 如果在换出时对 THP 进行拆分, 那么再次换入后普通页面需要相当长的时间才能再次折叠成 THP. 较高 THP 利用率也有助于提高基于页面的内存管理的效率.
+
+但是引入 THP SWAP 后, 必然增大换入换出时读/写的 IO 大小, 这可能会给存储设备带来更多的开销. 因此为了解决这个问题, THP 交换应该只在必要的时候打开. 例如, 它可以通过 "always/never/madvise" 逻辑来选择, 全局打开, 全局关闭, 或者仅对 VMA 使用 MADV_HUGEPAGE 打开, 等等.
+
+
+*   Delay splitting THP during swapping out
+
+
+支持 THP SWAP 的第一步是逐步延迟拆分 THP, 最终避免在 THP 交换期间拆分 THP, 并在整个 THP 中进行交换.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2017/05/15 | "Huang, Ying" <ying.huang@intel.com> | [THP swap: Delay splitting THP during swapping out/STEP 1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=747552b1e71b400fa32a221e072be2c0b7661f14) | 在这个补丁集完成了延迟拆分 THP, 将拆分大页面的时间几乎从交换的第一步推迟到为 THP 分配交换空间并将 THP 添加到交换缓存之后. 这将减少交换缓存管理中使用的锁的获取/释放.<br>在 8 个进程的 vm-scalability swap-w-seq 测试用例(测试用例创建了 8 个进程, 它们依次分配和写入匿名页面, 直到 RAM 和交换设备的一部分用完)中, 使用补丁集, 换出的吞吐量提高了 15.5%(从 3.73GB/s 提高到 4.31GB/s). | v11 ☑ 4.13-rc1 | [2016/08/09 LORE RFC,00/11](https://lore.kernel.org/lkml/1470760673-12420-1-git-send-email-ying.huang@intel.com)[2016/09/01 LORE v2,00/10](https://lore.kernel.org/lkml/1472743023-4116-1-git-send-email-ying.huang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,00/12](https://lore.kernel.org/all/20170724051840.2309-1-ying.huang@intel.com)<br>*-*-*-*-*-*-*-* <br>[2017/05/15 LORE v11,0/5](https://lore.kernel.org/lkml/20170515112522.32457-1-ying.huang@intel.com) |
+| 2017/07/14 | "Huang, Ying" <ying.huang@intel.com> | [THP swap: Delay splitting THP during swapping out/STEP 2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fe490cc0fe9e6ee48cc48bb5dc463bc5f0f1428f) | 这是 THP (透明大页) 交换优化的 STEP 2. 在 STEP 1, 拆分大页面的时机从交换的第一步延迟到为 THP 分配交换空间并将 THP 添加到交换缓存之后. 在 STEP 2 中, 拆分被进一步延迟到交换完成之后. 在这个补丁集中, 对匿名 THP 回收的更多操作(如 TLB 刷新、将 THP 写入交换设备、将 THP 从交换缓存中删除) 被批处理. 从而提高了匿名 THP 交换的性能. | v3 ☑ 4.14-rc1 | [2017/06/23 LORE v2,00/12](https://lore.kernel.org/lkml/20170623071303.13469-1-ying.huang@intel.com)<br>*-*-*-*-*-*-*-* <br>[2017/07/24 LORE v3,00/12](https://lore.kernel.org/all/20170724051840.2309-1-ying.huang@intel.com) |
+
+
+*   Swapout/swapin THP in one piece
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/12/14 | "Huang, Ying" <ying.huang@intel.com> | [swap: Swapout/swapin THP in one piece](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fe490cc0fe9e6ee48cc48bb5dc463bc5f0f1428f) | NA | v9 ☐ 4.14-rc1 | [2018/05/09 LORE v2,00,21](https://lore.kernel.org/lkml/20180509083846.14823-3-ying.huang@intel.com)<br>*-*-*-*-*-*-*-* <br>[2018/12/14 LORE v9,00/21](https://lore.kernel.org/lkml/20181214062754.13723-1-ying.huang@intel.com), [PatchWork v9,00/21](https://patchwork.kernel.org/project/linux-mm/cover/20181214062754.13723-1-ying.huang@intel.com) |
+
+
+### 7.2.9 khugepaged
 -------
 
 khugepaged 是透明巨页的守护进程, 它会被定时唤醒, 并根据配置尝试将 page_size(比如 4K) 大小的普通 page 转成巨页, 减少 TLB 压力, 提高内存使用效率.
@@ -2706,7 +2794,7 @@ khugepaged 处理流程
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2011/01/13 | Andrea Arcangeli <aarcange@redhat.com> | [thp: khugepaged](https://lkml.org/lkml/2010/12/23/306) | 实现了一个 khugepaged 的内核线程, 用来完成将标准的小页面合并成大页的操作. | ☑ 2.6.38-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ba76149f47d8c939efa0acc07a191237af900471) |
+| 2011/01/13 | Andrea Arcangeli <aarcange@redhat.com> | [thp: khugepaged](https://lkml.org/lkml/2010/12/23/306) | 实现了一个 khugepaged 的内核线程, 用来完成将标准的小页面合并成大页的操作. | v1 ☑ 2.6.38-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ba76149f47d8c939efa0acc07a191237af900471) |
 | 2015/09/14 | Ebru Akagunduz <ebru.akagunduz@gmail.com> | [mm: add tracepoint for scanning pages](https://lkml.org/lkml/2015/9/14/611) | [mm: make swapin readahead to gain more THP performance](https://lore.kernel.org/lkml/1442259105-4420-1-git-send-email-ebru.akagunduz@gmail.com) 系列的其中一个补丁, 为 khuagepaged 引入了 tracepoint 跟踪点. 用 scan_result 标记了 khugepaged 扫描的结果. | v5 ☑ 4.5-rc1 | [PatchWork RFC,v5,0/3](https://lore.kernel.org/lkml/1442259105-4420-2-git-send-email-ebru.akagunduz@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2015/9/14/611)<br>*-*-*-*-*-*-*-* <br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7d2eba0557c18f7522b98befed98799990dd4fdb) |
 | 2011/01/13 | Peter Xu <peterx@redhat.com> | [mm/khugepaged: Detecting uffd-wp vma more efficiently](https://patchwork.kernel.org/project/linux-mm/patch/20210922175156.130228-1-peterx@redhat.com) | 实现了一个 khugepaged 的内核线程, 用来完成将标准的小页面合并成大页的操作. | ☑ 2.6.38-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ba76149f47d8c939efa0acc07a191237af900471) |
 
