@@ -127,7 +127,7 @@ PIE 的核心思想是: 评估线程在不同核心上的的性能, 通过
 大核是乱序(Out-of-Order)的, 因此实现了重排序缓存(ROB), 非阻塞 cache 以及 MSHR 等. 从而可以并行的执行指令, 特别是并行执行那些没有数据依赖的访存(load/store)指令. 一个大核可以利用的最大 MLP 是受重排序缓存(ROB)的大小限制, 因为只有当 ROB 满了, 无法容纳新的指令, 才会导致一条与 ROB 中已有指令没有数据依赖的指令阻塞.
 
 
-$MLP_{big}$ = $MPI_{small}$ × $ROB_{size}$
+$MLP_{big} = MPI_{small} \times ROB_{size}$
 
 其中 $MPI_{small}$ 是小核上的 MPI 值, 它近似等于为小核上观察到的 LLC misses per instruction. 由于预取等操作提前进入流水线的指令, 也会造成 LLC Misses, 但是论文注意到了这一点, 但是为了使得设计更简化, 因此对此不做区分.
 
@@ -162,7 +162,6 @@ $MLP_{small} = {{MPI_{big}} \times {D}}$
 
 
 $\widetilde{CPI}_{base\_big} = 1/W_{big}$
-
 
 一个平衡的乱序的大核应该能够在没有 miss 的情况下, 每个周期中分发大约 $W_{big}$ 条 指令. 平衡的 CPU 核设计可以通过使重排序缓存(ROB)和相关结构, 如  issue queues, rename register file 等, 使得流水线能够以接近 issue width 的宽度发射指令.
 
