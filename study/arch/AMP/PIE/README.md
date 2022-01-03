@@ -41,7 +41,30 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 因此在大小核上应该分析和利用进程的 ILP/MLP 等特征, 这样才能获得更好的性能.
 
+该论文是 [ACM Computing Surveys](https://dl.acm.org/journal/csur) 第 48 卷, [第 3 期](https://dl.acm.org/doi/10.1145/2856125)(2016 年 2 月) 中 [A Survey of Techniques for Architecting and Managing Asymmetric Multicore Processors](https://dl.acm.org/doi/pdf/10.1145/2856125) 部分第 5.3 节 Use of the CPI Stack 的第二篇.
+
 这应该是 Intel 关于大小核混合架构(single-ISA heterogeneous multi-cores)最早的研究, 此后 Intel 发表了陆续发表了关于大小核混合架构的多项研究.
+
+# 1 Introduction
+-------
+
+> Van Craeynest et al. [2012] present a model called performance impact estimation (PIE) to predict the best application-to-core mapping. They note that the ratios of MLP and ILP on big and small cores provide a good indication of the performance difference between those cores. Based on this, while an application is running on one core type, their technique collects ILP and MLP profiling information and the CPI stack, and uses this to estimate the ILP and MLP and hence application performance on the other core type. Overall, PIE tracks how a core exploits ILP and MLP, and using the CPI stack, it finds its overall performance impact. They make some simplifying assumptions such as presence of identical cache hierarchy on both core types. In addition, some HW counters (e.g., for recording interinstruction dependency distance distribution) required by this model may not be available in existing processors. They show that by making application-to-core scheduling decisions based on the PIE model, significant performance improvement can be achieved.
+
+该论文中 Van Craeynest 等人提出了性能影响的评估模型(PIE/Performance Impact Estimation), 论文中的关注 AMP 处理器, 由顺序(In-Order)的小核和乱序(Out-of-Order)的大核构成, 论文中发现大核和小核的 MLP 和 ILP 的比值可以很好的说明核间的性能差异. 通过 PIE 模型, 当应用在某一个 core 上执行时, 收集 CPI stacks 以及 ILP 和 MLP 信息, 估计另一个类型的 core 上的应用程序的性能, 然后选择对整体性能最优的核来运行.
+
+论文第 2 章用实验证明了传统的计算密度(compute-intensive)和访存密度(memory intensity)并不足以反应进程特征. 相反, 在当前由顺序(In-Order)的小核和乱序(Out-of-Order)的大核 AMP 系统中, ILP 和 MLP 的特征与进程实际运行的表现拟合, 可以恰到好处的反映进程的特征.
+
+论文第 3 章描述了 PIE 的原理, PIE 的核心思想是: 当应用在一个类型的核上运行时, 预测其在另外一个类型的核上的 ILP 以及 MLP, 从而推测出其在另外一个类型的核上运行的性能. 正是大小核微架构的差异导致了同一个应用在不同类型的核上运行时 ILP 和 MLP 表现出明显的差异. 因此论文正是分析硬件实现上的差异, 实现了 PIE 预测的模型. 并通过试验(手动推测后, 将进程静态绑核)进行了验证. 由于大小核的差异比较明显(小核是 In-Order 的, 大核是 Out-of-Order 的), 因此在小核上预测大核的 ILP 和 MLP 就相对容易一些, 大核的 ILP 与其 issue-width $W_{big}$ 相关, 大核的 MLP 则与其重排序缓冲区 ROB 的大小相关. 但是由于大核的乱序执行, 掩盖了原有指令之间的依赖关系, 因此在大核上预测小核的 ILP 和 MLP 就显得稍微有点复杂. ILP 的预测使用了一个简化的概率论模型, 指令能否并行的发射与执行与这几条指令是否存在依赖强相关. 同样 MLP 的预测也与 load/store 指令之间的依赖距离强相关.
+
+第 3 章的实验只是通过静态绑核的方式验证了 PIE 模型的准确度和效果, 如果需要在实际场景中使用, 必须要设计一套 Dynamic Scheduling 算法. 第 4 章就阐述了这个 Dynamic Scheduling 的软硬件实现, 为了进行 Dynamic Scheduling, 需要在金衡运行时, 收集进程的 ILP 和 MLP 以及 CPI stack　等信息, 然后预测进程在另外一个类型的核上的 ILP 和 MLP 等信息, 进而预测其性能, 如果发现当前核不是最优, 则将进程迁移到目标核上. 为了实现 Dynamic Scheduling, 则需要 ① 迁移开销要小, 否则迁移后引入的开销将抵消其在目标核上运行带来的收益; ② 硬件支持收集ILP 和 MLP 以及 CPI stack　等 PIE 预测所需的信息. 首先为了分析和验证迁移的开销和影响, 需要实现一套最优的 cache 系统, 因此论文中通过实验测试了不同 cache 实现方案下的迁移开销. 其次 ILP 以及 CPI stack 等信息的收集现有硬件已经支持, 而要收集 MLP 需要统计指令之间的依赖距离, 这需要单独的硬件实现, 论文中借助了一个与逻辑寄存器行数相同的表来监测依赖距离.
+
+第 5 章描述了验证 PIE Dynamic Scheduling 所需的模拟仿真环境以及测试模型.
+
+第 6 章则对 PIE Dynamic Scheduling 进行了测试验证. 实验表明, PIE 的调度的性能比仿存强度主导的调度(memdom)以及基于采样的调度(sampling)都要好. 这里还验证了多种 cache 系统下的性能. 发现不同的 Cache 组织(Private VS Share), 以及不同的 Cache 替换算法(LRU VS RRIP)都对整体性能和效果有一定影响. 在 Private LLCs 的实现下, PIE 远优于其他方案(> memdom 5.5%, > sampling 8.7%), 在 LRU-managed share LLC 的实现下, PIE 带来的性能依然最优, 但是由于 share cache 本身带来的收益, 因此 PIE 相较于其他调度算法的优势略有下降(> memdom 3.7% 和 > sampling 6.4%). 而如果替换算法修改为智能共享缓存管理策略 RRIP, 在 RRIP-managed shared LLC 的实现下, PIE 重新获得了远超其他调度算法的性能优势(> memdom 2.4% 和 > sampling 7.8%).
+
+第 7 章对现有的 AMP 异构多核调度技术做了分析和对比.
+
+第 8 章对 PIE 做了整体的总结和展望.
 
 
 # 2 Motivation
@@ -56,9 +79,9 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 | 标记 | 描述 |
 |:---:|:----:|
-| CPI_mem | 表示当前当前指令执行的周期内, 对内存的请求非常密集 |
-| CPI_L3 | 当前周期内对 L3 Cache 的请求较多, 造成了较大的压力 |
-| CPI_L3 | 当前周期内对 L2 Cache 的请求较多, 造成了较大的压力 |
+| CPI_mem  | 表示当前当前指令执行的周期内, 对内存的请求非常密集 |
+| CPI_L3   | 当前周期内对 L3 Cache 的请求较多, 造成了较大的压力 |
+| CPI_L3   | 当前周期内对 L2 Cache 的请求较多, 造成了较大的压力 |
 | CPI_BASE | 对 cache 和 mem 的其他执行单元有较多的访问和请求, 可以立即为强计算密度的 |
 
 然后将 SPEC CPU 的测试在大核上和小核上分别运行, 测得其在 small-core slowdown.
@@ -163,8 +186,7 @@ $\widetilde{CPI}_{base\_small} = \sum^{W_{small}}_{i=1}{i} \times P_{IPC = i}$
 |:-:|:---:|:---:|
 | 1 | $P_{IPC = 1} = P_{D = 1}$ | 在给定的循环中, 只执行一条指令的概率等于一条指令产生的值被动态指令流中的下一条指令消耗的概率(即依赖距离为 1) |
 | 2 | $P_{IPC = 2} = (1 - P_{D = 1}) \times (P_{D = 1} + P_{D = 2})$ | 在一个给定的循环中, 执行只能执行两条指令的概率等于第二个指令不依赖于第一个指令的情况下, 第三个指令依赖于第一个或第二个指令的概率 |
-| 3 | $P_{IP C = 3} = (1 - P_{D = 1}) \times (1 - P_{D = 1} - P_{D = 2}) \times
-(P_{D = 1} + P_{D = 2} + P_{D = 3})$ | 依次类推. |
+| 3 | $P_{IP C = 3} = (1 - P_{D = 1}) \times (1 - P_{D = 1} - P_{D = 2}) \times (P_{D = 1} + P_{D = 2} + P_{D = 3})$ |依次类推|
 | ... | ... | ... |
 
 > 这个概率论模型没有考虑不同指令或者 uOps 的执行周期可能不同, 因此对实际的 CPU 指令做了简化, 但是已经足以达到预测的目的.
@@ -243,19 +265,23 @@ $\widetilde{CPI}_{base\_small} = \sum^{W_{small}}_{i=1}{i} \times P_{IPC = i}$
 
 2.  PIE 模型要求在动态指令流上计算平均依赖距离 D. 可以通过定义一张与架构定义的逻辑寄存器数量相同的行数的表来实现. 这个表记录了最后写入该逻辑寄存器的指令, 那么使用一个计数器统计针对该寄存器写和随后的读之间的增量就是依赖距离. 表计数器不需要很宽, 因为依赖关系距离通常是很短的, 只需要 4bit 的计数器就可以正确捕捉 90% 的距离.
 
-因此, 跟踪依赖距离分布的总硬件成本大约是 15byte(4bit × 架构逻辑寄存器的数量(x86_64 为 16 个) + 5 个 10bit 计数器)的存储.
+因此, 跟踪依赖距离分布的总硬件成本大约是 15byte(4bit × 架构逻辑寄存器的数量(x86_64 为 16 个) 的计数器 + 5 个 10bit 计数器)的存储.
 
 
 # 5 Experimental Setup
 -------
 
 
-本章讲述了最终测试的仿真环境, 论文使用了 CMP$im [13] 搭建的模拟实验: 大核是一个 4 发射的乱序处理器, 小核是一个 4 发射的 stall-on-use 的处理器核. 频率均为 2GHz. 拥有三级缓存, 32 KB L1 I-cache 和 D-cache、256 KB L2, 以及 4MB L3(LLC).  其中 L1 和 L2 缓存是每个核心私有的.
-
-我们评估共享和私有 LLC 配置。
+本章讲述了最终测试的仿真环境, 论文使用了 CMP$im [13] 搭建的模拟实验:
 
 
-所有高速缓存中首选 LRU 替换策略，除非另有说明；我们还考虑了 ART ARRIP 共享缓存替换策略的状态（15）。最后，我们假设一个积极的基于流的硬件预取器；
+1.  大核是一个 4 发射的乱序处理器, 小核是一个 4 发射的 stall-on-use 的处理器核. 频率均为 2GHz.
+
+
+2.  拥有三级缓存, 32 KB L1 I-cache 和 D-cache、256 KB L2, 以及 4MB L3(LLC).  其中 L1 和 L2 缓存是每个核心私有的. 同时评估了共享和私有的 LLC 配置, 所有高速缓存中首选 LRU 替换策略, 然后还考虑了 ART ARRIP 共享缓存替换策略的[15]. 后续都会对这些不同的 cache 设计和实现进行测试和验证.
+
+
+3.  最后, 还假设有一个非常积极的基于流的硬件预取器, 防止流水线前端预取等操作对测试的影响, 整个仿真环境都关注 In-Order 和 Out-of-Order 的差异和影响.
 
 
 # 6 Results and Analysis
@@ -266,7 +292,7 @@ $\widetilde{CPI}_{base\_small} = \sum^{W_{small}}_{i=1}{i} \times P_{IPC = i}$
 
 
 
-每个核心都有自己的 Private LLCs 的情况, 图 12 量化了基于采样的随机调度、内存支配(memory-dominance) 和 PIE 调度的相对性能. PIE 调度明显优于其他调度策略. 对于 I 型和 III 型的混合应用, PIE 分别比内存优势和基于采样的调度平均提高 5.5% 和 8.7%. 相对于对内存支配调度的改进来自两个方面:
+每个核心都有自己的 Private LLCs 的情况, 图 12 量化了基于采样的随机调度、内存支配(memory-dominance) 和 PIE 调度的相对性能. PIE 调度明显优于其他调度策略. 对于 I 型和 III 型进程组成的混合应用, PIE 分别比内存优势和基于采样的调度平均提高 5.5% 和 8.7%. 相对于对内存支配调度的改进来自两个方面:
 
 1.  PIE 能够更准确地确定更好的工作负载到核心的映射. 与内存支配调度不同, PIE 可以利用细粒度阶段行为.
 
@@ -278,7 +304,7 @@ $\widetilde{CPI}_{base\_small} = \sum^{W_{small}}_{i=1}{i} \times P_{IPC = i}$
 
 ### 6.2.1 LRU-managed share LLC
 
-对于 Shared LLC 的情况, 对比数据如图 13 所示. PIE 优于随机的、基于采样的和内存主导的调度. 对于第 I 类和第 III 类的混合应用, 分别获得了平均 3.7% 和 6.4% 的性能提升, 优于内存支配和基于采样的调度.
+对于 Shared LLC 的情况, 对比数据如图 13 所示. PIE 依然有性能优化. 对于 I 型和 III 型进程组成的混合应用, 分别比内存支配和基于采样的调度获得了平均 3.7% 和 6.4% 的性能提升.
 
 1.  没有 Private LLCs 性能提升的明显, 原因是所有调度策略都没有预见到共享 LLC 中的冲突行为, 因此, 部分调度决策可能会被共享 LLC 中的冲突行为抵消.
 
