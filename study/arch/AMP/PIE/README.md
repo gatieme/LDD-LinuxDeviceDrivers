@@ -105,21 +105,54 @@ gcc.s, calculix 等) 在小核上执行时性能下降地就不那么明显(slow
 
 大核特别适合于需要动态提取 ILP 或具有大量 MLP 的工作负载, 小核适用于具有大量固有 ILP 的工作负载. 这意味着不同核心类型上的性能可以直接与工作负载中普遍存在的 MLP 和 ILP 的数量相关. 一个大量 MLP 的内存密集型工作负载, 在小核上执行可能会导致显著的速度下降. 而具有大量 ILP 的计算密集型工作负载在小内核上性能下降也不会太大, 不需要大核就能运行的很好.
 
-为了分析其中更本质的细节, 论文中又做了一组分析. 将测试的应用按照计算密度从大到小, 访存密度从小到大排序, 然后将测试的 slowdown, ILP ratio, MLP ratio 按照这个顺序展示. 如下图所示. 可以看到.
+为了分析其中更本质的细节, 论文中又做了一组分析. 将测试的应用按照计算密度从大到小, 访存密度从小到大排序, 然后将测试的 slowdown, ILP ratio, MLP ratio 按照这个顺序展示.
 
-对于计算密集型的应用(图左侧)其 slowdown 与 ILP ratio 的曲线相拟合. 而对于访存密集型的应用(图右侧)其 slowdown 与 MLP ratio 的曲线趋于拟合.
+$MLP_{ratio} = MLP_{big} / MLP_{small}$
 
-因此仅密集的内存访问并不是反映进程负载特征的好指标. 异构多核上的调度策略必须要考虑计算不同微架构的核可以利用的 MLP 和 ILP 的数量. 此外, 当在不同类型的核之间移动时, 减速(或加速)可以直接与目标核心上的 MLP 和 ILP 实际的数量相关. 这表明, 可以通过预测当前核上的 MLP 和 ILP 来估计其他类型核上的性能.
+$ILP_{ratio} = CPI_{base\_big}/CPI_{base\_small}$
+
+> MLP 定义为未完成的内存请求的平均数量，如果至少有一个未完成的 [4].
+>
+> CPI~base~ 作为 CPI stack 的基础(非阻塞)组件.
+
+如论文中图 2 所示. 可以看到, 对于计算密集型的应用(图左侧)其 slowdown 与 ILP ratio 的曲线相拟合. 而对于访存密集型的应用(图右侧)其 slowdown 与 MLP ratio 的曲线趋于拟合.
 
 # 3 Performance Impact Estimation (PIE)
 -------
 
+因此仅密集的内存访问并不是反映进程负载特征的好指标. 异构多核上的调度策略必须要考虑计算不同微架构的核可以利用的 MLP 和 ILP 的数量. 此外, 当在不同类型的核之间移动时, 减速(或加速)可以直接与目标核心上的 MLP 和 ILP 实际的数量相关. 这表明, 可以通过预测当前核上的 MLP 和 ILP 来估计其他类型核上的性能.
+
+$CPI \approx CPI_{base} + CPI_{mem}$
+
+> 这里忽略了 L1 cache, L2 cache 等对 CPI 的影响, 从图 2 中的信息可以看出, 这部分 CPI 信息在当前 AMP 平台上对进程的特征提取影响比较小.
+
+如果进程在大核上运行, 那么通过它在大核上的性能指标, 预测它在小核上运行的性能的方法如下:
+
+$\widetilde{CPI}_{small} = \widetilde{CPI}_{base\_small} + \widetilde{CPI}_{mem\_small} = \widetilde{CPI}_{base\_small} + \widetilde{CPI}_{mem\_big} \times MLP_{ratio}$
+
+反之, 如果进程在小核上运行, 那么根据它在小核上的性能指标, 预测它在大核上运行的性能的方法类似:
+
+$\widetilde{CPI}_{big} = \widetilde{CPI}_{base\_big} + \widetilde{CPI}_{mem\_big} = \widetilde{CPI}_{base\_big} + \widetilde{CPI}_{mem\_small} / MLP_{ratio}$
+
+
+> 在上面的公式中
+>
+> CPI~base\_big~ 是指从在小核的执行的数据中中估算出的对大核的基数 CPI~base~ 分量; CPI~base_small~ 类似.
+>
+> 大(小)核上的 CPI~mem~ 的计算方法是将小(大)核上的 CPI~mem~ 与 MLP~ratio~ 相除(乘)得到的
+
+
+然后剩下的关键就是如何预测基 CPI~base~ 和 MLP~ratio~.
 
 ## 3.1 Predicting MLP
 -------
 
 
-PIE 的核心思想是: 评估线程在不同核心上的的性能, 通过
+PIE 的核心思想是: 根据进程在当前 CPU 核上的性能以及 CPI stack 等信息, 预测该进程在其他不同类型核心上的的性能.
+
+论文中关注 CPI stack 中的两个主要组件: 基本组件 CPI~base~ 和内存组件 CPI~mem~, 前者将所有与内存无关的组件集中在一起.
+
+$CPI = CPI_{base} + CPI_{mem}$
 
 ### 3.1.1 Predicting big-core MLP on small core
 -------
@@ -130,6 +163,8 @@ PIE 的核心思想是: 评估线程在不同核心上的的性能, 通过
 $MLP_{big} = MPI_{small} \times ROB_{size}$
 
 其中 $MPI_{small}$ 是小核上的 MPI 值, 它近似等于为小核上观察到的 LLC misses per instruction. 由于预取等操作提前进入流水线的指令, 也会造成 LLC Misses, 但是论文注意到了这一点, 但是为了使得设计更简化, 因此对此不做区分.
+
+$\widetilde{CPI}_{small} = \widetilde{CPI}_{base \_small} + \widetilde{CPI}_{mem\_small} = \widetilde{CPI}_{base\_small} + \widetilde{CPI}_{mem_big} \times MLP_{ratio}$
 
 ### 3.1.2 Predicting small-core MLP on big core
 -------
@@ -161,7 +196,7 @@ $MLP_{small} = {{MPI_{big}} \times {D}}$
 大核的基础 CPI 部分 $\widetilde{CPI}_{base\_big}$ 与其发射宽度(issue width)有关.
 
 
-$\widetilde{CPI}_{base\_big} = 1/W_{big}$
+$\widetilde{CPI}_{base\_big} = 1 / W_{big}$
 
 一个平衡的乱序的大核应该能够在没有 miss 的情况下, 每个周期中分发大约 $W_{big}$ 条 指令. 平衡的 CPU 核设计可以通过使重排序缓存(ROB)和相关结构, 如  issue queues, rename register file 等, 使得流水线能够以接近 issue width 的宽度发射指令.
 
