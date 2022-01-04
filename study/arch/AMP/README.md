@@ -38,7 +38,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 [ACM Computing Surveys](https://dl.acm.org/journal/csur) 第 48 卷, [第 3 期](https://dl.acm.org/doi/10.1145/2856125)(2016 年 2 月) 刊表了 [A Survey of Techniques for Architecting and Managing Asymmetric Multicore Processors](https://dl.acm.org/doi/pdf/10.1145/2856125). 总结了近年来 AMP(Asymmetric Multicore Processors) 研究工作.
 
-网上找到了 [@shuiliusheng](https://blog.csdn.net/shuiliusheng/category_7411298_2.html)
+网上找到了 [@shuiliusheng](https://blog.csdn.net/shuiliusheng/category_7411298_2.html) 的翻译,
 [前四章-译文](https://blog.csdn.net/shuiliusheng/article/details/84301504)
 
 [第五章-译文](https://blog.csdn.net/shuiliusheng/article/details/84309843)

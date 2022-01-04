@@ -1021,6 +1021,16 @@ Mike Galbraith 调试发现, 触发这个问题的原因是因为 wake_affine_we
 | 2021/09/12 | Yang Yang <yang.yang29@zte.com.cn>/<cgel.zte@gmail.com> | [sched: Add a new version sysctl to control child runs first](https://lkml.org/lkml/2021/9/12/4) | 旧版本的 sysctl_sched_child_runs_first 有一些问题. 首先, 它允许设置值大于 1, 这是不必要的. 其次, 它没有遵循能力法则. 第三, 它没有使用 static key. 这个新版本修复了所有问题. | v1 ☐ | [LKML](https://lkml.org/lkml/2021/9/12/4) |
 
 
+## 4.9 group balancer
+-------
+
+[Alibaba Proposes A Group Balancer For The Linux Kernel Scheduler](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Sched-Group-Balancer)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2022/01/04 | 王贇 <yun.wang@linux.alibaba.com> | [sched: introduce group balancer](https://lore.kernel.org/lkml/98f41efd-74b2-198a-839c-51b785b748a6@linux.alibaba.com) | 进程组级别的负载均衡器. | RFC ☐ | [LORE RFC](https://lore.kernel.org/lkml/98f41efd-74b2-198a-839c-51b785b748a6@linux.alibaba.com) |
+
+
 # 5 select_task_rq
 -------
 

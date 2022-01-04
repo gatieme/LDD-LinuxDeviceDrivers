@@ -363,7 +363,7 @@ BOLT 代码在 [github 开源](https://github.com/facebookincubator/BOLT).
 4.  [Shrinking the kernel with a hammer](https://lwn.net/Articles/748198)
 
 
-## 13.3 ZERO_CALL_USED_REGS
+## 13.4 ZERO_CALL_USED_REGS
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -371,7 +371,7 @@ BOLT 代码在 [github 开源](https://github.com/facebookincubator/BOLT).
 | 2021/05/05 | Kees Cook <keescook@chromium.org> | [Makefile: Introduce CONFIG_ZERO_CALL_USED_REGS](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.15-Hardening) | 新增 CONFIG_ZERO_CALL_USED_REGS, 启用时使用 "-fzero CALL USED REGS=USED gpr"(在 GCC 11 中)构建内核. 此选项将在函数返回之前将所有调用方使用的寄存器内容归零, 以确保临时值不会泄漏到函数边界之外. 这意味着寄存器内容不太可能用于旁道攻击和信息泄露. 此外, 这有助于将内核映像中有用的 ROP 小工具的数量减少约 20%. phoronix 对这个选项进行了[性能影响测试](https://www.phoronix.com/scan.php?page=article&item=linux515-compile-regress). | v2 ☑ 5.15-rc1 | [Patchwork](https://patchwork.kernel.org/project/linux-kbuild/patch/20210505191804.4015873-1-keescook@chromium.org)<br>*-*-*-*-*-*-*-* <br>[commit a82adfd5c7cb](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a82adfd5c7cb4b8bb37ef439aed954f9972bb618) |
 
 
-## 13.4 zero initialization for stack variables
+## 13.5 zero initialization for stack variables
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -381,24 +381,63 @@ BOLT 代码在 [github 开源](https://github.com/facebookincubator/BOLT).
 | 2020/06/14 | Alexander Potapenko <glider@google.com> | [security: allow using Clang's zero initialization for stack variables](https://lore.kernel.org/patchwork/cover/1255765) | 支持 clang 的局部变量零初始化. 通过 CONFIG_INIT_STACK_ALL_ZERO 来启用, clang 可以通过选项 `-ftrivial-auto-var-init=zero -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang` 来保证未初始化局部变量初始化为 0. | RFC v2 ☑ 5.9-rc1 | [PatchWork v2,RFC](https://lore.kernel.org/patchwork/cover/1255765)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC](https://lore.kernel.org/patchwork/patch/1256566), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f0fe00d4972a8cd4b98cc2c29758615e4d51cdfe) |
 | 2021/02/18 | NA | [gcc Stack variable initialization-无需合入补丁, GCC 支持即可](https://lwn.net/Articles/870045) | gcc 也引入了 [Auto Initialize Automatic Variables](https://www.phoronix.com/scan.php?page=news_item&px=GCC-12-Auto-Var-Init) 通过 `-ftrivial-auto-var-init` 选项将未初始化的[变量默认初始化为 0](https://gcc.gnu.org/pipermail/gcc-patches/2021-February/565514.html). | RFC v2 ☑ 5.9-rc1 | NA |
 
-## 13.5 Randomizing structure layout
+## 13.6 Randomizing structure layout
 -------
 
 将来自 grsecurity 的[结构布局随机化(Randomizing structure layout)](http://xuxinting.cn/2020/12/20/2020-12-20-kernel-randomize-layout) 推送到 linux 主线. 这个特性通过在编译时将所选结构的布局随机化, 作为对需要知道内核中结构布局的攻击的概率防御. 这对于"内部"内核构建非常有用, 因为攻击者既不能使用随机种子也不能使用其他构建工件.
 
-通过引入一个 gcc 插件 [commit 313dd1b62921 ("gcc-plugins: Add the randstruct plugin")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=313dd1b629219db50cad532dba6a3b3b22ffe622) 来完成这项工作, 这个功能的大部分都是从 grsecurity 移植过来的. 该实现几乎与 PaX 团队和 Brad Spengler 编写的原始代码完全相同. 这些变化是添加了改进的指定初始值设定项标记、白名单机制、许多假阳性修复, 以及处理任务结构随机化的不同方法.
+[commit 313dd1b62921 ("gcc-plugins: Add the randstruct plugin")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=313dd1b629219db50cad532dba6a3b3b22ffe622) 通过引入一个 gcc 插件 [`scripts/gcc-plugins/randomize_layout_plugin.c`](https://elixir.bootlin.com/linux/v4.13/source/scripts/gcc-plugins/randomize_layout_plugin.c) 来完成这项工作. 这个插件通过 [Fisher-Yates shuffle 算法](https://elixir.bootlin.com/linux/v4.13/source/scripts/gcc-plugins/randomize_layout_plugin.c#L256)完成了对指定结构体(类似于数组)的乱序.
 
-该插件通过两种方式选择结构: 手动使用新的 ` __randomize_layout` 进行标记, 或者在发现结构完全由函数指针组成时由编译器自动进行标记(可以使用 `__no_randomize_layout` 通知编译器不要进行随机化).
+>   Fisher–Yates shuffle 是对有限序列生成一个随机排列的算法, 所有的排列是等概率的, 该算法是无偏的、高效的, 算法的时间正比于乱序的数组.
+>
+>   参见 [Fisher–Yates shuffle 算法详解：给定数组的乱序](https://blog.csdn.net/qikaihuting/article/details/78224690)
 
-task_struct 是一种在利用漏洞时特别敏感且经常被滥用的结构, 但由于某些字段需要在开头和结尾, 因此对其进行随机化需要一些特殊处理. 为了解决这个问题, 使用一个[内部匿名结构](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=29e48ce87f1eaaa4b1fe3d9af90c586ac2d1fb74) 来标记将随机化的部分. 随机的这部分(匿名结构)字段用 randomized_struct_fields_start 和 randomized_struct_fields_end 来标记.
+这个功能的大部分都是从 grsecurity 移植过来的. 该实现几乎与 PaX 团队和 Brad Spengler 编写的原始代码完全相同. 这些变化是添加了改进的指定初始值设定项标记、白名单机制、许多假阳性修复, 以及处理任务结构随机化的不同方法.
+
+
+该插件通过三种方式选择结构:
+
+1.  手动使用新的 [` __randomize_layout`](https://elixir.bootlin.com/linux/v4.13/source/include/linux/compiler-gcc.h#L231) 进行标记;
+
+2.  或者在发现结构完全由函数指针组成时由编译器自动进行标记(可以使用 [`__no_randomize_layout`](https://elixir.bootlin.com/linux/v4.13/source/include/linux/compiler-gcc.h#L232) 通知编译器不要进行随机化).
+
+3.  通过 `randomized_struct_fields_{start|end}` 圈定一个范围, 结构体这个范围内所有的字段都会被乱序.
+
+    task_struct 是一种在利用漏洞时特别敏感且经常被滥用的结构, 但由于某些字段需要在开头和结尾, 因此对其进行随机化需要一些特殊处理. 为了解决这个问题, 使用一个[内部匿名结构](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=29e48ce87f1eaaa4b1fe3d9af90c586ac2d1fb74) 来标记将随机化的部分. 随机的这部分(匿名结构)字段用 [randomized_struct_fields_start](https://elixir.bootlin.com/linux/v4.13/source/include/linux/sched.h#L534) 和 [randomized_struct_fields_end](https://elixir.bootlin.com/linux/v4.13/source/include/linux/sched.h#L1094) 来标记.
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2016/10/21 | Michael Leibowitz <michael.leibowitz@intel.com> | [Add the randstruct gcc plugin](https://patchwork.kernel.org/project/kernel-hardening/patch/1477071466-19256-1-git-send-email-michael.leibowitz@intel.com) | 这个插件在编译时随机化某些结构的布局. 这引入了两个定义 `__randomize_layout` 和 `__no_randomize_layout`. 这两个选项用于通知编译器尝试随机化或不随机化有问题的结构. 这个特性是从 grsecurity 移植过来的. 实现与 PaX 团队和 Spender 编写的原始代码几乎相同. 为了简化集成, 当前只支持显式标记结构. 但是, 它保留了对 `__no_randomize_layout` 的支持. UAPI 检查也被保留. 要随机化的结构必须使用C99指定的初始化式形式. | v1 ☐ | [PatchWork](https://lkml.org/lkml/2017/5/26/558)<br>*-*-*-*-*-*-*-* <br>[PatchWork](https://patchwork.kernel.org/project/kernel-hardening/patch/1495829844-69341-20-git-send-email-keescook@chromium.org) |
-| 2017/05/26 | Kees Cook <keescook@chromium.org> | [Introduce struct layout randomization plugin](https://lore.kernel.org/patchwork/cover/1471548) | 引入结构体布局随机化插件, 通过 CONFIG_GCC_PLUGIN_RANDSTRUCT 使能. | v2 ☑ 4.13-rc2 | [2017/04/06 PatchWork 16/18](https://patchwork.kernel.org/project/kernel-hardening/patch/1491513513-84351-17-git-send-email-keescook@chromium.org)<br>*-*-*-*-*-*-*-* <br>[2017/05/26 PatchWork v2,00/20](https://lkml.org/lkml/2017/5/26/558)<br>*-*-*-*-*-*-*-* <br>[2017/05/26 PatchWork RFC,v2,19/20](https://patchwork.kernel.org/project/kernel-hardening/patch/1495829844-69341-20-git-send-email-keescook@chromium.org)<br>*-*-*-*-*-*-*-* <br>[2017/06/19 PatchWork 1/4](https://patchwork.kernel.org/project/kernel-hardening/patch/1497905801-69164-2-git-send-email-keescook@chromium.org) |
+| 2017/05/26 | Kees Cook <keescook@chromium.org> | [Introduce struct layout randomization plugin](https://lore.kernel.org/patchwork/cover/1471548) | 引入结构体布局随机化插件, 通过 CONFIG_GCC_PLUGIN_RANDSTRUCT 使能. | v2 ☑ 4.13-rc1 | [2017/04/06 PatchWork 16/18](https://patchwork.kernel.org/project/kernel-hardening/patch/1491513513-84351-17-git-send-email-keescook@chromium.org)<br>*-*-*-*-*-*-*-* <br>[2017/05/26 PatchWork v2,00/20](https://lkml.org/lkml/2017/5/26/558)<br>*-*-*-*-*-*-*-* <br>[2017/05/26 PatchWork RFC,v2,19/20](https://patchwork.kernel.org/project/kernel-hardening/patch/1495829844-69341-20-git-send-email-keescook@chromium.org)<br>*-*-*-*-*-*-*-* <br>[2017/06/19 PatchWork 1/4](https://patchwork.kernel.org/project/kernel-hardening/patch/1497905801-69164-2-git-send-email-keescook@chromium.org) |
 | 2017/11/09 | Sandipan Das <sandipan@linux.vnet.ibm.com> | [compiler, clang: handle randomizable anonymous structs](https://lists.archive.carbon60.com/linux/kernel/2848189) | 为 clang 支持处理 randomized_struct_fields_start 和 randomized_struct_fields_end 标记 | v1 ☑ 4.15-rc1 | [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4ca59b14e588f873795a11cdc77a25c686a29d2) |
 
+
+## 13.7 Fast Kernel Headers
+-------
+
+
+Ingo 自 2020 年底就一直投入 "Fast Kernel Headers" 项目, 在 Linux 内核中, 在 `include` 和 `arch/*/include` 层次结构中, 大约有 10000 个主要的 .h 头文件. 在过去的 30 多年里, 他们已经成长为一套复杂而痛苦的交叉依赖, 被称为 "依赖地狱"(Dependency Hell'). 这个项目就是通过对 Linux 内核的头文件层次结构和依赖关系的全面重构, 彻底解决 "依赖地狱", 该项目有两个主要的的目标:
+
+1.  加快内核构建速度 (包括绝对构建时间和增量构建时间)
+
+2.  解耦子系统类型和 API 定义
+
+
+参见 phoronix 的报道 [Massive ~2.3k Patch Series Would Improve Linux Build Times 50~80% & Fix "Dependency Hell"](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Fast-Kernel-Headers)
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/01/02 | Ingo Molnar <mingo@kernel.org> | ["Fast Kernel Headers" Tree -v1: Eliminate the Linux kernel's "Dependency Hell"](https://lore.kernel.org/lkml/YdIfz+LMewetSaEB@gmail.com) | "Fast Kernel Headers" 的补丁集, 新增 config 配置, CONFIG_FAST_HEADERS 和 CONFIG_KALLSYMS_FAST.<br>这个补丁集非常庞大, 包含了 2000+ 补丁, 这可能是内核有史以来代码量最大的一个功能. 但是效果也很不错.<br>1. 启用了 CONFIG_FAST_HEADERS 的内核每小时的内核构建次数可能比当前的库存内核多出 78%, 在支持的架构上，绝对内核构建性能可以提高 50~80%.将许多高级标头与其他标头分离, 取消不相关的函数, 类型和 API 标头的分离, 头文件的自动依赖关系处理以及各种其他更改.<br>2. CONFIG_KALLSYMS_FAST 则实现了一个基于 objtool 的未压缩符号表功能, 它避免了 vmlinux 对象文件的通常三重链接, 这是增量内核构建的主要瓶颈. 由于即使使用 distro 配置, kallsyms 表也只有几十 MB 大, 因此在内核开发人员的桌面系统上, 内存成本是可以接受的. 不过当前只在 x86_64 下实现了此功能.<br>到目前为止, 这个庞大的补丁系列已经在 x86/x86_64, SPARC, MIPS 和 ARM64 上进行了测试. | v1 ☐ | [LORE RFC, 0000/2297](https://patchwork.kernel.org/project/kernel-hardening/patch/1495829844-69341-20-git-send-email-keescook@chromium.org) |
+
+## 13.8 LINK
+-------
+
+
+Mold 是目前 Unix 链接器的现代替代品, 已经达到了 1.0 版本. 由 LLVM lld 连接器的原创者编写, 通过提高并行性, Mold 的目标是比它的前辈快几倍.
+
+2021 年 12 月 [Mold 1.0 发布](https://www.phoronix.com/scan.php?page=news_item&px=Mold-1.0-Released), 作为非常有前途的高性能链接器, 是当前主流编译器等(如 GNU 的 Gold 和 LLVM 的 LLD) 首选替代方案. 随即 GCC 12 宣布增加了[对 Mold 的支持](https://www.phoronix.com/scan.php?page=news_item&px=GCC-12-Mold-Linker). 紧接着 Mold 宣布 1.0.1 将[维护 1 年](https://www.phoronix.com/scan.php?page=news_item&px=Mold-1.0.1-Released), 成为事实上的 LTS 版本.
 
 
 
