@@ -538,6 +538,16 @@ https://patchwork.kernel.org/project/linux-trace-devel/list/?submitter=200911&st
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/11/21 | David Woodhouse <dwmw2@infradead.org> | [Parallel CPU bringup for x86_64](https://lkml.org/lkml/2021/12/9/664) | 随着核数的增多, 内核的启动速度越来越慢. 这组补丁能够并行启动辅助 (x86_64) CPU 内核. | v1 ☐ | [LWN ](https://lwn.net/Articles/878161), [LKML](https://lkml.org/lkml/2021/12/9/664), [LORE 00/11](https://lkml.kernel.org/lkml/20211209150938.3518-1-dwmw2@infradead.org) |
 
+# 18 LIB
+-------
+
+## 18.1 bitmap
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/12/18 | David Woodhouse <dwmw2@infradead.org> | [lib/bitmap: optimize bitmap_weight() usage](https://patchwork.kernel.org/project/linux-mm/cover/20211218212014.1315894-1-yury.norov@gmail.com) | NA | v1 ☐ | [Patchwork v2,00/17](https://lkml.kernel.org/lkml/20211209150938.3518-1-dwmw2@infradead.org) |
 
 <br>
 
