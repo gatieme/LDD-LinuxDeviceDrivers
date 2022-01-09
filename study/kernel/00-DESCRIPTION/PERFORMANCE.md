@@ -72,8 +72,11 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/06/01 | Shaokun Zhang <zhangshaokun@hisilicon.com> | [tcp: optimizations for linux-5.17e](https://patchwork.kernel.org/project/netdevbpf/cover/20211115190249.3936899-1-eric.dumazet@gmail.com/) | 参见报道 [Linux 5.17 To Boast A Big TCP Performance Optimization](https://git.kernel.org/pub/scm/linux/kernel/git/netdev/net-next.git/commit/?id=f35f821935d8df76f9c92e2431a225bdff938169) | v1 ☐ | [2021/04/09 Patchwork RESEND](https://patchwork.kernel.org/project/linux-fsdevel/patch/1617940057-52843-1-git-send-email-zhangshaokun@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[2021/06/01 Patchwork RESEND](https://patchwork.kernel.org/project/linux-fsdevel/patch%20/1622513557-46189-1-git-send-email-zhangshaokun@hisilicon.com) |
+| 2021/06/01 | Shaokun Zhang <zhangshaokun@hisilicon.com> | [tcp: optimizations for linux-5.17e](https://patchwork.kernel.org/project/netdevbpf/cover/20211115190249.3936899-1-eric.dumazet@gmail.com/) | 对于包含了大量数据的报文(大包), 释放也是比较耗时间的, 因此将报文释放的操作从锁中移出. 参见报道 [Linux 5.17 To Boast A Big TCP Performance Optimization](https://git.kernel.org/pub/scm/linux/kernel/git/netdev/net-next.git/commit/?id=f35f821935d8df76f9c92e2431a225bdff938169) | v1 ☐ 5.17-rc1 | [2021/04/09 Patchwork RESEND](https://patchwork.kernel.org/project/linux-fsdevel/patch/1617940057-52843-1-git-send-email-zhangshaokun@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[2021/06/01 Patchwork RESEND](https://patchwork.kernel.org/project/linux-fsdevel/patch%20/1622513557-46189-1-git-send-email-zhangshaokun@hisilicon.com) |
 
+https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-AF_UNIX-Optimization
+
+https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Faster-csum_partial
 
 # 3 IO
 -------

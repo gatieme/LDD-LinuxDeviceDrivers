@@ -1932,17 +1932,30 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 ## 12.2 tracepoint
 -------
 
-[`tracepoints-helpers`](https://github.com/auldp/tracepoints-helpers.git)
-[`plot-nr-running`](https://github.com/jirvoz/plot-nr-running)
-
+调度器中的调试信息实在太少, 很多微观的信息, 比如负载均衡, 选核路径, 进程负载等信息没有有效的调试信息. 很多开发者一直希望能够在调度器中添加一些调试信息. 但是作为对系统性能影响最大的内核核心模块, 调度的代码调用频率一直非常频繁, 添加调试信息必然对调度器的 overhead. 另外调度的 Maintainer Peter 一直对在调度中添加 tracepoint 等这种调试信息有较大的意见, 单纯的添加调试信息对性能分析的作用并不大.
 
 | 时间  | 作者 |特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:--:|:----:|:---------:|:----:|
 | 2017/03/28 | Dietmar Eggemann | [CFS load tracking trace events](https://lore.kernel.org/patchwork/cover/774154) | 增加 PELT 的跟踪点 | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/774154) |
 | 2018/12/14 | Benjamin | [sched/debug: Add tracepoint for RT throttling](https://lore.kernel.org/patchwork/patch/1024902) | RT throttle 的 tracepoint | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/patch/1024902) |
-| 2019/06/04 | | [sched: Add new tracepoints required for EAS testing](https://lore.kernel.org/patchwork/patch/1296761) | 增加 PELT 的跟踪点 | v3 ☑ 5.3-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1296761) |
-| 2020/06/19 | | [Sched: Add a tracepoint to track rq->nr_running](https://lore.kernel.org/patchwork/patch/1258690) | 增加 nr_running 的跟踪点 | v1 ☑ 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1258690)<br>*-*-*-*-*-*-*-* <br>[FixPatch](https://lore.kernel.org/patchwork/patch/1284621) |
-| 2020/08/28 | | [sched/debug: Add new tracepoint to track cpu_capacity](https://lore.kernel.org/patchwork/patch/1296761) | 增加 cpu_capacity 的跟踪点 | v1 ☐ |  [PatchWork](https://lore.kernel.org/patchwork/cover/1296761) |
+
+另外一方面, 在内核开发过程中, 开发者们又苦于无法针对修改内容进行一些量化或者可视化结果的测量, 而无感. 特别是调度的分析和可视化, 显得那么重要, 却一直没有更好的手段.
+
+ARM & Linaro 的内核团队针对 Android/linux 等做了大量的调度的优化, 比如 EAS 等. 终端场景的性能优化最重要的就是保供给, 排在首位的就是(前台应用)的调度和调频, 为了分析和跟踪终端场景的调度信息. Android 提供了 systrace, perfetto 等工具. 而 ARM 则推出了 [LISA(Linux Interactive System Analysis)](https://github.com/ARM-software/lisa). LISA 是一个 Linux 环境下用于回归测试和对于各种 workload 进行交互测试的工具集. 目前 LISA 主要专注于 scheduler、power management 和 thermal 框架的分析. 不仅于此, LISA 提供一个框架且可以轻松扩展到其他用途. LISA 提供一些列 API 用于测试条例编写和回归测试条例开发. 参见 [LISA 介绍及其使用方法](https://www.cnblogs.com/arnoldlu/p/6214879.html).
+
+为了测试和分析 EAS 调度的微观行为, ARM 的开发者提供了一种新的思路, 通过注册 tracepoint hook 点, 但是把实现 tracepoint 的工作交给驱动模块来做, 这种更灵活的方案, 更适应 LISA 的灵活. 参见 [sched: Add new tracepoints required for EAS testing](https://lore.kernel.org/lkml/1598605249-72651-1-git-send-email-vincent.donnefort@arm.com).
+
+在某种意义上, 这些新引入的 tracepoint 其实是空的, 它们不跟踪中的任何信息. 使用它们的预期方法是加载一个驱动模块, 这个模块将注册到这些 tracepoint 点, 然后提取(或者输出)用户空间测试所需的信息.
+
+通过驱动模块实现和注册 tracepoint 的方法参见 [`tracepoints-helpers`](https://github.com/auldp/tracepoints-helpers.git)
+
+随后 Redhat 的 Phil Auld 增加了对 rq->nr_running 的跟踪, 这对分析系统中的在负载均衡状况非常有用. Auld 同时提供了一个工具 [`plot-nr-running`](https://github.com/jirvoz/plot-nr-running) 可以分析系统的不均衡状态, 并通过 PLOT 绘制成图, 帮助可视化. 参见 [COMMIT 9d246053a691](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9d246053a69196c7c27068870e9b4b66ac536f68).
+
+| 时间  | 作者 |特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:--:|:----:|:---------:|:----:|
+| 2019/06/04 | Qais Yousef <qais.yousef@arm.com> | [sched: Add new tracepoints required for EAS testing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a056a5bed7fa67706574b00cf1122c38596b2be1) | 增加 PELT 的跟踪点.<br>新引入了 `trace_pelt_{cfs|rt|dl|irq}_tp` 等 tracepoint 点跟踪 RQ 的负载信息, 以及 `trace_pelt_se_tp` 等 sched_entity 级别的负载跟踪点, 还提供了 `trace_sched_overutilized_tp` 记录 RQ 和 SD 的 overutilized 状态. 主要是为了跟踪 PELT 的内容, 这是 EAS 做出决策时使用的信息. 了解 PELT 的变化, LISA 可以根据模拟不同场景的综合测试来验证 EAS 是否在做正确的事情. 除了 EAS 之外, 新的 tracepoint 点还可以帮助研究 CFS 负载均衡器和 CFS 任务组处理. | v2 ☑ 5.3-rc1 | [LORE v3,0/6](https://lore.kernel.org/lkml/1598605249-72651-1-git-send-email-vincent.donnefort@arm.com) |
+| 2020/06/19 | Phil Auld <pauld@redhat.com> | [Sched: Add a tracepoint to track rq->nr_running](https://lore.kernel.org/patchwork/patch/1258690) | 增加 nr_running 的跟踪点. 通过  | v1 ☑ 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1258690), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9d246053a69196c7c27068870e9b4b66ac536f68)<br>*-*-*-*-*-*-*-* <br>[FixPatch](https://lore.kernel.org/patchwork/patch/1284621), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a1bd06853ee478d37fae9435c5521e301de94c67) |
+| 2020/08/28 | | [sched/debug: Add new tracepoint to track cpu_capacity](https://lore.kernel.org/patchwork/patch/1296761) | 增加 cpu_capacity 的跟踪点 | v2 ☑ 5.10-rc1 |  [PatchWork](https://lore.kernel.org/patchwork/cover/1296761), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=51cf18c90ca1b51d1cb4af3064e85fcf8610b5d2) |
 
 ## 12.3 debug 接口
 -------

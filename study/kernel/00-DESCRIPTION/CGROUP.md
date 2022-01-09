@@ -59,6 +59,9 @@ blogexcerpt: FZF 是目前最快的模糊搜索工具. 使用golang编写. 结�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/10/09 | "Pratik R. Sampat" <psampat@linux.ibm.com> | [kernel: Introduce CPU Namespace](https://www.phoronix.com/scan.php?page=news_item&px=Linux-CPU-Namespace) | CPU namespace | RFC ☐ | [LWN RFC, 0/5]](https://lwn.net/Articles/872507) |
+| 2022/1/7 |  Josh Don | [cgroup: add cpu.stat_percpu](https://lkml.org/lkml/2022/1/7/833) | CPU namespace | RFC ☐ | [LORE 1/2]](https://lkml.org/lkml/2022/1/7/833) |
+
+
 
 <br>
 

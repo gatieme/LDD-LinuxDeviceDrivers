@@ -150,6 +150,14 @@ RRZE-HPC 的 [likwid(Like I knew what I am doing):Performance monitoring and ben
 
 [Kernel analysis with bpftrace](https://lwn.net/Articles/793749)
 
+
+
+## 2.8 增加时延
+-------
+
+
+[netem](https://wiki.linuxfoundation.org/networking/netem)
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

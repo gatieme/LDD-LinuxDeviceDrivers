@@ -2340,7 +2340,7 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 -------
 
 
-### 7.1.1 引入
+### 7.1.1 引入 HUGETLB
 -------
 
 
@@ -2389,7 +2389,7 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 | 2009/08/14 | Eric B Munson <ebmunson@us.ibm.com> | [Add pseudo-anonymous huge page mappings V3](https://lore.kernel.org/linux-man/cover.1250258125.git.ebmunson@us.ibm.com) | 这个补丁集为 mmap 添加了一个标志 [MAP_HUGETLB](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4e52780d41a741fb4861ae1df2413dd816ec11b1), 允许用户请求使用大页面支持映射.<br>这个映射借用[大页 shm 代码的功能](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6bfde05bf5c9682e255c6a2c669dc80f91af6296), 在内核内部挂载上创建一个文件, 并使用它近似于匿名映射 MAP_ANONYMOUS.<br>1. MAP_HUGETLB 标志是 MAP_ANONYMOUS 的修饰符, 如果两个标志都没有被预设, 它就不能工作.<br>2. 一个新的标志是必要的, 因为当前除了在 hugetlbfs 挂载上创建一个文件外, 没有其他方法可以映射到到大页.<br>3. 对于用户空间, 这个映射的行为就像匿名映射, 因为这个文件在内核之外是不可访问的. | RFC ☐ | [PatchWork 0/3](https://lore.kernel.org/linux-man/cover.1250258125.git.ebmunson@us.ibm.com) |
 
 
-### 7.1.3 More huge page sizes
+### 7.1.4 More huge page sizes
 -------
 
 
@@ -2400,12 +2400,43 @@ huge page 最开始只支持 PMD 级别(基础页 4K, 则 PMD 级别为 2MB)的�
 | 2020/12/05 | Andi Kleen <ak@linux.intel.com> | [mm: support more pagesizes for MAP_HUGETLB/SHM_HUGETLB](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=42d7395feb56f0655cd8b68e06fc6063823449f8) | Free page reporting 只支持伙伴系统中的页面, 它不能报告为 hugetlbfs 预留的页面. 这个补丁在 hugetlb 的空闲列表中增加了对报告巨大页的支持, 它可以被 virtio_balloon 驱动程序用于内存过载和预归零空闲页, 以加速内存填充和页面错误处理. | v7 ☑ 3.8-rc1 | [LWN v7](https://lwn.net/Articles/533650), [LORE v7](https://lore.kernel.org/lkml/1352157848-29473-2-git-send-email-andi@firstfloor.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=42d7395feb56f0655cd8b68e06fc6063823449f8) |
 
 
+### 7.1.5 HugeTLB CGROUP
+-------
+
+参见内核文档 [HugeTLB Controller](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v1/hugetlb.html).
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2012/07/31 | Aneesh Kumar K.V <aneesh.kumar@linux.vnet.ibm.com> | [hugetlb: Add HugeTLB controller to control HugeTLB allocation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=75754681fe79b84dde1048470a44eeb64192fad6) | 引入 hugetlb cgroup | v9 ☑ 3.6-rc1 | [LKML v1,0/9](https://lkml.org/lkml/2012/2/20/127)<br>*-*-*-*-*-*-*-* <br>[LKML v8,00/16](https://lkml.org/lkml/2012/6/9/22)[LKML v9,00/15](https://lkml.org/lkml/2012/6/13/161), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2bc64a2046975410505bb119bba32705892b9255) |
+| 2019/12/16 | Giuseppe Scrivano <gscrivan@redhat.com> | [mm: hugetlb controller for cgroups v2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=faced7e0806cf44095a2833ad53ff59c39e6748d) | cgroup v2 支持 hugetlb. | v1 ☑ 5.6-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=faced7e0806cf44095a2833ad53ff59c39e6748d) |
+| 2021/09/29 | Baolin Wang <baolin.wang@linux.alibaba.com> | [Support hugetlb charge moving at task migration](https://lore.kernel.org/linux-mm/cover.1632843268.git.baolin.wang@linux.alibaba.com) | 当前, 在 hugetlb cgroup 中, 任务的统计信息不会在任务迁移时转移到新的 hugetlb cgroup 中, 这个补丁集增加了 hugetlb cgroup 计费统计迁移. | v1 ☐ | [LORE 0/2](https://lore.kernel.org/linux-mm/cover.1632843268.git.baolin.wang@linux.alibaba.com) |
+
+当前任务试图分配更多的 hugetlb 内存, 而系统已经没有可用的预留空间时, mmap/shmget 会失败. 参见 [Hugetlbfs Reservation](https://www.kernel.org/doc/html/latest/vm/hugetlbfs_reserv.html). 然而, 如果一个任务试图分配的 hugetlb 内存只超过了它的 hugetlb_cgroup 限制, 内核却能 mmap/shmget 成功, 只有在触发 page fault 时, 系统会对该进程发送 SIGBUS 处理. 部分内核开发者对内核这种处理行为表示了不满. 更合理的操作是 hugetlb_cgroup 限制的任务在 mmap/shmget 时就该失败, 而不是当它们尝试使用多余的内存时才触发 SIGBUS.
+
+产生这样问题的根本原因是, hugetlb_cgroup 的统计是在 page fault 的时候(hugetlb memory *fault* time), 而不是在预留的时候(*reservation* time.). 因此, 检查 hugetlb_cgroup 限制只能在 page fault 时进行, 如果发现任务超出限制了则会被 SIGBUS 处理.
+
+建议解决方案是:
+
+1.  一个名为 `hugetlb.xMB.reservation_[limit|usage]_in_bytes` 的新页计数器. 这个计数器的语义与 hugetlb.xMB 稍有不同.
+
+2.  usage_in_bytes 跟踪所有已经发生 page fault 并被实际使用的 hugetlb 内存, reservation_usage_in_bytes 则跟踪所有 reserved 的 hugetlb 内存.
+
+3.  如果一个任务试图保留超过 limit_in_bytes 允许的内存, 内核将允许它这样做. 但是, 如果一个任务试图预留比 reservation_limit_in_bytes 更多的内存, 内核将无法通过这个预留.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/02/11 | Mina Almasry <almasrymina@google.com> | [hugetlb_cgroup: Add hugetlb_cgroup reservation limits](https://lore.kernel.org/linux-mm/cover.1632843268.git.baolin.wang@linux.alibaba.com) | 当前, 在 hugetlb cgroup 中, 任务的统计信息不会在任务迁移时转移到新的 hugetlb cgroup 中, 这个补丁集增加了 hugetlb cgroup 计费统计迁移. | v1 ☐ | 2019/08/08 [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/patch/20190808194002.226688-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>2019/08/08 [PatchWork RFC,v2,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20190808231340.53601-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20190826233240.11524-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v5,0/7](https://patchwork.kernel.org/project/linux-mm/cover/20190919222421.27408-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6,1/9](https://patchwork.kernel.org/project/linux-mm/patch/20191013003024.215429-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v12,1/9](https://patchwork.kernel.org/project/linux-mm/patch/20200211213128.73302-1-almasrymina@google.com) |
+
+
+### 7.1.6 More HugeTLB Patchset
+-------
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/12/22 | Liang Li <liliang.opensource@gmail.com> | [add support for free hugepage reporting](https://lore.kernel.org/patchwork/cover/1355899) | Free page reporting 只支持伙伴系统中的页面, 它不能报告为 hugetlbfs 预留的页面. 这个补丁在 hugetlb 的空闲列表中增加了对报告巨大页的支持, 它可以被 virtio_balloon 驱动程序用于内存过载和预归零空闲页, 以加速内存填充和页面错误处理. | RFC ☐ | [PatchWork RFC,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20201222074538.GA30029@open-light-1.localdomain) |
 | 2021/10/07 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: add demote/split page functionality](https://lore.kernel.org/patchwork/cover/1465517) | 实现了 hugetlb 降低策略. 提供了一种"就地"将 hugetlb 页面分割为较小的页面的方法. | v4 ☐ | [2021/07/21 PatchWork 0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210721230511.201823-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/08/16 PatchWork RESEND,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210816224953.157796-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/23 PatchWork v2,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20210923175347.10727-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/07 PatchWork v4,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20211007181918.136982-1-mike.kravetz@oracle.com) |
 | 2021/10/14 | Mina Almasry <almasrymina@google.com> | [mm, hugepages: add mremap() support for hugepage backed vma](https://patchwork.kernel.org/project/linux-mm/patch/20210730221522.524256-1-almasrymina@google.com) | 通过简单地重新定位页表项, 使得 mremap() 支持 hugepage 的 vma 段. 页表条目被重新定位到 mremap() 上的新虚拟地址.<br>作者验证的测试场景是一个简单的 bench: 它在 hugepages 中重新加载可执行文件的 ELF 文本, 这大大提高了上述可执行文件的执行性能.<br>将 hugepages 上的 mremap 操作限制为原始映射的大小, 因为底层 hugetlb 保留还不能处理到更大的大小的重映射.<br>在 mremap () 操作期间, 我们检测 pmd_shared 的映射, 并在 mremap () 期间取消这些映射的共享. 在访问和故障时, 再次建立共享. | v1 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20210730221522.524256-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,1/2](https://patchwork.kernel.org/project/linux-mm/patch/20211006194515.423539-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v8,1/2](https://patchwork.kernel.org/project/linux-mm/patch/20211014200542.4126947-1-almasrymina@google.com) |
-| 2021/09/30 | Baolin Wang <baolin.wang@linux.alibaba.com> | [Support hugetlb charge moving at task migration](https://patchwork.kernel.org/project/linux-mm/cover/cover.1632843268.git.baolin.wang@linux.alibaba.com) | 现在在 hugetlb cgroup 中, 任务迁移时与任务相关的统计不会移动到新的 hugetlb cgroup 中, 这对于 hugetlb cgroup 的使用是奇怪的. 这个补丁集增加了 hugetlb cgroup 中迁移任务时统计信息的迁移. | v1 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/cover/cover.1632843268.git.baolin.wang@linux.alibaba.com) |
 | 2021/10/05 | Zhenguo Yao <yaozhenguo1@gmail.com> | [hugetlbfs: Extend the definition of hugepages parameter to support node allocation](https://lore.kernel.org/patchwork/cover/1479318) | 当前内核允许指定启动时要分配的 hugepages 数目. 但目前所有节点的 hugepages 都是平衡的. 在某些场景中, 我们只需要在一个节点中使用 hugepags.<br>例如: DPDK 需要与 NIC 位于同一节点的 hugepages. 如果 DPDK 在 node1 中需要 4 个 1G 大小的 HugePage, 并且系统有 16 个 numa 节点. 我们必须在内核 cmdline 中保留 64 个 HugePage. 但是, 只使用了 4 个 hugepages. 其他的应该在引导后释放. 如果系统内存不足(例如: 64G), 这将是一项不可能完成的任务. 因此, 添加 hugepages_node 内核参数以指定启动时要分配的 hugepages 的节点数. | v1 ☐ 5.14-rc7 | [2021/08/20 PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/patch/20210820030536.25737-1-yaozhenguo1@gmail.com)<br>*-*-*-*-*-*-*-* <br>[2021/08/23 PatchWork v1](](https://patchwork.kernel.org/project/linux-mm/patch/20210823130154.75070-1-yaozhenguo1@gmail.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/05 PatchWork  v8](https://patchwork.kernel.org/project/linux-mm/patch/20211005054729.86457-1-yaozhenguo1@gmail.com) |
 | 2021/10/15 | Baolin Wang <baolin.wang@linux.alibaba.com> | [hugetlb: Support node specified when using cma for gigantic hugepages](https://patchwork.kernel.org/project/linux-mm/patch/bb790775ca60bb8f4b26956bb3f6988f74e075c7.1634261144.git.baolin.wang@linux.alibaba.com) | 所有在线节点的 hugepages 运行时分配的 CMA 区域大小是平衡的, 但我们还希望指定每个节点的 CMA 大小, 或者在某些情况下仅指定一个节点, 这与 [hugetlb 的分 numa 节点指定大小](https://patchwork.kernel.org/project/linux-mm/patch/20211005054729.86457-1-yaozhenguo1@gmail.com)类似. | v3 ☐ | [2021/10/10 PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/bb790775ca60bb8f4b26956bb3f6988f74e075c7.1634261144.git.baolin.wang@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/15 PatchWork v3](https://patchwork.kernel.org/project/linux-mm/patch/bb790775ca60bb8f4b26956bb3f6988f74e075c7.1634261144.git.baolin.wang@linux.alibaba.com) |
 | 2021/11/17 | Mina Almasry <almasrymina@google.com> | [hugetlb: Add `hugetlb.*.numa_stat` file](https://patchwork.kernel.org/project/linux-mm/patch/20211019215437.2348421-1-almasrymina@google.com) | 添加 `hugetlb.*.numa_stat`, 它显示 hugetlb 在 cgroup 的 numa 使用信息. 类似于 memory.numa_stat. | v2 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211019215437.2348421-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211020190952.2658759-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v7](https://patchwork.kernel.org/project/linux-mm/patch/20211117201825.429650-1-almasrymina@google.com) |
@@ -4036,25 +4067,19 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 ## 14.7 ASLR
 -------
 
-### 14.7.1 ASLR
+### 14.7.1 ASLR(User Space)
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/01/24 | Topi Miettinen <toiwoton@gmail.com> | [mm: Optional full ASLR for mmap(), vdso, stack and heap](https://lore.kernel.org/patchwork/cover/1370134) | NA | v1 ☑ 2.6.30-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1370134) |
+| 2021/01/24 | Topi Miettinen <toiwoton@gmail.com> | [mm: Optional full ASLR for mmap(), vdso, stack and heap](https://lore.kernel.org/patchwork/cover/1370134) | NA | v1 ☑ 2.6.30-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1370134) |
 
 
-
-### 14.7.2 KASLR & Randomize Offset
+### 14.7.2 KASLR
 -------
 
-
-*   地址随机化 ASLR
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/08/13 | Kefeng Wang <wangkefeng.wang@huawei.com> | [riscv: Improve stack randomisation on RV64](https://www.phoronix.com/scan.php?page=news_item&px=RISC-V-Better-Stack-Rand) | NA | v1 ☑ 5.15-rc1 | [PatchWork](https://patchwork.kernel.org/project/linux-riscv/patch/20210812114702.44936-1-wangkefeng.wang@huawei.com), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d5935537c8256fc63c77d5f4914dfd6e3ef43241) |
-| 2021/01/24 | Topi Miettinen <toiwoton@gmail.com> | [mm: Optional full ASLR for mmap(), vdso, stack and heap](https://lore.kernel.org/patchwork/cover/1370134) | NA | v1 ☑ 2.6.30-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1370134) |
+[Kernel Address Space Layout Randomization](https://www.phoronix.com/scan.php?page=search&q=Kernel%20Address%20Space%20Layout%20Randomization)
 
 
 *   内核地址随机化 KASLR
@@ -4062,19 +4087,26 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/13 | Xiongwei Song <sxwjean@gmail.com> | [Use generic code for randomization of virtual address of x86](https://patchwork.kernel.org/project/linux-mm/cover/20211011143150.318239-1-sxwjean@me.com) | ASLR 的重构. | v1 ☐ | [PatchWork v2,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211011143150.318239-1-sxwjean@me.com) |
-| 2017/09/03 | Ard Biesheuvel <ard.biesheuvel@linaro.org> | [implement KASLR for ARM](https://lwn.net/Articles/732891) | ARM 支持 KASLR. | v1 ☐ | [PatchWork v2,0/6](https://git.kernel.org/pub/scm/linux/kernel/git/ardb/linux.git/log/?h=arm-kaslr-latest) |
+| 2017/09/03 | Ard Biesheuvel <ard.biesheuvel@linaro.org> | [implement KASLR for ARM](https://lwn.net/Articles/732891) | ARM 支持 KASLR. | v1 ☐ | [LWN](https://lwn.net/Articles/732891)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/6](https://git.kernel.org/pub/scm/linux/kernel/git/ardb/linux.git/log/?h=arm-kaslr-latest) |
 
 
 *   随机函数偏移(FGKASLR)
 
 [Intel Open-Source Developer Has Been Working On "FGKASLR" For Better Kernel Security](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Linux-FGKASLR-Proposal)
 
-[Linux 5.16 Has Early Preparations For Supporting FGKASLR
-](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.16-Preps-For-FGKASLR)
+[Linux 5.16 Has Early Preparations For Supporting FGKASLR](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.16-Preps-For-FGKASLR)
+
+[FGKASLR Is An Exciting Linux Kernel Improvement To Look Forward To In 2022](https://www.phoronix.com/scan.php?page=news_item&px=Linux-FGKASLR-2022)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/07/17 | Topi Miettinen <toiwoton@gmail.com> | [Function Granular KASLR](https://patchwork.kernel.org/project/kernel-hardening/cover/20200717170008.5949-1-kristen@linux.intel.com/#23528683) | NA | v1 ☑ v4 | [PatchWork v4,00/10](https://patchwork.kernel.org/project/kernel-hardening/cover/20200717170008.5949-1-kristen@linux.intel.com/#23528683) |
+| 2021/10/13 | Kees Cook <keescook@chromium.org> | [x86: Various clean-ups in support of FGKASLR](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ca136cac37eb51649d52d5bc4271c55e30ed354c) | FGKASLR 的一些的准备工作, 都是一些独立的改动. 比如:<br>1. 在 relocs 工具中支持[超过 64K 的节头](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a54c401ae66fc78f3f0002938b3465ebd6379009).<br>2. KASLR 中通过  kaslr_get_random_long() 提取随机种子时候, 通过 earlyprintk debug_putstr 输出了很多无用的调试信息, 允许将[参数 purpose 置 NULL](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0d054d4e82072bcfd5eb961536b09a9b3f5613fb)来使输出静默.<br>4. 修改 [ORC 查找表的大小]](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ca136cac37eb51649d52d5bc4271c55e30ed354c)以覆盖整个内核的代码段. | v1 ☑ [5.16-rc1](https://lkml.org/lkml/2021/11/2/26) | [LORE 0/4](https://lore.kernel.org/all/20211013175742.1197608-1-keescook@chromium.org) |
+| 2020/07/17 | Topi Miettinen <toiwoton@gmail.com> | [Function Granular KASLR](https://patchwork.kernel.org/project/kernel-hardening/cover/20200717170008.5949-1-kristen@linux.intel.com/#23528683) | NA | v1 ☑ v4 | [PatchWork v4,00/10](https://patchwork.kernel.org/project/kernel-hardening/cover/20200717170008.5949-1-kristen@linux.intel.com/#23528683)<br>*-*-*-*-*-*-*-* <br>[LORE v9,00/15](https://lore.kernel.org/lkml/20211223002209.1092165-1-alexandr.lobakin@intel.com) |
+
+
+### 14.7.3 Randomize Offset
+-------
+
 
 *   随机栈偏移
 
@@ -4102,6 +4134,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/03/29 | Elena Reshetova <elena.reshetova@intel.com> | [x86/entry/64: randomize kernel stack offset upon syscall](https://lore.kernel.org/kernel-hardening/20190329081358.30497-1-elena.reshetova@intel.com) | 引入了 CONFIG_RANDOMIZE_KSTACK_OFFSET, 在 pt_regs 的固定位置之后, 系统调用的每个条目都会随机化内核堆栈偏移量. | v1 ☐ | [PatchWork](https://lore.kernel.org/kernel-hardening/20190329081358.30497-1-elena.reshetova@intel.com/) |
 | 2021/04/06 | Kees Cook <keescook@chromium.org> | [Optionally randomize kernel stack offset each syscall](https://patchwork.kernel.org/project/linux-mm/cover/20200406231606.37619-1-keescook@chromium.org) | Elena 先前添加内核堆栈基偏移随机化的工作的延续和重构. | v4 ☐ | [PatchWork v3,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20200406231606.37619-1-keescook@chromium.org) |
+| 2021/08/13 | Kefeng Wang <wangkefeng.wang@huawei.com> | [riscv: Improve stack randomisation on RV64](https://www.phoronix.com/scan.php?page=news_item&px=RISC-V-Better-Stack-Rand) | NA | v1 ☑ 5.15-rc1 | [PatchWork](https://patchwork.kernel.org/project/linux-riscv/patch/20210812114702.44936-1-wangkefeng.wang@huawei.com), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d5935537c8256fc63c77d5f4914dfd6e3ef43241) |
 
 
 
