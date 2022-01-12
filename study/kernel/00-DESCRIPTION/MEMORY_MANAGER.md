@@ -2361,6 +2361,9 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 | 2002/09/15 | Rohit Seth/Andrew Morton <akpm@digeo.com> | [hugetlb pages](https://github.com/gatieme/linux-history/commit/c9d3808fc28fc873dcf0dc95315f644997fde1d0) | 实现 ia32 的 CONFIG_HUGETLB_PAGE. | v1 ☑ 2.5.36 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/c9d3808fc28fc873dcf0dc95315f644997fde1d0) |
 | 2002/09/15 | Bill Irwin/Andrew Morton <akpm@digeo.com> | [hugetlbfs file system](https://github.com/gatieme/linux-history/commit/9f3336ab7c42d631f5ed50d73e1eea7bd9268892) | 为 hugetlb page 实现了一个小巧的  ram-backed 的文件系统. | v1 ☑ 2.5.46 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/9f3336ab7c42d631f5ed50d73e1eea7bd9268892) |
 
+[2.6.24-rc1](https://lwn.net/Articles/255649) 的时候, Adam Litke 引入了 [hugetlb_dynamic_pool 0/6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=af767cbdd78f293485c294113885d95e7f1da123).
+
+[2.6.24-rc6](https://lwn.net/Articles/262978) 时候, Nishanth Aravamudan 移除了[](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d5dbac87b4343d98ae509fb787efb77f8ddc484b).
 
 ### 7.1.2 SHM_HUGETLB
 -------
@@ -4205,17 +4208,57 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 
 
 ## 14.13 ZONE_MOVABLE
+-------
+
+减少内存的碎片化是永恒的主题, 但是很多情况下事与愿违. 想象一下这个场景, 当我们需要一块大的连续内存时向伙伴系统申请, 虽然对应的内存区剩余内存还很多, 但是却发现对应的内存区由于碎片化过多, 并无法满足连续的内存申请需求, 那么此时是可以通过内存迁移来完成连续内存的申请, 但是这个过程并不一定能够成功, 因为中间往往有一些页面可能是不允许迁移的.
+
+因此内核在 v2.6.23 引入 ZONE_MOVABLE 来减少内存碎片, 提高内存迁移的成功率. 内存管理子系统本身就把内存划分为不同 zone 来管理, ZONE_MOVABLE 与其他 zone 区域不同, 它是一个 pseudo zone, 即(虚拟的)伪的内存区域呢. 因此它实际上它是从平台中最高内存区中(比如 `ZONE_HIHGMEM`)单独划出了一部分内存, 作为 ZONE_MOVABLE.
+
+ZONE_MOVABLE 的作用:
+
+
+1.  引入 ZONE_MOVABLE 的主要目的是想要把 Non-Movable 和 Movable 的内存区分管理, 当我们划分出该区域后, 那么只有可迁移的页才能够从该区域申请, 这样当我们后面回收内存时, 针对该区域就都可以执行迁移, 而不用担心有一些不能被迁移的页面混在其中, 从而保证能够获取到足够大的连续内存.
+
+2.  除了这个用途之外, 该区域还有一种使用场景, 那就是 memory hotplug 场景, 内存热插拔场景, 当我们对内存区执行 remove 时, 必须保证其中的内容都是可以被迁移走的, 因此热插拔的内存区必须位于 ZONE_MOVABLE 区域. 这在虚拟化等场景很有用.
+
+
+>一般来说, 可迁移的页面不一定都在 ZONE_MOVABLE 中, 但是 ZONE_MOVABLE 中的页面必须尽可能都是可迁移的.
 
 
 ### 14.13.1 ZONE_MOVABLE
 -------
 
-[Preserving the mobility of ZONE_MOVABLE](https://lwn.net/Articles/843326/)
+
+2.6.23 的时候, Mel Gorman 提交补丁集 [reate ZONE_MOVABLE to partition memory between movable and non-movable pages](https://lwn.net/Articles/224255) 创建了一个名为 ZONE_MOVABLE 的分区. 引入这个 pseudo zone 的目的是为了防止 zone 内存碎片化. ZONE_MOVABLE 分区只能通过分配时指定了 `__GFP_HIGHMEM` 和 `__GFP_MOVABLE` 参数才能使用. 这样做的效果是将所有不可移动(non-movable/unmovabled)的页面都被限制在一个内存分区中, 而可移动(movable)页面的分配则由其他的内存区满足. 这组补丁可以与基于列表的抗碎片(list-based anti-fragmentation)补丁(TODO-待确认该补丁是指什么)一起应用, 后者根据移动性将页面分组在一起.
+
+ZONE_MOVABLE 区域的大小可通过启动参数 "kernelcore=" 来制定, 这个参数指定了多少内存分配给 ZONE_MOVALBE, 其余的用于 ZONE_MOVABLE. ZONE_MOVABLE 中的任何页面都可以通过迁移页面或回收页面来释放.
+
+ZONE_MOVABLE 一个 pseudo zone, 它实际是从内核划分的某个 zone 中单独划出了一部分内存来是使用的, 因此当我们选择某一个 zone 的页面用于 ZONE_MOVABLE 来使用时, 需要考虑两点:
+
+1.  首先, 仅仅位于最高内存 zone 的内存可用于 ZONE_MOVABLE. 对于 32 位的平台(比如 x86, arm 等), 是 ZONE_HIGHMEM. 对于 PPC64 则是 ZONE_DMA; 对于 x86_64 则是 ZONE_DMA32.
+
+2.  其次, 内核可用的内存数量将在可能的情况下均匀分布在 NUMA 节点上. 如果节点的大小不一, 就会导致内核在不同节点上可使用的内存数量不同.
+
+内核启动的时候会通过 [find_usable_zone_for_movable()](https://elixir.bootlin.com/linux/v2.6.23/source/mm/page_alloc.c#L2697) 查找一块合适的 zone index 供 ZONE_MOVABLE 使用.
+
+默认情况下, 这个 zone 不会被用作 hugetlb 的分配, 因为 hugetlb 的分配是固定的且不可迁移的(至少当时 2.6.23 版本是这样). 但是, 由于 ZONE_MOVABLE 始终具有可以迁移或回收的页面, 因此即使系统已运行很长时间, 也可以在 ZONE_MOVABLE 区域轻松地满足庞大的连续页面(比如 hugepage 等)的分配. 这更将允许管理员根据区域的大小在运行时调整 hugepage 池的大小. 因此内核仍然通过补丁集中的 [commit 396faf0303d2 ("Allow huge page allocations to use GFP_HIGH_MOVABLE")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=396faf0303d273219db5d7eb4a2879ad977ed185) 提供了一个 [sysctl hugepages_treat_as_movable](https://elixir.bootlin.com/linux/v2.6.23/source/mm/hugetlb.c#L31), 允许在 ZONE_MOVABLE 上进行 hugetlb 的分配. 这意味着, 如果页面没有被 mlock 锁定, 那么在系统的生命周期内, 可以将 hugetlb 的页面池调整为 ZONE_MOVABLE 的大小(huge page pool 的尺寸包含了 ZONE_MOVABLE 的尺寸). 尽管大页是不可移动的, 但是内核开发者们认为这不会引入额外的外部内存碎片, 因为大页不正是我们所关心的最大的连续块的分配请求么.
+
+因此除了 hughtlb 可以是 non-movable, Mel Gorman 不再引入其他可能会导致 ZONE_MOVABLE 外碎片的分配.
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2007/01/25 | Mel Gorman <mel@csn.ul.ie> | [Create ZONE_MOVABLE to partition memory between movable and non-movable pages](https://www.lkml.org/lkml/2007/1/25/295) | NA | v1 ☑ 2.6.23-rc1 | [LKML 0/8](https://www.lkml.org/lkml/2007/1/25/295), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed7ed365172e27b0efe9d43cc962723c7193e34e) |
-| 2021/01/21 | Mel Gorman <mel@csn.ul.ie> | [prohibit pinning pages in ZONE_MOVABLE](https://lwn.net/Articles/843326) | NA | v1 ☑ 2.6.23-rc1 | [LWN v7 00/14](https://lwn.net/ml/linux-kernel/20210122033748.924330-1-pasha.tatashin@soleen.com/), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed7ed365172e27b0efe9d43cc962723c7193e34e) |
+| 2007/01/25 | Mel Gorman <mel@csn.ul.ie> | [Create ZONE_MOVABLE to partition memory between movable and non-movable pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7e63efef857575320fb413fbc3d0ee704b72845f) | NA | v1 ☑ 2.6.23-rc1 | 2007/01/25 [LKML 0/8](https://www.lkml.org/lkml/2007/1/25/295), [LWN 0/8](https://lwn.net/Articles/219589)<br>*-*-*-*-*-*-*-* <br>[2007/03/01 v2,0/8](https://lwn.net/Articles/224255), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed7ed365172e27b0efe9d43cc962723c7193e34e) |
+
+> 内核通过将已经将内存划分为许多具有不同特征的 ZONE, 来防止出现较严重的内存碎片, 特别是通过引入 ZONE_MOVABLE 专区, 通过隔离可移动和不可移动的分配请求(ZONE_MOVABLE 中区域, 只满足应该可以移动页面(或者简单地回收它们)来根据需要创建更大的区域).
+
+理想很美好, 显示很残酷, 仍然会有一些情况会破坏 ZONE_MOVABLE 想要的美好. 经常会有一些零碎的、位置不好的、当前无法被移动移动的页面而导致 ZONE_MOVABLE 的整块内存无法被移动.
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/02/15 | Pavel Tatashin <pasha.tatashin@soleen.com> | [prohibit pinning pages in ZONE_MOVABLE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e44605a8b1aa13d892addc59ec3d416cb186c77b) | 参见 [Preserving the mobility of ZONE_MOVABLE](https://lwn.net/Articles/843326) | v11 ☑ 5.13-rc1 | [LWN v7 00/14](https://lwn.net/ml/linux-kernel/20210122033748.924330-1-pasha.tatashin@soleen.com/), [LORE v7,0/4](https://lore.kernel.org/lkml/20210122033748.924330-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[LORE v11,00/14](https://lore.kernel.org/all/20210215161349.246722-1-pasha.tatashin@soleen.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d1e153fea2a8940273174fc17733c44323d35cd5) |
 
 
 https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7e63efef857575320fb413fbc3d0ee704b72845f
@@ -4235,11 +4278,19 @@ https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7e
 ### 14.13.3 内存镜像
 -------
 
+内核 v4.6 通过扩展现有的 "kernelcore" 选项, 增加 "kernelcore=mirror" 选项, 引入了内存可靠性分级的功能. 通过 BIOS 上报镜像内存(可靠内存) 的地址范围等信息, 区分镜像内存(可靠内存)和非镜像内存(不可靠内存).
+
+当前的实现比较简单:
+
+1. 从镜像区域分配内核内存.
+
+2. 从非镜像区域分配用户内存. 通过将非镜像范围安排到可移动区域(ZONE_MOVABLE).
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2016/01/08 | Taku Izumi <izumi.taku@jp.fujitsu.com> | [mm: Introduce kernelcore=mirror option](http://lore.kernel.org/patchwork/patch/574230) | 内存镜像, 提供内存可靠性分级的功能.<br>通过 BIOS 上报高可靠(mirrored/reliable)和低可靠的两种内存. 使用标记区分, 内核默认使用高可靠的内存, 用 NORMAL ZONE 管理, 用户态优先使用普通(低可靠的)内存, 使用 MOVABLE ZONE 管理. | v4 ☑ 4.6-rc1 | [LKML](https://lkml.org/lkml/2016/1/8/88), [PatchWork v4,0/2](https://lore.kernel.org/lkml/1452241523-19559-1-git-send-email-izumi.taku@jp.fujitsu.com) |
-| 2016/06/27 | Xishi Qiu <qiuxishi@huawei.com> | [mm: mirrored memory support for page buddy allocations](http://lore.kernel.org/patchwork/patch/574230) | 内存镜像的功能 | RFC v2 ☐  | [PatchWork RFC,v2,0/8](https://lore.kernel.org/lkml/558E084A.60900@huawei.com) |
+| 2016/01/08 | Taku Izumi <izumi.taku@jp.fujitsu.com> | [mm: Introduce kernelcore=mirror option](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=342332e6a925e9ed015e5465062c38d2b86ec8f9) | 内存镜像, 提供内存可靠性分级的功能.<br>通过 UEFI BIOS(规范 2.5) 上报镜像内存(即高可靠内存 mirrored/reliable)的范围和非镜像内存(即低可靠内存)的两种内存. 内核默认使用高可靠的内存, 用 NORMAL ZONE 管理, 用户态优先使用普通(低可靠的)内存, 使用 MOVABLE ZONE 管理. | v4 ☑ 4.6-rc1 | [LKML RFC](https://lkml.org/lkml/2015/10/9/24)<br>*-*-*-*-*-*-*-* <br>[LKML v1](https://lkml.org/lkml/2015/10/15/9)<br>*-*-*-*-*-*-*-* <br>[LKML v2,0/2](https://lkml.org/lkml/2015/11/27/18)<br>*-*-*-*-*-*-*-* <br>[LKML v3,0/2](https://lkml.org/lkml/2015/12/8/836)<br>*-*-*-*-*-*-*-* <br>[LKML v4,0/2](https://lkml.org/lkml/2016/1/8/88), [PatchWork v4,0/2](https://lore.kernel.org/lkml/1452241523-19559-1-git-send-email-izumi.taku@jp.fujitsu.com) |
+| 2016/06/27 | Xishi Qiu <qiuxishi@huawei.com> | [mm: mirrored memory support for page buddy allocations](https://lore.kernel.org/lkml/558E084A.60900@huawei.com) | 内存镜像的功能 | RFC v2 ☐  | [PatchWork RFC,v2,0/8](https://lore.kernel.org/lkml/558E084A.60900@huawei.com) |
 | 2018/2/12 | David Rientjes <rientjes@google.com> | [mm: Introduce kernelcore=mirror option](http://lore.kernel.org/patchwork/patch/574230) | `kernelcore=` 和 `movablecore=` 都可以分别用于定义系统上 ZONE_NORMAL 和 ZONE_MOVABLE 的数量. 然而, 这需要在指定命令行时知道系统内存容量. 这个补丁引入了将 `kernelcore` 和 `movablecore` 定义为系统总内存的百分比的能力. 这对于希望将 ZONE_MOVABLE 的数量定义为系统内存的比例(而不是硬编码的字节值)的系统软件来说是很方便的. 要定义百分比, 参数的最后一个字符应该是 '%'. | v4 ☑ 4.17-rc1 | [LKML 1/2](https://lkml.org/lkml/2018/2/12/1024) |
 
 

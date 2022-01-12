@@ -435,7 +435,7 @@ v2: [Fast Kernel Headers v2 Posted - Speeds Up Clang-Built Linux Kernel Build By
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/01/02 | Ingo Molnar <mingo@kernel.org> | ["Fast Kernel Headers" Tree -v1: Eliminate the Linux kernel's "Dependency Hell"](https://lore.kernel.org/lkml/YdIfz+LMewetSaEB@gmail.com) | "Fast Kernel Headers" 的补丁集, 新增 config 配置, CONFIG_FAST_HEADERS 和 CONFIG_KALLSYMS_FAST.<br>这个补丁集非常庞大, 包含了 2000+ 补丁, 这可能是内核有史以来代码量最大的一个功能. 但是效果也很不错.<br>1. 启用了 CONFIG_FAST_HEADERS 的内核每小时的内核构建次数可能比当前的库存内核多出 78%, 在支持的架构上，绝对内核构建性能可以提高 50~80%.将许多高级标头与其他标头分离, 取消不相关的函数, 类型和 API 标头的分离, 头文件的自动依赖关系处理以及各种其他更改.<br>2. CONFIG_KALLSYMS_FAST 则实现了一个基于 objtool 的未压缩符号表功能, 它避免了 vmlinux 对象文件的通常三重链接, 这是增量内核构建的主要瓶颈. 由于即使使用 distro 配置, kallsyms 表也只有几十 MB 大, 因此在内核开发人员的桌面系统上, 内存成本是可以接受的. 不过当前只在 x86_64 下实现了此功能.<br>到目前为止, 这个庞大的补丁系列已经在 x86/x86_64, SPARC, MIPS 和 ARM64 上进行了测试. | v1 ☐ | [LORE RFC, 0000/2297](https://patchwork.kernel.org/project/kernel-hardening/patch/1495829844-69341-20-git-send-email-keescook@chromium.org)[](https://lore.kernel.org/lkml/Ydm7ReZWQPrbIugn@gmail.com/) |
+| 2022/01/02 | Ingo Molnar <mingo@kernel.org> | ["Fast Kernel Headers" Tree -v1: Eliminate the Linux kernel's "Dependency Hell"](https://lore.kernel.org/lkml/YdIfz+LMewetSaEB@gmail.com) | "Fast Kernel Headers" 的补丁集, 新增 config 配置, CONFIG_FAST_HEADERS 和 CONFIG_KALLSYMS_FAST.<br>这个补丁集非常庞大, 包含了 2000+ 补丁, 这可能是内核有史以来代码量最大的一个功能. 但是效果也很不错.<br>1. 启用了 CONFIG_FAST_HEADERS 的内核每小时的内核构建次数可能比当前的库存内核多出 78%, 在支持的架构上，绝对内核构建性能可以提高 50~80%.将许多高级标头与其他标头分离, 取消不相关的函数, 类型和 API 标头的分离, 头文件的自动依赖关系处理以及各种其他更改.<br>2. CONFIG_KALLSYMS_FAST 则实现了一个基于 objtool 的未压缩符号表功能, 它避免了 vmlinux 对象文件的通常三重链接, 这是增量内核构建的主要瓶颈. 由于即使使用 distro 配置, kallsyms 表也只有几十 MB 大, 因此在内核开发人员的桌面系统上, 内存成本是可以接受的. 不过当前只在 x86_64 下实现了此功能.<br>到目前为止, 这个庞大的补丁系列已经在 x86/x86_64, SPARC, MIPS 和 ARM64 上进行了测试. | v1 ☐ | [LORE RFC, 0000/2297](https://patchwork.kernel.org/project/kernel-hardening/patch/1495829844-69341-20-git-send-email-keescook@chromium.org)[LORE v2,](https://lore.kernel.org/lkml/Ydm7ReZWQPrbIugn@gmail.com) |
 
 ## 13.8 LINK
 -------
@@ -527,6 +527,11 @@ https://patchwork.kernel.org/project/linux-trace-devel/list/?submitter=200911&st
 
 # 16 RANOM
 -------
+
+
+[FIPS-compliant random numbers for the kernel](https://lwn.net/Articles/877607)
+
+[smuellerDD/lrng](https://github.com/smuellerDD/lrng)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

@@ -213,6 +213,9 @@ SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安�
 -------
 
 
+ARM & Linaro [Kernel versions highlights](https://developer.arm.com/tools-and-software/open-source-software/linux-kernel)
+
+
 [Memory Layout on AArch64 Linux](https://www.kernel.org/doc/html/latest/arm64/memory.html)
 
 
