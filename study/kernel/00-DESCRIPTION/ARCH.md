@@ -213,7 +213,10 @@ SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安�
 -------
 
 
+
 ARM & Linaro [Kernel versions highlights](https://developer.arm.com/tools-and-software/open-source-software/linux-kernel)
+
+ARM64 架构文档地址下载 [](https://developer.arm.com/architectures/cpu-architecture)
 
 
 [Memory Layout on AArch64 Linux](https://www.kernel.org/doc/html/latest/arm64/memory.html)
@@ -438,7 +441,24 @@ SLS 被认为是 Spectre 漏洞的变体, 但二者的攻击范围略有不同, 
 [Linux Benchmark Suite Homepage](http://lbs.sourceforge.net)
 
 
-# 6 总线
+# 6 通用
+-------
+
+## 6.1 SYSCALL
+-------
+
+[remove in-kernel calls to syscalls 000/109](https://lore.kernel.org/all/20180329112426.23043-1-linux@dominikbrodowski.net)
+
+
+基于 pt_regs 传递  syscall 的参数, 防止在 syscall 的调用链中泄漏随机的用户提供的寄存器内容.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/04/05 | Dominik Brodowski <linux@dominikbrodowski.net> | [use struct pt_regs based syscall calling for x86-64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d5a00528b58cdb2c71206e18bd021e34c4eab878) | NA | v1 ☑ 4.17-rc1 | [LORE 0/7](https://lore.kernel.org/all/20180330093720.6780-1-linux@dominikbrodowski.net), [LORE v3,0/8](https://lore.kernel.org/all/20180405095307.3730-1-linux@dominikbrodowski.net) |
+| 2018/07/11 | Mark Rutland <mark.rutland@arm.com> | [arm64: invoke syscalls with pt_regs](https://patchwork.kernel.org/project/linux-security-module/patch/20210212051500.943179-1-jiancai@google.com) | NA | v7 ☐ | [2021/06/10Patchwork v5,00/21](https://lore.kernel.org/lkml/20180711135656.20670-1-mark.rutland@arm.com) |
+
+
+# 7 总线
 -------
 
 FireBox: Warehouse-Scale Computers

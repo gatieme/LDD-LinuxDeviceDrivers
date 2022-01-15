@@ -1310,7 +1310,6 @@ ARM 的 Morten Rasmussen 一直致力于ANDROID 调度器优化的:
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2016/10/14 | Vincent Guittot | [sched: Clean-ups and asymmetric cpu capacity support](https://lore.kernel.org/patchwork/cover/725608) | 调度程序目前在非对称计算能力的系统上没有做太多的工作来提高性能(读ARM big.LITTLE). 本系列主要通过对任务唤醒路径进行一些调整来改善这种情况, 这些调整主要考虑唤醒时的计算容量, 而不仅仅考虑cpu对这些系统是否空闲. 在部分使用的场景中, 这为我们提供了一致的、可能更高的吞吐量. SMP的行为和性能应该是不受影响. <br>注意这组补丁是分批合入的 | v1 ☑ 4.10-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/725608) |
 | 2021/06/03 | Valentin Schneider | [Rework CPU capacity asymmetry detection](https://lore.kernel.org/patchwork/cover/1424708) | 当前版本 asym_cpu_capacity_level 存在几个问题.<br>1. 只能支持到最低的拓扑级别, 对全局的拓扑域不可见.<br>2. 不支持 NUMA 级别的异构, 因为初始化 NUMA 级别的 sd_numa_mask 中不包含其他 NODE, 最终 sched_domain_span 是在构建调度域的时候进行的更新的.<br>这对于大多数现有的不对称设计很实用, 但是却不支持普适的性能异构架构.这可能不是最好的方法, 在一些领域可能看不到任何不对称. 这对于不合适的迁移和能量感知的安置可能会有问题. 因此, 对于受影响的平台, 它可能导致对唤醒和 CPU 选择路径的自定义更改.<br>这组补丁修改了执行非对称检测的方式, 允许将非对称拓扑级别固定在最低的拓扑级别上, 在最低的拓扑级别上, 给定调度域中的所有 CPU 都可以看到整个 CPU 容量范围. asym_cpu_capacity_level 还将跟踪那些观察到任何非对称范围的级别, 以使用 SD_ASYM_CPUCAPACITY 标志表示相应的调度域, 并为这些域启用不匹配迁移. 为了区分局部和全范围 CPU 容量不对称的调度域, 引入了新的调度域标志: SD_ASYM_CPUCAPACITY_FULL. | v7 ☑ 5.14-rc1  | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1414557)<br>*-*-*-*-*-*-*-* <br>[PatchWork v7](https://lore.kernel.org/all/20210603140627.8409-1-beata.michalska@arm.com) |
-| 2021/07/30 | Will Deacon <will@kernel.org> | [Add support for 32-bit tasks on asymmetric AArch32 systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=702f43872665) | 一些体系结构, 特别是 ARM, 配置了一些 CPU 支持传统的 32 位应用程序, 但是一些 CPU 只支持 64 位. 这组补丁增加了对 32 位程序调度的支持, 这些 32 位的程序只能在支持传统 32 位任务的 CPU 中执行. | v1 ☑ [5.15-rc1](https://kernelnewbies.org/LinuxChanges#Linux_5.15.Support_for_asymmetric_scheduling_affinity) | [PatchWork v11,00/16](https://lore.kernel.org/all/20210730112443.23245-1-will@kernel.org) |
 
 
 
@@ -1413,6 +1412,46 @@ schedtune 与 uclamp 都是由 ARM 公司的 Patrick Bellasi 主导开发.
 |:----:|:----:|:---:|:------:|:---:|
 | 2016/02/23 | Steve Muckle 等 | [freezer,sched: Rewrite core freezer logic](https://lore.kernel.org/patchwork/cover/1444882) | 重写冻结的核心逻辑, 从而使得 WRT 解冻的表现更加合理. 通过将 PF_FROZEN 替换为 TASK_FROZEN (一种特殊的块状态), 可以确保冻结的任务保持冻结状态, 直到明确解冻, 并且不会像目前可能的那样过早随机唤醒. | v2 | [2021/06/01 RFC](https://lore.kernel.org/patchwork/cover/1439538)<br>*-*-*-*-*-*-*-* <br>[2021/06/01 RFC](https://lore.kernel.org/patchwork/cover/1444882) |
 
+## 7.6 异构
+-------
+
+
+
+随着不算的发展, 通用 CPU 上扩展了越来越多的指令集和功能, 但是这些功能并不一定所有场景都适用. 因此一类非对称系统 AMP 应运而生. 这些可能无法在所有 CPU 上提供相同级别的用户空间 ISA 支持, 这意味着某些应用程序无法由某些 CPU 执行. 已经有很多这样的例子:
+
+*   arm64 big.LITTLE 设计不支持两个集群上的 32 位应用程序. 有些 CPU 支持  32 位应用, 有些 CPU 只支持 64 位应用.
+
+*   Intel 第 12th 的的酷睿核 Alder Lake, P 核支持 AUX-512 指令, 但是 E 核却不支持.
+
+同样的结构可以推广到其他扩展指令, 比如 ARM64 的 SVE, SVE2 以及 SME2. 但是不局限于扩展指令的支持. 比如 SMT 等都可以适用到类似的异构架构.
+
+v5.15 合入的 [Add support for 32-bit tasks on asymmetric AArch32 systems](https://lore.kernel.org/all/20210730112443.23245-1-will@kernel.org) 就对 big.LITTLE 上不同 cluster 对 32 位应用支持不一做了感知.
+
+
+
+
+1.  通过 static_key arm64_mismatched_32bit_el0 来标记这类异构架构, system_32bit_el0_cpumask 标记了系统中支持 32 位应用程序的 cpumask.
+
+2.  为进程引入了 [task_cpu_possible_mask()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d82158fa6df4237c9859b27d719c53b4fe09e69e) 来标记进程能运行的 cpumask. 对于系统中的 32 位程序来说, 就是 system_32bit_el0_cpumask. 同时进程中[新增 task_struct::user_cpus_ptr](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b90ca8badbd11488e5f762346b028666808164e7), 随后将 cpuset 和 cpu affinity 等都感知到了进程 affinity 的这些变更.
+
+3.  这种架构下, 执行 execve() 的 CPU 可能与新的应用程序映像不兼容(比如在不支持 32 位的应用的 CPU 上通过 execve() 执行了一个 32位的应用程序). 这种情况下, 需要限制任务的关联掩码, 并确保[在兼容的 CPU 上加载并启动](https://elixir.bootlin.com/linux/v5.15/source/arch/arm64/kernel/process.c#L608)新的程序镜像. 从用户空间的角度来看, 这看起来就像不兼容的 CPU 在任务的关联掩码中被热插拔一样. 类似地, 如果后续的 execve() 恢复为兼容映像, 则[旧的 CPU 亲和性就需要恢复](https://elixir.bootlin.com/linux/v5.15/source/arch/arm64/kernel/process.c#L610). 比如在不支持 32 位应用的系统上执行 32 位任务时, 则通过 [force_compatible_cpus_allowed_ptr()](https://elixir.bootlin.com/linux/v5.15/source/kernel/sched/core.c#L2919) 确保进程在能够实际运行它的 CPU 上启动. 类似地, 在这样的系统上再次执行 64 位任务时, 如果以前受到限制, 请尝试通过 [relax_compatible_cpus_allowed_ptr()](https://elixir.bootlin.com/linux/v5.15/source/kernel/sched/core.c#L2969) 从 user_cpus_ptr 恢复进程的 cpumask.
+
+4.  同时 [CPUHOTPLUG 也要做类似的修正](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=df950811f4a884d08f05e22a8e0089d54bb4ba70), 如果我们想支持 32 位应用程序, 但是在这种异构的系统中, 当我们确定了存在一个 CPU 不支持 32 位应用支持时, 我们必须确保系统始终拥有一个 online 的支持 32 位应用的 CPU. 这对于调度程序很重要, 如果没有支持 32 位 CPU 可用, 则由于 HOTPLUG 事件而导致的强制迁移将挂起. enable_mismatched_32bit_el0 中用 lucky_winner 标记了系统发现的一个支持 32为应用的 CPU, 将其 offline_disabled 设置为 true, 禁止其下线.
+
+5.  在 [sysfs 中提供 `/sys/devices/system/cpu/aarch32_el0`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7af33504d1c8077b40121294b5eb6e680a859468), 向用户空间公布具有 32 位功能支持的 CPU 集 system_32bit_el0_cpumask(). 同时提供了一个内核启动参数 [allow_mismatched_32bit_el0 来开启](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ead7de462ae56b2d2e56fb5a414f6e916dddc4c9). 只有添加了该启动参数, [sysfs 接口](https://elixir.bootlin.com/linux/v5.15/source/arch/arm64/kernel/cpufeature.c#L1343)才会提供. HOTPLUG 也才会限制.
+
+6.  有了上述的支持, execve() 32 位的应用时进程可以自适应的运行在支持自己的 CPU 上. 而通过 hotplug 限制也保证系统肯定有支持 32 位应用的 CPU 处于 online 状态, 这样在只支持 64 位的 CPU 上运行 32 位应用的时候, 就不用[通过信号触发 kill 操作](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=94f9c00f6460c0b175226c8fe6fd137547b239bd), 杀掉应用了.
+
+
+| 参数选项 | 描述 |
+|:------:|:----:|
+| allow_mismatched_32bit_el0 | 只有添加了该启动参数, 内核才支持 32 位应用的自动感知, [sysfs 接口](https://elixir.bootlin.com/linux/v5.15/source/arch/arm64/kernel/cpufeature.c#L1343)才会提供. HOTPLUG 也才会限制. 然后 init_32bit_el0_mask 的时候, 才会注册 CPUHP_AP_ONLINE_DYN 接口的 cpuhp, 才会通过 enable_mismatched_32bit_el0() 进行一系列初始化操作. |
+| arm64_mismatched_32bit_el0 | 如果 allow_mismatched_32bit_el0 开启了, 且系统在对 CPU 检查 enable_mismatched_32bit_el0() 支持的时候, 发现 CPU 支持 32 位应用, 则会是使能该 static key. 同时将 cpu_32bit_el0_mask 标记那些支持 32 位应用的 cpumask. 同时 arch_setup_new_exec() 才会针对是否是在运行 32 位应用自动进行放缩. |
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2021/07/30 | Will Deacon <will@kernel.org> | [Add support for 32-bit tasks on asymmetric AArch32 systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=702f43872665) | 一些体系结构, 特别是 ARM, 配置了一些 CPU 支持传统的 32 位应用程序, 但是一些 CPU 只支持 64 位. 这组补丁增加了对 32 位程序调度的支持, 这些 32 位的程序只能在支持传统 32 位任务的 CPU 中执行. | v1 ☑ [5.15-rc1](https://kernelnewbies.org/LinuxChanges#Linux_5.15.Support_for_asymmetric_scheduling_affinity) | [PatchWork v11,00/16](https://lore.kernel.org/all/20210730112443.23245-1-will@kernel.org) |
 
 
 # 8 实时性 linux PREEMPT_RT
