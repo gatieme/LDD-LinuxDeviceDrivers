@@ -1425,7 +1425,7 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 
 
 3.  schedutil 后续优化
--------
+
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----------:|:---:|
@@ -1433,7 +1433,57 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 | 2021/09/08| Viresh Kumar <viresh.kumar@linaro.org> | [Inefficient OPPs](https://patchwork.kernel.org/project/linux-pm/cover/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) | schedutil 中增加了对低能效(inefficient) OPP 的感知, 引入 CPUFREQ_RELATION_E 标记来使得 CPUFREQ 只使用和引用有效的频点.<br>Arm 的 Power 团队在为谷歌的 Pixel4 开发一个实验性内核, 以评估和改进现实生活中 Android 设备上的主线性能和能耗. 发现 SD855 SoC 有几个效率低下的 OPP. 这些 OPP 尽管频率较低, 但功耗却较高, 任务这种频率下工作, 性能不光下降了, 功耗也很高. 通过将它们从 EAS 能效模型中移除, 使得最高效的 CPU 在任务分配上更有吸引力, 有助于减少中、大型 CPU 的运行时间, 同时提高了集群的空闲时间. 由于集群之间存在巨大的能源成本差异, 因此增加空闲时间对该平台来说至关重要. | v7 ☑ 5.16-rc1 | [PatchWork v7,0/9](https://patchwork.kernel.org/project/linux-pm/cover/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) |
 
 
-## 7.4 uclamp
+## 7.4 Frequency Invariance Engine
+-------
+
+频率不变引擎 (Frequency Invariance Engine, FIE) 提供了一个频率缩放校正因子, 有助于实现更精确的负载跟踪.
+
+进程负载的计算需要把当前 CPU 的频率也考虑在内. 不同频率下的 CPU 所提供的计算能力 capacity 不同, 因此 PELT 计算负载需要将 capacity 根据频率按照一定频率比例因子放缩. 比例因子 freq_scale 使用 [arch_scale_freq_capacity()](https://elixir.bootlin.com/linux/v5.6/source/kernel/sched/pelt.c#L389) 获取.
+
+基于 cpufreq 的 FIE 使用 [arch_set_freq_scale()](https://elixir.bootlin.com/linux/v5.6/source/drivers/base/arch_topology.c#L26) 来获取频率信息, 而基于 AMU 的 FIE 则实现 [arch_scale_freq_tick()](https://elixir.bootlin.com/linux/v5.7/source/kernel/sched/core.c#L3591) 来使用活动监视器来计算频率比例因子 freq_scale.
+
+
+### 7.4.1 X86 FIE
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/01/22 | Giovanni Gherdovich <ggherdovich@suse.cz> | [Add support for frequency invariance for (some) x86](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=918229cdd5abb50d8a2edfcd8dc6b6bc53afd765) | x86 以及 Intel 主流 CPU 支持 FIE. | v5 ☑ 5.7-rc1 | [LORE v5,0/6](https://lore.kernel.org/all/20200122151617.531-1-ggherdovich@suse.cz), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1567c3e3467cddeb019a7b53ec632f834b6a9239) |
+| 2020/11/12 | Giovanni Gherdovich <ggherdovich@suse.cz> | [Add support for frequency invariance to AMD EPYC Zen2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=3149cd55302748df771dc1c8c10f34b1cbce88ed) | AMD EPYC Zen2 的 FIE 支持. 其中针对 针对 AMD 平台的基于 cppc 的 cpufreq 驱动程序参见 [CPPC optional registers AMD support v3,0/6](https://lore.kernel.org/lkml/cover.1562781484.git.Janakarajan.Natarajan@amd.com) | v4 ☑ 5.11-rc1 | [LORE v4,0/3](https://lore.kernel.org/all/20201112182614.10700-1-ggherdovich@suse.cz), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=41ea667227bad5c247d76e6605054e96e4d95f51) |
+
+
+### 7.4.2 ARMv8.4 Activity Monitors support
+-------
+
+在 5.7 之前, 对于 arm 和 arm64 平台, 这个[比例因子 freq_scale](https://elixir.bootlin.com/linux/v5.6/source/drivers/base/arch_topology.c#L32) 是根据当前频率和 cpufreq 策略记录的最大支持频率之间的比值得到的. 这个比例因子的设置由 cpufreq 驱动程序通过调用 arch_set_freq_scale() 来获取的. 当前在内核在计算时使用的频率是调频 Governor 所要求设置的频率, 但它可能不是由平台实现的频率. 这个校正因子也可以由硬件使用[一个核心计数器 SYS_AMEVCNTR0_CORE_EL0](https://elixir.bootlin.com/linux/v5.7/source/arch/arm64/kernel/topology.c#L275)和[一个常数计数器 SYS_AMEVCNTR0_CONST_EL0](https://elixir.bootlin.com/linux/v5.7/source/arch/arm64/kernel/topology.c#L274) 来获得在一段时间内的[基于频率的性能信息来获得](https://elixir.bootlin.com/linux/v5.7/source/arch/arm64/kernel/topology.c#L297). 这种方式与当前由软件获取的方式相比, 将更准确地反映 CPU 的实际当前频率.
+
+
+但是可能并不是所有的 CPU 都是支持 AMU 的. 为此, 需要注册一个 [late_initcall_sync()](https://elixir.bootlin.com/linux/v5.7/source/arch/arm64/kernel/topology.c#L254) 来触发策略的验证工作 [init_amu_fie()](https://elixir.bootlin.com/linux/v5.7/source/arch/arm64/kernel/topology.c#L212), 使用 amu_fie_cpus 存储了所有支持 AMU 的 cpumask. 如果 cpumask 不为 NULL, 则会使能 static key amu_fie_key 来启用基于 AMU 的 PIE 功能. 注意内核如果没有启用 CONFIG_CPU_FREQ, 则只有在所有可能的 cpu 正确支持 AMU 时, 才会在所有 CPU 上启用 AMU 计数器.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/12/07 | Kristina Martsenko <kristina.martsenko@arm.com> | [arm64: ARMv8.4 Activity Monitors support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c265861af2af0f667e88b1b70acc234f8c61e0ae) | ARM64 AMU 支持以及基于 AMU 的 PIE 支持.<br>这些补丁引入了对活动监视器单元 (Activity Monitors Unit, AMU) CPU 扩展的支持, 这是 ARMv8.4 的扩展. 这提供了用于系统管理的性能计数器. 然后使用其中的两个计数器来计算实现频率不变性所需的频率刻度校正因子. 通过 CONFIG_ARM64_AMU_EXTN 使用. <br>需要注意的是, 当固件运行在呈现活动监视器扩展的 CPU 上时, 必须实现 AMU 支持: 允许从较低的异常级别访问寄存器, 启用计数器, 实现保存和恢复功能. 更多细节可以在文档中找到.<br>考虑到活动计数器会通知 CPU 上的活动, 并且不是所有的 CPU 都可能实现扩展, 出于功能和安全的原因, [禁用了用户空间 (EL0)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=87a1f063464afd934f0f22aac710ca65bef77af3) 和 [KVM guest](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4fcdf106a4330bb5c2306a1efbb3af3b7c0db537) 对 AMU 寄存器的访问.<br>在补丁 6/7 中, 两个 AMU 计数器用于计算调度器中实现信号频率不变性[所需的频率比例因子](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cd0ed03a8903a0b0c6fc36e32d133d1ddfe70cd6), 其基础是增加了一个接口来支持基于计数器的频率不变性 - arch_scale_freq_tick. 基于计数器的频率比例因子的接口和更新点是基于 x86 [1] 中引入频率不变性的补丁中的类似方法, 首先通过 [cpufreq_get_hw_max_freq()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bbce8eaa603236bf958b0d24e6377b3f3b623991) 获取. | v8 ☑ 5.7-rc1 | [LORE v2,0/6](https://lore.kernel.org/lkml/20191218182607.21607-1-ionela.voinescu@arm.com)<br>*-*-*-*-*-*-*-*<br>[LORE v3,0/7](https://lore.kernel.org/lkml/20200211184542.29585-1-ionela.voinescu@arm.com)<br>*-*-*-*-*-*-*-*<br>[LORE v6,0/7](https://lore.kernel.org/lkml/20200305090627.31908-1-ionela.voinescu@arm.com) |
+
+### 7.4.3 Frequency Invariance 框架
+-------
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/03/01 | Viresh Kumar <viresh.kumar@linaro.org> | [arch_topology: Allow multiple entities to provide sched_freq_tick() callback](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=01e055c120a46e78650b5f903088badbbdaae9ad) | 这个补丁实现了一个更通用的 FIE 框架, 这样内核的其他部分也可以提供它们自己的 scale_freq_tick() 回调的实现, 调度器定期调用该回调来更新每个 cpu 的 freq_scale 变量. 为每个 CPU 提供封装的 struct scale_freq_data, 并在每个 CPU 变量中为每个可能的 CPU 注册一个回调函数. 当前已经实现的硬件单元(比如 ARM AMU) 计数器都被适配已满足这个修改, 如果它们可用, 它们将具有最高的优先级, 否则将使用通过用的基于 CPPC 的计数器. 注意, 这也定义了 SCALE_FREQ_SOURCE_CPUFREQ, 但不使用它, 添加它是为了显示 cpufreq 也作为 FIE 的信息源, 如果平台不支持其他计数器, 则默认使用 cpufreq. | v5 ☑ 5.13-rc1 | [LORE v4,0/2](https://patchwork.kernel.org/project/linux-pm/cover/cover.1613991982.git.viresh.kumar@linaro.org)<br>*-*-*-*-*-*-*-*<br>[LORE v5,0/2](https://patchwork.kernel.org/project/linux-pm/cover/cover.1614580695.git.viresh.kumar@linaro.org)<br>*-*-*-*-*-*-*-*<br>[LORE v6,0/4](https://patchwork.kernel.org/project/linux-pm/cover/cover.1615351622.git.viresh.kumar@linaro.org) |
+| 2021/06/21 | Viresh Kumar <viresh.kumar@linaro.org> | [cpufreq: cppc: Add support for frequency invariance](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1eb5dde674f57b1a1918dab33f09e35cdd64eb07) | 实现 CPPC 的 FIE 功能. | v9 ☑ 4.6-rc1 | [LORE v3,0/4](https://patchwork.kernel.org/project/linux-pm/cover/cover.1624266901.git.viresh.kumar@linaro.org), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1eb5dde674f57b1a1918dab33f09e35cdd64eb07) |
+
+
+第一次合入 [cpufreq: CPPC: Add support for frequency invariance](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4c38f2df71c8).
+
+随后 Revert [Revert "cpufreq: CPPC: Add support for frequency invariance"](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=771fac5e26c17845de8c679e6a947a4371e86ffc)
+
+第二次合入 [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1eb5dde674f57b1a1918dab33f09e35cdd64eb07)
+
+
+## 7.5 uclamp
 -------
 
 [Linux Kernel Utilization Clamping简介](https://blog.csdn.net/feelabclihu/article/details/111714164)
@@ -1451,7 +1501,7 @@ schedtune 与 uclamp 都是由 ARM 公司的 Patrick Bellasi 主导开发.
 | RT TASK |  NA | 支持 |
 
 
-## 7.5 freezer 冻结
+## 7.6 freezer 冻结
 -------
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |

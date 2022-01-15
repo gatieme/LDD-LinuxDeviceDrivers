@@ -281,6 +281,7 @@ TLBI <type><level>{IS}, {, <Xt>}
 TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 [Ptlbmalloc2: Reducing TLB Shootdowns with High Memory Efficiency](https://web.njit.edu/~dingxn/papers/ispa20.pdf)
+
 [Torwards a more Scalable KVM Hypervisor](https://events19.linuxfoundation.org/wp-content/uploads/2017/12/Update_Wanpeng-LI_Torwards-a-more-Scalable-KVM-Hypervisor.pdf)
 
 [TLB flush 操作](http://www.wowotech.net/memory_management/tlb-flush.html)
@@ -391,6 +392,7 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 *   [AsahiLinux]() 国外一名资深操作系统移植专家 Hector Martin(网名为 Marcan) 主导发起的一个开源项目, 其目标是让用户可以在 Apple M1 上把基于 Linux 的发行版作为日常操作系统来使用.
 
+
 # 3 RISC-V
 -------
 
@@ -458,7 +460,14 @@ SLS 被认为是 Spectre 漏洞的变体, 但二者的攻击范围略有不同, 
 | 2018/07/11 | Mark Rutland <mark.rutland@arm.com> | [arm64: invoke syscalls with pt_regs](https://patchwork.kernel.org/project/linux-security-module/patch/20210212051500.943179-1-jiancai@google.com) | NA | v7 ☐ | [2021/06/10Patchwork v5,00/21](https://lore.kernel.org/lkml/20180711135656.20670-1-mark.rutland@arm.com) |
 
 
-# 7 总线
+
+
+
+
+
+
+
+## 6.3 总线
 -------
 
 FireBox: Warehouse-Scale Computers
