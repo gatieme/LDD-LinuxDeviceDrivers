@@ -528,6 +528,8 @@ CFS 用户反复在社区抱怨并行 kbuild 对桌面交互性有负面影响, 
 ### 2.1.3 CFS BANDWIDTH 带宽控制
 -------
 
+*   CFS BANDWIDTH 带宽控制
+
 内核中的 [`CFS BANDWIDTH Controller`](https://lwn.net/Articles/428230) 是控制每个 CGROUP 可以使用多少 CPU 时间的一种有效方式. 它可以避免某些进程消耗过多的 CPU 时间, 并确保所有需要 CPU 的进程都能拿到足够的时间.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |368685
@@ -545,6 +547,19 @@ CFS 用户反复在社区抱怨并行 kbuild 对桌面交互性有负面影响, 
 因此, 假如我们将 cpu.cfs_quota_us 设置为 50000, cpu.cfs_period_us 设置为 100000, 将使该组在每 100ms 周期内消耗 50ms 的 CPU 时间. 将这些值减半(将 cpu.cfs_quota_us 设置为 25000, cpu.cfs_period_us 设置为 50000)的话, 就是每 50ms 消耗 25ms 的 CPU 时间. 在这两种情况下, 这个 cgroup 就被授权可以占用一个 CPU 的 50% 资源, 但在后一种设置下, 可供使用的 CPU 时间会来得更频繁, 更小块.
 
 这两种情况的区别很重要. 想象一下, 某个 cgroup 中只有一个进程, 需要运行 30ms. 在第一种情况下, 30ms 小于被授予的 50ms 时长, 所以进程能够完成任务, 不会被限制. 在第二种情况下, 进程在运行 25ms 后将被停止执行, 不得不等待下一个 50ms 周期再继续运行来完成工作. 如果 workload 对延迟敏感的话, 就需要仔细考虑 bandwidth controller 参数的设置.
+
+
+*   flatten RQ 优化整体吞吐量
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/09/06 | Rik van Riel <riel@surriel.com> | [sched,fair: flatten CPU controller runqueues](https://lore.kernel.org/lkml/20190906191237.27006-1-riel@surriel.com/) | 当前 CPU cgroup 的实现使用了分层的运行队列, 当一个任务被唤醒时, 它会被放到它所在组的运行队列中, 这个组也会被放到它上面的组的运行队列中, 以此类推.对于每秒进行大量唤醒的工作负载, 这将增加相当大的开销, 特别是在默认的 systemd 层次结构为 2 或 3 级的情况下. 这个补丁系列试图通过将所有任务放在相同层次的运行队列上, 并根据组的优先级来调整任务优先级, 从而减少这种开销. 组的优先级是周期性计算的.<br>后续版本还计划完成 CONFIG_CFS_BANDWIDTH 的重构:<br>1. 当一个 cgroup 被 throttle 时, 将该 cgroup 及其子组标记为 throttle.<br>2. 当 pick_next_entity 发现一个任务在一个 throttched cgroup 上, 将它隐藏在 cgroup 运行队列(它不再用于可运行的任务). 保持 vruntime 不变, 并调整运行队列的 vruntime 为最左边的任务的 vruntime.<br>3. 当一个 cgroup 被 unthrottle, 并且上面有任务时, 把它放在一个 vruntime 排序的堆上, 与主运行队列分开.<br>4. 让 pick_next_task_fair 在每次调用时从堆中抓取一个任务, 并且该堆的最小 vruntime 低于 CPU 的 cfs_rq 的 vruntime (或者 CPU 没有其他可运行的任务).<br>5. 将选中的任务放置在 CPU 的 cfs_rq 上, 将其 vruntime 与 GENTLE_FAIR_SLEEPERS 逻辑重新规范化. 这应该有助于将已经可运行的任务与最近未被限制的组交织在一起, 并防止严重的群体问题.<br>6. 如果组在所有的任务都有机会运行之前再次被节流, 那么 vruntime 排序将确保被节流的 cgroup 中的所有任务都有机会运行一段 | v9 ☑ 4.6-rc1 | [LKML v8,0/5](https://lore.kernel.org/all/1455871601-27484-1-git-send-email-wagi@monom.org) |
+
+
+*   bursty 应对进程的突发负载
+
 
 可以想象, Bandwidth Controller 并未完全满足每一个 workload 的全部需求. 这种机制对于那些需要持续执行特定 CPU 时长的工作负载来说效果相当不错. 不过, 对于突发性的工作负载, 会比较尴尬. 某个进程在大多数时间段内需要使用的时间可能远远少于它的配额(quota), 但偶尔会出现一个突发的工作, 此时它所需要用到的 CPU 时间可能又比配额要多. 在延迟问题并不敏感的情况下, 当然可以让该进程等待到下一个周期来完成它的工作, 但如果延迟问题确实影响很大的话, 那么我们不应该让它再等到下个周期.
 
@@ -1021,7 +1036,35 @@ Mike Galbraith 调试发现, 触发这个问题的原因是因为 wake_affine_we
 | 2021/09/12 | Yang Yang <yang.yang29@zte.com.cn>/<cgel.zte@gmail.com> | [sched: Add a new version sysctl to control child runs first](https://lkml.org/lkml/2021/9/12/4) | 旧版本的 sysctl_sched_child_runs_first 有一些问题. 首先, 它允许设置值大于 1, 这是不必要的. 其次, 它没有遵循能力法则. 第三, 它没有使用 static key. 这个新版本修复了所有问题. | v1 ☐ | [LKML](https://lkml.org/lkml/2021/9/12/4) |
 
 
-## 4.9 group balancer
+
+## 4.9 Group Balancer
+-------
+
+
+
+### 4.9.1 Scheduler soft affinity
+-------
+
+[Scheduler soft affinity](https://lwn.net/Articles/793492)
+
+[Soft Affinity - When Hard Partitioning Is Too Much](https://blogs.oracle.com/linux/post/soft-affinity-when-hard-partitioning-is-too-much)
+
+Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其中根数据库可以作为容器数据库(CDB)并容纳多个轻量级可插拔数据库(PDB), 所有这些都在同一主机中运行. 这允许非常密集的数据库合并部署. 如果对所有数据库实例的 CPU affinity 不加限制, 允许所有实例在没有任何关联的情况下分布在整个系统中, 但是当所有实例都处于繁忙状态时, 这会受到跨套接字的缓存一致性损失. 在这种情况下, 在单个 NUMA 主机中运行工作负载的多个实例时, 最好对它们进行分区, 例如为每个数据库实例提供 NUMA 节点分区以获得最佳性能. 目前, Linux 内核为硬分区实例提供了两个接口: sched_setaffinity() 系统调用或 cpuset.cpus cgroup 接口. 但是这种 CPU affinity 的方式比较强硬, 不允许一个实例突增出其分区, 并在其他分区空闲时使用其潜在可用的 CPU.
+
+在通过 autonuma 无法解决问题之后, 因此 Oracle 想要实现一个 Soft Affinity 的方案. RFC 实现除了任务结构中现有的 cpu_allowed CPU 集之外, 还引入了新的 cpu_preferred CPU 集.
+
+然后对 wakeup 选核的路径做了优化, 在第一级搜索(wake_affine())期间, 期望使用 cpu_preferred 集来查找最后一级缓存的 LLC 域, 第二级在 LLC 域中, 首先搜索 cpu_preferred 集, 然后搜索 cpu_allowed 集中的其余 CPU.
+
+这只会更改 wakeup 路径, 但会保持 idle balance 不变. 这是有意为之的, 因为调度程序的一半将尝试从 cpu_preferred 中进行选择, 而另一半则会不加选择地窃取线程, 从而在亲和力中赋予整体"柔软度". 有了这样一个基本的实现, 与在双套接字系统上没有亲缘关系的情况下运行它们相比, 对两个 hackbench 实例和两个数据库实例的实验都显示出改进. 此外, 在只有一个实例运行时, 数据库的性能与没有亲缘关系类似, 但是在 hackbench 中可以看到大量的回归. 这表明在这种情况下, 软亲和力不够软, 因为系统中的所有CPU都没有被利用.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2019/06/26 | subhra mazumdar <subhra.mazumdar@oracle.com> | [sched: introduce group balancer](https://lore.kernel.org/lkml/20190626224718.21973-1-subhra.mazumdar@oracle.com) | 为任务提供"软亲和力"的概念, 向调度程序指定在调度任务时首选一组 CPU, 但如果它们不全都繁忙, 则使用其他CPU. | RFC ☐ | [LORE RFC,0/3](https://lore.kernel.org/lkml/20190626224718.21973-1-subhra.mazumdar@oracle.com) |
+
+
+
+### 4.9.2 group balance
 -------
 
 [Alibaba Proposes A Group Balancer For The Linux Kernel Scheduler](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Sched-Group-Balancer)
@@ -1029,6 +1072,9 @@ Mike Galbraith 调试发现, 触发这个问题的原因是因为 wake_affine_we
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2022/01/04 | 王贇 <yun.wang@linux.alibaba.com> | [sched: introduce group balancer](https://lore.kernel.org/lkml/98f41efd-74b2-198a-839c-51b785b748a6@linux.alibaba.com) | 进程组级别的负载均衡器. | RFC ☐ | [LORE RFC](https://lore.kernel.org/lkml/98f41efd-74b2-198a-839c-51b785b748a6@linux.alibaba.com) |
+
+
+
 
 
 # 5 select_task_rq
