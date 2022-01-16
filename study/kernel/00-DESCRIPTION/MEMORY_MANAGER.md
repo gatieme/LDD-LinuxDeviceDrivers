@@ -2501,6 +2501,18 @@ HugeTLB 预留空间时可以精细化控制不同 NUMA NODE 上预留的空间.
 | 2021/11/17 | Mina Almasry <almasrymina@google.com> | [hugetlb: Add `hugetlb.*.numa_stat` file](https://patchwork.kernel.org/project/linux-mm/patch/20211019215437.2348421-1-almasrymina@google.com) | 添加 `hugetlb.*.numa_stat`, 它显示 hugetlb 在 cgroup 的 numa 使用信息. 类似于 memory.numa_stat. | v7 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211019215437.2348421-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211020190952.2658759-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v7](https://patchwork.kernel.org/project/linux-mm/patch/20211117201825.429650-1-almasrymina@google.com) |
 
 
+### 7.1.8 代码段大页
+-------
+
+由于应用程序的代码段 text 和数据段 data 都是直接映射到程序二进制文件本身的, 因此如果不通过修改程序运行时库等方式, 很难把这些段使用 HugeTLB 来映射. 但是将这些段映射成大页可以有效地减少 iTLB-miss. 网上也经常会看到相关的一些讨论. 参见 [stackoverflow: usage of hugepages for text and data segments](https://stackoverflow.com/questions/36576462/usage-of-hugepages-for-text-and-data-segments).
+
+Google 的工程师 Mina Almasry 提出了一种新的思路, 通过 [mremap 的方式重新映射程序的的 ELF 到大页上](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=550a7d60bd5e35a56942dba6d8a26752beb26c9f), 来支持代码段大页. 作者提供了一个用户态工具库 [chromium/hugepage_text](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/chromeos/hugepage_text) 来辅助完成这项工作. 可以在尽可能不修改应用程序代码的情况下完成代码段大页的映射, 可以显著提升应用程序的性能. 具体使用也可以参考作者提交的测试用例 [commit 12b613206474 ("mm, hugepages: add hugetlb vma mremap() test")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=12b613206474cea36671d6e3a7be7d1db7eb8741).
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/10/14 | Mina Almasry <almasrymina@google.com> | [mm, hugepages: add mremap() support for hugepage backed vma](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=12b613206474cea36671d6e3a7be7d1db7eb8741) | 通过简单地重新定位页表项, 使得 mremap() 支持 hugepage 的 vma 段. 页表条目被重新定位到 mremap() 上的新虚拟地址.<br>作者验证的测试场景是一个简单的 bench: 它在 hugepages 中重新加载可执行文件的 ELF 文本, 这大大提高了上述可执行文件的执行性能.<br>将 hugepages 上的 mremap 操作限制为原始映射的大小, 因为底层 hugetlb 保留还不能处理到更大的大小的重映射.<br>在 mremap () 操作期间, 我们检测 pmd_shared 的映射, 并在 mremap () 期间取消这些映射的共享. 在访问和故障时, 再次建立共享. | v1 ☑ 5.16-rc1 | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20210730221522.524256-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,1/2](https://patchwork.kernel.org/project/linux-mm/patch/20211006194515.423539-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,1/2](https://lore.kernel.org/all/20211013195825.3058275-1-almasrymina@google.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=550a7d60bd5e35a56942dba6d8a26752beb26c9f)<br>*-*-*-*-*-*-*-* <br>[PatchWork v8,1/2](https://patchwork.kernel.org/project/linux-mm/patch/20211014200542.4126947-1-almasrymina@google.com) |
+
+
 ### 7.1.x More HugeTLB Patchset
 -------
 
