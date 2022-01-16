@@ -2399,9 +2399,39 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 
 huge page 最开始只支持 PMD 级别(基础页 4K, 则 PMD 级别为 2MB)的大页, 自 3.8 版本加入这个 [commit 42d7395feb56 ("mm: support more pagesizes for MAP_HUGETLB/SHM_HUGETLB")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=42d7395feb56f0655cd8b68e06fc6063823449f8) 之后, 利用 shmget()/mmap() 的 flag 参数中未使用的 bits, 可以支持其他的 huge page 大小(比如 1GB).
 
+进一步的, ARM64 MMU 支持一个连续位(Contiguous bit), 该位表示 TTE 是可缓存在单个 TLB 条目中的一组连续条目之一. 通过对该位的支持可以增加新的中间大页的大小. 可用的巨大页面大小取决于基本页面大小 PAGE_SIZE.
+
+在不使用连续页面的情况下, 大页面大小如下所示:
+
+-----------------------------
+| Page Size |  PMD  |  PUD  |
+-----------------------------
+|     4K    |   2M  |   1G  |
+|    16K    |  32M  |       |
+|    64K    | 512M  |       |
+-----------------------------
+
+对于 4KB 的 PAGE_SIZE, 使用 Contiguous bit 的相邻位将 16 页的集合分组,
+对于 64KB 的 PAGE_SIZE, 它将 32 页的集合分组. 这将在每种情况下启用两个新的巨大页面大小, 因此完整的可用大小集如下所示.
+如果使用 16KB 的 PAGE_SIZE, 则连续位在 PTE 级别将 128 页分组, 在 PMD 级别将 32 页分组.
+
+---------------------------------------------------
+| Page Size | CONT PTE |  PMD  | CONT PMD |  PUD  |
+---------------------------------------------------
+|     4K    |   64K    |   2M  |    32M   |   1G  |
+|    16K    |    2M    |  32M  |     1G   |       |
+|    64K    |    2M    | 512M  |    16G   |       |
+---------------------------------------------------
+
+
+
+
+如果基本页面大小设置为 64KB，则默认情况下会启用 2MB 页面。在将来，4KB 和 64KB 的页面都可以使用 2MB 作为默认的巨大页面大小。
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/12/05 | Andi Kleen <ak@linux.intel.com> | [mm: support more pagesizes for MAP_HUGETLB/SHM_HUGETLB](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=42d7395feb56f0655cd8b68e06fc6063823449f8) | Free page reporting 只支持伙伴系统中的页面, 它不能报告为 hugetlbfs 预留的页面. 这个补丁在 hugetlb 的空闲列表中增加了对报告巨大页的支持, 它可以被 virtio_balloon 驱动程序用于内存过载和预归零空闲页, 以加速内存填充和页面错误处理. | v7 ☑ 3.8-rc1 | [LWN v7](https://lwn.net/Articles/533650), [LORE v7](https://lore.kernel.org/lkml/1352157848-29473-2-git-send-email-andi@firstfloor.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=42d7395feb56f0655cd8b68e06fc6063823449f8) |
+| 2015/12/17 | David Woods <dwoods@ezchip.com> | [arm64: Add support for PTE contiguous bit.](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=66b3923a1a0f77a563b43f43f6ad091354abbfe9) | 引入 hugetlb cgroup | v5 ☑ 4.5-rc1 | [LKML v5](https://lore.kernel.org/lkml/1450380686-20911-1-git-send-email-dwoods@ezchip.com) |
 
 
 ### 7.1.5 HugeTLB CGROUP
@@ -2445,7 +2475,8 @@ huge page 最开始只支持 PMD 级别(基础页 4K, 则 PMD 级别为 2MB)的�
 ### 7.1.7 HugeTLB reserve & allocations
 -------
 
-*   HugeTLB from ZONE_MOVABLE
+#### 7.1.7.1 HugeTLB from ZONE_MOVABLE
+-------
 
 [commit 396faf0303d2 ("Allow huge page allocations to use GFP_HIGH_MOVABLE")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=396faf0303d273219db5d7eb4a2879ad977ed185) 允许在 ZONE_MOVABLE 上进行 hugetlb 的分配. HugeTLB 的页面通常是不能移动的, 所以不会从 ZONE_MOVABLE 中分配. 然而, 由于 ZONE_MOVABLE 区总是有可以迁移或回收的页面, 因此即使系统已经运行了很长时间, 它也有足够的连续内存可以用来满足大页的分配. 因此这允许管理员在运行时根据 ZONE_MOVABLE 的大小调整巨大页面池的大小。
 
@@ -2464,33 +2495,42 @@ hugepages_treat_as_movable 的目的是减少内存碎片, 而 hugetlb 页面的
 | 2018/01/31 | Michal Hocko <mhocko@suse.com> | [mm, hugetlb: remove hugepages_treat_as_movable sysctl](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=944d9fec8d7aee3f2e16573e9b6a16634b33f403) | 移除 hugepages_treat_as_movable, 不再允许 HugeTLB 从 ZONE_MOVABLE 中分配. 而是[使用 hugepage_migration_support(ed) 来做控制](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=83467efbdb7948146581a56cbd683a22a0684bbb). | RFC ☑ 4.16-rc1 | [LORE RFC](https://lore.kernel.org/all/20171003072619.8654-1-mhocko@kernel.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d6cb41cc44c63492702281b1d329955ca767d399) |
 
 
-*   HugeTLB CMA
 
-其次是允许从 CMA 区域中分配 hugetlb, 以及 NUMA Aware 的初步尝试
-
-
-现在, HugeTLB 的分配有两个严重的问题:
+但是, HugeTLB 的分配仍然有两个严重的问题:
 
 1. 分配不是 NUMA 感知的. 在 NUMA 机器上, 内核在节点之间平均分配引导时分配的大量页面. 例如, 假设您有一个四节点 NUMA 机器, 并希望在引导时分配四个 1G 的巨大页面. 内核将为每个节点分配一个巨大的页面. 另一方面, 有些用户希望能够指定应该从哪个 NUMA 节点分配巨大的页面. 这样他们就可以在特定的 NUMA 节点上放置虚拟机.
 
 2. 在启动时预留的大页不能被释放. 只有在运行时分配的常规大页面不会有这些问题. 这是因为在 sysfs 中用于运行时分配的 HugeTLB 接口支持 NUMA, 运行时分配的页面可以通过好友分配器释放.
 
+#### 7.1.7.2 HugeTLB CMA(支持运行时分配大页)
+-------
+
 HugeTLB 的分配和使用多数情况下是静态的. x86_64 支持 2M 和 1G 的巨页, 但是只有 2M 的巨页可以在运行时分配和释放. 如果想要分配 1G 的巨大页面, 在系统启动阶段通过命令行参数 `hugepagesz =` 和 `hugepages =` 来预留页面完成. 这是因为当前实现下, HugeTLB 子系统在运行时使用伙伴系统来分配器分配大页. 这意味着运行时的大页的大小被限制在 MAX_ORDER order. 对于支持巨页(即 gigantic pages, 页面大小大于 MAX_ORDER) 的对象, 这意味着不能在运行时分配这些页面.
 
 
-linux 内核在 v3.16 [hugetlb: add support gigantic page allocation at runtime](https://lore.kernel.org/lkml/1397152725-20990-1-git-send-email-lcapitulino@redhat.com) 增加了在运行时分配 HugeTLB 的支持. 它通过 CMA 而不是伙伴分配器分配巨页来实现这一点. 随后 [mm: using CMA for 1 GB hugepages allocation](https://lore.kernel.org/all/20200407163840.92263-1-guro@fb.com) 完成了 x86_64 上 1G HugeTLB 巨页的动态分配, 复用了在现有 HugeTLB 接口的, 它使巨页(gigantic pages)分配和发布就像常规大小的大面一样. 同样这使得 NUMA 支持可以正常工作.
+为了克服这个问题, linux 内核在 v3.16 [hugetlb: add support gigantic page allocation at runtime](https://lore.kernel.org/lkml/1397152725-20990-1-git-send-email-lcapitulino@redhat.com) 完成了[在运行时分配 HugeTLB 巨页的支持](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=944d9fec8d7aee3f2e16573e9b6a16634b33f403). 它通过 CMA 而不是伙伴分配器分配巨页来实现这一点. 内核中[把 order 大于 MAX_ORDER 的称为巨页](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bae7f4ae14d47008a11b4358b167cb0ae186c06a), 通过 [hstate_is_gigantic()](https://elixir.bootlin.com/linux/v3.16/source/include/linux/hugetlb.h#L347) 来判定待分配的请求是不是巨页. 如果是大页的请求则通过 [alloc_fresh_huge_page()](https://elixir.bootlin.com/linux/v3.16/source/mm/hugetlb.c#L1652) 分配, 如果是巨页请求则通过 [alloc_fresh_gigantic_page()](https://elixir.bootlin.com/linux/v3.16/source/mm/hugetlb.c#L1650) 扫描[节点中的所有区域](https://elixir.bootlin.com/linux/v3.16/source/mm/hugetlb.c#L752), 以查找足够大的连续区域. [找到一个满足要求的之后](https://elixir.bootlin.com/linux/v3.16/source/mm/hugetlb.c#L757), 就使用 CMA 进行分配, 即调用 [alloc_contig_range()](https://elixir.bootlin.com/linux/v3.16/source/mm/hugetlb.c#L710) 进行实际分配. 需要注意的是通过 `hugepages =` 命令行选项在引导时分配的巨页也可以在运行时释放.
 
+但是这个方案并不完善, 仍然有些悬而未决的问题, 比如:
+
+*   随着运行时间的推移, 巨页分配所期望的大块连续区域往往会被逐渐消耗, 导致运行时分配巨页出现失败, 作者提到的目前避免这种情况的最好方法是, 在系统启动的早期进行巨大的页面分配. 其他可能的优化包括使用内存规整等 CMA 所支持的手段, 但这个补丁集未明确使用.
+
+*   没有添加对 hugepage over commimit 的支持, 即在 `/proc/sys/vm/nr_overcommit_hugepages > 0` 时按需分配一个巨大的页面. 因为作者不确定在这种情况下分配一个巨页是否合理, 毕竟巨页的分配存在一定的开销.
+
+因为问题 1 的存在, 导致运行时的 HugeTLB 分配机制并没有起到实质的作用. 因为它实际上只在系统加载的早期阶段能真正起作用, 此时大部分内存是空闲的. 一段时间后, 内存被不可移动的页面分割, 已经有了太多的内存外部碎片, 因此找到连续 1GB 块的机会接近于零. 而在大规模情况下, 重新启动服务器以分配巨页是非常昂贵和复杂的. 同时, 解决方案选择也比较困难. 因为即使当前系统中的工作负载没有使用, 那么在预留的 CMA 内存中再保留一定比例的内存用作 HugeTLB 的分配也是一种巨大的浪费: 因为并非所有工作负载都能从使用 1GB 的页面中获益.
+
+随后 v5.7 版本, FaceBook 的开发者 Roman Gushchin [mm: using CMA for 1 GB hugepages allocation](https://lore.kernel.org/all/20200407163840.92263-1-guro@fb.com) 对问题 1 进行妥善地处理. 在启动时通过 [hugetlb_cma_reserve()](https://elixir.bootlin.com/linux/v5.7/source/mm/hugetlb.c#L5562) 预留一个专用的 CMA 区域(通过启动参数 [`hugetlb_cma =`](https://elixir.bootlin.com/linux/v5.7/source/mm/hugetlb.c#L5556) 来指定预留的大小), 运行时使用 CMA 分配器和专用 CMA 区域来分配巨大的页面. 在这种情况下, 可以以很高的概率成功分配巨大的页面, 但是如果没有人使用 1GB 的巨大页面, 内存不会完全浪费. 因为它可以用于页面缓存、匿名内存、THP 等. 这个补丁同时适配了 [x86](https://elixir.bootlin.com/linux/v5.7/source/arch/x86/kernel/setup.c#L1162) 和 [arm64](https://elixir.bootlin.com/linux/v5.7/source/arch/arm64/mm/init.c#L463), 但是当前只支持 4K PAGE_SIZE 的情况. 由于事先不确定会在哪个 NUMA 节点上分配巨页内存, 因此预留时会尝试在[每个 NUMA 节点上都预留](https://elixir.bootlin.com/linux/v5.7/source/mm/hugetlb.c#L5587)一定量的内存, 为 HugeTLB 预留的 CMA 内存专区存储在 [hugetlb_cma](https://elixir.bootlin.com/linux/v5.7/source/mm/hugetlb.c#L49) 数组中, 需要时通过 [cma_alloc()](https://elixir.bootlin.com/linux/v5.7/source/mm/hugetlb.c#L1260) 从预留区域 hugetlb_cma 中分配. 因此在未使用时这块内存完全可以用作他用,
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2014/06/04 | Luiz Capitulino <lcapitulino@redhat.com> | [hugetlb: add support gigantic page allocation at runtime](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=944d9fec8d7aee3f2e16573e9b6a16634b33f403) | 通过在 CMA 区域中分配 HugeTLB 来支持 HugeTLB 的运行时分配. | v1 ☑ 3.16-rc1 | [LORE v3,0/5](https://lore.kernel.org/lkml/1397152725-20990-1-git-send-email-lcapitulino@redhat.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=944d9fec8d7aee3f2e16573e9b6a16634b33f403) |
-| 2020/04/10 | Roman Gushchin <guro@fb.com> | [mm: using CMA for 1 GB hugepages allocation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cf11e85fc08cc6a4fe3ac2ba2e610c962bf20bc3) | 1G 大页支持用 CMA 分配. 补丁集增加了一个 hugetlb_cma 启动选项, 它允许保留一个 cma 区域, 以后可以用于 1G 的大页分配. | v1 ☑ 5.7-rc1 | [LORE v5,0/2](https://lore.kernel.org/all/20200407163840.92263-1-guro@fb.com) |
-| 2020/06/18 | Barry Song <song.bao.hua@hisilicon.com> | [arm64: mm: reserve hugetlb CMA after numa_init](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=618e07865b7453d02410c1f3407c2d78a670eabb) | ARM64 支持 CMA 中分配 HugeTLB. | v1 ☑ 5.8-rc2 | [LORE v3](https://lore.kernel.org/all/20200617215828.25296-1-song.bao.hua@hisilicon.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=618e07865b7453d02410c1f3407c2d78a670eabb) |
-| 2020/07/01 | Roman Gushchin <guro@fb.com> | [arm64/hugetlb: Reserve CMA areas for gigantic pages on 16K and 64K configs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=abb7962adc80ab4f4313e8a065302525b6a9c2dc) | ARM64 支持 CMA 中分配 HugeTLB. | v1 ☑ 5.9-rc1 | [LORE v3](https://lore.kernel.org/all/1593578521-24672-1-git-send-email-anshuman.khandual@arm.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=abb7962adc80ab4f4313e8a065302525b6a9c2dc) |
+| 2020/04/10 | Roman Gushchin <guro@fb.com> | [mm: using CMA for 1 GB hugepages allocation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cf11e85fc08cc6a4fe3ac2ba2e610c962bf20bc3) | 引入 hugetlb_cma 参数, 预留一块指定大小的 CMA 区域用来做 HugeTLB 的分配. 对于有多个 NUMA 节点的机器, 每个 NUMA 节点上都会进行预留. | v1 ☑ 5.7-rc1 | [LORE v5,0/2](https://lore.kernel.org/all/20200407163840.92263-1-guro@fb.com) |
+| 2020/06/18 | Barry Song <song.bao.hua@hisilicon.com> | [arm64: mm: reserve hugetlb CMA after numa_init](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=618e07865b7453d02410c1f3407c2d78a670eabb) | ARM64 中 HugeTLB CMA 的预留应该在 numa_init 之后. | v1 ☑ 5.8-rc2 | [LORE v3](https://lore.kernel.org/all/20200617215828.25296-1-song.bao.hua@hisilicon.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=618e07865b7453d02410c1f3407c2d78a670eabb) |
+| 2020/07/01 | Roman Gushchin <guro@fb.com> | [arm64/hugetlb: Reserve CMA areas for gigantic pages on 16K and 64K configs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=abb7962adc80ab4f4313e8a065302525b6a9c2dc) | ARM64 下不光有[多种 PAGE_SIZE, 还有各类 CONT PAGE](https://elixir.bootlin.com/linux/v5.9/source/arch/arm64/mm/hugetlbpage.c#L25) 的情况. HugeTLB CMA 当前不支持 ARM64 下其他 PAGE_SIZE 情况下的预留, 因此引入 arm64_hugetlb_cma_reserve() 增加了 ARM64 下多种 PAGE_SIZE 的支持. | v1 ☑ 5.9-rc1 | [LORE v3](https://lore.kernel.org/all/1593578521-24672-1-git-send-email-anshuman.khandual@arm.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=abb7962adc80ab4f4313e8a065302525b6a9c2dc) |
 | 2020/07/13 | Roman Gushchin <guro@fb.com> | [powerpc/hugetlb/cma: Allocate gigantic hugetlb pages using CMA](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ef26b76d1af61b90eb0dd3da58ad4f97d8e028f8) | POWERPC 支持从 CMA 中分配 HugeTLB. | v5 ☑ 5.9-rc1 | [LORE v3](https://lore.kernel.org/all/20200407163840.92263-1-guro@fb.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ef26b76d1af61b90eb0dd3da58ad4f97d8e028f8) |
 
 
-*   Numa Aware HugeTLB reserve
+#### 7.1.7.3 Numa Aware HugeTLB reserve
+-------
 
 HugeTLB 预留空间时可以精细化控制不同 NUMA NODE 上预留的空间.
 
