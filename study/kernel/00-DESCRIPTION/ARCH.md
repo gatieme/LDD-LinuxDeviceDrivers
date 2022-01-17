@@ -268,8 +268,6 @@ arm64 架构提供了一条 TLB 失效指令:
 TLBI <type><level>{IS}, {, <Xt>}
 ```
 
-
-
 | 字段 | 描述 |
 |:----:|:---:|
 | type | 指定了刷新规则, 即只刷新满足特定条件的 tlb 表项, 例如 all 表示所有表项, vmall 表示当前虚拟机的阶段 1 1 的所有表项, asid 表示匹配寄存器 Xt 指定的 ASID 的表项, va 匹配寄存器 Xt 指定的虚拟地址和 ASID 的表项, 等等. |
@@ -346,6 +344,7 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 
 ### 2.3.3 SME
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -367,6 +366,10 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 
 [armv8/arm64 PAN 深入分析](https://cloud.tencent.com/developer/article/1413360)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/03/12 | Vladimir Murzin <vladimir.murzin@arm.com> | [arm64: Support Enhanced PAN](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=18107f8a2df6bf1c6cac8d0713f757f866d5af51) | NA | v4 ☑ 5.13-rc1 | [LORE v4,0/2](https://lore.kernel.org/all/20210312173811.58284-1-vladimir.murzin@arm.com) |
 
 ## 2.6 PAC
 -------
@@ -391,6 +394,14 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 *   [Corellium](https://github.com/corellium) 一直致力于为用户提供虚拟 iOS 系统桌面解决方案, 这个团队从 A10 芯片开始就开始做 Linux 的适配, 因此 M1 刚出来就做了快速的适配.
 
 *   [AsahiLinux]() 国外一名资深操作系统移植专家 Hector Martin(网名为 Marcan) 主导发起的一个开源项目, 其目标是让用户可以在 Apple M1 上把基于 Linux 的发行版作为日常操作系统来使用.
+
+
+## 2.8 clocksource
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/10/17 | Marc Zyngier <maz@kernel.org> | [clocksource/arm_arch_timer: Add basic ARMv8.6 support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ec8f7f3342c88780d682cc2464daf0fe43259c4f) | NA | v4 ☑ 5.16-rc1 | [LORE v4,00/17](https://lore.kernel.org/all/20211017124225.3018098-1-maz@kernel.org) |
 
 
 # 3 RISC-V
@@ -420,7 +431,7 @@ SLS 被认为是 Spectre 漏洞的变体, 但二者的攻击范围略有不同, 
 
 [LLVM Adds Additional Protections For Arm's SLS Speculation Vulnerability Mitigation](https://www.phoronix.com/scan.php?page=news_item&px=Arm-SLS-More-In-LLVM)
 
-11 月 17 日, 将 x86/x86_64 的 SLS 缓解选项 -mharden-SLS 合并到 GCC 12 Git 上，预计不久将推出内核补丁，将 -mharden-SLS 缓解选项作为对 x86 cpu 最新的安全保护. 这个选项包括 none、all、return 或 indirect-branch 四个值, x86/x86_64 架构上的原理是通过在函数返回和间接分支之后添加 INT3 断点指令, 来减少函数返回和间接分支的直线推测(SLS). 参见 [Linux + GCC/Clang Patches Coming For Straight-Line Speculation Mitigation On x86/x86_64](https://www.phoronix.com/scan.php?page=news_item&px=Straight-Line-Speculation-x86).
+11 月 17 日, 将 x86/x86_64 的 SLS 缓解选项 -mharden-SLS 合并到 GCC 12 Git 上，预计不久将推出内核补丁，将 -mharden-SLS 缓解选项作为对 x86 cpu 最新的安全保护. 这个选项包括 none、all、return 或 indirect-branch 四个值, x86/x86_64 架构上的原理是通过在函数返回和间接分支之后添加 INT3 断点指令, 来减少函数返回和间接分支的直线推测(SLS). 参见 [Linux + GCC/Clang Patches Coming For Straight-Line Speculation Mitigation On x86/x86_64](https://www.phoronix.com/scan.php?page=news_item&px=Straight-Line-Speculation-x86), [x86 Straight Line Speculation CPU Mitigation Appears For Linux 5.17](https://www.phoronix.com/scan.php?page=news_item&px=x86-SLS-Mitigation-5.17)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -461,6 +472,34 @@ SLS 被认为是 Spectre 漏洞的变体, 但二者的攻击范围略有不同, 
 
 
 
+## 6.2 RANOM
+-------
+
+
+### 6.2.1 Arm True Random Number Generator Firmware Interface
+-------
+
+ARM 规范 [DEN0098](https://developer.arm.com/documentation/den0098/latest) 中描述的 ARM 架构的 TRNG 固件接口定义了一个基于 ARM SMCCC 的接口, 该接口由固件提供给真实随机数生成器.
+
+Arm True Random Number Generator Firmware Interface 1.0 于去年发布, 最终由Arm TrustZone的TRNG或其他原始噪声等硬件设备
+提供支持.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/12/11 | Vladimir Murzin <vladimir.murzin@arm.com> | [ARM: arm64: Add SMCCC TRNG entropy service](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=38db987316a38a3fe55ff7f5f4653fcb520a9d26) | NA | v4 ☑ 5.12-rc1 | [LORE v4,0/5](https://lore.kernel.org/lkml/20201211160005.187336-1-andre.przywara@arm.com) |
+| 2021/07/26 | Vladimir Murzin <vladimir.murzin@arm.com> | [hwrng: Add Arm SMCCC TRNG based driver](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0888d04b47a165ae8c429c6fe11b3c43f5017f31) | 添加一个"arm_smccc_trng"驱动程序, 并允许将熵暴露给用户空间. ARM 规范定义了此真正的随机数生成器固件接口, 用于为随机池设定种子, 也可由 KVM Guest 使用. 使用此新驱动程序, 可以通过 `/dev/hwrng` 公开来自此固件接口的熵. 反过来, 这对于能够使用 rng-tool 的 rngtest 实用程序等来验证熵的质量非常有用. 参见 [Arm SMCCC TRNG Driver Queued Ahead Of Linux 5.15](https://www.phoronix.com/scan.php?page=news_item&px=Arm-SMCCC-TRNG-Linux-5.15). | v3 ☑ 5.15_rc1 | [LKML v3,0/2](https://lkml.org/lkml/2021/7/26/1571), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0888d04b47a165ae8c429c6fe11b3c43f5017f31) |
+
+
+### 6.2.2 LRNG
+-------
+
+[FIPS-compliant random numbers for the kernel](https://lwn.net/Articles/877607)
+
+[smuellerDD/lrng](https://github.com/smuellerDD/lrng)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/11/21 | "Stephan Müller" <smueller@chronox.de> | [/dev/random - a new approach](https://lore.kernel.org/lkml/2036923.9o76ZdvQCi@positron.chronox.de) | 随机数实现改进. | v1 ☐ | [Patchwork v43 00/15](https://lore.kernel.org/lkml/2036923.9o76ZdvQCi@positron.chronox.de) |
 
 
 

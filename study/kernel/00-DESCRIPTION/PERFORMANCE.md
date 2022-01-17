@@ -90,6 +90,13 @@ https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Faster-csum_parti
 | 2021/08/03 | Peter Oskolkov <posk@google.com> | [thread_info: use helpers to snapshot thread flags](https://lwn.net/Articles/722293) | 参见报道 [Linux 5.17 To Continue With I/O Optimizations, 5~6% Improvement Pending For NVMe](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Will-Continue-IO) | v1 ☐ | [PatchWork v4,00/10](https://lore.kernel.org/patchwork/cover/1471548) |
 
 
+# ARCH
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/12/22 | Wander Lairson Costa <wander@redhat.com> | [tty: serial: Use fifo in 8250 console driver](https://lwn.net/Articles/722293) | 参见报道 [Linux Serial Console Driver Lands Patch For Possible ~25% Performance Improvement](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Serial-16550-FIFO) | v1 ☑ 5.17-rc1 | [PatchWork v4,00/10](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5021d709b31b8a14317998a33cbc78be0de9ab30) |
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

@@ -347,10 +347,13 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 ### 1.7.3 page table check
 -------
 
+[Page Table Check Feature Merged For Linux 5.17 To Help Fight Memory Corruption](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Page-Table-Check)
+
+[Google Proposes "Page Table Check" For Fighting Some Types Of Linux Memory Corruption](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Page-Table-Check-RFC)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/12/21 | Pasha Tatashin <pasha.tatashin@soleen.com> | [Hardening page _refcount](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com) | 目前很难从根本上解决 `_refcount` 问题, 因为它们通常在损坏发生后才会显现出来. 然而, 它们可能导致灾难性的故障, 如内存损坏.<br>通过添加更多的检查来提高可调试性, 确保 `page->_refcount` 永远不会变成负数(例如, 双空闲不发生, 或冻结后空闲等).<br>1. 增加了对 `_refcount` 异常值的检测.<br>2. 删除了 set_page_count(), 这样就不会无条件地用不受限制的值覆盖 `_refcount` | RFC,0/8 ☐ | [PatchWork RFC,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211117012059.141450-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20211221150140.988298-1-pasha.tatashin@soleen.com) |
-| 2021/12/21 | Pasha Tatashin <pasha.tatashin@soleen.com> | [page table check](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Page-Table-Check-RFC) | 在将条目插入用户页表时检查是否存在非法共享, 以确保防止一些内存损坏. "页表检查"功能将在插入/删除页面时检查是否存在非法共享, 以确保不存在源自双重映射的非法共享. 如果检测到损坏, 内核将崩溃. 此外, 这种额外的检查确实会导致一些性能影响以及额外的内存开销. 因此默认情况下它将处于关闭状态. 通过 PAGE_TABLE_CHECK 选项控制, 并使用 page_table_check=on 参数引导内核, 以便在运行时启用它. | v1 ☐ | [2021/11/23 PatchWork 0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211123214814.3756047-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/21 PatchWork v3,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20211221154650.1047963-1-pasha.tatashin@soleen.com) |
+| 2021/12/21 | Pasha Tatashin <pasha.tatashin@soleen.com> | [Hardening page _refcount](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com) | 目前很难从根本上解决 `_refcount` 问题, 因为它们通常在损坏发生后才会显现出来. 然而, 它们可能导致灾难性的故障, 如内存损坏.<br>通过添加更多的检查来提高可调试性, 确保 `page->_refcount` 永远不会变成负数(例如, 双空闲不发生, 或冻结后空闲等).<br>1. 增加了对 `_refcount` 异常值的检测.<br>2. 删除了 set_page_count(), 这样就不会无条件地用不受限制的值覆盖 `_refcount` | RFC,0/8 ☐ | [PatchWork RFC,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211117012059.141450-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20211221150140.988298-1-pasha.tatashin@soleen.com), [LORE v3,0/4](https://lore.kernel.org/all/20211221154650.1047963-1-pasha.tatashin@soleen.com) |
 
 ### 1.7.3 安全
 -------
@@ -1319,7 +1322,6 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 -------
 
 
-
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/11/23 | Mel Gorman | [Fragmentation avoidance improvements v5](https://lore.kernel.org/patchwork/cover/1016503) | 伙伴系统页面分配时的反碎片化 | v5 ☑ 5.0-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/cover/1016503) |
@@ -1720,6 +1722,7 @@ Google 测试多代 LRU 为 Linux 带来更好的性能提升, 参见 [Google Pr
 
 ["MGLRU" Code Updated For More Performant Linux Page Reclamation](https://www.phoronix.com/scan.php?page=news_item&px=Multigen-LRU-v5)
 
+[MGLRU Is A Very Enticing Enhancement For Linux In 2022](https://www.phoronix.com/scan.php?page=news_item&px=Linux-MGLRU-v6-Linux)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

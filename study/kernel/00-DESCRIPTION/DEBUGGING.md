@@ -525,17 +525,6 @@ https://patchwork.kernel.org/project/linux-trace-devel/list/?submitter=200911&st
 | 2021/03/21 | Rasmus Villemoes <linux@rasmusvillemoes.dk> | [background initramfs unpacking, and CONFIG_MODPROBE_PATH](https://lore.kernel.org/patchwork/patch/1394812) | 启动阶段异步解压 initramfs. 可以加速系统启动. | v1 ☑ [5.13-rc1](https://kernelnewbies.org/Linux_5.13) | [Patchwork](https://lore.kernel.org/patchwork/patch/1394812) |
 
 
-# 16 RANOM
--------
-
-
-[FIPS-compliant random numbers for the kernel](https://lwn.net/Articles/877607)
-
-[smuellerDD/lrng](https://github.com/smuellerDD/lrng)
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/11/21 | "Stephan Müller" <smueller@chronox.de> | [/dev/random - a new approach](https://lore.kernel.org/lkml/2036923.9o76ZdvQCi@positron.chronox.de) | 随机数实现改进. | v1 ☐ | [Patchwork v43 00/15](https://lore.kernel.org/lkml/2036923.9o76ZdvQCi@positron.chronox.de) |
 
 
 # 17 众核
