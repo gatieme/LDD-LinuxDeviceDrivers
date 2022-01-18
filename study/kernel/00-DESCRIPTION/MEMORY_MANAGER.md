@@ -98,8 +98,10 @@
 
 Andrew Morton 一般以一封 [incoming](https://lore.kernel.org/linux-mm/20211105133408.cccbb98b71a77d5e8430aba1@linux-foundation.org) 的邮件向 Linus 发起 push 请求, Linus pull 之后的 Merge 标题为 Merge branch 'akpm' (patches from Andrew).
 
+- [x] Merge branch 'akpm' (patches from Andrew)
+
 ```cpp
-git log --oneline | grep -E "Merge |Linux"  | grep -E "akpm|Linux" | less
+git log --oneline v5.15...v5.16 | grep -E "Merge branch | Linux "  | grep -E "akpm| Linux " | less
 ```
 
 | 版本 | 发布时间 | 合并链接 |
@@ -107,7 +109,7 @@ git log --oneline | grep -E "Merge |Linux"  | grep -E "akpm|Linux" | less
 | 5.13 | [2021/06/02](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=62fb9874f5da) | [2021/04/30, 5.13-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d42f323a7df0b298c07313db00b44b78555ca8e6)<br>[2021/05/05, 5.13-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8404c9fbc84b741f66cff7d4934a25dd2c344452)<br>[2021/05/15, 5.13-rc2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a4147415bdf152748416e391dd5d6958ad0a96da)<br>[2021/05/22, 5.13-rc3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=34c5c89890d6295621b6f09b18e7ead9046634bc)<br>[2021/06/05, 5.13-rc5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e5220dd16778fe21d234a64e36cf50b54110025f)<br>[2021/06/16, 5.13-rc7](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=70585216fe7730d9fb5453d3e2804e149d0fe201)<br>[2021/06/25, 5.13](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7ce32ac6fb2fc73584b567c73ae0c47528954ec6) |
 | 5.14 | [2021/08/29](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=73f3af7b4611) | [2021/06/29, 5.14-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=65090f30ab791810a3dc840317e57df05018559c)<br>[2021/07/02, 5.14-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=71bd9341011f)<br>[2021/07/09, 5.14-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bd9c35060329)<br>[2021/07/15, 5.14-rc2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dd9c7df94c1b)<br>[2021/07/24, 5.14-rc3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bca1d4de3981)<br>[2021/07/30, 5.14-rc4](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ad6ec09d9622)<br>[2021/08/13, 5.14-rc6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dfa377c35d70)<br>[2021/08/20, 5.14-rc7](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed3bad2e4fd7)<br>[2021/08/25, 5.14](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=73f3af7b4611) |
 | 5.15 |  [2021/10/31](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8bb7eca972ad) | [2021/09/08, 5.15-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2d338201d531)<br>[2021/09/08, 5.15-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a3fa7a101dcf)<br>[2021/09/25, 5.15-rc3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a3b397b4fffb)<br>[2021/10/19, 5.15-rc6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d9abdee5fd5a)<br>[2021/10/29, 5.15](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2c04d67ec1eb) |
-| 5.16 | [2021/10/31](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8bb7eca972ad) | [2021/11/06, 5.16-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=512b7931ad05)<br>[2021/11/09, 5.16-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=59a2ceeef6d6)<br>[2021/11/11, 5.16-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dbf49896187f)<br>[2021/11/20, 5.16-rc2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=923dcc5eb0c1)<br>[2021/11/20, 5.16-rc5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=df442a4ec740)
+| 5.16 | [2021/10/31](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8bb7eca972ad) | [2021/11/06, 5.16-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=512b7931ad05)<br>[2021/11/09, 5.16-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=59a2ceeef6d6)<br>[2021/11/11, 5.16-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dbf49896187f)<br>[2021/11/20, 5.16-rc2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=923dcc5eb0c1)<br>[2021/11/20, 5.16-rc5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=df442a4ec740)<br>[2021/12/25, 5.16-rc7](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d0cc67b2781654ac71c73d303e0347e5e9b10ad3)<br>[2021/12/25, 5.16-rc8](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f87bcc88f3028af584b0820bdf6e0e4cdc759d26) |
 
 cgit 上查看 MM 所有的 log 信息 :
 
@@ -264,6 +266,8 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 ## 1.4 [Clarifying memory management with page folios](https://lwn.net/Articles/849538)
 -------
 
+### 1.4.1 page folios
+-------
 
 [LWN: 利用page folio来明确内存操作！](https://blog.csdn.net/Linux_Everything/article/details/115388078)
 
@@ -288,11 +292,19 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 | 2022/01/02 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [MConvert GUP to folios](https://patchwork.kernel.org/project/linux-mm/cover/20220102215729.2943705-1-willy@infradead.org) | NA | v1 ☐ | [PatchWork 00/17](https://patchwork.kernel.org/project/linux-mm/cover/20220102215729.2943705-1-willy@infradead.org) |
 
 
+### 1.4.2 Pulling slabs out of struct page
+-------
+
+[Pulling slabs out of struct page](https://lwn.net/Articles/871982)
+
+[Struct slab comes to 5.17](https://lwn.net/Articles/881039/)
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/01/04 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Separate struct slab from struct page](https://patchwork.kernel.org/project/linux-mm/cover/20211004134650.4031813-1-willy@infradead.org) | struct page 结构定义中比较复杂的部分之一是 slab 分配器所使用的部分. 一般来说, 如果将 slab 的数据类型从 page 结构体中分离是有好处的, 而且它还有助于防止尾页滑落到任何地方. | v2 ☐ | [2021/07/15 PatchWork 00/62](https://patchwork.kernel.org/project/linux-mm/cover/20211004134650.4031813-1-willy@infradead.org)<br>*-*-*-*-*-*-*-* <br>[2021/12/01 PatchWork v2,00/33](https://patchwork.kernel.org/project/linux-mm/cover/20211201181510.18784-1-vbabka@suse.cz)<br>*-*-*-*-*-*-*-* <br>[2022/01/04 PatchWork v4,00/32](https://patchwork.kernel.org/project/linux-mm/cover/20220104001046.12263-1-vbabka@suse.cz) |
+| 2022/01/04 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Separate struct slab from struct page](https://patchwork.kernel.org/project/linux-mm/cover/20211004134650.4031813-1-willy@infradead.org) | struct page 结构定义中比较复杂的部分之一是 slab 分配器所使用的部分. 一般来说, 如果将 slab 的数据类型从 page 结构体中分离是有好处的, 而且它还有助于防止尾页滑落到任何地方. | v2 ☐ | [2021/07/15 PatchWork RFC,00/62](https://patchwork.kernel.org/project/linux-mm/cover/20211004134650.4031813-1-willy@infradead.org)<br>*-*-*-*-*-*-*-* <br>[2021/12/01 PatchWork v2,00/33](https://patchwork.kernel.org/project/linux-mm/cover/20211201181510.18784-1-vbabka@suse.cz)<br>*-*-*-*-*-*-*-* <br>[2022/01/04 PatchWork v4,00/32](https://patchwork.kernel.org/project/linux-mm/cover/20220104001046.12263-1-vbabka@suse.cz) |
 | 2021/10/12 | Johannes Weiner <hannes@cmpxchg.org> | [PageSlab: eliminate unnecessary compound_head() calls](https://patchwork.kernel.org/project/linux-mm/cover/20211012180148.1669685-1-hannes@cmpxchg.org) | 重构代码, 消除二义性, 使得代码更加简洁. PageSlab() 目前对所有调用站点施加一个 compound_head() 调用, 即使只有极少数情况会遇到尾页. 这组补丁气泡尾分辨率到少数需要它的网站, 并消除它在其他地方. 这个改动很独立, 它的灵感来自于 Willy 的补丁 Separate struct slab from struct page](https://patchwork.kernel.org/project/linux-mm/cover/20210715200030.899216-1-willy@infradead.org). 为了让逻辑更清晰, 代码更简洁. PageSlab() 的调用应该完全从对 compound_head() 的无限制调用中分离出来, 因为它们本身就有不必要的开销. | v1 ☐ | [PatchWork 00/11](https://patchwork.kernel.org/project/linux-mm/cover/20211012180148.1669685-1-hannes@cmpxchg.org), [LKML](https://lkml.org/lkml/2021/10/12/820) |
-| 2021/11/16 | Vlastimil Babka <vbabka@suse.cz> | [Separate struct slab from struct page](https://patchwork.kernel.org/project/linux-mm/cover/20211116001628.24216-1-vbabka@suse.cz) | NA | RFC ☐ | [PatchWork RFC,00/32](https://patchwork.kernel.org/project/linux-mm/cover/20211116001628.24216-1-vbabka@suse.cz) |
+| 2022/01/04 | Vlastimil Babka <vbabka@suse.cz> | [Separate struct slab from struct page](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9d6c59c1c0d62a314a2b46839699b200cccd2d08) | NA | RFC ☑ 5.17-rc1 | [PatchWork RFC,00/32](https://patchwork.kernel.org/project/linux-mm/cover/20211116001628.24216-1-vbabka@suse.cz)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,00/32](https://patchwork.kernel.org/project/linux-mm/cover/20220104001046.12263-1-vbabka@suse.cz) |
 
 
 ## 1.5 页面初始化
@@ -2340,18 +2352,18 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 
 
 
-## 7.1 标准大页 HUGETLB 支持
+## 7.1 标准大页 HugeTLB 支持
 -------
 
 
-### 7.1.1 引入 HUGETLB
+### 7.1.1 引入 HugeTLB
 -------
 
 
 如果能使用更大的页面, 则能很好地解决上述问题. 试想如果使用2MB的页(一个页相当于512个连续的4KB 页面), 则所需的 TLB 表项由原来的 512个变成1个, 这将大大提高 TLB hit 的机率; 缺页中断也由原来的512次变为1次, 这对性能的提升是不言而喻的.
 
 
-然而, 前面也说了 Linux 对4KB大小的页面认知是根植其中的, 想要支持更大的页面, 需要对非常多的核心的代码进行大改动, 这是不现实的. 于是, 为了支持大页面, 有了一个所谓 HUGETLB 的实现.
+然而, 前面也说了 Linux 对4KB大小的页面认知是根植其中的, 想要支持更大的页面, 需要对非常多的核心的代码进行大改动, 这是不现实的. 于是, 为了支持大页面, 有了一个所谓 HugeTLB 的实现.
 
 
 它的实现是在系统启动时, 按照用户指定需求的最大大页的大小和个数, 预留足够的物理内存空间. 用户在程序中可以使用 **mmap()** 系统调用或共享内存的方式映射和访问这些大页, 参考官方文档: [HugeTLB Pages](https://www.kernel.org/doc/html/latest/admin-guide/mm/hugetlbpage.html).
@@ -2402,7 +2414,7 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 
 huge page 最开始只支持 PMD 级别(基础页 4K, 则 PMD 级别为 2MB)的大页, 自 3.8 版本加入这个 [commit 42d7395feb56 ("mm: support more pagesizes for MAP_HUGETLB/SHM_HUGETLB")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=42d7395feb56f0655cd8b68e06fc6063823449f8) 之后, 利用 shmget()/mmap() 的 flag 参数中未使用的 bits, 可以支持其他的 huge page 大小(比如 1GB).
 
-进一步的, ARM64 MMU 支持一个连续位(Contiguous bit), 该位表示 TTE 是可缓存在单个 TLB 条目中的一组连续条目之一. 通过对该位的支持可以增加新的中间大页的大小. 可用的巨大页面大小取决于基本页面大小 PAGE_SIZE.
+进一步的, ARM64 MMU 支持一个连续位(Contiguous bit), 该位表示 TTE 是可缓存在单个 TLB 条目中的一组连续条目之一. 通过对该位的支持可以增加新的中间大页的大小. 可用的巨大页面大小取决于基本页面大小 PAGE_SIZE. 参见 [arm64: Add support for PTE contiguous bit.](https://lore.kernel.org/lkml/1450380686-20911-1-git-send-email-dwoods@ezchip.com)
 
 在不使用连续页面的情况下, 大页面大小如下所示:
 
@@ -2427,9 +2439,7 @@ huge page 最开始只支持 PMD 级别(基础页 4K, 则 PMD 级别为 2MB)的�
 ---------------------------------------------------
 
 
-
-
-如果基本页面大小设置为 64KB，则默认情况下会启用 2MB 页面。在将来，4KB 和 64KB 的页面都可以使用 2MB 作为默认的巨大页面大小。
+如果基本页面大小设置为 64KB, 则默认情况下会启用 2MB 页面. 在将来, 4KB 和 64KB 的页面都可以使用 2MB 作为默认的巨大页面大小.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -2498,7 +2508,6 @@ hugepages_treat_as_movable 的目的是减少内存碎片, 而 hugetlb 页面的
 | 2018/01/31 | Michal Hocko <mhocko@suse.com> | [mm, hugetlb: remove hugepages_treat_as_movable sysctl](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=944d9fec8d7aee3f2e16573e9b6a16634b33f403) | 移除 hugepages_treat_as_movable, 不再允许 HugeTLB 从 ZONE_MOVABLE 中分配. 而是[使用 hugepage_migration_support(ed) 来做控制](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=83467efbdb7948146581a56cbd683a22a0684bbb). | RFC ☑ 4.16-rc1 | [LORE RFC](https://lore.kernel.org/all/20171003072619.8654-1-mhocko@kernel.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d6cb41cc44c63492702281b1d329955ca767d399) |
 
 
-
 但是, HugeTLB 的分配仍然有两个严重的问题:
 
 1. 分配不是 NUMA 感知的. 在 NUMA 机器上, 内核在节点之间平均分配引导时分配的大量页面. 例如, 假设您有一个四节点 NUMA 机器, 并希望在引导时分配四个 1G 的巨大页面. 内核将为每个节点分配一个巨大的页面. 另一方面, 有些用户希望能够指定应该从哪个 NUMA 节点分配巨大的页面. 这样他们就可以在特定的 NUMA 节点上放置虚拟机.
@@ -2535,7 +2544,13 @@ HugeTLB 的分配和使用多数情况下是静态的. x86_64 支持 2M 和 1G �
 #### 7.1.7.3 Numa Aware HugeTLB reserve
 -------
 
-HugeTLB 预留空间时可以精细化控制不同 NUMA NODE 上预留的空间.
+HugeTLB CMA 在设计的时候, 已经考虑了 NUMA 的存在.
+
+1.  在 [mm: using CMA for 1 GB hugepages allocation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cf11e85fc08cc6a4fe3ac2ba2e610c962bf20bc3) 引入 hugetlb_cma 参数的过程中, Roman Gushchin 发现 CMA 并没有一个在指定 NUMA 节点上预留和分配内存的能力, 因此 [mm: cma: NUMA node interface](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8676af1ff2d28e64e5636147821bda7524cf007d) 增加了尝试在特定节点上[预留](https://elixir.bootlin.com/linux/v5.7/source/include/linux/cma.h#L33)和分配连续内存的能力. 注意如果指定的节点无法分配, 它将回退到其他节点进行分配.
+
+2.  此外 [hugetlb: add support for gigantic page allocation at runtime](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=944d9fec8d7aee3f2e16573e9b6a16634b33f403) 在运行时动态分配 HugeTLB 内存时, 可以在指定节点下 `/sys/devices/system/node/node1/hugepages/hugepages-1048576kB/nr_hugepages` 的 HugeTLB 接口中进行动态分配.
+
+随后内核开发者考虑预留 HugeTLB 空间时也可以精细化控制不同 NUMA NODE 上预留的空间, 通过扩展 HugeTLB 的启动参数解析工作, 增加各个节点上的精细化预留.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

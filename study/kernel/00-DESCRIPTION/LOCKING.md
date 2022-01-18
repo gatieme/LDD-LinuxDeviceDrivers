@@ -84,17 +84,21 @@ CAS 的原理是, 将旧值与一个期望值进行比较, 如果相等, 则更�
 ## 1.2 ticket LOCK
 -------
 
-https://lwn.net/Articles/267968
+[Ticket spinlocks](https://lwn.net/Articles/267968)
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2007/11/01 | Nick Piggin <npiggin@suse.de> | [ticket spinlocks for x86](https://lore.kernel.org/patchwork/cover/95892) | X86 架构 ticket spinlocks 的实现. | v1 ☑ 2.6.25-rc1(部分合入) | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/85789)<br>*-*-*-*-*-*-*-* <br>[PatchWork](https://lore.kernel.org/patchwork/cover/95892), [PatchWork](https://lore.kernel.org/patchwork/cover/95894) |
 | 2021/09/19 | Guo Ren <guoren@kernel.org> | [riscv: locks: introduce ticket-based spinlock implementation](https://patchwork.kernel.org/project/linux-riscv/patch/20210919165331.224664-1-guoren@kernel.org) | riscv 架构 ticket spinlocks 的实现. | v1 ☐ |[PatchWork](https://patchwork.kernel.org/project/linux-riscv/patch/20210919165331.224664-1-guoren@kernel.org) |
+| 2013/10/09 | Nick Piggin <npiggin@suse.de> | [arm64: locks: introduce ticket-based spinlock implementation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=52ea2a560a9dba57fe5fd6b4726b1089751accf2) | ARM64 架构 ticket spinlocks 的实现. | v1 ☑ 3.13-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=52ea2a560a9dba57fe5fd6b4726b1089751accf2) |
+| 2015/02/10 | Nick Piggin <npiggin@suse.de> | [arm64: locks: patch in lse instructions when supported by the CPU](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=81bb5c6420635dfd058c210bd342c29c95ccd145) | ARM64 ticket spinlocks 使用 LSE 进行优化. | v1 ☑ 4.3-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=81bb5c6420635dfd058c210bd342c29c95ccd145) |
 
 
 [Linux中的spinlock机制[一] - CAS和ticket spinlock](https://zhuanlan.zhihu.com/p/80727111)
 
+[BAKERY ALGORITHM](https://remonstrate.wordpress.com/tag/bakery-algorithm)
+[Lamport 面包店算法](https://blog.csdn.net/pizi0475/article/details/17649949)
 
 ## 1.3 MCS lock
 -------
@@ -110,9 +114,9 @@ spinlock 的值出现变化时, 所有试图获取这个 spinlock 的 CPU 都需
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2015/04/24 | Waiman Long <Waiman.Long@hp.com> | [qspinlock: a 4-byte queue spinlock with PV support](https://lore.kernel.org/patchwork/cover/127444) | X86 架构 qspinlocks 的实现. | v16 ☑ 4.2-rc1 | [PatchWork RFC](https://lore.kernel.org/lkml/20140310154236.038181843@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LORE v16 00/14](https://lore.kernel.org/all/1429901803-29771-1-git-send-email-Waiman.Long@hp.com/) |
 | 2014/01/21 | Tim Chen <tim.c.chen@linux.intel.com> | [MCS Lock: MCS lock code cleanup and optimizations](https://lore.kernel.org/patchwork/cover/435770) | MCS LOCK 重构, 增加了新的文件 `include/linux/mcs_spinlock.h` | v9 ☑ 3.15-rc1 | [LKML v6 0/6](https://lkml.org/lkml/2013/9/25/532)<br>*-*-*-*-*-*-*-* <br>[PatchWork v9 0/6](https://lore.kernel.org/patchwork/cover/435770), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e72246748ff006ab928bc774e276e6ef5542f9c5) |
 | 2014/02/10 | Peter Zijlstra <peterz@infradead.org> | [locking/core patches](https://lore.kernel.org/patchwork/cover/440565) | PV SPINLOCK | v1 ☑ 4.2-rc1 | [PatchWork](https://lore.kernelorg/lkml/20140210195820.834693028@infradead.org) |
+
 
 ## 1.4 qspinlock
 -------
@@ -130,10 +134,9 @@ spinlock 的值出现变化时, 所有试图获取这个 spinlock 的 CPU 都需
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2017/04/10 | Yury Norov <ynorov@caviumnetworks.com> | [arm64: queued spinlocks and rw-locks](http://patches.linaro.org/cover/98492) | X86 架构 qspinlocks 的实现. | RFC ☐ | [PatchWork RFC](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1491860104-4103-4-git-send-email-ynorov@caviumnetworks.com) |
-| 2018/04/26 | Will Deacon <will.deacon@arm.com> | [kernel/locking: qspinlock improvements](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1524738868-31318-2-git-send-email-will.deacon@arm.com/) | qspinlocks 优化. | v3 ☑ 4.18-rc1 | [LWN](https://lwn.net/Articles/751105))<br>*-*-*-*-*-*-*-* <br>[LKML v3 00/14](https://lkml.org/lkml/2018/4/26/340) |
-| 2018/06/16 | Will Deacon <will.deacon@arm.com> | [arm64: locking: Replace ticket lock implementation with qspinlock](http://patches.linaro.org/cover/98492) | ARM64 架构 qspinlocks 的实现. | RFC ☑ 4.19-rc1 | [PatchWork RFC](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1530010812-17161-3-git-send-email-will.deacon@arm.com) |
-
+| 2017/04/10 | Yury Norov <ynorov@caviumnetworks.com> | [arm64: queued spinlocks and rw-locks](http://patches.linaro.org/cover/98492) | ARM64 架构 qspinlocks 的实现. | RFC ☐ | [PatchWork RFC](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1491860104-4103-4-git-send-email-ynorov@caviumnetworks.com)<br>*-*-*-*-*-*-*-* <br>[LORE 0/3](https://lore.kernel.org/lkml/20170503145141.4966-1-ynorov@caviumnetworks.com) |
+| 2018/04/26 | Will Deacon <will.deacon@arm.com> | [kernel/locking: qspinlock improvements](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=baa8c6ddf7be33f2b0ddeb68906d668caf646baa) | 优化并实现了 qspinlocks 的通用框架. | v3 ☑ 4.18-rc1 | [LWN](https://lwn.net/Articles/751105), [LORE v3,00/14](https://lore.kernel.org/all/1524738868-31318-1-git-send-email-will.deacon@arm.com) |
+| 2018/06/26 | Will Deacon <will.deacon@arm.com> | [Hook up qspinlock for arm64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=5d168964aece0b4a41269839c613683c5d7e0fb2) | ARM64 架构 qspinlocks 的实现. | v1 ☑ 4.19-rc1 | [LORE 0/3](https://lore.kernel.org/linux-arm-kernel/1530010812-17161-1-git-send-email-will.deacon@arm.com) |
 
 ## 1.5 PV_SPINLOCK
 -------
@@ -287,6 +290,13 @@ PV_SPINLOCKS 的合入引起了[性能问题 Performance overhead of paravirt_op
 
 [An introduction to lockless algorithms](https://lwn.net/Articles/844224)
 
+
+# 9 ATOMIC
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2015/08/06 | Will Deacon <will.deacon@arm.com> | [Add generic support for relaxed atomics](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0ca326de7aa9cb253db9c1a3eb3f0487c8dbf912) | ARM64 引入 relaxed atomics. | v5 ☑ 4.3-rc1 | [LORE 0/5](https://lore.kernel.org/lkml/1436790687-11984-1-git-send-email-will.deacon@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/lkml/1437060758-10381-1-git-send-email-will.deacon@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/8](https://lore.kernel.org/all/1438880084-18856-1-git-send-email-will.deacon@arm.com) |
 
 <br>
 
