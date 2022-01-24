@@ -201,13 +201,14 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 | 2019/04/09 | Rasmus Villemoes <linux@rasmusvillemoes.dk> | [implement DYNAMIC_DEBUG_RELATIVE_POINTERS](https://lore.kernel.org/patchwork/patch/1059829) | 实现 DYNAMIC_DEBUG_RELATIVE_POINTERS | v1 ☐ | [Patchwork ](https://lore.kernel.org/patchwork/patch/1059829) |
 
 
-
-# 8 DRGN
+# 8 VDSO
 -------
 
 
-[LWN/A kernel debugger in Python: drgn(https://lwn.net/Articles/789641)
-[LWN: 想用python命令来调试kernel吗？drgn就是了！](https://blog.csdn.net/Linux_Everything/article/details/93270705)
+[Remove cached PID/TID in clone](https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=c579f48edba88380635ab98cb612030e3ed8691e)
+[Bug 1469670 - glibc: Implement vDSO-based getpid](https://bugzilla.redhat.com/show_bug.cgi?id=1469670)
+[Bug 1469757 - kernel: Implement vDSO support for getpid](https://bugzilla.redhat.com/show_bug.cgi?id=1469757)
+[Why getpid() is not implemented in x86_64's vdso?](https://stackoverflow.com/questions/65454115/why-getpid-is-not-implemented-in-x86-64s-vdso)
 
 
 # 9 PRINTK
@@ -517,6 +518,36 @@ https://patchwork.kernel.org/project/linux-trace-devel/list/?submitter=200911&st
 # 15 kptr_restrict
 -------
 
+
+# 16 Generic Kernel Image(GKI)
+-------
+
+
+谷歌的Android因其移动操作系统以及各种供应商/设备内核树所携带的所有下游补丁而臭名昭著, 而近年来, 更多的代码已经上游. 谷歌也一直在转向Android通用内核映像（GKI）作为其所有产品内核的基础, 以进一步减少碎片化. 展望未来, 谷歌在 2021 年北美开源峰会展示了一种["上游优先"(Moving Google toward the mainline)](https://lwn.net/Articles/871195)的方法, 以推动新的内核功能. 追求"新功能的上游优先开发模型", 以确保新代码首先进入主线Linux内核, 而不是直接在Android源代码树中停留.
+
+谷歌的 Todd Kjos 随后在 Linux Plumbers Conference(LPC2021) 上谈到了他们的[通用内核映像(Generic Kernel Image, GKI)计划](https://linuxplumbersconf.org/event/11/contributions/1046). 通过 Android 12 和他们基于 Linux 5.10 的 GKI 映像, 进一步减少了碎片化, 以至于"几乎被消除". 在 Android 12 GKI 中, 大多数供应商/OEM 内核功能现在要么被上游到 Linux 内核中, 要么被隔离到供应商模块或者钩子中, 要么合并到 Android Common Kernel 中.
+
+LWN 上也对此进行了[汇总报道](https://lwn.net/Kernel/Index/#Android-Generic_kernel_image)
+
+[Google Finally Shifting To "Upstream First" Linux Kernel Approach For Android Features](https://www.phoronix.com/scan.php?page=news_item&px=Android-Linux-Upstream-First)
+
+[Android to take an “upstream first” development model for the Linux kernel](https://arstechnica.com/gadgets/2021/09/android-to-take-an-upstream-first-development-model-for-the-linux-kernel)
+
+[](https://stackoverflow.com/questions/65415511/android-kernel-build-flow-with-gki-introduced-from-android-11)
+
+[LPC 2021-Generic Kernel Image](https://linuxplumbersconf.org/event/11/contributions/1046/attachments/824/1557/2021%20LPC%20GKI.pdf)
+
+目前的计划:
+
+1.  2020-2022: Accumulating ecosystem technical debt in Android Common Kernels (android12-5.10 and android-mainline), 汇总技术债务
+
+2.  2023-2024: 减少技术债务(Reducing Technical Debt)
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/04/24 | Todd Kjos <tkjos@google.com> | [ANDROID: add support for vendor hooks](https://lore.kernel.org/patchwork/patch/1394812) | 启动阶段异步解压 initramfs. 可以加速系统启动. | v1 ☑ [5.13-rc1](https://kernelnewbies.org/Linux_5.13) | [Patchwork 00/28](https://github.com/aosp-mirror/kernel_common/commit/67e0a3df19970176f093ff8be72f201d8c76ae81) |
+
 # OTHER
 -------
 
@@ -548,6 +579,17 @@ https://patchwork.kernel.org/project/linux-trace-devel/list/?submitter=200911&st
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/12/18 | David Woodhouse <dwmw2@infradead.org> | [lib/bitmap: optimize bitmap_weight() usage](https://patchwork.kernel.org/project/linux-mm/cover/20211218212014.1315894-1-yury.norov@gmail.com) | NA | v1 ☐ | [Patchwork v2,00/17](https://lkml.kernel.org/lkml/20211209150938.3518-1-dwmw2@infradead.org) |
+
+
+## 18.2 CONFIG
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/12/18 | David Woodhouse <dwmw2@infradead.org> | [configs: introduce debug.config for CI-like setup](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0aaa8977acbf3996d351f51b3b15295943092f63) | 参见 [Linux 5.17 Making It Easier To Build A Kernel With All The Shiny Debug Features](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-debug-config) | v5 ☑ 5.17-rc1 | [Patchwork v5](https://lore.kernel.org/all/20211115134754.7334-1-quic_qiancai@quicinc.com) |
+
+
 
 <br>
 

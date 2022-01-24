@@ -289,7 +289,17 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 | 2021/07/19 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folio support in block + iomap layers](https://lwn.net/Articles/1450196) | NA | v15 ☐ | [PatchWork v15,00/17](https://patchwork.kernel.org/project/linux-mm/cover/20210712194551.91920-1-willy@infradead.org/) |
 | 2021/07/15 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Memory folios: Pagecache edition](https://patchwork.kernel.org/project/linux-mm/cover/20210715200030.899216-1-willy@infradead.org) | NA | v14c ☑ 5.16-rc1 | [PatchWork v14c,00/39](https://patchwork.kernel.org/project/linux-mm/cover/20210715200030.899216-1-willy@infradead.org) |
 | 2021/11/10 | David Howells <dhowells@redhat.com> | [netfs, 9p, afs, ceph: Support folios, at least partially](https://www.phoronix.com/scan.php?page=news_item&px=AFS-9p-NETFS-Folios-Linux-5.16) | NA | v5 ☑ 5.16-rc1 | [PatchWork v4,0/5](https://patchwork.kernel.org/project/linux-mm/cover/163649323416.309189.4637503793406396694.stgit@warthog.procyon.org.uk)<br>*-*-*-*-*-*-*-* <br>[PatchWork v5,0/4](https://patchwork.kernel.org/project/linux-mm/cover/163657847613.834781.7923681076643317435.stgit@warthog.procyon.org.uk)<br>*-*-*-*-*-*-*-* <br>[Merge tag](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0f7ddea6225b9b001966bc9665924f1f8b9ac535) |
-| 2022/01/02 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [MConvert GUP to folios](https://patchwork.kernel.org/project/linux-mm/cover/20220102215729.2943705-1-willy@infradead.org) | NA | v1 ☐ | [PatchWork 00/17](https://patchwork.kernel.org/project/linux-mm/cover/20220102215729.2943705-1-willy@infradead.org) |
+| 2022/01/10 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Convert GUP to folios](https://patchwork.kernel.org/project/linux-mm/cover/20220102215729.2943705-1-willy@infradead.org) | NA | v1 ☐ | [PatchWork 00/17](https://patchwork.kernel.org/project/linux-mm/cover/20220102215729.2943705-1-willy@infradead.org)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,00/28](https://patchwork.kernel.org/project/linux-mm/cover/20220110042406.499429-1-willy@infradead.org) |
+| 2022/01/05 | Alex Shi <alexs@kernel.org> | [remove add/del page to lru functions](https://patchwork.kernel.org/project/linux-mm/cover/20220120131024.502877-1-alexs@kernel.org) | 使用了 folio 之后, LRU 后部分函数可以删除. | v1 ☐ | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-mm/cover/20220120131024.502877-1-alexs@kernel.org) |
+
+
+[Folio Improvements For Linux 5.17, Large Folio Patches Posted](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Folios)
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/10/08 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folios for 5.17](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=6b24ca4a1a8d4ee3221d6d44ddbb99f542e4bda3) | 将大部分 Page Cache 转换为使用 folios. 其中最大的变化是[在页面缓存 XArray 中使用大型条目](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6b24ca4a1a8d4ee3221d6d44ddbb99f542e4bda3), 而不是许多小型条目. 目前, 这只会影响到 shmem, 但对 shmem 来说, 这是一个相当大的变化, 因为[它改变了需要分配内存的位置](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b9a8a4195c7d3a51235a4fc974a46ad4e9689ffd)(在分割时而不是插入时). | v1 ☑ [5.17-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6020c204be997e3f5129839ff9c801800fb4336e) | [PatchWork 00/48](https://patchwork.kernel.org/project/linux-mm/cover/20211208042256.1923824-1-willy@infradead.org) |
+| 2022/01/16 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Enabling large folios for 5.17](https://patchwork.kernel.org/project/linux-mm/cover/20220116121822.1727633-1-willy@infradead.org/) | NA | v1 ☐ | [LKML 00/12](https://patchwork.kernel.org/project/linux-mm/cover/20220116121822.1727633-1-willy@infradead.org) |
 
 
 ### 1.4.2 Pulling slabs out of struct page
@@ -4015,6 +4025,8 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 ### 13.4.4   数据访问监视器 DAMON
 -------
 
+[Software Visualizations to Analyze Memory Consumption: A Literature Review](https://dl.acm.org/doi/pdf/10.1145/3485134)
+
 [linux data access monitor (DAMON)](https://blog.csdn.net/zqh1630/article/details/109954910)
 
 [LWN: 用DAMON来优化memory-management!](https://blog.csdn.net/Linux_Everything/article/details/104707923)
@@ -4099,6 +4111,14 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2016/02/03 | Christian Borntraeger <borntraeger@de.ibm.com> | [Optimize CONFIG_DEBUG_PAGEALLOC (x86 and s390)](https://damonitor.github.io) | 优化 CONFIG_DEBUG_PAGEALLOC, 提供了 debug_pagealloc_enabled(), 可以动态的开启 DEBUG_PAGEALLOC. | v4 ☑ 4.6-rc1 | [PatchWork v4,0/4](https://lore.kernel.org/patchwork/cover/642851) |
 
+
+## 13.5 tracepoint
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/02/19 | Paul Gortmaker <paul.gortmaker@windriver.com> | [mmap_lock: add tracepoints around lock acquisition](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=abedf8e2419fb873d919dd74de2e84b510259339) | mmap lock tracepoint | v9 ☑ 4.6-rc1 | [LKML v8,0/5](https://lore.kernel.org/all/20201105211739.568279-1-axelrasmussen@google.com) |
+| 2022/01/07 | Anshuman Khandual <anshuman.khandual@arm.com> | [mm/migration: Add trace events for THP migrations](https://patchwork.kernel.org/project/linux-mm/patch/1641531575-28524-1-git-send-email-anshuman.khandual@arm.com) | THP migrations tracepoint | v1 ☐ | [LORE v1](https://patchwork.kernel.org/project/linux-mm/patch/1641531575-28524-1-git-send-email-anshuman.khandual@arm.com) |
 
 
 

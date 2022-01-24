@@ -221,6 +221,9 @@ ARM64 架构文档地址下载 [](https://developer.arm.com/architectures/cpu-ar
 
 [Memory Layout on AArch64 Linux](https://www.kernel.org/doc/html/latest/arm64/memory.html)
 
+[ARM64 Instruction](https://courses.cs.washington.edu/courses/cse469/19wi/arm64.pdf)
+
+[硬件特性列表](https://developer.arm.com/architectures/cpu-architecture/a-profile/exploration-tools/feature-names-for-a-profile)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -348,7 +351,7 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/10/27 | Mark Brown <broonie@kernel.org> | [arm64/sme: Initial support for the Scalable Matrix Extension](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211027184424.166237-1-broonie@kernel.org) | SME 指令的支持. v7 版本前 6 个 [prepare 的补丁](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-AArch64)先合入了 [5.17-rc1](https://lore.kernel.org/lkml/20220106185501.1480075-1-catalin.marinas@arm.com) | v5 ☐ | [2021/10/27 Patchwork v5,00/38](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211027184424.166237-1-broonie@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2021/12/10 Patchwork v7,00/37](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211210184133.320748-1-broonie@kernel.org) |
+| 2021/10/27 | Mark Brown <broonie@kernel.org> | [arm64/sme: Initial support for the Scalable Matrix Extension](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211027184424.166237-1-broonie@kernel.org) | SME 指令的支持. v7 版本前 6 个 [prepare 的补丁](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-AArch64)先合入了 [5.17-rc1](https://lore.kernel.org/lkml/20220106185501.1480075-1-catalin.marinas@arm.com) | v5 ☐ | [LORE v3,00/42](https://lore.kernel.org/all/20211019172247.3045838-1-broonie@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2021/10/27 Patchwork v5,00/38](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211027184424.166237-1-broonie@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2021/12/10 Patchwork v7,00/37](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211210184133.320748-1-broonie@kernel.org) |
 
 ## 2.4 pseudo-NMI
 -------
@@ -366,10 +369,63 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 
 [armv8/arm64 PAN 深入分析](https://cloud.tencent.com/developer/article/1413360)
+[Arm64 架构安全 -- PAN](https://zhuanlan.zhihu.com/p/365701044)
+
+一般控制一个内存的属性, 如 RWX 权限, 简单的想 3 个 bit 即可, 但是当前操作系统的设计 RWX 权限除了要表示内核的权限以外还要包括用户态的权限, 那么需要就需要 6 个 bit. 但是在 ARM v8 的设计中, 为了节省相应的页表设计 ARM 仅用了 4 个 bit.
+
+| 控制位 | 描述 |
+|:-----:|:---:|
+| UXN(BIT [54]) |  设置为 1 的时候, 用户态没有执行权限 |
+| PXN(BIT [53]) |  设置为 1 的时候, 内核态没有执行权限 |
+| AP [2](BIT [7]) | 1 表示内核态是 readonly, 0 表示内核态是 RW 权限 |
+| AP [1](BIT [6]) | 1 表示用户态跟内核态的权限一样, 0 表示用户态没有任何权限 |
+
+这就导致了一个问题, 那就是无论怎么设置页表的权限, 只要用户态有权限, 此时内核态的权限跟用户态的权限一致.
+
+这原本貌似也没什么问题, 但是后来安全研究人员发现, 由于内核态可以直接执行相应的用户态程序, 这样攻击者就可以在用户态准备好相应执行的代码, 如果内核里边有一个很小的漏洞, 比如 ROP, 攻击者通过 RetToUser Attrack 把相应的栈中的 ret 值修改为用户态准备好的地址, 那么就可以轻松做到任意代码执行.
+
+为了解决这个问题, ARM v8.1 在修复这个问题的时候, 不得不在 pstate 中抠出来一个 bit 来设置 PAN(Privileged Access Never), 如果 PAN 为 1 的时候, 那么就限制在 EL1 里边不允许访问 EL0 的内存. 被称为 ARMv8.1-PAN, Privileged access never, 它的主要工作就是限制内核态不能访问用户态的数据. 如果启用了 CONFIG_ARM64_PAN, 内核试图访问用户空间的内存时, 则会报权限错误, 相反, [copy_from_user()](https://elixir.bootlin.com/linux/v4.3/source/arch/arm64/lib/copy_from_user.S#L34) 以及 [copy_to_user()](https://elixir.bootlin.com/linux/v4.3/source/arch/arm64/lib/copy_to_user.S#L35) 等接口中访问用户空间内存时必须清除 PAN 位(或使用 `ldt*/stt*` 指令), 在完成后则必须恢复.
+
+[Arm Chips Vulnerable to PAN Bypass – "We All Know it’s Broken"](https://techmonitor.ai/techonology/hardware/arm-pan-bypass)
+[PAN](https://blog.siguza.net/PAN)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2015/07/16 | James Morse <james.morse@arm.com> | [arm64: kernel: Add support for Privileged Access Never](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=338d4f49d6f7114a017d294ccf7374df4f998edc) | 实现 ARMv8.1-PAN, Privileged access never. | v4 ☑ 4.3-rc1 | [LORE 0/5](https://lore.kernel.org/linux-arm-kernel/1437062519-18883-1-git-send-email-james.morse@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/all/1437481411-1595-1-git-send-email-james.morse@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,rebase](https://lore.kernel.org/all/1437588354-31278-1-git-send-email-james.morse@arm.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=338d4f49d6f7114a017d294ccf7374df4f998edc) |
+| 2016/10/18 | James Morse <james.morse@arm.com> | [PAN Fixes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d08544127d9fb4505635e3cb6871fd50a42947bd) | 修复 PAN 代码上的一些问题. | v1 ☑ 4.9-rc2 | [LORE 0/3](https://lore.kernel.org/all/1476786468-2173-1-git-send-email-james.morse@arm.com) |
+
+ARMv8.2-ATS1E1, AT S1E1R and AT S1E1W instruction variants, taking account of PSTATE.PAN
+
+
+开启了 PAN 之后, 内核每次 copy_from_user/copy_to_user 需要访问用户态地址的时候, 不得不动态的禁用和使能 PAN. 于是, 在 ARM v8.2 又引入了 UAO(User Access Override). 与 LDR/STR 指令不同, UAO 提供了 LDTR/STTR 等非特权 load/store 指令, 不管在哪个 ELx 态(即使是 EL1 或 EL2) 运行, 它们都也会根据 EL0 权限检查进行检查. 并且不会被 PAN 阻止.
+
+如果发现当前 CPU ARM64_HAS_UAO, 则会通过 alternative 机制将 [copy_from_user](https://elixir.bootlin.com/linux/v4.6/source/arch/arm64/lib/copy_from_user.S#L70) 以及 copy_to_user 等函数中访问用户态的指令[替换为 ldtr/sttr](https://elixir.bootlin.com/linux/v4.6/source/arch/arm64/include/asm/alternative.h#L148) 等. 而把[使能和禁用 PAN 的操作替换为 NOP](https://elixir.bootlin.com/linux/v4.6/source/arch/arm64/include/asm/uaccess.h#L75) 操作.
+
+
+[Learn the architecture: AArch64 memory model/Permissions attributes](https://developer.arm.com/documentation/102376/0100/Permissions-attributes)
+
+[UAO (User Access Override) as a mitigation against addr_limit overwrites](https://duasynt.com/blog/android-uao-kernel-expl-mitigation)
+
+ARM v8.2 引入了 [UAO](https://community.arm.com/arm-community-blogs/b/architectures-and-processors-blog/posts/armv8-a-architecture-evolution)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/02/05 | James Morse <james.morse@arm.com> | [arm64: kernel: Add support for User Access Override](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=705441960033e66b63524521f153fbb28c99ddbd) | 引入 hugetlb cgroup | v2 ☑ 4.6-rc1 | [LORE v1,0/5](https://lore.kernel.org/linux-arm-kernel/1454432611-21333-1-git-send-email-james.morse@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/5](https://lore.kernel.org/linux-arm-kernel/1454684330-892-1-git-send-email-james.morse@arm.com) |
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/10/28 | Catalin Marinas <catalin.marinas@arm.com> | [arm64: Privileged Access Never using TTBR0_EL1 switching](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ba42822af1c287f038aa550f3578c61c212a892e) | 引入 CONFIG_ARM64_SW_TTBR0_PAN, 通过软件模拟实现 PAN. 通过将 TTBR0_EL1 指向保留的归零区域和保留的 ASID, 防止内核直接访问用户空间内存. 用户访问例程临时恢复有效的 TTBR0_EL1. | v4 ☑ 4.10-rc1 | [LORE v1,0/7](https://lore.kernel.org/linux-arm-kernel/1471015666-23125-1-git-send-email-catalin.marinas@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/7](https://lore.kernel.org/linux-arm-kernel/1473788797-10879-1-git-send-email-catalin.marinas@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/8](https://lore.kernel.org/linux-arm-kernel/1477675636-3957-1-git-send-email-catalin.marinas@arm.com) |
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/12/02 | Paul Gortmaker <paul.gortmaker@windriver.com> | [arm64: remove set_fs() and friends](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1517c4facf2e66401394998dba1ee236fd261310) | 引入 hugetlb cgroup | v5 ☑ 5.11-rc1 | [LKML v5,00/12](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20201202131558.39270-1-mark.rutland@arm.com), [LORE](https://lore.kernel.org/r/20201202131558.39270-13-mark.rutland@arm.com) |
 | 2021/03/12 | Vladimir Murzin <vladimir.murzin@arm.com> | [arm64: Support Enhanced PAN](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=18107f8a2df6bf1c6cac8d0713f757f866d5af51) | NA | v4 ☑ 5.13-rc1 | [LORE v4,0/2](https://lore.kernel.org/all/20210312173811.58284-1-vladimir.murzin@arm.com) |
+
+
+
+
+
 
 ## 2.6 PAC
 -------

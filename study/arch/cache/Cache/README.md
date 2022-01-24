@@ -223,6 +223,19 @@ cache hier 的问题: 在不同的微架构中, L1 与 L2 的关系可以是 inc
 2.  Cache line, cache page 中更小的单元, cache 缓存的最小单位.
 
 
+
+# 替换算法
+-------
+
+[一种缓存替换策略：DYNAMIC RE-REFERENCE INTERVAL PREDICTION (RRIP)](https://constd.com/2015/09/20/drrip)
+
+[Cache 替换策略](https://zhuanlan.zhihu.com/p/54829644)
+
+[Intel Ivy Bridge Cache Replacement Policy](https://blog.stuffedcow.net/2013/01/ivb-cache-replacement)
+
+[High Performance Cache Replacement Using Re-Reference Interval Prediction](https://wangziqi2013.github.io/paper/2018/06/19/RRIP.html)
+
+
 # 4 参考资料
 -------
 
