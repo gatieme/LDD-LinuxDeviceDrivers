@@ -369,7 +369,13 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 
 [armv8/arm64 PAN 深入分析](https://cloud.tencent.com/developer/article/1413360)
+
 [Arm64 架构安全 -- PAN](https://zhuanlan.zhihu.com/p/365701044)
+
+[Learn the architecture: AArch64 memory model/Permissions attributes](https://developer.arm.com/documentation/102376/0100/Permissions-attributes)
+
+### 2.5.1 ARMv8 页表权限控制
+-------
 
 一般控制一个内存的属性, 如 RWX 权限, 简单的想 3 个 bit 即可, 但是当前操作系统的设计 RWX 权限除了要表示内核的权限以外还要包括用户态的权限, 那么需要就需要 6 个 bit. 但是在 ARM v8 的设计中, 为了节省相应的页表设计 ARM 仅用了 4 个 bit.
 
@@ -384,6 +390,15 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 这原本貌似也没什么问题, 但是后来安全研究人员发现, 由于内核态可以直接执行相应的用户态程序, 这样攻击者就可以在用户态准备好相应执行的代码, 如果内核里边有一个很小的漏洞, 比如 ROP, 攻击者通过 RetToUser Attrack 把相应的栈中的 ret 值修改为用户态准备好的地址, 那么就可以轻松做到任意代码执行.
 
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/01/06 | James Morse <james.morse@arm.com> | [arm64: Revert support for execute-only user mappings](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=24cecc37746393432d994c0dbc251fb9ac7c5d72) | 实现 ARMv8.1-PAN, Privileged access never. | v1 ☑ 5.5-rc6 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=24cecc37746393432d994c0dbc251fb9ac7c5d72) |
+
+
+### 2.5.2 ARMv8.1 引入 PAN 解决任意代码执行的漏洞
+-------
+
 为了解决这个问题, ARM v8.1 在修复这个问题的时候, 不得不在 pstate 中抠出来一个 bit 来设置 PAN(Privileged Access Never), 如果 PAN 为 1 的时候, 那么就限制在 EL1 里边不允许访问 EL0 的内存. 被称为 ARMv8.1-PAN, Privileged access never, 它的主要工作就是限制内核态不能访问用户态的数据. 如果启用了 CONFIG_ARM64_PAN, 内核试图访问用户空间的内存时, 则会报权限错误, 相反, [copy_from_user()](https://elixir.bootlin.com/linux/v4.3/source/arch/arm64/lib/copy_from_user.S#L34) 以及 [copy_to_user()](https://elixir.bootlin.com/linux/v4.3/source/arch/arm64/lib/copy_to_user.S#L35) 等接口中访问用户空间内存时必须清除 PAN 位(或使用 `ldt*/stt*` 指令), 在完成后则必须恢复.
 
 [Arm Chips Vulnerable to PAN Bypass – "We All Know it’s Broken"](https://techmonitor.ai/techonology/hardware/arm-pan-bypass)
@@ -396,13 +411,16 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 ARMv8.2-ATS1E1, AT S1E1R and AT S1E1W instruction variants, taking account of PSTATE.PAN
 
+### 2.5.2 ARMv8.2 引入 UAO 解决任意代码执行的漏洞
+-------
+
+本来一切看起来貌似恢复平静了, 但是总有一些意外.
+
 
 开启了 PAN 之后, 内核每次 copy_from_user/copy_to_user 需要访问用户态地址的时候, 不得不动态的禁用和使能 PAN. 于是, 在 ARM v8.2 又引入了 UAO(User Access Override). 与 LDR/STR 指令不同, UAO 提供了 LDTR/STTR 等非特权 load/store 指令, 不管在哪个 ELx 态(即使是 EL1 或 EL2) 运行, 它们都也会根据 EL0 权限检查进行检查. 并且不会被 PAN 阻止.
 
 如果发现当前 CPU ARM64_HAS_UAO, 则会通过 alternative 机制将 [copy_from_user](https://elixir.bootlin.com/linux/v4.6/source/arch/arm64/lib/copy_from_user.S#L70) 以及 copy_to_user 等函数中访问用户态的指令[替换为 ldtr/sttr](https://elixir.bootlin.com/linux/v4.6/source/arch/arm64/include/asm/alternative.h#L148) 等. 而把[使能和禁用 PAN 的操作替换为 NOP](https://elixir.bootlin.com/linux/v4.6/source/arch/arm64/include/asm/uaccess.h#L75) 操作.
 
-
-[Learn the architecture: AArch64 memory model/Permissions attributes](https://developer.arm.com/documentation/102376/0100/Permissions-attributes)
 
 [UAO (User Access Override) as a mitigation against addr_limit overwrites](https://duasynt.com/blog/android-uao-kernel-expl-mitigation)
 

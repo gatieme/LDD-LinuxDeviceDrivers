@@ -2124,8 +2124,21 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 # 6 PageCache
 -------
 
+
+
+
 ## 6.1 PAGE CACHE
 -------
+
+| 补丁 | 描述 |
+|:---:|:---:|
+| [Import 1.1.69](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/diff/mm/filemap.c?id=ea8a68b948397fa9cd1c8a1a6b61a4dc4bc99ec5) | 引入 page cache |
+| [Import 1.3.21](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/diff/mm/filemap.c?id=13e539119b02e4af5daf6c55b31e6273c9a084a6) | 完善了 page cache 的功能 |
+| [Import 1.3.50](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/diff/mm/filemap.c?id=22accfc2b4fe4bc6a635c70c1a05a9a80abc81ea) | 引入了 shrink_mmap() 机制来释放 page cache 的空间. |
+| [Import 1.3.53](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/diff/mm/filemap.c?id=0e8625c7689bef9a38293aa927add4d9704e48be) | 引入了 page_cache_size, 统计 page cache 的大小. |
+| [Linux 2.3.7pre1](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/diff/mm/filemap.c?h=2.3.7pre1&id=344971f8de0ecf3fb7ea642e319aad5865b23529) |
+统一了 page cache 和 buffer 的框架. |
+| [Import 2.3.16pre1](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/diff/mm/filemap.c?id=9aa2c66ac214f71cb051ba7c1adf313d9e160ee1) | 引入了 pagemap-LRU |
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -2139,15 +2152,16 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 | 2021/10/20 | Yang Shi <shy828301@gmail.com> | [Solve silent data loss caused by poisoned page cache (shmem/tmpfs)](https://patchwork.kernel.org/project/linux-mm/cover/20210930215311.240774-1-shy828301@gmail.com) | 为了让文件系统意识到有毒的(poisoned)页面.<br>在讨论拆分页面缓存 THP 以脱机有毒页面的补丁时, Noaya 提到了一个[更大的问题](https://lore.kernel.org/linux-mm/CAHbLzkqNPBh_sK09qfr4yu4WTFOzRy+MKj+PA7iG-adzi9zGsg@mail.gmail.com/T/#m0e959283380156f1d064456af01ae51fdff91265), 它阻止了这一工作的进行, 因为如果发生不可纠正的错误, 页面缓存页面将被截断. 深入研究后发现, 如果页面脏, 这种方法 (截断有毒页面) 可能导致所有非只读文件系统的静默数据丢失. 对于内存中的文件系统, 例如 shmem/tmpfs, 情况可能更糟, 因为数据块实际上已经消失了. 为了解决这个问题, 我们可以将有毒的脏页面保存在页面缓存中, 然后在任何后续访问时通知用户, 例如页面错误、读 / 写等. 可以按原样截断干净的页, 因为稍后可以从磁盘重新读取它们. 结果是, 文件系统可能会发现有毒的页面, 并将其作为健康页面进行操作, 因为除了页面错误之外, 所有文件系统实际上都不会检查页面是否有毒或是否在所有相关路径中. 通常, 在将有毒页面保存在页面缓存中以解决数据丢失问题之前, 我们需要让文件系统知道有毒页面. | v3 ☐ | [2021/09/30 PatchWork RFC,v3,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20210930215311.240774-1-shy828301@gmail.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/14 PatchWork RFC,v4,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211014191615.6674-1-shy828301@gmail.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/20 PatchWork v5,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211020210755.23964-1-shy828301@gmail.com) |
 
 
-
-
-https://lore.kernel.org/patchwork/cover/1324435/
-
 ## 6.2 页面预读(readahead)
 -------
 
 [linux文件预读发展过程](https://blog.csdn.net/jinking01/article/details/106541116)
 
+kai_ding 的 [Linux 文件系统预读](https://blog.csdn.net/kai_ding/article/details/17322787) 以三个实际读取的实例程序讲解了 linux-3.12 的预读算法. [Linux 文件系统预读 (一)](https://blog.csdn.net/kai_ding/article/details/17322787) 讲解了单进程规则顺序读时预读算法的工作. [Linux 文件系统预读 (二)](https://blog.csdn.net/kai_ding/article/details/19957763) 讲解了单进程不规则顺序读(一共进行了三次读，顺序读，且读的大小不定，有超过最大预读量的，也有低于最大预读量的)下预读的工作行为. [Linux 文件系统预读 (三)](https://blog.csdn.net/kai_ding/article/details/20112753) 讲解了多进程交织顺序读行为下的预读是如何处理的.
+
+[2.4.18 预读算法详解](https://blog.csdn.net/liuyuanqing2010/article/details/6705338)
+
+[Linux readahead: less tricks for more](https://www.kernel.org/doc/ols/2007/ols2007v2-pages-273-284.pdf)
 
 
 从用户角度来看, 这一节对了解 Linux 内核发展帮助不大, 可跳过不读; 但对于技术人员来说, 本节可以展现教材理论模型到工程实现的一些思考与折衷, 还有软件工程实践中由简单粗糙到复杂精细的演变过程
@@ -2169,36 +2183,56 @@ Linux内核的一大特色就是支持最多的文件系统, 并拥有一个虚�
 | 2003/02/03 | Andrew Morton <akpm@digeo.com> | [implement posix_fadvise64()](https://github.com/gatieme/linux-history/commit/fccbe3844c29beed4e665b1a5aafada44e133adc) | 引入 posix_fadvise64 | v1 ☑ 2.5.60 | [HISTORY commit](https://github.com/gatieme/linux-history/commit/fccbe3844c29beed4e665b1a5aafada44e133adc) |
 
 
-### 6.2.2 预读算法及其优化
+### 6.2.2 早期预读算法及其优化
 -------
 
 一开始, 内核的预读方案如你所想, 很简单. 就是在内核发觉可能在做顺序读操作时, 就把后面的 128 KB 的页面也读进来.
 
-大约一年之后, Linus Torvalds 把 mmap 缺页 I/O 的预取算法单独列出, 从而形成了 read-around/read-ahead 两个独立算法(图4). read-around算法适用于那些以mmap方式访问的程序代码和数据, 它们具有很强的局域性(locality of reference)特征. 当有缺页事件发生时, 它以当前页面为中心, 往前往后预取共计128KB页面. 而readahead算法主要针对read()系统调用, 它们一般都具有很好的顺序特性. 但是随机和非典型的读取模式也大量存在, 因而readahead算法必须具有很好的智能和适应性.
+大约一年之后, Linus Torvalds 把 mmap 缺页 I/O 的预取算法单独列出, 从而形成了 read-around/read-ahead 两个独立算法.
+
 
 ![Linux中的read-around, read-ahead和direct read](./images/0002-2-readahead_algorithm.gif)
 
+1.  read-around算法适用于那些以 mmap 方式访问的程序代码和数据, 它们具有很强的局域性(locality of reference)特征. 当有缺页事件发生时, 它以当前页面为中心, 往前往后预取共计 128KB 页面.
+
+2.  readahead 算法主要针对 read() 系统调用, 它们一般都具有很好的顺序特性. 但是随机和非典型的读取模式也大量存在, 因而 readahead 算法必须具有很好的智能和适应性.
+
+*   read-around 与 read-ahead 算法
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2003/07/03 | Linus Torvalds <torvalds@home.osdl.org> | [Simplify and speed up mmap read-around handling](https://github.com/gatieme/linux-history/commit/82a333fa1948869322f32a67223ea8d0ae9ad8ba) | 引入 posix_fadvise64 | v1 ☑ 2.5.75 | [HISTORY commit](https://github.com/gatieme/linux-history/commit/82a333fa1948869322f32a67223ea8d0ae9ad8ba) |
-| 2005/01/03 | Steven Pratt <slpratt@austin.ibm.com>, Ram Pai <linuxram@us.ibm.com> | [Simplified readahead](https://github.com/gatieme/linux-history/commit/6f734a1af323ab4690610ecd575198ae219b6fe8) | 引入读大小参数, 代码简化及优化; 支持随机读. | v1 ☑ 2.6.11 | [HISTORY commit 1](https://github.com/gatieme/linux-history/commit/6f734a1af323ab4690610ecd575198ae219b6fe8), [HISTORY commit 2](250c01d06ccb125519cc9958d938f41736868be9) |
+| 2003/07/03 | Andrew Morton <akpm@zip.com.au> | [readahead optimisations](https://github.com/gatieme/linux-history/commit/82a333fa1948869322f32a67223ea8d0ae9ad8ba) | 最早的 read-around 思想实现 | v1 ☑ 2.5.27 | [HISTORY commit](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/commit/?h=v2.5.27&id=b6938a7bd23a74cfa7a81c0765ec255ea1c7e12e) |
+| 2003/07/03 | Linus Torvalds <torvalds@home.osdl.org> | [Simplify and speed up mmap read-around handling](https://github.com/gatieme/linux-history/commit/82a333fa1948869322f32a67223ea8d0ae9ad8ba) | Linus Torvalds 把 mmap 缺页 I/O 的预取算法单独列出, 从而形成了 [read-around](https://elixir.bootlin.com/linux/v2.5.75/source/mm/filemap.c#L997)/read-ahead 两个独立算法 | v1 ☑ 2.5.75 | [HISTORY commit](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/commit/?h=v2.5.75&id=82a333fa1948869322f32a67223ea8d0ae9ad8ba) |
+
+这种固定的128 KB预读方案显然不是最优的. 它没有考虑系统内存使用状况和进程读取情况. 当内存紧张时, 过度的预读其实是浪费, 预读的页面可能还没被访问就被踢出去了. 还有, 进程如果访问得凶猛的话, 且内存也足够宽裕的话, 128KB又显得太小家子气了.
+
+
+*   顺序读与随机读
+
+后续通过 Steven Pratt、Ram Pai 等人的大量工作, readahead 算法进一步完善. 其中最重要的一点是实现了对随机读的完好支持. 随机读在数据库应用中处于非常突出的地位. 在此之前, 预读算法以离散的读页面位置作为输入, 一个多页面的随机读会触发"顺序预读". 这导致了预读I/O数的增加和命中率的下降. 改进后的算法通过监控所有完整的 read() 调用, 同时得到读请求的页面偏移量和数量, 因而能够更好的区分顺序读和随机读.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2005/01/03 | Steven Pratt <slpratt@austin.ibm.com>, Ram Pai <linuxram@us.ibm.com> | [Simplified readahead](https://github.com/gatieme/linux-history/commit/6f734a1af323ab4690610ecd575198ae219b6fe8) | 引入读大小参数, 代码简化及优化; 支持随机读. | v1 ☑ 2.6.11 | [HISTORY commit 1](https://github.com/gatieme/linux-history/commit/6f734a1af323ab4690610ecd575198ae219b6fe8), [HISTORY commit 2](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/commit/?h=v2.6.11&id=250c01d06ccb125519cc9958d938f41736868be9) |
 | 2005/03/07 | Oleg Nesterov <oleg@tv-sign.ru> | [readahead: improve sequential read detection](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/commit/?id=671ccb4b50a6ef21e8c0ed0ef9070098295e1e61) | 支持非对齐顺序读. | v1 ☑ [2.6.12](https://kernelnewbies.org/Linux_2_6_12) | [commit 1](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/commit/?id=671ccb4b50a6ef21e8c0ed0ef9070098295e1e61), [commit 2](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/commit/?id=577a3dd8fd68d24056075fdf479a1627586f8c46) |
 
 
+*   顺序性检测
+
+参见 [Linux 内核的文件预读机制详细详解](https://blog.csdn.net/kunyus/article/details/104620057)
+
+为了保证预读命中率, Linux 只对顺序读 (sequential read) 进行预读. 内核通过验证如下两个条件来判定一个 read() 是否顺序读:
+
+1.  这是文件被打开后的[第一次读](https://elixir.bootlin.com/linux/v2.6.22/source/mm/readahead.c#L476), 并且读的是[文件首部](https://elixir.bootlin.com/linux/v2.6.22/source/mm/readahead.c#L494);
+
+2.  当前的读请求与前一 (记录的) 读请求在文件内的位置是连续的.
+
+如果不满足上述顺序性条件, 就判定为随机读. 任何一个随机读都将终止当前的顺序序列, 从而终止预读行为 (而不是缩减预读大小). 注意这里的空间顺序性说的是文件内的偏移量, 而不是指物理磁盘扇区的连续性. 在这里 Linux 作了一种简化, 它行之有效的基本前提是文件在磁盘上是基本连续存储的, 没有严重的碎片化.
 
 ### 6.2.3 按需预读(On-demand Readahead)
 -------
 
-**2.6.23(2007年10月发布)**
-
-
-这种固定的128 KB预读方案显然不是最优的. 它没有考虑系统内存使用状况和进程读取情况. 当内存紧张时, 过度的预读其实是浪费, 预读的页面可能还没被访问就被踢出去了. 还有, 进程如果访问得凶猛的话, 且内存也足够宽裕的话, 128KB又显得太小家子气了.
-
-后续通过 Steven Pratt、Ram Pai 等人的大量工作, readahead算法进一步完善. 其中最重要的一点是实现了对随机读的完好支持. 随机读在数据库应用中处于非常突出的地位. 在此之前, 预读算法以离散的读页面位置作为输入, 一个多页面的随机读会触发"顺序预读". 这导致了预读I/O数的增加和命中率的下降. 改进后的算法通过监控所有完整的 read( )调用, 同时得到读请求的页面偏移量和数量, 因而能够更好的区分顺序读和随机读.
-
-2.6.23的内核引入了在这个领域耕耘许久的吴峰光的一个[按需预读的算法]((https://lwn.net/Articles/235164). 所谓的按需预读, 就是内核在读取某页不在内存时, 同步把页从外设读入内存, 并且, 如果发现是顺序读取的话, 还会把后续若干页一起读进来, 这些预读的页叫预读窗口; 当内核读到预读窗口里的某一页时, 如果发现还是顺序读取的模式, 会再次启动预读, 异步地读入下一个预读窗口.
-
-
+**2.6.23(2007年10月发布)** 的内核引入了在这个领域耕耘许久的吴峰光的一个[按需预读的算法]((https://lwn.net/Articles/235164). 所谓的按需预读, 就是内核在读取某页不在内存时, 同步把页从外设读入内存, 并且, 如果发现是顺序读取的话, 还会把后续若干页一起读进来, 这些预读的页叫预读窗口; 当内核读到预读窗口里的某一页时, 如果发现还是顺序读取的模式, 会再次启动预读, 异步地读入下一个预读窗口.
 
 该算法关键就在于适当地决定这个预读窗口的大小,和哪一页做为异步预读的开始. 它的启发式逻辑也非常简单, 但取得不了错的效果. 此外, 对于两个进程在同一个文件上的交替预读, 2.6.24 增强了该算法, 使其能很好地侦测这一行为.
 
@@ -2206,6 +2240,8 @@ Linux内核的一大特色就是支持最多的文件系统, 并拥有一个虚�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2005/10/06 | WU Fengguang <wfg@mail.ustc.edu.cn> | [Adaptive file readahead](https://lwn.net/Articles/155510) | 自适应预读算法 | v1 ☐ | [LWN](https://lwn.net/Articles/155097) |
+| 2009/4/10 | Wu Fengguang <fengguang.wu@intel.com> | [filemap and readahead fixes for linux-next](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d30a11004e3411909f2448546f036a011978062e) | bugfix | v1 ☑ 2.6.31-rc1 | [LORE v1,00/14](https://lore.kernel.org/lkml/20090407115039.780820496@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/9](https://lore.kernel.org/lkml/20090410060957.442203404@intel.com), [LKML v2,0/9](https://lkml.org/lkml/2009/4/10/37) |
+| 2009/4/10 | Wu Fengguang <fengguang.wu@intel.com> | [context readahead for concurrent IO](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=10be0b372cac50e2e7a477852f98bf069a97a3fa) | bugfix | v1 ☑ 2.6.31-rc1 | [LORE v1,0/3](https://lkml.kernel.org/lkml/20090410131247.764370473@intel.com) |
 | 2011/05/17 | WU Fengguang <wfg@mail.ustc.edu.cn> | [512K readahead size with thrashing safe readahead](https://lwn.net/Articles/372384) | 将每次预读窗口大小的最大值从 128KB 增加到了 512KB, 其中增加了一个统计接口(tracepoint, stat 节点等). | v3 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/190891), [LWN](https://lwn.net/Articles/234784) |
 | 2011/05/17 | WU Fengguang <wfg@mail.ustc.edu.cn> | [on-demand readahead](https://lwn.net/Articles/235164) | on-demand 预读算法 | v1 ☑ [2.6.23-rc1](https://kernelnewbies.org/Linux_2_6_23#On-demand_read-ahead) | [LWN](https://lwn.net/Articles/234784) |
 
@@ -3249,15 +3285,7 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 | 2020/10/14 | Kalesh Singh <kaleshsingh@google.com> | [Speedup mremap on ppc64](https://patchwork.kernel.org/project/linux-mm/cover/20210616045735.374532-1-aneesh.kumar@linux.ibm.com) | NA | v8 ☑ 5.14-rc1 | [PatchWork v8,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20201014005320.2233162-1-kaleshsingh@google.com) |
 
 
-## 8.5 filemapping
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/10/25 | Kalesh Singh <kaleshsingh@google.com> | [generic_file_buffered_read() improvements](https://lore.kernel.org/patchwork/cover/1324435) | filemap 的批量内存分配和拷贝. | v4 ☑ [5.11-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork v2,0/2](https://lore.kernel.org/patchwork/cover/1324435) |
-
-
-## 8.6 ioremap
+## 8.5 ioremap
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
