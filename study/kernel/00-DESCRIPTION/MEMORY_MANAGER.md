@@ -375,7 +375,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/12/21 | Pasha Tatashin <pasha.tatashin@soleen.com> | [Hardening page _refcount](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com) | 目前很难从根本上解决 `_refcount` 问题, 因为它们通常在损坏发生后才会显现出来. 然而, 它们可能导致灾难性的故障, 如内存损坏.<br>通过添加更多的检查来提高可调试性, 确保 `page->_refcount` 永远不会变成负数(例如, 双空闲不发生, 或冻结后空闲等).<br>1. 增加了对 `_refcount` 异常值的检测.<br>2. 删除了 set_page_count(), 这样就不会无条件地用不受限制的值覆盖 `_refcount` | RFC,0/8 ☐ | [PatchWork RFC,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211117012059.141450-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20211221150140.988298-1-pasha.tatashin@soleen.com), [LORE v3,0/4](https://lore.kernel.org/all/20211221154650.1047963-1-pasha.tatashin@soleen.com) |
+| 2022/01/26 | Pasha Tatashin <pasha.tatashin@soleen.com> | [Hardening page _refcount](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com) | 目前很难从根本上解决 `_refcount` 问题, 因为它们通常在损坏发生后才会显现出来. 然而, 它们可能导致灾难性的故障, 如内存损坏.<br>通过添加更多的检查来提高可调试性, 确保 `page->_refcount` 永远不会变成负数(例如, 双空闲不发生, 或冻结后空闲等).<br>1. 增加了对 `_refcount` 异常值的检测.<br>2. 删除了 set_page_count(), 这样就不会无条件地用不受限制的值覆盖 `_refcount` | RFC,0/8 ☐ | [PatchWork RFC,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211117012059.141450-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20211221150140.988298-1-pasha.tatashin@soleen.com), [LORE v2,0/9](https://lore.kernel.org/all/20211221154650.1047963-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/9](https://lore.kernel.org/r/20220126183429.1840447-1-pasha.tatashin@soleen.com) |
 
 ### 1.7.3 安全
 -------
@@ -2157,6 +2157,9 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 
 [linux文件预读发展过程](https://blog.csdn.net/jinking01/article/details/106541116)
 
+[浅谈 Linux Kernel 的预读算法](http://www.caturra.cc/2021/08/31/浅谈linux-kernel的预读算法) 基于 Linux 4.18.20 对预读进行了
+
+
 kai_ding 的 [Linux 文件系统预读](https://blog.csdn.net/kai_ding/article/details/17322787) 以三个实际读取的实例程序讲解了 linux-3.12 的预读算法. [Linux 文件系统预读 (一)](https://blog.csdn.net/kai_ding/article/details/17322787) 讲解了单进程规则顺序读时预读算法的工作. [Linux 文件系统预读 (二)](https://blog.csdn.net/kai_ding/article/details/19957763) 讲解了单进程不规则顺序读(一共进行了三次读，顺序读，且读的大小不定，有超过最大预读量的，也有低于最大预读量的)下预读的工作行为. [Linux 文件系统预读 (三)](https://blog.csdn.net/kai_ding/article/details/20112753) 讲解了多进程交织顺序读行为下的预读是如何处理的.
 
 [2.4.18 预读算法详解](https://blog.csdn.net/liuyuanqing2010/article/details/6705338)
@@ -2464,6 +2467,7 @@ huge page 最开始只支持 PMD 级别(基础页 4K, 则 PMD 级别为 2MB)的�
 
 在不使用连续页面的情况下, 大页面大小如下所示:
 
+```cpp
 -----------------------------
 | Page Size |  PMD  |  PUD  |
 -----------------------------
@@ -2471,11 +2475,13 @@ huge page 最开始只支持 PMD 级别(基础页 4K, 则 PMD 级别为 2MB)的�
 |    16K    |  32M  |       |
 |    64K    | 512M  |       |
 -----------------------------
+```
 
 对于 4KB 的 PAGE_SIZE, 使用 Contiguous bit 的相邻位将 16 页的集合分组,
 对于 64KB 的 PAGE_SIZE, 它将 32 页的集合分组. 这将在每种情况下启用两个新的巨大页面大小, 因此完整的可用大小集如下所示.
 如果使用 16KB 的 PAGE_SIZE, 则连续位在 PTE 级别将 128 页分组, 在 PMD 级别将 32 页分组.
 
+```cpp
 ---------------------------------------------------
 | Page Size | CONT PTE |  PMD  | CONT PMD |  PUD  |
 ---------------------------------------------------
@@ -2483,7 +2489,7 @@ huge page 最开始只支持 PMD 级别(基础页 4K, 则 PMD 级别为 2MB)的�
 |    16K    |    2M    |  32M  |     1G   |       |
 |    64K    |    2M    | 512M  |    16G   |       |
 ---------------------------------------------------
-
+```
 
 如果基本页面大小设置为 64KB, 则默认情况下会启用 2MB 页面. 在将来, 4KB 和 64KB 的页面都可以使用 2MB 作为默认的巨大页面大小.
 
@@ -3115,7 +3121,7 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/12/17 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 1: fix the COW security issue for THP and hugetlb](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com) | NA | v1 ☐ | [PatchWork v1,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com) |
+| 2022/01/26 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 1: fix the COW security issue for THP and hugetlb](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com) | NA | v1 ☐ | [PatchWork v1,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://lore.kernel.org/r/20220126095557.32392-1-david@redhat.com) |
 
 | [CVE-2020-29374](https://nvd.nist.gov/vuln/detail/CVE-2020-29374)  | Intra Process Memory Corruptions due to Wrong COW (FOLL_GET) |
 |:---------------:|:--------------------------------------------------------------------:|
