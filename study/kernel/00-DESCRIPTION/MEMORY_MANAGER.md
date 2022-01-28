@@ -2447,10 +2447,25 @@ HugeTLBFS 则用于向用户提供一套基于文件系统的巨页使用界面,
 
 其次看 HugeTLBFS 模块:
 
-### 7.1.2 HugeTLB pool
+### 7.1.2 HugeTLB Pool
 -------
 
+commit [b45b5bd65f66 ("hugepage: Strict page reservation for hugepage inodes")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b45b5bd65f668a665db40d093e4e1fe563533608)
+
+
+commit [a43a8c39bbb4 ("tightening hugetlb strict accounting")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a43a8c39bbb493c9e93f6764b350de2e33e18e92)
+
+
+
 随后 v2.6.24 HugeTLB 又引入了 pool 和 overcommit.
+
+
+
+
+由于匿名映射 MAP_PRIVATE 不使用保留的大面内存, 因此分配可能由于 HugeTLB 池太小而失败. commit [7893d1d505d5 ("hugetlb: Try to grow hugetlb pool for MAP_PRIVATE mappings")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7893d1d505d59db9d4f35165c8b6d3c6dff40a32) 引入动态扩展 HugeTLB 页面池的的机制.<br>1. 尝试通过 `alloc_buddy_huge_page()` 从 buddy 分配器中获取一个剩余的大页.<br>2. 通过 surplus_huge_pages 和 surplus_huge_pages_node 来记录动态扩展的页面.<br>3. 那么这种情况下如果通过 nr_hugepages sysctl 动态修改 HugeTLB 页面的数量, 则通过 `set_max_huge_pages()-=>adjust_pool_surplus()` 来完成动态扩展.
+
+commit [e4e574b767ba ("hugetlb: Try to grow hugetlb pool for MAP_SHARED mappings")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e4e574b767ba63101cfda2b42d72f38546319297)
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -2487,6 +2502,13 @@ HugeTLBFS 则用于向用户提供一套基于文件系统的巨页使用界面,
 
 ### 7.1.4 More huge page sizes
 -------
+
+在 2.6.25 版本的时候, 通过 commit [4ec161cf73bc ("Add hugepagesz boot-time parameter")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4ec161cf73bc0b4e5c36843638ef9171896fc0b9) 添加了一个启动参数 hugepagesz, 可以指定预留的 HugeTLB 大页的 pagesize.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2008/05/26 | Andi Kleen <ak@suse.de>/Nick Piggin <npiggin@suse.de> | [multi size, giant hugetlb support, 1GB for x86, 16GB for powerpc](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0d9ea75443dc7e37843e656b8ebc947a6d16d618) | 多种 hugepage sizes 的 HugeTLB 的支持. 引入了 [struct hstate](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a5516438959d90b071ff0a484ce4f3f523dc3152) 来管理不同 page size 的 HugeTLB. 每个 pagesize 的页面由 [hstate 自己的链表](https://elixir.bootlin.com/linux/v2.6.27/source/mm/hugetlb.c#L384)管理.<br>引入了 [PUD 级别](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ceb868796181dc95ea01a110e123afd391639873) 和 [巨页(> MAX_ORDER)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=aa888a74977a8f2120ae9332376e179c39a6b07d) 的 Huge Page. 随后对 [x86_64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=39c11e6c05b7fedbf7ed4df3908b25f622d56204) 以及 [POWERPC](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0d9ea75443dc7e37843e656b8ebc947a6d16d618) 等架构做了支持. POWERPC 更是支持了 [16GB 级别的巨页](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ec4b2c0c8312d1118c2acd00c89988ecf955d5cc). 可以通过启动参数 hugepagesz 参数指定大页的大小. | v1 ☑ 2.6.27-rc1 | [LKML 00/23](https://lore.kernel.org/all/20080525142317.965503000@nick.local0.net) |
 
 
 huge page 最开始只支持 PMD 级别(基础页 4K, 则 PMD 级别为 2MB)的大页, 自 3.8 版本加入这个 [commit 42d7395feb56 ("mm: support more pagesizes for MAP_HUGETLB/SHM_HUGETLB")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=42d7395feb56f0655cd8b68e06fc6063823449f8) 之后, 利用 shmget()/mmap() 的 flag 参数中未使用的 bits, 可以支持其他的 huge page 大小(比如 1GB).
