@@ -2423,12 +2423,40 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2002/09/15 | Rohit Seth/Andrew Morton <akpm@digeo.com> | [hugetlb pages](https://github.com/gatieme/linux-history/commit/c9d3808fc28fc873dcf0dc95315f644997fde1d0) | 实现 ia32 的 CONFIG_HUGETLB_PAGE. | v1 ☑ 2.5.36 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/c9d3808fc28fc873dcf0dc95315f644997fde1d0) |
-| 2002/09/15 | Bill Irwin/Andrew Morton <akpm@digeo.com> | [hugetlbfs file system](https://github.com/gatieme/linux-history/commit/9f3336ab7c42d631f5ed50d73e1eea7bd9268892) | 为 hugetlb page 实现了一个小巧的  ram-backed 的文件系统. | v1 ☑ 2.5.46 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/9f3336ab7c42d631f5ed50d73e1eea7bd9268892) |
+| 2002/09/15 | Rohit Seth/Andrew Morton <akpm@digeo.com> | [hugetlb pages](https://github.com/gatieme/linux-history/commit/c9d3808fc28fc873dcf0dc95315f644997fde1d0) | 实现 ia32 的 HugeTLB. 由 CONFIG_HUGETLB_PAGE 控制. | v1 ☑ 2.5.36 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/c9d3808fc28fc873dcf0dc95315f644997fde1d0) |
+| 2002/09/15 | Bill Irwin/Andrew Morton <akpm@digeo.com> | [hugetlbfs file system](https://github.com/gatieme/linux-history/commit/9f3336ab7c42d631f5ed50d73e1eea7bd9268892) | 为 hugetlb page 实现了一个小巧的  ram-backed 的文件系统. 通过 CONFIG_HUGETLBFS 控制. | v1 ☑ 2.5.46 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/9f3336ab7c42d631f5ed50d73e1eea7bd9268892) |
+| 2004/04/11 | William Lee Irwin III <wli@holomorphy.com> | [hugetlb consolidation](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/commit/?id=c8b976af1af10de3d92968bf7d4bd5415e8a3778) | 整合了各个架构下 hugetlb 实现中的冗余代码, 实现了统一的 hugetlb 框架. 注意这里将整个 HugeTLB 的代码都用 CONFIG_HUGETLBFS 选项来控制开启. | v1 ☑ 2.6.6-rc1 | [HISTORY COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/commit/?id=c8b976af1af10de3d92968bf7d4bd5415e8a3778) |
 
-[2.6.24-rc1](https://lwn.net/Articles/255649) 的时候, Adam Litke 引入了 [hugetlb_dynamic_pool 0/6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=af767cbdd78f293485c294113885d95e7f1da123).
+至此 [v2.6.6](https://elixir.bootlin.com/linux/v2.6.6/source) 版本, HugeTLB 的功能和框架已经趋于完善.
 
-[2.6.24-rc6](https://lwn.net/Articles/262978) 时候, Nishanth Aravamudan 移除了[](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d5dbac87b4343d98ae509fb787efb77f8ddc484b).
+HugeTLB 的功能, 涉及到两个模块: HugeTLB 和 HugeTLBFS.
+
+HugeTLB 相当于是 HugeTLB 页面管理者, 页面的分配及释放, 都由此模块负责. 由 [CONFIG_HUGETLB_PAGE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e3390f67a7267daa227380b6f1bbf13c7ddd4aff) 标记.
+
+HugeTLBFS 则用于向用户提供一套基于文件系统的巨页使用界面, 其下层功能的实现, 则依赖于 HugeTLB. 由 [CONFIG_HUGETLBFS] 控制.
+
+首先是 HugeTLB 模块:
+
+1.  通过内核启动参数 [`hugepages=`](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L115) 来指定预留的 HugeTLB 的数量.
+
+2.  然后内核启动时 [`hugetlb_init()`](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L87) 中会通过分配 [`alloc_fresh_huge_page()`](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L45).
+
+3.  所有分配的 HugeTLB 页面会由 [`enqueue_huge_page(struct page *page)`](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L20) 添加到 [`hugepage_freelists`](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L17) 链表中.
+
+4.  提供了 `/proc/sys/vm/nr_hugepages` sysctl 接口[查看](https://elixir.bootlin.com/linux/v2.6.6/source/kernel/sysctl.c#L734)和[配置](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L183)当前内核中 HugeTLB 大页数目 [max_huge_pages](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L16). 在配置的过程中内核会通过 [`alloc_fresh_huge_page()`](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L159) 和 [`enqueue_huge_page(page)`](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L163) 扩展页面数, 已经通过 [`try_to_free_low()`](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L132) 和 [`update_and_free_page()`](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L176) 释放那些不需要的页面. 从而动态地提供大页的数量.
+
+其次看 HugeTLBFS 模块:
+
+### 7.1.2 HugeTLB pool
+-------
+
+随后 v2.6.24 HugeTLB 又引入了 pool 和 overcommit.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2007/10/16 | Adam Litke <agl@us.ibm.com> | [hugetlb_dynamic_pool](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=af767cbdd78f293485c294113885d95e7f1da123) | 引入 dynamic_pool. | v1 ☑ [2.6.24-rc1](https://lwn.net/Articles/255649) | [HISTORY COMMIT 0/6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=af767cbdd78f293485c294113885d95e7f1da123) |
+| 2007/12/17 | Nishanth Aravamudan <nacc@us.ibm.com> | [hugetlb: introduce nr_overcommit_hugepages sysctl](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d5dbac87b4343d98ae509fb787efb77f8ddc484b) | 1. 移除了 [Revert "hugetlb: Add hugetlb_dynamic_pool sysctl"](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=368d2c6358c3c62b3820a8a73f9fe9c8b540cdea)<br>2. 引入了 [nr_overcommit_hugepages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d1c3fb1f8f29c41b0d098d7cfb3c32939043631f) sysctl.<br>3. [Documentation: update hugetlb information](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d5dbac87b4343d98ae509fb787efb77f8ddc484b) 更新了 hugetlb 的文档, 至此 hugetlb 的功能已经趋于完善. | v1 ☑ 2.6.24-rc6 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/d5dbac87b4343d98ae509fb787efb77f8ddc484b) |
+
 
 ### 7.1.2 SHM_HUGETLB
 -------
