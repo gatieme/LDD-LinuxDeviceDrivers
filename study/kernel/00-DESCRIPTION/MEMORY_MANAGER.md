@@ -2455,11 +2455,7 @@ commit [b45b5bd65f66 ("hugepage: Strict page reservation for hugepage inodes")](
 
 commit [a43a8c39bbb4 ("tightening hugetlb strict accounting")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a43a8c39bbb493c9e93f6764b350de2e33e18e92)
 
-
-
-随后 v2.6.24 HugeTLB 又引入了 pool 和 overcommit.
-
-
+随后 v2.6.24 HugeTLB 又引入了 dynamic pool 和 overcommit.
 
 
 由于匿名映射 MAP_PRIVATE 不使用保留的大面内存, 因此分配可能由于 HugeTLB 池太小而失败. commit [7893d1d505d5 ("hugetlb: Try to grow hugetlb pool for MAP_PRIVATE mappings")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7893d1d505d59db9d4f35165c8b6d3c6dff40a32) 引入动态扩展 HugeTLB 页面池的的机制.<br>1. 尝试通过 `alloc_buddy_huge_page()` 从 buddy 分配器中获取一个剩余的大页.<br>2. 通过 surplus_huge_pages 和 surplus_huge_pages_node 来记录动态扩展的页面.<br>3. 那么这种情况下如果通过 nr_hugepages sysctl 动态修改 HugeTLB 页面的数量, 则通过 `set_max_huge_pages()-=>adjust_pool_surplus()` 来完成动态扩展.
