@@ -773,48 +773,54 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 ## 4.3 自动 NUMA 均衡(Automatic NUMA balancing)
 -------
 
+### 4.3.1 PROT_NONE Fault Driven 的 Automatic NUMA balancing
+-------
+
 **3.8(2013年2月发布)**
 
 NUMA 机器一个重要特性就是不同 node 之间的内存访问速度有差异, 访问本地 node 很快, 访问别的 node 则很慢．所以进程分配内存时, 总是优先分配所在 node 上的内存．然而, 前面说过, 调度器的负载均衡是可能把一个进程从一个 node 迁移到另一个 node 上的, 这样就造成了跨 node 的内存访问; Linux 支持 CPU 热插拔, 当一个 CPU 下线时, 它上面的进程会被迁移到别的 CPU 上, 也可能出现这种情况．
 
+调度者和内存领域的开发者一直致力于解决这个问题．由于两大系统都非常复杂, 找一个通用的可靠的解决方案不容易, 开发者中提出两套解决方案:
 
+1.  Peter Zijlstra 的 sched/numa 方案, 参见 [Toward better NUMA scheduling](https://lwn.net/Articles/486858).
 
-调度者和内存领域的开发者一直致力于解决这个问题．由于两大系统都非常复杂, 找一个通用的可靠的解决方案不容易, 开发者中提出两套解决方案, 各有优劣, 一直未能达成一致意见．3.8内核中, 内存领域的知名黑客 Mel Gorman 基于此情况, 引入一个叫自动 NUMA 均衡的框架, 以期存在的两套解决方案可以在此框架上进行整合; 同时, 他在此框架上实现了简单的策略: 每当发现有跨 node 访问内存的情况时, 就马上把该内存页面迁移到当前 node 上．
+2.  Andrea Arcangeli 的 AutoNUMA 方案, 参见 [AutoNUMA: the other approach to NUMA scheduling](https://lwn.net/Articles/488709)
 
+两种方案各有优劣, 随后 Ingo Rik 等都加入到讨论中, 但是一直未能达成一致意见.
 
+Peter 将 sched/numa 的整体思路上也做了不断的调整和改动, 也开始使用 [PROT_NONE fault 驱动的内存迁移策略](https://lore.kernel.org/lkml/20120731191204.540691987@chello.nl), 甚至还提出了 [Announcement: Enhanced NUMA scheduling with adaptive affinity](https://lore.kernel.org/lkml/20121112160451.189715188@chello.nl)．介绍 3.8 前两套竞争方案的文章: [A potential NUMA scheduling solution](https://lwn.net/Articles/522093). 但是总体上仍然有很多未能达成一致的问题.
+
+在 3.8 快要发布的时候, 意见还没有统一, 于是内存领域的知名黑客 Mel Gorman 基于此情况, 引入一个叫自动 NUMA 均衡(Automatic NUMA Balancing)的框架, 以期将现存的两套解决方案可以在此框架上进行整合; 同时, 他在此框架上实现了简单的策略: 每当发现有跨 node 访问内存的情况时, 就马上把该内存页面迁移到当前 node 上．参见 [NUMA in a hurry [LWN.net]](https://lwn.net/Articles/524977). 第一版本的 RFC 见 [Foundation for automatic NUMA balancing [LORE]](https://lore.kernel.org/lkml/1352193295-26815-1-git-send-email-mgorman@suse.de). [RFC: Unified NUMA balancing tree, v1](https://lkml.org/lkml/2012/12/2/87)
 
 不过到 4.2 , 似乎也没发现之前的两套方案有任意一个迁移到这个框架上, 倒是, 在前述的简单策略上进行更多改进．
 
+首先 Mel 继续开发了 [Basic scheduler support for automatic NUMA balancing V9](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2739d3eef3a93a92c366a3a0bb85a0afe09e8b8c), 参见 [NUMA scheduling progress [LWN.net]](https://lwn.net/Articles/568870).
+
+但是 NUMA balancing 的优化并没有结束,  PROT_NONE fault driven 的 Automatic NUMA balancing 效果并不好, 开销还大, 在实际的环境上开发人员仍然可以从精心调整的配置中获得比 Automatic NUMA balancing 更好的性能. [NUMA placement problems
+[LWN.net]](https://lwn.net/Articles/591995)
+
+> 更多详细的细节可以查阅: [Scheduler/NUMA](https://lwn.net/Kernel/Index/#Scheduler-NUMA)
 
 
-如果需要研究此功能的话, 可参考以下几篇文章:
-
-－介绍 3.8 前两套竞争方案的文章: [A potential NUMA scheduling solution [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/522093/)
-
-- 介绍 3.8 自动 NUMA 均衡 框架的文章: [NUMA in a hurry [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/524977/)
-
-- 介绍 3.8 后进展的两篇文章, 细节较多, 建议对调度／内存代码有研究后才研读:
-
-[NUMA scheduling progress [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/568870/)
-
-[NUMA placement problems [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/591995/)
-
-
-[Scheduler/NUMA](https://lwn.net/Kernel/Index/#Scheduler-NUMA)
-
-[NUMA in a hurry](https://lwn.net/Articles/524977)
-[RFC: Unified NUMA balancing tree, v1](https://lkml.org/lkml/2012/12/2/87)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2012/12/07 | Paul Gortmaker <paul.gortmaker@windriver.com> | [Automatic NUMA Balancing V11](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d28d433512f4f387e2563c14db45a7bb8a338b1a) | 包含了 [Latest numa/core patches, v15](https://lore.kernel.org/lkml/1352826834-11774-1-git-send-email-mingo@kernel.org) | v11 ☑ 3.8-rc1 | [LORE v4 00/46](https://lore.kernel.org/lkml/1353493312-8069-1-git-send-email-mgorman@suse.de)<br>*-*-*-*-*-*-*-* <br>[LORE v10,00/49](https://lore.kernel.org/lkml/1354875832-9700-1-git-send-email-mgorman@suse.de), [LKML v10,00/49](https://lkml.org/lkml/2012/12/7/119)<br>*-*-*-*-*-*-*-* <br>[LORE v11,00/50](https://lore.kernel.org/lkml/20121212100338.GS1009@suse.de) |
+| 2016/03/16 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [sched/numa](https://lore.kernel.org/lkml/20120316144028.036474157@chello.nl/) | 参见 LWN 的报道 [Toward better NUMA scheduling](https://lwn.net/Articles/486858/) | v15 ☐ | [LORE RFC,00/26](https://lore.kernel.org/lkml/20120316144028.036474157@chello.nl)<br>*-*-*-*-*-*-*-* <br>[LORE v15,00/31](https://lore.kernel.org/lkml/1352826834-11774-1-git-send-email-mingo@kernel.org) |
+| 2012/03/26 | Andrea Arcangeli <aarcange@redhat.com> | [AutoNUMA](https://lore.kernel.org/lkml/20120316144028.036474157@chello.nl/) | 参见 LWN 的报道 [AutoNUMA: the other approach to NUMA scheduling](https://lwn.net/Articles/488709) | v15 ☐ | [LKML RFC,00/39](https://lore.kernel.org/lkml/1332783986-24195-1-git-send-email-aarcange@redhat.com) |
+| 2012/12/07 | Paul Gortmaker <paul.gortmaker@windriver.com> | [Automatic NUMA Balancing V11](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d28d433512f4f387e2563c14db45a7bb8a338b1a) | 方案大量借鉴了 [Latest numa/core patches, v15](https://lore.kernel.org/lkml/1352826834-11774-1-git-send-email-mingo@kernel.org) | v11 ☑ 3.8-rc1 | [LORE v4 00/46](https://lore.kernel.org/lkml/1353493312-8069-1-git-send-email-mgorman@suse.de)<br>*-*-*-*-*-*-*-* <br>[LORE v10,00/49](https://lore.kernel.org/lkml/1354875832-9700-1-git-send-email-mgorman@suse.de), [LKML v10,00/49](https://lkml.org/lkml/2012/12/7/119)<br>*-*-*-*-*-*-*-* <br>[LORE v11,00/50](https://lore.kernel.org/lkml/20121212100338.GS1009@suse.de) |
 | 2013/10/07 | Mel Gorman <mgorman@suse.de> | [Basic scheduler support for automatic NUMA balancing V9](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2739d3eef3a93a92c366a3a0bb85a0afe09e8b8c) |  | v9 ☑ 3.13-rc1 | [LORE v2,00/13](https://lore.kernel.org/lkml/1372861300-9973-1-git-send-email-mgorman@suse.de), [LKML v8](https://lkml.org/lkml/2013/9/27/211), [LORE 00/63](https://lore.kernel.org/all/1381141781-10992-1-git-send-email-mgorman@suse.de) |
+
+
+
+### 4.3.2 Automatic NUMA balancing 的优化
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/10/27 | Gang Li <ligang.bdlg@bytedance.com> | [sched/numa: add per-process numa_balancing](https://lkml.org/lkml/2021/10/27/517) | 这个补丁在 prctl 中添加了一个新的 api PR_NUMA_BALANCING 来控制当个进程参与和禁止 numa_balancing. 在执行 numa_balancing 时, 大量的页面错误会导致性能损失. 因此, 那些关心最坏情况下性能的进程需要禁用 numa_balancing. 相反, 另一些则允许暂时的性能损失以换取更高的平均性能, 因此启用 numa 平衡对它们来说更好. 但是当前 numa balancing 只能由 `/proc/sys/kernel/numa_balancing` 全局控制. 因此这个特性希望禁用/启用每个进程的 numa_balancing. 在 mm_struct 下添加 numa_balancing. 然后在 task_tick_numa 中使用来控制. mm ->numa_balancing 仅在全局 numa_balancing 启用时有效. 当全局 numa_balancing 被禁用时, mm->numa_blancing 不会改变, 当你想要获得进程 numa_balancing 状态时, 你总是会得到 0, 并且当你使用 prctl set 它时, 内核将返回 err. | v1 ☐ | [LKML](https://lkml.org/lkml/2021/10/27/517) |
 | 2014/05/14 | Rik van Riel <riel@redhat.com> | [sched/numa: Allow task switch if load imbalance improves](https://linuxplumbersconf.org/event/4/contributions/480) | 目前 NUMA 平衡代码只允许在 NUMA 节点上的负载处于平衡状态时在 NUMA 节点之间移动任务. 当负载开始不平衡时, 它就崩溃了. 因此这个补丁引入 load_too_imbalanced() 来判定, 如果不平衡较小, 或者新的不平衡小于原来的不平衡, 则允许在 NUMA 节点之间移动任务. | v1 ☑ 3.16-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e63da03639cc9e6e83b62e7ef8ffdbb92421416a) |
 | 2018/09/21 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [sched/numa: Avoid task migration for small NUMA improvement](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6fd98e775f24fd41520928d345f5db3ff52bb35d) | 如果 NUMAC 层次的任务迁移带来的改进非常小(小于 SMALLIMP), 那么应该尽量避免任务迁移. 否则可能会带来 pingpong(进程来回迁移颠簸), 甚至 cache-miss 引起的性能下降. | v1 ☑ 4.19-rc7 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6fd98e775f24fd41520928d345f5db3ff52bb35d) |
 | 2022/01/28 | Paul Gortmaker <paul.gortmaker@windriver.com> | [sched/numa: Process Adaptive autoNUMA](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=abedf8e2419fb873d919dd74de2e84b510259339) | NA | v0 ☑ 4.6-rc1 | [LKML v0,0/5](https://lkml.org/lkml/2022/1/28/16), [LORE](https://lore.kernel.org/lkml/20220128052851.17162-1-bharata@amd.com) |
-
-
 
 
 ## 4.4 rework_load_balance
