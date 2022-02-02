@@ -593,7 +593,7 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/06/21 | JHuaixin Chang | [sched/fair: Burstable CFS bandwidth controller](https://lore.kernel.org/patchwork/cover/1396878) | 突发任务的带宽控制优化, 通过临时之前剩余累计的配额, 使得突发进程在当前周期的配额突然用尽之后, 还可以临时使用之前累计的配额使用, 从而降低突发任务的时延. | v6 ☑ 5.14-rc1 | [ 2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1354613)<br>*-*-*-*-*-*-*-*<br>[2021/01/20 v2](https://lore.kernel.org/patchwork/cover/1368037)<br>*-*-*-*-*-*-*-*<br>[2021/01/21 v3](https://lore.kernel.org/patchwork/cover/1368746)<br>*-*-*-*-*-*-*-*<br>[2021-02-02 v4](https://lore.kernel.org/patchwork/cover/1396878)<br>*-*-*-*-*-*-*-*<br>[2021/05/20 v5](https://lore.kernel.org/patchwork/cover/1433660)<br>*-*-*-*-*-*-*-*<br>[2021/06/21 v6](https://lore.kernel.org/patchwork/cover/1449268)<br>*-*-*-*-*-*-*-*<br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f4183717b370ad28dd0c0d74760142b20e6e7931) |
 | 2021/08/30 | Huaixin Chang <changhuaixin@linux.alibaba.com> | [Add statistics and ducument for cfs bandwidth burst](https://lore.kernel.org/patchwork/cover/1396878) | 为 Burstable CFS bandwidth 添加统计信息和文档. | v1 ☑ 5.16-rc1 | [2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1396878)<br>*-*-*-*-*-*-*-*<br>[2021/08/30 LORE v2 0/2](https://lore.kernel.org/all/20210830032215.16302-1-changhuaixin@linux.alibaba.com) |
-| 2021/11/29 | Honglei Wang <wanghonglei@didichuxing.com> | [sched/fair: prevent cpu burst too many periods](https://lore.kernel.org/patchwork/cover/1396878) | commit f4183717b370 ("sched/fair: Introduce the burstable CFS controller") 引入了一个问题, 任务在持久性期间可能获得比配额更多的 cpu. 例如, 一个任务组的配额为每周期 100ms, 可以获得 100ms 突发, 其平均利用率约为每周期 105ms. 一旦这个组获得了一个空闲时间段, 它就有机会在公共带宽配置中获得超过其配额的 10 个或更多时间段的计算能力(例如, 100 毫秒作为时间段). 这意味着任务获得了可以 "偷走" 完成日常工作的能力, 因为所有任务都可以安排出去或睡觉, 以帮助团队获得空闲时间. cpu burst 的本来目的是帮助处理突发性工作负载. 但是, 如果一个任务组在没有突发性工作负载的情况下, 能够在持续时间内获得超过其配额的计算能力, 那么它违背了初衷. 此修补程序将突发限制为一个时段, 以便在很长时间内不会突破配额限制. 有了这个, 我们可以给任务组更多的 cpu 突发能力来处理真正的突发性工作负载， 而不必担心被恶意 "窃取". | v1 ☑ 5.16-rc1 | [LKML](https://lkml.org/lkml/2021/11/29/663) |
+| 2021/11/29 | Honglei Wang <wanghonglei@didichuxing.com> | [sched/fair: prevent cpu burst too many periods](https://lore.kernel.org/patchwork/cover/1396878) | commit f4183717b370 ("sched/fair: Introduce the burstable CFS controller") 引入了一个问题, 任务在持久性期间可能获得比配额更多的 cpu. 例如, 一个任务组的配额为每周期 100ms, 可以获得 100ms 突发, 其平均利用率约为每周期 105ms. 一旦这个组获得了一个空闲时间段, 它就有机会在公共带宽配置中获得超过其配额的 10 个或更多时间段的计算能力(例如, 100 毫秒作为时间段). 这意味着任务获得了可以 "偷走" 完成日常工作的能力, 因为所有任务都可以安排出去或睡觉, 以帮助团队获得空闲时间. cpu burst 的本来目的是帮助处理突发性工作负载. 但是, 如果一个任务组在没有突发性工作负载的情况下, 能够在持续时间内获得超过其配额的计算能力, 那么它违背了初衷. 此修补程序将突发限制为一个时段, 以便在很长时间内不会突破配额限制. 有了这个, 我们可以给任务组更多的 cpu 突发能力来处理真正的突发性工作负载,  而不必担心被恶意 "窃取". | v1 ☑ 5.16-rc1 | [LKML](https://lkml.org/lkml/2021/11/29/663) |
 
 
 ## 2.2 实时进程的组调度支持(RT Group Scheduling)
@@ -805,11 +805,10 @@ Peter 将 sched/numa 的整体思路上也做了不断的调整和改动, 也开
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2016/03/16 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [sched/numa](https://lore.kernel.org/lkml/20120316144028.036474157@chello.nl/) | 参见 LWN 的报道 [Toward better NUMA scheduling](https://lwn.net/Articles/486858/) | v15 ☐ | [LORE RFC,00/26](https://lore.kernel.org/lkml/20120316144028.036474157@chello.nl)<br>*-*-*-*-*-*-*-* <br>[LORE v15,00/31](https://lore.kernel.org/lkml/1352826834-11774-1-git-send-email-mingo@kernel.org) |
+| 2012/11/13 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [sched/numa](https://lore.kernel.org/lkml/20120316144028.036474157@chello.nl/) | 参见 LWN 的报道 [Toward better NUMA scheduling](https://lwn.net/Articles/486858). | v15 ☐ | [LORE RFC,00/26](https://lore.kernel.org/lkml/20120316144028.036474157@chello.nl)<br>*-*-*-*-*-*-*-* <br>[LORE v15,00/31](https://lore.kernel.org/lkml/1352826834-11774-1-git-send-email-mingo@kernel.org) |
 | 2012/03/26 | Andrea Arcangeli <aarcange@redhat.com> | [AutoNUMA](https://lore.kernel.org/lkml/20120316144028.036474157@chello.nl/) | 参见 LWN 的报道 [AutoNUMA: the other approach to NUMA scheduling](https://lwn.net/Articles/488709) | v15 ☐ | [LKML RFC,00/39](https://lore.kernel.org/lkml/1332783986-24195-1-git-send-email-aarcange@redhat.com) |
-| 2012/12/07 | Paul Gortmaker <paul.gortmaker@windriver.com> | [Automatic NUMA Balancing V11](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d28d433512f4f387e2563c14db45a7bb8a338b1a) | 方案大量借鉴了 [Latest numa/core patches, v15](https://lore.kernel.org/lkml/1352826834-11774-1-git-send-email-mingo@kernel.org) | v11 ☑ 3.8-rc1 | [LORE v4 00/46](https://lore.kernel.org/lkml/1353493312-8069-1-git-send-email-mgorman@suse.de)<br>*-*-*-*-*-*-*-* <br>[LORE v10,00/49](https://lore.kernel.org/lkml/1354875832-9700-1-git-send-email-mgorman@suse.de), [LKML v10,00/49](https://lkml.org/lkml/2012/12/7/119)<br>*-*-*-*-*-*-*-* <br>[LORE v11,00/50](https://lore.kernel.org/lkml/20121212100338.GS1009@suse.de) |
+| 2012/12/07 | Mel Gorman <mgorman@suse.de> | [Automatic NUMA Balancing V11](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d28d433512f4f387e2563c14db45a7bb8a338b1a) | 方案大量借鉴了 Peter sched/numa 的方案 [Latest numa/core patches, v15](https://lore.kernel.org/lkml/1352826834-11774-1-git-send-email-mingo@kernel.org) | v11 ☑ 3.8-rc1 | [LORE v4 00/46](https://lore.kernel.org/lkml/1353493312-8069-1-git-send-email-mgorman@suse.de)<br>*-*-*-*-*-*-*-* <br>[LORE v10,00/49](https://lore.kernel.org/lkml/1354875832-9700-1-git-send-email-mgorman@suse.de), [LKML v10,00/49](https://lkml.org/lkml/2012/12/7/119)<br>*-*-*-*-*-*-*-* <br>[LORE v11,00/50](https://lore.kernel.org/lkml/20121212100338.GS1009@suse.de) |
 | 2013/10/07 | Mel Gorman <mgorman@suse.de> | [Basic scheduler support for automatic NUMA balancing V9](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2739d3eef3a93a92c366a3a0bb85a0afe09e8b8c) |  | v9 ☑ 3.13-rc1 | [LORE v2,00/13](https://lore.kernel.org/lkml/1372861300-9973-1-git-send-email-mgorman@suse.de), [LKML v8](https://lkml.org/lkml/2013/9/27/211), [LORE 00/63](https://lore.kernel.org/all/1381141781-10992-1-git-send-email-mgorman@suse.de) |
-
 
 
 ### 4.3.2 Automatic NUMA balancing 的优化
@@ -820,8 +819,63 @@ Peter 将 sched/numa 的整体思路上也做了不断的调整和改动, 也开
 | 2021/10/27 | Gang Li <ligang.bdlg@bytedance.com> | [sched/numa: add per-process numa_balancing](https://lkml.org/lkml/2021/10/27/517) | 这个补丁在 prctl 中添加了一个新的 api PR_NUMA_BALANCING 来控制当个进程参与和禁止 numa_balancing. 在执行 numa_balancing 时, 大量的页面错误会导致性能损失. 因此, 那些关心最坏情况下性能的进程需要禁用 numa_balancing. 相反, 另一些则允许暂时的性能损失以换取更高的平均性能, 因此启用 numa 平衡对它们来说更好. 但是当前 numa balancing 只能由 `/proc/sys/kernel/numa_balancing` 全局控制. 因此这个特性希望禁用/启用每个进程的 numa_balancing. 在 mm_struct 下添加 numa_balancing. 然后在 task_tick_numa 中使用来控制. mm ->numa_balancing 仅在全局 numa_balancing 启用时有效. 当全局 numa_balancing 被禁用时, mm->numa_blancing 不会改变, 当你想要获得进程 numa_balancing 状态时, 你总是会得到 0, 并且当你使用 prctl set 它时, 内核将返回 err. | v1 ☐ | [LKML](https://lkml.org/lkml/2021/10/27/517) |
 | 2014/05/14 | Rik van Riel <riel@redhat.com> | [sched/numa: Allow task switch if load imbalance improves](https://linuxplumbersconf.org/event/4/contributions/480) | 目前 NUMA 平衡代码只允许在 NUMA 节点上的负载处于平衡状态时在 NUMA 节点之间移动任务. 当负载开始不平衡时, 它就崩溃了. 因此这个补丁引入 load_too_imbalanced() 来判定, 如果不平衡较小, 或者新的不平衡小于原来的不平衡, 则允许在 NUMA 节点之间移动任务. | v1 ☑ 3.16-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e63da03639cc9e6e83b62e7ef8ffdbb92421416a) |
 | 2018/09/21 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [sched/numa: Avoid task migration for small NUMA improvement](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6fd98e775f24fd41520928d345f5db3ff52bb35d) | 如果 NUMAC 层次的任务迁移带来的改进非常小(小于 SMALLIMP), 那么应该尽量避免任务迁移. 否则可能会带来 pingpong(进程来回迁移颠簸), 甚至 cache-miss 引起的性能下降. | v1 ☑ 4.19-rc7 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6fd98e775f24fd41520928d345f5db3ff52bb35d) |
-| 2022/01/28 | Paul Gortmaker <paul.gortmaker@windriver.com> | [sched/numa: Process Adaptive autoNUMA](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=abedf8e2419fb873d919dd74de2e84b510259339) | NA | v0 ☑ 4.6-rc1 | [LKML v0,0/5](https://lkml.org/lkml/2022/1/28/16), [LORE](https://lore.kernel.org/lkml/20220128052851.17162-1-bharata@amd.com) |
 
+### 4.3.3 Scan Period Rate
+-------
+
+*   Per Task Working Set Sampling (WSS) rate
+
+commit [6e5fb223e89d ("mm: sched: numa: Implement constant, per task Working Set Sampling (WSS) rate")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6e5fb223e89dbe5cb5c563f8d4a4a0a7d62455a8) 实现了一种自适应的 per task Working Set Sampling (WSS) 控制扫描的频率和范围, 从而尽可能地减少开销.
+
+参见 [update_task_scan_period()](https://elixir.bootlin.com/linux/v5.16/source/kernel/sched/fair.c#L2119), 它以不同的速率对工作集进行采样, 使某些任务的采样质量优于其他任务. 但是这种方式也为工作集非常大的任务带来性能问题, 具有较大地址空间但很少执行的过采样进程通过在标记扫描当前位置的地址空间中保持旋转偏移来改进该方法, 并以恒定速率(以 CPU 周期执行成比例的方式)推进它. 如果偏移量到达 mm 的最后一个映射地址, 那么它将从第一个地址重新开始.
+
+
+| 参数 | 描述 |
+|:---:|:----:|
+| numa_balancing_scan_delay_ms | 线程在扫描其数据之前必须消耗的 CPU 时间量. 这可以防止由于进程持续时间较短而产生开销. |
+| numa_balancing_scan_period_min_ms 和 numa_balancing_scan_period_max_ms | 控制任务数据的扫描频率. 根据故障的位置, 扫描速率将增加或减少. 这些设置控制最小和最大扫描速率.  |
+| numa_balancing_scan_size_mb | 控制任务扫描程序处于活动状态时扫描的地址空间量. |
+
+*   Limit Scan Rate
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2015/03/25 | Mel Gorman <mgorman@suse.de> | [mm: numa: slow PTE scan rate if migration failures occur](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=074c238177a75f5e79af3b2cb6a84e54823ef950) | 通常情况下, 扫描速率会根据故障的位置按任务进行调整. 但是, 如果由于任何原因迁移失败, 那么如果故障仍然是远程的, PTE 扫描可能会扫描得更快. 这意味着在我们知道迁移不可能发生的时候, 系统 CPU 开销和 FAULT 的速率获会更高. 因此跟踪迁移失败的时间, 减慢 PTE 扫描的速度. | v1 ☑ 4.0-rc6 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=074c238177a75f5e79af3b2cb6a84e54823ef950) |
+| 2022/01/28 | Rik van Riel <riel@redhat.com> | [sched,numa: cap pte scanning overhead to 3% of run time](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=51170840fe91dfca10fd533b303ea39b2524782a) | task 级别基于运行时的 NUMA 扫描与 mm 级别的 NUMA 扫描之间存在根本性的不匹配. 在一个严重过载、进程非常大的系统上, 这种不匹配可能会导致系统将所有时间都花在 change_prot_numa() 上. 如果任务在 change_prot_numa() 中花费至少两个 ticks 的时间, 并且在 mm 的两个扫描间隔之间进程仅获得两个 ticks 的运行时间, 则可能会发生这种情况.<br>这组补丁确保任务在扫描 PTE 时的花费不会超过运行时的 3%. 它通过确保在 task_numa_work() 运行之间, 任务在其他事情上花费的时间至少是 task_numa_work() 的 32 倍.<br>如果在 task_numa_work() 期间发生 tick, 或者任务被重新调度, 我们会延迟 task_numa_work() 的未来运行, 直到任务在task_numa_work() 内花费的CPU时间至少是其他事情的 32 倍. | v1 ☑ 4.5-rc1 | [LORE 0/2](https://lore.kernel.org/all/1446756983-28173-1-git-send-email-riel@redhat.com) |
+| 2018/05/04 | Mel Gorman <mgorman@techsingularity.net> | [sched/numa: Stagger NUMA balancing scan periods for new threads v2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1378447598432513d94ce2c607c412dc4f260f31) | 线程共享一个地址空间, 每个线程都可以更改同一地址空间的保护以捕获 NUMA 故障. 这是多余的, 而且可能会适得其反, 因为任何执行更新的线程都已足够. 可能只需要一个线程, 但该线程可能处于空闲状态, 或者可能没有任何局部性问题, 并选择了不合适的扫描速率.<br>该补丁使用独立的扫描周期, 但它们是根据创建线程时地址空间用户的数量错开的. 其目的是, 线程将避免同时扫描, 并有机会在必要时调整其扫描速率. 这会减少线程生命周期早期的总扫描活动.<br>性能测试表明: 总体性能差异不大, 但系统 CPU 使用率和总体扫描活动都有所降低. | v2 ☑ 4.18-rc1 | [LORE v2,0/5](https://lore.kernel.org/all/20180504154109.mvrha2qo5wdl65vr@techsingularity.net) |
+
+*   Process Adaptive
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2022/01/28 | Bharata B Rao <bharata@amd.com> | [sched/numa: Process Adaptive autoNUMA](https://lore.kernel.org/lkml/20220128052851.17162-1-bharata@amd.com) | NA | v0 ☐ | [LKML v0,0/5](https://lkml.org/lkml/2022/1/28/16), [LORE](https://lore.kernel.org/lkml/20220128052851.17162-1-bharata@amd.com) |
+
+
+### 4.3.4 NUMA Balancing Placement And Migration
+-------
+
+Mel 在 2012 年最早的 [Automatic NUMA Balancing v10,00/49](https://lore.kernel.org/lkml/1354875832-9700-1-git-send-email-mgorman@suse.de) 方案中实现了 fault driven 的进程迁移(Task Placement)和页面迁移(Page Migration)策略的框架.
+
+#### 4.3.3.1 NUMA Balancing Page Migration
+-------
+
+但是最初版本只完成了 NUMA Balancin 页面迁移(Page Migration) 的功能.
+
+1. commit [d10e63f29488 ("mm: numa: Create basic numa page hinting infrastructure")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d10e63f29488b0f312a443f9507ea9b6fd3c9090). 如果发现页面是 PROT_NONE 的页面, 则通过 do_numa_page().
+
+2. do_numa_page() 中则通过 numa_migrate_prep()-=>mpol_misplaced() 和 migrate_misplaced_page() 完成了页面的迁移. 参见 commit1 [4daae3b4b9e4 ("mm: mempolicy: Use `_PAGE_NUMA` to migrate pages")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4daae3b4b9e49b7e0935499a352f1c59d90287d2) 和 commit2 [9532fec118d4 ("mm: numa: Migrate pages handled during a pmd_numa hinting fault")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9532fec118d485ea37ab6e3ea372d68cd8b4cd0d). 其中 mpol_misplaced() 检查并分析页面最适合的 NUMA NODE, 如果需要迁移, 则通过 migrate_misplaced_page() 完成迁移.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2020/11/13 | Yang Shi <shy828301@gmail.com> | [skip shared exec THP for NUMA balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d532e2e57e3c53ce74e519a07d7d2244482b7bd8) | 该补丁随后因与 THP 的兼容性问题(导致死锁)而被 [revert](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7ee820ee72388279a37077f418e32643a298243a) | v3 ☑ 5.11-rc1 | [LKML v3,0/5](https://lore.kernel.org/all/20201113205359.556831-1-shy828301@gmail.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c77c5cbafe549eb330e8909861a3e16cbda2c848) |
+| 2021/01/20 | Huang Ying <ying.huang@intel.com> | [numa balancing: Migrate on fault among multiple bound nodes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bda420b985054a3badafef23807c4b4fa38a3dff) | 即使应用程序的内存绑定到多个 NUMA 节点, 也可以使用 AutoNUMA 优化跨套接字内存访问. | v9 ☑ 5.12-rc1 | [LKML v9,0/3](https://lore.kernel.org/all/20210120061235.148637-1-ying.huang@intel.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bda420b985054a3badafef23807c4b4fa38a3dff) |
+| 2019/07/01 | Philip Yang <Philip.Yang@amd.com> | [mm/hmm: support automatic NUMA balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=789c2af88f24d1db983aae49b5c4561e6e02ff5b) | NA | v1 ☑ 5.3-rc1 | [PatchWork 04/22](https://patchwork.kernel.org/project/linux-pci/patch/20190701062020.19239-5-hch@lst.de), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=789c2af88f24d1db983aae49b5c4561e6e02ff5b) |
+
+#### 4.3.3.2 NUMA Balancing Task Placement
+-------
+
+[Automatic NUMA Balancing v10,00/49](https://lore.kernel.org/lkml/1354875832-9700-1-git-send-email-mgorman@suse.de) 方案中实现的 task_numa_placement() 却只有框架, 并不包含实际的策略信息. 最终实际的进程迁移(Task Placement) 功能是在 2013 年 [Basic scheduler support for automatic NUMA balancing V9](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2739d3eef3a93a92c366a3a0bb85a0afe09e8b8c) 中完成的.  参见 commit [688b7585d16a ("sched/numa: Select a preferred node with the most numa hinting faults")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=688b7585d16ab57a17aa4422a3b290b3a55fa679)
 
 ## 4.4 rework_load_balance
 -------
@@ -848,7 +902,7 @@ CPU 负载均衡器在不同的域之间进行平衡, 以分散负载, 并努力
 
 1.  使用了核隔离或者绑核状态下, 可以规避类似的问题, 但它忽略了进程与其所使用的数据之间的位置关系, 忽略了唤醒路径与 Load Balance 路径的冲突.
 
-2.  NUMA 平衡也是一个因素，但它也与负载平衡器冲突.
+2.  NUMA 平衡也是一个因素, 但它也与负载平衡器冲突.
 
 因此为了获得更好的性能和扩展性, 要求 load balance 在 NUMA 层次做一些感知和优化.
 
