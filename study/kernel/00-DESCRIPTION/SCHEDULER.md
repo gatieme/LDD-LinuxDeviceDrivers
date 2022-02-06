@@ -866,6 +866,14 @@ Mel 在 2012 年最早的 [Automatic NUMA Balancing v10,00/49](https://lore.kern
 
 2. do_numa_page() 中则通过 numa_migrate_prep()-=>mpol_misplaced() 和 migrate_misplaced_page() 完成了页面的迁移. 参见 commit1 [4daae3b4b9e4 ("mm: mempolicy: Use `_PAGE_NUMA` to migrate pages")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4daae3b4b9e49b7e0935499a352f1c59d90287d2) 和 commit2 [9532fec118d4 ("mm: numa: Migrate pages handled during a pmd_numa hinting fault")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9532fec118d485ea37ab6e3ea372d68cd8b4cd0d). 其中 mpol_misplaced() 检查并分析页面最适合的 NUMA NODE, 如果需要迁移, 则通过 migrate_misplaced_page() 完成迁移.
 
+整个 Page Migration 策略基于如下原则:
+
+1.  尽量避免页面的频繁地在 NUMA 节点之间迁移.
+
+2.  对于私有内存, 使每个线程的私有内存保持在本地.
+
+3.  对于共享内存, 在活动节点之间分配共享内存, 以最大化工作负载可用的内存带宽此补丁系列识别工作负载在其上活动运行的 NUMA 节点, 并在这些节点之间平衡内存.
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2020/11/13 | Yang Shi <shy828301@gmail.com> | [skip shared exec THP for NUMA balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d532e2e57e3c53ce74e519a07d7d2244482b7bd8) | 该补丁随后因与 THP 的兼容性问题(导致死锁)而被 [revert](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7ee820ee72388279a37077f418e32643a298243a) | v3 ☑ 5.11-rc1 | [LKML v3,0/5](https://lore.kernel.org/all/20201113205359.556831-1-shy828301@gmail.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c77c5cbafe549eb330e8909861a3e16cbda2c848) |
@@ -875,7 +883,32 @@ Mel 在 2012 年最早的 [Automatic NUMA Balancing v10,00/49](https://lore.kern
 #### 4.3.3.2 NUMA Balancing Task Placement
 -------
 
-[Automatic NUMA Balancing v10,00/49](https://lore.kernel.org/lkml/1354875832-9700-1-git-send-email-mgorman@suse.de) 方案中实现的 task_numa_placement() 却只有框架, 并不包含实际的策略信息. 最终实际的进程迁移(Task Placement) 功能是在 2013 年 [Basic scheduler support for automatic NUMA balancing V9](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2739d3eef3a93a92c366a3a0bb85a0afe09e8b8c) 中完成的.  参见 commit [688b7585d16a ("sched/numa: Select a preferred node with the most numa hinting faults")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=688b7585d16ab57a17aa4422a3b290b3a55fa679)
+[Automatic NUMA Balancing v10,00/49](https://lore.kernel.org/lkml/1354875832-9700-1-git-send-email-mgorman@suse.de) 方案中实现的 task_numa_placement() 却只有框架, 并不包含实际的策略信息. 最终实际的进程迁移(Task Placement) 功能是在 2013 年(linux v3.13) 的时候 [Basic scheduler support for automatic NUMA balancing V9](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2739d3eef3a93a92c366a3a0bb85a0afe09e8b8c) 中完成的.
+
+
+1.  在 task_struct 中新增 numa_faults 来跟踪进程在各个 NUMA 节点上进行的 numa fault 次数, 同时使用 numa_preferred_nid 标记进程更亲和的 NUMA NODE. task_numa_placement() 中寻找 numa_faults 最多的 NUMA 节点, 然后通过 sched_setnuma 设置其为 numa_preferred_nid, 进程将在随后迁移到这个节点上运行. 参见 commit1 [688b7585d16a ("sched/numa: Select a preferred node with the most numa hinting faults")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=688b7585d16ab57a17aa4422a3b290b3a55fa679), commit2 [f809ca9a554d ("sched/numa: Track NUMA hinting faults on per-node basis")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f809ca9a554dda49fb264c79e31c722e0b063ff8).
+
+2.  进程之间往往有共享数据, 为了处理共享页面 numa fault 的情况, 引入了 [numa_group](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8c8a743c5087bac9caac8155b8f3b367e75cdd0b) 结构, task_struct 中 numa_entry 加入到每个 numa_group 的 task_list 链表中. 每个页面用 [`{cpu, pid}`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=90572890d202527c366aa9489b32404e88a7c020) 对存储了页面的最近一次访问的信息. 如果连续访问的 PID 都没有变化, 则页面被视为私有的, 否则说明这个页面是被多个进程共享的, 则通过 [task_numa_group()](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L1634) 创建页面的 numa_group 信息. 如果一个进程的多个线程同时访问一个页面, 而他们又有不同的 numa_group 时, 则会[对 numa_group 进行归一合并](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L1538). [task_numa_placement()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=83e1d2cd9eabec5164afea295ff06b941ae8e4a9) 在考虑任务的 numa_faults 的时候, 会进一步地把 numa_group 的 numa_faults 也考虑进来. 使用特定节点上的任务和组的 numa faults 比例, 找出放置任务的最佳节点. 如果任务和组统计数据做出了不一致的首选节点决策, 那么会[再次扫描所有节点来选择具有最佳组合权重的节点](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L1428).
+
+> 注意
+>
+> commit [753899183c53 ("sched/fair: Kill task_struct::numa_entry and numa_group::task_list")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=753899183c53aa609375b214ea8e040da89119c3) 移除了 numa_group 的链表结构.
+
+*   Track NUMA Hinting Faults
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2014/01/27 | Rik van Riel <riel@redhat.com> | [numa,sched,mm: pseudo-interleaving for automatic NUMA balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=be1e4e760d940c14d119bffef5eb007dfdf29046) | NA | v1 ☑ 3.15-rc1 | [LORE v5,0/9](https://lore.kernel.org/all/1390860228-21539-1-git-send-email-riel@redhat.com) |
+| 2014/10/31 | Iulia Manda <iulia.manda21@gmail.com> | [`sched: Refactor task_struct to use numa_faults instead of numa_* pointers`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=44dba3d5d6a10685fb15bd1954e62016334825e0) | NA | v1 ☑ 3.19-rc1 | [LORE v5,0/9](https://lore.kernel.org/all/20141031001331.GA30662@winterfell), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44dba3d5d6a10685fb15bd1954e62016334825e0) |
+
+*   Task Placement 优化
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2014/06/23 | Rik van Riel <riel@redhat.com> | [sched,numa: improve NUMA convergence times](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a22b4b012340b988dbe7a58461d6fcc582f34aa0) | 通过 `perf bench numa mem -m -0 -P 1000 -p X -t Y` 测试发现, 当前版本 NUMA 调度负载均衡的收敛周期较长, 因此进行了优化. | v1 ☑ 3.17-rc1 | [LORE 0/7](https://lore.kernel.org/all/1403538095-31256-1-git-send-email-riel@redhat.com) |
+| 2014/10/17 | Rik van Riel <riel@redhat.com> | [sched,numa: weigh nearby nodes for task placement on complex NUMA topologies (v2)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9de05d48711cd5314920ed05f873d84eaf66ccf1) | NA | v1 ☑ 3.19-rc1 | [LORE 0/6](https://lore.kernel.org/all/1413530994-9732-1-git-send-email-riel@redhat.com) |
+| 2018/06/20 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [Fixes for sched/numa_balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b6a60cf36d497e7fbde9dd5b86fabd96850249f6) | NA | v2 ☑ 4.19-rc1 | [LORE v2,00/19](https://lore.kernel.org/all/1529514181-9842-1-git-send-email-srikar@linux.vnet.ibm.com) |
+
 
 ## 4.4 rework_load_balance
 -------
@@ -2036,11 +2069,11 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 
 对 shared page tables 的研究由来已久, Dave McCracken提出了一种共享页面表的方法[Implement shared page tables](https://lore.kernel.org/patchwork/cover/42673), 可以参见 [Shared Page Tables Redux](https://www.kernel.org/doc/ols/2006/ols2006v2-pages-125-130.pdf). 但从未进入内核.
 
-随后 2021 年《 我们相信, 随着现代应用程序和fork的现代用例（如快照）内存消耗的增加, fork上下文中的共享页表方法值得探索.
+随后 2021 年《 我们相信, 随着现代应用程序和fork的现代用例(如快照)内存消耗的增加, fork上下文中的共享页表方法值得探索.
 
 在我们的研究工作中[https://dl.acm.org/doi/10.1145/3447786.3456258], 我们已经确定了一种方法, 对于大型应用程序(即几百 MBs 及以上), 该方法可以显著加快 fork 系统调用. 目前, fork系统调用完成所需的时间与进程分配内存的大小成正比, 在我们的实验中, 我们的设计将 fork 调用的速度提高了 270 倍(50GB).<br>其设计是, 在 fork 调用期间, 我们不复制整个分页树, 而是让子进程和父进程共享同一组最后一级的页表, 这些表将被引用计数. 为了保留写时复制语义, 我们在 fork 中的 PMD 条目中禁用写权限, 并根据需要在页面错误处理程序中复制 PTE 表.
 
-另一方面, http://lkml.iu.edu/hypermail/linux/kernel/0508.3/1623.html, https://www.kernel.org/doc/ols/2006/ols2006v2-pages-125-130.pdf], 但从未进入内核. 我们相信, 随着现代应用程序和fork的现代用例（如快照）内存消耗的增加, fork上下文中的共享页表方法值得探索.
+另一方面, http://lkml.iu.edu/hypermail/linux/kernel/0508.3/1623.html, https://www.kernel.org/doc/ols/2006/ols2006v2-pages-125-130.pdf], 但从未进入内核. 我们相信, 随着现代应用程序和fork的现代用例(如快照)内存消耗的增加, fork上下文中的共享页表方法值得探索.
 
 
 
