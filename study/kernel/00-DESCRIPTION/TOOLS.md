@@ -163,6 +163,32 @@ RRZE-HPC 的 [likwid(Like I knew what I am doing):Performance monitoring and ben
 
 [netem](https://wiki.linuxfoundation.org/networking/netem)
 
+
+# 3 安全
+-------
+
+## 3.1 Kasper
+-------
+
+
+[Kasper: a tool for finding speculative-execution vulnerabilities](https://lwn.net/Articles/883448)
+[Scanning for Generalized Transient Execution Gadgets in the Linux Kernel](https://www.vusec.net/projects/kasper)
+[GitHub](https://github.com/vusec/kasper)
+[Paper](https://download.vusec.net/papers/kasper_ndss22.pdf)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

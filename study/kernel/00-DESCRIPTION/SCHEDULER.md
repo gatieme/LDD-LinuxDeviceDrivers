@@ -850,7 +850,7 @@ commit [6e5fb223e89d ("mm: sched: numa: Implement constant, per task Working Set
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2022/01/28 | Bharata B Rao <bharata@amd.com> | [sched/numa: Process Adaptive autoNUMA](https://lore.kernel.org/lkml/20220128052851.17162-1-bharata@amd.com) | NA | v0 ☐ | [LKML v0,0/5](https://lkml.org/lkml/2022/1/28/16), [LORE](https://lore.kernel.org/lkml/20220128052851.17162-1-bharata@amd.com) |
+| 2022/01/28 | Bharata B Rao <bharata@amd.com> | [sched/numa: Process Adaptive autoNUMA](https://lore.kernel.org/lkml/20220128052851.17162-1-bharata@amd.com) | 实现了一种进程自适应 autoNUMA 算法(Process Adaptive autoNUMA, PAN), 用于计算 autoNUMA 扫描周期.<br>在现有的扫描周期计算机制中:1.  扫描周期是从每线程的统计数据中派生出来的.2.  静态阈值(NUMA_PERIOD_threshold)用于更改扫描速率.<br>这组补丁集将 NUMA fault 按照不同的维护划分, 如本地的与远程的(local vs. remote), 私有的和共享的(private vs. shared). 然后在每个进程级别收集 numa faults 统计数据, 从而更好地捕获应用程序行为. 不再使用静态阈值, 而是根据远程故障率来学习和调整扫描速率, 可以更好地响应不同的工作负载行为. 由于进程的线程已经被视为一个 numa_group, 因此我们在任务的[内存管理]中添加了一组度量标准, 以跟踪各种类型的错误并从中推导出扫描速度. 新的每进程故障统计数据只对每进程扫描周期计算有贡献, 而现有的每线程统计数据继续对 numa_group 统计数据有贡献, 后者最终确定跨节点迁移内存和线程的阈值. 参见 phoronix 的报道 [AMD Cooking Up A "PAN" Feature That Can Help Boost Linux Performance](https://www.phoronix.com/scan.php?page=news_item&px=AMD-PAN-Linux-RFC) | v0 ☐ | [LKML v0,0/5](https://lkml.org/lkml/2022/1/28/16), [LORE](https://lore.kernel.org/lkml/20220128052851.17162-1-bharata@amd.com) |
 
 
 ### 4.3.4 NUMA Balancing Placement And Migration
@@ -889,13 +889,28 @@ Mel 在 2012 年最早的 [Automatic NUMA Balancing v10,00/49](https://lore.kern
 
 1.  在 task_struct 中新增 numa_faults 来跟踪进程在各个 NUMA 节点上进行的 numa fault 次数, 同时使用 numa_preferred_nid 标记进程更亲和的 NUMA NODE. task_numa_placement() 中寻找 numa_faults 最多的 NUMA 节点, 然后通过 sched_setnuma 设置其为 numa_preferred_nid, 进程将在随后迁移到这个节点上运行. 参见 commit1 [688b7585d16a ("sched/numa: Select a preferred node with the most numa hinting faults")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=688b7585d16ab57a17aa4422a3b290b3a55fa679), commit2 [f809ca9a554d ("sched/numa: Track NUMA hinting faults on per-node basis")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f809ca9a554dda49fb264c79e31c722e0b063ff8).
 
-2.  进程之间往往有共享数据, 为了处理共享页面 numa fault 的情况, 引入了 [numa_group](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8c8a743c5087bac9caac8155b8f3b367e75cdd0b) 结构, task_struct 中 numa_entry 加入到每个 numa_group 的 task_list 链表中. 每个页面用 [`{cpu, pid}`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=90572890d202527c366aa9489b32404e88a7c020) 对存储了页面的最近一次访问的信息. 如果连续访问的 PID 都没有变化, 则页面被视为私有的, 否则说明这个页面是被多个进程共享的, 则通过 [task_numa_group()](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L1634) 创建页面的 numa_group 信息. 如果一个进程的多个线程同时访问一个页面, 而他们又有不同的 numa_group 时, 则会[对 numa_group 进行归一合并](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L1538). [task_numa_placement()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=83e1d2cd9eabec5164afea295ff06b941ae8e4a9) 在考虑任务的 numa_faults 的时候, 会进一步地把 numa_group 的 numa_faults 也考虑进来. 使用特定节点上的任务和组的 numa faults 比例, 找出放置任务的最佳节点. 如果任务和组统计数据做出了不一致的首选节点决策, 那么会[再次扫描所有节点来选择具有最佳组合权重的节点](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L1428).
+2.  进程之间往往有共享数据, 为了处理共享页面 numa fault 的情况, 引入了 [numa_group](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8c8a743c5087bac9caac8155b8f3b367e75cdd0b) 结构, task_struct 中 numa_entry 加入到每个 numa_group 的 task_list 链表中. 每个页面用 [`{cpu, pid}`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=90572890d202527c366aa9489b32404e88a7c020) 对存储了页面的最近一次访问的信息. 如果连续访问的 PID 都没有变化, 则页面被视为私有的, 否则说明这个页面是被多个进程共享的, 则通过 [task_numa_group()](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L1634) 创建页面的 numa_group 信息. 如果一个进程的多个线程同时访问一个页面, 而他们又有不同的 numa_group 时, 则会[对 numa_group 进行归一合并](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L1538). [task_numa_placement()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=83e1d2cd9eabec5164afea295ff06b941ae8e4a9) 在考虑任务的 numa_faults 的时候, 会进一步地把 numa_group 的 numa_faults 也考虑进来. 使用特定节点上的任务和组的 numa faults 比例, 找出放置任务的最佳节点. 如果任务和组统计数据做出了不一致的首选节点决策, 那么会[再次扫描所有节点来选择具有最佳组合权重的节点](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L1428). 通过这种方式, 对于进程的私有页面(内存), 可以很容易就保证进程访问私有页面尽可能都是本地的.
 
 > 注意
 >
 > commit [753899183c53 ("sched/fair: Kill task_struct::numa_entry and numa_group::task_list")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=753899183c53aa609375b214ea8e040da89119c3) 移除了 numa_group 的链表结构.
 
+
+3.  但是共享页面的处理就变得不那么容易了, 共享页面的 numa fault 可能导致大量不必要的页面迁移, 降低系统速度, 并导致私有错误达到每个 pgdat 迁移速率限制. 这个 commit [de1c9ce6f07f ("sched/numa: Skip some page migrations after a shared fault")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=de1c9ce6f07fec0381a39a9d0b379ea35aa1167f) 添加了 sysctl numa_balancing_migrate_deferred, 它指定在因为共享错误而跳过每个页面迁移之后, 无条件跳过多少共享页面迁移. 这减少了在共享故障情况下来回进行页面迁移的次数. 它还对已经运行的大部分内存的任务提供了强烈的偏好, 并将其他任务移到内存附近. 这使得使用共享页面的工作负载更多地依赖于 "将任务移到内存附近", 而不是 "将内存移到任务附近", 这正是早期 NUMA Balancing 想要的.
+
+
 *   Track NUMA Hinting Faults
+
+
+然而, 事实证明, p->numa_migrate_deferred 确实降低了迁移率, 但实际上并没有提高性能. 因此并不显得十分有用(p->numa_migrate_deferred knob is a really big hammer). 因此 v3.15 期间, [删除了 numa_balancing_migrate_deferred](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=52bf84aa206cd2c2516dfa3e03b578edf8a3242f), 转而使用更加智能的方案. 参见补丁集 [numa,sched,mm: pseudo-interleaving for automatic NUMA balancing v5,0/9](https://lore.kernel.
+org/all/1390860228-21539-1-git-send-email-riel@redhat.com)
+
+原来的 numa_faults_memory 存储了扫描窗口内进程访问指定 mem_node 上内存页面的 NUMA hinting fault 统计量, 新增了 [numa_faults_cpu](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=50ec8a401fed6d246ab65e6011d61ac91c34af70) 存储了扫描窗口内进程运行在 cpu_node 上访问指定内存页面的 NUMA hinting fault 统计量, 然后通过 numa_faults_cpu 可以快捷的找到进程较多运行的 NUMA node, 用 [active_nodes 的 nodemask 来标记](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=52bf84aa206cd2c2516dfa3e03b578edf8a3242f). 为了防止切换和过度的页面迁移, 当某个 node 上 numa_faults_cpu 导致的故障超过最大数量的 6/16 时, 节点会被添加, 但只有当节点低于 3/16 时，节点才会被移出 active_nodes. 引入了 should_numa_migrate_memory() 封装了所有 numa page migration 的决策逻辑, 其中关键地, 如果 dst_nid 不在 active_nodes 范围内, 则不会尝试进行进程迁移, 同理如果 src_nid 不在, 而 dst_nid 在, 则应该积极地进行进程迁移.
+
+在某些工作负载中, 一些执行清理或者回收工作的进程将访问比执行所有活动工作的线程多几个数量级的内存, 但是他们其实负载很小, 而且并不是业务的关键进程, 在这种情况下, 简单地通过每个线程发生了 NUMA hinting fault 次数直接衡量进程的 NUMA 亲和性是不合适的, 这会导致垃圾收集器所在的节点被标记为组中唯一的活动节点. 因此如果进一步考虑组中每个任务的 CPU 使用情况就可以轻松避免这个问题. 为了实现这一点, 我们[将故障数 numa_faults_cpu 标准化为每个节点上发生的故障的加权分数](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7e2703e6099609adc93679c4d45cd6247f565971), 然后将该分数乘以自上次调用 task_numa_placement 以来任务使用的 CPU 时间分数. 这样, 活动节点掩码中的节点将是 numa 组中任务最活跃运行的节点, 并且那些无关紧要的轻载任务的影响被适当地最小化.
+
+
+随后 v3.19, 开发人员 Iulia Manda 发现使用 numa_faults_memory 和 numa_faults_cpu 的方式管理所有的 NUMA hinting fault 统计量看起来不是那么优雅, commit [("sched: Refactor task_struct to use numa_faults instead of numa_* pointers")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44dba3d5d6a10685fb15bd1954e62016334825e0), 将这些统计量全部统一到 numa_faults 中, 引入了一个枚举 numa_faults_stats 来管理, 通过 task_faults_idx() 来通过下标的方式来直接访问.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
