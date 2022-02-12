@@ -224,6 +224,20 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 | 2021/10/12 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Improvements to %pGp](https://patchwork.kernel.org/project/linux-mm/patch/20211012182647.1605095-6-willy@infradead.org) | `%pGp` 用来打印 page flag 的信息(通过 format_page_flags() 打印 `__def_pageflag_name`), 但是之前打印的方式比较麻烦, 需要使用 `%#lx(%pGp)`, 先用 hex 16 进制打印一次, 再用 `%pGp` 打印一次, 使用起来略显麻烦. 因此修改 `%pGp` 在打印 flag 的同时, 同时用 hex 打印一次. 这样单用 `%pGp` 就可以完成输出. | v1 ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-mm/patch/20211012182647.1605095-6-willy@infradead.org) |
 | 2017/11/08 | Linus Torvalds <torvalds@linux-foundation.org> | [stop using '%pK' for /proc/kallsyms pointer values](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c0f3ea1589394deac2d840c685f57c69e4ac4243) | commit [c0f3ea158939 stop using '%pK' for /proc/kallsyms pointer values](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c0f3ea1589394deac2d840c685f57c69e4ac4243) 4.15 之后, kallsyms 不用 %pK 打印了. 但是仍然用 kptr_restrict 控制权限. | v1 ☑ 5.1-rc1 | [ommit c0f3ea158939](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c0f3ea1589394deac2d840c685f57c69e4ac4243) |
 
+[lockless ringbuffer](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.10-printk)
+
+[[GIT PULL] printk for 5.10 (includes lockless ringbuffer)](http://lkml.iu.edu/hypermail/linux/kernel/2010.1/04077.html)
+
+[printk: Why is it so complicated?, LPC2019](https://lpc.events/event/4/contributions/290/attachments/276/463/lpc2019_jogness_printk.pdf)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/07/09 | John Ogness <john.ogness@linutronix.de> | [printk: replace ringbuffer](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=896fbe20b4e2333fb55cc9b9b783ebcc49eee7c7) | 20200709132344.760-1-john.ogness@linutronix.de | v5 ☑ 5.10-rc1 | [LORE v5,0/4](https://lore.kernel.org/all/20200709132344.760-1-john.ogness@linutronix.de) |
+| 2020/07/21 | John Ogness <john.ogness@linutronix.de> | [printk: ringbuffer: support dataless records](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d397820f36ffe4701343b6ee12687d60db0ed8db) | 20200721132528.9661-1-john.ogness@linutronix.de | v2 ☑ 5.10-rc1 | [LORE](https://lore.kernel.org/all/20200721132528.9661-1-john.ogness@linutronix.de) |
+| 2020/09/14 | John Ogness <john.ogness@linutronix.de> | [printk: reimplement LOG_CONT handling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f5f022e53b874f978dda23847173cbf2589b07f5) | 20200914123354.832-6-john.ogness@linutronix.de | v5 ☑ 5.10-rc1 | [LORE v5,0/6](https://lore.kernel.org/all/20200914123354.832-1-john.ogness@linutronix.de) |
+| 2020/09/19 | John Ogness <john.ogness@linutronix.de> | [printk: move dictionaries to meta data](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f5f022e53b874f978dda23847173cbf2589b07f5) | 20200918223421.21621-1-john.ogness@linutronix.de | v2 ☑ 5.10-rc1 | [LORE v2,0/3](https://lore.kernel.org/all/20200918223421.21621-1-john.ogness@linutronix.de) |
+| 2022/02/07 | John Ogness <john.ogness@linutronix.de> | [implement threaded console printing](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) | 参见 phoronix 报道 [Linux Gets Patches For Threaded Console Printing](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Threaded-Console-Print) | v1 ☐ | [LORE v1,0/13](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) |
+
 
 # 10 KEXEC
 -------

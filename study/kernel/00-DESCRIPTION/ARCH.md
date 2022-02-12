@@ -201,13 +201,26 @@ SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安�
 | 2021/08/30 | Yu-cheng Yu <yu-cheng.yu@intel.com> | [Control-flow Enforcement: Indirect Branch Tracking](https://patchwork.kernel.org/project/linux-mm/cover/20210830182221.3535-1-yu-cheng.yu@intel.com) | 控制流执行(CET) 是英特尔处理器的一个新特性, 它可以阻止面向返回/跳转的编程攻击. 详情见 ["Intel 64 and IA-32架构软件开发人员手册"](https://software.intel.com/content/www/us/en/develop/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4.html). 这是 CET 的第二部分, 支持间接分支跟踪(IBT). 它是建立在阴影堆栈系列之上的. | v1 ☐ | [Patchwork v30,00/10](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) |
 | 2021/11/22 | Peter Zijlstra <peterz@infradead.org> | [x86: Kernel IBT beginnings](https://lore.kernel.org/lkml/20211122170301.764232470@infradead.org) | IBT 的基础支持, 功能不完整, 但是够精简, 引入 CONFIG_X86_IBT 控制, 添加了 X86_IBT build 选项, 为编译器启用了 "-fcf-protection=branch" 支持, 并支持 objtool, 用于为可能的间接分支目标添加 ENDBR 指令以及内核入口点添加了 ENDBR 结束分支指令. | v11 ☐ | [Patchwork v11,0/7](https://lore.kernel.org/lkml/20211122170301.764232470@infradead.org) |
 
+## 1.7 PPIN
+-------
 
-## 1.7 AMD
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2020/03/21 | Wei Huang <wei.huang2@amd.com> | [x86/mce/amd: Add PPIN support for AMD MCE](https://lore.kernel.org/all/20200321193800.3666964-1-wei.huang2@amd.com) | 20200321193800.3666964-1-wei.huang2@amd.com | v3 ☑✓ | [LORE v3,0/1](https://lore.kernel.org/all/20200321193800.3666964-1-wei.huang2@amd.com) |
+| 2022/01/31 | Tony Luck <tony.luck@intel.com> | [PPIN (Protected Processor Inventory Number) updates](https://lore.kernel.org/all/20220131230111.2004669-1-tony.luck@intel.com) | 受保护处理器库存编号(Protected Processor Inventory Number, PPIN), 有时也称为 "受保护处理器标识号(Protected Processor Identification Number)是处理器在制造时设置的一个编号, 用于唯一地标识给定的处理器. 可以通过 PPIN 追溯芯片生产的车间和生产以及运行环境, 这有助于帮助缺陷诊断. Intel 之前提交了 Linux 补丁, 用于在服务器管理员遇到 MCE 错误时显示 PPIN, 以帮助跟踪问题发生在哪个物理 CPU 上, 但是只有在出现错误时才会打印. 这组补丁使得服务器管理员可以更容易地访问 PPIN. (直接从 `sys/devices/system/cpu/cpu*/topology/ppin` 即可读取). 参见 phoronix 报道 [Convenient Intel PPIN Reporting To Come With Linux 5.18](https://www.phoronix.com/scan.php?page=news_item&px=Intel-PPIN-Linux-5.18) | v3 ☑✓ v5.18-rc1 | [LORE v3,0/5](https://lore.kernel.org/all/20220131230111.2004669-1-tony.luck@intel.com) |
+
+
+
+## 1.8 AMD
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/11/10 | Brijesh Singh <brijesh.singh@amd.com> | [Add AMD Secure Nested Paging (SEV-SNP) Guest Support](https://patchwork.kernel.org/project/linux-mm/cover/20211110220731.2396491-1-brijesh.singh@amd.com) | Guest 支持 AMD SEV SNP.  | v7 ☐ | [Patchwork v7,00/45](https://patchwork.kernel.org/project/linux-mm/cover/20211110220731.2396491-1-brijesh.singh@amd.com) |
+
+
+
 
 # 2 ARM64
 -------
