@@ -810,6 +810,7 @@ Peter 将 sched/numa 的整体思路上也做了不断的调整和改动, 也开
 | 2012/03/26 | Andrea Arcangeli <aarcange@redhat.com> | [AutoNUMA](https://lore.kernel.org/lkml/20120316144028.036474157@chello.nl/) | 参见 LWN 的报道 [AutoNUMA: the other approach to NUMA scheduling](https://lwn.net/Articles/488709) | v15 ☐ | [LKML RFC,00/39](https://lore.kernel.org/lkml/1332783986-24195-1-git-send-email-aarcange@redhat.com) |
 | 2012/12/07 | Mel Gorman <mgorman@suse.de> | [Automatic NUMA Balancing V11](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d28d433512f4f387e2563c14db45a7bb8a338b1a) | 方案大量借鉴了 Peter sched/numa 的方案 [Latest numa/core patches, v15](https://lore.kernel.org/lkml/1352826834-11774-1-git-send-email-mingo@kernel.org) | v11 ☑ 3.8-rc1 | [LORE v4 00/46](https://lore.kernel.org/lkml/1353493312-8069-1-git-send-email-mgorman@suse.de)<br>*-*-*-*-*-*-*-* <br>[LORE v10,00/49](https://lore.kernel.org/lkml/1354875832-9700-1-git-send-email-mgorman@suse.de), [LKML v10,00/49](https://lkml.org/lkml/2012/12/7/119)<br>*-*-*-*-*-*-*-* <br>[LORE v11,00/50](https://lore.kernel.org/lkml/20121212100338.GS1009@suse.de) |
 | 2013/10/07 | Mel Gorman <mgorman@suse.de> | [Basic scheduler support for automatic NUMA balancing V9](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2739d3eef3a93a92c366a3a0bb85a0afe09e8b8c) |  | v9 ☑ 3.13-rc1 | [LORE v2,00/13](https://lore.kernel.org/lkml/1372861300-9973-1-git-send-email-mgorman@suse.de), [LKML v8](https://lkml.org/lkml/2013/9/27/211), [LORE 00/63](https://lore.kernel.org/all/1381141781-10992-1-git-send-email-mgorman@suse.de) |
+| 2015/06/16 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [Improve numa load balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=44dcb04f0ea8eaac3b9c9d3172416efc5a950214) | 存在一些情况进程会被移出其首选节点, 但它们最终可能会被 NUMA Balancing 再带回其首选节点. 为了避免上述情况, [实现 migrate_degrades_locality() 替代 migrate_improves_locality()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2a1ed24ce94036d00a7c5d5e99a77a80f0aa556a) 来处理 NUMA 下 can_migrate_task 的 cache hot.  它还用 NUMA sched_feature 替换了 3 个 sched_feature NUMA、NUMA_Upper 和 NUMA_RESIST_LOWER. 此外[比较 NUMA 域负载的时候使用了 imbalance_pct](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44dcb04f0ea8eaac3b9c9d3172416efc5a950214). 补丁集只合入了前两个补丁. | v2 ☑✓ | [LORE v2,0/4](https://lore.kernel.org/all/1434455762-30857-1-git-send-email-srikar@linux.vnet.ibm.com) |
 
 
 ### 4.3.2 Automatic NUMA balancing 的优化
@@ -858,7 +859,7 @@ commit [6e5fb223e89d ("mm: sched: numa: Implement constant, per task Working Set
 
 Mel 在 2012 年最早的 [Automatic NUMA Balancing v10,00/49](https://lore.kernel.org/lkml/1354875832-9700-1-git-send-email-mgorman@suse.de) 方案中实现了 fault driven 的进程迁移(Task Placement)和页面迁移(Page Migration)策略的框架.
 
-#### 4.3.3.1 NUMA Balancing Page Migration
+#### 4.3.3.1 基于 NUMA Hinting Fault 的 Page Migration 策略
 -------
 
 但是最初版本只完成了 NUMA Balancin 页面迁移(Page Migration) 的功能.
@@ -897,6 +898,7 @@ Mel 在 2012 年最早的 [Automatic NUMA Balancing v10,00/49](https://lore.kern
 #### 4.3.3.3 pseudo-interleaving(伪交错) 的 NUMA placement 方案(优化页面迁移)
 -------
 
+*   3.15 引入的 pseudo-interleaving
 
 然而, 事实证明, p->numa_migrate_deferred 确实降低了迁移率, 但实际上并没有提高性能. 因此并不显得十分有用(p->numa_migrate_deferred knob is a really big hammer). 因此 v3.15 期间, [删除了 numa_balancing_migrate_deferred](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=52bf84aa206cd2c2516dfa3e03b578edf8a3242f), 转而使用一种更加智能的被称为 pseudo-interleaving(伪交错) 的 NUMA placement 方案. 参见补丁集 [numa,sched,mm: pseudo-interleaving for automatic NUMA balancing v5,0/9](https://lore.kernel.org/all/1390860228-21539-1-git-send-email-riel@redhat.com)
 
@@ -912,22 +914,56 @@ Mel 在 2012 年最早的 [Automatic NUMA Balancing v10,00/49](https://lore.kern
 
 在某些工作负载中, 一些执行清理或者回收工作的进程将访问比执行所有活动工作的线程多几个数量级的内存, 但是他们其实负载很小, 而且并不是业务的关键进程, 在这种情况下, 简单地通过每个线程发生了 NUMA hinting fault 次数直接衡量进程的 NUMA 亲和性是不合适的, 这会导致垃圾收集器所在的节点被标记为组中唯一的活动节点. 因此如果进一步考虑组中每个任务的 CPU 使用情况就可以轻松避免这个问题. 为了实现这一点, 我们[将故障数 numa_faults_cpu 标准化为每个节点上发生的故障的加权分数](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7e2703e6099609adc93679c4d45cd6247f565971), 然后将该分数乘以自上次调用 task_numa_placement 以来任务使用的 CPU 时间分数. 这样, 活动节点掩码中的节点将是 numa 组中任务最活跃运行的节点, 并且那些无关紧要的轻载任务的影响被适当地最小化.
 
+> 随后 v3.19, 开发人员 Iulia Manda 发现使用 numa_faults_memory 和 numa_faults_cpu 的方式管理所有的 NUMA hinting fault 统计量看起来不是那么优雅, commit [("sched: Refactor task_struct to use numa_faults instead of numa_* pointers")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44dba3d5d6a10685fb15bd1954e62016334825e0), 将这些统计量全部统一到 numa_faults 中, 引入了一个枚举 numa_faults_stats 来管理, 通过 task_faults_idx() 来通过下标的方式来直接访问.
 
-随后 v3.19, 开发人员 Iulia Manda 发现使用 numa_faults_memory 和 numa_faults_cpu 的方式管理所有的 NUMA hinting fault 统计量看起来不是那么优雅, commit [("sched: Refactor task_struct to use numa_faults instead of numa_* pointers")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44dba3d5d6a10685fb15bd1954e62016334825e0), 将这些统计量全部统一到 numa_faults 中, 引入了一个枚举 numa_faults_stats 来管理, 通过 task_faults_idx() 来通过下标的方式来直接访问.
+
+*   v3.16 进一步降低 NUMA 页面迁移频率
+
+[sched,numa: reduce page migrations with pseudo-interleaving 0/3](https://lore.kernel.org/all/1397235629-16328-1-git-send-email-riel@redhat.com) 通过减少页面迁移数量来进一步 NUMA Balancing 的开销.
+
+1.  之前只有[本地私有页面访问才被认为是 local 的](https://elixir.bootlin.com/linux/v3.15/source/kernel/sched/fair.c#L1804), 现在对于共享页面, 在 active_nodes 上访问共享页面, 以及对 active_nodes 上共享页面的访问也会[被认为是 local 的](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=792568ec6a31ca560ca4d528782cbc6cd2cea8b0).
+
+2.  当任务还没有被迁移到它的首选节点 numa_preferred_nid  上时, 我们希望[定期进行重试](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6b9a7460b6baf6c77fc3d23d927ddfc3f3f05bf3), 以确保不会将任务的内存迁移到不希望的位置, 最初默认[隔 1S 就会重试](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2739d3eef3a93a92c366a3a0bb85a0afe09e8b8c), 从而后面不得不再次移动它.
+
+*   v4.6 渐进式 active_node 识别
 
 pseudo-interleaving 中 active_nodes 引入的目标是为了让共享页面在进程稳定在经常运行地(比较热)的 NUMA node 上. 通过限制共享内存页面的迁移, 防止共享内存频繁迁移出现颠簸, 或者内存 "困" 在任务几乎不运行的节点上. 但是其[设计的设置和清除 active_nodes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=20e07dea286a90f096a779706861472d296397c6) 的[硬编码的阈值 6/16 和 3/16](https://elixir.bootlin.com/linux/v3.15/source/kernel/sched/fair.c#L1370) 却显得笨拙. 因此为了使工作负载正确聚合, 不应在节点达到阈值时就停止内存迁移, 而应根据每个节点的内存使用量进行分配. 因此 v4.6 commit [4142c3ebb685 ("sched/numa: Spread memory according to CPU and memory use")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4142c3ebb685bb338b7d96090d8f90ff49065ff6) 从 pseudo-interleavin 的实现中删除硬阈值, 而是使用了更渐进的内存放置策略. active_nodes 不再记录活跃节点的 mask, 而是[记录活跃节点的个数](https://elixir.bootlin.com/linux/v4.6/source/kernel/sched/fair.c#L1684). 引入了一个超限阈值 [ACTIVE_NODE_FRACTION](https://elixir.bootlin.com/linux/v4.6/source/kernel/sched/fair.c#L1163), [超过 numa_group 的 max_faults_cpu 总数 1/ACTIVE_NODE_FRACTION](https://elixir.bootlin.com/linux/v4.6/source/kernel/sched/fair.c#L1005) 的 NUMA node 会被认为是 active 的. [从 inactive 的节点到 active 节点的迁移](https://elixir.bootlin.com/linux/v4.6/source/kernel/sched/fair.c#L1162), 同样参考了 ACTIVE_NODE_FRACTION 阈值. 一旦工作负载在几个活跃使用的节点上稳定下来, 我们仍然希望降低 NUMA 扫描和迁移的速度, [因此 active_node 节点之间的迁移保持 3/4 滞后](https://elixir.bootlin.com/linux/v4.6/source/kernel/sched/fair.c#L1174). 通过这种渐进的内存放置策略, 内存迁移和任务迁移相互加强, 而不是一个对另一个施加限制. 跟踪工作负载是否在多个节点上积极运行, 以便 task_numa_migrate() 对系统进行全面扫描, 以便更好地放置任务.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2014/01/27 | Rik van Riel <riel@redhat.com> | [numa,sched,mm: pseudo-interleaving for automatic NUMA balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=be1e4e760d940c14d119bffef5eb007dfdf29046) | NA | v1 ☑ 3.15-rc1 | [LORE v5,0/9](https://lore.kernel.org/all/1390860228-21539-1-git-send-email-riel@redhat.com) |
-| 2014/04/11 | riel@redhat.com <riel@redhat.com> | [sched,numa: reduce page migrations with pseudo-interleaving](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=68d1b02a58f5d9f584c1fb2923ed60ec68cbbd9b) | 1397235629-16328-1-git-send-email-riel@redhat.com | v1 ☑✓ 4.6-rc1 | [LORE v1,0/3](https://lore.kernel.org/all/1397235629-16328-1-git-send-email-riel@redhat.com) |
+| 2014/04/11 | riel@redhat.com <riel@redhat.com> | [sched,numa: reduce page migrations with pseudo-interleaving](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=68d1b02a58f5d9f584c1fb2923ed60ec68cbbd9b) | 1397235629-16328-1-git-send-email-riel@redhat.com | v1 ☑✓ 3.16-rc1 | [LORE v1,0/3](https://lore.kernel.org/all/1397235629-16328-1-git-send-email-riel@redhat.com) |
 | 2014/10/31 | Iulia Manda <iulia.manda21@gmail.com> | [`sched: Refactor task_struct to use numa_faults instead of numa_* pointers`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=44dba3d5d6a10685fb15bd1954e62016334825e0) | 使用 numa_faults 统一管理所有的 NUMA hinting fault 统计量. 引入了一个枚举 numa_faults_stats 来管理, 通过 task_faults_idx() 来通过下标的方式来直接访问. | v1 ☑ 3.19-rc1 | [LORE v5,0/9](https://lore.kernel.org/all/20141031001331.GA30662@winterfell), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44dba3d5d6a10685fb15bd1954e62016334825e0) |
-| 2016/01/25 | Rik van Riel <riel@redhat.com> | [sched,numa,mm: spread memory according to CPU and memory use](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4142c3ebb685bb338b7d96090d8f90ff49065ff6) | 引入 hugetlb cgroup | v1 ☑ 4.6-rc1 | [LORE](https://lore.kernel.org/all/20160125170739.2fc9a641@annuminas.surriel.com) |
+| 2016/01/25 | Rik van Riel <riel@redhat.com> | [sched,numa,mm: spread memory according to CPU and memory use](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4142c3ebb685bb338b7d96090d8f90ff49065ff6) | 不再使用硬阈值 3/16, 6/16 来识别 active_nodes, 引入 ACTIVE_NODE_FRACTION 阈值来判别 active_nodes. 实现了一种更加渐进式的 NUMA 页面迁移策略. | v1 ☑ 4.6-rc1 | [LORE](https://lore.kernel.org/all/20160125170739.2fc9a641@annuminas.surriel.com) |
 
-*   Task Placement 优化
+#### 4.3.3.4 Task Placement 优化
+-------
+
+*   v3.13 把 NUMA Hinting Fault 最多的结点设置为  numa_preferred_nid
+
+[Automatic NUMA Balancing v10,00/49](https://lore.kernel.org/lkml/1354875832-9700-1-git-send-email-mgorman@suse.de) 方案中实现的 task_numa_placement() 却只有框架, 并不包含实际的策略信息. 最终实际的进程迁移(Task Placement) 功能是在 2013 年(linux v3.13) 的时候 [Basic scheduler support for automatic NUMA balancing V9](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2739d3eef3a93a92c366a3a0bb85a0afe09e8b8c) 中完成的. 这个前面已经提及.其中:
+
+commit [688b7585d16a ("sched/numa: Select a preferred node with the most numa hinting faults")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=688b7585d16ab57a17aa4422a3b290b3a55fa679) 将进程 NUMA Hinting Fault 最多的那个 NUMA node 标记为 numa_preferred_nid, 然后将进程迁移过去.
+
+commit [0ec8aa00f2b4 ("sched/numa: Avoid migrating tasks that are placed on their preferred node")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0ec8aa00f2b4dc457836ef4e2662b02483e94fb7) 将调度域和运行队列 NUMA 位置敏感的任务数量和当前在其首选节点上运行的任务数量分类为不同 fbq_type 类型.为了实现这一点, 这个补丁会跟踪首选节点 numa_preferred_nid 的任务数量 rq->nr_preferred_running 和关心其位置的运行任务数量 nr_numa_running. 通过分析这些信息, 只要存在更好的选择, Load Balance 就会[避免频繁或者不恰当的 NUMA 任务迁移](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L6026). 比如, 它[不会考虑在任务都被完美放置的组 all 和任务都被远程放置的组 remote 之间](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L6026)进行平衡.
+
+
+当前分类的类型如下, 参见 [fbq_classify_group()](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L5604) 和 [fbq_classify_rq()](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L5613).
+
+| 类型 | 描述 |
+|:---:|:----:|
+| regular | 有些正在运行的任务并不关心它们的 NUMA 位置. 即 nr_running > nr_numa_running |
+| remote | 有些正在运行的任务关心它们的位置，但当前运行的节点远距它们的理想位置, 即 nr_running == nr_numa_running AND nr_running > nr_preferred_running |
+| all | 没有区别, 任务都被完美地放置在理想的位置. |
+
+
+[sched/numa: Rework best node setting in task_numa_migrate()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=db015daedb56251b73f956f70b3b8813f80d8ee1)
+
+[sched/numa: Set preferred_node based on best_cpu](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8cd45eee43bd46b933158b25aa7c742e0f3e811f)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2014/06/04 | Rik van Riel <riel@redhat.com> | [sched/numa: Always try to migrate to preferred node at task_numa_placement() time](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bb97fc31647539f1f102eed646a95e200160a150) | NA | v1 ☑ 3.17-rc1 | [LORE](https://lore.kernel.org/all/20140604163315.1dbc7b56@cuia.bos.redhat.com) |
 | 2014/06/23 | Rik van Riel <riel@redhat.com> | [sched,numa: improve NUMA convergence times](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a22b4b012340b988dbe7a58461d6fcc582f34aa0) | 通过 `perf bench numa mem -m -0 -P 1000 -p X -t Y` 测试发现, 当前版本 NUMA 调度负载均衡的收敛周期较长, 因此进行了优化. | v1 ☑ 3.17-rc1 | [LORE 0/7](https://lore.kernel.org/all/1403538095-31256-1-git-send-email-riel@redhat.com) |
 | 2014/10/17 |  Rik van Riel <riel@redhat.com> | [sched,numa: weigh nearby nodes for task placement on complex NUMA topologies (v2)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9de05d48711cd5314920ed05f873d84eaf66ccf1) | 1413530994-9732-1-git-send-email-riel@redhat.com | v2 ☑ 3.19-rc1 | [PatchWork v2,0/6](https://lore.kernel.org/all/1413530994-9732-1-git-send-email-riel@redhat.com) |
 | 2018/06/20 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [Fixes for sched/numa_balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b6a60cf36d497e7fbde9dd5b86fabd96850249f6) | NA | v2 ☑ 4.19-rc1 | [LORE v2,00/19](https://lore.kernel.org/all/1529514181-9842-1-git-send-email-srikar@linux.vnet.ibm.com) |
