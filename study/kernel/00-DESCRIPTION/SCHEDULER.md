@@ -961,6 +961,20 @@ commit [0ec8aa00f2b4 ("sched/numa: Avoid migrating tasks that are placed on thei
 
 [sched/numa: Set preferred_node based on best_cpu](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8cd45eee43bd46b933158b25aa7c742e0f3e811f)
 
+*   v3.19 NUMA 拓扑类型感知的 Task Placement 评分机制
+
+v3.19 期间 [sched,numa: weigh nearby nodes for task placement on complex NUMA topologies (v2)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9de05d48711cd5314920ed05f873d84eaf66ccf1) 通过区分不同类型的 NUMA 拓扑结构, 实现更完善的 NUMA 拓扑感知的的 Task Placement 策略, 使得进程倾向于使用临近的 NUMA node. 1. 首先[对系统复杂 NUMA 的拓扑进行了区分和分类](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e3fe70b1f72e3f83a00d9c332ec09ab347a981e2), 分为 NUMA_DIRECT, NUMA_GLUELESS_MESH, NUMA_BACKPLANE 3 种类型的 NUMA 系统.<br>2. 进程对不同的节点会有不同的评分, 引入 [score_nearby_nodes()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6c6b1193e71fed1a58dc3fab9d967d245177f87b) 节点评分, 计算 task_weight() 和 group_weight() 的时候, 会考虑 NUMA 节点的评分, 以允许工作负载汇聚到彼此相邻的节点上.<br>3. 对于有共享页面的进程(处于 numa_group 中) [实现 preferred_group_nid()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=54009416ac3b5f219c0df68559ce534287ae97b1) 探测其 numa_preferred_nid, 确保了在相邻节点上聚合任务. 不同类型的 NUMA 系统采用了不同的探测算法, NUMA_DIRECT 依旧 numa_faults 最多的 NUMA node, NUMA_GLUELESS_MESH 的系统选择 group_weight(根据节点本身和附近节点上 NUMA hinting faults 数量对节点进行评分) 评分最高的 NUMA node, NUMA_BACKPLANE 情况下则显得复杂一些, 为了查找彼此相邻的 numa_groups 中的任务, 需要向下搜索节点组的层次结构, 递归地搜索得分最高的节点组.
+
+*   numa_preferred_nid 的更新和进程迁移
+
+通常情况下, 总是倾向于将进程迁移到 numa_preferred_nid 上, 如果 numa_preferred_nid 也不能满足要求(比如容量不足), 那么将遍历系统的其他 NODE 去查找更合适的 NUMA node. 迁移最终由 task_numa_migrate 完成, 这个过程中会通过 task_numa_find_cpu() 查找合适的 CPU.
+
+1.  最早的情况, 如果 numa_preferred_nid 上没有剩余的 capacity 来承载当前进程, 则会遍历系统中的其他 NUMA nodes. 参照 [sched/numa: Favor placing a task on the preferred node](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2c8a50aa873a7e1d6cc0913362051ff9912dc6ca) 和 [sched/numa: Fix placement of workloads spread across multiple nodes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e1dda8a797b59d7ec4b17e393152ec3273a552d5).
+
+2.  随后 [Fixes for sched/numa_balancing](https://git.kernel.org/pub/scm/linux/kernel/gi
+t/torvalds/linux.git/log/?id=b6a60cf36d497e7fbde9dd5b86fabd96850249f6) 进行了大量的修复, 不再简单地[通过判断 numa_preferred_nid 容量不足(!numa_has_capacity()), 就阻止任务交换](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2d4056fafa196e1ab4e7161bae4df76f9602d56d). 而是在 task_numa_find_cpu() 中通过进一步的 load_too_imbalanced() 计算迁移和交换的可能性, 并提供了类似于 numa_has_capacity() 的检查. 这样可以轻松地通过 [task_numa_find_cpu() 查找到的 best_cpu 来更新 numa_preferred_nid](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8cd45eee43bd46b933158b25aa7c742e0f3e811f).
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2014/06/04 | Rik van Riel <riel@redhat.com> | [sched/numa: Always try to migrate to preferred node at task_numa_placement() time](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bb97fc31647539f1f102eed646a95e200160a150) | NA | v1 ☑ 3.17-rc1 | [LORE](https://lore.kernel.org/all/20140604163315.1dbc7b56@cuia.bos.redhat.com) |
