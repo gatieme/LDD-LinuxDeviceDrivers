@@ -80,6 +80,9 @@ https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Faster-csum_parti
 
 https://www.phoronix.com/scan.php?page=news_item&px=UDP-IPV6-5P-Optimization
 
+[UDP IPv6 Optimizations Queued Up For Linux 5.18](https://www.phoronix.com/scan.php?page=news_item&px=UDP-IPv6-Opts-5.18)
+
+
 # 3 IO
 -------
 
