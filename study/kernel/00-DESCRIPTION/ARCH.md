@@ -187,7 +187,10 @@ SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/11/02 | Catalin Marinas <catalin.marinas@arm.com> | [Basic recovery for machine checks inside SGX](https://lore.kernel.org/lkml/20201002201931.2826-1-ricardo.neri-calderon@linux.intel.com) | 支持混合微架构的 CPU(Alder Lake CPU) | v11 ☐ | [Patchwork v11,0/7](https://patchwork.kernel.org/project/linux-mm/cover/20211026220050.697075-1-tony.luck@intel.com) |
+| 2020/11/13 | Jarkko Sakkinen <jarkko@kernel.org> | [Intel SGX foundations](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bc4bac2ecef0e47fd5c02f9c6f9585fd477f9beb) | 20201112220135.165028-1-jarkko@kernel.org | v41 ☑✓ 5.11-rc1 | [LORE v41,0/24](https://lore.kernel.org/all/20201112220135.165028-1-jarkko@kernel.org) |
+| 2021/03/19 | Kai Huang <kai.huang@intel.com> | [KVM SGX virtualization support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fe7e948837f312d87853b3fce743795d1ae3715a) | cover.1616136307.git.kai.huang@intel.com | v3 ☑✓ 5.13-rc1 | [LORE v3,0/25](https://lore.kernel.org/all/cover.1616136307.git.kai.huang@intel.com) |
+| 2021/04/12 | Kai Huang <kai.huang@intel.com> | [KVM SGX virtualization support (KVM part)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fe7e948837f312d87853b3fce743795d1ae3715a) | cover.1618196135.git.kai.huang@intel.com | v5 ☑✓ 5.13-rc1 | [LORE v5,0/11](https://lore.kernel.org/all/cover.1618196135.git.kai.huang@intel.com) |
+| 2021/11/02 | Catalin Marinas <catalin.marinas@arm.com> | [Basic recovery for machine checks inside SGX](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=3ad6fd77a2d62e8f4465b429b65805eaf88e1b9e) | 支持混合微架构的 CPU(Alder Lake CPU) | v11 ☑✓ 5.17-rc1 | [Patchwork v11,0/7](https://patchwork.kernel.org/project/linux-mm/cover/20211026220050.697075-1-tony.luck@intel.com) |
 
 ### 1.6.2 CET
 -------
@@ -583,6 +586,8 @@ Arm True Random Number Generator Firmware Interface 1.0 于去年发布, 最终�
 [FIPS-compliant random numbers for the kernel](https://lwn.net/Articles/877607)
 
 [smuellerDD/lrng](https://github.com/smuellerDD/lrng)
+
+[Uniting the Linux random-number devices](https://lwn.net/Articles/884875)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
