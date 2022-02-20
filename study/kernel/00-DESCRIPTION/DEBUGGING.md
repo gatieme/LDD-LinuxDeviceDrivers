@@ -169,6 +169,7 @@ Load Averages 是一项历史悠久的指标, 在 1973 年 8 月的 RFC 546 中�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/08/28 | Johannes Weiner <hannes@cmpxchg.org> | [psi: pressure stall information for CPU, memory, and IO v4](https://lwn.net/Articles/759781) | 引入 PSI 评估系统 CPU, MEMORY, IO 等资源的压力. | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Core_.28various.29) | [LWN](https://lwn.net/Articles/544652), [](https://lkml.org/lkml/2013/2/10/140), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=70ddf637eebe47e61fb2be08a59315581b6d2f38) |
+| 2022/02/19 | Suren Baghdasaryan <surenb@google.com> | [[1/1] mm: count time in drain_all_pages during direct reclaimas memory pressure](https://patchwork.kernel.org/project/linux-mm/patch/20220219174940.2570901-1-surenb@google.com/) |615990 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220219174940.2570901-1-surenb@google.com) |
 
 ## 6 PSI
 -------
