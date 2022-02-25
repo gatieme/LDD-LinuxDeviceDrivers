@@ -1780,7 +1780,7 @@ schedtune 与 uclamp 都是由 ARM 公司的 Patrick Bellasi 主导开发.
 |:----:|:----:|:---:|:------:|:---:|
 | 2016/02/23 | Steve Muckle 等 | [freezer,sched: Rewrite core freezer logic](https://lore.kernel.org/patchwork/cover/1444882) | 重写冻结的核心逻辑, 从而使得 WRT 解冻的表现更加合理. 通过将 PF_FROZEN 替换为 TASK_FROZEN (一种特殊的块状态), 可以确保冻结的任务保持冻结状态, 直到明确解冻, 并且不会像目前可能的那样过早随机唤醒. | v2 | [2021/06/01 RFC](https://lore.kernel.org/patchwork/cover/1439538)<br>*-*-*-*-*-*-*-* <br>[2021/06/01 RFC](https://lore.kernel.org/patchwork/cover/1444882) |
 
-## 7.6 异构
+## 7.7 异构
 -------
 
 
@@ -1820,6 +1820,25 @@ v5.15 合入的 [Add support for 32-bit tasks on asymmetric AArch32 systems](htt
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/07/30 | Will Deacon <will@kernel.org> | [Add support for 32-bit tasks on asymmetric AArch32 systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=702f43872665) | 一些体系结构, 特别是 ARM, 配置了一些 CPU 支持传统的 32 位应用程序, 但是一些 CPU 只支持 64 位. 这组补丁增加了对 32 位程序调度的支持, 这些 32 位的程序只能在支持传统 32 位任务的 CPU 中执行. | v1 ☑ [5.15-rc1](https://kernelnewbies.org/LinuxChanges#Linux_5.15.Support_for_asymmetric_scheduling_affinity) | [PatchWork v11,00/16](https://lore.kernel.org/all/20210730112443.23245-1-will@kernel.org) |
+
+## 7.8 CPU IDLE
+-------
+
+## 7.8.1 TEO
+-------
+
+[The cpuidle subsystem](https://lwn.net/Articles/384146)
+[Improving idle behavior in tickless systems](https://lwn.net/Articles/775618)
+[The weighted TEO cpuidle governor](https://lwn.net/Articles/820432)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2020/05/11 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [Alternate history mechanism for the TEO governor](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) | 20200511141055.43029-2-psampat@linux.ibm.com | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) |
+| 2019/08/05 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [cpuidle: teo: Allow tick to be stopped if PM QoS is used](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cab09f3d2d2a0a6cb3dfb678660d67a2c3764f50) | NA| v1 ☑✓ | [LORE v1,0/2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cab09f3d2d2a0a6cb3dfb678660d67a2c3764f50) |
+| 2021/08/03 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [cpuidle: teo: Fix alternative idle state lookup](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4adae7dd10db10f20f51833dc11b3cf7a342ad38) | NA| v1 ☑✓ 5.14-rc5 | [LORE v1,0/2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4adae7dd10db10f20f51833dc11b3cf7a342ad38) |
+| 2021/06/02 | Rafael J. Wysocki <rjw@rjwysocki.net> | [cpuidle: teo: Rework the idle state selection logic](https://lore.kernel.org/all/1867445.PYKUYFuaPT@kreacher) | 1867445.PYKUYFuaPT@kreacher | v1 ☐☑✓ 5.14-rc1 | [LORE v1,0/5](https://lore.kernel.org/all/1867445.PYKUYFuaPT@kreacher) |
+| 2021/04/07 | Rafael J. Wysocki <rjw@rjwysocki.net> | [cpuidle: Take possible negative "sleep length" values into account](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=060e3535adf5c961b01421b9fdaddab8dd43ba85) | 1867445.PYKUYFuaPT@kreacher | v1 ☐☑✓ 5.13-rc1 | [LORE v1,0/5](https://lkml.org/lkml/2021/3/29/1834) |
+| 2020/05/11 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [Alternate history mechanism for the TEO governor](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) | 20200511141055.43029-2-psampat@linux.ibm.com | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) |
 
 
 # 8 实时性 linux PREEMPT_RT

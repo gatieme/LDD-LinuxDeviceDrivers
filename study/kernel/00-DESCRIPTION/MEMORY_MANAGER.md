@@ -4527,6 +4527,10 @@ ZONE_MOVABLE 的作用:
 
 >一般来说, 可迁移的页面不一定都在 ZONE_MOVABLE 中, 但是 ZONE_MOVABLE 中的页面必须尽可能都是可迁移的.
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2007/07/17 |  Mel Gorman <mel@csn.ul.ie> | [Create the ZONE_MOVABLE zone](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7e63efef857575320fb413fbc3d0ee704b72845f) | 614354 | v1 ☑ 2.6.23-rc1 | [CGIT v1,0/5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7e63efef857575320fb413fbc3d0ee704b72845f) |
+
 
 ### 14.13.1 ZONE_MOVABLE
 -------
