@@ -23,6 +23,7 @@ https://www.infoworld.com/article/2851028/four-ways-linux-is-headed-for-no-downt
 
 第 1 节内容参照 [History of Linux Kernel Live Patching](https://www.howtoforge.com/history-of-linux-kernel-live-patching)
 
+Google 设计了一套新的用户空间实时补丁创建工具, [LLpatch](https://github.com/google/LLpatch), 基于 llvm-diff 生成 LLVM-IR 完成 ELF 分析和操作, 因此不需要感知特性架构的二进制差异行为. 参见 [announcing LLpatch: arch-independent live-patch creation](https://lore.kernel.org/live-patching/CABFpvm2o+d0e-dfmCx7H6=8i3QQS_xyGFt4i3zn8G=Myr_miag@mail.gmail.com).
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |

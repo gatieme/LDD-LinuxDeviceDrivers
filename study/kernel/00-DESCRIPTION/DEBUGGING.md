@@ -530,6 +530,16 @@ https://patchwork.kernel.org/project/linux-trace-devel/list/?submitter=200911&st
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/11/09 | Sai Prakash Ranjan <quic_saipraka@quicinc.com> | [tracing/rwmmio/arm64: Add support to trace register reads/writes](https://patchwork.kernel.org/project/linux-arm-kernel/cover/cover.1636452784.git.quic_saipraka@quicinc.com) | MMIO register read/write tracing. | v3 ☐ | [Patchwork v3,0/3](https://patchwork.kernel.org/project/linux-arm-kernel/cover/cover.1636452784.git.quic_saipraka@quicinc.com) |
 
+## 14.7 ftrace_direct
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/11/8 | Steven Rostedt | [ftrace: Add register_ftrace_direct()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a3ad1a7e39689005cb04a4f2adb82f9d55b4724f) | 1615872606-56087-1-git-send-email-aubrey.li@intel.com | v1 ☑✓ 5.5-rc1 | [LORE 00/10](https://lkml.org/lkml/headers/2019/11/8/1675) |
+| 2019/08/27 | Peter Zijlstra <peterz@infradead.org> | [Rewrite x86/ftrace to use text_poke()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=768ae4406a5cab7e8702550f2446dbeb377b798d) | 615872606-56087-1-git-send-email-aubrey.li@intel.com | v3 ☑✓ 5.6-rc1 | [LORE v3,0/3](https://lore.kernel.org/all/20190827180622.159326993@infradead.org) |
+| 2021/06/05 | Jiri Olsa <jolsa@kernel.org> | [x86/ftrace/bpf: Add batch support for direct/tracing attach](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a3ad1a7e39689005cb04a4f2adb82f9d55b4724f) | 1615872606-56087-1-git-send-email-aubrey.li@intel.com | RRC,v3 ☐ | [LORE RRC,v3,00/19](https://lkml.kernel.org/netdev/20210605111034.1810858-1-jolsa@kernel.org) |
+| 2021/10/8 | Jiri Olsa <jolsa@kernel.org> | [x86/ftrace: Add direct batch interface](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=5fae941b9a6f95773df644e7cf304bf199707876) | 1615872606-56087-1-git-send-email-aubrey.li@intel.com | v2 ☑✓ 5.16-rc1 | [LKML v2,0/8](https://lkml.org/lkml/2021/10/8/186), [LORE v2,0/8](https://lore.kernel.org/all/20211008091336.33616-1-jolsa@kernel.org) |
+
 # 15 kptr_restrict
 -------
 

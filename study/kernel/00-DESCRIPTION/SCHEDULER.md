@@ -1475,6 +1475,8 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 
 [Linux 5.18 Scheduler Change To Further Boost AMD EPYC Performance For Some Workloads](https://www.phoronix.com/scan.php?page=news_item&px=AMD-Linux-5.18-Sched-Zen-LLC)
 
+[Benchmarking The AMD EPYC Speed Boost Coming To Linux 5.18, Thanks To Scheduler/NUMA Improvement](https://www.phoronix.com/scan.php?page=article&item=linux-imbalance-epyc&num=1) 中在 AMD EPYC 上进行了性能测试.
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:----:|:---:|:----------:|:---:|
 | 2021/12/01 | Mel Gorman <mgorman@techsingularity.net> | [Adjust NUMA imbalance for multiple LLCs](https://lore.kernel.org/lkml/20211201151844.20488-1-mgorman@techsingularity.net) | [commit 7d2b5dd0bcc4 ("sched/numa: Allow a floating imbalance between NUMA nodes")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7d2b5dd0bcc4) 允许 NUMA 节点之间的不平衡, 这样通信任务不会被 load balance 分开. 当 LLC 和 node 之间有 1:1 的关系时, 这种方法可以很好地工作, 但是对于多个 LLC, 如果独立的任务过早地使用 CPU 共享缓存, 这种方法就不太理想了. 本系列解决了两个问题:<br>1. 调度程序域权重的使用不一致, 以及当每个 NUMA 节点有许多 LLC 时性能不佳. NUMA之间允许的不均衡的进程数目不再是一个固定的值 NUMA_IMBALANCE_MIN(2), 而是在 build_sched_domains() 中实际探测 NUMA 域下辖的 LLC 的数目, 作为 sd->imb_numa_nr. | v4 ☐ | [PatchWork v3,0/2](https://lore.kernel.org/lkml/20211201151844.20488-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/2](https://lore.kernel.org/lkml/20211210093307.31701-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/2](https://lore.kernel.org/all/20220208094334.16379-1-mgorman@techsingularity.net) |
@@ -1771,6 +1773,12 @@ schedtune 与 uclamp 都是由 ARM 公司的 Patrick Bellasi 主导开发.
 | boost 设定 | 基于 SPC 算法, tunning 比较困难 | 直接限定 [min_util, max_util] 的阈值, 简单明了 |
 | 低时延设定 | 通过 prefer-idle 设置 | 通过 latency_sensitive 设定 |
 | RT TASK |  NA | 支持 |
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2019/06/21 | Patrick Bellasi <patrick.bellasi@arm.com> | [Add utilization clamping support](https://lore.kernel.org/all/20190621084217.8167-1-patrick.bellasi@arm.com) | 20190621084217.8167-1-patrick.bellasi@arm.com | v10 ☐☑✓ | [LORE v10,0/16](https://lore.kernel.org/all/20190621084217.8167-1-patrick.bellasi@arm.com) |
+| 2019/08/22 | Patrick Bellasi <patrick.bellasi@arm.com> | [Add utilization clamping support (CGroups API)](https://lore.kernel.org/all/20190822132811.31294-1-patrick.bellasi@arm.com) | 20190822132811.31294-1-patrick.bellasi@arm.com | v14 ☐☑✓ | [LORE v14,0/6](https://lore.kernel.org/all/20190822132811.31294-1-patrick.bellasi@arm.com) |
+
 
 
 ## 7.6 freezer 冻结
