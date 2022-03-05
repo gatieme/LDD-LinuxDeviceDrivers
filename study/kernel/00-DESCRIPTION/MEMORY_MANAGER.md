@@ -500,6 +500,7 @@ memblock 的内存占用是非常小的, 它采用静态数组的方式, 数组�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/01/27 | Karolina Drobnik <karolinadrobnik@gmail.com> | [Introduce memblock simulator](https://patchwork.kernel.org/project/linux-mm/cover/cover.1643206612.git.karolinadrobnik@gmail.com/) | Memblock 是一个启动时内存分配器, 允许在实际内存管理初始化之前管理内存区域. 因为它在引导过程中使用得太早, 所以测试和调试非常困难. 由于 memblock 没有多少内核依赖项, 因此在删除几个结构和函数后, 可以在用户空间中模拟其运行时行为. 这一系列补丁为 memblock 添加了测试套件的初始版本, 它是 tools/testing 的一部分, 包含了检查测试 memblock 的基本功能, 即内存区域管理添加/删除可用区域, 将其标记为保留或释放. | v1 ☐ | [PatchWork v1,0/16](https://lore.kernel.org/r/cover.1643206612.git.karolinadrobnik@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/16](https://lore.kernel.org/r/cover.1643796665.git.karolinadrobnik@gmail.com) |
+| 2022/02/28 | Karolina Drobnik <karolinadrobnik@gmail.com> | [Add tests for memblock allocation functions](https://patchwork.kernel.org/project/linux-mm/cover/cover.1646055639.git.karolinadrobnik@gmail.com/) | 618775 | v1 ☐☑ | [LORE v1,0/9](https://lore.kernel.org/r/cover.1646055639.git.karolinadrobnik@gmail.com) |
 
 
 ## 2.2 页分配器: 伙伴分配器[<sup>12<sup>](#ref-anchor-12)
@@ -1963,7 +1964,7 @@ Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 p
 | 2010/09/15 | Mel Gorman <mel@csn.ul.ie> | [Reduce latencies and improve overall reclaim efficiency v2](https://lore.kernel.org/patchwork/cover/215977) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/215977) |
 | 2010/10/28 | Mel Gorman <mel@csn.ul.ie> | [Reduce the amount of time spent in watermark-related functions V4](https://lore.kernel.org/patchwork/cover/222014) | NA | v4 ☐ | [PatchWork v4](https://lore.kernel.org/patchwork/cover/222014) |
 | 2010/07/30 | Mel Gorman <mel@csn.ul.ie> | [Reduce writeback from page reclaim context V6](https://lore.kernel.org/patchwork/cover/209074) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/209074) |
-| 2021/12/20 | Muchun Song <songmuchun@bytedance.com> | [Optimize list lru memory consumption](https://lore.kernel.org/patchwork/cover/1436887) | 优化列表lru内存消耗<br> | v3 ☐ | [2021/05/27 PatchWork v2,00/21](https://patchwork.kernel.org/project/linux-mm/cover/20210527062148.9361-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/14 PatchWork v3,00/76](https://patchwork.kernel.org/project/linux-mm/cover/20210914072938.6440-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/13 PatchWork v4,00/17](https://patchwork.kernel.org/project/linux-mm/cover/20211213165342.74704-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/20 PatchWork v5,00/16](https://patchwork.kernel.org/project/linux-mm/cover/20211220085649.8196-1-songmuchun@bytedance.com) |
+| 2021/12/20 | Muchun Song <songmuchun@bytedance.com> | [Optimize list lru memory consumption](https://lore.kernel.org/patchwork/cover/1436887) | 优化列表lru内存消耗<br> | v3 ☐ | [2021/05/27 PatchWork v2,00/21](https://patchwork.kernel.org/project/linux-mm/cover/20210527062148.9361-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/14 PatchWork v3,00/76](https://patchwork.kernel.org/project/linux-mm/cover/20210914072938.6440-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/13 PatchWork v4,00/17](https://patchwork.kernel.org/project/linux-mm/cover/20211213165342.74704-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/20 PatchWork v5,00/16](https://patchwork.kernel.org/project/linux-mm/cover/20211220085649.8196-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/16](https://lore.kernel.org/r/20220228122126.37293-1-songmuchun@bytedance.com) |
 
 
 ### 4.2.11 其他页面替换算法
@@ -2890,6 +2891,8 @@ khugepaged 中如果发现当前连续的映射区间内有[超过 `khugepaged_m
 | 2015/01/29 | Ebru Akagunduz <ebru.akagunduz@gmail.com> | [mm: incorporate read-only pages into transparent huge pages](https://lore.kernel.org/patchwork/cover/538503) | 允许 THP 转换只读 pte, 就像 do_swap_page 在读取错误后留下的那些pte. 当在 2MB 范围内存在最多数量为 `khugepaged_max_ptes_none` 的 pte_none ptes 时, THP可以将4kB的页面压缩为一个 THP. 这个补丁增加了对只读页面的大页支持. 该补丁使用一个程序进行测试, 该程序分配了800MB的内存, 对其进行写入, 然后休眠. 迫使系统通过触摸其他内存来交换除190MB外的所有程序. 然后, 测试程序对其内存进行混合的读写操作, 并将内存交换回来. 没有补丁的情况下, 只有没有被换出的内存保留在 THP 中, 这相当于程序内存的 24%, 这个百分比并没有随着时间的推移而增加. 有了这个补丁, 经过 5分钟的等待, khugepageage 将 60% 的程序内存还原为 THP. | v4 ☑ [4.0-rc1](https://kernelnewbies.org/Linux_4.0#Memory_management) | [PatchWork v4](https://lore.kernel.org/patchwork/cover/538503), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10359213d05acf804558bda7cc9b8422a828d1cd) |
 | 2015/04/14 | Ebru Akagunduz <ebru.akagunduz@gmail.com> | [mm: incorporate zero pages into transparent huge pages](https://lore.kernel.org/patchwork/cover/541944) | 通过大页允许零页面, 该补丁提高了 THP 的大页转换率. 目前, 当在 2MB 范围内存在最多数量为 khugepaged_max_ptes_none 的 pte_none ptes 时, THP可以将4kB的页面压缩为一个 THP. 这个补丁支持了将零页映射为大页. 该补丁使用一个程序进行测试, 该程序分配了800MB的内存, 并执行交错读写操作, 其模式导致大约2MB的区域首先看到读访问, 从而导致影射了较多的零 pfn 映射. 没有补丁的情况下, 只有 50% 的程序被压缩成THP, 并且百分比不会随着时间的推移而增加. 有了这个补丁, 等待10分钟后, khugepage 转换了 99% 的程序内存.  | v2 ☑ [4.1-rc1](https://kernelnewbies.org/Linux_4.1#Memory_management) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/541944), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ca0984caa8235762dc4e22c1c47ae6719dcc4064) |
 | 2015/09/14 | Ebru Akagunduz <ebru.akagunduz@gmail.com> | [mm: make swapin readahead to gain more THP performance](https://lore.kernel.org/patchwork/cover/597392) | 支持在对匿名页 swapin 的时候 readahead 及逆行大页的转换.<br>当 khugepaged 扫描页面时, 交换区中可能有一些页面. 有了这个补丁, 当 2MB 范围内 swap_ptes 的数目达到 max_ptes_swap 时, THP 可以将 4kB 页面转换成一个 THP 的大页.<br>这个补丁用来处理那些在被调出内存后访问大部分(但不是全部)内存的程序的. 补丁合入后, 这些程序不会在内存换出(swapout)后将内存转换成到 THPs 中, 而会在内存从交换分区读入(swapin)时进行转换.<br>测试使用了用一个测试程序, 该程序分配了 400B 的内存, 写入内存, 然后休眠. 然后强制将所有页面都换出. 之后, 测试程序通过对该内存区域进行写曹祖, 但是它在该区域的每 20 页中跳过一页.<br>1. 如果没有补丁, 系统就不能在 readahead 中交换. THP率为程序内存的65%, 不随时间变化.<br>2. 有了这个补丁, 经过10分钟的等待, khugepaged已经崩溃了程序99%的内存. | v2 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork RFC,v5,0/3](https://lore.kernel.org/patchwork/cover/597392)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v5,0/3](https://lore.kernel.org/lkml/1442259105-4420-1-git-send-email-ebru.akagunduz@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2015/9/14/610) |
+| 2022/02/28 | Yang Shi <shy828301@gmail.com> | [Make khugepaged collapse readonly FS THP more consistent](https://patchwork.kernel.org/project/linux-mm/cover/20220228235741.102941-1-shy828301@gmail.com/) | 618921 | v1 ☐☑ | [LORE v1,0/8](https://lore.kernel.org/r/20220228235741.102941-1-shy828301@gmail.com) |
+
 
 ### 7.2.5 THP splitting/reclaim/migration
 -------
@@ -3206,10 +3209,10 @@ khugepaged 处理流程
 | 2022/02/18 | Jakub Matěna <matenajakub@gmail.com> | [Removing limitations of merging anonymous VMAs](https://patchwork.kernel.org/project/linux-mm/cover/20220218122019.130274-1-matenajakub@gmail.com/) | 615764 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20220218122019.130274-1-matenajakub@gmail.com) |
 
 
-## 8.2 Mapping
+## 8.2 Page Fault
 -------
 
-### 8.2.1 COW
+### 8.2.1 COW(写时拷贝)
 -------
 
 在 fork 进程的时候, 并不会为子进程直接分配物理页面, 而是使用 COW 的机制. 在 fork 之后, 父子进程都共享原来父进程的页面, 同时将父子进程的 COW mapping 都设置为只读. 这样当这两个进程触发写操作的时候, 触发缺页中断, 在处理缺页的过程中再为该进程分配出一个新的页面出来.
@@ -3226,6 +3229,17 @@ copy_mm
                         -=> copy_one_pte
                             -=> ptep_set_wrprotect
 ```
+
+### 8.2.1.1 匿名页的写时拷贝
+
+
+
+### 8.2.2.2 文件页的写时拷贝
+-------
+
+
+### 8.2.2.3 写时拷贝的问题
+-------
 
 
 Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty COW and clean commit messages](https://lwn.net/Articles/704231). 也让内核开发者开始关注 COW 机制可能引起的安全问题.
@@ -3814,11 +3828,22 @@ ZRAM 是一个在内存中的块设备(块设备相对于字符设备而言, 信
 
 FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). ZSWAP 的做法其实也是尝试把内核交换出去的页面压缩存放到一个内存池子中. 当然, ZSWAP 空间也是有限的. 但同 ZRAM 不同的是, ZSWAP 会智能地把其中一些它认为近期不会使用的页面解压缩, 写回到真正的磁盘外设中. 因此, 大部分情况下, 它能避免磁盘写操作, 这比 ZRAM 不知高明到哪去了.
 
-
+### 11.2.3.1 ZSWAP
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/08/19 | Johannes Weiner <hannes@cmpxchg.org> | [mm: Kconfig: simplify zswap configuration](https://lore.kernel.org/patchwork/patch/1479229) | 重构 CONFIG_ZSWAP. | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1479229) |
+
+
+### 11.2.3.2 ZTREE
+-------
+
+| 时间   | 作者  | 特性 | 描述  |  是否合入主线  | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2022/02/28 | Ananda <a.badmaev@clicknet.pro> | [[PATCH/RESEND] mm: add ztree - new allocator for use via zpool API](https://patchwork.kernel.org/project/linux-mm/patch/20220228110546.151513-1-a.badmaev@clicknet.pro/) | 用于压缩页面的专用分配器 Ztree. 在大多数情况下, Ztree 提供了快速写入、有限的最坏情况操作时间和良好的压缩比.<br>每个 Ztree 块存储整数个压缩对象. 这些块由几个物理页面(从1到8)组成, 并使用红黑树用于高效的区块组织.<br>从 0 到 PAGE_SIZE 的范围被划分为与树的数量相对应的区间数, 每棵树只操作其区间中的大小对象.<br>1. 块树彼此隔离, 这使得同时对来自不同树的多个对象执行操作成为可能. 块可以密集地排列各种大小的对象, 从而降低内部碎片.<br>2. 此外, 这个分配器试图填充不完整的块, 而不是添加新的块, 因此在许多情况下, 它提供的压缩比大大高于 z3fold 和 zbud.<br>3. 除了更大的灵活性, Ztree 在最糟糕的执行时间方面明显优于其他 ZPOOL 后端, 从而允许更好的响应. | v1 ☐☑ |[LORE v1,0/1](https://lore.kernel.org/r/20220228110546.151513-1-a.badmaev@clicknet.pro)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20220301092503.44444-1-a.badmaev@clicknet.pro) |
+
+
 
 
 ## 11.3 一些细节
@@ -4255,7 +4280,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2022/02/15 | SeongJae Park <sj@kernel.org> | [Allow DAMON user code independent of monitoring primitives](https://patchwork.kernel.org/project/linux-mm/cover/20220215184603.1479-1-sj@kernel.org/) | 614655 | v1 ☐☑ | [PatchWork v1,0/8](https://lore.kernel.org/r/20220215184603.1479-1-sj@kernel.org) |
 | 2022/02/16 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon: Add NUMA access statistics function support](https://patchwork.kernel.org/project/linux-mm/cover/cover.1645024354.git.xhao@linux.alibaba.com/) | 614856 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/cover.1645024354.git.xhao@linux.alibaba.com) |
 | 2022/02/17 | SeongJae Park <sj@kernel.org> | [Introduce DAMON sysfs interface](https://patchwork.kernel.org/project/linux-mm/cover/20220217161938.8874-1-sj@kernel.org/) | 615483 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20220217161938.8874-1-sj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE, v1,00/12](https://patchwork.kernel.org/project/linux-mm/cover/20220223152051.22936-1-sj@kernel.org) |
-| 2022/02/18 | Jonghyeon Kim <tome01@ajou.ac.kr> | [Rebase DAMON_RECALIM for NUMA system](https://patchwork.kernel.org/project/linux-mm/cover/20220218102611.31895-1-tome01@ajou.ac.kr/) | 615730 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20220218102611.31895-1-tome01@ajou.ac.kr) |
+| 2022/02/18 | Jonghyeon Kim <tome01@ajou.ac.kr> | [Rebase DAMON_RECALIM for NUMA system](https://patchwork.kernel.org/project/linux-mm/cover/20220218102611.31895-1-tome01@ajou.ac.kr/) | 615730 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20220218102611.31895-1-tome01@ajou.ac.kr)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/13](https://lore.kernel.org/r/20220228081314.5770-1-sj@kernel.org) |
 
 
 ### 13.4.5 vmstat
