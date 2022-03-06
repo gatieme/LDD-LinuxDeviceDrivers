@@ -2925,11 +2925,11 @@ khugepaged 中如果发现当前连续的映射区间内有[超过 `khugepaged_m
 
 首先是 HZP(huge zero page) 零页的支持.
 
-https://linux-mm.kvack.narkive.com/Jrwys6ZE/huge-zero-page-vs-foll-dump
+[huge zero page vs FOLL_DUMP](https://linux-mm.kvack.narkive.com/Jrwys6ZE/huge-zero-page-vs-foll-dump)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2012/12/15 | Nitin Gupta <nitin.m.gupta@oracle.com> | [Introduce huge zero page](https://lwn.net/Articles/517465) | 在测试期间, 我注意到如果启用 THP, 某些工作负载(例如 NPB 的 ft.A)的内存消耗开销很大(高达2.5倍). 造成这种巨大差异的主要原因是 THP 的情况下缺少零页面. 即使是读操作触发的 page-fault 也必须分配一个真正的页. 该补丁集通过引入巨页的零页面(hzp) 来解决这个问题, HZP 是一个不可移动的巨页(x86-64上的2M), 里面都是零.<br>1. 如果是读 fault 且 fault 的地址周围的区域适合使用 THP, 则在 do_huge_pmd_anonymous_page() 中设置它.<br>2. 如果设置 hzp (ENOMEM)失败, 就回退到 handle_pte_fault(), 正常分配 THP.<br>3. 在对 hzp 的进行写操作触发 wp 时, 则为 THP 分配实际页面.<br>4. 如果是 ENOMEM, 则有一个优雅的回退: 创建一个新的 pmd 表, 并围绕故障地址将 pte 设置为新分配的正常(4k)页面. pmd中的所有其他 pte 设置为正常零页.<br>5. 当前不能分割 hzp, 但可以分割指向它的 pmd. 在分割 pmd 时, 创建了一个所有 ptes 设置为普通零页的表. | v6 ☑ 3.8-rc1 | [PatchWork v6,00/12](https://lore.kernel.org/patchwork/cover/340989) |
+| 2012/12/15 | Nitin Gupta <nitin.m.gupta@oracle.com> | [Introduce huge zero page](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=79da5407eeadc740fbf4b45d6df7d7f8e6adaf2c) | 参见 [Adding a huge zero page](https://lwn.net/Articles/517465). 在测试期间, 我注意到如果启用 THP, 某些工作负载(例如 NPB 的 ft.A)的内存消耗开销很大(高达2.5倍). 造成这种巨大差异的主要原因是 THP 的情况下缺少零页面. 即使是读操作触发的 page-fault 也必须分配一个真正的页. 该补丁集通过引入巨页的零页面(hzp) 来解决这个问题, HZP 是一个不可移动的巨页(x86-64上的2M), 里面都是零.<br>1. 如果是读 fault 且 fault 的地址周围的区域适合使用 THP, 则在 do_huge_pmd_anonymous_page() 中设置它.<br>2. 如果设置 hzp (ENOMEM)失败, 就回退到 handle_pte_fault(), 正常分配 THP.<br>3. 在对 hzp 的进行写操作触发 wp 时, 则为 THP 分配实际页面.<br>4. 如果是 ENOMEM, 则有一个优雅的回退: 创建一个新的 pmd 表, 并围绕故障地址将 pte 设置为新分配的正常(4k)页面. pmd中的所有其他 pte 设置为正常零页.<br>5. 当前不能分割 hzp, 但可以分割指向它的 pmd. 在分割 pmd 时, 创建了一个所有 ptes 设置为普通零页的表. | v6 ☑ 3.8-rc1 | [PatchWork v6,00/12](https://lore.kernel.org/lkml/1353007622-18393-1-git-send-email-kirill.shutemov@linux.intel.com) |
 
 
 当前, 如果启用THP的策略为 "always", 或模式为 "madvise" 且某个区域标记为 MADV_HUGEPAGE 时, 内核都会优先分配大页, 而即使 pud 或 pmd 为空. 这会产生最佳的 VA 翻译性能, 减少 TLB 冲突, 但是却增加了内存的消耗. 特别是但如果仅仅访问一些分散地零碎的小页面范围, 却仍然分配了大页, 造成了内存的浪费.
@@ -3212,7 +3212,28 @@ khugepaged 处理流程
 ## 8.2 Page Fault
 -------
 
-### 8.2.1 COW(写时拷贝)
+[linux那些事之gup_flags](https://cdmana.com/2022/01/202201220412175766.html)
+
+| handler | 描述 |
+|:-------:|:---:|
+| do_anonymous_page | 处理匿名页 |
+| do_fault | 处理文件页 |
+| do_swap_page | |
+| do_numa_page |
+
+### 8.2.1 零页
+-------
+
+|  时间  | 作者 | 特性  | 描述  |  是否合入主线  | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2007/10/16 | Nick Piggin <npiggin@suse.de> | [remove ZERO_PAGE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=557ed1fa2620dc119adb86b34c614e152a629a80) | TODO | v1 ☑✓ 2.6.24-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=557ed1fa2620dc119adb86b34c614e152a629a80) |
+| 2008/06/20 | Linus Torvalds <torvalds@linux-foundation.org> | [Reinstate ZERO_PAGE optimization in 'get_user_pages()' and fix XIP](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=89f5b7da2a6bad2e84670422ab8192382a5aeb9f) | TODO | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=89f5b7da2a6bad2e84670422ab8192382a5aeb9f) |
+| 2008/06/23 | Linus Torvalds <torvalds@linux-foundation.org> | [Fix ZERO_PAGE breakage with vmware](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=672ca28e300c17bf8d792a2a7a8631193e580c74) | TODO | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=672ca28e300c17bf8d792a2a7a8631193e580c74) |
+| 2009/09/21 | Hugh Dickins <hugh.dickins@tiscali.co.uk> | [mm: reinstate ZERO_PAGE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=03f6462a3ae78f36eb1f0ee8b4d5ae2f7859c1d5) | 主要清理 get_user_pages() 标志, 但修复 munlock 的 OOM, 整理 "FOLL_ANON 优化", 并恢复零页面. <br>KAMEZAWA Hiroyuki 观察到早期内核的使能了 ZERO_PAGE, 但是引起了诸多错误, 因而在 2.6.24 时禁止了 do_anonymous_page() 中使用. 这组补丁恢复了 do_anonymous_page() 使用 ZERO_PAGE; 但是这一次不要用(map)计数更新来破坏它的结构页 cacheline. 让 vm_normal_page() 将其视为异常. | v1 ☑✓ 2.6.32-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=03f6462a3ae78f36eb1f0ee8b4d5ae2f7859c1d5) |
+
+
+
+### 8.2.2 COW(写时拷贝)
 -------
 
 在 fork 进程的时候, 并不会为子进程直接分配物理页面, 而是使用 COW 的机制. 在 fork 之后, 父子进程都共享原来父进程的页面, 同时将父子进程的 COW mapping 都设置为只读. 这样当这两个进程触发写操作的时候, 触发缺页中断, 在处理缺页的过程中再为该进程分配出一个新的页面出来.
@@ -3230,7 +3251,7 @@ copy_mm
                             -=> ptep_set_wrprotect
 ```
 
-### 8.2.1.1 匿名页的写时拷贝
+### 8.2.2.1 匿名页的写时拷贝
 
 
 
