@@ -1580,11 +1580,15 @@ Rik van Riel, Lee Schermerhorn, Kosaki Motohiro 等众多的开发者设计了�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| NA | Daniel Phillips | [generic use-once optimization instead of drop-behind check_used_once](https://github.com/gatieme/linux-history/commit/6fbaac38b85e4bd3936b882392e3a9b45e8acb46) | NA | v2.4.7 -> v2.4.7.1 | NA |
-| NA | Linus Torvalds <torvalds@athlon.transmeta.com> | [me: be sane about page reference bits](https://github.com/gatieme/linux-history/commit/c37fa164f793735b32aa3f53154ff1a7659e6442) | check_used_once -=> mark_page_accessed | v2.4.9.9 -> v2.4.9.10 | NA |
+| 2002/02/04 | Daniel Phillips | [generic use-once optimization instead of drop-behind check_used_once](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/diff/mm/filemap.c?id=6fbaac38b85e4bd3936b882392e3a9b45e8acb46) | TODO v2.4.7 -> v2.4.7.1 | v1 ☑✓ 2.5.0 | [HISTORY COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/diff/mm/filemap.c?id=6fbaac38b85e4bd3936b882392e3a9b45e8acb46) |
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [me: be sane about page reference bits](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/diff/mm/filemap.c?id=c37fa164f793735b32aa3f53154ff1a7659e6442) | v2.4.9.9 -> v2.4.9.10 实现了 mark_page_accessed() | v1 ☑✓ 2.5.0 | [HISTORY COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/diff/mm/filemap.c?id=c37fa164f793735b32aa3f53154ff1a7659e6442) |
+| 2002/10/31 | Andrew Morton <akpm@digeo.com> | [[PATCH] lru_add_active(): for starting pages on the active list](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=228c3d15a7020c3587a2c356657099c73f9eb76b) | 引入了 PER CPU 的 pagevec lru_add_pvecs 和 lru_add_active_pvecs. | v1 ☑✓ 2.5.46 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=228c3d15a7020c3587a2c356657099c73f9eb76b) |
 | 2014/05/13 | Mel Gorman <mgorman@suse.de> | [Misc page alloc, shmem, mark_page_accessed and page_waitqueue optimisations v3r33](https://lore.kernel.org/patchwork/cover/464309) | 在页缓存分配期间非原子标记页访问方案, 为了解决 dd to tmpfs 的性能退化问题. 问题的主要原因是Kconfig的不同, 但是 Mel 找到了 tmpfs、mark_page_accessible 和  page_alloc 中不必要的开销. | v3 ☑ [3.16-rc1](https://kernelnewbies.org/Linux_3.16#Memory_management) | [PatchWork v3](https://lore.kernel.org/patchwork/cover/464309) |
 
-### 4.2.3 锁优化
+### 4.2.3 pagevec 批处理
+-------
+
+#### 4.2.3.1 引入 pagevec 缓解 pagemap_lru_lock 锁竞争
 -------
 
 *   通过 pagevec 缓存来缓解 pagemap_lru_lock 锁竞争
@@ -1599,6 +1603,11 @@ Rik van Riel, Lee Schermerhorn, Kosaki Motohiro 等众多的开发者设计了�
 这项工作的一个后果是, 我们在持有 pagemap_lru_lock 时从不使用任何其他锁. 因此, 这个锁从概念上从 VM 锁定层次结构中消失了.
 
 所以. 这基本上都是为了提高内核可伸缩性而进行的代码调整. 它通过优化现有的设计来实现, 而不是重新设计. VM 的工作原理几乎没有概念上的改变.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2002/08/14 | Andrew Morton <akpm@zip.com.au> | [deferred and batched addition of pages to the LRU](hhttps://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44260240ce0d1e19e84138ac775811574a9e1326) | TODO | v1 ☑✓ 2.5.32 | [HISTORY COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44260240ce0d1e19e84138ac775811574a9e1326) |
+
 
 ```cpp
 44260240ce0 [PATCH] deferred and batched addition of pages to the LRU
@@ -1623,9 +1632,16 @@ aaba9265318 [PATCH] make pagemap_lru_lock irq-safe
 | 7 | 2002/08/14 | Andrew Morton <akpm@zip.com.au> | [eed29d66442 ("pagemap_lru_lock wrapup")](https://github.com/gatieme/linux-history/commit/eed29d66442c0e6babcea33ab03f02cdf49e62af) | 第 6 个补丁之后的一些简单的 cleanup. |
 | 8 | 2002/08/14 | Andrew Morton <akpm@zip.com.au> | [44260240ce0 ("deferred and batched addition of pages to the LRU")](https://github.com/gatieme/linux-history/commit/44260240ce0d1e19e84138ac775811574a9e1326) | 1. 通过 pagevec 做缓冲和延迟, lru_cache_add 分批地将页面添加到LRU.<br>2. 在页面回收代码中, 在开始之前清除本地CPU的缓冲区. 减少页面长时间不驻留在LRU上的可能性.<br>(可以有 15 * num_cpus 页不在LRU上) |
 
-这些补丁引入了页向量(pagevec) 数据结构来完成页面的批处理, 借助一个数组来缓存特定树木的页面, 可以在不需要持有大锁 pagemap_lru_lock 的情况下, 对这些页面进行批量操作, 比单独处理一个个页面的效率要高.
+这些补丁引入了页向量(pagevec) 数据结构来完成页面的批处理, 借助一个数组来缓存特定数量的页面, 可以在不需要持有大锁 pagemap_lru_lock 的情况下, 对这些页面进行批量操作, 比单独处理一个个页面的效率要高.
 
 首先通过 [`pagevec_add()`](https://elixir.bootlin.com/linux/v2.5.32/source/include/linux/pagevec.h#L43) 将页面插入到页向量(pvec->pages) 中, 如果页向量满了, 则通过 [`__pagevec_lru_add()`](https://elixir.bootlin.com/linux/v2.5.32/source/mm/swap.c#L197) 将页面[添加到 LRU 链表](https://elixir.bootlin.com/linux/v2.5.32/source/mm/swap.c#L61)中.
+
+
+#### 4.2.3.2 pagevec 的使用
+-------
+
+#### 4.2.3.3 local_locks
+-------
 
 
 *   引入 local_locks 的概念, 它严格针对每个 CPU, 满足 PREEMPT_RT 所需的约束
@@ -1634,6 +1650,8 @@ aaba9265318 [PATCH] make pagemap_lru_lock irq-safe
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/12/05 | Alex Shi <alex.shi@linux.alibaba.com> | [Introduce local_lock()](https://lore.kernel.org/patchwork/cover/1248697) | 引入 local_locks, 在这之中进入了 lru_pvecs 结构. | v3 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v3](https://lore.kernel.org/patchwork/cover/1248697) |
+
+
 
 ### 4.2.4 zone or node base LRU
 -------
