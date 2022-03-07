@@ -1180,7 +1180,7 @@ vmalloc_to_page 则提供了通过 vmalloc 地址查找到对应 page 的操作.
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/10/25 | Alistair Popple <apopple@nvidia.com> | [extend vmalloc support for constrained allocations](https://patchwork.kernel.org/project/linux-mm/cover/20211018114712.9802-1-mhocko@kernel.org) | 第一个补丁为 vmalloc 实现 NOFS/NOIO支持. 第二个补丁增加了 NOFAIL 支持, 第三个补丁将所有支持打包到 kvmalloc 中, 并删除了现在可以直接使用 kvmalloc 的 ceph_kvmalloc. | v2 ☑ 4.13-rc1 | [2021/10/18 PatchWork RFC,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211018114712.9802-1-mhocko@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2021/10/25 PatchWork 0/4](https://patchwork.kernel.org/project/linux-mm/cover/20211025150223.13621-1-mhocko@kernel.org) |
 | 2022/01/19 | "Uladzislau Rezki (Sony)" <urezki@gmail.com> | [mm/vmalloc: Move draining areas out of caller context](https://patchwork.kernel.org/project/linux-mm/patch/20220119143540.601149-1-urezki@gmail.com) | NA | v1 ☐ | [PatchWork 1/3](https://patchwork.kernel.org/project/linux-mm/patch/20220119143540.601149-1-urezki@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/1](https://lore.kernel.org/r/20220131144058.35608-1-urezki@gmail.com) |
-| 2022/01/27 | Christophe Leroy <christophe.leroy@csgroup.eu> | [Allocate module text and data separately](https://patchwork.kernel.org/project/linux-mm/cover/cover.1643282353.git.christophe.leroy@csgroup.eu/) | 本系列允许架构将 module 的数据放在 vmalloc 区域而不是模块区域. 在 powerpc book3s/32 的机器上, 了设置数据非可执行性, 这是必需的, 因为不可能以页面为基础设置可执行性, 这是每256 mb的段执行一次。模块区有 exec 权, vmalloc 区则没有. 没有这个更改模块, 即使开启了 CONFIG_STRICT_MODULES_RWX, 模块数据仍然是可执行的. 这在其他 powerpc/32 上也很有用, 可以最大限度地增加代码接近内核的机会， 从而避免使用 PLT 和 trampoline 等. | v2 ☐☑ | [PatchWork v2,0/5](https://lore.kernel.org/r/cover.1643282353.git.christophe.leroy@csgroup.eu)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/6](https://lore.kernel.org/r/cover.1643475473.git.christophe.leroy@csgroup.eu) |
+| 2022/01/27 | Christophe Leroy <christophe.leroy@csgroup.eu> | [Allocate module text and data separately](https://patchwork.kernel.org/project/linux-mm/cover/cover.1643282353.git.christophe.leroy@csgroup.eu/) | 本系列允许架构将 module 的数据放在 vmalloc 区域而不是模块区域. 在 powerpc book3s/32 的机器上, 了设置数据非可执行性, 这是必需的, 因为不可能以页面为基础设置可执行性, 这是每256 mb的段执行一次。模块区有 exec 权, vmalloc 区则没有. 没有这个更改模块, 即使开启了 CONFIG_STRICT_MODULES_RWX, 模块数据仍然是可执行的. 这在其他 powerpc/32 上也很有用, 可以最大限度地增加代码接近内核的机会,  从而避免使用 PLT 和 trampoline 等. | v2 ☐☑ | [PatchWork v2,0/5](https://lore.kernel.org/r/cover.1643282353.git.christophe.leroy@csgroup.eu)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/6](https://lore.kernel.org/r/cover.1643475473.git.christophe.leroy@csgroup.eu) |
 
 
 ### 2.4.2 连续内存分配器(CMA)
@@ -2201,7 +2201,7 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 [浅谈 Linux Kernel 的预读算法](http://www.caturra.cc/2021/08/31/浅谈linux-kernel的预读算法) 基于 Linux 4.18.20 对预读进行了
 
 
-kai_ding 的 [Linux 文件系统预读](https://blog.csdn.net/kai_ding/article/details/17322787) 以三个实际读取的实例程序讲解了 linux-3.12 的预读算法. [Linux 文件系统预读 (一)](https://blog.csdn.net/kai_ding/article/details/17322787) 讲解了单进程规则顺序读时预读算法的工作. [Linux 文件系统预读 (二)](https://blog.csdn.net/kai_ding/article/details/19957763) 讲解了单进程不规则顺序读(一共进行了三次读，顺序读，且读的大小不定，有超过最大预读量的，也有低于最大预读量的)下预读的工作行为. [Linux 文件系统预读 (三)](https://blog.csdn.net/kai_ding/article/details/20112753) 讲解了多进程交织顺序读行为下的预读是如何处理的.
+kai_ding 的 [Linux 文件系统预读](https://blog.csdn.net/kai_ding/article/details/17322787) 以三个实际读取的实例程序讲解了 linux-3.12 的预读算法. [Linux 文件系统预读 (一)](https://blog.csdn.net/kai_ding/article/details/17322787) 讲解了单进程规则顺序读时预读算法的工作. [Linux 文件系统预读 (二)](https://blog.csdn.net/kai_ding/article/details/19957763) 讲解了单进程不规则顺序读(一共进行了三次读, 顺序读, 且读的大小不定, 有超过最大预读量的, 也有低于最大预读量的)下预读的工作行为. [Linux 文件系统预读 (三)](https://blog.csdn.net/kai_ding/article/details/20112753) 讲解了多进程交织顺序读行为下的预读是如何处理的.
 
 [2.4.18 预读算法详解](https://blog.csdn.net/liuyuanqing2010/article/details/6705338)
 
@@ -3212,14 +3212,25 @@ khugepaged 处理流程
 ## 8.2 Page Fault
 -------
 
-[linux那些事之gup_flags](https://cdmana.com/2022/01/202201220412175766.html)
+[linux那些事之gup_flags](https://zhikunhuo.blog.csdn.net/article/details/121712408) linux gup 子系统在处理各种 pin memory 中, 为了方便处理各种使用场景同时减少代码冗余, 使用了 gup_flags 标识位用于标记处理内存时各种场景.
+
+[HZero 的内存管理专栏](https://blog.csdn.net/jasonactions/category_10652690.html) 其中有几篇详细讲解了 Page Fault 流程.
+
+[Linux 内存管理 (10) 缺页中断处理](https://www.cnblogs.com/arnoldlu/p/8335475.html) 对各个处理函数有个简单的注解, 同时按照几个关键点(比如页面是否在内存中, pte 内容是否存在, 有无 vm_ops)区分 Page Fault 处理函数的流程. [Linux 内存管理：缺页异常 (一)](https://zhuanlan.zhihu.com/p/195580742) 则将这个框架流程绘制成了流程图的形式.
+
+[ARM64 内存管理十五：do_page_fault 缺页中断](https://pzh2386034.github.io/Black-Jack/linux-memory/2019/09/15/ARM64内存管理十五-do_page_fault缺页中断)
+
+[[原创](十四) Linux 内存管理之 page fault 处理](https://www.cnblogs.com/LoyenWang/p/12116570.html) 系统性地罗列了各个不同情形下 Page Fault 的处理框架.
+
 
 | handler | 描述 |
 |:-------:|:---:|
-| do_anonymous_page | 处理匿名页 |
-| do_fault | 处理文件页 |
-| do_swap_page | |
-| do_numa_page |
+| do_anonymous_page | 用于[处理匿名页的缺页](https://elixir.bootlin.com/linux/v5.15/source/mm/memory.c#L4566)异常, 在以下情况下会触发:<br>1. malloc()/mmap() 分配了进程地址空间区域, 但是没有进行映射处理, 在首次访问时触发;<br>2. 用户栈不够的情况下, 进行栈区的扩大处理; |
+| do_fault | 用于处理文件页异常, 包括以下三种情况:<br>1. [do_read_fault() 处理读文件页](https://elixir.bootlin.com/linux/v5.15/source/mm/memory.c#L4310)缺页<br>2. [do_cow_fault() 处理写私有文件页](https://elixir.bootlin.com/linux/v5.15/source/mm/memory.c#L4312)缺页;<br>3. [do_share_faults() 写共享文件页](https://elixir.bootlin.com/linux/v5.15/source/mm/memory.c#L4314)缺页; |
+| do_swap_page | 如果访问 swap 页面出错(页面不在内存中), 则从 swap cache 或 swap file 中读取该页面. |
+| do_numa_page | Numa Balancing 处理时是通过 fault driven 的方式统计页面访问的 NUMA 和 TASK 信息的, 这时候就需要把进程 VMA 中的页面设置为 PTE_PROT_NONE, 从而触发 Page Fault; |
+| do_wp_page | 用于[处理写时复制(COW/Copy On Write)](https://elixir.bootlin.com/linux/v5.15/source/mm/memory.c#L4586), 会在以下两种情况处理:<br>1. 创建子进程时, 父子进程会以只读方式共享私有的匿名页和文件页, 当试图写的时候, 触发页错误异常, 从而复制物理页, 并创建映射;<br>2. 进程创建私有文件映射, 读访问后触发异常, 将文件页读入到 page cache 中, 并以只读模式创建映射, 之后发生写访问后, 触发 COW; |
+
 
 ### 8.2.1 零页
 -------
@@ -4110,6 +4121,12 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 
 **4.0(2015年4月发布)**
 
+[ASAN 和 HWASAN 原理解析](https://blog.csdn.net/21cnbao/article/details/107096665)
+
+[浅谈 ARM64 基于硬件 tag 的 KASAN](http://news.eeworld.com.cn/mp/ymc/a133074.jspx)
+
+#### 13.3.4.1 Generic KASAN
+-------
 
 
 4.0 引入的 [KASan (The kernel address sanitizer)](https://lwn.net/Articles/612153) 可以看作是 KMEMCHECK 工具的替代器, 它的目的也是为了检测诸如**释放后访问(use-after-free), 访问越界(out-of-bouds)**等非法访问问题. 它比后者更快, 因为它利用了编译器的 **Instrument** 功能, 也即编译器会在访问内存前插入探针, 执行用户指定的操作, 这通常用在性能剖析中. 在内存的使用上, KASan 也比 KMEMCHECK 有优势: 相比后者1:1的内存使用 , 它只要1:1/8.
@@ -4117,11 +4134,52 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 
 总的来说, 它利用了 GCC 5.0的新特性, 可对内核内存进行 Instrumentaion, 编译器可以在访问内存前插入指令, 从而检测该次访问是否合法. 对比前述的 KMEMCHECK 要用到 CPU 的陷阱指令处理和单步调试功能, KASan 是在编译时加入了探针, 因此它的性能更快.
 
-ARM 引入了一个[内存标签扩展](https://community.arm.com/developer/ip-products/processors/b/processors-ip-blog/posts/enhancing-memory-safety)的硬件特性. 然后 Google 的 [Andrey Konovalov](https://github.com/xairy/linux)基于此硬件特性重写了 KASan. 实现了 [hardware tag-based mode 的 KASan](https://lore.kernel.org/patchwork/cover/1344197).
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/08/04 | Andrey Konovalov <andreyknvl@google.com> | [kasan: support stack instrumentation for tag-based mode](https://lore.kernel.org/patchwork/cover/1284062) | NA | v11 ☑ 5.9-rc1 | [PatchWork v2,0/5](https://lore.kernel.org/patchwork/cover/1284062), [Clang](https://clang.llvm.org/docs/HardwareAssistedAddressSanitizerDesign.html) |
+
+
+#### 13.3.4.2 Software tag-based KASAN
+-------
+
+基于软件 tag 的 KASAN 使用软件内存标记方法来检查访问的内存是否有效, 目前仅在 arm64 架构上实现. 基于软件 tag 的 KASAN 使用 arm64 CPU 的 Top Byte Ignore(TBI) 功能将指针 tag 存储在指针的顶部字节中. 它使用影子内存来存储与每个 16 字节内存单元关联的内存 tag(因此, 它将内核内存的 1/16 专用于影子内存).
+
+1.  在每次内存分配时, 生成一个随机 tag, 用这个 tag 标记分配的内存, 并将相同的 tag 嵌入到返回的指针中.
+
+2.  编译时, 在每次内存访问之前插入检测指令, 这些检测指令会比较正在访问的内存的 tag(影子区)和用于访问该内存的指针的 tag 是否匹配.
+
+3.  如果不匹配, 基于软件 tag 的 KASAN 会打印错误报告.
+
+Software tag-based KASAN 使用 0xFF 作为匹配所有指针 tag(不检查通过带有 0xFF 指针 tag 的指针进行的访问). 0xFE 用于标记释放的内存区域.
+
+目前 Software tag-based KASAN 只支持 slab 和 page_alloc 内存检测.
+
+简单总结下 Software tag-based KASAN 的特点:
+
+1.  编译时插入用于检测内存访问指令.
+2.  专用的影子内存大小为检测内存大小的 1/16.
+3.  通过指令对比内存 tag (影子区域) 和指针 tag.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2018/12/06 | Andrey Konovalov <andreyknvl@google.com> | [kasan: add software tag-based mode for arm64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e886bf9d9abedf8236464bfd21bc5707748b4a02) | 该补丁集为 [KASAN](https://www.kernel.org/doc/html/latest/dev-tools/kasan.html) 添加了一种新的基于软件标签的模式. 最初这种模式被称为 KHWASAN, 但后来被重新命名. 通过使用 arm64 CPU 的 Top Byte Ignore(TBI) 特性, 可以在每个内核指针的顶端字节中存储指针标记. 将现有的 KASAN 模式被重命名为 generic KASAN(generic 意味着它是纯软件实现, 可以在任何架构上轻易支持). | v13 ☑✓ 5.0-rc1 | [LORE v13,0/25](https://lore.kernel.org/all/cover.1544099024.git.andreyknvl@google.com) |
+
+
+#### 13.3.4.2 Hardware tag-based KASAN
+-------
+
+ARM 引入了一个[内存标签扩展](https://community.arm.com/developer/ip-products/processors/b/processors-ip-blog/posts/enhancing-memory-safety)的硬件特性. 然后 Google 的 [Andrey Konovalov](https://github.com/xairy/linux)基于此硬件特性重写了 KASan. 实现了 [hardware tag-based mode 的 KASan](https://lore.kernel.org/patchwork/cover/1344197). 参见 [The Arm64 memory tagging extension in Linux](https://lwn.net/Articles/834289), 译文 [LWN：Arm64 的内存标记扩展功能!](https://blog.csdn.net/Linux_Everything/article/details/109396397).
+
+基于硬件 tag 的 KASAN 和基于软件 tag 的 KASAN 原理非常类似, Software tag-based KASAN 的内存的 tag(影子区)和用于访问该内存的指针的 tag 的比较是由插入的汇编指令完成的, 而 Hardware tag-based KASAN 是由硬件自动完成比较的, 对于软件是透明的. Hardware tag-based KASAN 目前也是仅支持 arm64 架构, 并且它的实现是基于 ARMv8.5 指令集架构中引入的内存标记扩展 (MTE) 和 Top Byte Ignore(TBI).
+
+在每次内存访问时, 硬件都会比较正在访问的内存的 tag 和用于访问该内存指针的 tag. 如果 tag 不匹配, 则会触发一个异常.
+
+基于硬件 tag 的 KASAN 使用 0xFF 作为匹配所有指针 tag(不检查通过带有 0xFF 指针 tag 的指针进行的访问). 0xFE 用于标记释放的内存区域. 同和 Software tag-based KASAN 一样, 当前只支持 slab 和 page_alloc 检测. 这些特性. 如果硬件不支持 MTE(ARMv8.5 之前), 则不会启用 Hardware tag-based KASAN.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/11/23 | Andrey Konovalov <andreyknvl@google.com> | [kasan: add hardware tag-based mode for arm64](https://lore.kernel.org/patchwork/cover/1344197) | NA | v11 ☑ [5.11-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork mm,v11,00/42](https://patchwork.kernel.org/project/linux-mm/cover/cover.1606161801.git.andreyknvl@google.com) |
 | 2020/11/23 | Andrey Konovalov <andreyknvl@google.com> | [kasan: boot parameters for hardware tag-based mode](https://lore.kernel.org/patchwork/cover/1344258) | NA | v4 ☑ [5.11-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork mm,v4,00/19](https://patchwork.kernel.org/project/linux-mm/patch/748daf013e17d925b0fe00c1c3b5dce726dd2430.1606162397.git.andreyknvl@google.com) |
 | 2021/01/15 | Andrey Konovalov <andreyknvl@google.com> | [kasan: HW_TAGS tests support and fixes](https://lore.kernel.org/patchwork/cover/1366086) | NA | v4 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork mm,v4,00/15](https://patchwork.kernel.org/project/linux-mm/cover/cover.1610733117.git.andreyknvl@google.com) |
