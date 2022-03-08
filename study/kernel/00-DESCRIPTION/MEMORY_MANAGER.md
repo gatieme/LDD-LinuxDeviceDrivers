@@ -1640,8 +1640,48 @@ aaba9265318 [PATCH] make pagemap_lru_lock irq-safe
 #### 4.2.3.2 pagevec 的使用
 -------
 
-#### 4.2.3.3 local_locks
--------
+最终没有 pagevec 的时候, lru_cache_add() 和 lru_cache_del() 直接向全局的 lru_cache 链表中添加页面, 每处理一个页面都要持有和释放一次 pagemap_lru_lock. 参见 [Import 2.3.16pre1
+](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/diff/include/linux/swap.h?id=9aa2c66ac214f71cb051ba7c1adf313d9e160ee1).
+
+首次引入 pagevec 进行批量操作的时候, `lru_add_drain()-=>lru_cache_add()` 是 pagevec 的第一个用户, 在此之前 lru_cache_add() 每次 add_page_to_inactive_list() 将单个页面添加到 inactive_list 的时候, 都需要[持有和释放 `_pagemap_lru_lock`](https://elixir.bootlin.com/linux/v2.5.31/source/mm/swap.c#L55). 因此 [deferred and batched addition of pages to the LRU](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/commit/?id=44260240ce0d1e19e84138ac775811574a9e1326) 通过 pagevec 批处理进行优化. 新增了一个 `lru_add_pvecs[NR_CPUS]` 的 pagevec 数组, 用于缓存 per CPU 的 LRU page. `lru_cache_add()` 在处理的时候, 不再直接将页面加入 inactive_list. 而是先通过 pagevec_add() 将页面缓存到当前 CPU 的 lru_add_pvecs[get_cpu()] 中. 直到加入 PAGEVEC_SIZE 个页面时, 才通过 [`__pagevec_lru_add()`](https://elixir.bootlin.com/linux/v2.5.32/source/mm/swap.c#L197) 将这些页面一起加入到 inactive_list. 这样就不需要每个页面持有一次 `_pagemap_lru_lock`, 而是将 PAGEVEC_SIZE 个页面一把持有和释放一次 `_pagemap_lru_lock`.
+
+*   首先是 lru_add_pvec
+
+|  时间  | 作者 |  特性 | 描述  |  是否合入主线  | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2002/08/14 | Andrew Morton <akpm@zip.com.au> | [deferred and batched addition of pages to the LRU](hhttps://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44260240ce0d1e19e84138ac775811574a9e1326) | 引入 pagevec, lru_cache_add() 将页面添加到 inactive_list 时, 批量将一组 PAGEVEC_SIZE 个页面先缓存到 lru_add_pvecs[get_cpu()] 中, 再一次性添加到 inactive_list 中. | v1 ☑✓ 2.5.32 | [HISTORY COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44260240ce0d1e19e84138ac775811574a9e1326) |
+| 2002/10/31 | Andrew Morton <akpm@digeo.com> | [start anon pages on the active list (properly this time)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f9a316fa9099053a299851762aedbf12881cff42) | 为了优化大压力 swap 场景下性能劣化的问题, 引入 [lru_cache_add_active()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=228c3d15a7020c3587a2c356657099c73f9eb76b), 确保[已映射或即将映射到页面的从 LRU active list 中开始](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=33709b5c8022486197ed2345eed18bbeb14a2251).<br>新增了 per-CPU 的 lru_add_active_pvecs pagevec 数组, 同时将它和 lru_add_pvecs 都定位为 per-CPU 变量. | v1 ☑✓ 2.5.46 | [HISTORY COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=33709b5c8022486197ed2345eed18bbeb14a22512) |
+
+这个阶段处理还比较简单, 通过 [lru_cache_add()](https://elixir.bootlin.com/linux/v2.5.46/source/mm/swap.c#L71) 和 [lru_cache_add_active()](https://elixir.bootlin.com/linux/v2.5.46/source/mm/swap.c#L81) 分别将页面加入到 inactive_list 和 active_list 中.
+
+然后 [swap: use an array for the LRU pagevecs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f04e9ebbe4909f9a41efd55149bc353299f4e83b) 移除了 lru_cache_add() 和 lru_cache_add_active, 使用了统一的 lru_add_pvecs[NR_LRU_LISTS] 数组, 然后封装了 [lru_cache_add_lru 往对应 LRU 的 pagevec 中添加页面](https://elixir.bootlin.com/linux/v2.6.28/source/mm/swap.c#L214). 同时提供了 [lru_cache_add_active_or_unevictable()](https://elixir.bootlin.com/linux/v2.6.28/source/mm/swap.c#L259) 将页面添加到 active 或者 unevictable 列表(其中 unevictable 还未使用 pagevec). 此外 [commit 4f98a2fee8ac ("vmscan: split LRU lists into anon & file sets")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f98a2fee8acdb4ac84545df98cccecfd130f8db) 拆分了匿名页和文件页 LRU 之后, 拆解出来的 lru_cache_add_anon(),  lru_cache_add_active_anon(),  lru_cache_add_file(),  lru_cache_add_active_file() 也是一些潜在的用户, 他们直接调用了更底层的 `__lru_cache_add()` 直接向指定类型的 LRU 中批量添加页面.
+
+[mm: pagevec: defer deciding which LRU to add a page to until pagevec drain time](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=13f7f78981e49f288d871bb918545ef5c952e00b) 删除了 per-CPU 上 per LRU 的 PageVec 数组 lru_add_pvecs[NR_LRU_LISTS], 只留下一个 [per-CPU 的 pagevec](https://elixir.bootlin.com/linux/v3.11/source/mm/swap.c#L43).
+
+|  时间  | 作者 |  特性 | 描述  |  是否合入主线  | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2008/10/18 | KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com> | [swap: use an array for the LRU pagevecs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f04e9ebbe4909f9a41efd55149bc353299f4e83b) | 将 lru_add_pvecs 和 lru_add_active_pvecs 两个 PageVec 变成一个 per LRU 的 PageVec 数组 lru_add_pvecs[NR_LRU_LISTS], 就像 LRU 一样. 在 split VM 补丁系列中进一步创建了所有 LRU 列表之后, 这显著地清理了源代码, 并将内核大小减少了约 13kB. | v1 ☑✓ 2.6.28-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f04e9ebbe4909f9a41efd55149bc353299f4e83b) |
+| 2013/05/13 | Mel Gorman <mgorman@suse.de> | [Obey mark_page_accessed hint given by filesystems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c53954a092d07c5684d31ea1fc813d262cff08a5) | Alexey Lyahkov 和 Robin Dong 等最近(v3.10期间)报告了诸多问题, 这些问题可能是由于热页太快到达非活动列表的末尾并被回收造成的. 这个系列的目的不是在每个文件系统的基础上解决这个问题, 而是通过[推迟页面添加到 pagevec 的 LRU 时间](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=13f7f78981e49f288d871bb918545ef5c952e00b), 并[允许 mark_page_accessed() 在 pagevec 页面上调用 SetPageActive()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=059285a25f30c13ed4f5d91cecd6094b9b20bb7b).<br>当前 mark_page_access() 不能激活位于非活动 LRU 页面的非活动页面.<br>为了解决这个问题<br>a. 这个补丁删除了 per-CPU 上 per LRU 的 PageVec 数组 lru_add_pvecs[NR_LRU_LISTS], 只留下一个 per-CPU 的 pagevec. 页面将在 pagevec 满后批量被添加到的 LRU.<br>b. 当 LRU 在 LRU 消耗时间被选中, 如果它们在本地的 pagevec 上, 且被标记为 PageActive, 这样它在 LRU 消耗时间就无法被移动到正确的列表. mark_page_accessed() 过程中如果发现页面不在 LRU 上, 则使用 `__lru_cache_activate_page()` 处理全局 lru_add_pvec 上的页面. 这样修复后, 使用 git checkout 这样的工作负载进行测试, 在实践中页面从来没有添加到活动文件列表中, 但应用这个补丁后, 它们被添加到活动文件列表中.<br>由于只保留了一个 per-CPU 的 pagevec, 这意味着可用的 pagevecs 更少, 并且 LRU 锁上的争用可能更大. 然而, 这只适用于在 LRU 中添加了几乎完美的文件、匿名、活动和非活动页面的情况. 在实践中, 增加的是特定时间的页面流, 而社区所争论问题中的变化几乎无法衡量. <br>1. [补丁 1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c6286c983900c77410a951874f1589f4a41fbbae) 为 LRU 页面激活和插入添加了两个跟踪点. 以便在 LRU 中构建一个离线的页面模型.<br>2. [补丁 2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=13f7f78981e49f288d871bb918545ef5c952e00b) 推迟决定向哪个 LRU 添加页面, 直到 pagevec 耗尽.<br>3. [补丁 3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=059285a25f30c13ed4f5d91cecd6094b9b20bb7b) 在本地 pagevec 中搜索要在 mark_page_accessed() 上标记 PageActive 的页面.<br>4. 补丁 4/5 清理了 API. 延迟判断要添加的 lru 列表后, lru_cache_add() 函数中不再需要显式指定 `enum lru_list lru` 参数. | v2 ☑✓ 3.11-rc1 | [LORE v2,0/4](https://lore.kernel.org/all/1368440482-27909-1-git-send-email-mgorman@suse.de), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=13f7f78981e49f288d871bb918545ef5c952e00b) |
+
+*   其次是 lru_rotate_pvecs
+
+|  时间  | 作者 |  特性 | 描述  |  是否合入主线  | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2007/10/16 | Hisashi Hifumi <hifumi.hisashi@oss.ntt.co.jp> | [mm: use pagevec to rotate reclaimable page](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=902aaed0d983dfd459fcb2b678608d4584782200) | [Move reclaimable pages to the tail ofthe inactive list on](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3b0db538ef6782a1e2a549c68f1605ca8d35dd7e) 使用 rotate_reclaimable_page() 将 IO 路径的脏页移动到非活动列表的尾部, 以加速这类页面的回收, 但是当时没有使用 pagevec 进行批处理. 因此后面测试遇到了一些性能问题于此有关.<br>当运行一些内存密集型负载时, 系统响应在换出启动后就恶化了. 这个问题的原因是当一个 PG_reclaim 页面在 rotate_reclaimable_page () 中被移动到不活动的 LRU 列表的尾部时, 每次回写页面都会获得 lru_lock 旋转锁. 这会导致系统性能下降, 并且在切换启动时中断保持时间变长.<br>这个补丁解决此问题. 在旋转可回收页面时使用 pagevec 来减轻 LRU 旋转锁争用和减少中断等待时间.<br>新增了 per-CPU 的 lru_rotate_pvecs pagevec, 通过 pagevec_move_tail 将缓存在 lru_rotate_pvecs 的页面批量插入到 inactive_list 中. | v1 ☑✓ 2.6.24-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=902aaed0d983dfd459fcb2b678608d4584782200) |
+
+
+*   紧接着是 lru_deactivate_file_pvecs
+
+|  时间  | 作者 |  特性 | 描述  |  是否合入主线  | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2011/03/22 | Minchan Kim <minchan.kim@gmail.com> | [mm: deactivate invalidated pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=315601809d124d046abd6c3ffa346d0dbd7aa29d) | 社区上报了几起[性能问题](http://marc.info/?l=rsync&m=128885034930933&w=2), 它执行了一些备份工作负载(例如, 夜间执行 rsync 等). 往往这些工作负载只使用一次页面, 而触摸两次页面. 它将页面提升到活动列表, 从而导致工作集页面被从 LRU 中剔除, 导致了业务的性能颠簸. 引入 deactivate_page(), 将这类备份工作负载等特殊路径下识别处理的页面移动到非活动列表以加快其回收速度. 它被移到列表的顶部, 而不是尾部, 以便给刷新线程一些时间将其写出来, 因为这比从回收中写单页要有效得多.<br>为了进行批处理, 这里引入了 per-CPU 的 pagevec lru_deactivate_pvecs.<br>随后因为它们处理的其实都是文件页, 因此 [commit 315601809d12 ("mm: rename deactivate_page to deactivate_file_page")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cc5993bd7b8cff4a3e37042ee1358d1d5eafa70c) 将这一系列接口都改名加上 file 的前缀. | v1 ☑✓ 2.6.39-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cc5993bd7b8cff4a3e37042ee1358d1d5eafa70c) |
+
+*   最后是 lru_deactivate_pvecs
+
+
+|  时间  | 作者 |  特性 | 描述  |  是否合入主线  | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2016/01/15 | Minchan Kim <minchan@kernel.org> | [mm: move lazily freed pages to inactive list](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10853a039208c4afaa322a7d802456c8dca222f4) | TODO | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10853a039208c4afaa322a7d802456c8dca222f4) |
 
 
 *   引入 local_locks 的概念, 它严格针对每个 CPU, 满足 PREEMPT_RT 所需的约束
@@ -1651,7 +1691,19 @@ aaba9265318 [PATCH] make pagemap_lru_lock irq-safe
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/12/05 | Alex Shi <alex.shi@linux.alibaba.com> | [Introduce local_lock()](https://lore.kernel.org/patchwork/cover/1248697) | 引入 local_locks, 在这之中进入了 lru_pvecs 结构. | v3 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v3](https://lore.kernel.org/patchwork/cover/1248697) |
 
+### 4.2.3.4 lru_add 接口变更
+-------
 
+lru_cache_add
+lru_cache_add_active
+
+[vmscan: split LRU lists into anon & file sets](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f98a2fee8acdb4ac84545df98cccecfd130f8db) lru_cache_add_active_anon
+
+[swap: cull unevictable pages in fault path](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=64d6519dda3905dfb94d3f93c07c5f263f41813f) lru_cache_add_active_or_unevictable
+
+[mm: add_active_or_unevictable into rmap](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b5934c531849ff4a51ce0f290141efe564290e40)
+
+[mm/vmscan: protect the workingset on anonymous LRU](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b518154e59aab3ad0780a169c5cc84bd4ee4357e)
 
 ### 4.2.4 zone or node base LRU
 -------
@@ -1736,6 +1788,11 @@ aaba9265318 [PATCH] make pagemap_lru_lock irq-safe
 | 2011/08/08 | Konstantin Khlebnikov <khlebnikov@openvz.org> | [vmscan: activate executable pages after first usage](https://lore.kernel.org/patchwork/patch/262018) | 上面补丁希望对 VM_EXEC 的页面区别对待, 但是添加的逻辑被明显削弱, 只有在第二次使用后才能成为一等公民("the first class citizen"), 由于二次机会法的存在, 这些页面将通过 page_check_references() 在第一次使用后才能进入 active LRU list, 然后才能触发前面补丁的优化, 保证 VM_EXEC 的页面有更好的机会留在内存中. 因此这个补丁 通过 page_check_references() 在页面在第一次被访问后就激活它们, 从而保护可执行代码将有更好的机会留在内存中. | v2 ☑ 3.3-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/262018), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c909e99364c8b6ca07864d752950b6b4ecf6bef4) |
 
 
+*   rotate_reclaimable_page 处理 DIRTY 的文件页
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2002/12/02 | Andrew Morton <akpm@digeo.com> | [Move reclaimable pages to the tail ofthe inactive list on](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3b0db538ef6782a1e2a549c68f1605ca8d35dd7e) | 这个补丁解决了当非活动列表上有大量脏数据时出现的一些搜索复杂性故障. 通常, 我们会尝试写出这些页面, 然后将它们移动到非活动列表的开头. 但这不利于页面老化, 这意味着页面必须再次遍历整个列表才能回收.<br>因此, 我们在这个补丁中所做的是通过 SetPageReclaim() 将页面标记为需要回收, 然后启动 IO. 在 IO 完成处理程序 end_page_writeback() 中, TestClearPageReclaim() 检查页面是否仍然可能可回收, 如果是, 则使用 rotate_reclaimable_page() 将其移动到非活动列表的尾部, 在那里可以立即回收.<br>在交换密集型负载非常大的情况下, 这将页面回收效率(回收页面/扫描页面)从 10% 提高到 25%. 当前没有使用 pagevec 进行批处理操作, 因此每处理一个页面获取一次 LRU 锁. | v1 ☑✓ 2.5.51 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3b0db538ef6782a1e2a549c68f1605ca8d35dd7e) |
 
 
 
