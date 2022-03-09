@@ -1556,6 +1556,8 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 ## 4.2 LRU
 -------
 
+[A Linux Kernel Miracle Tour - 内存回收](https://blog.csdn.net/chuck_huang/article/details/80212666)
+
 ### 4.2.1 经典地 LRU 算法
 -------
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1647,6 +1649,8 @@ aaba9265318 [PATCH] make pagemap_lru_lock irq-safe
 
 *   首先是 lru_add_pvec
 
+lru_add_pvec 用于缓冲向 LRU 列表(主要是 active 和 inactive list) 中添加页面的请求, 通过批处理操作, 减少对 `_pagemap_lru_lock` 的冲突与竞争.
+
 |  时间  | 作者 |  特性 | 描述  |  是否合入主线  | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2002/08/14 | Andrew Morton <akpm@zip.com.au> | [deferred and batched addition of pages to the LRU](hhttps://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44260240ce0d1e19e84138ac775811574a9e1326) | 引入 pagevec, lru_cache_add() 将页面添加到 inactive_list 时, 批量将一组 PAGEVEC_SIZE 个页面先缓存到 lru_add_pvecs[get_cpu()] 中, 再一次性添加到 inactive_list 中. | v1 ☑✓ 2.5.32 | [HISTORY COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44260240ce0d1e19e84138ac775811574a9e1326) |
@@ -1665,31 +1669,40 @@ aaba9265318 [PATCH] make pagemap_lru_lock irq-safe
 
 *   其次是 lru_rotate_pvecs
 
+
 |  时间  | 作者 |  特性 | 描述  |  是否合入主线  | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
-| 2007/10/16 | Hisashi Hifumi <hifumi.hisashi@oss.ntt.co.jp> | [mm: use pagevec to rotate reclaimable page](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=902aaed0d983dfd459fcb2b678608d4584782200) | [Move reclaimable pages to the tail ofthe inactive list on](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3b0db538ef6782a1e2a549c68f1605ca8d35dd7e) 使用 rotate_reclaimable_page() 将 IO 路径的脏页移动到非活动列表的尾部, 以加速这类页面的回收, 但是当时没有使用 pagevec 进行批处理. 因此后面测试遇到了一些性能问题于此有关.<br>当运行一些内存密集型负载时, 系统响应在换出启动后就恶化了. 这个问题的原因是当一个 PG_reclaim 页面在 rotate_reclaimable_page () 中被移动到不活动的 LRU 列表的尾部时, 每次回写页面都会获得 lru_lock 旋转锁. 这会导致系统性能下降, 并且在切换启动时中断保持时间变长.<br>这个补丁解决此问题. 在旋转可回收页面时使用 pagevec 来减轻 LRU 旋转锁争用和减少中断等待时间.<br>新增了 per-CPU 的 lru_rotate_pvecs pagevec, 通过 pagevec_move_tail 将缓存在 lru_rotate_pvecs 的页面批量插入到 inactive_list 中. | v1 ☑✓ 2.6.24-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=902aaed0d983dfd459fcb2b678608d4584782200) |
+| 2007/10/16 | Hisashi Hifumi <hifumi.hisashi@oss.ntt.co.jp> | [mm: use pagevec to rotate reclaimable page](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=902aaed0d983dfd459fcb2b678608d4584782200) | [Move reclaimable pages to the tail ofthe inactive list on](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3b0db538ef6782a1e2a549c68f1605ca8d35dd7e) 使用 rotate_reclaimable_page() 将 IO 路径的脏页移动到非活动列表的尾部, 以加速这类页面的回收, 但是当时没有使用 pagevec 进行批处理. 因此后面测试遇到了一些性能问题于此有关.<br>当运行一些内存密集型负载时, 系统响应在换出启动后就恶化了. 这个问题的原因是当一个 PG_reclaim 页面在 rotate_reclaimable_page() 中被移动到不活动的 LRU 列表的尾部时, 每次回写页面都会获得 lru_lock 旋转锁. 这会导致系统性能下降, 并且在切换启动时中断保持时间变长.<br>这个补丁解决此问题. 在旋转可回收页面时使用 pagevec 来减轻 LRU 旋转锁争用和减少中断等待时间.<br>新增了 per-CPU 的 lru_rotate_pvecs pagevec, 通过 pagevec_move_tail 将缓存在 lru_rotate_pvecs 的页面批量插入到 inactive_list 中. | v1 ☑✓ 2.6.24-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=902aaed0d983dfd459fcb2b678608d4584782200) |
 
 
 *   紧接着是 lru_deactivate_file_pvecs
 
-|  时间  | 作者 |  特性 | 描述  |  是否合入主线  | 链接 |
-|:-----:|:----:|:----:|:----:|:------------:|:----:|
-| 2011/03/22 | Minchan Kim <minchan.kim@gmail.com> | [mm: deactivate invalidated pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=315601809d124d046abd6c3ffa346d0dbd7aa29d) | 社区上报了几起[性能问题](http://marc.info/?l=rsync&m=128885034930933&w=2), 它执行了一些备份工作负载(例如, 夜间执行 rsync 等). 往往这些工作负载只使用一次页面, 而触摸两次页面. 它将页面提升到活动列表, 从而导致工作集页面被从 LRU 中剔除, 导致了业务的性能颠簸. 引入 deactivate_page(), 将这类备份工作负载等特殊路径下识别处理的页面移动到非活动列表以加快其回收速度. 它被移到列表的顶部, 而不是尾部, 以便给刷新线程一些时间将其写出来, 因为这比从回收中写单页要有效得多.<br>为了进行批处理, 这里引入了 per-CPU 的 pagevec lru_deactivate_pvecs.<br>随后因为它们处理的其实都是文件页, 因此 [commit 315601809d12 ("mm: rename deactivate_page to deactivate_file_page")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cc5993bd7b8cff4a3e37042ee1358d1d5eafa70c) 将这一系列接口都改名加上 file 的前缀. | v1 ☑✓ 2.6.39-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cc5993bd7b8cff4a3e37042ee1358d1d5eafa70c) |
-
-*   最后是 lru_deactivate_pvecs
+invalidate_mapping_pages() 用于清理和释放内核中映射的文件页面. 比如我们可以通过 fadvise 系统调用通过 POSIX_FADV_DONTNEED 清除文件所属的缓存 Page Cache, 从而释放这些页面. 这种情况下最终就是通过 invalidate_mapping_pages() 调用 deactivate_file_page() 强制将页面移入 inactive_list 来加速完成 page 的释放的.
 
 
 |  时间  | 作者 |  特性 | 描述  |  是否合入主线  | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
-| 2016/01/15 | Minchan Kim <minchan@kernel.org> | [mm: move lazily freed pages to inactive list](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10853a039208c4afaa322a7d802456c8dca222f4) | TODO | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10853a039208c4afaa322a7d802456c8dca222f4) |
+| 2011/03/22 | Minchan Kim <minchan.kim@gmail.com> | [mm: deactivate invalidated pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=315601809d124d046abd6c3ffa346d0dbd7aa29d) | 社区上报了几起[性能问题](http://marc.info/?l=rsync&m=128885034930933&w=2), 它执行了一些备份工作负载(例如, 夜间执行 rsync 等). 往往这些工作负载只使用一次页面, 而触摸两次页面. 它将页面提升到活动列表, 从而导致工作集页面被从 LRU 中剔除, 导致了业务的性能颠簸. 引入 deactivate_page()(后来改名叫 deactivate_file_page()), 将这类备份工作负载等特殊路径下识别处理的页面移动到非活动列表以加快其回收速度. 它被移到列表的顶部, 而不是尾部, 以便给刷新线程一些时间将其写出来, 因为这比从回收中写单页要有效得多.<br>为了进行批处理, 这里引入了 per-CPU 的 pagevec lru_deactivate_pvecs.<br>随后因为它们处理的其实都是文件页, 因此 [commit 315601809d12 ("mm: rename deactivate_page to deactivate_file_page")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cc5993bd7b8cff4a3e37042ee1358d1d5eafa70c) 将这一系列接口都改名加上 file 的前缀. | v1 ☑✓ 2.6.39-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=315601809d124d046abd6c3ffa346d0dbd7aa29d) |
 
 
-*   引入 local_locks 的概念, 它严格针对每个 CPU, 满足 PREEMPT_RT 所需的约束
+*   随后是 lru_lazyfree_pvecs
+
+|  时间  | 作者 |  特性 | 描述  |  是否合入主线  | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2016/01/15 | Minchan Kim <minchan@kernel.org> | [mm: move lazily freed pages to inactive list](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b8d3c4c3009d42869dc03a1da0efc2aa687d0ab4) | TODO | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10853a039208c4afaa322a7d802456c8dca222f4) |
+
+
+*   随后是 lru_deactivate_pvecs
+
+
+*   引入 local_locks 的概念
+
+它严格针对每个 CPU, 满足 PREEMPT_RT 所需的约束.
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/12/05 | Alex Shi <alex.shi@linux.alibaba.com> | [Introduce local_lock()](https://lore.kernel.org/patchwork/cover/1248697) | 引入 local_locks, 在这之中进入了 lru_pvecs 结构. | v3 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v3](https://lore.kernel.org/patchwork/cover/1248697) |
+| 2020/05/27 | Sebastian Andrzej Siewior <bigeasy@linutronix.de> | [Introduce local_lock()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=19f545b6e07f753c4dc639c2f0ab52345733b6a8) | 引入了 local_locks 保护 LRU pagevec, 实现了 `local_lock_t lock` 保护的 per-CPU 的 lru_pvecs 和 lru_rotate 结构, [替代了传统的 per-CPU 的 pagevec 的方式](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b01b2141999936ac3e4746b7f76c0f204ae4b445). 其中 lru_pvecs 结构统一管理和保护 lru_add, lru_deactivate_file, lru_deactivate, lru_lazyfree 等 pagevec. lru_rotate 单独管理和保护了 lru_rotate_pvecs. | v3 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [LORE v2](https://lore.kernel.org/lkml/20200524215739.551568-1-bigeasy@linutronix.de)<br>*-*-*-*-*-*-*-* <br>[LORE v3](https://lore.kernel.org/all/20200527201119.1692513-1-bigeasy@linutronix.de) |
 
 ### 4.2.3.4 lru_add 接口变更
 -------
@@ -2056,14 +2069,43 @@ Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 p
 ## 4.3 madvise MADV_FREE 页面延迟回收
 -------
 
+[Volatile ranges and MADV_FREE](https://lwn.net/Articles/590991)
+
+### 4.3.1 Volatile Ranges
+-------
+
+[LWN: Volatile ranges](https://lwn.net/Kernel/Index/#Volatile_ranges)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2011/11/21 | John Stultz <john.stultz@linaro.org> | [`fadvise: Add _VOLATILE,_ISVOLATILE, and _NONVOLATILE flags`](https://lore.kernel.org/all/1321932788-18043-1-git-send-email-john.stultz@linaro.org) | [POSIX_FADV_VOLATILE](https://lwn.net/Articles/468896) | v1 ☐ | [LORE](https://lore.kernel.org/all/1321932788-18043-1-git-send-email-john.stultz@linaro.org) |
+| 2012/05/25 | John Stultz <john.stultz@linaro.org> | [Fallocate Volatile Ranges](https://lore.kernel.org/all/1337973456-19533-1-git-send-email-john.stultz@linaro.org) | [Volatile ranges with fallocate()](https://lwn.net/Articles/500382) | v1 ☐ | [LORE v1,0/4](https://lore.kernel.org/all/1337973456-19533-1-git-send-email-john.stultz@linaro.org) |
+| 2014/03/14 | John Stultz <john.stultz@linaro.org> | [Volatile Ranges (v11)](https://lore.kernel.org/all/1394822013-23804-1-git-send-email-john.stultz@linaro.org) | 1394822013-23804-1-git-send-email-john.stultz@linaro.org | v11 ☐ | [LORE v11,0/3](https://lore.kernel.org/all/1394822013-23804-1-git-send-email-john.stultz@linaro.org) |
+
+### 4.3.2 MADV_FREE
+-------
+
+与 MADV_DONTNEED 不同, MADV_DONTNEED 会立即回收指定内存区域的的页面, 而 MADV_FREE 则实现了一种延迟回收页面的机制.
+
+应用程序通过 madvise MADV_FREE 告诉内核这些内存不再包含有用的数据, 这样有诸多好处:
+
+1.  如果内存压力发生, 内核可以丢弃释放的页面, 而不是交换或 OOM. 如果内核中其他地方有使用内存的需求, 可以被内核回收. 在内存不足的情况下, 内核仍然知道要回收哪些页面. 通过检查页面表的脏位, 如果发现仍然是 "干净" 的, 这意味着这是一个 "空闲页面", 内核可以直接释放页面，而不是交换出去或者 OOM.
+
+2.  如果没有内存压力, 这些延缓释放的页面可以被用户空间重用, 而不会产生额外的开销. 例如如下场景, 如果应用程序又重新分配了内存, 内核可以直接复用这块区域, 此时对页面进行写操作, 可以直接将新数据放入页面, 并将页面标记为 DIRTY, 而无需通过触发 Page Fault 来分配页面. 这使得应用程序先 free() 后继续使用 malloc() 处理相同数据的应用程序运行得更快, 因为避免了 Page Fault.
+
+MADV_FREE 的合入在 linux 上经历了漫长的岁月.
+
+2007 年 Rik van Riel 实现了最早的 MADV_FREE [MM: implement MADV_FREE lazy freeing of anonymous memory](https://lkml.org/lkml/2007/4/28/6). 这引发了关于 [MADV_FREE functionality](https://lkml.org/lkml/2007/4/30/565) 的讨论, 以及 [wrong madvise(MADV_DONTNEED) semantic](https://lkml.org/lkml/2005/6/28/188). 但是还有诸多工作要做.
+
+随后 2014 年开始, Minchan Kim 继续了 MADV_FREE 的工作. 此时类似的特性已经被 BSD 等内核所支持, 但是 linux 仍旧不支持.
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2015/12/30 | Rik van Riel <riel@redhat.com> | [MM: implement MADV_FREE lazy freeing of anonymous memory](https://lore.kernel.org/patchwork/cover/79624) | madvise 支持页面延迟回收(MADV_FREE)的早期尝试  | v5 ☑ 4.5-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/79624) |
-| 2014/07/18 | Minchan Kim | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/484703) | madvise 可以用来设置页面的属性, MADV_FREE 则将这些页标识为延迟回收, 在页面用不着的时候, 可能并不会立即释放<br>1. 当内核内存紧张时, 这些页将会被优先回收, 如果应用程序在页回收后又再次访问, 内核将会返回一个新的并设置为 0 的页.<br>2. 而如果内核内存充裕时, 标识为 MADV_FREE 的页会仍然存在, 后续的访问会清掉延迟释放的标志位并正常读取原来的数据, 因此应用程序不检查页的数据, 就无法知道页的数据是否已经被丢弃. | v13 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/416962) |
-| 2015/12/30 | Minchan Kim | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/622178) | madvise 支持页面延迟回收(MADV_FREE)的再一次尝试  | v5 ☑ 4.5-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/622178), [KernelNewbies](https://kernelnewbies.org/Linux_4.5#Add_MADV_FREE_flag_to_madvise.282.29) |
-| 2017/02/24 | Minchan Kim | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/622178) | MADV_FREE 有几个问题, 使它不能在 jemalloc 这样的库中使用: 不支持系统没有交换启用, 增加了内存的压力, 另外统计也存在问题. 这个版本将 MADV_FREE 页面放到 LRU_INACTIVE_FILE 列表中, 为无交换系统启用 MADV_FREE, 并改进了统计计费.  | v5 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v5](https://lore.kernel.org/patchwork/cover/622178) |
+| 2007/04/28 | Rik van Riel <riel@redhat.com> | [MM: implement MADV_FREE lazy freeing of anonymous memory](https://lore.kernel.org/patchwork/cover/79624) | madvise 支持页面延迟回收(MADV_FREE)的早期尝试. 通过 MADV_FREE 延迟释放匿名页面, 在四核系统上 MySQL sysbench 的性能提高了一倍多. | v5 ☐ | [PatchWork RFC](https://lore.kernel.org/lkml/4632D0EF.9050701@redhat.com) |
+| 2014/07/18 | Minchan Kim <minchan@kernel.org> | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/484703) | madvise 可以用来设置页面的属性, MADV_FREE 则将这些页标识为延迟回收, 在页面用不着的时候, 可能并不会立即释放<br>1. 当内核内存紧张时, 这些页将会被优先回收, 如果应用程序在页回收后又再次访问, 内核将会返回一个新的并设置为 0 的页.<br>2. 而如果内核内存充裕时, 标识为 MADV_FREE 的页会仍然存在, 后续的访问会清掉延迟释放的标志位并正常读取原来的数据, 因此应用程序不检查页的数据, 就无法知道页的数据是否已经被丢弃. | v13 ☐ | [2014/03/14 LORE RFC,0/6](https://lore.kernel.org/lkml/1394779070-8545-1-git-send-email-minchan@kernel.org)<br>*-*-*-*-*-*-*-*<br>[2014/03/20 LORE v2,0/3](https://lore.kernel.org/lkml/1395297538-10491-1-git-send-email-minchan@kernel.org)<br>*-*-*-*-*-*-*-*<br>[2014/07/18 LORE v13,0/8](https://lore.kernel.org/lkml/1405666386-15095-1-git-send-email-minchan@kernel.org) |
+| 2015/12/30 | Minchan Kim <minchan@kernel.org> | [MADV_FREE support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=05ee26d9e7e29ab026995eab79be3c6e8351908c) | madvise 支持页面延迟回收(MADV_FREE)的再一次尝试  | v5 ☑ [4.5-rc1](https://kernelnewbies.org/Linux_4.5#Add_MADV_FREE_flag_to_madvise.282.29) | [LORE v5,00/12](https://lore.kernel.org/lkml/1448865583-2446-1-git-send-email-minchan@kernel.org) |
+| 2017/02/24 | Minchan Kim <minchan@kernel.org> | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/622178) | MADV_FREE 有几个问题, 使它不能在 jemalloc 这样的库中使用: 不支持系统没有交换启用, 增加了内存的压力, 另外统计也存在问题. 这个版本将 MADV_FREE 页面放到 LRU_INACTIVE_FILE 列表中, 为无交换系统启用 MADV_FREE, 并改进了统计计费.  | v5 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v5](https://lore.kernel.org/patchwork/cover/622178) |
 
 ## 4.4 shrinker
 -------

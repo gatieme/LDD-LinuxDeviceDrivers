@@ -1,6 +1,8 @@
 # 1 ANDROID
 -------
 
+[Android Kernel Features](https://elinux.org/Android_Kernel_Features)
+
 | 公司 | github | MAIN|
 |:-----:|:----------:|:-------:|
 | GOOGLE | [googlesource](https://android.googlesource.com/kernel/common) | NA |
