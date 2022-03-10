@@ -331,20 +331,72 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 ## 1.6 madvise
 -------
 
+### 1.6.1 MADV_DOEXEC
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/07/20 | Anthony Yznaga <anthony.yznaga@oracle.com> | [madvise MADV_DOEXEC](https://lore.kernel.org/patchwork/cover/1280469) | 这组补丁引入了 madvise MADV_DOEXEC 参数实现了跨 exec 金恒地址空间保留匿名页范围的支持. 与重新附加到命名共享内存段不同, 以这种方式共享内存的主要好处是确保新进程中的内存映射到与旧进程相同的虚拟地址. 这样做的目的是为使用 vfio 的 guest 保留 guest 的内存, 通过 qemu 使用 exec 可以生成一份其自身的更新版本. 通过确保内存保留在固定地址, vfio 映射及其相关的内核数据结构可以保持有效. | RFC ☐ | [PatchWork RFC,0/5](https://lore.kernel.org/patchwork/cover/1280469) |
-| 2019/07/14 | Minchan Kim <minchan@kernel.org> | [Introduce MADV_COLD and MADV_PAGEOUT](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) | NA | v5 ☑ 5.4-rc1 | [PatchWork v5,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) |
+
+### 1.6.2 MADV_COLD and MADV_PAGEOUT
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/07/14 | Minchan Kim <minchan@kernel.org> | [Introduce MADV_COLD and MADV_PAGEOUT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9c276cc65a58faf98be8e56962745ec99ab87636) | 为了优化 Android 中 OOM, 允许用户空间通过利用平台信息主动回收整个流程. 这允许开发人员通过自己对应用的了解绕过内核的 LRU 的不准确性, 对于那些已知从用户空间冷的页面, 并通过在应用程序进入缓存状态时立即回收它们来避免与 LMKD 竞争. 此外, 它还为平台提供了利用大量信息优化内存效率的机会. 为了实现这个目标, 补丁集为 madvise 引入了两个新选项.<br>一个是 MADV_COLD, 它将禁用激活的页面, 另一个是 MADV_PAGEOUT, 它将立即回收私人页面. 这些新选项补充了 MADV_DONTNEED 和 MADV_FREE, 添加了非破坏性的方法来获得一些空闲内存空间.<br>1. MADV_COLD 在某种程度上类似于 MADV_FREE, 它暗示内核当前不需要内存区域, 应该在内存压力上升时回收该内存区域.<br>2. MADV_PAGEOUT 在某种程度上类似于 MADV_DONTNEED, 它提示内核当前不需要内存区域, 应该立即回收. | v5 ☑ 5.4-rc1 | [PatchWork v5,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) |
 | 2021/10/19 | Suren Baghdasaryan <surenb@google.com> | [mm: rearrange madvise code to allow for reuse](https://patchwork.kernel.org/project/linux-mm/patch/20211019215511.3771969-1-surenb@google.com) | 重构 madvise 系统调用, 以允许影响 vma 的 prctl 系统调用重用其中的一部分. 将遍历虚拟地址范围内 vma 的代码移动到以函数指针为参数的函数中. 目前唯一的调用者是 sys_madvise, 它使用它在每个 vma 上调用 madvise_vma_behavior. | v11 ☐ | [PatchWork v11,1/3](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) |
 
 
-*   MADV_DONTNEED
+### 1.6.3 MADV_DONTNEED
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/11/10 | Qi Zheng <zhengqi.arch@bytedance.com> | [Free user PTE page table pages](https://patchwork.kernel.org/project/linux-mm/cover/20210819031858.98043-1-zhengqi.arch@bytedance.com) | 这个补丁系列的目的是在所有 PTE 条目都为空时释放用户 PTE 页表页面.<br>一些malloc库(例如 jemalloc 或 tcmalloc) 通常通过 mmap() 分配 VAs 的数量, 而不取消这些 VAs 的映射. 如果需要, 他们将使用 madvise(MADV_DONTNEED) 来释放物理内存. 但是 madvise() 不会释放页表, 因此当进程接触到巨大的虚拟地址空间时, 它会生成许多页表.<br>PTE 页表占用大量内存的原因是 madvise(MADV_DONTNEED) 只清空 PTE 并释放物理内存, 但不释放 PTE 页表页. 这组补丁通过释放那些空的 PTE 页表来节省内存. | v1 ☐ | [PatchWork 0/7](https://lore.kernel.org/patchwork/cover/1461972)<br>*-*-*-*-*-*-*-* <br>[2021/08/19 PatchWork v2,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20210819031858.98043-1-zhengqi.arch@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/10 PatchWork v3,00/15](https://patchwork.kernel.org/project/linux-mm/cover/20211110084057.27676-1-zhengqi.arch@bytedance.com) |
 | 2021/09/26 | Anthony Yznaga <anthony.yznaga@oracle.com> | [mm/madvise: support process_madvise(MADV_DONTNEED)](https://patchwork.kernel.org/project/linux-mm/cover/20210926161259.238054-1-namit@vmware.com) | 这些补丁的目标是添加对 process_madvise(MADV_DONTNEED) 的支持. 然而, 在这个过程中, 执行了一些(可以说)有用的清理、bug修复和性能增强. 这些补丁试图整合不同行为之间的逻辑, 并在一定程度上解决与之前[比较出彩的补丁](https://lore.kernel.org/linux-mm/CAJuCfpFDBJ_W1y2tqAT4BGtPbWrjjDud_JuKO8ZbnjYfeVNvRg@mail.gmail.com) 的冲突.<br>process_madvise(MADV_DONTNEED) 之所以有用有两个原因:<br>(a)它允许 userfaultfd 监视器从被监控的进程中取消内存映射;<br>(b) 它 比 madvise() 更有效, 因为它是矢量化的, 批处理 TLB 刷新更积极. | RFC ☐ | [PatchWork RFC,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210926161259.238054-1-namit@vmware.com) |
 
+
+### 1.6.4 madvise MADV_FREE 页面延迟回收
+-------
+
+[Volatile ranges and MADV_FREE](https://lwn.net/Articles/590991)
+
+#### 1.6.4.1 Volatile Ranges
+-------
+
+[LWN: Volatile ranges](https://lwn.net/Kernel/Index/#Volatile_ranges)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2011/11/21 | John Stultz <john.stultz@linaro.org> | [`fadvise: Add _VOLATILE,_ISVOLATILE, and _NONVOLATILE flags`](https://lore.kernel.org/all/1321932788-18043-1-git-send-email-john.stultz@linaro.org) | [POSIX_FADV_VOLATILE](https://lwn.net/Articles/468896) | v1 ☐ | [LORE](https://lore.kernel.org/all/1321932788-18043-1-git-send-email-john.stultz@linaro.org) |
+| 2012/05/25 | John Stultz <john.stultz@linaro.org> | [Fallocate Volatile Ranges](https://lore.kernel.org/all/1337973456-19533-1-git-send-email-john.stultz@linaro.org) | [Volatile ranges with fallocate()](https://lwn.net/Articles/500382) | v1 ☐ | [LORE v1,0/4](https://lore.kernel.org/all/1337973456-19533-1-git-send-email-john.stultz@linaro.org) |
+| 2014/03/14 | John Stultz <john.stultz@linaro.org> | [Volatile Ranges (v11)](https://lore.kernel.org/all/1394822013-23804-1-git-send-email-john.stultz@linaro.org) | 1394822013-23804-1-git-send-email-john.stultz@linaro.org | v11 ☐ | [LORE v11,0/3](https://lore.kernel.org/all/1394822013-23804-1-git-send-email-john.stultz@linaro.org) |
+
+#### 1.6.4.2 MADV_FREE
+-------
+
+与 MADV_DONTNEED 不同, MADV_DONTNEED 会立即回收指定内存区域的的页面, 而 MADV_FREE 则实现了一种延迟回收页面的机制.
+
+应用程序通过 madvise MADV_FREE 告诉内核这些内存不再包含有用的数据, 这样有诸多好处:
+
+1.  如果内存压力发生, 内核可以丢弃释放的页面, 而不是交换或 OOM. 如果内核中其他地方有使用内存的需求, 可以被内核回收. 在内存不足的情况下, 内核仍然知道要回收哪些页面. 通过检查页面表的脏位, 如果发现仍然是 "干净" 的, 这意味着这是一个 "空闲页面", 内核可以直接释放页面，而不是交换出去或者 OOM.
+
+2.  如果没有内存压力, 这些延缓释放的页面可以被用户空间重用, 而不会产生额外的开销. 例如如下场景, 如果应用程序又重新分配了内存, 内核可以直接复用这块区域, 此时对页面进行写操作, 可以直接将新数据放入页面, 并将页面标记为 DIRTY, 而无需通过触发 Page Fault 来分配页面. 这使得应用程序先 free() 后继续使用 malloc() 处理相同数据的应用程序运行得更快, 因为避免了 Page Fault.
+
+MADV_FREE 的合入在 linux 上经历了漫长的岁月.
+
+2007 年 Rik van Riel 实现了最早的 MADV_FREE [MM: implement MADV_FREE lazy freeing of anonymous memory](https://lkml.org/lkml/2007/4/28/6). 这引发了关于 [MADV_FREE functionality](https://lkml.org/lkml/2007/4/30/565) 的讨论, 以及 [wrong madvise(MADV_DONTNEED) semantic](https://lkml.org/lkml/2005/6/28/188). 但是还有诸多工作要做.
+
+随后 2014 年开始, Minchan Kim 继续了 MADV_FREE 的工作. 此时类似的特性已经被 BSD 等内核所支持, 但是 linux 仍旧不支持.
+
+处理流程上, madvise MADV_FREE 的操作会调用 [madvise_free_single_vma()](https://elixir.bootlin.com/linux/v4.5/source/mm/madvise.c#L410) 将当前 VMA 上指定 start_addr, end_addr 区域页面标记为 lazyfree 的. 对于 lazyfree 的页面, LRU 会通过 [deactivate_page()](https://elixir.bootlin.com/linux/v4.5/source/mm/swap.c#L644) 和 [lru_deactivate_pvecs](https://elixir.bootlin.com/linux/v4.5/source/mm/swap.c#L647) 移动到 inactive list 上.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2007/04/28 | Rik van Riel <riel@redhat.com> | [MM: implement MADV_FREE lazy freeing of anonymous memory](https://lore.kernel.org/patchwork/cover/79624) | madvise 支持页面延迟回收(MADV_FREE)的早期尝试. 通过 MADV_FREE 延迟释放匿名页面, 在四核系统上 MySQL sysbench 的性能提高了一倍多. | v5 ☐ | [PatchWork RFC](https://lore.kernel.org/lkml/4632D0EF.9050701@redhat.com) |
+| 2014/07/18 | Minchan Kim <minchan@kernel.org> | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/484703) | madvise 可以用来设置页面的属性, MADV_FREE 则将这些页标识为延迟回收, 在页面用不着的时候, 可能并不会立即释放<br>1. 当内核内存紧张时, 这些页将会被优先回收, 如果应用程序在页回收后又再次访问, 内核将会返回一个新的并设置为 0 的页.<br>2. 而如果内核内存充裕时, 标识为 MADV_FREE 的页会仍然存在, 后续的访问会清掉延迟释放的标志位并正常读取原来的数据, 因此应用程序不检查页的数据, 就无法知道页的数据是否已经被丢弃. | v13 ☐ | [2014/03/14 LORE RFC,0/6](https://lore.kernel.org/lkml/1394779070-8545-1-git-send-email-minchan@kernel.org)<br>*-*-*-*-*-*-*-*<br>[2014/03/20 LORE v2,0/3](https://lore.kernel.org/lkml/1395297538-10491-1-git-send-email-minchan@kernel.org)<br>*-*-*-*-*-*-*-*<br>[2014/07/18 LORE v13,0/8](https://lore.kernel.org/lkml/1405666386-15095-1-git-send-email-minchan@kernel.org) |
+| 2015/12/30 | Minchan Kim <minchan@kernel.org> | [MADV_FREE support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=05ee26d9e7e29ab026995eab79be3c6e8351908c) | madvise 支持页面延迟回收(MADV_FREE)的再一次尝试  | v5 ☑ [4.5-rc1](https://kernelnewbies.org/Linux_4.5#Add_MADV_FREE_flag_to_madvise.282.29) | [LORE v5,00/12](https://lore.kernel.org/lkml/1448865583-2446-1-git-send-email-minchan@kernel.org) |
+| 2017/02/24 | MShaohua Li <shli@fb.com> | [mm: fix some MADV_FREE issues](https://lore.kernel.org/patchwork/cover/622178) | MADV_FREE 有几个问题, 使它不能在 jemalloc 这样的库中使用: 不支持系统没有交换启用, 增加了内存的压力, 另外统计也存在问题. 这个版本将 MADV_FREE 页面放到 LRU_INACTIVE_FILE 列表中, 为无交换系统启用 MADV_FREE, 并改进了统计计费.  | v5 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v5,0/6](https://lore.kernel.org/all/cover.1487965799.git.shli@fb.com) |
 
 ## 1.7 page table pages
 -------
@@ -802,7 +854,7 @@ Mel Gorman 发现了这一问题, 开发了 [Calculate pcp->high based on zone s
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/01/23 | Vlastimil Babka <vbabka@suse.cz> | [page stealing tweaks](https://lore.kernel.org/patchwork/cover/535613) |  | v1 ☑ 4.13-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/535613) |
-| 2017/03/07 | Vlastimil Babka <vbabka@suse.cz> | [try to reduce fragmenting fallbacks](https://lore.kernel.org/patchwork/cover/766804) | 修复 [Regression in mobility grouping?](https://lkml.org/lkml/2016/9/28/94) 上报的碎片化问题, 通过修改 fallback 机制和 compaction 机制来减少永久随便化的可能性. 其中 fallback 修改时, 仅尝试从不同 migratetype 的 pageblock 中窃取的页面中挑选最小(但足够)的页面. | v3 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v6](https://lore.kernel.org/patchwork/cover/766804), [KernelNewbies](https://kernelnewbies.org/Linux_4.12#Memory_management), [关键 commit 3bc48f96cf11 ("mm, page_alloc: split least stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) |
+| 2017/03/07 | Vlastimil Babka <vbabka@suse.cz> | [try to reduce fragmenting fallbacks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=baf6a9a1db5a40ebfa5d3e761428d3deb2cc3a3b) | 修复 [Regression in mobility grouping?](https://lkml.org/lkml/2016/9/28/94) 上报的碎片化问题, 通过修改 fallback 机制和 compaction 机制来减少永久随便化的可能性. 其中 fallback 修改时, 仅尝试从不同 migratetype 的 pageblock 中窃取的页面中挑选最小(但足够)的页面. | v3 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [LORE v3,0/8](https://lore.kernel.org/all/20170307131545.28577-1-vbabka@suse.cz), [关键 commit 3bc48f96cf11 ("mm, page_alloc: split least stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) |
 | 2017/05/29 | Vlastimil Babka <vbabka@suse.cz> | [mm, page_alloc: fallback to smallest page when not stealing whole pageblock](https://lore.kernel.org/patchwork/cover/793063) |  | v1 ☑ 4.13-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/793063), [commit 7a8f58f39188](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7a8f58f3918869dda0d71b2e9245baedbbe7bc5e) |
 
 commit fef903efcf0cb9721f3f2da719daec9bbc26f12b
@@ -1689,10 +1741,15 @@ invalidate_mapping_pages() 用于清理和释放内核中映射的文件页面. 
 
 |  时间  | 作者 |  特性 | 描述  |  是否合入主线  | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
-| 2016/01/15 | Minchan Kim <minchan@kernel.org> | [mm: move lazily freed pages to inactive list](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b8d3c4c3009d42869dc03a1da0efc2aa687d0ab4) | TODO | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10853a039208c4afaa322a7d802456c8dca222f4) |
+| 2016/01/15 | Minchan Kim <minchan@kernel.org> | [mm: move lazily freed pages to inactive list](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b8d3c4c3009d42869dc03a1da0efc2aa687d0ab4) | [MADV_FREE support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=05ee26d9e7e29ab026995eab79be3c6e8351908c) 的其中一个补丁. 引入了 lru_deactivate_pvecs( 随后改名 [lru_lazyfree_pvecs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f7ad2a6cb9f7c4040004bedee84a70a9b985583e)) pagevec 将标记了 lazyfree 的页面, 添加到 inactive list 上. | v1 ☑✓ 4.5 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10853a039208c4afaa322a7d802456c8dca222f4), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f7ad2a6cb9f7c4040004bedee84a70a9b985583e) |
 
 
-*   随后是 lru_deactivate_pvecs
+*   最后被引入的 lru_deactivate_pvecs
+
+
+|  时间  | 作者 |  特性 | 描述  |  是否合入主线  | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2019/07/14 | Minchan Kim <minchan@kernel.org> | [Introduce MADV_COLD and MADV_PAGEOUT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9c276cc65a58faf98be8e56962745ec99ab87636) | NA | v5 ☑ 5.4-rc1 | [PatchWork v7,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) |
 
 
 *   引入 local_locks 的概念
@@ -2099,13 +2156,14 @@ MADV_FREE 的合入在 linux 上经历了漫长的岁月.
 
 随后 2014 年开始, Minchan Kim 继续了 MADV_FREE 的工作. 此时类似的特性已经被 BSD 等内核所支持, 但是 linux 仍旧不支持.
 
+处理流程上, madvise MADV_FREE 的操作会调用 [madvise_free_single_vma()](https://elixir.bootlin.com/linux/v4.5/source/mm/madvise.c#L410) 将当前 VMA 上指定 start_addr, end_addr 区域页面标记为 lazyfree 的. 对于 lazyfree 的页面, LRU 会通过 [deactivate_page()](https://elixir.bootlin.com/linux/v4.5/source/mm/swap.c#L644) 和 [lru_deactivate_pvecs](https://elixir.bootlin.com/linux/v4.5/source/mm/swap.c#L647) 移动到 inactive list 上.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2007/04/28 | Rik van Riel <riel@redhat.com> | [MM: implement MADV_FREE lazy freeing of anonymous memory](https://lore.kernel.org/patchwork/cover/79624) | madvise 支持页面延迟回收(MADV_FREE)的早期尝试. 通过 MADV_FREE 延迟释放匿名页面, 在四核系统上 MySQL sysbench 的性能提高了一倍多. | v5 ☐ | [PatchWork RFC](https://lore.kernel.org/lkml/4632D0EF.9050701@redhat.com) |
 | 2014/07/18 | Minchan Kim <minchan@kernel.org> | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/484703) | madvise 可以用来设置页面的属性, MADV_FREE 则将这些页标识为延迟回收, 在页面用不着的时候, 可能并不会立即释放<br>1. 当内核内存紧张时, 这些页将会被优先回收, 如果应用程序在页回收后又再次访问, 内核将会返回一个新的并设置为 0 的页.<br>2. 而如果内核内存充裕时, 标识为 MADV_FREE 的页会仍然存在, 后续的访问会清掉延迟释放的标志位并正常读取原来的数据, 因此应用程序不检查页的数据, 就无法知道页的数据是否已经被丢弃. | v13 ☐ | [2014/03/14 LORE RFC,0/6](https://lore.kernel.org/lkml/1394779070-8545-1-git-send-email-minchan@kernel.org)<br>*-*-*-*-*-*-*-*<br>[2014/03/20 LORE v2,0/3](https://lore.kernel.org/lkml/1395297538-10491-1-git-send-email-minchan@kernel.org)<br>*-*-*-*-*-*-*-*<br>[2014/07/18 LORE v13,0/8](https://lore.kernel.org/lkml/1405666386-15095-1-git-send-email-minchan@kernel.org) |
 | 2015/12/30 | Minchan Kim <minchan@kernel.org> | [MADV_FREE support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=05ee26d9e7e29ab026995eab79be3c6e8351908c) | madvise 支持页面延迟回收(MADV_FREE)的再一次尝试  | v5 ☑ [4.5-rc1](https://kernelnewbies.org/Linux_4.5#Add_MADV_FREE_flag_to_madvise.282.29) | [LORE v5,00/12](https://lore.kernel.org/lkml/1448865583-2446-1-git-send-email-minchan@kernel.org) |
-| 2017/02/24 | Minchan Kim <minchan@kernel.org> | [MADV_FREE support](https://lore.kernel.org/patchwork/cover/622178) | MADV_FREE 有几个问题, 使它不能在 jemalloc 这样的库中使用: 不支持系统没有交换启用, 增加了内存的压力, 另外统计也存在问题. 这个版本将 MADV_FREE 页面放到 LRU_INACTIVE_FILE 列表中, 为无交换系统启用 MADV_FREE, 并改进了统计计费.  | v5 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v5](https://lore.kernel.org/patchwork/cover/622178) |
+| 2017/02/24 | MShaohua Li <shli@fb.com> | [mm: fix some MADV_FREE issues](https://lore.kernel.org/patchwork/cover/622178) | MADV_FREE 有几个问题, 使它不能在 jemalloc 这样的库中使用: 不支持系统没有交换启用, 增加了内存的压力, 另外统计也存在问题. 这个版本将 MADV_FREE 页面放到 LRU_INACTIVE_FILE 列表中, 为无交换系统启用 MADV_FREE, 并改进了统计计费.  | v5 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v5,0/6](https://lore.kernel.org/all/cover.1487965799.git.shli@fb.com) |
 
 ## 4.4 shrinker
 -------
