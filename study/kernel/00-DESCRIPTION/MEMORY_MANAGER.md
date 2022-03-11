@@ -373,6 +373,8 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 ### 1.6.2 MADV_DONTNEED
 -------
 
+标记为 MADV_DONTNEED 的页面由 madvise_dontneed_single_vma() 调用 zap_page_range() 把给定范围内的用户页释放掉, 页表清零.
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/11/10 | Qi Zheng <zhengqi.arch@bytedance.com> | [Free user PTE page table pages](https://patchwork.kernel.org/project/linux-mm/cover/20210819031858.98043-1-zhengqi.arch@bytedance.com) | 这个补丁系列的目的是在所有 PTE 条目都为空时释放用户 PTE 页表页面.<br>一些malloc库(例如 jemalloc 或 tcmalloc) 通常通过 mmap() 分配 VAs 的数量, 而不取消这些 VAs 的映射. 如果需要, 他们将使用 madvise(MADV_DONTNEED) 来释放物理内存. 但是 madvise() 不会释放页表, 因此当进程接触到巨大的虚拟地址空间时, 它会生成许多页表.<br>PTE 页表占用大量内存的原因是 madvise(MADV_DONTNEED) 只清空 PTE 并释放物理内存, 但不释放 PTE 页表页. 这组补丁通过释放那些空的 PTE 页表来节省内存. | v1 ☐ | [PatchWork 0/7](https://lore.kernel.org/patchwork/cover/1461972)<br>*-*-*-*-*-*-*-* <br>[2021/08/19 PatchWork v2,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20210819031858.98043-1-zhengqi.arch@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/10 PatchWork v3,00/15](https://patchwork.kernel.org/project/linux-mm/cover/20211110084057.27676-1-zhengqi.arch@bytedance.com) |
@@ -433,13 +435,12 @@ MADV_FREE 意味着在内存压力下可以丢弃, 因为页面的内容是垃�
 然而, MADV_COLD 并不意味着垃圾, 所以回收它们最终需要换入/换出, 所以成本更大. 由于我们设计了基于成本模型的 VM LRU 老化(VM LRU aging based on cost-model), 将匿名冷页面放到不活跃的 inactive anon LRU list , 而不是 inactive file LRU list 更好. 此外, 如果系统没有 SWAP, 它将有助于避免不必要的扫描. 这样的实现简单而高效. 但是, 也要记住, 带有大量 Page Cache 的工作负载很可能会忽略匿名内存上的 MADV_COLD, 因为我们很少老化匿名 LRU 列表.
 
 
-或者说, 理论上讲: 与具有相同访问频率的系统中的页面相比, 标记为 MADV_COLD 的页面将被视为最近访问较少的页面. 与 MADV_FREE 不同的是, 该区域的内容会被保留, 而不管后续如何写入页面.
+或者说, 理论上讲: 与具有相同访问频率的系统中的页面相比, 标记为 MADV_COLD 的页面将被视为最近访问较少的页面. 与 MADV_FREE 不同的是, 该区域的内容会被保留, 而不管后续如何写入页面. madvise_cold_page_range() 中通过 deactivate_page() 将页面从 active LRU 移动对对应的 inactive LRU.
 
 
 *   [MADV_PAGEOUT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1a4e58cce84ee88129d5d49c064bd2852b481357)
 
-MADV_PAGEOUT 在某种程度上类似于 MADV_DONTNEED, 它提示内核当前不需要内存区域, 应该立即回收.
-
+MADV_PAGEOUT 在某种程度上类似于 MADV_DONTNEED, 它提示内核当前不需要内存区域, 应该立即回收. madvise_pageout_page_range() 会通过 isolate_lru_page() 先将页面从 LRU 中移除, 然后调用 reclaim_pages() 直接回收.
 
 
 注意 MADV_COLD 和 MADV_PAGEOUT 无法应用于锁定页面、大型 TLB 页面或 VM_PFNMAP 页面, 但是支持透明大页 THP.
@@ -447,7 +448,7 @@ MADV_PAGEOUT 在某种程度上类似于 MADV_DONTNEED, 它提示内核当前不
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2019/07/14 | Minchan Kim <minchan@kernel.org> | [Introduce MADV_COLD and MADV_PAGEOUT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9c276cc65a58faf98be8e56962745ec99ab87636) | 为了优化 Android 中 OOM, 允许用户空间通过利用平台信息主动回收整个流程. 这允许开发人员通过自己对应用的了解绕过内核的 LRU 的不准确性, 对于那些已知从用户空间冷的页面, 并通过在应用程序进入缓存状态时立即回收它们来避免与 LMKD 竞争. 此外, 它还为平台提供了利用大量信息优化内存效率的机会. 为了实现这个目标, 补丁集为 madvise 引入了两个新选项.<br>一个是 MADV_COLD, 它将禁用激活的页面, 另一个是 MADV_PAGEOUT, 它将立即回收私人页面. 这些新选项补充了 MADV_DONTNEED 和 MADV_FREE, 添加了非破坏性的方法来获得一些空闲内存空间.<br> | v5 ☑ 5.4-rc1 | [PatchWork v5,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) |
+| 2019/07/14 | Minchan Kim <minchan@kernel.org> | [Introduce MADV_COLD and MADV_PAGEOUT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9c276cc65a58faf98be8e56962745ec99ab87636) | 为了优化 Android 中 OOM, 允许用户空间通过利用平台信息主动回收整个流程. 这允许开发人员通过自己对应用的了解绕过内核的 LRU 的不准确性, 对于那些已知从用户空间冷的页面, 并通过在应用程序进入缓存状态时立即回收它们来避免与 LMKD 竞争. 此外, 它还为平台提供了利用大量信息优化内存效率的机会. 为了实现这个目标, 补丁集为 madvise 引入了两个新选项, MADV_COLD 和 MADV_PAGEOUT, 来快速回收指定的内存页面. MADV_COLD 会把指定的 page 移到 inactive list, 基本上就是把它们标记为没人使用状态, 可以在 page reclaim 的时候释放. MADV_PAGEOUT 则更激进, 这会让这些 page 立刻被释放回收. | v5 ☑ 5.4-rc1 | [PatchWork v5,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) |
 | 2021/10/19 | Suren Baghdasaryan <surenb@google.com> | [mm: rearrange madvise code to allow for reuse](https://patchwork.kernel.org/project/linux-mm/patch/20211019215511.3771969-1-surenb@google.com) | 重构 madvise 系统调用, 以允许影响 vma 的 prctl 系统调用重用其中的一部分. 将遍历虚拟地址范围内 vma 的代码移动到以函数指针为参数的函数中. 目前唯一的调用者是 sys_madvise, 它使用它在每个 vma 上调用 madvise_vma_behavior. | v11 ☐ | [PatchWork v11,1/3](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) |
 
 
