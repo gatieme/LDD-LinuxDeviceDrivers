@@ -2250,6 +2250,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 时间  | 作者  | 特性  | 描述  | 是否合入主线   | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2020/02/28 | Parth Shah <parth@linux.ibm.com> | [Introduce per-task latency_nice for scheduler hints](https://lore.kernel.org/all/20200228090755.22829-1-parth@linux.ibm.com) | 20200228090755.22829-1-parth@linux.ibm.com | v5 ☐☑✓ | [LORE v4,0/4](https://lore.kernel.org/lkml/20200224085918.16955-1-parth@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/4](https://lore.kernel.org/all/20200228090755.22829-1-parth@linux.ibm.com) |
+| 2020/05/07 | Parth Shah <parth@linux.ibm.com> | [IDLE gating in presence of latency-sensitive tasks](https://lore.kernel.org/all/20200507133723.18325-1-parth@linux.ibm.com) | 20200507133723.18325-1-parth@linux.ibm.com | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20200507133723.18325-1-parth@linux.ibm.com) |
 | 2022/03/11 | Vincent Guittot <vincent.guittot@linaro.org> | [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) | 20220311161406.23497-1-vincent.guittot@linaro.org | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) |
 
 

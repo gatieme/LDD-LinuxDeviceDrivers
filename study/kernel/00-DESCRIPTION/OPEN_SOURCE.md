@@ -83,6 +83,8 @@
 -------
 
 
+其中 SOSP 与 OSDI 是系统领域的圣殿, 无数研究者的梦想.
+
 ## 5.1 LPC
 -------
 
@@ -90,6 +92,35 @@
 |:---:|:----:|
 | 2021/09 | [Watch Live (Free)](https://www.linuxplumbersconf.org/event/11/page/107-watch-live-free) |
 
+## 5.2 ASPLOS
+-------
+
+International Conference on Architectural Support for Programming Languages and Operating Systems Explanation
+国际编程语言和操作系统架构支持会议
+
+
+| 日期 | 链接 |
+|:---:|:----:|
+| 2021/04/12 ~ 2021/04/23 | [ASPLOS 2021](https://asplos-conference.org/2021/index.html) | [ASPLOS 2021 论文选读](https://zhuanlan.zhihu.com/p/366849275)
+
+## 5.3 SOSP
+-------
+
+[SOSP](http://sosp.org)
+
+## 5.4 USENIX's OSDI
+-------
+
+OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementation, 但随着时代的发展, 它早已不局限在操作系统领域.
+
+
+| 日期 | 链接 |
+|:---:|:----:|
+| 2021/04/12 ~ 2021/04/23 | [ASPLOS 2021](https://asplos-conference.org/2021/index.html) | [OSDI2021 论文选读](https://zhuanlan.zhihu.com/p/393380577)
+
+
+
+[ALL CONFERENCES](https://www.usenix.org/conferences/all)
 
 # 6 统计信息
 -------
@@ -97,5 +128,4 @@
 
 | 网站 | 描述 |
 |:---:|:---:|
-| [LWN](https://lwn.net/Kernel/Index/#Releases) | LWN 每个版本都会在合并窗口发布 Merge Window, 在版本发布之后还会发布 [development statistics](https://lwn.net/Articles/867540) 信息. |
-|
+| [LWN](https://lwn.net/Kernel/Index/#Releases) | LWN 每个版本都会在合并窗口发布 Merge Window, 在版本发布之后还会发布 [development statistics](https://lwn.net/Articles/867540) 信息 |
