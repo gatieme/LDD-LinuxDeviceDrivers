@@ -226,6 +226,7 @@ BFS 的最后版本是 2016 年 12 月发布的 v0.512, 基于 v4.8 内核.
 | 2007/12/04 | Ingo Molnar <mingo@elte.hu> | [db292ca302e8 sched: default to more agressive yield for SCHED_BATCH tasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=db292ca302e8) | 对 SCHED\_BATCH 调优的任务执行更积极的 yield. | v1 ☑ 2.6.24-rc5 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=db292ca302e8) |
 | 2007/12/18 | Ingo Molnar <mingo@elte.hu> | [6cbf1c126cf6 sched: do not hurt SCHED_BATCH on wakeup](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6cbf1c126cf6) | Yanmin Zhang的测量表明, 如果 SCHED\_BATCH 任务运行与 SCHED\_OTHER 任务相同的 place_entity() 逻辑, 则它们将受益. 因此统一该领域的行为. SCHED\_BATCH 进程唤醒时 vruntime 也将进行补偿. | v1 ☑ 2.6.24-rc6 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6cbf1c126cf6) |
 | 2011/02/22 | Darren Hart <dvhart@linux.intel.com> | [a2f5c9ab79f7 sched: Allow SCHED_BATCH to preempt SCHED_IDLE tasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a2f5c9ab79f7) | 非交互式任务 SCHED\_BATCH 仍然比 SCHED_BATCH 的任务重要, 因此应该优先于 SCHED\_IDLE 的任务唤醒和运行. | v1 ☑ 2.6.39-rc1 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a2f5c9ab79f7) |
+| 2022/03/11 | Chen Ying <chenying.kernel@bytedance.com> | [sched/fair: prioritize normal task over sched_idle task with vruntime offset](https://lore.kernel.org/all/f87a8c0d-527d-a9bc-9653-ff955e0e95b4@bytedance.com) | 对 SCHED_IDLE 类型的进程, 将其 vruntime 添加一个 sched_idle_vruntime_offset 的增量, 从而保证 SCHED_IDLE 进程的 sched_entity 在 CFS 红黑树中总是在非 SCHED_IDLE sched_entity 的右侧. 这可以允许选择非 SCHED_IDLE 任务, 并在空闲任务之前运行. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/f87a8c0d-527d-a9bc-9653-ff955e0e95b4@bytedance.com) |
 
 
 
@@ -1277,8 +1278,19 @@ Mike Galbraith 调试发现, 触发这个问题的原因是因为 wake_affine_we
 | 2021/09/20 | Mel Gorman <mgorman@techsingularity.net> | [Scale wakeup granularity relative to nr_running](https://lore.kernel.org/lkml/20210920142614.4891-1-mgorman@techsingularity.net) | 在任务迁移或唤醒期间, 将决定是否抢占当前任务. 为了限制过度调度, 可以通过设置 sysctl_sched_wakeup_granularity 来延迟抢占, 以便在抢占之前允许至少一定的运行时间. 但是, 当任务堆叠而造成域严重过载时(例如 hackbench 测试), 过度调度的程度仍然很严重. 而且由于许多时间被调度器浪费在重新安排任务(切换等)上, 这会进一步延长过载状态. 这组补丁根据 CPU 上正在运行的任务数在 wakeup_gran() 中扩展唤醒粒度, 默认情况下最大可达 8ms. 其目的是允许任务在过载时运行更长时间, 以便某些任务可以更快地完成, 并降低域过载的程度. | v1 ☐ | [PatchWork v1](https://lore.kernel.org/lkml/20210920142614.4891-1-mgorman@techsingularity.net), [LKML](https://lkml.org/lkml/2021/9/20/478) |
 | 2021/10/28 | Mel Gorman <mgorman@techsingularity.net> | [Reduce stacking and overscheduling](https://lkml.org/lkml/2021/10/21/661) | Mike Galbraith 发现引起 CPU 上任务堆积的原因是 wake_affine_weight() 流程与 cpu_load() 更新路径的互不感知造成的, 因此进行了修复. | v1 ☐ | [2021/10/21 LKML 0/2](https://lkml.org/lkml/2021/10/21/661), [2021/10/28 LKML v4 0/2](https://lkml.org/lkml/2021/10/28/226),[LORE 1/1](https://lore.kernel.org/all/20211125151915.8628-1-mgorman@techsingularity.net/), [LORE v4,0/2](https://lore.kernel.org/lkml/20211028094834.1312-1-mgorman@techsingularity.net) |
 
+### 4.8.3 WAKE_UP 选核
+-------
 
-### 4.8.3 child runs first
+
+大多数情况下所有公平任务的唤醒都遵循一个过程, 即找到一个空闲的 CPU 并在这个空闲的 CPU 上唤醒任务. 有两种主要的唤醒路径(参见 [link1](https://lore.kernel.org/lkml/39cc4666-6355-fb9f-654d-e85e1852bc6f@linux.ibm.com), [link2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2917406c352757642c3c1a13a4c99c96e6d22fde)):
+
+| 路径 | 描述 |
+|:----:|:---:|
+| 快速路径 select_idle_sibling() | 在唤醒 CPU 的 LLC sched_domain 的空闲 CPU 上唤醒任务. 可以优化任务在 prev_cpu 或 wake_cpu 上的位置. 此路径主要用于少数情况, 如 fork() 和 exec() 期间. 一般通过 WAKE_AFFINE 来触发是否走快速路径. |
+| 慢路径 find_idlest_cpu() | 通过搜索 SD_BALANCE_FORK 或 SD_BALANCE_EXEC 标记的最高 sched_domain 来唤醒处于最空闲状态的空闲 CPU 上的任务. |
+
+
+### 4.8.4 child runs first
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1536,6 +1548,8 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2013/10/18 | Vincent Guittot | [sched: packing tasks](https://lwn.net/Articles/520857) | 尝试在繁忙的内核上打包小负载的后台任务, 这样可以通过保持其他核空闲来节省电源. | v1 ☐ | [LKML v3 0/6](https://lkml.org/lkml/2013/3/22/183)<br>*-*-*-*-*-*-*-* <br>[LKML new PART1 v4 0/5 ](https://lkml.org/lkml/2014/4/11/137)<br>*-*-*-*-*-*-*-* <br>[LKML v5 00/14](https://lkml.org/lkml/2013/10/18/121), [LORE v5 00/14](https://lore.kernel.org/lkml/1382097147-30088-1-git-send-email-vincent.guittot@linaro.org/) |
+| 2020/02/28 | Parth Shah <parth@linux.ibm.com> | [[SchedulerTaskPacking] Small background task packing](https://lore.kernel.org/all/20200228090755.22829-1-parth@linux.ibm.com) | 最新的小任务封包的实践. 为了统一消耗系统资源, 当前系统中这种选择空闲 CPU 的假设是公平的. 但是, 并不是所有的任务都应该唤醒空闲的核, 因为这可能会降低功耗. 例如, 像小的后台任务唤醒一个空闲的核心, 只运行非常小的持续时间. 减少活动核的数量可以使繁忙的核提高频率, 从而节省电力, 也可以带来性能上的好处. 现有的唤醒路径没有机制来检测小的后台任务, 这些任务可以在更少的核上打包. | v1 ☐ | [LORE v1](https://lore.kernel.org/lkml/39cc4666-6355-fb9f-654d-e85e1852bc6f@linux.ibm.com) |
+
 
 
 ### 7.1.2 TurboSched
@@ -1575,7 +1589,6 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 
 ### 7.2.2 IKS -> HMP -> EAS & CAS
 -------
-
 
 [The power-aware scheduling mini-summit](https://lwn.net/Articles/571414)
 
@@ -1658,6 +1671,11 @@ ARM 的 Morten Rasmussen 一直致力于ANDROID 调度器优化的:
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2020/07/31 | Valentin Schneider <valentin.schneider@arm.com> | [sched: Document capacity aware scheduling](https://lore.kernel.org/all/20200731192016.7484-1-valentin.schneider@arm.com) | 补充了 CAS(capacity aware scheduling) 的文档. | v1 ☑ 5.7-rc1 | [LORE 0/3](https://lore.kernel.org/all/20200731192016.7484-1-valentin.schneider@arm.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=65065fd70b5a0f0bbe3f9f1e82c1d38c2db620d0) |
+
+### 7.2.5 社区其他相关讨论
+-------
+
+[Scheduling for heterogeneous computers](https://lore.kernel.org/lkml/20220308092141.GF748856@aluminium)
 
 
 ## 7.3 基于调度器的调频
@@ -2222,6 +2240,18 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2017/05/12 | Rohit Jain <rohit.k.jain@oracle.com> | [Interrupt Aware Scheduler](https://lkml.org/lkml/2017/5/12/512) | NA | v1 ☐ | [LORE 0/5](https://lore.kernel.org/lkml/1494612267-29465-1-git-send-email-rohit.k.jain@oracle.com) |
 | 2021/09/20 | Libo Chen <libo.chen@oracle.com> | [Overeager pulling from wake_wide() in interrupt heavy workloads](https://lkml.org/lkml/2017/5/12/512) | 当前 wake_affine() 机制并不感知 ISR 唤醒的场景, 在这种场景下, 在中断上下文发起唤醒 wakee 进程的请求, 其实的 waker 并不是真正的 waker, 而是因为唤醒发生时中断正好打断了这个 waker 进程. wake_affine() 机制仍旧比较 waker/wakee 进程的 wakee_flips 到导致错误的唤醒. 作者讲了一个 IST 唤醒的场景, 导致 CPU 唤醒到中断所在的 NUMA NODE, 但是系统中其他 NODE 却是空闲的. | v1 ☐ | [Slide](https://linuxplumbersconf.org/event/11/contributions/1044/attachments/801/1508/lpc21_wakeup_pulling_libochen.pdf) |
+
+## 8.9 QoS
+-------
+
+### 8.9.1 latency_nice
+-------
+
+| 时间  | 作者  | 特性  | 描述  | 是否合入主线   | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2020/02/28 | Parth Shah <parth@linux.ibm.com> | [Introduce per-task latency_nice for scheduler hints](https://lore.kernel.org/all/20200228090755.22829-1-parth@linux.ibm.com) | 20200228090755.22829-1-parth@linux.ibm.com | v5 ☐☑✓ | [LORE v4,0/4](https://lore.kernel.org/lkml/20200224085918.16955-1-parth@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/4](https://lore.kernel.org/all/20200228090755.22829-1-parth@linux.ibm.com) |
+| 2022/03/11 | Vincent Guittot <vincent.guittot@linaro.org> | [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) | 20220311161406.23497-1-vincent.guittot@linaro.org | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) |
+
 
 # 9 IDLE
 -------
