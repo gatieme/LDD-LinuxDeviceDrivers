@@ -1685,6 +1685,9 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 | 2005/06/21 | Martin Hicks <mort@sgi.com> | [Swap reorganised 29.12.95](https://github.com/gatieme/linux-history/commit/ecda87c064fea1d7322a357b78b99e04594bc6f3) | 引入 zone_reclaim syscall, 用来回收 zone 的内存. | v1 ☑ 1.3.57 | [commit HISTORY](https://github.com/gatieme/linux-history/commit/ecda87c064fea1d7322a357b78b99e04594bc6f3) |
 | 2.4.0-test9pre1 | Rik van Riel <riel@redhat.com> | [MM balancing (Rik Riel)](https://github.com/gatieme/linux-history/commit/1fc53b2209b58e786c102e55ee682c12ffb4c794) | 引入 MM balancing, 其中将 LRU 拆分成了 active_list 和 inactive_dirty_list 两条链表 | 2.4.0-test9pre1 | [1fc53b2209b](https://github.com/gatieme/linux-history/commit/1fc53b2209b58e786c102e55ee682c12ffb4c794) |
 
+内存提供了函数 isolate_lru_pages() 来将 LRU 链表中的页进行隔离, 为什么要隔离, 为了效率. 因为在做内存回收的路径了一定会各种遍历 LRU 链表, 但是这个时候系统并没有停止, 也会频繁的访问链表. 所以为了避免对锁的竞争, 内核决定将页面从 LRU 的链表上隔离出来去做内存回收的页面筛选动作. 参见 commit [ae102ac599f5 ("vmscan: move code to isolate LRU pages into separate function")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ae102ac599f557ea3544875957dda84ed5bb020e).
+
+
 ### 4.2.2 Split LRU 替换算法
 -------
 
@@ -1861,7 +1864,7 @@ v2.6.38 时 [mm: simplify code of swap.c](https://git.kernel.org/pub/scm/linux/k
 
 | PAGEVEC | CallChain(user...pagevec_lru_move_fn) | 详细描述(使用场景参考 user, 具体操作参考 FN) |
 |:-------:|:-------------------------------------:|:---------------------------------------:|
-| lru_pvecs.lru_add             | lru_cache_add_(in)active_or_unevictable()/add_page_cache_to_lru()<br>-=>lru_cache_add()<br>&emsp;-=> __pagevec_lru_add()<br>&emsp;&emsp;-=> __pagevec_lru_add_fn | 最常规的 LRU 操作, 将页面添加到对应的 LRU 中. |
+| lru_pvecs.lru_add             | lru_cache_add_(in)active_or_unevictable()/add_page_cache_to_lru()<br>-=>lru_cache_add()<br>&emsp;-=> __pagevec_lru_add()<br>&emsp;&emsp;-=> __pagevec_lru_add_fn | 最常规的 LRU 操作, 将页面添加到对应的 LRU 中, 将一个新分配的页面添加到 LRU, 以及把 PageCache 加入到 LRU 都是走的这个路径. |
 | lru_pvecs.lru_deactivate_file | invalidate_mapping_pages()<br>-=> deactivate_file_page()<br>&emsp;-=> lru_deactivate_file_fn() | NA |
 | lru_pvecs.lru_deactivate      | madvise_cold_or_pageout_pte_range()<br>-=> deactivate_page()<br>&emsp;-=> lru_deactivate_fn() | 将页面从 active list 移动到对应的 inactive list |
 | lru_pvecs.lru_lazyfree        | madvise_free_pte_range()/madvise_free_huge_pmd()<br>-=> mark_page_lazyfree()<br>&emsp;-=> lru_lazyfree_fn() | 将(匿名的) active 页移动到 inactive file LRU list. |
@@ -1899,28 +1902,36 @@ lru_cache_add_active
 ### 4.2.4 zone or node base LRU
 -------
 
-2.5.33 合入了基于 zone 的 LRU
+LRU 的组织形式经历了多次变迁, 从最开始全局的 LRU, 演变成 Per-Zone LRU, 后来又支持了了 per-memcg LRU, 直到 v4.8 切换到了
 
+LRU 组织形式的变更和 LRU lock 的变更是无法割裂开的. 每次 LRU 整体 base 的变迁, 必然伴随着 lru_lock 的变迁.
 
-| 编号 | 时间  | 作者 | 补丁 | 描述 |
-|:---:|:----:|:----:|:---:|:---:|
-| 1 | 2002/08/27 | Andrew Morton <akpm@zip.com.au> | [4fce9c6f187c ("rename zone_struct and zonelist_struct, kill zone_t and")](https://github.com/gatieme/linux-history/commit/4fce9c6f187c263e93b74c7db01b258ff77104b4) | NA |
-| 2 | 2002/08/27 | Andrew Morton <akpm@zip.com.au> | [e6f0e61d9ed9 ("per-zone-LRU")](https://github.com/gatieme/linux-history/commit/e6f0e61d9ed94134f57bcf6c72b81848b9d3c2fe) | per zone 的 LRU 替换原来的全局 LRU 链表 |
-| 3 | 2002/08/27 | Andrew Morton <akpm@zip.com.au> | [a8382cf11536 ("per-zone LRU locking")](https://github.com/gatieme/linux-history/commit/a8382cf1153689a1caac0e707e951e7869bb92e1) | per zone 的 lru_lock 替换原来的全局 `_pagemap_lru_lock` |
+最开始的 LRU 是全局的, 那么 lru_lock 也是全局的 `pagemap_lru_lock`. 随后 [make pagemap_lru_lock irq-safe](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=aaba9265318483297267400fbfce1c399b3ac018) 将 `pagemap_lru_lock` 修改为中断安全的, 其实就是之前全是 spin_lock/unlock 的, 现在改为 spin_unlock_irq/spin_lock_irq. 并将锁名字替换为 `_pagemap_lru_lock`.
 
-4.8 合入了基于 zone 的页面回收策略, 将 LRU 的页面回收从 zone 迁移到了 node 上.
+2.5.33 合入了基于 ZONE 的 LRU, 那么自然全局的 lru_lock `_pagemap_lru_lock` 也被修改为细粒度的 zone->lru_lock. 从而减少冲突.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2016/07/08 | Mel Gorman <mgorman@techsingularity.net> | [Move LRU page reclaim from zones to nodes v9](https://lore.kernel.org/patchwork/cover/696408) | 将 LRU 页面的回收从 ZONE 切换到 NODE. | v9 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [PatchWork v21](https://lore.kernel.org/patchwork/cover/696408) |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2002/08/27 | Andrew Morton <akpm@zip.com.au> | [per-zone LRU](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a8382cf1153689a1caac0e707e951e7869bb92e1) | [per zone LRU](https://github.com/gatieme/linux-history/commit/e6f0e61d9ed94134f57bcf6c72b81848b9d3c2fe) 替换原来的全局 LRU 链表.<br>[per zone 的 lru_lock](https://github.com/gatieme/linux-history/commit/a8382cf1153689a1caac0e707e951e7869bb92e1) 替换原来的全局 `_pagemap_lru_lock` | v1 ☐☑✓ 2.5.33 | [LORE v1,0/3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a8382cf1153689a1caac0e707e951e7869bb92e1) |
+
+4.8 合入了基于 NODE 的页面回收策略, 将 LRU 的页面回收从 ZONE 迁移到了 NODE 上. 同时将 zone->lru_lock 移除, 替换成了 NODE 的 lru_lock. 并提供了封装好的接口 zone_lru_lock() 来访问.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:
+| 2016/07/08 | Mel Gorman <mgorman@techsingularity.net> | [Move LRU page reclaim from zones to nodes v9, 00/55](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d7f05528eedb047efe2288cff777676b028747b6) | [将 LRU 页面的回收从 ZONE 切换到 NODE](https://lore.kernel.org/all/1467970510-21195-1-git-send-email-mgorman@techsingularity.net). 后续又直接合入了诸多 bugfix, 有些不定直接合并到了之前的提交上. [Follow-up fixes to node-lru series v1, 0/4](https://lore.kernel.org/all/1468404004-5085-1-git-send-email-mgorman@techsingularity.net)<br>[Follow-up fixes to node-lru series v2,0/5](https://lore.kernel.org/all/1468588165-12461-1-git-send-email-mgorman@techsingularity.net)<br>[Follow-up fixes to node-lru series v3,0/3](https://lore.kernel.org/all/1468853426-12858-1-git-send-email-mgorman@techsingularity.net)<br>[Candidate fixes for premature OOM kills with node-lru v2, 0/5](https://lore.kernel.org/all/1469110261-7365-1-git-send-email-mgorman@techsingularity.net/) | v9 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [LORE v9,00/34](https://lore.kernel.org/all/1467970510-21195-1-git-send-email-mgorman@techsingularity.net) |
 | 2009/12/11 | Rik van Riel <riel@redhat.com> | [vmscan: limit concurrent reclaimers in shrink_zone](https://lore.kernel.org/patchwork/cover/181645) | 限制 shrink_zone() 中的并发数目.<br>在非常重的多进程工作负载下(如AIM7), VM可能会以各种方式陷入麻烦. 当页面回收代码中有数百甚至数千个活动进程时, 问题就开始了.<br>1. 在页面回收代码中, 由于成千上万个进程之间的锁争用(和有条件的重调度), 系统不仅会遭受巨大的减速<br>2. 每个进程都将尝试释放最多 SWAP_CLUSTER_MAX 页面, 即使系统已经有大量的空闲内存.<br>通过限制页面回收代码中同时活动的进程数量, 应该可以同时避免这两个问题.如果在一个区域中有太多活动的进程在执行页面回收, 只需在shrink_zone()中进入休眠状态. 在唤醒时, 在我们自己进入页面回收代码之前, 检查是否已经释放了足够的内存. 在这里使用与页面分配器中使用相同的阈值, 以决定是否首先调用页面回收代码, 否则一些不幸的进程可能最终会为系统的其他部分释放内存. | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/181645) |
 
+
+2.6.25 期间, 在 Per-Zone LRU 的基础上, 实现了 per-memcg LRU 的支持, 但是 per-memcg LRU lock 的支持却经历了不少的.
 
 [memcg lru lock 血泪史](https://blog.csdn.net/bjchenxu/article/details/112504932)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/12/05 | Alex Shi <alex.shi@linux.alibaba.com> | [per memcg lru lock](https://lore.kernel.org/patchwork/cover/1333353) | 实现 SLOB 分配器 | v21 ☑ [5.11](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork v21](https://lore.kernel.org/patchwork/cover/1333353) |
+| 2007/12/27 | Kamezawa Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [per-zone and reclaim enhancements for memory controller take 3](https://lore.kernel.org/patchwork/cover/98042) | per-zone LRU for memcg, 其中引入了 mem_cgroup_per_zone, mem_cgroup_per_node 等结构 | v7 ☑ 2.6.25-rc1 | [PatchWork v7](https://lore.kernel.org/lkml/20071127115525.e9779108.kamezawa.hiroyu@jp.fujitsu.com) |
+| 2011/12/08 | Johannes Weiner <jweiner@redhat.com> | [memcg naturalization -rc5](https://lore.kernel.org/patchwork/cover/273527) | 引入 per-memcg lru, 消除重复的 LRU 列表, [全局 LRU 不再存在, page 只存在于 per-memcg LRU list 中](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=925b7673cce39116ce61e7a06683a4a0dad1e72a).<br>它使传统的页面回收能够从每个memcg LRU列表中查找页面, 从而消除了双LRU模式(除了每个memcg区域外, 每个全局区域)和系统中每个页面所需的额外列表头. <br>该补丁引入了 lruvec 结构. | v5 ☑ [3.3-rv1](https://kernelnewbies.org/Linux_3.3#Memory_management) | [PatchWork v5](https://lore.kernel.org/patchwork/cover/273527), [LWN](https://lwn.net/Articles/443241) |
+| 2012/02/20 | Hugh Dickins <hughd@google.com> | [mm/memcg: per-memcg per-zone lru locking](https://lore.kernel.org/patchwork/cover/288055) | per-memcg lru lock | v1 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/288055) |
+| 2020/12/05 | Alex Shi <alex.shi@linux.alibaba.com> | [per memcg lru lock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=15b447361794271f4d03c04d82276a841fe06328) | per memcg LRU lock | v21 ☑ [5.11](https://kernelnewbies.org/Linux_5.11#Memory_management) | [LORE v21,00/19](https://lore.kernel.org/all/1604566549-62481-1-git-send-email-alex.shi@linux.alibaba.com) |
 
 
 ### 4.2.5 不同类型页面拆分管理
@@ -3782,9 +3793,7 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2007/08/24 | Balbir Singh <balbir@linux.vnet.ibm.com> | [Memory controller containers setup (v7)](https://lore.kernel.org/patchwork/cover/90224) | 实现 MEMCG | v7 ☑ [2.6.25-rc1](https://kernelnewbies.org/Linux_2_6_25) | [PatchWork v7](https://lore.kernel.org/patchwork/cover/90224) |
-| 2007/11/26 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [per-zone and reclaim enhancements for memory controller take 3 [0/10] introduction
-share 0](https://lkml.org/lkml/2007/11/26/356) | per-zone 的页面回收感知 MEMCG. | v3 ☑ 2.6.25-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/patch/98042) |
+| 2007/08/24 | Balbir Singh <balbir@linux.vnet.ibm.com> | [Memory controller containers setup (v7)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e1a1cd590e3fcb0d2e230128daf2337ea55387dc) | 实现 MEMCG | v7 ☑ [2.6.25-rc1](https://kernelnewbies.org/Linux_2_6_25) | [PatchWork v7](https://lore.kernel.org/lkml/20070824152009.16582.78904.sendpatchset@balbir-laptop) |
 | 2010/09/01 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [memcg: towards I/O aware memcg v7.](https://lore.kernel.org/patchwork/cover/213968) | IO 感知的 MEMCG. | v7 ☐ | [PatchWork v7](https://lore.kernel.org/patchwork/cover/213968) |
 | 2009/09/25 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [memcg updates v5](https://lore.kernel.org/patchwork/cover/129608) | IO 感知的 MEMCG. | v7 ☐ | [PatchWork 0/12](https://lore.kernel.org/patchwork/cover/129608) |
 | 2009/06/15 | Balbir Singh <balbir@linux.vnet.ibm.com>| [Remove the overhead associated with the root cgroup](https://lore.kernel.org/patchwork/cover/160500) | 通过删除与 root cgroup 有关的开销来降低 mem cgroup 的开销<br>1. 删除了与计算 root cgroup中所有页面相关的开销. 作为一个副作用, 我们不能再在 root cgroup中设置内存硬限制.<br>2. 添加了一个新的标记 PCG_ACCT_LRU, 用于跟踪页面是否已被计入. page_cgroup的标记现在被原子地设置, pcg_default_flags 现在已经过时并被删除. | v5 ☑ 2.6.32-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/cover/160500) |
@@ -3884,14 +3893,23 @@ git://github.com/glommer/linux.git kmemcg-slab
 ## 9.4 memcg LRU
 -------
 
+自 2008 年 v2.6.25-rc1, Balbir Singh 实现 MEMCG 时, 就支持了 per-memcg 的 LRU, 不过当时每个 MEMECG 只有一个唯一的 LRU, 且区分 active_list 和 inactive_list(Per cgroup active and inactive list). [Memory controller: add per cgroup LRU and reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=66e1707bc34609f626e2e7b4fe7e454c9748bad5). 并标记了 [TODO: Consider making these lists per zone](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=78fb74669e80883323391090e4d26d17fe29488f). 此时, per-memcg 的 lru_lock 也是 mem_cgroup 级别的.
+
+而当时正是 per-Zone LRU 的时代, 随即 KAMEZAWA Hiroyuki 就为 per-memcg 的唯一 LRU 也完成了 per-Zone 的支持. 为了完成这个功能, 引入了 mem_cgroup_per_zone 等结构, 并添加了 [mem_cgroup_per_zone 的 active_list 和 inactive_list](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1ecaab2bd221251a3fd148abb08e8b877f1e93c8), 同样完成了 [mem_cgroup_per_zone 的 lru_lock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=072c56c13e1302fcdc39961dc64e76485731ad67).
+
+
+至此内核为 per-memcg 实现了 per-Zone 的 LRU.
+
+
 [memcg lru lock 血泪史](https://blog.csdn.net/bjchenxu/article/details/112504932)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2007/12/27 | Kamezawa Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [per-zone and reclaim enhancements for memory controller take 3](https://lore.kernel.org/patchwork/cover/98042) | per-zone LRU for memcg, 其中引入了 mem_cgroup_per_zone, mem_cgroup_per_node 等结构 | v7 ☑ 2.6.25-rc1 | [PatchWork v7](https://lore.kernel.org/patchwork/cover/98042) |
-| 2011/12/08 | Johannes Weiner <jweiner@redhat.com> | [memcg naturalization -rc5](https://lore.kernel.org/patchwork/cover/273527) | 引入 per-memcg lru, 消除重复的 LRU 列表, [全局 LRU 不再存在, page 只存在于 per-memcg LRU list 中](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=925b7673cce39116ce61e7a06683a4a0dad1e72a).<br>它使传统的页面回收能够从每个memcg LRU列表中查找页面, 从而消除了双LRU模式(除了每个memcg区域外, 每个全局区域)和系统中每个页面所需的额外列表头. <br>该补丁引入了 lruvec 结构. | v5 ☑ [3.3-rv1](https://kernelnewbies.org/Linux_3.3#Memory_management) | [PatchWork v5](https://lore.kernel.org/patchwork/cover/273527), [LWN](https://lwn.net/Articles/443241) |
+| 2007/08/24 | Balbir Singh <balbir@linux.vnet.ibm.com> | [Memory controller: add per cgroup LRU and reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=66e1707bc34609f626e2e7b4fe7e454c9748bad5) | 实现 [Memory controller containers setup (v7)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e1a1cd590e3fcb0d2e230128daf2337ea55387dc) 时引入了 [per cgroup 的 LRU 和 页面 reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=66e1707bc34609f626e2e7b4fe7e454c9748bad5) 和  | v7 ☑ [2.6.25-rc1](https://kernelnewbies.org/Linux_2_6_25) | [PatchWork v7](https://lore.kernel.org/lkml/20070824152009.16582.78904.sendpatchset@balbir-laptop), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=66e1707bc34609f626e2e7b4fe7e454c9748bad5). |
+| 2007/11/26 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [per-zone and reclaim enhancements for memory controller take 3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=072c56c13e1302fcdc39961dc64e76485731ad6) | per-zone LRU for memcg, per-zone 的页面回收感知 MEMCG. 其中引入了 mem_cgroup_per_zone, mem_cgroup_per_node 等结构. | v3 ☑ 2.6.25-rc1 | [LORE v3,00/10](https://lore.kernel.org/lkml/20071127115525.e9779108.kamezawa.hiroyu@jp.fujitsu.com) |
+| 2011/12/08 | Johannes Weiner <jweiner@redhat.com> | [memcg naturalization -rc5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=6b208e3f6e35aa76d254c395bdcd984b17c6b626) | 参见 [LWN: Integrating memory control groups](https://lwn.net/Articles/443241). 引入 per-memcg lru, 消除重复的 LRU 列表, [全局 LRU 不再存在, page 只存在于 per-memcg LRU list 中](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=925b7673cce39116ce61e7a06683a4a0dad1e72a).<br>它使传统的页面回收能够从每个memcg LRU列表中查找页面, 从而消除了双LRU模式(除了每个memcg区域外, 每个全局区域)和系统中每个页面所需的额外列表头. <br>该补丁引入了 lruvec 结构. | v5 ☑ [3.3-rv1](https://kernelnewbies.org/Linux_3.3#Memory_management) | [PatchWork v5](https://lore.kernel.org/lkml/1320787408-22866-1-git-send-email-jweiner@redhat.com),  |
 | 2012/02/20 | Hugh Dickins <hughd@google.com> | [mm/memcg: per-memcg per-zone lru locking](https://lore.kernel.org/patchwork/cover/288055) | per-memcg lru lock | v1 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/288055) |
-| 2020/12/05 | Alex Shi <alex.shi@linux.alibaba.com> | [per memcg lru lock](https://lore.kernel.org/patchwork/cover/1333353) | per memcg LRU lock | v21 ☑ [5.11](https://kernelnewbies.org/Linux_5.11#Memory_management) | [PatchWork v21](https://lore.kernel.org/patchwork/cover/1333353) |
+| 2020/12/05 | Alex Shi <alex.shi@linux.alibaba.com> | [per memcg lru lock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=15b447361794271f4d03c04d82276a841fe06328) | per memcg LRU lock | v21 ☑ [5.11](https://kernelnewbies.org/Linux_5.11#Memory_management) | [LORE v21,00/19](https://lore.kernel.org/all/1604566549-62481-1-git-send-email-alex.shi@linux.alibaba.com) |
 | 2011/05/26 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [memcg async reclaim](https://lore.kernel.org/patchwork/cover/251835) | 实现 MEMCG 的异步回收机制(Asynchronous memory reclaim)<br>1. 当使用 memc g时, 应用程序可以看到由 memcg 限制引起的内存回收延迟. 一般来说, 这是不可避免的. 有一类应用程序, 它使用许多干净的文件缓存并执行一些交互式工作.<br>2. 如果内核能够帮助后台回收内存, 那么应用程序的延迟就会在一定程度上被隐藏(这取决于应用程序的睡眠方式). 这组补丁程序添加了控制开关 memory.async_control 启用异步回收. 采用动态计算的方法计算了边缘的大小. 该值被确定为减少应用程序达到限制的机会.<br>使用了新引入的 WQ_IDLEPRI 类型(使用 SCHED_IDLE 调度策略)的 kworker(memcg_async_shrinker) 来完整回收的操作. 通过使用 SCHED_IDLE, 系统繁忙的时候异步内存回收只能消耗 0.3% 的 CPU, 但如果cpu空闲, 可以使用很多cpu.  | v3 ☐ | [PatchWork RFC,v3,0/10](https://lore.kernel.org/patchwork/cover/251835) |
 | 2017/05/30 | Johannes Weiner <hannes@cmpxchg.org> | [mm: per-lruvec slab stats](https://lore.kernel.org/patchwork/cover/793422) | Josef 正在研究一种平衡 slab 缓存和 page cache 的新方法. 为此, 他需要 lruvec 级别的 slab 缓存统计信息. 这些补丁通过添加基础设施来实现这一点, 该基础设施允许每个 lruvec 更新和读取通用 VM 统计项, 然后将一些现有VM记帐站点(包括slab记帐站点)切换到这个新的 cgroup 感知 API. | v1 ☑ 4.13-rc1 | [PatchWork 0/6](https://lore.kernel.org/patchwork/cover/793422) |
 | 2021/02/17 | Yang Shi <shy828301@gmail.com> | [Make shrinker's nr_deferred memcg aware](https://lore.kernel.org/patchwork/cover/1393744) | 最近, 在一些 vfs 元数据繁重的工作负载上看到了大量的 one-off slab drop, 造成收缩器了大量累积的 nr_deferred 对象.<br>这个是由多种原因导致的.<br>这组补丁集使 nr_deferred 变成 per-memcg 来解决问题. | v10 ☑ 5.13-rc1 | [PatchWork v10,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20210217001322.2226796-1-shy828301@gmail.com) |
