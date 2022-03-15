@@ -2342,7 +2342,8 @@ v2.5 的时候引入了 shrink 机制, 并提供了 API 统一了各个模块的
 
 基于 kstaled 的方案, 没有合入主线, 但是 idle memory tracking 的方案在优化后, 于 4.3 合入了主线, 命名为 [IDLE_PAGE_TRACKING](https://www.kernel.org/doc/html/latest/admin-guide/mm/idle_page_tracking.html). 作者基于这个特性进程运行所需的实际内存预测(WSS), 并提供了一[系列工具 idle_page_tracking](https://github.com/sjp38/idle_page_tracking)来完成这个工作, 参见 [Idle Page Tracking Tools](https://sjp38.github.io/post/idle_page_tracking).
 
-Facebook 指出他们也面临过同样的问题, 所有的 workload 都需要放到 container 里去执行, 用户需要明确申明需要使用多少内存, 不过其实没人知道自己真的会用到多少内存, 因此用户申请的内存数量都太多了, 也就有了类似的overcommit和reclaim问题. Facebook的方案是采用 [PSI(pressure-stall information)](https://lwn.net/Articles/759781), 根据这个来了解内存是否变得很紧张了, 相应的会把LRU list里最久未用的page砍掉. 假如这个举动导致更多的 refault 发生. 不过通过调整内存的回收就调整的激进程度可以缓和 refault. 从而达到较合理的结果, 同时占用的CPU时间也会小得多.
+Facebook 指出他们也面临过同样的问题, 所有的 workload 都需要放到 container 里去执行, 用户需要明确申明需要使用多少内存, 不过其实没人知道自己真的会用到多少内存, 因此用户申请的内存数量都太多了, 也就有了类似的overcommit和reclaim问题. Facebook的方案是采用 [PSI(pressure-stall information)](https://lwn.net/Articles/759781), 根据这个来了解内存是否变得很紧张了, 相应的会把LRU list里最久未用的page砍掉. 假如这个举动导致更多的 refault 发生. 不过通过调整内存的回收就调整的激进程度可以缓和 refault. 从而达到较合理的结果, 同时占用的CPU时间也会小得多. 描述其设计方案的论文在 ASPLOS’22 中发表, 并成为四篇 Best Paper 之一, 参见 [TMO: Transparent Memory Offloading in Datacenters](https://dl.acm.org/doi/10.1145/3503222.3507731). 网络上的分析 [知乎, 大荒落 TMO: Transparent Memory Offloading in Datacenters](https://zhuanlan.zhihu.com/p/477786756).
+
 
 后来还有一些类似的特性也达到了很好的效果.
 
@@ -2352,8 +2353,6 @@ Facebook 指出他们也面临过同样的问题, 所有的 workload 都需要�
 
 3.  Amazon 的开发人员 SeongJae Park 基于 DAMON 分析内存的访问, 在此基础上实现了[主动的内存回收机制 DAMON-based Reclamation](https://damonitor.github.io/doc/html/v29-darc-rfc-v2/admin-guide/mm/damon/reclaim.html). 使用 DAMON 监控数据访问, 以找出特定时间段内未访问的冷页, 优先将他们回收.
 
-
-
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2007/02/09 | David Rientjes <rientjes@google.com> | [smaps: extract pmd walker from smaps code](https://lore.kernel.org/patchwork/cover/73779) | Referenced Page flag, 通过在 /proc/PID/smap 中新增 pages referenced 计数的支持, 同时引入 `/proc/PID/clear_refs` 允许用户重置进程页面的 referenced 标记. 通过这种方式用户可以找出特定时间段内被访问过的页. 从而估计出进程的 WSS, 区分冷热页. | v1 ☑ 2.6.22-rc1 | [PatchWork v1 0/3](https://lore.kernel.org/patchwork/cover/73777) |
@@ -2361,6 +2360,7 @@ Facebook 指出他们也面临过同样的问题, 所有的 workload 都需要�
 | 2018/12/26 | Fengguang Wu <fengguang.wu@intel.com> | [PMEM NUMA node and hotness accounting/migration](https://lore.kernel.org/patchwork/cover/1027864) | 尝试使用 NVDIMM/PMEM 作为易失性 NUMA 内存, 使其对普通应用程序和虚拟内存透明. 其中引入 `/proc/PID/idle_pages` 接口, 用于用户空间驱动的热点页面进行统计. 实现冷热页扫描, 以及页面回收路径下的被动内核冷页面迁移, 改进了用于活动用户空间热/冷页面迁移的move_pages() | RFC v2 ☐ 4.20 | PatchWork RFC,v2,00/21](https://lore.kernel.org/patchwork/cover/1027864), [LKML](https://lkml.org/lkml/2018/12/26/138), [github/intel/memory-optimizer](http://github.com/intel/memory-optimizer) |
 | 2021/03/18 | liubo <liubo254@huawei.com> | [etmem: swap and scan](https://gitee.com/openeuler/kernel/issues/I3W4XW) | openEuler 实现的内存分级扩展技术. | v1 ☐ 4.19 | [etmem tools](https://gitee.com/src-openeuler/etmem) |
 | 2021/10/19 | SeongJae Park <sjpark@amazon.com> | [Introduce DAMON-based Proactive Reclamation](https://lwn.net/Articles/863753) | 该补丁集改进了用于生产质量的通用数据访问模式内存管理的引擎, 并在其之上实现了主动回收. | v4 ☑ 5.16-rc1 | [PatchWork RFC,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/14](https://patchwork.kernel.org/project/linux-mm/patch/20210608115254.11930-15-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v3,00/15](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4 00/15](https://patchwork.kernel.org/project/linux-mm/cover/20211019150731.16699-1-sj@kernel.org) |
+
 
 
 ### 4.5.2 idle memory tracking
