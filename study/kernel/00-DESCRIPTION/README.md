@@ -144,15 +144,15 @@ Linux 内核特性演进史
 1. 这个阶段可以跟踪下社区的进展, 内核代码是在不断发展和演进的, 要带着发展的眼光看, 时刻关注社区的动向. 完善和丰富我们的知识体系. 这些信息可以通过关注社区邮件列表、kernelnewbies 和 LWN 来获取.
 
     [LinuxVersions - Linux Kernel Newbies](https://kernelnewbies.org/LinuxVersions)
-​
+
     [Kernel coverage at LWN.net](https://lwn.net/Kernel)
-​
+
 2. 关于已经合入的特性的历史信息, 同样可以从邮件列表的归档记录和 Patchwork 等地方获取. 主线合入的内核的特性, 往往都是通过不断的改进, 经过了 N 轮重构和 review 才合入的主线, 而越早期的讨论, 涉及的内容可能更多, 也更容易大家理解. 对于一些特性, 不理解它为什么这么实现的时候, 去找当时社区邮件列表的讨论, 往往是最直接有效的途径.
 
     [Project List - Patchwork](https://patchwork.kernel.org)
-​
+
     [Linux Kernel Mailing List](https://lore.kernel.org/patchwork/project/lkml/list)
-​
+
     [lkml.org](https://lkml.org/lkml)
 
 
@@ -292,6 +292,11 @@ Linux 内核特性演进史
 
 > 感谢知友 [@costa](https://www.zhihu.com/people/78ceb98e7947731dc06063f682cf9640) 提供无水印题图)
 
+
+## 2.4 其他类似资料
+-------
+
+[Linux 内核学习资料：200 + 篇经典内核文章，100 + 篇内核论文，50 + 内核项目，500 + 道内核面试题，80 + 内核讲解视频](https://github.com/0voice/linux_kernel_wiki)
 
 # 3 内容目录
 -------
