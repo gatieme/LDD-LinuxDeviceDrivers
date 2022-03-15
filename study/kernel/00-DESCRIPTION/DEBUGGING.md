@@ -144,6 +144,8 @@ https://lwn.net/Articles/422487/
 
 [Linux Load Averages: 什么是平均负载 ?](https://zhuanlan.zhihu.com/p/75975041)
 
+[docs/scheduler: Introduce the doc of load average](https://lore.kernel.org/lkml/20220314084759.9849-1-juitse.huang@gmail.com)
+
 Load Averages 是一项历史悠久的指标, 在 1973 年 8 月的 RFC 546 中对 [LTENEX Load Average](https://datatracker.ietf.org/doc/html/rfc546) 有一个很好的描述. 原始的 load averages 仅显示 CPU 需求: 运行的进程数 + 等待运行的进程数.
 
 
