@@ -64,7 +64,7 @@
 | 分支 | 描述 | 内核 |
 |:---:|:---:|:----:|
 | [L4Linux](http://www.l4linux.org) | L4Linux 是[基于 Fiasco 微内核的跟普通 Linux 二进制完全兼容的 Linux 内核](https://blog.csdn.net/gracioushe/article/details/6023340). L4Linux 是运行 Fiasco 用户空间的一个进程, 由很多线程组成, 而 Native Linux 则是运行在内核空间, 如果不考虑 kernel thread 的话, 那么 Native Linux 就相当于一个运行在内核空间的大进程, 它实现了从处理器调度、内存管理到设备管理等所有一个操作系统的必备的功能. 参见 [Adam 的 diploma thesis](http://os.inf.tu-dresden.de/papers_ps/adam-diplom.pdf) | NA |
-
+| [darwin-xnu](https://github.com/apple/darwin-xnu) | 苹果的微内核 | [opensource](https://opensource.apple.com/source/xnu), [cbowser/xnu](https://fergofrog.com/code/cbowser/xnu) |
 
 
 # 4 Linux Version
