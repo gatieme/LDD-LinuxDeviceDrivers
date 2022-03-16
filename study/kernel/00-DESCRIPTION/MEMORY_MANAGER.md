@@ -1888,16 +1888,19 @@ pagevec 还提供了一些 API, 供内核和驱动中动态的创建和使用 pa
 #### 4.2.3.3 lru_add 接口变更
 -------
 
-lru_cache_add
-lru_cache_add_active
+*   lru_cache_add
 
-[vmscan: split LRU lists into anon & file sets](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f98a2fee8acdb4ac84545df98cccecfd130f8db) lru_cache_add_active_anon
+[vmscan: split LRU lists into anon & file sets](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f98a2fee8acdb4ac84545df98cccecfd130f8db) 分离匿名页和文件页后, add 和 del 的接口需要显式 anon 或者 file.
 
-[swap: cull unevictable pages in fault path](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=64d6519dda3905dfb94d3f93c07c5f263f41813f) lru_cache_add_active_or_unevictable
+*   lru_cache_add_inactive_or_unevictable
 
-[mm: add_active_or_unevictable into rmap](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b5934c531849ff4a51ce0f290141efe564290e40)
+在引入 Unevictable LRU 的时候, 最基础的一个场景, [commit 64d6519dda39 ("swap: cull unevictable pages in fault path")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=64d6519dda3905dfb94d3f93c07c5f263f41813f) 在 [Page Fault 分配了新的匿名页面](https://elixir.bootlin.com/linux/v2.6.28/source/mm/memory.c#L1918)后, 如果该页面是可以被驱逐的 [page_evictable()](https://elixir.bootlin.com/linux/v2.6.28/source/mm/swap.c#L262), 则通过 lru_cache_add_lru 将其添加到活动的 lru 列表中(借助了 pagevec), 否则将其添加到 [Unevictable LRU](https://www.kernel.org/doc/html/latest/vm/unevictable-lru.html). 因此将这个流程封装到 [lru_cache_add_active_or_unevictable()](https://elixir.bootlin.com/linux/v2.6.28/source/mm/swap.c#L259) 函数中.
 
-[mm/vmscan: protect the workingset on anonymous LRU](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b518154e59aab3ad0780a169c5cc84bd4ee4357e)
+由于 lru_cache_add_active_or_unevictable 总是与 page_add_new_anon_rmap() 成对出现, 因此 [commit b5934c531849 ("mm: add_active_or_unevictable into rmap")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b5934c531849ff4a51ce0f290141efe564290e40), 将此流程放到了 page_add_new_anon_rmap() 中, 并移除了 lru_cache_add_active_or_unevictable() 函数.
+
+[mm: memcontrol: rewrite charge API](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=00501b531c4723972aa11d6d4ebcf8d6552007c8) 又只能再次将 lru_cache_add_active_or_unevictable() 的流程从 page_add_new_anon_rmap() 中剥离出来.
+
+[commit b518154e59aa ("mm/vmscan: protect the workingset on anonymous LRU")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b518154e59aab3ad0780a169c5cc84bd4ee4357e) 将新创建或交换的匿名页面放到 inactive LRU list, 这样 lru_cache_add_active_or_unevictable() 也直接被 lru_cache_add_inactive_or_unevictable() 替代.
 
 ### 4.2.4 zone or node base LRU
 -------
@@ -1958,19 +1961,17 @@ LRU 组织形式的变更和 LRU lock 的变更是无法割裂开的. 每次 LRU
 
 虽然现在拆分出 4 个链表了, 但还有一个问题, 有些页被**"钉"**在内存里(比如实时算法, 或出于安全考虑, 不想含有敏感信息的内存页被交换出去等原因, 用户通过 **_mlock()_**等系统调用把内存页锁住在内存里). 当这些页很多时, 扫描这些页同样是徒劳的. 内核将这些页面成为 [unevictable page](https://stackoverflow.com/questions/30891570/what-is-specific-to-an-unevictable-page). [Documentation/vm/unevictable-lru.txt](https://www.kernel.org/doc/Documentation/vm/unevictable-lru.txt)
 
-有很多页面都被认为是 unevictable 的
+有很多页面都被认为是 unevictable 的, 参见 [What is specific to an unevictable page?](https://stackoverflow.com/questions/30891570/what-is-specific-to-an-unevictable-page), 主要原因如下:
 
-[commit ba9ddf493916 ("Ramfs and Ram Disk pages are unevictable")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ba9ddf49391645e6bb93219131a40446538a5e76)
+比如 ramfs 或者 ram disk 的页面是虚拟硬盘的一部分, 将这些页面进行回收会破坏虚拟硬盘, 因此当 vmscan 发现它们是脏的并试图清理它们时, 而 ram 磁盘回写函数只是重脏页面, 从而使它们再回到活动列表, [commit ba9ddf493916 ("Ramfs and Ram Disk pages are unevictable")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ba9ddf49391645e6bb93219131a40446538a5e76)
 
-[commit 89e004ea55ab ("SHM_LOCKED pages are unevictable")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=89e004ea55abe201b29e2d6e35124101f1288ef7)
-
-[commit b291f000393f ("mlock: mlocked pages are unevictable")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b291f000393f5a0b679012b39d79fbc85c018233)
+被其他机制"手动"锁定到当前位置的页面也是不可回收的, [commit 89e004ea55ab ("SHM_LOCKED pages are unevictable")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=89e004ea55abe201b29e2d6e35124101f1288ef7), [commit b291f000393f ("mlock: mlocked pages are unevictable")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b291f000393f5a0b679012b39d79fbc85c018233)
 
 所以解决办法是把这些页独立出来, 放一个独立链表, [commit 894bc310419a ("Unevictable LRU Infrastructure")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=894bc310419ac95f4fa4142dc364401a7e607f65). 现在就有5个链表了, 不过有一个链表不会被扫描. 详情参见 [The state of the pageout scalability patches](https://lwn.net/Articles/286472).
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2008/06/11 | Rik van Riel <riel@redhat.com> | [VM pageout scalability improvements (V12)](https://lore.kernel.org/patchwork/cover/118967) | 新增了 CONFIG_UNEVICTABLE_LRU, 将 unevictable page 用一个单独的 LRU 链表管理 | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118967), [LWN](https://lwn.net/Articles/286472) |
+| 2008/06/11 | Rik van Riel <riel@redhat.com> | [VM pageout scalability improvements (V12)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9978ad583e100945b74e4f33e73317983ea32df9) | 新增了 CONFIG_UNEVICTABLE_LRU, 将 unevictable page 用一个单独的 LRU 链表管理, 参见 [The state of the pageout scalability patches](https://lwn.net/Articles/286472). | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118967), [LWN](https://lwn.net/Articles/286472)[LORE v12,00/25](https://lore.kernel.org/lkml/20080606202838.390050172@redhat.com)[LORE v12,00/24](https://lore.kernel.org/lkml/20080611184214.605110868@redhat.com/) |
 | 2009/05/13 | KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com> | [Kconfig: CONFIG_UNEVICTABLE_LRU move into EMBEDDED submenu](https://lore.kernel.org/patchwork/cover/155947) | NA | v1 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/cover/155947), [LWN](https://lwn.net/Articles/286472) |
 | 2009/06/16 | KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com> | [mm: remove CONFIG_UNEVICTABLE_LRU config option](https://lore.kernel.org/patchwork/cover/156055) | 已经没有人想要关闭 CONFIG_UNEVICTABLE_LRU 了, 因此将这个宏移除. 内核永久使能 UNEVICTABLE_LRU. | v1 ☑ v2.6.31-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/156055), [commit ](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6837765963f1723e80ca97b1fae660f3a60d77df) |
 
