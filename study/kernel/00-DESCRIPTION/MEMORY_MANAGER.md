@@ -1,4 +1,4 @@
-2   **内存管理子系统(memory management)**
+ 2   **内存管理子系统(memory management)**
 =====================
 
 
@@ -3195,7 +3195,7 @@ David Rientjes 率先提出了这种想法 [Hugepage collapse in process context
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/03/11 | maobibo <maobibo@loongson.cn> | [mm/khugepaged: sched to numa node when collapse huge page](https://patchwork.kernel.org/project/linux-mm/patch/20220311090119.2412738-1-maobibo@loongson.cn/) | 622550 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220311090119.2412738-1-maobibo@loongson.cn) |
+| 2022/03/11 | maobibo <maobibo@loongson.cn> | [mm/khugepaged: sched to numa node when collapse huge page](https://patchwork.kernel.org/project/linux-mm/patch/20220311090119.2412738-1-maobibo@loongson.cn/) | 622550 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220311090119.2412738-1-maobibo@loongson.cn)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20220315040549.4122396-1-maobibo@loongson.cn) |
 
 
 ### 7.2.5 THP splitting/reclaim/migration
@@ -3595,7 +3595,7 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/01/26 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 1: fix the COW security issue for THP and hugetlb](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com) | NA | v1 ☐ | [PatchWork v1,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://lore.kernel.org/r/20220126095557.32392-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/9](https://lore.kernel.org/r/20220131162940.210846-1-david@redhat.com) |
-| 2022/03/08 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 2: reliable GUP pins of anonymous pages](https://patchwork.kernel.org/project/linux-mm/cover/20220224122614.94921-1-david@redhat.com/) | 617540 | v1 ☐☑ | [2022/02/24 LORE v1,0/13](https://lore.kernel.org/r/20220224122614.94921-1-david@redhat.com))<br>*-*-*-*-*-*-*-* <br>[2022/03/08 LORE v1,0/15](https://lore.kernel.org/r/20220308141437.144919-1-david@redhat.com) |
+| 2022/03/15 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 2: reliable GUP pins of anonymous pages](https://patchwork.kernel.org/project/linux-mm/cover/20220224122614.94921-1-david@redhat.com/) | 617540 | v1 ☐☑ | [2022/02/24 LORE v1,0/13](https://lore.kernel.org/r/20220224122614.94921-1-david@redhat.com))<br>*-*-*-*-*-*-*-* <br>[2022/03/08 LORE v1,0/15](https://lore.kernel.org/r/20220308141437.144919-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2022/03/15 LORE v2,0/15](https://lore.kernel.org/r/20220315104741.63071-1-david@redhat.com) |
 
 | [CVE-2020-29374](https://nvd.nist.gov/vuln/detail/CVE-2020-29374)  | Intra Process Memory Corruptions due to Wrong COW (FOLL_GET) |
 |:---------------:|:--------------------------------------------------------------------:|
