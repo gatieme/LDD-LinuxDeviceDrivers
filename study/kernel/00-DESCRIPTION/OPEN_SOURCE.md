@@ -125,7 +125,16 @@ OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementatio
 # 6 统计信息
 -------
 
+## 6.1 版本
+-------
 
 | 网站 | 描述 |
 |:---:|:---:|
 | [LWN](https://lwn.net/Kernel/Index/#Releases) | LWN 每个版本都会在合并窗口发布 Merge Window, 在版本发布之后还会发布 [development statistics](https://lwn.net/Articles/867540) 信息 |
+
+
+## 6.2 测试
+-------
+
+
+漏洞扫描器 Coverity Scan : https://scan.coverity.com/projects/linux

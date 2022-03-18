@@ -51,7 +51,22 @@ Apple 的内核叫做 XNU(XNU's Not UNIX), 这是个混合内核, XNU 包含两�
 # 2 Mach
 -------
 
+## 2.1 CONFIG_SCHED_EDGE
+-------
 
+
+sched_update_pset_load_average
+
+
+## 2.2 CONFIG_SCHED_MULTIQ
+-------
+
+
+## 2.3 CONFIG_SCHED_CLUTCH
+-------
+
+xnu-6153.11.26
+> The clutch scheduler is enabled only on non-AMP platforms for now
 
 [Mach Overview](https://developer.apple.com/library/archive/documentation/Darwin/Conceptual/KernelProgramming/Mach/Mach.html#//apple_ref/doc/uid/TP30000905-CH209-TPXREF101)
 

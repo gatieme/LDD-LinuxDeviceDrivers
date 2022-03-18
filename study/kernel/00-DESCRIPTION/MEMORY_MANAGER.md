@@ -317,6 +317,14 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 | 2022/01/04 | Vlastimil Babka <vbabka@suse.cz> | [Separate struct slab from struct page](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9d6c59c1c0d62a314a2b46839699b200cccd2d08) | NA | RFC ☑ 5.17-rc1 | [PatchWork RFC,00/32](https://patchwork.kernel.org/project/linux-mm/cover/20211116001628.24216-1-vbabka@suse.cz)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,00/32](https://patchwork.kernel.org/project/linux-mm/cover/20220104001046.12263-1-vbabka@suse.cz) |
 
 
+### 1.3.4 MEMCG Folio
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/03/16 | Matthew Wilcox <willy@infradead.org> | [[RFC] memcg: Convert mc_target.page to mc_target.folio](https://patchwork.kernel.org/project/linux-mm/patch/YjJJIrENYb1qFHzl@casper.infradead.org/) | 624009 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/YjJJIrENYb1qFHzl@casper.infradead.org) |
+
+
 ## 1.5 页面初始化
 -------
 
@@ -489,6 +497,8 @@ MADV_PAGEOUT 在某种程度上类似于 MADV_DONTNEED, 它提示内核当前不
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/01/26 | Pasha Tatashin <pasha.tatashin@soleen.com> | [Hardening page _refcount](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com) | 目前很难从根本上解决 `_refcount` 问题, 因为它们通常在损坏发生后才会显现出来. 然而, 它们可能导致灾难性的故障, 如内存损坏.<br>通过添加更多的检查来提高可调试性, 确保 `page->_refcount` 永远不会变成负数(例如, 双空闲不发生, 或冻结后空闲等).<br>1. 增加了对 `_refcount` 异常值的检测.<br>2. 删除了 set_page_count(), 这样就不会无条件地用不受限制的值覆盖 `_refcount` | RFC,0/8 ☐ | [PatchWork RFC,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211117012059.141450-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20211221150140.988298-1-pasha.tatashin@soleen.com), [LORE v2,0/9](https://lore.kernel.org/all/20211221154650.1047963-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/9](https://lore.kernel.org/r/20220126183429.1840447-1-pasha.tatashin@soleen.com) |
+| 2022/03/17 | Tong Tiangen <tongtiangen@huawei.com> | [mm: page_table_check: add support on arm64 and riscv](https://patchwork.kernel.org/project/linux-mm/cover/20220317141203.3646253-1-tongtiangen@huawei.com) | 页面表检查通过将新页面的页面表条目(PTE, PMD 等)添加到表中, 在用户空间访问新页面时执行额外的验证 X86 支持它.<br>这个补丁集做了一些简单的更改, 使其更容易支持新的体系结构, 然后我们在 ARM64 和 RICV 上支持这个功能. | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20220317141203.3646253-1-tongtiangen@huawei.com) |
+
 
 ### 1.7.3 安全
 -------
@@ -3597,6 +3607,8 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/01/26 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 1: fix the COW security issue for THP and hugetlb](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com) | NA | v1 ☐ | [PatchWork v1,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://lore.kernel.org/r/20220126095557.32392-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/9](https://lore.kernel.org/r/20220131162940.210846-1-david@redhat.com) |
 | 2022/03/15 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 2: reliable GUP pins of anonymous pages](https://patchwork.kernel.org/project/linux-mm/cover/20220224122614.94921-1-david@redhat.com/) | 617540 | v1 ☐☑ | [2022/02/24 LORE v1,0/13](https://lore.kernel.org/r/20220224122614.94921-1-david@redhat.com))<br>*-*-*-*-*-*-*-* <br>[2022/03/08 LORE v1,0/15](https://lore.kernel.org/r/20220308141437.144919-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2022/03/15 LORE v2,0/15](https://lore.kernel.org/r/20220315104741.63071-1-david@redhat.com) |
+| 2022/03/15 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 3: reliable GUP R/W FOLL_GET of anonymous pages](https://patchwork.kernel.org/project/linux-mm/cover/20220315141837.137118-1-david@redhat.com/) | 623540 | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20220315141837.137118-1-david@redhat.com) |
+
 
 | [CVE-2020-29374](https://nvd.nist.gov/vuln/detail/CVE-2020-29374)  | Intra Process Memory Corruptions due to Wrong COW (FOLL_GET) |
 |:---------------:|:--------------------------------------------------------------------:|
@@ -3613,6 +3625,7 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/09/10 | Catalin Marinas <catalin.marinas@arm.com> | [arm64: Add support for hardware updates of the access and dirty pte bits](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1436545468-1549-1-git-send-email-catalin.marinas@arm.com) | ARMv8.1 体系结构扩展引入了对页表项中访问和脏信息的硬件更新的支持, 用于支持硬件自动原子地完成页表更新("读-修改-回写").<br>TCR_EL1.HA 为 1, 则使能硬件的自动更新访问位. 当处理器访问内存地址时, 硬件自动设置 PTE_AF 位, 而不是再触发访问位标志错误.<br>TCR_EL1.HD 为 1, 则使能硬件的脏位管理.  | v1 ☑ [4.3-rc1](https://kernelnewbies.org/Linux_4.3#Architectures) | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/344775)<br>*-*-*-*-*-*-*-* <br>[PatchWork](https://lore.kernel.org/patchwork/cover/344816), [commit 2f4b829c625e](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2f4b829c625ec36c2d80bef6395c7b74cea8aac0) |
 | 2017/07/25 | Catalin Marinas <catalin.marinas@arm.com> | [arm64: Fix potential race with hardware DBM in ptep_set_access_flags()](https://patchwork.kernel.org/project/linux-arm-kernel/patch/20170725135308.18173-2-catalin.marinas@arm.com) | 修复前面支持 TCP_EL1.HA/HD 引入的硬件和软件的竞争问题 | RFC ☐ | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) |
+| 2022/03/15 | Bibo Mao <maobibo@loongson.cn> | [[2/2] mm: add access/dirty bit on numa page fault](https://patchwork.kernel.org/project/linux-mm/patch/20220315092323.620610-1-maobibo@loongson.cn/) | 在 x86/arm 等支持 hw 页面行走的平台上, access 和 dirty bit 由 hw 设置, 而在一些没有这些 hw 功能的平台上, access 和 dirty bit 由 next trap 中的软件设置.<br>在 numa 页面故障期间, 如果写入故障时迁移失败, 可以为旧 pte 添加脏位. 如果迁移成功, 可以为迁移后的新 pte 增加访问位, 也可以为写错误增加脏位. | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20220315092323.620610-1-maobibo@loongson.cn)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/r/20220317065033.2635123-1-maobibo@loongson.cn) |
 
 
 ### 8.2.3 MMAP locing
@@ -4743,6 +4756,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2022/02/16 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon: Add NUMA access statistics function support](https://patchwork.kernel.org/project/linux-mm/cover/cover.1645024354.git.xhao@linux.alibaba.com/) | 614856 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/cover.1645024354.git.xhao@linux.alibaba.com) |
 | 2022/02/17 | SeongJae Park <sj@kernel.org> | [Introduce DAMON sysfs interface](https://patchwork.kernel.org/project/linux-mm/cover/20220217161938.8874-1-sj@kernel.org/) | 615483 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20220217161938.8874-1-sj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE, v1,00/12](https://patchwork.kernel.org/project/linux-mm/cover/20220223152051.22936-1-sj@kernel.org) |
 | 2022/02/18 | Jonghyeon Kim <tome01@ajou.ac.kr> | [Rebase DAMON_RECALIM for NUMA system](https://patchwork.kernel.org/project/linux-mm/cover/20220218102611.31895-1-tome01@ajou.ac.kr/) | 615730 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20220218102611.31895-1-tome01@ajou.ac.kr)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/13](https://lore.kernel.org/r/20220228081314.5770-1-sj@kernel.org) |
+| 2022/03/15 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon: Add CMA minotor support](https://patchwork.kernel.org/project/linux-mm/cover/cover.1647378112.git.xhao@linux.alibaba.com/) | 为 DAMON 增加 CMA 内存监控功能. 在某些内存紧张的情况下, 通过监控 CMA 内存释放更多内存将是一个不错的选择. | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/cover.1647378112.git.xhao@linux.alibaba.com) |
 
 
 ### 13.4.5 vmstat
@@ -4816,6 +4830,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/07/14 | Zhansaya Bagdauletkyzy <zhansayabagdaulet@gmail.com> | [add KSM selftests](https://lore.kernel.org/patchwork/cover/1459608) | 新增 KSM 相关的 selftest. | v1 ☑ NA | [PatchWork v2,0/4](https://patchwork.kernel.org/project/linux-mm/cover/cover.1626252248.git.zhansayabagdaulet@gmail.com) |
 | 2021/08/19 | Zhansaya Bagdauletkyzy <zhansayabagdaulet@gmail.com> | [add KSM performance tests](https://lore.kernel.org/patchwork/cover/1470603) | 新增 KSM 性能相关的 selftest. | v1 ☑ NA | [PatchWork 0/2](https://patchwork.kernel.org/project/linux-mm/cover/cover.1627828548.git.zhansayabagdaulet@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/2](https://patchwork.kernel.org/project/linux-mm/cover/cover.1629386192.git.zhansayabagdaulet@gmail.com) |
+| 2022/03/14 | Lv Ruyi <cgel.zte@gmail.com> | [ksm: Count ksm-merging pages for each process](https://patchwork.kernel.org/project/linux-mm/patch/20220314015355.2111696-1-xu.xin16@zte.com.cn/) | 由于当前 KSM 只计算 KSM 合并页面的数量(例如, ksm_pages_sharing 和 ksm_pages_shared), 无法看到更细粒度的 KSM 合并, 对于上层应用程序优化, 无法根据每个进程的 KSM 页面合并概率轻松设置合并区域. 因此, 有必要添加额外的统计手段, 以便上层用户能够了解每个进程的详细 KSM 合并信息.<br>这个补丁在 proc 下添加了一个名为 ksm_merging_pages 的新文件, 以表示该进程中涉及的 KSM 合并页面. | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/all/20220314015355.2111696-1-xu.xin16@zte.com.cn)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/all/20220315114849.2119443-1-xu.xin16@zte.com.cn) |
 
 
 
@@ -5125,7 +5140,10 @@ https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7e
 | 2022/02/15 | Alistair Popple <apopple@nvidia.com> | [mm/pages_alloc.c: Don't create ZONE_MOVABLE beyond the end of anode](https://patchwork.kernel.org/project/linux-mm/patch/20220215025831.2113067-1-apopple@nvidia.com/) | 614354 | v1 ☐☑ | [PatchWork v1,0/1](https://lore.kernel.org/r/20220215025831.2113067-1-apopple@nvidia.com) |
 
 
-## 14.14 shmem
+## 14.14 SHMEM
+-------
+
+### 14.14.1 SHMEM
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -5133,7 +5151,18 @@ https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7e
 | 2021/11/11  | Mina Almasry <almasrymina@google.com> | [mm/shmem: support deterministic charging of tmpfs](https://patchwork.kernel.org/project/linux-mm/patch/20211110211951.3730787-2-almasrymina@google.com) | NA | v1 ☐ | [PatchWork v2,1/4](https://patchwork.kernel.org/project/linux-mm/patch/20211110211951.3730787-2-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,1/4](https://patchwork.kernel.org/project/linux-mm/patch/20211111234203.1824138-2-almasrymina@google.com) |
 | 2022/01/18 | Khalid Aziz <khalid.aziz@oracle.com> | [Add support for shared PTEs across processes](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com) | NA| v9 ☑ 4.6-rc1 | [LKML RFC,0/6](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com) |
 | 2022/02/11 | Charan Teja Kalla <quic_charante@quicinc.com> | [mm: shmem: implement POSIX_FADV_[WILL|DONT]NEED for shmem](https://patchwork.kernel.org/project/linux-mm/patch/1644572051-24091-1-git-send-email-quic_charante@quicinc.com/) | 613418 | v4 ☐☑ | [PatchWork v4,0/1](https://lore.kernel.org/r/1644572051-24091-1-git-send-email-quic_charante@quicinc.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/2](https://lore.kernel.org/r/cover.1646987674.git.quic_charante@quicinc.com) |
+| 2022/03/14 | Xavier Roche <xavier.roche@algolia.com> | [[v4] tmpfs: support for file creation time](https://patchwork.kernel.org/project/linux-mm/patch/20220314211150.GA123458@xavier-xps/) | 623317 | v4 ☐☑ | [LORE v4,0/1](https://lore.kernel.org/r/20220314211150.GA123458@xavier-xps)|
 
+
+### 14.14.2 Anonymous Shared Memory-Ashmem
+-------
+
+[Bringing Android closer to the mainline](https://lwn.net/Articles/472984)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2011/12/20 | Robert Love <rlove@google.com> | [ashmem: Anonymous shared memory subsystem](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=11980c2ac4ccfad21a5f8ee9e12059f1e687bb40) | Android匿名共享内存(Ashmem) | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=11980c2ac4ccfad21a5f8ee9e12059f1e687bb40) |
+| 2022/03/15 | Christoph Hellwig <hch@lst.de> | [staging: remove ashmem](https://patchwork.kernel.org/project/linux-mm/patch/20220315123457.2354812-1-hch@lst.de) | ashmem 的主线替代品是 memfd, 因此从 `drivers/staging` 中删除遗留代码. | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220315123457.2354812-1-hch@lst.de) |
 
 
 

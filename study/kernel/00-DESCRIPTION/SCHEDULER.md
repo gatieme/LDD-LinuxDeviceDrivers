@@ -1861,26 +1861,6 @@ v5.15 合入的 [Add support for 32-bit tasks on asymmetric AArch32 systems](htt
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/07/30 | Will Deacon <will@kernel.org> | [Add support for 32-bit tasks on asymmetric AArch32 systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=702f43872665) | 一些体系结构, 特别是 ARM, 配置了一些 CPU 支持传统的 32 位应用程序, 但是一些 CPU 只支持 64 位. 这组补丁增加了对 32 位程序调度的支持, 这些 32 位的程序只能在支持传统 32 位任务的 CPU 中执行. | v1 ☑ [5.15-rc1](https://kernelnewbies.org/LinuxChanges#Linux_5.15.Support_for_asymmetric_scheduling_affinity) | [PatchWork v11,00/16](https://lore.kernel.org/all/20210730112443.23245-1-will@kernel.org) |
 
-## 7.8 CPU IDLE
--------
-
-## 7.8.1 TEO
--------
-
-[The cpuidle subsystem](https://lwn.net/Articles/384146)
-[Improving idle behavior in tickless systems](https://lwn.net/Articles/775618)
-[The weighted TEO cpuidle governor](https://lwn.net/Articles/820432)
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:-----:|:----:|:----:|:----:|:------------:|:----:|
-| 2020/05/11 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [Alternate history mechanism for the TEO governor](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) | 20200511141055.43029-2-psampat@linux.ibm.com | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) |
-| 2019/08/05 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [cpuidle: teo: Allow tick to be stopped if PM QoS is used](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cab09f3d2d2a0a6cb3dfb678660d67a2c3764f50) | NA| v1 ☑✓ | [LORE v1,0/2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cab09f3d2d2a0a6cb3dfb678660d67a2c3764f50) |
-| 2021/08/03 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [cpuidle: teo: Fix alternative idle state lookup](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4adae7dd10db10f20f51833dc11b3cf7a342ad38) | NA| v1 ☑✓ 5.14-rc5 | [LORE v1,0/2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4adae7dd10db10f20f51833dc11b3cf7a342ad38) |
-| 2021/06/02 | Rafael J. Wysocki <rjw@rjwysocki.net> | [cpuidle: teo: Rework the idle state selection logic](https://lore.kernel.org/all/1867445.PYKUYFuaPT@kreacher) | 1867445.PYKUYFuaPT@kreacher | v1 ☐☑✓ 5.14-rc1 | [LORE v1,0/5](https://lore.kernel.org/all/1867445.PYKUYFuaPT@kreacher) |
-| 2021/04/07 | Rafael J. Wysocki <rjw@rjwysocki.net> | [cpuidle: Take possible negative "sleep length" values into account](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=060e3535adf5c961b01421b9fdaddab8dd43ba85) | 1867445.PYKUYFuaPT@kreacher | v1 ☐☑✓ 5.13-rc1 | [LORE v1,0/5](https://lkml.org/lkml/2021/3/29/1834) |
-| 2020/05/11 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [Alternate history mechanism for the TEO governor](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) | 20200511141055.43029-2-psampat@linux.ibm.com | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) |
-
-
 # 8 实时性 linux PREEMPT_RT
 -------
 
@@ -2258,17 +2238,42 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 ## 8.9 QoS
 -------
 
+传统的调度器倾向于为每个进程提供公平份额的可用 CPU 时间, 同时尊重 CPU 关联性, 避免进程从其缓存内存内容中迁移出来, 并使系统中的所有 CPU 保持忙碌.
+
+但是即使这样, 如果特定进程不能快速获得其CPU份额, 也无法满足用户的需求;例如
+
+1.  多年来关于桌面响应能力的争论.
+
+2.  终端手机场景, 前台线程的请求如果得不到优先地请求和处理, 用户会明显感觉到卡顿, 从而影响用户体验.
+
+3.  云场景, 付费较多的用户的供给请求如果无法满足, 也会遭致用户的不满.
+
+其总体需求基本都是, 用户识别出的一些重要的进程, 其请求需要尽快的得到响应(时延诉求), 有些也希望能得到更多的计算资源(比如更多的 CPU 时间片, 更高的运行频率等).
+
+之前已经使用了许多方法来尝试改进重要进程的响应时间, 例如, 可以使用传统的 nice 值来提高进程的优先级, 这是可行的, 但是进程的友好性并不直接转化为延迟; 它控制进程可用的 CPU 时间的消耗, 但不能控制进程的调度延迟. 使用实时优先级将使调度程序快速运行进程, 解决进程的时延诉求. 但是也存在诸多问题.
+
+
 ### 8.9.1 latency_nice
 -------
+
+2020 年, Parth Shah 提出了 latency nice 的概念. 旨在对应用的延迟进行感知和标记, 降低延迟敏感应用程序的调度延迟, 使其更快地获得 CPU 时间. latency_nice 值与现有 nice 值相对应, 介于 -20 和 19 之间. 数字越低, 优先级越高.
+
+在 OSPM 2020年会议上讨论了调度延迟的问题, 但似乎没有就正确的方法达成共识.
+
+两年后, 2022 年, Vincent Guittot 在 Parth Shah 工作的基础上, 重提了 [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org). 参见 [Improved response times with latency nice](https://lwn.net/Articles/887842).
+
 
 | 时间  | 作者  | 特性  | 描述  | 是否合入主线   | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2020/02/28 | Parth Shah <parth@linux.ibm.com> | [Introduce per-task latency_nice for scheduler hints](https://lore.kernel.org/all/20200228090755.22829-1-parth@linux.ibm.com) | 20200228090755.22829-1-parth@linux.ibm.com | v5 ☐☑✓ | [LORE v4,0/4](https://lore.kernel.org/lkml/20200224085918.16955-1-parth@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/4](https://lore.kernel.org/all/20200228090755.22829-1-parth@linux.ibm.com) |
 | 2020/05/07 | Parth Shah <parth@linux.ibm.com> | [IDLE gating in presence of latency-sensitive tasks](https://lore.kernel.org/all/20200507133723.18325-1-parth@linux.ibm.com) | 20200507133723.18325-1-parth@linux.ibm.com | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20200507133723.18325-1-parth@linux.ibm.com) |
-| 2022/03/11 | Vincent Guittot <vincent.guittot@linaro.org> | [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) | 20220311161406.23497-1-vincent.guittot@linaro.org | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) |
+| 2022/03/11 | Vincent Guittot <vincent.guittot@linaro.org> | [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) | 参见 [Improved response times with latency nice](https://lwn.net/Articles/887842). | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) |
 
 
 # 9 IDLE
+-------
+
+## 9.1 CPU IDLE
 -------
 
 [CPUIDLE 之低功耗定时器](http://kernel.meizu.com/cpuidle.html)
@@ -2276,6 +2281,25 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2013/03/21 | Thomas Gleixner <tglx@linutronix.de> | [idle: Consolidate idle implementations](https://lore.kernel.org/all/20130321214930.752934102@linutronix.de) | 当前每个体系结构都实现自己的 cpu_idle() 代码, 这是没有必要的因此实现了一套通用架构无关的 cpu_idle 框架. | v1 ☑ 3.10-rc1 | [PatchWork 00/34](https://lore.kernel.org/all/20130321214930.752934102@linutronix.de) |
+
+
+## 9.2 TEO
+-------
+
+[The cpuidle subsystem](https://lwn.net/Articles/384146)
+[Improving idle behavior in tickless systems](https://lwn.net/Articles/775618)
+[The weighted TEO cpuidle governor](https://lwn.net/Articles/820432)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2020/05/11 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [Alternate history mechanism for the TEO governor](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) | 20200511141055.43029-2-psampat@linux.ibm.com | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) |
+| 2019/08/05 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [cpuidle: teo: Allow tick to be stopped if PM QoS is used](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cab09f3d2d2a0a6cb3dfb678660d67a2c3764f50) | NA| v1 ☑✓ | [LORE v1,0/2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cab09f3d2d2a0a6cb3dfb678660d67a2c3764f50) |
+| 2021/08/03 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [cpuidle: teo: Fix alternative idle state lookup](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4adae7dd10db10f20f51833dc11b3cf7a342ad38) | NA| v1 ☑✓ 5.14-rc5 | [LORE v1,0/2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4adae7dd10db10f20f51833dc11b3cf7a342ad38) |
+| 2021/06/02 | Rafael J. Wysocki <rjw@rjwysocki.net> | [cpuidle: teo: Rework the idle state selection logic](https://lore.kernel.org/all/1867445.PYKUYFuaPT@kreacher) | 1867445.PYKUYFuaPT@kreacher | v1 ☐☑✓ 5.14-rc1 | [LORE v1,0/5](https://lore.kernel.org/all/1867445.PYKUYFuaPT@kreacher) |
+| 2021/04/07 | Rafael J. Wysocki <rjw@rjwysocki.net> | [cpuidle: Take possible negative "sleep length" values into account](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=060e3535adf5c961b01421b9fdaddab8dd43ba85) | 1867445.PYKUYFuaPT@kreacher | v1 ☐☑✓ 5.13-rc1 | [LORE v1,0/5](https://lkml.org/lkml/2021/3/29/1834) |
+| 2020/05/11 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [Alternate history mechanism for the TEO governor](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) | 20200511141055.43029-2-psampat@linux.ibm.com | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) |
+
+
 
 # 10 进程管理
 -------
