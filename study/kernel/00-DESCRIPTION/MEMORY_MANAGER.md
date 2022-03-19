@@ -1895,7 +1895,7 @@ pagevec 还提供了一些 API, 供内核和驱动中动态的创建和使用 pa
 | pagevec_add()     | 将 page 添加到 pagevec. |
 | pagevec_release() | 将 page 的_refcount 减 1, 如果为 0, 则释放该页到伙伴系统. |
 
-#### 4.2.3.3 lru_add 接口变更
+#### 4.2.3.3 添加页面到 LRU 的接口变迁
 -------
 
 *   lru_cache_add
@@ -1997,7 +1997,7 @@ LRU 组织形式的变更和 LRU lock 的变更是无法割裂开的. 每次 LRU
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2009/05/17 | Wu Fengguang <fengguang.wu@intel.com> | [vmscan: make mapped executable pages the first class citizen](https://lwn.net/Articles/333742) | 将 VM_EXEC 的页面作为一等公民("the first class citizen") 区别对待. 在扫描这些在使用中的代码文件缓存页时, 跳过它, 让它有多一点时间待在 active 链表上, 从而防止抖动. | v2 ☑ 2.6.31-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/156462), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8cab4754d24a0f2e05920170c845bd84472814c6) |
+| 2009/05/17 | Wu Fengguang <fengguang.wu@intel.com> | [vmscan: make mapped executable pages the first class citizen](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=3eb4140f0389bdada022d5e8efd88504ad30df14) | 将 VM_EXEC 的页面作为一等公民("the first class citizen") 区别对待. 在扫描这些在使用中的代码文件缓存页时, 跳过它, 让它有多一点时间待在 active 链表上, 从而防止抖动. 参见 [LWN: Being nicer to executable pages](https://lwn.net/Articles/333742) | v2 ☑ 2.6.31-rc1 | [LORE 0/3](https://lore.kernel.org/lkml/20090516090005.916779788@intel.com), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8cab4754d24a0f2e05920170c845bd84472814c6) |
 | 2011/08/08 | Konstantin Khlebnikov <khlebnikov@openvz.org> | [vmscan: activate executable pages after first usage](https://lore.kernel.org/patchwork/patch/262018) | 上面补丁希望对 VM_EXEC 的页面区别对待, 但是添加的逻辑被明显削弱, 只有在第二次使用后才能成为一等公民("the first class citizen"), 由于二次机会法的存在, 这些页面将通过 page_check_references() 在第一次使用后才能进入 active LRU list, 然后才能触发前面补丁的优化, 保证 VM_EXEC 的页面有更好的机会留在内存中. 因此这个补丁 通过 page_check_references() 在页面在第一次被访问后就激活它们, 从而保护可执行代码将有更好的机会留在内存中. | v2 ☑ 3.3-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/262018), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c909e99364c8b6ca07864d752950b6b4ecf6bef4) |
 
 
@@ -2117,33 +2117,129 @@ LRU 链表被分为 inactive 和 active 链表:
 
 **那么问题来了: 这个 inactive 链表的长度得多长? 才能既控制页面回收时扫描的工作量, 又保护该页面在第二次访问前尽量不被踢出, 以避免 Swap Thrashing 现象.**
 
-
-### 4.2.7.1 inactive_is_low
+### 4.2.7.1 早期的 inactive 和 active 的均衡
 -------
 
 
-如果进一步思考, 这个问题跟工作集大小相关. 所谓工作集, 就是维持系统所有活动的所需内存页面的最小量. 如果工作集小于等于 inactive 链表长度, 即访问距离, 则是安全的; 如果工作集大于 inactive 链表长度, 即访问距离, 则不可避免有些页要被踢出去.
+早期的工作集探测非常简陋, 并没有通过 inactive/active list 的页面数量来保持 inactive/active 的平衡. 而仅仅是在页面分配等路径下如果发现页面紧缺(VM SHORTAGE), 则尝试从 LRU 中回收部分页面.
 
-当前内核采取的平衡策略相对简单: 仅仅控制 active list 的长度不要超过 inactive list 的长度一定比例, 参见 [inactive_list_is_low, v3.14, mm/vmscan.c, line 1799](https://elixir.bootlin.com/linux/v3.14/source/mm/vmscan.c#L1799), 具体的比例[与 inactive_ratio 有关](https://elixir.bootlin.com/linux/v3.14/source/mm/page_alloc.c#L5697). 其中对于文件页更是直接[要求 active list 的长度不要超过 inactive list](https://elixir.bootlin.com/linux/v3.14/source/mm/vmscan.c#L1788).
+*   最原始的 balance
+
+[commit 1742f19fa920 ("Linux 2.4.0-test9pre1/MM balancing (Rik Riel)")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1fc53b2209b58e786c102e55ee682c12ffb4c794) 的时候, 就引入了 refill_inactive(), 通过调用 refill_inactive_scan() 来将页面从 active_list 驱逐到 inactive_list.
+
+*   VM shortage age 时期
+
+开始是 [commit a880f45a48be ("v2.4.7 -> v2.4.7.1/Marcelo Tosatti: per-zone VM shortage/Daniel Phillips: generic use-once optimization instead of drop-behind")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6fbaac38b85e4bd3936b882392e3a9b45e8acb46) 的时候, 实现了新的 shortage 页面老化算法, 引入 zone_free_shortage(), zone_inactive_plenty(), zone_inactive_shortage() 以及 refill_inactive_zone(), refill_inactive().
+
+接着 [commit a880f45a48be ("v2.4.7.6 -> v2.4.7.7/Linus Torvalds: sane and nice VM balancing")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dfc05323cf886ed7faca146cbee5cdad1a62157f) 的时候, 对 shortage 老化算法的代码做了一些精简.
+
+随后 [commit a67f1b5da2cf ("v2.4.8 -> v2.4.8.1")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a67f1b5da2cf8b14395596048c876247b894aa5c) 的时候, 对 shortage 老化算法进一步进行了完善, 移除了 refill_inactive_zone() 和 移除了 zone_free_shortage(), zone_inactive_plenty(), zone_inactive_shortage() 的老化算法.
+
+
+*   active 2/3, inactive 1/3 的比例
+
+[commit a880f45a48be ("v2.4.9.10 -> v2.4.9.11/Andrea Arkangeli: major VM merge")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a880f45a48be2956d2c78a839c472287d54435c1) 的时候, 移除了老旧的 VM shortage 思想, 开始使用 Balance. 引入 [check_classzone_need_balance()](https://elixir.bootlin.com/linux/v2.5.0/source/mm/vmscan.c#L613) 检查各个 zone 是否页面紧缺.
+
+如果 [`classzone->free_pages > classzone->pages_high`](https://elixir.bootlin.com/linux/v2.5.0/source/mm/vmscan.c#L613) 则说明当前 zone 页面还是足够的, 否则则认为页面紧缺. 分配页面的时候, 如果发现 [classzone->need_balance](https://elixir.bootlin.com/linux/v2.5.0/source/mm/page_alloc.c#L328), 则唤醒 kswapd 来回收页面. , 则 kswapd 就通过 kswapd_balance() -=> kswapd_balance_pgdat() -=> try_to_free_pages() shrink_caches() 回收各个 zone 的页面, 直到 check_classzone_need_balance() 认为当前 zone 页面充足.
+
+```cpp
+kswapd_balance()
+-=> kswapd_balance_pgdat()
+    -=> try_to_free_pages()
+        -=> shrink_caches()
+            -=> shrink_cache()
+```
+
+[commit dfc52b82fee5 ("v2.4.9.11 -> v2.4.9.12")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dfc52b82fee5bc6713ecce3f81767a8565c4f874) 中重新引入了 refill_inactive() 将一定数量的页面从 active_list 移动到 inactive_list 中, 此时 shrink_caches() 中每次通过 refill_inactive() 将一半页面移动到 inactive_list 上. 初始移动页面为 `SWAP_CLUSTER_MAX/2`.
+
+
+在这个过程中, 内核开发者发现如果有效地控制 inactive LRU list 和 active LRU list 的页面比例, 可以有效地提升性能. 因此在这个过程中做了不断地尝试.
+
+首先 [commit a27c6530ff12 ("v2.4.9.12 -> v2.4.9.13")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a27c6530ff12bab100e64c5b43e84f759fa353ae) 引入了 balance_inactive() 替代 refill_inactive(), 检查 nr_active_pages 的页面是否小于 nr_inactive_pages, 否则则将 active LRU list 中的部分页面迁移到 inactive LRU list. 并在 shrink_caches() 中通过 balance_inactive() 进行了 balance. 每次移动的页面数量也不再减半.
+
+接着很长一段时间, 主要保持 nr_active_pages 不超过 nr_inactive_pages 的一半. 首先 [commit e2f6721a0a1b ("v2.4.9.14 -> v2.4.9.15")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e2f6721a0a1b07612c0682d8240d3e9bc0a445a4) 将 balance_inactive() 修改为 refill_inactive(), 并移除了 balance 条件的判断, 将 balance 的判定操作直接内置到了 shrink_caches() 中. 在 shrink_caches() 中保持 nr_active_pages 不超过 nr_inactive_pages 的一半(`nr_inactive_pages < nr_active_pages*2`), 否则则要进行 refill_inactive() 操作.
+
+然后 [commit a356c406f36e ("v2.4.10.0.3 -> v2.4.10.0.4")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a356c406f36e65105272b1a9127c0098a113511c) 将 shrink_caches() 中保持 nr_active_pages 和 nr_active_pages 的 balance 比例, 修改为 nr_active_pages 不能超过 page cache 总数的 2/3, 否则则要进行 refill_inactive() 操作. 之后这个比例保持了很久. 并经历了诸多变更.
+
+比如 v2.5.19 [commit ce677ce203cd ("move nr_active and nr_inactive into per-CPU page")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ce677ce203cdb7bf92e0c1babcd2322446bb735e) 将 nr_active 和 nr_inactive 的计数放到了 page_state 结构中.
+
+[commit 3aa1dc772547 ("multithread page reclaim")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3aa1dc772547672e6ff453117d169c47a5a7cbc5), 这个补丁多线程处理主页面回收函数 shrink_cache(). 同时更改 shrink_caches() 的逻辑, 以便它仍然会缓慢地通过 refill_inactive() 处理活动列表 即使不活动列表比活动列表大得多. 此外之前 refill_inactive() 被调用得太频繁了, 多数时候通常只处理两三个页面. 修改后, 它以同样的速度处理页面, 但一次可以处理 SWAP_CLUSTER_MAX(即 32) 个页面. shrink_cache() 这个函数在 pagemap_lru_lock 下运行. 通过获取该锁, 将 LRU 中的 32 个页面放入一个私有列表中, 接着释放 pagemap_lru_lock, 然后继续尝试释放这些页面. 成功回收的任何页面都将被批处理释放. 未回收的页面会重新添加到 LRU 中. 这个补丁将 pagemap_lru_lock 争用减少了 30 倍.
+
+v2.5.33 [commit e6f0e61d9ed9 ("per-zone-LRU")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e6f0e61d9ed94134f57bcf6c72b81848b9d3c2fe) 的时候, refill_inactive() ==> refill_inactive_zone(), 引入 shrink_zone() 回收 zone 上的页面. 不过 refill_inactive_zone 依旧一次批量处理 SWAP_CLUSTER_MAX 个页面.
+
+一直到 [v2.6.6 版本](https://elixir.bootlin.com/linux/v2.6.6/source/mm/vmscan.c#L752), 这个阶段, active/inactive list balance 总体上依旧比较简陋, 总是通过控制 active/inactive list 的长度比例来限制扫描 ratio(扫描的页面长度). 总体预期依旧是控制 nr_active_pages 不能超过 page cache 总数的 2/3.
+
+但是这样直接比较 active 和 inactive list 长度的方式, 如果区域中有非常少的非活动页面, 那么扫描的 ratio 可能会非常大, 这会耗时过长, 同样如果 inactive list 与 active list 的大小相比变得非常小, 那么活动列表扫描长度 nr_scan_active(这些页面将会添加到 inactive lisr)又会很小, 导致只有极少数的页面被添加到 inactive list, 回收的页面有限, 无法有效地缓解内存压力.
+
+因此 v2.6.7-rc1 [commit 6fa1d901d520 ("Fix arithmetic in shrink_zone()")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6fa1d901d520c1414a1cb3386bbaf0c51a445e20) 对 active/inactive list 长度比例 进行了区分, 比例超过 8 倍时, 则[限制 active 扫描长度 nr_scan_active 不能超过 inactive list 的 4 倍](https://elixir.bootlin.com/linux/v2.6.7/source/mm/vmscan.c#L818), 防止扫描过长, 导致耗时过久. 其他情况又[限制扫描长度不要过短](https://elixir.bootlin.com/linux/v2.6.7/source/mm/vmscan.c#L826). 此外在考虑不同 active/inactive list 长度比例的同时, 还考虑 `zone->nr_active + zone->nr_inactive` 的大小](https://elixir.bootlin.com/linux/v2.6.7/source/mm/vmscan.c#L804). 它还可以隐藏主动和非主动平衡实现, 使其不受更高级别扫描代码的影响. 但是还是倾向于维护 active 占比 2/3 的比例.
+
+接着 v2.6.7 [commit 72a9defa9a4f ("vmscan.c: struct scan_control")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=72a9defa9a4fda3a4e1f9ed67b74a11e756cc3cc) 引入了 struct scan_control 封装了 LRU 每次扫描的力度信息. 精简了函数的参数列表长度集合.
+
+可见, 一直到 v2.6.7 总体预期依旧是控制 nr_active_pages 不能超过 page cache 总数的 2/3.
+
+1.  通过判断 active list 的长度是否超过 inactive list 的长度在一定比例范围, 来决策是否对 active 页面进行驱逐, 以及 inactive 页面进行回收. 通过 refill_inactive_zone()(早期是 refill_inactive()) 将一定数量 nr_scan_active (通常是至少 SWAP_CLUSTER_MAX, 也就是 32) 的页面从 active LRU list 移动到 inactive LRU list. 以及通过 shrink_cache() 将一定数量 nr_scan_inactive 的页面进行回收.
+
+2.  在页面分配的过程中, 如果发现内存紧缺, 分配存在压力, 则唤醒 kswapd 通过 try_to_free_pages 开始执行进行页面驱逐以及页面回收, 规则满足第一条.
+
+
+*   按照 sc->priority 等比例扫描
+
+经历了多年的运行和测试后, 大家发现保持 active 2/3, inactive 1/3 的占比貌似并没有什么实际的理论基础和效果, 因此 v2.6.8-rc1 [commit 2332dc7870b6 ("vmscan.c scan rate fixes")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2332dc7870b6f40eff03df88cbb03f4ffddbd086) 直接去掉了这种机械化的策略. 直接用 sc->priority 控制扫描的速度, 且让 active 和 inactive 两个列表上的所有页面都有相同的扫描速度. 此时 [`zone->nr_scan_active += (zone->nr_active >> sc->priority) + 1`](https://elixir.bootlin.com/linux/v2.6.8/source/mm/vmscan.c#L811), 以及 [`zone->nr_scan_inactive += (zone->nr_inactive >> sc->priority) + 1`](https://elixir.bootlin.com/linux/v2.6.8/source/mm/vmscan.c#L818). 随后这个状态持续了很久.
+
+v2.6.17-rc1 [commit 1742f19fa920 ("vmscan: rename functions")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1742f19fa920cdd6905f0db5898524dde22ab2a4) 对原来分歧和不一致的函数命名就行了修改, refill_inactive_zone() ==> shrink_active_list(), shrink_cache() ==> shrink_inactive_list(), shrink_caches() ==> shrink_zones(). 这样所有 LRU 页面驱逐和页面回收的接口都改成了 shrink_xxx() 的形式.
+
+
+[commit 5d5d36943259 ("Speed freeing memory for suspend.")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5d5d36943259171d2a90f2499541c8a8f4e90d54)
+
+
+*   另外一个维护:匿名页和文件页的平衡(anon/file reclaim balancing)
+
+前面所有的操作都在处理如何维持 active 和 inactive LRU 列表的平衡, 但是 LRU 中页面也是分类型的, 虽然这个时候还没有区分 ANON LRU 和 FILE LRU, 但是维持匿名页和文件页的平衡也是有意义的.
+
+早在 v2.5.43 [commit 8f7a14042e1f ("reduced and tunable swappiness")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8f7a14042e1f5fc814fa60956e3a2dcf5744a0ed) 就对此进行了探索, 引入 `/proc/sys/vm/swappiness` 控制 VM 取消页面映射(回收文件页)和交换内容(回收匿名页)的倾向.
+
+随后 v2.6.25-rc1 引入 memcg LRU 的过程中, [commit ("per-zone and reclaim enhancements for memory controller: modifies vmscan.c for isolate globa/cgroup lru activity")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1cfb419b394ba82745c54ff05436d598ecc2dbd5) 将这个流程封装成了 calc_reclaim_mappe() 函数. [commit 58ae83db2a40 ("per-zone and reclaim enhancements for memory controller: calculate mapper_ratio per cgroup")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=58ae83db2a40dea15d4277d499a11dadc823c388) 引入了 mem_cgroup_calc_mapped_ratio() 对 MEMCG 中的回收倾向也做了处理.
+
+shrink_active_list()(前面已经提过了, 就是替代以前的内核版本的 refill_inactive_zone()) 函数中, 会通过 calc_reclaim_mappe() 判断是否需要回收文件页.
+
+[commit 9439c1c95b5c ("memcg: remove mem_cgroup_cal_reclaim()")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9439c1c95b5c25b8031b2a7eb7e1590eb84be7f5)
+
+[commit 76a33fc380c9 ("vmscan: prevent get_scan_ratio() rounding errors")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=76a33fc380c9a65e01eb15b3b87c05863a0d51db)
+
+### 4.2.7.1 inactive_is_low 探测 inactive 和 active 是否不平衡
+-------
+
+早期内核采取的平衡策略相对简单: 仅仅控制 active list 的长度不要超过 inactive list 的长度一定比例, 参见 [inactive_list_is_low(), v3.14, mm/vmscan.c, line 1799](https://elixir.bootlin.com/linux/v3.14/source/mm/vmscan.c#L1799), 具体的比例[与 inactive_ratio 有关](https://elixir.bootlin.com/linux/v3.14/source/mm/page_alloc.c#L5697). 其中对于文件页更是直接[要求 active list 的长度不要超过 inactive list](https://elixir.bootlin.com/linux/v3.14/source/mm/vmscan.c#L1788).
+
+inactive LRU list 应该足够小, 这样 VM 就不需要做太多的工作, 但是应该足够大, 这样每个 inactive 页面在被交换之前都有机会再次被引用. 这本身是一个很矛盾的问题. 因此 v2.6.28-rc1 [VM pageout scalability improvements (V12)](https://lore.kernel.org/lkml/20080611184214.605110868@redhat.com) 系列中在将 LRU 拆成匿名页和文件页的时候, 这就又引入了另外一个问题. 以前我们不区分页面类型, 只需要进行 inactive 和 active 的比例均衡就可以了, 但是现在又引入了匿名页和文件页不同类型的 LRU, 他们之间的列表的长度应该保持怎样的均衡.
+
+
+1.  首先是匿名页和文件页的平衡(anon/file reclaim balancing): [commit 4f98a2fee8ac ("vmscan: split LRU lists into anon & file sets")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f98a2fee8acdb4ac84545df98cccecfd130f8db) 对 LRU 中的页面进一步针对是匿名页和文件页进行了区分, 引入了 get_scan_ratio() 替代 calc_reclaim_mappe() 来确定应以多大力度扫描 anon 和 file LRU 列表. 每一组 LRU 列表的相对值是通过查看扫描的页面的比例来确定的, 我们将其旋转回活动列表, 而不是逐出. 计算的结果放到 percent[2] 的数组中, 其中 percent[0] 指定对匿名页 LRU 施加多大压力, 而 percent[1] 则制定对文件 LRU 施加的压力.
+
+2.  其次是 active 和 inactive 的平衡(active/inactive balancing): [vmscan: second chance replacement for anonymous pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=556adecba110bf5f1db6c6b56416cfab5bcab698). 引入 zone->inactive_ratio 控制 active 和 inactive 的比例. 然后 balance_pgdat() 和 shrink_zone() 以及 shrink_list() 中都通过 [inactive_anon_is_low()](https://elixir.bootlin.com/linux/v2.6.28/source/include/linux/mm_inline.h#L88) 检查当前 zone 上的 inactive LRU 的匿名页是否小于 active LRU 一定比例, 如果是, 则说明 inactive LRU list 过短, 需要将一部分 active 的页面 deactivated 到 inactive LRU. 这个比率 zone->inactive_ratio 在初始化阶段通过 setup_per_zone_inactive_ratio() 完成初始化. 与内存的大小有直接关系, 默认被设置为 sqrt(memory in GB * 10), 加入 zone->inactive_ratio 为 3 则意味着 active 和 inactive 的比例为: 3:1, 即 25% 的匿名页面应该保留在 inactive list 中. 注意这个阶段的 zone->inactive_ratio 只控制匿名页的占比.
+
+至此, shrink_list() 中同时处理了 anon/file reclaim balancing 和 active/inactive balancing.
 
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2008/06/11 | Rik van Riel <riel@redhat.com> | [vmscan: second chance replacement for anonymous pages](https://lore.kernel.org/patchwork/cover/118976) | [VM pageout scalability improvements (V12)](https://lore.kernel.org/patchwork/cover/118967) 系列中的一个补丁.<br>在大多数情况下, 我们避免了驱逐和扫描匿名页面, 但在某些工作负载下, 我们可能最终会让大部分内存充满匿名页面. 这时, 我们突然需要清除所有内存上的引用位, 这可能会耗时很长. 当取消激活匿名页面时, 我们可以通过不考虑引用状态来减少需要扫描的页面的最大数量. 毕竟, 每个匿名页面一开始都是被引用的.如果匿名页面在到达非活动列表的末尾之前再次被引用, 我们将其移回活动列表.<br>为了使所需的最大工作量保持合理, 这个补丁引入了 inactive_ratio 根据内存大小伸缩活动与非活动的比率, 使用公式 inactive_ratio = active/inactive = sqrt(memory in GB * 10).<br> 注意当前只支持匿名页面的转换比率. 该补丁引入了 inactive_anon_is_low(). | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118976), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=556adecba110bf5f1db6c6b56416cfab5bcab698) |
+| 2008/06/11 | Rik van Riel <riel@redhat.com> | [vmscan: second chance replacement for anonymous pages](https://lore.kernel.org/patchwork/cover/118976) | [VM pageout scalability improvements (V12)](https://lore.kernel.org/lkml/20080611184214.605110868@redhat.com) 系列中的一个补丁.<br>在大多数情况下, 我们避免了驱逐和扫描匿名页面, 但在某些工作负载下, 我们可能最终会让大部分内存充满匿名页面. 这时, 我们突然需要清除所有内存上的引用位, 这可能会耗时很长. 当取消激活匿名页面时, 我们可以通过不考虑引用状态来减少需要扫描的页面的最大数量. 毕竟, 每个匿名页面一开始都是被引用的.如果匿名页面在到达非活动列表的末尾之前再次被引用, 我们将其移回活动列表.<br>为了使所需的最大工作量保持合理, 这个补丁<br>1. 引入了 inactive_ratio 根据内存大小伸缩活动与非活动的比率, 使用公式 inactive_ratio = active/inactive = sqrt(memory in GB * 10). 注意当前只支持匿名页面的转换比率.<br>2. 引入了 inactive_anon_is_low() 检查当前 zone 上的 active LRU 的匿名页是否过多需要被 deactivated. | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/cover/118976), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=556adecba110bf5f1db6c6b56416cfab5bcab698) |
 | 2008/11/18 | Rik van Riel <riel@redhat.com> | [vmscan: evict streaming IO first](https://lore.kernel.org/patchwork/patch/135271) | 在用于驱动换页扫描代码的统计中计算新页面的插入. 这将帮助内核快速地退出流文件IO.<br>我们依赖于这样一个事实:新文件页面在非活动文件LRU上开始, 而新的匿名页面在活动的匿名列表上开始. 这意味着流式文件IO将增加最近扫描的文件统计, 而不影响最近旋转的文件统计, 驱动分页扫描到文件LRUs. Pageout活动执行它自己的列表操作. | v1 ☑ 2.6.16-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/135271), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9ff473b9a72942c5ac0ad35607cae28d8d59ed7a) |
 | 2008/12/01 | KOSAKI Motohiro <kosaki.motohiro@jp.fujitsu.com> | [memcg: split-lru feature for memcg take2](https://lkml.org/lkml/2008/12/1/99) | NA | v2 ☑ [2.6.29-rc1](https://kernelnewbies.org/Linux_2_6_29#Memory_controller_swap_management_and_other_improvements) | [LKML](https://lkml.org/lkml/2008/12/1/99), [PatchWork](https://lore.kernel.org/patchwork/cover/136809) |
-| 2009/04/29 | Rik van Riel <riel@redhat.com> | [vmscan: evict use-once pages first (v3)](https://lore.kernel.org/patchwork/patch/153980) | 优先驱逐那些仅使用了一次的页面.<br>当文件 LRU 列表由流 IO 页面主导时, 在考虑驱逐其他页面之前, 先驱逐这些页面(因为这些页面往往只使用了一次, 而且后面不会再使用).<br>该补丁引入了 inactive_file_is_low, 当发现 inactive_file_is_low() 的时候, 尝试驱逐 LRU_ACTIVE_FILE 上的页面. | v3 ☑ 2.6.16-rc1 | [Patchwork v1](https://lore.kernel.org/patchwork/patch/153805)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/153955)<br>*-*-*-*-*-*-*-*<br>[PatchWork v3](https://lore.kernel.org/patchwork/cover/153980)<br>*-*-*-*-*-*-*-*<br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=56e49d218890f49b0057710a4b6fef31f5ffbfec) |
+| 2009/04/29 | Rik van Riel <riel@redhat.com> | [vmscan: evict use-once pages first (v3)](https://lore.kernel.org/patchwork/patch/153980) | 优先驱逐那些仅使用了一次的页面.<br>当文件 LRU 列表由流 IO 页面主导时, 在考虑驱逐其他页面之前, 先驱逐这些页面(因为这些页面往往只使用了一次, 而且后面不会再使用).<br>该补丁引入了 inactive_file_is_low(), 当发现 inactive_file_is_low() 的时候, 尝试驱逐 LRU_ACTIVE_FILE 上的页面. | v3 ☑ 2.6.16-rc1 | [Patchwork v1](https://lore.kernel.org/patchwork/patch/153805)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/153955)<br>*-*-*-*-*-*-*-*<br>[PatchWork v3](https://lore.kernel.org/patchwork/cover/153980)<br>*-*-*-*-*-*-*-*<br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=56e49d218890f49b0057710a4b6fef31f5ffbfec) |
 | 2009/07/16 | Konstantin Khlebnikov <khlebnikov@openvz.org> | [throttle direct reclaim when too many pages are isolated already (v3)](https://lore.kernel.org/patchwork/patch/164156) | 当隔离的页面过多时限制直接回收的进行.<br>当太多进程进入直接回收时, 所有页面都有可能从 LRU 上取下. 这样做的一个结果是, 页面回收代码中的下一个进程认为已经没有可回收的页面了, 并触发内存不足终止.<br>这个问题的一个解决方案是永远不要让太多进程进入页面回收路径, 从而导致整个 LRU 被清空. 将系统限制为仅隔离一半的非活动列表进行回收应该是安全的.<br>这个补丁引入了 too_many_isolated() 函数.  | v3 ☑ 2.6.32-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/cover/164156), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=35cd78156c499ef83f60605e4643d5a98fef14fd) |
 | 2009/11/25 | Rik van Riel <riel@redhat.com> | [vmscan: do not evict inactive pages when skipping an active list scan](https://lore.kernel.org/patchwork/cover/179466) | AIM7运行时, 发现最近的内核提前触发了匿名页的换出(swapping out). 这是由于 shrink_list() 中[在 !inactive_anon_is_low() 的时候依旧执行了 shrink_inactive_list()](https://elixir.bootlin.com/linux/v2.6.32/source/mm/vmscan.c), 而我们真正想做的是让一些匿名页面提前老化, 以便它们在非活动列表上有额外的时间被引用. 显而易见的解决办法是, 当我们调用 shrink_list() 来扫描一个活动列表时, 确保回收时不会落入扫描/回收非活动页面的陷阱. 因此如果 shrink 的是 active LRUs, 则不要再回收 inactive LRUs. 这个更改是安全的, 因为 [shrink_zone()](https://elixir.bootlin.com/linux/v2.6.32/source/mm/vmscan.c#L1630) 中的循环确保在应该回收时仍然会收缩 anon 和文件非活动列表.<br>这个补丁引入了 [inactive_list_is_low()](https://elixir.bootlin.com/linux/v2.6.33/source/mm/vmscan.c#L1464). | v1 ☑ 2.6.33-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/179466) |
+| 2014/03/14 | Johannes Weiner <hannes@cmpxchg.org> | [mm: vmscan: do not swap anon pages just because free+file is low](https://lore.kernel.org/patchwork/cover/449613) | 当文件缓存下降到一个区域的高水位以下时, 页面回收强制扫描/交换匿名页面, 以防止残留的少量缓存发生抖动.<br>然而, 在较大的机器上, 高水印值可能相当大, 当工作负载由静态匿名/shmem集控制时, 文件集可能只是一个使用过一次的缓存的小窗口. 在这种情况下, 当本应该回收不再使用的缓存时, 虚拟机却开始大量交换.<br>要解决这个问题, 不要在文件页面较低时强制立即扫描, 而是依赖扫描/旋转比率来做出正确的预测. | v1 ☑ 2.6.33-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/179466) |
 | 2016/07/21 | Mel Gorman <mgorman@techsingularity.net><br>Minchan Kim <minchan@kernel.org> | [mm: consider per-zone inactive ratio to deactivate](https://lore.kernel.org/patchwork/patch/699874) | Joonsoo Kim 和 Minchan Kim 都报告了在 32 位平台上过早地触发了 OOM. 常见的问题是区域约束的高阶分配失败. 两个问题的原因都是因为: pgdat 被过早地认为是不可回收, 并且活动/非活动列表的轮换不足.<br>这组补丁做了如下部分:<br>1. 不考虑扫描时跳过的页面. 这避免了pgdat被过早地标记为不可回收<br>2. 补丁 2-4 增加了每个区域的统计数据.    如果每个区域的LRU计数是可用的, 那么就没有必要估计是否应该根据pgdat统计信息重试回收和压缩, 因此重新实现了近似的 pgdat 统计数据.<br>3. inactive_list_is_low() 中的主动去激活的逻辑存在问题, 导致 Minchan Kim 报告的问题, 有可能当前 zone 上明明有 8M 的匿名页面, 但是通过非原子的 order-0 分配却触发了 OOM, 因为该区域中的所有页面都在活动列表中. 在补丁 5 中, 如果所有符合条件的区域的非活动/活动比例需要更正, 那么一个区域受限的全局回收将会旋转列表. 较高的区域页面在开始时可能会被提前旋转, 但这是维护总体LRU年龄的更安全的选择. | v5 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Memory_management) | [Patchwork RFC](https://lore.kernel.org/patchwork/patch/699587)<br>*-*-*-*-*-*-*-*<br>[Patchwork v1](https://lore.kernel.org/patchwork/patch/699874)<br>*-*-*-*-*-*-*-*<br>[Patchwork v2](https://lore.kernel.org/patchwork/patch/700111)<br>*-*-*-*-*-*-*-*<br>[关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f8d1a31163fcb3bf93f6c78770c3c1915f065bf9) |
 | 2017/01/16 | Michal Hocko <mhocko@suse.com> | [mm, vmscan: cleanup lru size claculations](https://lore.kernel.org/patchwork/cover/751448) | 使用 lruvec_lru_size() 精简了 inactive_list_is_low() 的流程. | v1 ☑ 4.11-rc1 | [PatchWork v1,1/3](https://lore.kernel.org/patchwork/cover/751448) |
-| 2014/03/14 | Johannes Weiner <hannes@cmpxchg.org> | [mm: vmscan: do not swap anon pages just because free+file is low](https://lore.kernel.org/patchwork/cover/449613) | 当文件缓存下降到一个区域的高水位以下时, 页面回收强制扫描/交换匿名页面, 以防止残留的少量缓存发生抖动.<br>然而, 在较大的机器上, 高水印值可能相当大, 当工作负载由静态匿名/shmem集控制时, 文件集可能只是一个使用过一次的缓存的小窗口. 在这种情况下, 当本应该回收不再使用的缓存时, 虚拟机却开始大量交换.<br>要解决这个问题, 不要在文件页面较低时强制立即扫描, 而是依赖扫描/旋转比率来做出正确的预测. | v1 ☑ 2.6.33-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/179466) |
 
 
 
 ### 4.2.7.2 Refault Distance 算法
 -------
+
+如果进一步思考, 这个问题跟工作集大小相关. 所谓工作集, 就是维持系统所有活动的所需内存页面的最小量. 如果工作集小于等于 inactive 链表长度, 即访问距离, 则是安全的; 如果工作集大于 inactive 链表长度, 即访问距离, 则不可避免有些页要被踢出去.
 
 
 [14.7 跟踪LRU活动情况和 Refault Distance算法](https://blog.csdn.net/dai_xiangjun/article/details/118945704)
