@@ -8,8 +8,8 @@
 | GOOGLE | [googlesource](https://android.googlesource.com/kernel/common) | NA |
 | QCOM | [source.codeaurora](https://source.codeaurora.org/quic/la/kernel) | [codeaurora](https://www.codeaurora.org) |
 | HUAWEI | [consumer-opensource](https://consumer.huawei.com/en/opensource/detail/?siteCode=worldwide&productCode=Smartphones&fileType=openSourceSoftware&pageSize=10&curPage=1) | [opensource](https://consumer.huawei.com/en/opensource) |
-| XiaoMi | [Xiaomi_Kernel_OpenSource](https://github.com/MiCode/Xiaomi_Kernel_OpenSource), [mitwo-dev](https://github.com/mitwo-dev)| [micode](http://www.micode.net) |
-| 魅族 | [meizuosc](https://github.com/meizuosc), [lvchaqiu](https://github.com/lvchaqiu)|  [魅族内核团队](http://kernel.meizu.com) |
+| XiaoMi | [Xiaomi_Kernel_OpenSource](https://github.com/MiCode/Xiaomi_Kernel_OpenSource), [mitwo-dev](https://github.com/mitwo-dev)| [micode](https://www.micode.net) |
+| 魅族 | [meizuosc](https://github.com/meizuosc), [lvchaqiu](https://github.com/lvchaqiu)|  [魅族内核团队](https://kernel.meizu.com) |
 | 三星 | [opensource.samsung.com](https://opensource.samsung.com/uploadSearch?searchValue=kernel) | [BogList](https://opensource.samsung.com/community/blogList) |
 | OPPO | [oppo-source](https://github.com/oppo-source) | NA |
 | CyanogenMod | [CyanogenMod](https://github.com/CyanogenMod) | [cyanogenmodroms](https://cyanogenmodroms.com/) |
@@ -22,7 +22,7 @@
 
 | 公司 | github | MAIN|
 |:-----:|:----------:|:-------:|
-| 华为| [openeuler](http://gitee.com/openeuler/kernel) | [openeuler](https://openeuler.org/zh) |
+| 华为| [openeuler](https://gitee.com/openeuler/kernel) | [openeuler](https://openeuler.org/zh) |
 | 阿里巴巴 | [alikernel](https://github.com/alibaba/alikernel) | [阿里云智能基础软件部-技术博客](https://kernel.taobao.org), [Alibaba Cloud Linux 2 DOC](https://help.aliyun.com/document_detail/154950.html?spm=a2c4g.11186623.3.3.37157594hOc6qA) |
 | 腾讯 | [TencentOS-kernel](https://github.com/Tencent/TencentOS-kernel) | [腾讯开源 | Tencent Open Source](https://opensource.tencent.com/projects) |
 | AMAZON | [AmazonLinux](https://github.com/amazonlinux/linux) |
@@ -44,12 +44,12 @@
 | 分支 | 描述 | 内核 |
 |:---:|:---:|:----:|
 | [linux-rt(RTLinux)](https://rt.wiki.kernel.org/index.php/Main_Page) | 提供 realtime 支持 | NA |
-| [ck](http://users.tpg.com.au/ckolivas/kernel) | [CK(Con_Kolivas)](https://en.wikipedia.org/wiki/Con_Kolivas) 大佬的分支, BFS 以及后来 MuQSS 的作者, 该内核强调改进 linux desktop/laptop 的体验. |
-| [zen](http://zen-kernel.org) | 使用一些尚未包含在主线内核的代码, 试图支持最新的硬件, 提供最新的特性、安全补丁和性能优化. 参见 [wiki.ubuntu](https://wiki.ubuntu.com/ZenKernel). | [github.com, zen-kernel](https://github.com/zen-kernel/zen-kernel)
+| [ck](https://users.tpg.com.au/ckolivas/kernel) | [CK(Con_Kolivas)](https://en.wikipedia.org/wiki/Con_Kolivas) 大佬的分支, BFS 以及后来 MuQSS 的作者, 该内核强调改进 linux desktop/laptop 的体验. |
+| [zen](https://zen-kernel.org) | 使用一些尚未包含在主线内核的代码, 试图支持最新的硬件, 提供最新的特性、安全补丁和性能优化. 参见 [wiki.ubuntu](https://wiki.ubuntu.com/ZenKernel). | [github.com, zen-kernel](https://github.com/zen-kernel/zen-kernel)
 | [grsecurity](https://grsecurity.net) | 基于 grsecurity/PaX 的 patch, 强调安全的 linux 内核 | NA |
 | [liquorix](https://liquorix.net) | 基于 linux-zen 内核源码和倾向于 Debian 的设置, 致力于改进桌面、多媒体和游戏体验. | NA |
 | [LinuxCNC](https://www.linuxcnc.org) | 针对数控机器人的系统<br>它可以驱动铣床、车床、3D 打印机、激光切割机、等离子切割机、机器人手臂、六足动物等. | [github.com, linuxcnc](https://github.com/LinuxCNC/linuxcnc) |
-| [Machinekit](http://www.machinekit.io) | Machinekit 用于支持各种硬件平台和实时环境, 并以低成本提供卓越的性能. 它基于 HAL 组件架构, 这是一个直观且易于使用的电路模型, 包括 150 多个用于数字逻辑、运动、控制环路、信号处理和硬件驱动程序的构建基块. Machinekit 支持本地和联网的 UI 选项, 包括无处不在的平台, 如手机或平板电脑. | [github, Machinekit](https://github.com/machinekit/machinekit) |
+| [Machinekit](https://www.machinekit.io) | Machinekit 用于支持各种硬件平台和实时环境, 并以低成本提供卓越的性能. 它基于 HAL 组件架构, 这是一个直观且易于使用的电路模型, 包括 150 多个用于数字逻辑、运动、控制环路、信号处理和硬件驱动程序的构建基块. Machinekit 支持本地和联网的 UI 选项, 包括无处不在的平台, 如手机或平板电脑. | [github, Machinekit](https://github.com/machinekit/machinekit) |
 | [xanmod](https://xanmod.org) | 旨在提供稳定、响应迅速、流畅的桌面体验. | [github, xanmod/linux](https://github.com/xanmod/linux) |
 | [mptcp(MultiPath TCP)](https://www.multipath-tcp.org) | 支持多路径 TCP 的 Linux 内核和模块. | NA |
 | [pf](https://pf.natalenko.name) | 名字取自作者 post-factum, 提供一些未加入主线内核的特性集. | NA |
@@ -63,7 +63,7 @@
 
 | 分支 | 描述 | 内核 |
 |:---:|:---:|:----:|
-| [L4Linux](http://www.l4linux.org) | L4Linux 是[基于 Fiasco 微内核的跟普通 Linux 二进制完全兼容的 Linux 内核](https://blog.csdn.net/gracioushe/article/details/6023340). L4Linux 是运行 Fiasco 用户空间的一个进程, 由很多线程组成, 而 Native Linux 则是运行在内核空间, 如果不考虑 kernel thread 的话, 那么 Native Linux 就相当于一个运行在内核空间的大进程, 它实现了从处理器调度、内存管理到设备管理等所有一个操作系统的必备的功能. 参见 [Adam 的 diploma thesis](http://os.inf.tu-dresden.de/papers_ps/adam-diplom.pdf) | NA |
+| [L4Linux](https://www.l4linux.org) | L4Linux 是[基于 Fiasco 微内核的跟普通 Linux 二进制完全兼容的 Linux 内核](https://blog.csdn.net/gracioushe/article/details/6023340). L4Linux 是运行 Fiasco 用户空间的一个进程, 由很多线程组成, 而 Native Linux 则是运行在内核空间, 如果不考虑 kernel thread 的话, 那么 Native Linux 就相当于一个运行在内核空间的大进程, 它实现了从处理器调度、内存管理到设备管理等所有一个操作系统的必备的功能. 参见 [Adam 的 diploma thesis](https://os.inf.tu-dresden.de/papers_ps/adam-diplom.pdf) | NA |
 | [darwin-xnu](https://github.com/apple/darwin-xnu) | 苹果的微内核 | [opensource](https://opensource.apple.com/source/xnu), [cbowser/xnu](https://fergofrog.com/code/cbowser/xnu) |
 
 
@@ -74,10 +74,10 @@
 
 |  tag  |  LWN  | 泰晓资讯 | phoronix |
 |:-----:|:-----:|:-------:|:--------:|
-| [5.14](https://lwn.net/Articles/867540) | [2021/07/12 rc1](https://lwn.net/Articles/861695)<br>*-*-*-*-*-*-*-* <br>[2021/07/12 5.14 conclusion](https://lwn.net/Articles/861695) | [8月 / 第一期 / 2021](http://tinylab.org/tinylab-weekly-8-1st-2021)<br>*-*-*-*-*-*-*-* <br>[8月 / 第二期 / 2021](http://tinylab.org/tinylab-weekly-8-2nd-2021/)<br>*-*-*-*-*-*-*-* <br>[2021 年 9 月 第 一 期](http://tinylab.org/tinylab-weekly-9-1st-2021) |
-| [5.15](https://lwn.net/Articles/874283) | [2021/09/02 5.15 Merge window, part 1](https://lwn.net/Articles/867821)<br>*-*-*-*-*-*-*-* <br>[2021/09/13 The rest of the 5.15 merge window](https://lwn.net/Articles/868221) | [9月 / 第二期 / 2021](http://tinylab.org/tinylab-weekly-9-2nd-2021) | [Linux 5.15 Delivers Many Features](https://www.phoronix.com/scan.php?page=article&item=linux-515-features&num=1) |
-| [5.16](https://lwn.net/Articles/874283) | [2021/11/04 5.16 Merge window, part 1](https://lwn.net/Articles/875135)<br>*-*-*-*-*-*-*-* <br>[2021/11/15 5.16 Merge window, part 2](https://lwn.net/Articles/868221) | [2021/07/12 rc1](https://lwn.net/Articles/875135) | [9月 / 第二期 / 2021](http://tinylab.org/tinylab-weekly-9-2nd-2021) | [Linux 5.16-rc1 ](https://www.phoronix.com/scan.php?page=article&item=linux-516-features&num=1) |
-| 5.17 | [The first half of the 5.17 merge window](https://lwn.net/Articles/880909)br>*-*-*-*-*-*-*-* <br>[The rest of the 5.17 merge window](https://lwn.net/Articles/881597) | NA | NA |
+| [5.14](https://lwn.net/Articles/867540) | [2021/07/12 rc1](https://lwn.net/Articles/861695)<br>*-*-*-*-*-*-*-* <br>[2021/07/12 5.14 conclusion](https://lwn.net/Articles/861695) | [8月 / 第一期 / 2021](https://tinylab.org/tinylab-weekly-8-1st-2021)<br>*-*-*-*-*-*-*-* <br>[8月 / 第二期 / 2021](https://tinylab.org/tinylab-weekly-8-2nd-2021/)<br>*-*-*-*-*-*-*-* <br>[2021 年 9 月 第 一 期](https://tinylab.org/tinylab-weekly-9-1st-2021) |
+| [5.15](https://lwn.net/Articles/874283) | [2021/09/02 5.15 Merge window, part 1](https://lwn.net/Articles/867821)<br>*-*-*-*-*-*-*-* <br>[2021/09/13 The rest of the 5.15 merge window](https://lwn.net/Articles/868221) | [9月 / 第二期 / 2021](https://tinylab.org/tinylab-weekly-9-2nd-2021) | [Linux 5.15 Delivers Many Features](https://www.phoronix.com/scan.php?page=article&item=linux-515-features&num=1) |
+| [5.16](https://lwn.net/Articles/874283) | [2021/11/04 5.16 Merge window, part 1](https://lwn.net/Articles/875135)<br>*-*-*-*-*-*-*-* <br>[2021/11/15 5.16 Merge window, part 2](https://lwn.net/Articles/868221) | [2021/07/12 rc1](https://lwn.net/Articles/875135) | [9月 / 第二期 / 2021](https://tinylab.org/tinylab-weekly-9-2nd-2021) | [Linux 5.16-rc1 ](https://www.phoronix.com/scan.php?page=article&item=linux-516-features&num=1) |
+| 5.17 | [The first half of the 5.17 merge window](https://lwn.net/Articles/880909)<br>*-*-*-*-*-*-*-* <br>[The rest of the 5.17 merge window](https://lwn.net/Articles/881597) | [3 月 / 第一期 / 2022](https://tinylab.org/tinylab-weekly-3-1st-2022)<br>*-*-*-*-*-*-*-* <br>[3 月 / 第三期 / 2022](https://tinylab.org/tinylab-weekly-3-3rd-2022) | NA |
 
 # 5 业界会议
 -------
@@ -106,7 +106,7 @@ International Conference on Architectural Support for Programming Languages and 
 ## 5.3 SOSP
 -------
 
-[SOSP](http://sosp.org)
+[SOSP](https://sosp.org)
 
 ## 5.4 USENIX's OSDI
 -------
