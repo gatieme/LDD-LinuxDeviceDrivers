@@ -120,6 +120,8 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 
 早在 2018 年, 苹果就发布过自家 AMP 硬件上的软硬协同优化的调度器, 中文专利号 [CN108984282A 具有闭环性能控制器的 AMP 体系结构的调度器/Scheduler for AMP architecture with closed loop performance controller](https://www.patentguru.com/cn/CN108984282A).
 
+[Intel Hardware Feedback Interface "HFI" Driver Submitted For Linux 5.18](https://www.phoronix.com/scan.php?page=news_item&px=Intel-HFI-Thermal-Linux-5.18)
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
