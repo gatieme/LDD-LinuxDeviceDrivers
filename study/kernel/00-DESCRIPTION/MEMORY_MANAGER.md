@@ -2256,8 +2256,12 @@ inactive LRU list 应该足够小, 这样 VM 就不需要做太多的工作, 但
 自 [mm: vmscan: reduce size of inactive file list](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=59dc76b0d4dfdd7dc46a1010e4afb44f60f3e97f) 这个补丁之后, 匿名页和文件页 balancing 的判断采用了一套机制, inactive_anon_is_low() 和 inactive_file_is_low() 不用再区别对待, 一律使用 inactive_ratio 来进行比较. 因此这两个函数被移除, 整体都使用 inactive_list_is_low() 来处理. 随后 [mm: vmscan: enforce inactive:active ratio at the reclaim root](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b91ac374346ba206cfd568bb0ab830af6b205cfd) 在解决多个 cgroup 之间协同问题的时候将这个函数改名为 inactive_is_low().
 
 
+
+
 2.  用 get_scan_count() 处理 anon/file reclaim balancing(Reclaim pressure balance between anon and file pages).
 
+
+get_scan_count() 用于在 LRU 进行页面回收时, 确定各个 LRU list 上需要扫描的页面数.
 
 早在 v2.5.43 [commit 8f7a14042e1f ("reduced and tunable swappiness")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8f7a14042e1f5fc814fa60956e3a2dcf5744a0ed) 就对此进行了探索, 引入 `/proc/sys/vm/swappiness` 控制 VM 取消页面映射(回收文件页)和交换内容(回收匿名页)的倾向.
 
@@ -2276,11 +2280,10 @@ inactive LRU list 应该足够小, 这样 VM 就不需要做太多的工作, 但
 | 2014/03/14 | Johannes Weiner <hannes@cmpxchg.org> | [mm: vmscan: do not swap anon pages just because free+file is low](https://lore.kernel.org/patchwork/patch/449613) | 当文件缓存下降到一个区域的高水位以下时, 页面回收强制扫描/交换匿名页面, 以防止残留的少量缓存发生抖动.<br>然而, 在较大的机器上, 高水印值可能相当大, 当工作负载由静态匿名/shmem集控制时, 文件集可能只是一个使用过一次的缓存的小窗口. 在这种情况下, 当本应该回收不再使用的缓存时, 虚拟机却开始大量交换.<br>要解决这个问题, 不要在文件页面较低时强制立即扫描, 而是依赖扫描/旋转比率来做出正确的预测. | v1 ☑ 2.6.33-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/179466) |
 
 
-关于 force scan
+关于 force scan, 如果 get_scan_count() 中发现 LRU 中页面很少, 当前优先级下能被扫描的页面非常少的时候, 将启动强制扫描, 防止出现一页 ZONE 区域内因为 LRU 页面一直很少而导致永远无法回收.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-
 | 2011/05/26 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [memcg: fix get_scan_count() for small targets](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=246e87a9393448c20873bc5dee64be68ed559e24) | get_scan_count() 中通过 nr_scan_try_batch() 获取将每个区域扫描的页面数量, 这是根据 LRU 的大小和扫确定的 `scan = (anon + file) >> priority.`, 如果 scan < SWAP_CLUSTER_MAX, 这次扫描将被跳过, 并提高优先级. 但是这种策略存在很多问题. 这个补丁移除了 nr_saved_scan[NR_LRU_LISTS], 引入了 force_scan 机制. 如果发现当前优先级下能被扫描的页面很少(scan < SWAP_CLUSTER_MAX), 则但是处于 KSWAPD balancing 和 MEMECG reclaim 等路径, 则使能 force_scan, 强制扫描 SWAP_CLUSTER_MAX 个页面. 从而防止一些 ZONE 区域内因为 LRU 页面很少而无法被回收. | v1 ☑✓ 3.0-rc1 | [LORE](https://lore.kernel.org/lkml/20110427164708.1143395e.kamezawa.hiroyu@jp.fujitsu.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=246e87a9393448c20873bc5dee64be68ed559e24) |
 | 2011/08/11 | Johannes Weiner <jweiner@redhat.com> | [mm: vmscan: fix force-scanning small targets without swap](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=185efc0f9a1f2d6ad6d4782c5d9e529f3290567f) | 如果系统中没有 SWAP, 匿名页面将不会被扫描. 因此, 当考虑强制扫描一个小目标时, 如果没有 SWAP, 它们不应该被计算在内. 否则, 即使目标的有效扫描数为 0, 且适用其他条件 kswapd/memcg, 也不会强制扫描目标. 因此 force_scan 机制中, 在最开始通过 `scan = (anon + file) >> priority` 就不是非常合适的, 后续处理 force_scan 的时候, 也有判断, 因此移除了开始的这些判断. | v1 ☑✓ v3.1-rc7 | [LORE v1,1/2](https://lore.kernel.org/all/1313094715-31187-1-git-send-email-jweiner@redhat.com), [COMMIT1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a4d3e9e76337059406fcf3ead288c0df22a790e9) |
 | 2011/08/11 | Johannes Weiner <jweiner@redhat.com> | [mm: vmscan: drop nr_force_scan[] from get_scan_count](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f11c0ca501af89fc07b0d9f17531ba3b68a4ef39) | nr_force_scan[] 保存了匿名和文件页的有效扫描号, 以防需要强制扫描且定期计算的扫描号为零. 但是, 有效扫描数总是可以假定为 SWAP_CLUSTER_MAX, 就在将其划分为 anon 和 file 之前. 因此删除这个数组. | v1 ☑✓ v3.2-rc1 | [LORE v1,2/2](https://lore.kernel.org/all/1313094715-31187-1-git-send-email-jweiner@redhat.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f11c0ca501af89fc07b0d9f17531ba3b68a4ef39) |
@@ -2289,8 +2292,9 @@ inactive LRU list 应该足够小, 这样 VM 就不需要做太多的工作, 但
 | 2015/11/23 | Vladimir Davydov <vdavydov@virtuozzo.com> | [vmscan: do not force-scan file lru if its absolute size is small](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9ee11ba4251dddf1b0e507d184b25b1bd7820773) | 如果系统中有足够的 inactive page cache, 即 !inactive_file_is_low(), 或者说当前实现下就是 inactive FILE LRU 的大小大于 acrtive FILE LRU, 则 [get_scan_count() 中会强制扫描 FILE LRU 忽略 ANON LRU](https://elixir.bootlin.com/linux/v4.4/source/mm/vmscan.c#L2052), 当有大量的 Page Cache 时, 这种逻辑工作得很好. 但如果 FILE LRU 的大小很小(比如只有几 MB), 它就会失败. 在这种情况下 (lru_size >> prio) 趋近于 0(即使使用正常扫描优先级), 此时如果 inactive FILE LRU 的大小大于 acrtive FILE LRU, cgroup 的匿名页面也永远不会被驱逐, 即使好几G的未使用匿名内存, 除非系统经历严重的内存压力. 这对于其他 cgroup 来说是不公平的, 因为它们的工作负载可能是面向 Page Cache 的. 这个补丁试图通过详细 "足够的非活动页面缓存" 检查来修复这个问题: 它不仅检查 `!inactive_file_is_low()`, 还检查当前 cgroup 扫描优先级下能扫描的大小. 如果这些条件不成立, 继续如往常一样 SCAN_FRACT. | v2 ☑✓ 4.5-rc1 | [LORE](https://lore.kernel.org/all/1448275173-10538-1-git-send-email-vdavydov@virtuozzo.com)<br>*-*-*-*-*-*-*-*<br>[LORE](https://lore.kernel.org/all/1448275173-10538-1-git-send-email-vdavydov@virtuozzo.com), [关注 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=316bda0e6cc5f36f94b4af8bded16d642c90ad75) |
 | 2017/02/28 | Johannes Weiner <hannes@cmpxchg.org> | [mm: kswapd spinning on unreclaimable nodes - fixes and cleanups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=491d79ae778f24dbf65f1f2178d4744d940d4093) | Jia 报告了一个场景, 在这个场景中, 一个节点的 kswapd 占用 CPU 100% 并且无限循环. 当前内核当前判断其回收节点的能力(或是否退出并休眠) 的方法是基于扫描的页面数量与可回收的页面数量成比例. 然而, 在 Jia 的场景中, 节点中没有可回收的页面, 并且永远不会满足后退的条件. 这组补丁提供了不基于扫描, 而是基于 kswapd 在 MAX_RECLAIM_RETRIES(16) 连续运行中是否能够实际回收页面, 重新定义了一个不可回收的节点. 这是页面分配器用于放弃直接回收和调用 OOM 杀手的相同标准. 如果它不能释放任何页面, kswapd 将进入休眠状态, 并留下进一步的直接回收调用尝试, 这将取得进展并重新启用 kswapd, 或者调用 OOM 杀死器.<br>补丁 1 修复了 Jia 所报告的即时问题, 剩下的是更小的补丁, 清理, 以及对旧方法的全面淘汰.<br>补丁 5/6 是一个例外. 清理了 get_scan_count(). | v1 ☑✓ 4.12-rc1 | [LORE v1,0/9](https://lore.kernel.org/all/20170228214007.5621-1-hannes@cmpxchg.org) |
 
-[commit 246E87A934 ("memcg: fix get_scan_count() for small targets")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=246e87a9393448c20873bc5dee64be68ed559e24) 试图避免 memcg 的高回收优先级, 方法是在 LRU 中页面较少, 在当前优先级下不会回收任何页面时, 强制其扫描至少扫描 SWAP_CLUSTER_MAX 个页面. 这是在回收决策与优先级挂钩的时候完成的. 如今, 唯一有意义的事情仍然与优先级降到 `DEF_priority - 2` 以下有关, 那就是设置 `laptop_mode=1` 是否通常允许写入. 但在那个时代, 直接回收仍然允许调用 `->writepage()`, 而内核发展至今 kswapd 在扫描系统中的每个干净页面之前都会避免写入. `sc->may_writepage` 即使触发的过于频繁也不会有太大的问题. 因此 [commit ("mm: don't avoid high-priority reclaim on memcg limit reclaim")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=688035f729dcd9a98152c827338805a061f5c6fa) 删除了 force_scan 的内容, 以及它所需要的丑陋的多遍目标计算.
+[commit 246E87A934 ("memcg: fix get_scan_count() for small targets")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=246e87a9393448c20873bc5dee64be68ed559e24) 试图避免 memcg 的高回收优先级, 方法是在 LRU 中页面较少, 在当前优先级下不会回收任何页面时, 因此引入了 force_scan 机制, 强制其扫描至少扫描 SWAP_CLUSTER_MAX 个页面. 这是在回收决策与优先级挂钩的时候完成的.
 
+但是内核经历了多年的发展之后, 唯一有意义的事情仍然与优先级降到 [`DEF_PRIORITY - 2`](https://elixir.bootlin.com/linux/v4.11/source/mm/vmscan.c#L2797) 以下有关, 那就是设置 [`laptop_mode = 1`](https://elixir.bootlin.com/linux/v4.11/source/kernel/sysctl.c#L1461) 是否通常允许写入. 但在那个时代, 直接回收仍然允许调用 `->writepage()`, 而内核发展至今 kswapd 在扫描系统中的[每个干净页面之前](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=515f4a037fb9ab736f8bad733fcd2ffd350cf265)都会避免写入. `sc->may_writepage` 即使触发的过于频繁也不会有太大的问题. 因此 [commit ("mm: don't avoid high-priority reclaim on memcg limit reclaim")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=688035f729dcd9a98152c827338805a061f5c6fa) 删除了 force_scan 的内容, 以及它所需要的丑陋的多遍目标计算.
 
 
 ### 4.2.7.2 Refault Distance 算法
@@ -2420,6 +2424,131 @@ Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 p
 | 2010/10/28 | Mel Gorman <mel@csn.ul.ie> | [Reduce the amount of time spent in watermark-related functions V4](https://lore.kernel.org/patchwork/patch/222014) | NA | v4 ☐ | [PatchWork v4](https://lore.kernel.org/patchwork/patch/222014) |
 | 2010/07/30 | Mel Gorman <mel@csn.ul.ie> | [Reduce writeback from page reclaim context V6](https://lore.kernel.org/patchwork/patch/209074) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/patch/209074) |
 | 2021/12/20 | Muchun Song <songmuchun@bytedance.com> | [Optimize list lru memory consumption](https://lore.kernel.org/patchwork/patch/1436887) | 优化列表lru内存消耗<br> | v3 ☐ | [2021/05/27 PatchWork v2,00/21](https://patchwork.kernel.org/project/linux-mm/cover/20210527062148.9361-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/14 PatchWork v3,00/76](https://patchwork.kernel.org/project/linux-mm/cover/20210914072938.6440-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/13 PatchWork v4,00/17](https://patchwork.kernel.org/project/linux-mm/cover/20211213165342.74704-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/20 PatchWork v5,00/16](https://patchwork.kernel.org/project/linux-mm/cover/20211220085649.8196-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/16](https://lore.kernel.org/r/20220228122126.37293-1-songmuchun@bytedance.com) |
+
+### 4.2.10 LRU 的整体框架
+-------
+
+
+#### 4.2.10.1 一些基础的东西
+-------
+
+[KSWAPD 和页面回收的行为工作的一直不尽如意](https://lore.kernel.org/all/1368432760-21573-1-git-send-email-mgorman@suse.de), 一直有一些或多或少的 BUG. 比如大量的拷贝或者备份操作导致机器卡顿或应用程序的匿名页面被 SWAP 出去. 有时在内存不足的情况下, 会突然回收大量内存. 有时, 当应用程序启动时, KSWAPD 在很长一段时间内达到 100% 的 CPU 使用率. 因此一部分人在讨论引入一些特性, 比如一个额外的空闲 kbytes 优化(an extra free kbytes tunable), 以解决问题的各个方面, 而不是试图解决问题. 它的工作负载非常大, 而且是特定于机器的, 这会使问题变得更加复杂.
+
+
+[Reduce system disruption due to kswapd V4](https://lore.kernel.org/all/1368432760-21573-1-git-send-email-mgorman@suse.de) 旨在解决其中一些最糟糕的问题, 而不试图从根本上改变页面回收的工作方式. 我们就从这个 patchset 了解下 LRU 框架和整体脉络.
+
+*   限制回收的数量
+
+补丁 1-2 限制了 KSWAPD 回收的页面数量, 同时仍然遵守 LRU ANON/FILE Balancing 的约定比例.
+
+之前内核并不限制回收的页面数量, nr_to_reclaim() 中直接设置 nr_to_reclaim 为 ULONG_MAX 的. 这样的效果就是造成回收 "尖峰", 很大一部分内存突然被释放. [补丁 1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=75485363ce8552698bfb9970d901f755d5713cca) 引入了 kswapd_shrink_zone()(后期改名为 kswapd_shrink_node()) 将 nr_to_reclaim [限制为内存的高水线](https://elixir.bootlin.com/linux/v3.11/source/mm/vmscan.c#L2786), 并触发内存回收. 注意这并不是一个硬限制. 由于这种回收方式, 打破了 LRU ANON/FILE Balancing 约定的比例, 因此[补丁 2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e82e0561dae9f3ae5a21fc2d3d3ccbe69d90be46) 在 shrink_lruvec() 中引入了 scan_adjusted 根据已经扫描的页面个数, 动态地调整待扫描的页面数量.
+
+*   扫描优先级
+
+补丁 3-4 控制 KSWAPD 如何以及何时提高其扫描优先级, 并删除难以遵循的扫描重启逻辑.
+
+而 DEF_PRIORITY 等扫描优先级的历史远比我们想象的要早, 早在 linux 0.9x 的年代, try_to_free_page() 就引入了 6 个优先级. 参见 [COMMIT1, 0.97.1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit?id=ce823b448e7d9186ca696cd7edbd4ba84e05ab71), [COMMIT2, 0.97.3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit?id=fdb2f0a59a1c76a7ee7b9478fae06f76bc697152), [COMMIT2, v2.0](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/diff/mm/vmscan.c?id=e2ba60b6e7071dd89c80ceb006e42479ec615baa) kswapd_free_pages().
+
+随后 [v2.4.0-test9pre1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/diff/mm/vmscan.c?id=1fc53b2209b58e786c102e55ee682c12ffb4c794) 引入 LRU 的时候实现了 6 个优先级. 接着 [commit 3192b2dcbe00 ("VM balancing tuning")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/diff/mm/vmscan.c?id=3192b2dcbe00fdfd6a50be32c8c626cf26b66076) 优化了 LRU 的算法, 并定义了 DEF_PRIORITY.
+
+[low-latency page reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=407ee6c87e477434e3cb8be96885ed27b5539b6f) 进一步延伸出 12 个优先级.
+
+而[补丁 3 优化 balance_pgdat()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b8e83b942a16eb73e63406592d3178207a4f07a1), 只要 kswapd_shrink_zone() 只要[扫描了足够多的页面](https://elixir.bootlin.com/linux/v3.11/source/mm/vmscan.c#L2844), 就[不再提高优先级](https://elixir.bootlin.com/linux/v3.11/source/mm/vmscan.c#L3006)继续扫描. 为了避免高阶分配请求的无限循环, 当 KSWAPD 已经回收的页面数量至少是待分配请求的两倍时, 它将[不会回收高阶分配](https://elixir.bootlin.com/linux/v3.11/source/mm/vmscan.c#L3026). 之前 KSWAPD 会在 pgdat 被认为是平衡的之后[决定是否规整内存](https://elixir.bootlin.com/linux/v3.10/source/mm/vmscan.c#L2861). 但做出这样的决定已经为时已晚, 而且现在 [KSWAPD 根据回收进度决定是否退出区域扫描循环](https://elixir.bootlin.com/linux/v3.11/source/mm/vmscan.c#L3047), 内存规整在这个位置已经不太合适. 因此[补丁 4 将内存规整的动作放到平衡地过程中进行](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2ab44f434586b8ccb11f781b4c2730492e6628f5), 如果至少从不平衡区域回收了指定优先级的请求页数, 则通过 compact_pgdat() 对[当前 pgdat 进行内存规整](https://elixir.bootlin.com/linux/v3.11/source/mm/vmscan.c#L3037). 并且只要当前 pgdat 中有任何区域当前处于平衡状态, 都[不会触发内存规整](https://elixir.bootlin.com/linux/v3.11/source/mm/vmscan.c#L2958), 因为已经有足够的页面可以使用了.
+
+但是进一步发现 balance_pgdat() 在平衡地过程中, 优先级很容易达到 0. 优先级 0 被认为是一个接近 OOM 的条件, 他会扫描整个 LRU. 如果遇到大量无法回收的页面(比如回写中的页面). 这就造成, 明明没有分配失败或 OOM 的实际风险, KSWAPD 依然轻松地抵达了 0 有限就, 并且积极地回收大量页面. 因此[补丁 5 阻止 balance_pgdat() 达到 0 优先级](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9aa41348a8d11427feec350b21dcdd4330fd20c4). 在 OOM 情况下, 直接回收器的优先级仍然为 0. 因此这并不会有什么问题.
+
+*   回收过程中的脏页
+
+之前, 如果 KSWAPD 扫描的优先级提高到一定程度时将对脏页队列进行回写, 但其实 KSWAPD 扫描的优先级与遇到的未排队脏页的数量无关, 而是与 LRU 的大小和区域水线有关, 这并没有指示 KSWAPD 是否应该写页面. 如果在 LRU 末端遇到过多的未排队脏页, [补丁 6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d43006d503ac921c7df4f94d13c17db6f13c9d26) 通过 [nr_unqueued_dirty](https://elixir.bootlin.com/linux/v3.11/source/mm/vmscan.c#L771) 跟踪这些脏页. 如果在刷新线程清理脏页之前, 有足够多的脏页正在被回收, 就[标记该区域为 ZONE_TAIL_LRU_DIRTY](https://elixir.bootlin.com/linux/v3.11/source/mm/vmscan.c#L1473), 以便 KSWAPD 将开始写页面, 直到该区域达到平衡.
+
+*   回收过程中节流(Reclaim Throttle)
+
+有时候 KSWAPD 会等待 IO 完成, 以减少回收干净页面或驱逐应用程序热匿名页的可能性. 很早之前, 如果回收仍然没有成效, KSWAPD 通常会在尝试更高的优先级前使用 [KSWAPD_SKIP_CONGESTION_WAIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f50de2d3811081957156b5d736778799379c29de) 和 [congestion_wait()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=92df3a723f84cdf8133560bbff950a7a99e92bc9) 等待 IO, 从而进行节流.
+
+这其实没有任何意义, 因为回收的失败可能完全独立于 IO. congestion_wait() 后来[被 wait_iff_congested() 所取代](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=92df3a723f84cdf8133560bbff950a7a99e92bc9), 随后 [KSWAPD_SKIP_CONGESTION_WAIT 被完全删除](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=258401a60c4df39332f30ef57afbc6dbf29a7e84).
+
+但是这样依旧有问题. wait_iff_congested() 并不适合 KSWAPD, 如果直接回收或 KSWAPD 遇到太多的回写页面, [补丁 7](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=283aba9f9e0e4882bf09bd37a2983379a6fae805) 设置了一个 ZONE_WRITEBACK 标志. 如果设置了这个标志, KSWAPD 在写回时遇到了一个 PageReclaim() 页面, 那么它会假设 LRU 列表在 IO 完成之前被回收得太快, 并阻塞等待某个 IO 完成.
+
+随后 [Remove dependency on congestion_wait in mm/](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=66ce520bb7c22848bfdf3180d7e760a066dbcfbe) 引入了[回收节流(Reclaim Throttle)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8cd7c588decf470bf7e14f2be93b709f839a965e)替代了 congestion_wait(). 实现了 3 种不同的类型取代了 "拥塞" 节流.
+
+1.  如果有太多脏页写回页, 则睡眠直到超时或清理足够多的页.
+
+2.  如果隔离了太多的页, 则睡眠直到回收足够多的隔离页或将其放回 LRU.
+
+3.  如果依旧没有进展, 请直接回收任务睡眠, 直到另一个任务以可接受的效率取得进展.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2013/05/13 | Mel Gorman <mgorman@suse.de> | [Reduce system disruption due to kswapd](https://lore.kernel.org/all/1363525456-10448-1-git-send-email-mgorman@suse.de) | 1363525456-10448-1-git-send-email-mgorman@suse.de | v1 ☑✓ 3.11-rc1 | [LORE v1,0/8](https://lore.kernel.org/all/1363525456-10448-1-git-send-email-mgorman@suse.de)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/9](https://lore.kernel.org/all/1368432760-21573-1-git-send-email-mgorman@suse.de), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e82e0561dae9f3ae5a21fc2d3d3ccbe69d90be46) |
+| 2019/10/22 | Johannes Weiner <hannes@cmpxchg.org> | [mm: vmscan: harmonize writeback congestion tracking for nodes & memcgs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1b05117df78e035afb5f66ef50bf8750d976ef08) | 清理回收代码与cgroups的交互 [mm/vmscan: cgroup-related cleanups](https://lore.kernel.org/patchwork/patch/1142997) 的其中一个补丁. | v1 ☑ 5.5-rc1 | [PatchWork 0/8](https://lore.kernel.org/patchwork/patch/1142997) |
+| 2021/10/22 | Mel Gorman <mgorman@techsingularity.net> | [Remove dependency on congestion_wait in mm/](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=66ce520bb7c22848bfdf3180d7e760a066dbcfbe) | NA | v5 ☑✓ 5.16-rc1 | [LORE v5,0/8](https://lore.kernel.org/all/20211022144651.19914-1-mgorman@techsingularity.net)|
+
+#### 4.2.8.1 shrink_lruvec
+-------
+
+shrink_lruvec() 和 shrink_slab() 是 LRU 处理的几个最基础函数.
+
+
+```cpp
+shrink_lruvec()
+    -=> get_scan_count()                                    # 探测各个 LRU 中需要扫描的页面个数 nr[NR_LRU_LISTS]
+    -=> for_each_evictable_lru(lru) -=> shrink_list()        # 回收各个 LRU 中的页面, 至少扫描 min(nr[lru], SWAP_CLUSTER_MAX) 个.
+    -=> shrink_active_list()                                # 必要时对 active/inactive 进行均衡
+```
+
+首先是 KSWAPD 路径:
+
+```cpp
+balance_pgdat()
+-=> mem_cgroup_soft_limit_reclaim() // while (sc.priority >= 1);
+    -=> mem_cgroup_soft_reclaim
+        -=> mem_cgroup_shrink_node()
+            -=> shrink_lruvec()
+-=> kswapd_shrink_node()
+    -=> shrink_node()
+        -=> shrink_node_memcgs()
+            -=> shrink_lruvec()
+            -=> shrink_slab()
+```
+
+其次是快速本地回收的路径:
+
+```cpp
+__alloc_pages_direct_reclaim()
+-=> __perform_reclaim()
+    -=> node_reclaim()
+        -=> __node_reclaim()
+            -=> shrink_node()
+                -=> shrink_node_memcgs()
+                    -=> shrink_lruvec()
+                    -=> shrink_slab()
+```
+
+接着是直接回收路径:
+
+```cpp
+shrink_zones()
+-=> for_each_zone_zonelist_nodemask -=> mem_cgroup_soft_limit_reclaim()
+    -=> mem_cgroup_soft_reclaim()
+        -=> mem_cgroup_shrink_node()
+            -=> shrink_lruvec()
+-=> shrink_node()
+```
+
+
+#### 4.2.8.1 shrink_list
+-------
+
+
+
+### 4.2.8.2 shrink_active_list
+-------
+
+
+### 4.2.8.3 shrink_inactive_list
+-------
+
 
 
 ### 4.2.11 其他页面替换算法
