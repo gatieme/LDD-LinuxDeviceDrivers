@@ -1576,7 +1576,7 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 | 2021/09/20 | BVlastimil Babka <vbabka@suse.cz> @ Linux Kernel Developer, SUSE Labs | [Overview of memory reclaim in the current upstream kernel](https://lkml.org/lkml/2017/8/25/189) | LPC2021 Refereed Track 议题. 主要阐述了目前内存回收的基本思路和发展, 对了解整个内核内存回收是一个非常好的材料. | NA | [SLIDE](https://linuxplumbersconf.org/event/11/contributions/896/attachments/793/1493/slides-r2.pdf) |
 
 
-### 4.1.1 快速内存回收机制 `node_reclaim()`
+### 4.1.1 内存分配的快速路径与快速内存回收机制 `node_reclaim()`
 -------
 
 本地快速内存回收机制 `node_reclaim()`, 在内存分配的关键路径 get_page_from_freelist() (内存分配的快速路径)上进行, 因此一直是优化的重点.
@@ -1685,15 +1685,16 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 
 
 
-### 4.1.2 直接内存回收 Direct Reclaim
+### 4.1.2 内存回收的慢速路径与直接内存回收 Direct Reclaim
 -------
-
 
 #### 4.1.2.1 最早的直接回收机制
 -------
 
 
-[commit 1fc53b2209b5 ("2.4.0-test9pre1, MM balancing (Rik Riel)")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1fc53b2209b58e786c102e55ee682c12ffb4c794) 引入 active/inactive LRU 算法的时候, 实现了 [Direct Reclaim 机制](https://elixir.bootlin.com/linux/2.4.0/source/mm/page_alloc.c#L299). `__alloc_pages()` 中引入了 `__alloc_pages_limit()` 和 reclaim_page() 来完成直接回收的工作. 其中 reclaim_page() 直接从 inactive LRU list 中回收并返回一张页面到空闲列表,  而 `__alloc_pages_limit()` 允许从空闲页面和 inactive LRU list 中直接回收并分配页面.
+[commit 1fc53b2209b5 ("2.4.0-test9pre1, MM balancing (Rik Riel)")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1fc53b2209b58e786c102e55ee682c12ffb4c794) 引入 active/inactive LRU 算法的时候, 实现了 [Direct Reclaim 机制](https://elixir.bootlin.com/linux/2.4.0/source/mm/page_alloc.c#L299). LRU 中将 inactive 分为 clean page 和 dirty page, 维护了一张干净的 [inactive_clean_list](https://elixir.bootlin.com/linux/2.4.0/source/mm/vmscan.c#L655), 这个列表中的页面是干净的, 可以直接会复用(回收再分配).
+
+`__alloc_pages()` 中引入了 `__alloc_pages_limit()` 和 reclaim_page() 来完成直接回收的工作. 其中 reclaim_page() 直接从 [inactive (clean) LRU list](https://elixir.bootlin.com/linux/2.4.0/source/include/linux/mmzone.h#L38) 中回收并返回一张页面到空闲列表,  而 `__alloc_pages_limit()` 允许从空闲页面和 inactive LRU list 中直接回收并分配页面.
 
 `__alloc_pages_limit()` 中, 如果[页面接近 min 水线](https://elixir.bootlin.com/linux/2.4.0/source/mm/page_alloc.c#L255), 则尝试通过 reclaim_page() [从 inactive LRU list 中直接回收并返回一张页面](https://elixir.bootlin.com/linux/2.4.0/source/mm/page_alloc.c#L255)出来以供使用. 反之或者分配失败, 则依旧走 rmqueue() 进行分配.
 
@@ -1701,22 +1702,51 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 
 对于高阶分配, 只要[没设置 PF_MEMALLOC, 并且允许 `__GFP_WAIT`](https://elixir.bootlin.com/linux/2.4.0/source/mm/page_alloc.c#L417), 只要 inactive LRU list 有[足够的干净页面](https://elixir.bootlin.com/linux/2.4.0/source/mm/page_alloc.c#L429), 就不断通过 `reclaim_page() + __free_page() +  rmqueue()` 的组合来分配一个高阶页面.
 
-这就是最早起的 Direct Reclaim 机制.
+这就是最早期的 Direct Reclaim 机制, inactive LRU 分为 inactive_dirty_pages list 和 inactive_clean_pages list, reclaim_page() 尝试直接从 inactive_clean_list 中移动一张页面到空闲列表从而完成分配.
+
 
 #### 4.1.2.1 内存分配的慢速路径
 -------
 
-f31fd780031015962af786d633d93d8682731d8e
+[commit a880f45a48be ("v2.4.9.11, Andrea Arkangeli: major VM merge")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a880f45a48be2956d2c78a839c472287d54435c1) 优化了 LRU, 不再区分 inactive_dirty_pages 和 inactive_clean_pages. 引入了 balance_classzone() 替代了 `__alloc_pages_limit()` 和 `reclaim_page()` 机制. 在这里 `__alloc_pages()` 被分割为 Fast Path 和 [Slow Path](https://elixir.bootlin.com/linux/2.4.9.11/source/mm/page_alloc.c#L354). 在慢速路径中, 通过 `balance_classzone() -=> try_to_free_pages()` 不断提升优先级进行直接回收 `shrink_caches()/swap_out`, 每次尝试扫描 SWAP_CLUSTER_MAX 张页面.
 
-[commit ](a880f45a48be2956d2c78a839c472287d54435c1)
+```cpp
+__alloc_pages()
+    -=> balance_classzone()
+        -=> try_to_free_pages()
+            -=> for each priority
+                -=> shrink_caches()
+                -=> swap_out()
+```
 
-页面分配器的核心是一个巨大的函数, 它在堆栈上分配内存, 并进行可能不是每次分配都需要的计算. 因此 09 年 Mel Gorman 在[优化 Page Allocator 的过程](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=72807a74c0172376bba6b5b27702c9f702b526e9)中, 将分配器路径 `__alloc_pages()` 分解为快速路径 `get_page_from_freelist()` 和缓慢路径 `__alloc_pages_slowpath()`. 参见 [commit 11e33f6a55ed ("page allocator: break up the allocator entry point into fast and slow paths")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=11e33f6a55ed7847d9c8ffe185ef87faf7806abe).
+随后 2.5.45 [commit 1d2652dd2c3e ("hot-n-cold pages: bulk page freeing")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1d2652dd2c3e942e75dc3137b3cb1774b43ae377) 区分热页和冷页并进行批量回收的时候, 移除了 balance_classzone(), 慢速路径直接调用 try_to_free_pages() 完成直接回收. [commit ac12db05e309 ("vm: alloc_pages watermark fixes")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ac12db05e3093de2624d842dc2677621f49d0d74), 直接称这一时期的直接回收为 synchronous reclaim, 这已经很贴切了. 这就是现如今内核直接回收的雏形.
+
+```cpp
+__alloc_pages()
+    -=> try_to_free_pages()
+        -=> for each priority
+            -=> shrink_caches()
+            -=> shrink_slab()
+```
+
+接着 09 年 Mel Gorman 在 [2.6.31, 优化 Page Allocator 的过程](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=72807a74c0172376bba6b5b27702c9f702b526e9)中, 将内存分配的核心函数 `__alloc_pages()` 显式分解为快速路径 `get_page_from_freelist()` 和缓慢路径 `__alloc_pages_slowpath()`. 并对慢速路径的主体流程进行了拆解: `__alloc_pages_high_priority()`, `__alloc_pages_direct_reclaim()` 以及 `__alloc_pages_may_oom()`. 参见 [commit 11e33f6a55ed ("page allocator: break up the allocator entry point into fast and slow paths")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=11e33f6a55ed7847d9c8ffe185ef87faf7806abe). 这时候慢速路径的框架已经有了现在的影子.
+
+```cpp
+__alloc_pages_nodemask()
+    -=> get_page_from_freelist()
+    -=> __alloc_pages_slowpath()
+        -=> get_page_from_freelist()
+        -=> __alloc_pages_high_priority()
+        -=> __alloc_pages_direct_reclaim()
+        -=> __alloc_pages_may_oom()
+```
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2002/10/29 | Jan Kara <jack@suse.cz> | [hot-n-cold pages: bulk page allocator](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8d6282a1cf812279f490875cd55cb7a85623ac89) | 气氛热门页面和冷页面. | v2 ☑ 2.5.45 | [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8d6282a1cf812279f490875cd55cb7a85623ac89) |
-| 2004/08/23 | Nick Piggin <nickpiggin@yahoo.com.au> | [vm: alloc_pages watermark fixes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ac12db05e3093de2624d842dc2677621f49d0d74) | TODO | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ac12db05e3093de2624d842dc2677621f49d0d74) |
-| 2009/04/22 | Mel Gorman <mel@csn.ul.ie> | [page allocator: break up the allocator entry point into fast and slow paths](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=11e33f6a55ed7847d9c8ffe185ef87faf7806abe) | 清理和优化页面分配器 [Cleanup and optimise the page allocator V7](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=72807a74c0172376bba6b5b27702c9f702b526e9) 的其中一个补丁 | v7 ☑✓ 2.6.31-rc1 | [LORE RFC,00/20](https://lore.kernel.org/lkml/1235344649-18265-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE RFC,v2,00/19](https://lore.kernel.org/lkml/1235477835-14500-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE RFC,v3,00/35](https://lore.kernel.org/lkml/1237196790-7268-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE RFC, v4,00/26](https://lore.kernel.org/lkml/1237196790-7268-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE RFC,v5,00/25](https://lore.kernel.org/lkml/1237543392-11797-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE v6,00/25](https://lore.kernel.org/lkml/1240266011-11140-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/22](https://lore.kernel.org/lkml/1240408407-21848-1-git-send-email-mel@csn.ul.ie) |
+| 2002/02/04 | Linus Torvalds <torvalds@athlon.transmeta.com> | [v2.4.9.11, Andrea Arkangeli: major VM merge](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a880f45a48be2956d2c78a839c472287d54435c1) | 不再区分 inactive_dirty_pages 和 inactive_clean_pages. `__alloc_pages()` 被分割为 Fast Path 和 [Slow Path](https://elixir.bootlin.com/linux/2.4.9.11/source/mm/page_alloc.c#L354). | v1 ☑✓ 2.4.9.11 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a880f45a48be2956d2c78a839c472287d54435c1) |
+| 2002/10/29 | Jan Kara <jack@suse.cz> | [hot-n-cold pages: bulk page allocator](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8d6282a1cf812279f490875cd55cb7a85623ac89) | 区分热门页面和冷页面, 区分热页和冷页并进行批量回收的时候, 移除了 balance_classzone(), 慢速路径直接调用 try_to_free_pages() 完成直接回收. | v2 ☑ 2.5.45 | [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1d2652dd2c3e942e75dc3137b3cb1774b43ae377) |
+| 2004/08/23 | Nick Piggin <nickpiggin@yahoo.com.au> | [vm: alloc_pages watermark fixes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ac12db05e3093de2624d842dc2677621f49d0d74) | 修复异步回收的逻辑. 由于 page_min 水线为 `__GFP_HIGH` 和 `PF_MEMALLOC` 分配保留的. 页面水线达到 pages_low + protection 时, 内存分配器将尝试唤醒 KSWAPD 进行异步回收, 直到达到 ->pages_high 水线为止. 在唤醒 KSWAPD 之后, 可以在不阻塞的情况下再次尝试分配. 这里我们关注的是它显式通过注释 "We now go into synchronous reclaim", 标记了直接回收的开始. | v1 ☑✓ 2.6.9-rc2 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ac12db05e3093de2624d842dc2677621f49d0d74) |
+| 2009/04/22 | Mel Gorman <mel@csn.ul.ie> | [page allocator: break up the allocator entry point into fast and slow paths](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=11e33f6a55ed7847d9c8ffe185ef87faf7806abe) | 清理和优化页面分配器 [Cleanup and optimise the page allocator V7](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=72807a74c0172376bba6b5b27702c9f702b526e9) 的其中一个补丁. 将内存分配的核心函数 `__alloc_pages()` 显式分解为快速路径 `get_page_from_freelist()` 和缓慢路径 `__alloc_pages_slowpath()`. | v7 ☑✓ 2.6.31-rc1 | [LORE RFC,00/20](https://lore.kernel.org/lkml/1235344649-18265-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE RFC,v2,00/19](https://lore.kernel.org/lkml/1235477835-14500-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE RFC,v3,00/35](https://lore.kernel.org/lkml/1237196790-7268-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE RFC, v4,00/26](https://lore.kernel.org/lkml/1237196790-7268-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE RFC,v5,00/25](https://lore.kernel.org/lkml/1237543392-11797-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE v6,00/25](https://lore.kernel.org/lkml/1240266011-11140-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/22](https://lore.kernel.org/lkml/1240408407-21848-1-git-send-email-mel@csn.ul.ie) |
 
 
 ### 4.1.3 KSWAPD 内核 Balancing
