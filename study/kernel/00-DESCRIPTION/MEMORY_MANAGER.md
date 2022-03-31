@@ -1365,7 +1365,7 @@ gpu 和高吞吐量设备在 TLB 丢失和随后的页表遍行情况下, 与 CP
 | 2007/02/28 | Mel Gorman | [Introduce ZONE_CMA](https://lore.kernel.org/patchwork/patch/778794) | ZONE_CMA 的实现方案, 使用新的分区不仅可以有H/W 寻址限制, 还可以有 S/W 限制来保证页面迁移. | v7 ☐ | [PatchWork v7](https://lore.kernel.org/patchwork/patch/778794) |
 | 2007/02/28 | Mel Gorman | [mm/cma: manage the memory of the CMA area by using the ZONE_MOVABLE](https://lore.kernel.org/patchwork/patch/857428) | 新增了 ZONE_CMA 区域, 使用新的分区不仅可以有H/W 寻址限制, 还可以有 S/W 限制来保证页面迁移.  | v2 ☐ | [PatchWork v7](https://lore.kernel.org/patchwork/patch/857428) |
 | 2010/11/19 | Mel Gorman | [big chunk memory allocator v4](https://lore.kernel.org/patchwork/patch/224757) | 大块内存分配器 | v4 ☐ | [PatchWork v4](https://lore.kernel.org/patchwork/patch/224757) |
-| 2012/04/03 | Michal Nazarewicz <m.nazarewicz@samsung.com><br>*-*-*-*-*-*-*-* <br>Marek Szyprowski <m.szyprowski@samsung.com> | [Contiguous Memory Allocator](https://lwn.net/Articles/486301) | 实现 CMA | v24 ☑ [3.5-rc1](https://kernelnewbies.org/Linux_3.5#Memory_Management) | [PatchWork v7](https://lore.kernel.org/patchwork/patch/229177)<br>*-*-*-*-*-*-*-* <br>[PatchWork v24](https://lore.kernel.org/patchwork/patch/295656) |
+| 2012/04/03 | Michal Nazarewicz <m.nazarewicz@samsung.com><br>*-*-*-*-*-*-*-* <br>Marek Szyprowski <m.szyprowski@samsung.com> | [Contiguous Memory Allocator](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=58f42fd54144346898e6dc6d6ae3acd4c591b42f) | 实现 CMA, 参见 [LWN](https://lwn.net/Articles/486301) | v24 ☑ [3.5-rc1](https://kernelnewbies.org/Linux_3.5#Memory_Management) | [PatchWork v7](https://lore.kernel.org/patchwork/patch/229177)<br>*-*-*-*-*-*-*-* <br>[PatchWork v24](https://lore.kernel.org/patchwork/patch/295656) |
 | 2015/02/12 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm/compaction: enhance compaction finish condition](https://lore.kernel.org/patchwork/patch/542063) | 同样的, 之前 NULL 指针和错误指针的输出也很混乱, 进行了归一化. | v1 ☑ 4.1-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/542063)<br>*-*-*-*-*-*-*-* <br>[关键 commit 2149cdaef6c0](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2149cdaef6c0eb59a9edf3b152027392cd66b41f) |
 | 2015/02/23 | SeongJae Park <sj38.park@gmail.com> | [introduce gcma](https://lore.kernel.org/patchwork/patch/544555) | [GCMA(Guaranteed Contiguous Memory Allocator)方案](http://ceur-ws.org/Vol-1464/ewili15_12.pdf), 倾向于使用 writeback 的page cache 和 完成 swap out 的 anonymous pages 来做 seconday client, 进行迁移. 从而确保 primary client 的分配. | RFC v2 ☐ | [PatchWork](https://lore.kernel.org/patchwork/patch/544555), [GitHub](https://github.com/sjp38/linux.gcma/releases/tag/gcma/rfc/v2) |
 
@@ -1482,10 +1482,19 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 
 [memory compaction 原理、实现与分析](https://blog.csdn.net/21cnbao/article/details/118687445)
 
+
+
+通过碎片索引 [fragmentation_index()](https://elixir.bootlin.com/linux/v2.6.35/source/mm/compaction.c#L495) 可以确定分配失败是由于内存不足还是外部碎片造成的. 参见 [Linux 内存碎片化检视之 buddy_info | extfrag_index | unusable_index](https://blog.csdn.net/memory01/article/details/80958009).
+
+| fragindex 值 | 描述 |
+| -1 | 分配可能成功, 取决于水印. |
+|  0 | 碎片化并不严重, 分配失败是由于缺少内存 |
+| 1000 | 碎片化非常严重, 分配失败是由于碎片导致的只有紧凑的情况下失败是由于碎片.(数值越接近1000, 说明碎片化越严重). |
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2010/04/20 | Mel Gorman <mel@csn.ul.ie> | [Memory Compaction](https://lwn.net/Articles/368869) | 内存规整 | v8 ☑ 2.6.35-rc1 | [PatchWork v8](https://lore.kernel.org/patchwork/patch/196771), [LWN](https://lwn.net/Articles/368869) |
-| 2010/11/22 | Mel Gorman <mel@csn.ul.ie> | [Use memory compaction instead of lumpy reclaim during high-order allocations V2](https://lore.kernel.org/patchwork/patch/196771) | 在分配大内存时, 不再使用成块回收(lumpy reclaim)策略, 而是使用内存规整(memory compaction) | v8 ☑ 2.6.35-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/patch/196771) |
+| 2010/04/20 | Mel Gorman <mel@csn.ul.ie> | [Memory Compaction](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4f92e2586b43a2402e116055d4edda704f911b5b) | 内存规整, 参见 [LWN: Memory compaction](https://lwn.net/Articles/368869) | v8 ☑ 2.6.35-rc1 | [PatchWork v8](https://lore.kernel.org/lkml/1271797276-31358-1-git-send-email-mel@csn.ul.ie) |
+| 2010/11/22 | Mel Gorman <mel@csn.ul.ie> | [Use memory compaction instead of lumpy reclaim during high-order allocations V2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f3a310bc4e5ce7e55e1c8e25c31e63af017f3e50) | 在分配大内存时, 不再使用成块回收(lumpy reclaim)策略, 而是使用内存规整(memory compaction) | v2 ☑ 2.6.38-rc1 | [2010/11/11 LORE RFC v1,0/3](https://lore.kernel.org/all/1289502424-12661-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[2010/11/22 LORE v2,0/7](https://lore.kernel.org/lkml/1290440635-30071-1-git-send-email-mel@csn.ul.ie) |
 | 2011/02/25 | Mel Gorman <mel@csn.ul.ie> | [Reduce the amount of time compaction disables IRQs for V2](https://lore.kernel.org/patchwork/patch/238585) | 减少内存规整关中断的时间, 降低其开销. | v2 ☑ 2.6.39-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/patch/238585) |
 | 2012/04/11 | Mel Gorman <mel@csn.ul.ie> | [Removal of lumpy reclaim V2](https://lore.kernel.org/patchwork/patch/296609) | 移除成块回收(lumpy reclaim) 的代码. | v2 ☑ [3.5-rc1](https://kernelnewbies.org/Linux_3.5#Memory_Management) | [PatchWork v2](https://lore.kernel.org/patchwork/patch/296609) |
 | 2012/09/21 | Mel Gorman <mel@csn.ul.ie> | [Reduce compaction scanning and lock contention](https://lore.kernel.org/patchwork/patch/327667) | 进一步优化内存规整的扫描耗时和锁开销. | v1 ☑ 3.7-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/patch/327667) |
@@ -1705,7 +1714,7 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 这就是最早期的 Direct Reclaim 机制, inactive LRU 分为 inactive_dirty_pages list 和 inactive_clean_pages list, reclaim_page() 尝试直接从 inactive_clean_list 中移动一张页面到空闲列表从而完成分配.
 
 
-#### 4.1.2.1 内存分配的慢速路径
+#### 4.1.2.2 内存分配的慢速路径
 -------
 
 [commit a880f45a48be ("v2.4.9.11, Andrea Arkangeli: major VM merge")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a880f45a48be2956d2c78a839c472287d54435c1) 优化了 LRU, 不再区分 inactive_dirty_pages 和 inactive_clean_pages. 引入了 balance_classzone() 替代了 `__alloc_pages_limit()` 和 `reclaim_page()` 机制. 在这里 `__alloc_pages()` 被分割为 Fast Path 和 [Slow Path](https://elixir.bootlin.com/linux/2.4.9.11/source/mm/page_alloc.c#L354). 在慢速路径中, 通过 `balance_classzone() -=> try_to_free_pages()` 不断提升优先级进行直接回收 `shrink_caches()/swap_out`, 每次尝试扫描 SWAP_CLUSTER_MAX 张页面.
@@ -1748,6 +1757,167 @@ __alloc_pages_nodemask()
 | 2004/08/23 | Nick Piggin <nickpiggin@yahoo.com.au> | [vm: alloc_pages watermark fixes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ac12db05e3093de2624d842dc2677621f49d0d74) | 修复异步回收的逻辑. 由于 page_min 水线为 `__GFP_HIGH` 和 `PF_MEMALLOC` 分配保留的. 页面水线达到 pages_low + protection 时, 内存分配器将尝试唤醒 KSWAPD 进行异步回收, 直到达到 ->pages_high 水线为止. 在唤醒 KSWAPD 之后, 可以在不阻塞的情况下再次尝试分配. 这里我们关注的是它显式通过注释 "We now go into synchronous reclaim", 标记了直接回收的开始. | v1 ☑✓ 2.6.9-rc2 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ac12db05e3093de2624d842dc2677621f49d0d74) |
 | 2009/04/22 | Mel Gorman <mel@csn.ul.ie> | [page allocator: break up the allocator entry point into fast and slow paths](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=11e33f6a55ed7847d9c8ffe185ef87faf7806abe) | 清理和优化页面分配器 [Cleanup and optimise the page allocator V7](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=72807a74c0172376bba6b5b27702c9f702b526e9) 的其中一个补丁. 将内存分配的核心函数 `__alloc_pages()` 显式分解为快速路径 `get_page_from_freelist()` 和缓慢路径 `__alloc_pages_slowpath()`. | v7 ☑✓ 2.6.31-rc1 | [LORE RFC,00/20](https://lore.kernel.org/lkml/1235344649-18265-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE RFC,v2,00/19](https://lore.kernel.org/lkml/1235477835-14500-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE RFC,v3,00/35](https://lore.kernel.org/lkml/1237196790-7268-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE RFC, v4,00/26](https://lore.kernel.org/lkml/1237196790-7268-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE RFC,v5,00/25](https://lore.kernel.org/lkml/1237543392-11797-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE v6,00/25](https://lore.kernel.org/lkml/1240266011-11140-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/22](https://lore.kernel.org/lkml/1240408407-21848-1-git-send-email-mel@csn.ul.ie) |
 
+#### 4.1.2.3 __alloc_pages_high_priority
+-------
+
+
+fde82aaa731de8a23d817971f6080041a4917d06
+
+#### 4.1.2.3 直接回收与内存规整
+-------
+
+*   在直接回收之前先尝试直接内存规整
+
+之前当分配高阶(high order)内存分配失败时, 首先唤醒 KSWAPD 进行异步回收, 然后 [`__alloc_pages_high_priority()`](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L2003) 尝试[忽略水线 ALLOC_NO_WATERMARKS](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L2002) 再分配一次, 如果还是分配不成功, 则直接通过 [`__alloc_pages_direct_reclaim()`](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L2032) 直接回收内存来释放内存空间.
+
+但是这并不是高效解决问题的方法, 如果是因为内存的确不足造成的, 那直接回收可以解决问题. 但是如果是因为外部碎片造成的, 可能通过内存规整更加合适. 为内存规整只在在内存中移动页面, 这比将页面 SWAP OUT 或者 WRITE BACK 到磁盘的开销要小很多, 并且适用于有 MLOCK 锁定页面或没有 SWAP 的情况.
+
+2.6.35-rc1, Mel Gorman 在引入内存规整 [Memory Compaction v8](https://lore.kernel.org/lkml/1271797276-31358-1-git-send-email-mel@csn.ul.ie) 的过程中. [mm: compaction: direct compact when a high-order allocation fails](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=56de7263fcf3eb10c8dcdf8d59a9cec831795f3f) 就在内存分配的回收路径引入了直接内存规整 [`__alloc_pages_direct_compact()`](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L1783).
+
+在进行直接回收 [`__alloc_pages_direct_reclaim()`](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L2032) 之前, [`__alloc_pages_high_priority()`](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L2003) 之后, 通过[直接规整 `__alloc_pages_direct_compact()`](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L2023) 的内存 fragmentation_index() 来确认当前[高阶内存分配](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L1790)失败是[内存不足](https://elixir.bootlin.com/linux/v2.6.35/source/mm/compaction.c#L499)还是因为[外部碎片](https://elixir.bootlin.com/linux/v2.6.35/source/mm/compaction.c#L496)造成的, 如果发现是因为外部碎片造成的, 就会通过 `try_to_compact_pages() -=> compact_zone_order()` 尝试规整出足够大小的页面来[完成页面分配](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L1801). 另外如果内存规整也无法释放合适大小的页面来完成页面分配, 则依旧会进行直接回收. 由于在内存分配(慢速)路径进行, 直接规整不能耗时过长, 应该尽快返回. 因此在规整每个 ZONE 时, 都检查是否释放了合适 order 的页面, 如果释放了, 则返回.
+
+*   使用内存规整替代 Lumpy Reclaim
+
+成块回收(Lumpy Reclaim) 是非常粗暴的行为, 它回收大量的页面, 而且不考虑页面本身的老化, 这耗时可能非常长, 造成严重的阻塞, 并增加应用 Page Fault 的次数, 影响性能. 而相比较, 内存规整效率更高, 是一个不错的替代的成块回收的操作.
+
+因此 v2.6.38 [commit 3e7d34497067 ("mm: vmscan: reclaim order-0 and use compaction instead of lumpy reclaim")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3e7d344970673c5334cf7b5bb27c8c0942b06126) 引入了一个称为 (先)回收(后)规整(`reclaim/compaction`) 的方法来替代成块回收. 它的基本思路非常简单, 不再是选择一个连续的页面范围来回收, 而是回收大量的 order-0 页面, 然后通过 kswapd (compact_zone_order()) 或[直接规整(`__alloc_pages_direct_compact()`)](https://elixir.bootlin.com/linux/v2.6.38/source/mm/page_alloc.c#L2148) 进行规整, 从而规整出分配所需的足够连续页面.
+
+
+1.  引入了回收规整(`reclaim/compaction`) 后, `__alloc_pages_slowpath()` 中可能会进行两次直接规整.
+
+第一次是在直接回收 `__alloc_pages_direct_reclaim()` 之前, 如果发现高阶内存分配失败不是因为内存不足, 而是因为内存碎片比较严重, 则通过 `__alloc_pages_direct_compact()` 尝试规整出足够的连续内存以供分配.
+
+第二次是在直接回收 `__alloc_pages_direct_reclaim()` 回收了足够多的内存之后, 则会使用 `should_alloc_retry()` 检测是否可以分配出足够的内存, 如果不行, 则将再次进行直接规整 `__alloc_pages_direct_compact()` 尝试在回收之后规整出分配所需的连续页面出来.
+
+2.  同步和异步内存迁移
+
+不过两次直接规整的操作是有差异的. 页面的同步迁移将等待回写完成. 如果 Caller 对延迟非常敏感, 或者并不关心迁移是否完成, 我们可以使用异步迁移. 内存分配的(慢速)路径很明显就属于前者.
+
+因此第一次直接规整就尝试使用异步页面迁移. 而随后第二次的回收规整就使用同步迁移. 参见 [commit 77f1fe6b08b1 ("mm: migration: allow migration to operate asynchronously and avoid synchronous compaction in the faster path")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=77f1fe6b08b13a87391549c8a820ddc817b6f50e). 这个补丁为 `migrate_pages()` 添加了一个[同步参数 sync](https://elixir.bootlin.com/linux/v2.6.38/source/mm/migrate.c#L896), 允许调用者指定在迁移过程中是否[等待 wait_on_page_writeback()](https://elixir.bootlin.com/linux/v2.6.38/source/mm/migrate.c#L691).
+
+
+*   CMA 与 `__perform_reclaim()`
+
+随后 v3.5 [commit bba907108710 ("mm: extract reclaim code from `__alloc_pages_direct_reclaim()`")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bba9071087108d3de70bea274e35064cc480487b) 将 `__perform_reclaim()` 函数从 `__alloc_pages_direct_reclaim()` 中分离出来. 用于 CMA 分配过程中的快速回收 CMA 内存出来, 参见 [commit 49f223a9cd96 ("mm: trigger page reclaim in alloc_contig_range() to stabilise watermarks")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49f223a9cd96c7293d7258ff88c2bdf83065f69c). CMA 使用 alloc_contig_range() 进行分配时, 为了获取足够的页面, 采用了跟内存分配路径的 slowpath 类似的操作, 先通过 `__reclaim_pages() -=> __perform_reclaim()` 快速的回收部分内存出来, 同时保证内存始终在低水线以上. 后来在 v3.8 [commit bc357f431c83 ("mm: cma: remove watermark hacks")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bc357f431c836c6631751e3ef7dfe7882394ad67) 移除了 `__reclaim_pages()`.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2010/04/20 | Mel Gorman <mel@csn.ul.ie> | [mm: compaction: direct compact when a high-order allocation fails](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=56de7263fcf3eb10c8dcdf8d59a9cec831795f3f) | 内存规整 [Memory Compaction](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4f92e2586b43a2402e116055d4edda704f911b5b) 系列的其中一个补丁,  | v8 ☑ 2.6.35-rc1 | [PatchWork v8](https://lore.kernel.org/lkml/1271797276-31358-1-git-send-email-mel@csn.ul.ie) |
+| 2010/11/22 | Mel Gorman <mel@csn.ul.ie> | [mm: vmscan: reclaim order-0 and use compaction instead of lumpy reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3e7d344970673c5334cf7b5bb27c8c0942b06126) | [Use memory compaction instead of lumpy reclaim during high-order allocations V2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f3a310bc4e5ce7e55e1c8e25c31e63af017f3e50) 的其中一个补丁. 在分配大内存时, 不再使用成块回收(lumpy reclaim)策略, 而是使用内存规整(memory compaction) | v2 ☑ 2.6.38-rc1 | [2010/11/11 LORE RFC v1,0/3](https://lore.kernel.org/all/1289502424-12661-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[2010/11/22 LORE v2,0/7](https://lore.kernel.org/lkml/1290440635-30071-1-git-send-email-mel@csn.ul.ie), [关注 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3e7d344970673c5334cf7b5bb27c8c0942b06126) |
+| 2012/01/25 | Marek Szyprowski <m.szyprowski@samsung.com> | [`mm: extract reclaim code from __alloc_pages_direct_reclaim()`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bba9071087108d3de70bea274e35064cc480487b) | `__perform_reclaim()` 函数从 `__alloc_pages_direct_reclaim()` 中分离出来.<br>后来在 v3.8 [commit bc357f431c83 ("mm: cma: remove watermark hacks")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bc357f431c836c6631751e3ef7dfe7882394ad67) 移除了 `__reclaim_pages()`. | v1 ☑✓ 3.5-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bba9071087108d3de70bea274e35064cc480487b) |
+| 2012/01/24 | Rik van Riel <riel@redhat.com> | [kswapd vs compaction improvements](https://lore.kernel.org/all/20120124131822.4dc03524@annuminas.surriel.com) | 20120124131822.4dc03524@annuminas.surriel.com | v2 ☐☑✓ | [LORE v2,0/3](https://lore.kernel.org/all/20120124131822.4dc03524@annuminas.surriel.com) |
+| 2012/08/07 | Mel Gorman <mgorman@suse.de> | [Improve hugepage allocation success rates under load](https://lore.kernel.org/all/1344342677-5845-1-git-send-email-mgorman@suse.de) | 1344342677-5845-1-git-send-email-mgorman@suse.de | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/1344342677-5845-1-git-send-email-mgorman@suse.de) |
+| 2012/12/11 | Marek Szyprowski <m.szyprowski@samsung.com> | [mm: cma: remove watermark hacks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bc357f431c836c6631751e3ef7dfe7882394ad67) | TODO | v1 ☑✓ 3.8-rc1 | [LORE](https://lore.kernel.org/lkml/1352357985-14869-1-git-send-email-m.szyprowski@samsung.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bc357f431c836c6631751e3ef7dfe7882394ad67) |
+
+
+
+
+cfd19c5a9ecf8e5e38de2603077c4330af21316e
+33c2d21438daea807947923377995c73ee8ed3fc
+a8161d1ed6098506303c65b3701dedba876df42a
+
+#### 4.1.2.4 `__alloc_pages_may_oom()`
+-------
+
+
+[oom detection rework v6](https://lore.kernel.org/lkml/1461181647-8039-1-git-send-email-mhocko@kernel.org)
+
+内存分配的慢速路径上, 经常要探测是要触发 OOM 还是再次尝试进行分配.
+
+1.  通过 did_some_progress 跟踪上一轮分配或则回收的进度, 使用 no_progress_loops 记录尝试回收的次数.
+
+2.  通过 should_alloc_retry(), [should_reclaim_retry()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0a0337e0d1d134465778a16f5cbea95086e8e9e0), [should_compact_retry()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=33c2d21438daea807947923377995c73ee8ed3fc) 在慢速路径的各个阶段判断是进行下一步操作, 还是直接尝试重新分配.
+
+*   did_some_progress
+
+[commit bb459c6567e4 ("mm: fix several oom killer bugs")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bb459c6567e40d45ddb220fcea82296810094f19) 引入了 did_some_progress, 在 try_to_free_pages() 回收了内存之后, 就不再倾向于触发 OOM.
+
+随后 [commit 11e33f6a55ed ("page allocator: break up the allocator entry point into fast and slow paths")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=11e33f6a55ed7847d9c8ffe185ef87faf7806abe) 将 `__alloc_pages_slowpath()` 进行了拆解之后, did_some_progress 开始贯穿于 slowpath 的所有子路径中:
+
+1.  直接回收 `__alloc_pages_direct_reclaim()` 中 `try_to_free_pages()` 会收到了内存, 才会重新尝试分配 get_page_from_freelist().
+
+2.  也只有直接回收没有回收到内存的时候, 才会使用 `__alloc_pages_may_oom()` 做 OOM 前最后的挣扎.
+
+3.  如果回收了足够的内存, 才会通过 should_alloc_retry() 检查是否需要重新尝试分配.
+
+```cpp
+__alloc_pages_direct_reclaim()
+{
+    *did_some_progress = try_to_free_pages(zonelist, order, gfp_mask, nodemask);
+    if (likely(*did_some_progress))
+        page = get_page_from_freelist(gfp_mask, nodemask, order, zonelist, high_zoneidx, alloc_flags);
+
+}
+
+__alloc_pages_slowpath()
+{
+    page = __alloc_pages_direct_reclaim(gfp_mask, order,
+                                        zonelist, high_zoneidx,
+                                        nodemask,
+                                        alloc_flags, &did_some_progress);
+
+    if (!did_some_progress) {
+        if ((gfp_mask & __GFP_FS) && !(gfp_mask & __GFP_NORETRY)) {
+            page = __alloc_pages_may_oom(gfp_mask, order, zonelist, high_zoneidx, nodemask);
+    }
+
+    pages_reclaimed += did_some_progress;
+
+    if (should_alloc_retry(gfp_mask, order, pages_reclaimed)) {
+        /* Wait for some write requests to complete then retry */
+        congestion_wait(WRITE, HZ/50);
+        goto rebalance;
+    }
+}
+```
+
+接着 [commit 9879de7373fc ("mm: page_alloc: embed OOM killing naturally into allocation slowpath")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9879de7373fcfb466ec198293b6ccc1ad7a42dd8) 在优化分配慢速路径下 OOM 的重复检查的时候, 为 `__alloc_pages_may_oom()` 也引入了 did_some_progress.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2005/02/01 | Andrea Arcangeli <andrea@suse.de> | [mm: oom-killer tunable](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bb459c6567e40d45ddb220fcea82296810094f19) | oom killer 补丁的核心, 部分借鉴了 Thomas 从退出路径获取反馈的补丁的思想, 将 oom killer 移到了 page_alloc 路径下, 因为这里应该能够在杀死更多的东西之前检查水印. 这样不再需要等待 5 秒, oom killer 也会非常理智. 这个补丁引入了 did_some_progress(try_to_free_pages() 的返回值) 和 out_of_memory(). 只要回收了定量的页面, 就不轻易进行 OOM. | v1 ☑✓ 2.6.11-rc3 | [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bb459c6567e40d45ddb220fcea82296810094f19), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=86a4c6d9e2e43796bb362debd3f73c0e3b198efa) |
+| 2014/12/05 | Johannes Weiner <hannes@cmpxchg.org> | [mm: page_alloc: embed OOM killing naturally into allocation slowpath](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9879de7373fcfb466ec198293b6ccc1ad7a42dd8) | 为了判断是否需要进行 OOM 的检查与调用, 在内存分配的 slowpath 行大量的重复检查, 将 `__alloc_pages_may_oom()` 的调用路径放到 should_alloc_retry() 分支下, 移除了 oom_gfp_allowed(), 将它的判断逻辑分散到了各个流程和 should_alloc_retry() 中. | v1 ☑✓ 3.19-rc7 | [LORE](https://lore.kernel.org/all/1417790893-32010-1-git-send-email-hannes@cmpxchg.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9879de7373fcfb466ec198293b6ccc1ad7a42dd8) |
+
+*   no_progress_loops
+
+commit 423b452e1553e3d19b632880bf2adf1f058ab267
+Author: Vlastimil Babka <vbabka@suse.cz>
+Date:   Fri Oct 7 17:00:40 2016 -0700
+
+    mm, page_alloc: pull no_progress_loops update to should_reclaim_retry()
+
+
+*   should_alloc_retry()
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2014/12/05 | Johannes Weiner <hannes@cmpxchg.org> | [mm: page_alloc: embed OOM killing naturally into allocation slowpath](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9879de7373fcfb466ec198293b6ccc1ad7a42dd8) | 为了判断是否需要进行 OOM 的检查与调用, 在内存分配的 slowpath 行大量的重复检查, 将 `__alloc_pages_may_oom()` 的调用路径放到 should_alloc_retry() 分支下, 移除了 oom_gfp_allowed(), 将它的判断逻辑分散到了各个流程和 should_alloc_retry() 中. | v1 ☑✓ 3.19-rc7 | [LORE](https://lore.kernel.org/all/1417790893-32010-1-git-send-email-hannes@cmpxchg.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9879de7373fcfb466ec198293b6ccc1ad7a42dd8) |
+| 2015/03/25 | Johannes Weiner <hannes@cmpxchg.org> | [mm: page_alloc: inline should_alloc_retry()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9083905a2a13dec4093a9c35a9b7f60037b87672) | [mm: page_alloc: improve OOM mechanism and policy](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9083905a2a13dec4093a9c35a9b7f60037b87672) 的其中一个补丁, should_alloc_retry() 函数旨在封装内存分配器 slowpath 的重试条件, 但是主函数 `__alloc_pages_slowpath()` 中仍有剩余的检查, 重试的执行方式在很大程度上也取决于进程. 这些条件的物理分离使得代码难以理解. 因此这个补丁直接去掉了 should_alloc_retry() 函数, 将重试的逻辑分散在了主函数流程中. | v2 ☑✓ 4.2-rc1 | [LORE v1,0/12](https://lore.kernel.org/all/1427264236-17249-1-git-send-email-hannes@cmpxchg.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/9](https://lore.kernel.org/all/1430161555-6058-1-git-send-email-hannes@cmpxchg.org) |
+
+*   [should_reclaim_retry()](https://elixir.bootlin.com/linux/v4.7/source/mm/page_alloc.c#L3489)
+
+[commit 0a0337e0d1d1 ("mm, oom: rework oom detection")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0a0337e0d1d134465778a16f5cbea95086e8e9e0) 实现了回收反馈 [should_reclaim_retry()](https://elixir.bootlin.com/linux/v4.7/source/mm/page_alloc.c#L3489). 这是直接回收的 FreeBack. 用于在直接回收 `__alloc_pages_direct_reclaim()` 后检查是否需要再次尝试分配和回收.
+
+如果持续回收内存都是失败的, 则[通过 no_progress_loops 记录其失败重试次数](https://elixir.bootlin.com/linux/v4.7/source/mm/page_alloc.c#L3721), 连续[超过 MAX_RECLAIM_RETRIES 次重试后](https://elixir.bootlin.com/linux/v4.7/source/mm/page_alloc.c#L3500), 将不再继续重试, 而是准备启动 OOM 流程.
+
+如果前面成功回收到了内存(did_some_progress > 0), [则 no_progress_loops 重新计数](https://elixir.bootlin.com/linux/v4.7/source/mm/page_alloc.c#L3718).
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/04/20 | Michal Hocko <mhocko@kernel.org> | [mm, oom: rework oom detection](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0a0337e0d1d134465778a16f5cbea95086e8e9e0) | [oom detection rework v6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f44666b04605d1c7fd94ab90b7ccf633e7eff228) 系列的其中一个补丁. | v1 ☑✓ 4.7-rc1 | [LORE 00/14](https://lore.kernel.org/lkml/1461181647-8039-1-git-send-email-mhocko@kernel.org) |
+| 2016/04/12 | Michal Hocko <mhocko@kernel.org> | [oom: consider multi-threaded tasks in task_will_free_mem](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=98748bd722005be9de2662bd4f7e41ad8148bdbd) | 1460452756-15491-1-git-send-email-mhocko@kernel.org | v1 ☑✓ 4.7-rc1 | [LORE](https://lore.kernel.org/all/1460452756-15491-1-git-send-email-mhocko@kernel.org), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=98748bd722005be9de2662bd4f7e41ad8148bdbd) |
+| 2016/04/26 | Michal Hocko <mhocko@kernel.org> | [last pile of oom_reaper patches for now](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f44666b04605d1c7fd94ab90b7ccf633e7eff228) | 1461679470-8364-1-git-send-email-mhocko@kernel.org | v1 ☑✓ v4.7-rc1 | [LORE v1,0/2](https://lore.kernel.org/all/1461679470-8364-1-git-send-email-mhocko@kernel.org) |
+
+
+*   should_compact_retry()
+
+[commit 33c2d21438da ("mm, oom: protect !costly allocations some more")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=33c2d21438daea807947923377995c73ee8ed3fc)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/04/20 | Michal Hocko <mhocko@kernel.org> | [mm, oom: protect !costly allocations some more](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=33c2d21438daea807947923377995c73ee8ed3fc) | [oom detection rework v6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f44666b04605d1c7fd94ab90b7ccf633e7eff228) 的其中一个补丁. | v1 ☑✓ 4.7-rc1 | [LORE 00/14](https://lore.kernel.org/lkml/1461181647-8039-1-git-send-email-mhocko@kernel.org), [关注 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=33c2d21438daea807947923377995c73ee8ed3fc) |
 
 ### 4.1.3 KSWAPD 内核 Balancing
 -------
