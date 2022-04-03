@@ -1416,26 +1416,62 @@ gpu 和高吞吐量设备在 TLB 丢失和随后的页表遍行情况下, 与 CP
 
 *   引入 Lumpy Reclaim
 
+
+当我们没有合适大小的内存时, 我们进入回收. 当前的回收算法以 LRU 顺序定位页面, 这对于 order-0 的公平性非常好, 但如果希望分配更好的 order, 则非常不合适.
+
+之前为了获得更高阶的页面, 我们必须回收非常高比例的内存. 因此 v2.6.23-rc1 在内存分配器添加了一个块状回收算法 [Lumpy Reclaim V4](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5ad333eb66ff1e52a87639822ae088577669dcf9). 它以指定的顺序定位在活动列表和非活动列表末尾的页面组. 这鼓励按请求顺序的页面组从活跃列表移动到不活跃列表, 并从活跃列表移动到自由列表. 这种行为只在直接回收时被触发, 当更高的订单页面已被请求. 当使用防碎片方案时, 这个方案特别有效, 将具有相似可回收性的页面分组在一起.
+
+当块块回收与 ZONE_MOVABLE 一起使用时, 效率更高. 在一台拥有 2GB RAM 的桌面机器上进行的测试表明, 使用 ZONE_MOVABLE 自己增加巨大的页面池非常缓慢, 因为成功率非常低. 如果没有块回收, 每次尝试将池增加 100 个页面将产生 1 到 2 个巨大的页面. 使能了成块回收, 每次尝试都能获得 40 到 70 个巨大的页面.
+
+引入了 PAGE_ALLOC_COSTLY_ORDER, 默认为 3, 内核认为超过 order 3 的分配所花费的开销都很大. 也就是说, 当一次内存申请小于或等于 2^3 = 8 个 pages 时, 通常是容易得到满足的, 而大于 8 个就是比较 "costly" 的操作. 这同时也是在提醒开发者, 最好不要一次申请超过 8 个连续的 page frames.
+
+
+在 isolate_lru_pages() 中尝试获取标记页周围按顺序排列区域中的所有页面. 只取那些与标记页具有相同 LRU 活动状态的页. 我们可以安全地c从目标页面 pfn 上下获取到所请求的 order 大小的页面.
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2007/04/20 | Andy Whitcroft <apw@shadowen.org> | [Lumpy Reclaim V6](https://lore.kernel.org/patchwork/patch/78996) | 实现成块回收, 其中引入了 PAGE_ALLOC_COSTLY_ORDER, 该值虽然是经验值, 但是通常被认为是介于系统有/无回收页面压力的一个临界值, 一次分配低于这个 order 的页面, 通常是容易满足的. 而大于这个 order 的页面, 被认为是 costly 的. | v6 ☑ 2.6.23-rc1 | [Patchwork V5](https://lore.kernel.org/patchwork/patch/76206)<br>*-*-*-*-*-*-*-* <br>[PatchWork v8](https://lore.kernel.org/patchwork/patch/78996)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6 cleanup](https://lore.kernel.org/patchwork/patch/79316)<br>*-*-*-*-*-*-*-* <br>[COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5ad333eb66ff1e52a87639822ae088577669dcf9) |
-| 2008/07/01 | Mel Gorman <mel@csn.ul.ie> | [Reclaim page capture v1](https://lore.kernel.org/patchwork/patch/121203) | 大 order 页面分配的有一次探索. 这种方法是捕获直接回收中释放的页面, 以便在空闲页面被竞争的分配程序重新分配之前增加它们被压缩的机会. | v1 ☐  | [Patchwork V5](https://lore.kernel.org/patchwork/patch/121203) |
-| 2007/08/02 | Andy Whitcroft <apw@shadowen.org> | [Synchronous Lumpy Reclaim V3](https://lore.kernel.org/patchwork/patch/87667) | 当以较高的阶数应用回收时, 可能会启动大量IO. 这组补丁尝试修复这个问题, 用于在 VM 事件记录器中中将页面标记为非活动时修复, 并在直接回收连续区域时等待页面写回. | v3 ☑ 2.6.23-rc4 | [Patchwork V5](https://lore.kernel.org/patchwork/patch/87667) |
+| 2007/04/20 | Andy Whitcroft <apw@shadowen.org> | [Lumpy Reclaim V4](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5ad333eb66ff1e52a87639822ae088577669dcf9) | 实现成块回收, 其中引入了 PAGE_ALLOC_COSTLY_ORDER, 该值虽然是经验值, 但是通常被认为是介于系统有/无回收页面压力的一个临界值, 一次分配低于这个 order 的页面, 通常是容易满足的. 而大于这个 order 的页面, 被认为是 costly 的. | v6 ☑ 2.6.23-rc1 | [Patchwork V5](https://lore.kernel.org/patchwork/patch/76206)<br>*-*-*-*-*-*-*-* <br>[PatchWork v8](https://lore.kernel.org/patchwork/patch/78996)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6 cleanup](https://lore.kernel.org/patchwork/patch/79316)<br>*-*-*-*-*-*-*-* <br>[COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5ad333eb66ff1e52a87639822ae088577669dcf9) |
+| 2008/07/01 | Mel Gorman <mel@csn.ul.ie> | [Reclaim page capture v1](https://lore.kernel.org/lkml/1214935122-20828-1-git-send-email-apw@shadowen.org/) | 大 order 页面分配的有一次探索. 这种方法是捕获直接回收中释放的页面, 以便在空闲页面被竞争的分配程序重新分配之前增加它们被压缩的机会. | v1 ☐  | [Patchwork V5](https://lore.kernel.org/lkml/1214935122-20828-1-git-send-email-apw@shadowen.org) |
+| 2007/08/02 | Andy Whitcroft <apw@shadowen.org> | [Synchronous Lumpy Reclaim V3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c661b078fd62abe06fd11fab4ac5e4eeafe26b6d) | 当以较高的阶数应用回收时, 可能会启动大量IO. 这组补丁尝试修复这个问题, 用于在 VM 事件记录器中中将页面标记为非活动时修复, 并在直接回收连续区域时等待页面写回. | v3 ☑ 2.6.23-rc4 | [Patchwork v3,0/2](https://lore.kernel.org/lkml/exportbomb.1186077923@pinky) |
+| 2010/09/06 | Mel Gorman <mel@csn.ul.ie> | [Reduce latencies and improve overall reclaim efficiency](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=08fc468f4eaf6683bae5bdb94743a09d8630cb80) | 成块回收过于激进, 会在 LRU 系统造成一定的破坏. 由于 SLUB 使用高阶分配, 块状回收产生的巨大成本将是显而易见的. 这些补丁应该可以在不禁用 Lumpy Reclaim 的情况下缓解该问题. 引入 lumpy_mode, 减少成块回收过程中的等待和延迟. | v2 ☑✓ 2.6.37-rc1 | [LORE v1,0/9](https://lore.kernel.org/all/1283770053-18833-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/8](https://lore.kernel.org/lkml/1284553671-31574-1-git-send-email-mel@csn.ul.ie) |
+
 
 *   使用内存规整替代 Lumpy Reclaim
+
+成块回收(Lumpy Reclaim) 并不是一个很好的解决问题的办法, 只能一定程度缓解页面碎片化问题.
+
+首先它粗暴地回收目标区域附近的页面, 动作非常粗暴, 这可能耗时非常长, 造成严重的阻塞.
+
+其次它并不考虑 LRU 上 active 和 inactive 的比例和老化问题, 这对 LRU 系统造成了严重的破坏.
+
+而相比较, 内存规整效率更高, 是一个不错的替代的成块回收的操作. 因此 v2.6.38 [commit 3e7d34497067 ("mm: vmscan: reclaim order-0 and use compaction instead of lumpy reclaim")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3e7d344970673c5334cf7b5bb27c8c0942b06126) 引入了一个称为(先)回收(后)规整(`reclaim/compaction`) 的方法来替代成块回收. 不再像成块回收那样选择一个连续的页面范围来回收, 而是先回收大量的 order-0 页面, 然后通过[直接规整(`__alloc_pages_direct_compact()`)](https://elixir.bootlin.com/linux/v2.6.38/source/mm/page_alloc.c#L2148) 进行碎片化整理, 从而规整出足够连续页面供高阶分配.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2010/11/22 | Mel Gorman <mel@csn.ul.ie> | [Use memory compaction instead of lumpy reclaim during high-order allocations V2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f3a310bc4e5ce7e55e1c8e25c31e63af017f3e50) | 在分配大内存时, 不再使用成块回收(lumpy reclaim)策略, 而是使用内存规整(memory compaction) | v2 ☑ 2.6.38-rc1 | [2010/11/11 LORE RFC v1,0/3](https://lore.kernel.org/all/1289502424-12661-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[2010/11/22 LORE v2,0/7](https://lore.kernel.org/lkml/1290440635-30071-1-git-send-email-mel@csn.ul.ie) |
 
+但是这个阶段并没有完全抛弃成块回收. 回收路径下 shrink_inactive_list() 回收页面时, 如果使能了 CONFIG_COMPACTION(COMPACTION_BUILD=1), 则回收模式 reclaim_mode 会被设置为 RECLAIM_MODE_COMPACTION, 而没有开启内存规整的情况下, 依旧使用 RECLAIM_MODE_LUMPYRECLAIM;
 
 *   Lumpy Reclaim 的寿终正寝
+
+成块回收最终在 3.5 版本废除, 被内存规整(内存碎片整理技术)取代. 成块回收不是一个完整的解决方案, 它只是缓解了碎片问题.
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2012/03/19 | Konstantin Khlebnikov <khlebnikov@openvz.org> | [mm: forbid lumpy-reclaim in shrink_active_list()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1480de0340a8d5f094b74d7c4b902456c9a06903) | 将 shrink_active_list () 的回收模式重置为 RECLAIM_MODE_SINGLE | RECLAIM_MODE_ASYNC. 其中 SYNC/ASYNC 只在 shrink_page_list() 中使用, 不影响 shrink_active_list().<br>当前 shrink_active_list() 有时工作在成块回收 RECLAIM_MODE_LUMPYRECLAIM 模式, 然后会在 age_active_anon() 中重置回收模式 sc->reclaim_mode. 整体行为和逻辑过于复杂和混乱, 通常, shrink_active_list() 为下一次 shrink_inactive_list() 填充 inactive 列表.  Lumpy Reclaim 时 shring_inactive_list() 将所选页面周围的页面从活动列表和非活动列表中分离出来. 因此, 没必要在 shrink_active_list() 中进行块状隔离. 参见 [LKML](https://lkml.org/lkml/2012/3/15/583). | v1 ☑✓ 3.4-rc1 | [LORE](https://lore.kernel.org/all/20120319091821.17716.54031.stgit@zurg) |
 | 2012/04/11 | Mel Gorman <mgorman@suse.de> | [Removal of lumpy reclaim V2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=23b9da55c5b0feb484bd5e8615f4eb1ce4169453) | 删除了消除了内存规整路径下的[成块状回收](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c53919adc045bf803252e912f23028a68525753d)和一些[引起阻塞的逻辑](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=41ac1999c3e3563e1810b14878a869c79c9368bb). 最终的结果是, 页面回收过程中脏页上的暂停现在就只剩下了 wait_iff_consugged(). | v1 ☑✓ 3.5-rc1 | [LORE RFC v1,0/2](https://lore.kernel.org/all/1332950783-31662-1-git-send-email-mgorman@suse.de)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/all/1334162298-18942-1-git-send-email-mgorman@suse.de) |
 
+*   关于回收模式
+
+[commit 7d3579e8e619 ("vmscan: narrow the scenarios in whcih lumpy reclaim uses synchrounous reclaim")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7d3579e8e61937cbba268ea9b218d006b6d64221) 引入了 enum lumpy_mode.
+
+引入直接规整替代成块回收的过程中, 移除 enum lumpy_mode, 引入了 RECLAIM_MODE_COMPACTION. 将原来的 LUMPY_MODE_CONTIGRECLAIM 重命名为 RECLAIM_MODE_LUMPYRECLAIM. 其中 [commit ee64fc9354e5 ("mm: vmscan: convert lumpy_mode into a bitmask")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ee64fc9354e515a79c7232cfde65c88ec627308b) 直接删除了 enum lumpy_mode 类型, 将他们置换为 bitmask, 接着 [commit f3a310bc4e5c ("mm: vmscan: rename lumpy_mode to reclaim_mode")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f3a310bc4e5ce7e55e1c8e25c31e63af017f3e50) LUMPY_MODE_XXXX 重命名为 RECLAIM_MODE_XXXX.
+
+最终 [Removal of lumpy reclaim V2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=23b9da55c5b0feb484bd5e8615f4eb1ce4169453) 彻底移除了 reclaim_mode 和 Lumpy Reclaim. 其中 [commit c53919adc045 ("mm: vmscan: remove lumpy reclaim")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c53919adc045bf803252e912f23028a68525753d) 移除了 RECLAIM_MODE_LUMPYRECLAIM. [commit 23b9da55c5b0 ("mm: vmscan: do not stall on writeback during memory compaction")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=41ac1999c3e3563e1810b14878a869c79c9368bb) 移除了 RECLAIM_MODE_ASYNC 和 RECLAIM_MODE_SYNC. [commit 23b9da55c5b0 ("mm: vmscan: remove reclaim_mode_t")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=23b9da55c5b0feb484bd5e8615f4eb1ce4169453) 最终移除了剩余的 RECLAIM_MODE_XXXX 和 reclaim_mode.
+
+至此不再通过 RECLAIM_MODE_COMPACTION 判断是否在进行回收规整, 开启了 CONFIG_COMPACTION 的情况下, 就默认使能. 参见 should_continue_reclaim()-=>in_reclaim_compaction().
 
 
 ## 3.3 通过迁移类型分组来实现反碎片
@@ -1609,18 +1645,20 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 
 *   配置
 
-内核提供了 zone_reclaim_mode 配置参数用来控制内存 zone 回收模式的开启以及回收行为, 通过 `/proc/sys/vm/zone_reclaim_mode` 结点来设置.
+内核提供了 zone_reclaim_mode 来控制内存 zone 回收模式的开启以及回收行为. zone_reclaim_mode 模式是在 2.6 版本后期开始加入引入的, 可以用来管理当一个内存区域(zone)内部的内存耗尽时, 是从其内部进行内存回收还是可以从其他 zone 进行回收的选项. 过 `/proc/sys/vm/zone_reclaim_mode` 结点来设置.
+
+在使用 get_page_from_freelist() 申请内存时, 内核在当前 zone 内没有足够内存可用的情况下, 会根据 zone_reclaim_mode 的设置来决策是从下一个 zone 找空闲内存还是在 zone 内部进行回收. 当 NUMA 系统某个 node 内存不足的时候，会从相邻的 node 分配内存.
+
 
 > 早期的本地快速回收也是基于 zone 的, 因此控制参数名称为 zone_reclaim_mode.
 > 随后 [Move LRU page reclaim from zones to nodes v9](https://lore.kernel.org/patchwork/patch/696428) 切到基于 node 的管理方式后, 仍然保留了此配置接口不变.
 
-| zone_reclaim_mode BIT 值 | 行为 |
-|:--------------------:|:---:|
-| 0 | 禁用快速内存回收机制 `node_reclaim()`, 此时内存分配时如果某个 zone 的内存不足(不满足水线要求), 则不会尝试触发直接内存回收工作 zone_reclaim, 而是直接尝试从下一个 zone 中窃取页面. |
-| 1(RECLAIM_ZONE) | 通过 shrink_node 进行 shrink_lruvec() 和 shrink_slab() 的回收. |
-| 2(RECLAIM_WRITE) | 可以将 cache 中的脏数据写回硬盘, 以回收内存. |
-| 4(RECLAIM_UNMAP) | 可以用 swap 方式回收内存 |
-
+| zone_reclaim_mode BIT 值 | 行为 | 控制  |
+|:------------------------:|:---:|:-----:|
+| 0 | 禁用快速内存回收机制 `node_reclaim()`, 此时内存分配时如果某个 zone 的内存不足(不满足水线要求), 则不会尝试触发直接内存回收工作.<br>1. 早期 zone_reclaim 时期直接尝试从下一个 zone 中窃取页面.<br>2. 切到 node_reclaim 之后, 当 NUMA 系统某个 NODE 内存不足的时候, 会从相邻的 NODE 中分配内存. | 关闭时, [不触发 node reclaim](https://elixir.bootlin.com/linux/v5.17/source/mm/page_alloc.c#L4139) |
+| 1(RECLAIM_ZONE) | 当前 node 没有足够内存的情况下, 通过 shrink_node() 进行 shrink_lruvec() 和 shrink_slab() 的回收. 对于 NUMA 系统某个 NODE 内存不足的时候, 会从这个 node 本地启动内存回收机制, 避免从其它 NODE 分配内存.  只有这个 node 的 unmmap 的 cache(`node_pagecache_reclaimable(pgdat)`) [大于 min_unmapped_ratio](https://elixir.bootlin.com/linux/v5.17/source/mm/vmscan.c#L4776), 才会启动内存回收. | 参见 node_pagecache_reclaimable() 统计了 zone reclaim 模式可以回收的页面数量. |
+| 2(RECLAIM_WRITE) | 默认脏页不会回收, 但是设置该位之后, 可以将 page cache 中的[脏数据(NR_FILE_DIRTY)](https://elixir.bootlin.com/linux/v5.17/source/mm/vmscan.c#L4731)写回硬盘, 以回收内存. | 通过 [scan_control 的 may_writepage](https://elixir.bootlin.com/linux/v5.17/source/mm/vmscan.c#L4754) 来控制. shrink_page_list() 中发现如果 may_writepage 没有被设置, 则会忽略 Dirty 的页面, 不对其进程回收. |
+| 4(RECLAIM_UNMAP) | 所有 mapping 的页面(文件页/NR_FILE_PAGES)都可被回收. | 通过 [scan_control 的 may_unmap](https://elixir.bootlin.com/linux/v5.17/source/mm/vmscan.c#L4755) 来控制. shrink_page_list() 中只有设置了发现设置了 may_unmmap 才会回收 page_mapped() 的页面(文件页). |
 
 
 *   适用场景
@@ -1824,6 +1862,8 @@ fde82aaa731de8a23d817971f6080041a4917d06
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2010/04/20 | Mel Gorman <mel@csn.ul.ie> | [mm: compaction: direct compact when a high-order allocation fails](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=56de7263fcf3eb10c8dcdf8d59a9cec831795f3f) | 内存规整 [Memory Compaction](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4f92e2586b43a2402e116055d4edda704f911b5b) 系列的其中一个补丁,  | v8 ☑ 2.6.35-rc1 | [PatchWork v8](https://lore.kernel.org/lkml/1271797276-31358-1-git-send-email-mel@csn.ul.ie) |
 | 2010/11/22 | Mel Gorman <mel@csn.ul.ie> | [mm: vmscan: reclaim order-0 and use compaction instead of lumpy reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3e7d344970673c5334cf7b5bb27c8c0942b06126) | [Use memory compaction instead of lumpy reclaim during high-order allocations V2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f3a310bc4e5ce7e55e1c8e25c31e63af017f3e50) 的其中一个补丁. 在分配大内存时, 不再使用成块回收(lumpy reclaim)策略, 而是使用内存规整(memory compaction) | v2 ☑ 2.6.38-rc1 | [2010/11/11 LORE RFC v1,0/3](https://lore.kernel.org/all/1289502424-12661-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[2010/11/22 LORE v2,0/7](https://lore.kernel.org/lkml/1290440635-30071-1-git-send-email-mel@csn.ul.ie), [关注 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3e7d344970673c5334cf7b5bb27c8c0942b06126) |
+| 2012/01/24 | Rik van Riel <riel@redhat.com> | [vmscan: reclaim at order 0 when compaction is enabled](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fe2c2a106663130a5ab45cb0e3414b52df2fff0c) | [kswapd vs compaction improvements](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=aff622495c9a0b56148192e53bdec539f5e147f2) 的其中一个补丁. 当开启了 CONFIG_COMPACTION 构建时, 就[不再使用成块回收(Lumpy Reclaim)](https://elixir.bootlin.com/linux/v3.4/source/mm/vmscan.c#L378), kswapd 不会尝试释放连续的页面. shrink_inactive_list() 回收页面的过程中, 很多路径只需要对 order-0 的页面回收进行积极的响应和处理<br>1. 因为它没有尝试高阶页面的回收, 所以  balance_pgdat() 中[也不应该测试它是否成功](https://elixir.bootlin.com/linux/v3.4/source/mm/vmscan.c#L2817), 否则这会导致持续的页面回收, 直到有很大一部分内存是空闲的, 造成 workingset 的大部分页面被驱逐.<br>2. 除非我们真的处于块状回收模式 RECLAIM_MODE_LUMPYRECLAIM, isolate_lru_pages() 中不应该尝试[进行更高阶(超出 LRU 顺序) 的页面隔离](https://elixir.bootlin.com/linux/v3.4/source/mm/vmscan.c#L1197),  这为所有页面在不活动列表上提供了大量的时间, 为积极使用的页面提供了被引用和避免被驱逐的机会. | v2 ☑✓ 3.4-rc1 | [LORE v2,0/3](https://lore.kernel.org/all/20120124131822.4dc03524@annuminas.surriel.com) |
+
 
 2.  同步和异步内存迁移
 
@@ -1863,12 +1903,9 @@ fde82aaa731de8a23d817971f6080041a4917d06
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2012/01/24 | Rik van Riel <riel@redhat.com> | [kswapd vs compaction improvements](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=aff622495c9a0b56148192e53bdec539f5e147f2) | 20120124131822.4dc03524@annuminas.surriel.com | v2 ☑✓ 3.4-rc1 | [LORE v2,0/3](https://lore.kernel.org/all/20120124131822.4dc03524@annuminas.surriel.com) |
 | 2012/08/07 | Mel Gorman <mgorman@suse.de> | [Improve hugepage allocation success rates under load](https://lore.kernel.org/all/1344342677-5845-1-git-send-email-mgorman@suse.de) | 1344342677-5845-1-git-send-email-mgorman@suse.de | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/1344342677-5845-1-git-send-email-mgorman@suse.de) |
 | 2012/12/11 | Marek Szyprowski <m.szyprowski@samsung.com> | [mm: cma: remove watermark hacks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bc357f431c836c6631751e3ef7dfe7882394ad67) | TODO | v1 ☑✓ 3.8-rc1 | [LORE](https://lore.kernel.org/lkml/1352357985-14869-1-git-send-email-m.szyprowski@samsung.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bc357f431c836c6631751e3ef7dfe7882394ad67) |
 
-cfd19c5a9ecf8e5e38de2603077c4330af21316e
-a8161d1ed6098506303c65b3701dedba876df42a
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -3675,6 +3712,9 @@ hugetlb 的使用依赖于用户主动预留并使用, 适用于用户明确需�
 | 0 | [Huge pages](https://lwn.net/Kernel/Index/#Huge_pages) |
 | 1 | [Memory management/Huge pages](https://lwn.net/Kernel/Index/#Memory_management-Huge_pages) |
 
+扩展阅读:
+
+[卢钧轶: Huge Page 是否是拯救性能的万能良药？](https://www.cnblogs.com/cenalulu/p/4394695.html)
 
 ### 7.2.1 Transparent Hugepage Support
 -------
@@ -3905,6 +3945,7 @@ Anthony Yznaga 接替了之前同事 Nitin Gupta 的工作, 并基于 Mel 的思
 
 [dhowells/linux-fs: fscache-thp](https://git.kernel.org/pub/scm/linux/kernel/git/dhowells/linux-fs.git/log/?h=fscache-thp)
 
+[Transparent huge pages for filesystems](https://lwn.net/Articles/789159), 译文 [LWN 回顾: facebook 利用 transparent huge page 来优化代码执行性能](https://blog.csdn.net/Linux_Everything/article/details/103790440).
 
 #### 7.2.7.1 THP RAMFS
 -------
