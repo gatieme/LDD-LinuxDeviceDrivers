@@ -820,6 +820,7 @@ a206231bbe6 [PATCH] hot-n-cold pages: page allocator core
 | 2021/03/29 | Mel Gorman | [Use local_lock for pcp protection and reduce stat overhead](https://lore.kernel.org/patchwork/patch/1404513) | Bulk memory allocation 的第一组修复补丁, PCP 与 vmstat 共享锁定要求, 这很不方便, 并且会导致一些问题. 可能因为这个原因, PCP 链表和 vmstat 共享相同的 Per CPU 空间, 这意味着 vmstat 可能跨 CPU 更新包含 Per CPU 列表的脏缓存行, 除非使用填充. 该补丁集拆分该结构并分离了锁. | RFC ☐ | [RFC](https://lore.kernel.org/patchwork/patch/1404513) |
 | 2020/03/20 | Mel Gorman | [mm/page_alloc: Add a bulk page allocator -fix -fix](https://lore.kernel.org/patchwork/patch/1405057) | Bulk memory allocation 的第二组修复补丁 | v1 ☐ | [RFC](https://lore.kernel.org/patchwork/patch/1405057) |
 | 2020/03/20 | Mel Gorman | [mm/page_alloc: enable alloc bulk when page owner is on](https://lore.kernel.org/patchwork/patch/1461499) | 上一个 alloc bulk 版本有一个bug, 当 page_owner 打开时, 系统可能会由于 irq 禁用上下文中的 alloc bulk 调用 prep_new_page() 而崩溃, 这个问题是由于  set_page_owner() 在 local_irq 关闭的情况下通过 GFP_KERNEL 标志分配内存来保存栈信息导致的. 所以, 我们不能假设 alloc 标志应该与 new page 相同, prep_new_page() 应该准备/跟踪页面 gfp, 但不应该使用相同的gfp来获取内存, 这取决于调用方. 现在, 这里有两个gfp标志, alloc_gfp 用于分配内存, 取决于调用方, page_gfp 是 page 的 gfp, 用于跟踪/准备自身. 在大多数情况下, 两个 flag 相同是可以的, 在 alloc_pages_bulk() 中, 使用 GFP_ATOMIC, 因为 irq 被禁用. | v1 ☐ | [RFC](https://lore.kernel.org/patchwork/patch/1461499) |
+| 2020/08/14 | Minchan Kim <minchan@kernel.org> | [Support high-order page bulk allocation](https://lore.kernel.org/all/20200814173131.2803002-1-minchan@kernel.org) | 20200814173131.2803002-1-minchan@kernel.org | v1 ☐☑✓ | [LORE v1,0/7](https://lore.kernel.org/all/20200814173131.2803002-1-minchan@kernel.org) |
 
 
 
@@ -1618,6 +1619,7 @@ Mel Gorman 观察到, 所有使用的内存页有三种情形:
 
 分配高阶内存(包括 Page Fault 时尝试分配大页)是一项非常耗时的操作, 如果这里进行了回收规整执行同步迁移可能会造成较大的延迟.
 
+*   首先是如何提升高阶内存分配的成功率
 
 v3.4 [commit fe2c2a106663 ("vmscan: reclaim at order 0 when compaction is enabled")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fe2c2a106663130a5ab45cb0e3414b52df2fff0c) 修正在内存压缩使能后, 不再倾向于回收高 order 的页面, 而是积极地回收 order-0 的页面. 然后通过直接规整通过碎片整理的方式整理出足够的连续页面出来, 目标和期望是很美好的, 但是却造成高阶(order)的页面分配成功率一直较低. 之前成块回收以及对高阶页面的积极回收虽然可能造成较长时间的阻塞, 但是不可否认的是的确效果不错.
 
@@ -1625,6 +1627,7 @@ v3.6 [commit 7db8889ab05b ("mm: have order > 0 compaction start off where it lef
 
 因此在 v3.7 Mel Gorman 设计了新的算法, 上面两个补丁统统[被 revert](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=753341a4b85ff337487b9959c71c529f522004f4). 参见 [Reduce compaction scanning and lock contention](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=62997027ca5b3d4618198ed8b1aba40b61b1137b). 但是这只是减少了扫描量, 减少了锁争抢. 并没有提高高阶内存分配成功率下降的问题, 与此同时 Mel 进一步改善了高阶内存分配的成功率 [Improve hugepage allocation success rates under load](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1fb3f8ca0e9222535a39b884cb67a34628411b9f).
 
+*   其次是如何减少高阶内存分配的时慢速路径的阻塞
 
 分配高阶内存(包括 Page Fault 时尝试分配大页)是一项非常耗时的操作, 如果这里进行了回收规整执行同步迁移可能会造成较大的延迟. 随后 v3.16, [commit aeef4b8380 ("mm, compaction: embed migration mode in compact_control")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=aeef4b83806f49a0c454b7d4578671b71045bee2) 慢速路径开始显式使用 enum migrate_mode 来标记两次内存规整的页面迁移, 因此 THP 分配的路径不再使用 MIGRATE_SYNC_LIGHT. 参见 [commit 75f30861a12a ("mm, thp: avoid excessive compaction latency during fault")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=75f30861a12a6b09b759dfeeb9290b681af89057).
 
@@ -1658,7 +1661,24 @@ v3.6 [commit 7db8889ab05b ("mm: have order > 0 compaction start off where it lef
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2012/01/25 | Marek Szyprowski <m.szyprowski@samsung.com> | [`mm: extract reclaim code from __alloc_pages_direct_reclaim()`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bba9071087108d3de70bea274e35064cc480487b) | `__perform_reclaim()` 函数从 `__alloc_pages_direct_reclaim()` 中分离出来.<br>后来在 v3.8 [commit bc357f431c83 ("mm: cma: remove watermark hacks")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bc357f431c836c6631751e3ef7dfe7882394ad67) 移除了 `__reclaim_pages()`. | v1 ☑✓ 3.5-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bba9071087108d3de70bea274e35064cc480487b) |
 
-#### 3.4.2.7 内存规整的其他杂事
+#### 3.4.2.7 使慢速路径的回收规整逻辑更加清晰
+-------
+
+[LSF/MM 2016](https://lwn.net/Articles/lsfmm2016) 上对 Michal 的 [oom detection rework v6,00/14](https://lore.kernel.org/lkml/1461181647-8039-1-git-send-email-mhocko@kernel.org) 重构 OOM 的工作进行讨论的时候强调了直接规整的必要性, 以便在回收/规整的循环中提供更好的反馈, 以便它能够可靠地识别何时规整无法取得进一步的进展, 是否应该触发 OOM Killer 或失败. 参见 [CMA and compaction](https://lwn.net/Articles/684611)
+
+[make direct compaction more deterministic v3,00/17](https://lore.kernel.org/lkml/20160624095437.16385-1-vbabka@suse.cz) 完成了这项工作, v3 之后这项工作被拆成两个部分, 分开合入.
+
+首先建议将规整中使用的异步/同步迁移模式扩展到更通用的 "优先级", [Part 1, compaction-related cleanups v5 v5,0/8](https://lore.kernel.org/all/20160721073614.24395-1-vbabka@suse.cz) 增加了一个新的优先级, 它只会覆盖所有的启发式, 并使规整完全扫描所有区域. 当前的优先级映射已经足够了, 因此并没有设计更细粒度的优先级.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/08/10 | Mel Gorman <mel@csn.ul.ie> | [make direct compaction more deterministic](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fdd4c6149a71ff1da98317adb6f18c28f75a6e3f) | 更有效地直接规整(压缩迁移). 在内存分配的慢速路径 `__alloc_pages_slowpath` 中的之前一直会先尝试直接回收和规整, 直到分配成功或返回失败.<br>1. 当回收先于压缩时更有可能成功, 因为压缩需要满足某些苛刻的条件和水线要求, 并且在有更多的空闲页面时会增加压缩成功的概率.<br>2. 另一方面, 从轻异步压缩(如果水线允许的话)开始也可能更有效, 特别是对于较小 order 的申请. 因此[这个补丁])(https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a8161d1ed6098506303c65b3701dedba876df42a)将慢速路径下的尝试流程修正为将先进行 MIGRATE_ASYNC 异步迁移(规整), 再尝试内存直接回收, 接着进行 MIGRATE_SYNC_LIGHT 轻度同步迁移(规整). 并引入了[直接规整的优先级](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a5508cd83f10f663e05d212cb81f600a3af46e40). | v6 ☑ 4.8-rc1 & 4.9-rc1 | [LORE RFC,00/13](https://lore.kernel.org/lkml/1462865763-22084-1-git-send-email-vbabka@suse.cz)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/18](https://lore.kernel.org/lkml/20160531130818.28724-1-vbabka@suse.cz)<br>*-*-*-*-*-*-*-* <br>[LORE v3,00/17](https://lore.kernel.org/lkml/20160624095437.16385-1-vbabka@suse.cz)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/8](https://lore.kernel.org/lkml/20160718112302.27381-1-vbabka@suse.cz)<br>*-*-*-*-*-*-*-* <br>[LORE series 1 v5](https://lore.kernel.org/lkml/20160721073614.24395-1-vbabka@suse.cz)<br>*-*-*-*-*-*-*-* <br>[LORE series 2 v6,00/11](https://lore.kernel.org/lkml/20160810091226.6709-1-vbabka@suse.cz) |
+| 2016/07/21 | Vlastimil Babka <vbabka@suse.cz> | [part 1, compaction-related cleanups v5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c3486f5376696034d0fcbef8ba70c70cfcb26f51) | 20160721073614.24395-1-vbabka@suse.cz | v5 ☐☑✓ | [LORE series 1,v4,0/8](https://lore.kernel.org/lkml/20160718112302.27381-1-vbabka@suse.cz)<br>*-*-*-*-*-*-*-* <br>[LORE series 1,v5,0/8](https://lore.kernel.org/all/20160721073614.24395-1-vbabka@suse.cz) |
+| 2016/08/10 | Mel Gorman <mel@csn.ul.ie> | [part 2, make direct compaction more deterministic](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fdd4c6149a71ff1da98317adb6f18c28f75a6e3f) | NA | v6 ☑ 4.8-rc1 & 4.9-rc1 | [LORE series 2,v6,00/11](https://lore.kernel.org/lkml/20160810091226.6709-1-vbabka@suse.cz) |
+
+
+#### 3.4.2.8 内存规整与内存水线
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1666,14 +1686,7 @@ v3.6 [commit 7db8889ab05b ("mm: have order > 0 compaction start off where it lef
 | 2012/12/11 | Marek Szyprowski <m.szyprowski@samsung.com> | [mm: cma: remove watermark hacks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bc357f431c836c6631751e3ef7dfe7882394ad67) | TODO | v1 ☑✓ 3.8-rc1 | [LORE](https://lore.kernel.org/lkml/1352357985-14869-1-git-send-email-m.szyprowski@samsung.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bc357f431c836c6631751e3ef7dfe7882394ad67) |
 
 
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2016/08/10 | Mel Gorman <mel@csn.ul.ie> | [make direct compaction more deterministic](https://lore.kernel.org/patchwork/patch/692460) | 更有效地直接规整(压缩迁移). 在内存分配的慢速路径 `__alloc_pages_slowpath` 中的之前一直会先尝试直接回收和规整, 直到分配成功或返回失败.<br>1. 当回收先于压缩时更有可能成功, 因为压缩需要满足某些苛刻的条件和水线要求, 并且在有更多的空闲页面时会增加压缩成功的概率.<br>2. 另一方面, 从轻异步压缩(如果水线允许的话)开始也可能更有效, 特别是对于较小 order 的申请. 因此[这个补丁])(https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a8161d1ed6098506303c65b3701dedba876df42a)将慢速路径下的尝试流程修正为将先进行 MIGRATE_ASYNC 异步迁移(规整), 再尝试内存直接回收, 接着进行 MIGRATE_SYNC_LIGHT 轻度同步迁移(规整). 并引入了[直接规整的优先级](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a5508cd83f10f663e05d212cb81f600a3af46e40). | RFC v2 ☑ 4.8-rc1 & 4.9-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/patch/692460)<br>*-*-*-*-*-*-*-* <br>[PatchWork series 1 v5](https://lore.kernel.org/patchwork/patch/700017)<br>*-*-*-*-*-*-*-* <br>[PatchWork series 2 v6](https://lore.kernel.org/patchwork/patch/705827) |
-
-
-
-
-### 3.4.2 主动规整
+### 3.4.3 主动规整
 -------
 
 [主动规整, 而不是按需规整](https://lwn.net/Articles/817905).
@@ -1686,8 +1699,8 @@ v3.6 [commit 7db8889ab05b ("mm: have order > 0 compaction start off where it lef
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/06/16 | Nitin Gupta <nigupta@nvidia.com> | [mm: Proactive compaction](https://lore.kernel.org/patchwork/patch/1257280) | 主动进行内存规整, 而不是之前的按需规整. 新的 sysctl 接口 `vm.compaction_pro` 来调整内存规整的主动性, 它规定了 kcompactd 试图维护提交的外部碎片的界限. | v8 ☑ [5.9-rc1](https://kernelnewbies.org/Linux_5.9#Memory_management) | [PatchWork v8](https://patchwork.kernel.org/project/linux-mm/patch/20200616204527.19185-1-nigupta@nvidia.com), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit?id=facdaa917c4d5a376d09d25865f5a863f906234a) |
-| 2021/07/30 | Nitin Gupta <nigupta@nvidia.com> | [mm: compaction: support triggering of proactive compaction by user](https://patchwork.kernel.org/project/linux-mm/patch/1627653207-12317-1-git-send-email-charante@codeaurora.org) | 主动压缩每 500ms 触发一次, 并基于设置为 sysctl.compression_proactiveness 的值, 在节点上运行压缩 COMPACTION_HPAGE_ORDER(通常为 ORDER-9) 的页面. 并非所有应用程序都需要每 500ms 触发一次压缩以搜索压缩页面, 特别是在可能只有很少 MB RAM 的嵌入式系统用例上. 这些默认设置将导致嵌入式系统中主动压缩几乎总是在运行.<br>另一方面, 主动压缩对于获取一组高阶页面仍然非常有用. 因此, 在不需要启用主动压缩的系统上, 可以在写入其 sysctl 接口时从用户空间触发主动压缩. 例如, 假设 AppLauncher 决定启动内存密集型应用程序, 如果它获得更多高阶页面, 则可以快速启动该应用程序, 这样 launcher 就可以通过从用户空间触发主动压缩来提前准备系统. | v5 ☑ 5.15-rc1 | [PatchWork v5](https://patchwork.kernel.org/project/linux-mm/patch/1627653207-12317-1-git-send-email-charante@codeaurora.org) |
+| 2020/06/16 | Nitin Gupta <nigupta@nvidia.com> | [mm: Proactive compaction](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=facdaa917c4d5a376d09d25865f5a863f906234a) | 主动进行内存规整, 而不是之前的按需规整. 新的 sysctl 接口 `vm.compaction_pro` 来调整内存规整的主动性, 它规定了 kcompactd 试图维护提交的外部碎片的界限. | v8 ☑ [5.9-rc1](https://kernelnewbies.org/Linux_5.9#Memory_management) | [PatchWork v8](https://patchwork.kernel.org/project/linux-mm/patch/20200616204527.19185-1-nigupta@nvidia.com), [LORE v8](https://lore.kernel.org/lkml/20200616204527.19185-1-nigupta@nvidia.com), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit?id=facdaa917c4d5a376d09d25865f5a863f906234a) |
+| 2021/07/30 | Nitin Gupta <nigupta@nvidia.com> | [mm: compaction: support triggering of proactive compaction by user](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=65d759c8f9f57b96c199f3fe5cfb93ac7da095e9) | 主动压缩每 500ms 触发一次, 并基于设置为 sysctl.compression_proactiveness 的值, 在节点上运行压缩 COMPACTION_HPAGE_ORDER(通常为 ORDER-9) 的页面. 并非所有应用程序都需要每 500ms 触发一次压缩以搜索压缩页面, 特别是在可能只有很少 MB RAM 的嵌入式系统用例上. 这些默认设置将导致嵌入式系统中主动压缩几乎总是在运行.<br>另一方面, 主动压缩对于获取一组高阶页面仍然非常有用. 因此, 在不需要启用主动压缩的系统上, 可以在写入其 sysctl 接口时从用户空间触发主动压缩. 例如, 假设 AppLauncher 决定启动内存密集型应用程序, 如果它获得更多高阶页面, 则可以快速启动该应用程序, 这样 launcher 就可以通过从用户空间触发主动压缩来提前准备系统. | v5 ☑ 5.15-rc1 | [PatchWork v5](https://patchwork.kernel.org/project/linux-mm/patch/1627653207-12317-1-git-send-email-charante@codeaurora.org), [LORE v5](https://lore.kernel.org/all/1627653207-12317-1-git-send-email-charante@codeaurora.org) |
 
 
 ## 3.5 抗碎片化优化
@@ -1957,6 +1970,113 @@ fde82aaa731de8a23d817971f6080041a4917d06
 第二次是在直接回收 `__alloc_pages_direct_reclaim()` 回收了足够多的内存之后, 则会使用 `should_alloc_retry()` 检测是否可以分配出足够的内存, 如果不行, 则将再次进行直接规整 `__alloc_pages_direct_compact()` 尝试在回收之后规整出分配所需的连续页面出来.
 
 在进行直接回收 [`__alloc_pages_direct_reclaim()`](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L2032) 之前, [`__alloc_pages_high_priority()`](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L2003) 之后, 通过[直接规整 `__alloc_pages_direct_compact()`](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L2023) 的内存 fragmentation_index() 来确认当前[高阶内存分配](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L1790)失败是[内存不足](https://elixir.bootlin.com/linux/v2.6.35/source/mm/compaction.c#L499)还是因为[外部碎片](https://elixir.bootlin.com/linux/v2.6.35/source/mm/compaction.c#L496)造成的, 如果发现是因为外部碎片造成的, 就会通过 `try_to_compact_pages() -=> compact_zone_order()` 尝试规整出足够大小的页面来[完成页面分配](https://elixir.bootlin.com/linux/v2.6.35/source/mm/page_alloc.c#L1801). 另外如果内存规整也无法释放合适大小的页面来完成页面分配, 则依旧会进行直接回收. 由于在内存分配(慢速)路径进行, 直接规整不能耗时过长, 应该尽快返回. 因此在规整每个 ZONE 时, 都检查是否释放了合适 order 的页面, 如果释放了, 则返回.
+
+至此, 一直到 v4.7 期间, 慢速路径的分配流程都如下所示:
+
+```cpp
+__alloc_pages_slowpath()
+{
+retry:
+        if (gfp_mask & __GFP_KSWAPD_RECLAIM)
+                wake_all_kswapds(order, ac);
+
+        page = get_page_from_freelist(gfp_mask, order, alloc_flags & ~ALLOC_NO_WATERMARKS, ac);
+
+        /* Allocate without watermarks if the context allows */
+        if (alloc_flags & ALLOC_NO_WATERMARKS) {
+                page = get_page_from_freelist(gfp_mask, order, ALLOC_NO_WATERMARKS, ac);
+
+        /*
+         * Try direct compaction. The first pass is asynchronous. Subsequent
+         * attempts after direct reclaim are synchronous
+         */
+        page = __alloc_pages_direct_compact(gfp_mask, order, alloc_flags, ac, migration_mode, &compact_result);
+
+        /* Try direct reclaim and then allocating */
+        page = __alloc_pages_direct_reclaim(gfp_mask, order, alloc_flags, ac, &did_some_progress);
+
+        if (should_reclaim_retry(gfp_mask, order, ac, alloc_flags, did_some_progress > 0, no_progress_loops))
+                goto retry;
+
+        /*
+         * It doesn't make any sense to retry for the compaction if the order-0
+         * reclaim is not able to make any progress because the current
+         * implementation of the compaction depends on the sufficient amount
+         * of free memory (see __compaction_suitable)
+             */
+        if (did_some_progress > 0 && should_compact_retry(ac, order, alloc_flags, compact_result, &migration_mode, compaction_retries))
+                goto retry;
+
+        page = __alloc_pages_may_oom(gfp_mask, order, ac, &did_some_progress);
+
+        if (is_thp_gfp_mask(gfp_mask) && !(current->flags & PF_KTHREAD))
+                migration_mode = MIGRATE_ASYNC;
+        else
+                migration_mode = MIGRATE_SYNC_LIGHT;
+        page = __alloc_pages_direct_compact(gfp_mask, order, alloc_flags, ac, migration_mode, &compact_result);
+
+```
+
+`__alloc_pages_slowpath()` 中的 retry 循环逻辑应该持续地尝试回收和压缩(和 OOM), 直到分配成功, 或返回失败. 且需要准寻两个必要的原则:
+
+1.      首先, 当回收先于压缩时, 成功的可能性更大, 因为必须满足某些水印才能进行压缩, 而且更多的空闲页面增加了压缩成功的可能性.
+
+2.      其次, 从轻度异步压缩开始(如果水印允许的话)可以更高效, 特别是对于 order 的分配请求, 如果是有足够的空闲内存, 但是只是碎片化稍微有点严重的情况.
+
+但是当前的逻辑(参见 v4.7)在尝试 retry 时先[进行直接规整](https://elixir.bootlin.com/linux/v4.7/source/mm/page_alloc.c#L3667), 再[进行直接回收](https://elixir.bootlin.com/linux/v4.7/source/mm/page_alloc.c#L3697), 并且为了确保最后一次回收之后总是有一个最终的压缩, 在[循环的最后 `__alloc_pages_may_oom()` 之后还会有另一个直接的压缩调用](https://elixir.bootlin.com/linux/v4.7/source/mm/page_alloc.c#L3764). 这使得代码难以理解, 并增加了一些对 migration_mode 决策的重复处理. 即使回收或规整决定不重试, 最终的规整仍然会被尝试, 这也有点低效. 一些 gfp 标志组合也[通过 "goto noretry" 来简化重试决定](https://elixir.bootlin.com/linux/v4.7/source/mm/page_alloc.c#L3750), 这使得它更加难以遵循.
+
+鉴于此等诸多问题, v4.9 对直接规整的效率做了进一步的提升和改进, [make direct compaction more deterministic v3,00/17](https://lore.kernel.org/lkml/201606240
+95437.16385-1-vbabka@suse.cz). 其中 [commit a8161d1ed609 ("mm, page_alloc: restructure direct compaction handling in slowpath")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a8161d1ed6098506303c65b3701dedba876df42a) 对慢速路径下直接规整的顺序和逻辑做了重构, 整个 retry 操作(回收规整)持续进行: "分配-=>回收-=>规整-=>再分配" 的循环闭包, OOM 决策之后, 也不再需要一个直接规整. 整体逻辑也更加清晰.
+
+```cpp
+__alloc_pages_slowpath()
+{
+        /*
+         * The adjusted alloc_flags might result in immediate success, so try
+         * that first
+         */
+        page = get_page_from_freelist(gfp_mask, order, alloc_flags, ac);
+
+        /*
+         * For costly allocations, try direct compaction first, as it's likely
+         * that we have enough base pages and don't need to reclaim. Don't try
+         * that for allocations that are allowed to ignore watermarks, as the
+         * ALLOC_NO_WATERMARKS attempt didn't yet happen.
+         */
+        if (can_direct_reclaim && order > PAGE_ALLOC_COSTLY_ORDER && !gfp_pfmemalloc_allowed(gfp_mask)) {
+                page = __alloc_pages_direct_compact(gfp_mask, order, alloc_flags, ac, INIT_COMPACT_PRIORITY, &compact_result);
+
+retry:
+        /* Ensure kswapd doesn't accidentally go to sleep as long as we loop */
+        if (gfp_mask & __GFP_KSWAPD_RECLAIM)
+                wake_all_kswapds(order, ac);
+
+        /* Attempt with potentially adjusted zonelist and alloc_flags */
+        page = get_page_from_freelist(gfp_mask, order, alloc_flags, ac);
+
+        /* Try direct reclaim and then allocating */
+        page = __alloc_pages_direct_reclaim(gfp_mask, order, alloc_flags, ac, &did_some_progress);
+
+        /* Try direct compaction and then allocating */
+        page = __alloc_pages_direct_compact(gfp_mask, order, alloc_flags, ac, compact_priority, &compact_result);
+
+        if (should_reclaim_retry(gfp_mask, order, ac, alloc_flags, did_some_progress > 0, &no_progress_loops))
+                goto retry;
+
+        /*
+         * It doesn't make any sense to retry for the compaction if the order-0
+         * reclaim is not able to make any progress because the current
+         * implementation of the compaction depends on the sufficient amount
+         * of free memory (see __compaction_suitable)
+         */
+        if (did_some_progress > 0 && should_compact_retry(ac, order, alloc_flags, compact_result, &compact_priority, &compaction_retries))
+                goto retry;
+
+        /* Reclaim has failed us, start killing things */
+        page = __alloc_pages_may_oom(gfp_mask, order, ac, &did_some_progress);
+}
+```
+
 
 #### 4.1.2.5 `__alloc_pages_may_oom()`
 -------
@@ -4990,6 +5110,13 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2022/02/28 | Ananda <a.badmaev@clicknet.pro> | [[PATCH/RESEND] mm: add ztree - new allocator for use via zpool API](https://patchwork.kernel.org/project/linux-mm/patch/20220228110546.151513-1-a.badmaev@clicknet.pro/) | 用于压缩页面的专用分配器 Ztree. 在大多数情况下, Ztree 提供了快速写入、有限的最坏情况操作时间和良好的压缩比.<br>每个 Ztree 块存储整数个压缩对象. 这些块由几个物理页面(从1到8)组成, 并使用红黑树用于高效的区块组织.<br>从 0 到 PAGE_SIZE 的范围被划分为与树的数量相对应的区间数, 每棵树只操作其区间中的大小对象.<br>1. 块树彼此隔离, 这使得同时对来自不同树的多个对象执行操作成为可能. 块可以密集地排列各种大小的对象, 从而降低内部碎片.<br>2. 此外, 这个分配器试图填充不完整的块, 而不是添加新的块, 因此在许多情况下, 它提供的压缩比大大高于 z3fold 和 zbud.<br>3. 除了更大的灵活性, Ztree 在最糟糕的执行时间方面明显优于其他 ZPOOL 后端, 从而允许更好的响应. | v1 ☐☑ |[LORE v1,0/1](https://lore.kernel.org/r/20220228110546.151513-1-a.badmaev@clicknet.pro)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20220301092503.44444-1-a.badmaev@clicknet.pro)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/1](https://lore.kernel.org/r/20220307142724.14519-1-a.badmaev@clicknet.pro)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/1](https://lore.kernel.org/r/20220311085807.27038-1-a.badmaev@clicknet.pro) |
 
+### 11.2.3.3 ZBUD
+-------
+
+| 时间   | 作者  | 特性 | 描述  |  是否合入主线  | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2013/09/11 | Krzysztof Kozlowski <k.kozlowski@samsung.com> | [mm: migrate zbud pages](https://lore.kernel.org/all/1378889944-23192-1-git-send-email-k.kozlowski@samsung.com) | 1378889944-23192-1-git-send-email-k.kozlowski@samsung.com | v2 ☐☑✓ | [LORE v2,0/5](https://lore.kernel.org/all/1378889944-23192-1-git-send-email-k.kozlowski@samsung.com) |
+| 2015/09/22 | Vitaly Wool <vitalywool@gmail.com> | [zbud: allow up to PAGE_SIZE allocations](https://lore.kernel.org/all/20150922141733.d7d97f59f207d0655c3b881d@gmail.com) | 20150922141733.d7d97f59f207d0655c3b881d@gmail.com | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20150922141733.d7d97f59f207d0655c3b881d@gmail.com) |
 
 
 
