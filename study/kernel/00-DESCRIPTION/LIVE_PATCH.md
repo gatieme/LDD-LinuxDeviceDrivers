@@ -201,6 +201,7 @@ SUSE 和 Red Hat 都尝试将自家的解决方案推向 Linux Mainline, 社区�
 | 2014/12/16 | Seth Jennings | Kernel Live Patching | 内核热补丁的基础框架 | v7 ☑ 4.0-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/527257), [LKML](https://www.lkml.org/lkml/2017/2/13/831) |
 
 
+[内核热补丁，真的安全么？](https://zhuanlan.zhihu.com/p/397027508)
 
 # 3 一致性模型 consistency model
 -------

@@ -47,7 +47,7 @@
 可以看到每个node里, 随着**物理内存地址**的增加, 典型地分为三个区:
 
 > **1\. ZONE\_DMA**: 这个区的存在有历史原因, 古老的 ISA 总线外设, 它们进行 DMA操作[<sup>10</sup>](#refer-anchor-10) 时, 只能访问内存物理空间低 16MB 的范围．所以故有这一区, 用于给这些设备分配内存时使用．
-> **2\. ZONE\_NORMAL**: 这是 32位 CPU时代产物, 很多内核态的内存分配都是在这个区间(用户态内存也可以在这部分分配, 但优先在ZONE\_HIGH中分配), 但这部分的大小一般就只有 896 MiB, 所以比较局限． 64位 CPU 情况下, 内存的访问空间增大, 这部分空间就增大了很多．关于为何这部分区间这么局限, 且内核态内存分配在这个区间, 感兴趣的可以看我之间一个回答[<sup>11</sup>](#refer-anchor-11).
+> **2\. ZONE\_NORMAL**: 这是 32位 CPU时代产物, 很多内核态的内存分配都是在这个区间(用户态内存也可以在这部分分配, 但优先在ZONE\_HIGH中分配), 但这部分的大小一般就只有 896 MiB, 所以比较局限． 64位 CPU 情况下, 内存的访问空间增大, 这部分空间就增大了很多．关于为何这部分区间这么局限, 且内核态内存分配在这个区间, 感兴趣的可以看我[之间一个回答](http://www.zhihu.com/question/34787574/answer/60214771).
 > **3\. ZONE\_HIGH**: 典型情况下, 这个区间覆盖系统所有剩余物理内存．这个区间叫做高端内存区(不是高级的意思, 是地址区间高的意思). 这部分主要是用户态和部分内核态内存分配所处的区间．
 
 
@@ -318,8 +318,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 | 2021/10/12 | Johannes Weiner <hannes@cmpxchg.org> | [PageSlab: eliminate unnecessary compound_head() calls](https://patchwork.kernel.org/project/linux-mm/cover/20211012180148.1669685-1-hannes@cmpxchg.org) | 重构代码, 消除二义性, 使得代码更加简洁. PageSlab() 目前对所有调用站点施加一个 compound_head() 调用, 即使只有极少数情况会遇到尾页. 这组补丁气泡尾分辨率到少数需要它的网站, 并消除它在其他地方. 这个改动很独立, 它的灵感来自于 Willy 的补丁 Separate struct slab from struct page](https://patchwork.kernel.org/project/linux-mm/cover/20210715200030.899216-1-willy@infradead.org). 为了让逻辑更清晰, 代码更简洁. PageSlab() 的调用应该完全从对 compound_head() 的无限制调用中分离出来, 因为它们本身就有不必要的开销. | v1 ☐ | [PatchWork 00/11](https://patchwork.kernel.org/project/linux-mm/cover/20211012180148.1669685-1-hannes@cmpxchg.org), [LKML](https://lkml.org/lkml/2021/10/12/820) |
 | 2022/01/04 | Vlastimil Babka <vbabka@suse.cz> | [Separate struct slab from struct page](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9d6c59c1c0d62a314a2b46839699b200cccd2d08) | NA | RFC ☑ 5.17-rc1 | [PatchWork RFC,00/32](https://patchwork.kernel.org/project/linux-mm/cover/20211116001628.24216-1-vbabka@suse.cz)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,00/32](https://patchwork.kernel.org/project/linux-mm/cover/20220104001046.12263-1-vbabka@suse.cz) |
 
-
-### 1.3.4 MEMCG Folio
+### 1.4.3 MEMCG Folio
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -502,10 +501,10 @@ MADV_PAGEOUT 在某种程度上类似于 MADV_DONTNEED, 它提示内核当前不
 | 2022/03/17 | Tong Tiangen <tongtiangen@huawei.com> | [mm: page_table_check: add support on arm64 and riscv](https://patchwork.kernel.org/project/linux-mm/cover/20220317141203.3646253-1-tongtiangen@huawei.com) | 页面表检查通过将新页面的页面表条目(PTE, PMD 等)添加到表中, 在用户空间访问新页面时执行额外的验证 X86 支持它.<br>这个补丁集做了一些简单的更改, 使其更容易支持新的体系结构, 然后我们在 ARM64 和 RICV 上支持这个功能. | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20220317141203.3646253-1-tongtiangen@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20220322144447.3563146-1-tongtiangen@huawei.com) |
 
 
-### 1.7.3 安全
+### 1.7.4 安全
 -------
 
-#### 1.7.3.1 PKS
+#### 1.7.4.1 PKS
 -------
 
 页表是许多类型保护的基础, 因此是攻击者的攻击目标. 将它们映射为只读将使它们更难在攻击中使用. 内核开发者提出了通过 PKS 来对内核页表进行写保护. 这可以防止攻击者获得写入页表的能力. 这并不是万无一失的. 因为能够执行任意代码的攻击者可以直接禁用 PKS. 或者简单地调用内核用于合法页表写入的相同函数.
@@ -517,7 +516,7 @@ MADV_PAGEOUT 在某种程度上类似于 MADV_DONTNEED, 它提示内核当前不
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/09/04 | Rick Edgecombe <rick.p.edgecombe@intel.com> | [arm64: Memory Tagging Extension user-space support](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) | 使用 [PKS(Protection Keys for Supervisor)]() 对页表进行写保护. 其基本思想是使页表成为只读的, 除非在需要修改页表时临时基于每个 cpu 来修改. | v1  ☐ | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) |
 
-#### 1.7.3.2 内存标签扩展(Arm v8.5 memory tagging extension-MTE)
+#### 1.7.4.2 内存标签扩展(Arm v8.5 memory tagging extension-MTE)
 -------
 
 [MTE技术在Android上的应用](https://zhuanlan.zhihu.com/p/353807709)
@@ -538,7 +537,7 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/09/04 | Catalin Marinas <catalin.marinas@arm.com> | [arm64: Memory Tagging Extension user-space support](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) | NA | v9 ☑ 5.10-rc1 | [2019/12/11 PatchWork 00/22](https://patchwork.kernel.org/project/linux-mm/cover/20191211184027.20130-1-catalin.marinas@arm.com)<br>*-*-*-*-*-*-*-* <br>[2020/09/04 PatchWork v9,00/29](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) |
 
-#### 1.7.3.4 Linear Address Masking
+#### 1.7.4.4 Linear Address Masking
 -------
 
 代码参见
@@ -546,6 +545,7 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/02/05 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [Linear Address Masking enabling](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com) | [线性地址屏蔽(LAM)](https://software.intel.com/content/dam/develop/external/us/en/documents-tps/architecture-instruction-set-extensions-programming-reference.pdf) 修改应用于 64 位线性地址的检查, 允许软件将未翻译的地址位用于元数据. 手册参见 [ISE, Chapter 14](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com). 代码参见 [kas/linux.git](https://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git/log/?h=lam). | RFC ☐ | [PatchWork RFC,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com) |
+
 
 ## 1.8 memory policy
 -------
@@ -570,6 +570,28 @@ NUMA 系统中 CPU 访问不同节点的内存速度很有大的差别. 位于�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/09/17 | Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com> | [x86/mm/cpa: Improve large page preservation handling](https://lore.kernel.org/patchwork/patch/987147) | 优化 页面属性(CPA) 代码中的 try_preserve_large_page(), 降低 CPU 消耗. | v3 ☑ 4.20-rc1 | [PatchWork RFC v3](https://lore.kernel.org/patchwork/patch/987147) |
+
+
+
+
+## 1.10 Local Page Tables
+-------
+
+
+## 1.10.1 [Mitosis: Transparently Replicating Page Tables](https://research.vmware.com/projects/mitosis-transparently-self-replicating-page-tables)
+-------
+
+[Mitosis 公开地址](https://gandhijayneel.github.io/mitosis)
+
+github 地址: [linux 内核](https://github.com/gandhijayneel/mitosis-linux-release), [numactl](https://github.com/gandhijayneel/mitosis-numactl-release)
+
+
+[Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines October, 2019, 1910.05398.pd](https://research.vmware.com/files/attachments/0/0/0/0/0/9/5/1910.05398.pdf)
+
+[Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines March, 2020, aspl0359a-achermanna.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/0/3/aspl0359a-achermanna.pdf)
+
+[Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis April, 2021, asplos21_vmitosis.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/8/asplos21_vmitosis.pdf)
+[Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis April, 2021, vmitosis_ext_abstract.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/1/vmitosis_ext_abstract.pdf)
 
 
 
@@ -622,9 +644,10 @@ memblock 的内存占用是非常小的, 它采用静态数组的方式, 数组�
 | 2022/02/28 | Karolina Drobnik <karolinadrobnik@gmail.com> | [Add tests for memblock allocation functions](https://patchwork.kernel.org/project/linux-mm/cover/cover.1646055639.git.karolinadrobnik@gmail.com/) | 618775 | v1 ☐☑ | [LORE v1,0/9](https://lore.kernel.org/r/cover.1646055639.git.karolinadrobnik@gmail.com) |
 
 
-## 2.2 页分配器: 伙伴分配器[<sup>12<sup>](#ref-anchor-12)
+## 2.2 页分配器: 伙伴分配器
 -------
 
+[Document: Chapter 6  Physical Page Allocation](https://www.kernel.org/doc/gorman/html/understand/understand009.html)
 
 ### 2.2.1 BUDDY 伙伴系统
 -------
@@ -725,6 +748,8 @@ memblock 的内存占用是非常小的, 它采用静态数组的方式, 数组�
 ### 2.2.4 内存水线
 -------
 
+
+
 Linux 为每个 zone 都设置了独立的 min, low 和 high 三个档位的 watermark 值, 在代码中以struct zone中的 `_watermark[NR_WMARK]` 来表示.
 
 *   在进行内存分配的时候, 如果伙伴系统发现当前空余内存的值低于"low"但高于"min", 说明现在内存面临一定的压力, 但是并不是非常紧张, 那么在此次内存分配完成后, kswapd将被唤醒, 以执行内存回收操作. 在这种情况下, 内存分配虽然会触发内存回收, 但不存在被内存回收所阻塞的问题, 两者的执行关系是异步的.
@@ -732,16 +757,40 @@ Linux 为每个 zone 都设置了独立的 min, low 和 high 三个档位的 wat
 *   如果内存分配器发现空余内存的值低于了 "min", 说明现在内存严重不足. 那么这时候就有必要等待内存回收完成后, 再进行内存的分配了, 也就是 "direct reclaim". 但是这里面有个别特例, 内核提供了 PF_MEMALLOC 标记, 如果现在空余内存的大小可以满足本次内存分配的需求, 允许设置了 PF_MEMALLOC 标记的进程在内存紧张时, 先分配, 再回收. 比如 kswapd, 由于其本身就是负责回收内存的, 只需要满足它很小的需求, 它会回收大量的内存回来. 它就像公司濒临破产时抓到的一根救命稻草, 只需要小小的付出, 就会让公司起死回生.
 
 
+#### 2.2.4.1 内存水线的引入
+-------
+
+*   早期的 pages_min, pages_low, pages_high
+
+*   zone 中的  watermark[NR_WMARK]
+
+v2.6.31 [Cleanup and optimise the page allocator V7](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=72807a74c0172376bba6b5b27702c9f702b526e9) 的过程中, [commit 418589663d60 ("page allocator: use allocation flags as an index to the zone watermark")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=418589663d6011de9006425b6c5721e1544fb47a) 引入了 enum zone_watermarks, 将原来 struct zone 中松散的 pages_min, pages_low, pages_high 封装成了 watermark[NR_WMARK]. 可以使用 `{min|low|high}_wmark_pages()` 直接访问 zone 对应的水线.
+
+
+*   分配过程中的与水线有关的分配标记
+
+v2.6.15-rc2, [commit 7fb1d9fca5c6 ("`mm: __alloc_pages cleanup`")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7fb1d9fca5c6e3b06773b69165a73f3fb786b8ee) 将从分配流程中抽象出了 get_page_from_freelist() 函数, 并引入了水线标记 ALLOC_NO_WATERMARKS, ALLOC_HARDER, ALLOC_HARDER 来辅助 zone_watermark_ok() 工作.
+
+v2.6.15-rc3, [commit 3148890bfa4f ("`mm: __alloc_pages cleanup fix`")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3148890bfa4f36c9949871264e06ef4d449eeff9) 引入了 ALLOC_WMARK_MIN, ALLOC_WMARK_LOW, ALLOC_WMARK_HIGH.
+
+v3.7-rc1, [commit d95ea5d18e69 ("cma: fix watermark checking")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d95ea5d18e699515468368415c93ed49b1a3221b) 又引入了 ALLOC_CMA, 并将这些 flags 都移动到了 `mm/internal.h` 文件中.
+
+#### 2.2.4.2 内存水线的优化
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2011/01/07 | Satoru Moriya <satoru.moriya@hds.com> | [Tunable watermark](https://lore.kernel.org/patchwork/patch/231713) | 引入可调的水线. 为 min/low/high 各个水线都引入了一个 sysctl 接口用于调节. | v1 ☐ | [PatchWork RFC,0/2](https://lore.kernel.org/patchwork/patch/231713) |
+| 2004/09/05 | Nick Piggin <nickpiggin@yahoo.com.au> | [beat kswapd with the proverbial clue-bat](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d4cf10128caffbe419a483894261ca8d2f72c1eb) | KSWAPD 在更高阶的分配上非常愚蠢, 非常不公平. 解决方案非常简单, 只需以一种相当简单的方式让 kswapd 感知到内存水线和高阶分配. 其中<br>1. [mm: higher order watermarks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d4cf10128caffbe419a483894261ca8d2f72c1eb) 引入了 zone_watermark_ok(), 并添加了对不同 order 的水线的检查.<br>2. [mm: teach kswapd about higher order areas](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d4cf10128caffbe419a483894261ca8d2f72c1eb) 增加了 KSWAPD 对不同 order 页面的处理. | v1 ☑✓ v2.6.11-rc1 | [LORE v1,0/3](https://lore.kernel.org/all/413AA7B2.4000907@yahoo.com.au) |
+| 2011/01/07 | Satoru Moriya <satoru.moriya@hds.com> | [Tunable watermark](https://lore.kernel.org/patchwork/patch/231713) | 引入可调的水线. 为 min/low/high 各个水线都引入了一个 sysctl 接口用于调节. | v1 ☐ | [PatchWork RFC,0/2](https://lore.kernel.org/lkml/65795E11DBF1E645A09CEC7EAEE94B9C3A30A295@USINDEVS02.corp.hds.com) |
 | 2013/02/17 | dormando <dormando@rydia.net><br>Rik van Riel <riel@redhat.com> | [add extra free kbytes tunable](https://lore.kernel.org/patchwork/patch/360274) | 默认内核中 min 和 low 之间的距离太短, 造成 kswapd 的作用空间太小, 从而导致频繁出现 direct reclaim. 这个补丁引入 extra_free_kbytes, 作为计算 low 时候的加权. 从而增大 min 和 low 之间的距离. | v1 ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/patch/360274) |
+| 2015/07/20 | Mel Gorman <mgorman@suse.com> | [Remove zonelist cache and high-order watermark checking](https://lore.kernel.org/all/1437379219-9160-1-git-send-email-mgorman@suse.com) | 1437379219-9160-1-git-send-email-mgorman@suse.com | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/1437379219-9160-1-git-send-email-mgorman@suse.com) |
 | 2016/02/22 | Johannes Weiner <hannes@cmpxchg.org> | [mm: scale kswapd watermarks in proportion to memory](https://lore.kernel.org/patchwork/patch/649909) |  | v2 ☑ 4.6-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/360274) |
 | 2018/11/23 | Mel Gorman | [Fragmentation avoidance improvements v5](https://lore.kernel.org/patchwork/patch/1016503) | 伙伴系统页面分配时的反碎片化 | v5 ☑ 5.0-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/1016503) |
 | 2020/02/25 | Mel Gorman | [Limit runaway reclaim due to watermark boosting](https://lore.kernel.org/patchwork/patch/1200172) | 优化调度器的路径, 减少对 rq->lock 的争抢, 实现 lockless. | v4 ☑ 4.4-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/patch/1200172) |
 | 2020/06/11 |Charan Teja Kalla <charante@codeaurora.org> | [mm, page_alloc: skip ->waternark_boost for atomic order-0 allocations](https://lore.kernel.org/patchwork/patch/1254998) | NA | v1 ☑ 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1244272), [](https://lore.kernel.org/patchwork/patch/1254998) |
 | 2020/10/20 |Charan Teja Kalla <charante@codeaurora.org> | [mm: don't wake kswapd prematurely when watermark boosting is disabled](https://lore.kernel.org/patchwork/patch/1322999) | NA | v1 ☑ 5.11-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1244272), [PatchWork](https://lore.kernel.org/patchwork/patch/1322999) |
 | 2020/05/01 |Charan Teja Kalla <charante@codeaurora.org> | [mm: Limit boost_watermark on small zones.](https://lore.kernel.org/patchwork/patch/1234105) | NA | v1 ☑ 5.11-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1234105) |
+
 
 
 ### 2.2.5 PCP(Per CPU Page) Allocation
@@ -812,7 +861,7 @@ a206231bbe6 [PATCH] hot-n-cold pages: page allocator core
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2017/01/4 | Mel Gorman | [Fast noirq bulk page allocator](https://lore.kernel.org/patchwork/patch/747351) | 中断安全的批量内存分配器, RFC 补丁, 最终 Mel Gorman 为了完成这组优化做了大量的重构和准备工作   | v5 ☐ | [RFC](https://lore.kernel.org/patchwork/patch/747351)<br>*-*-*-*-*-*-*-* <br>[RFC v2](https://lore.kernel.org/patchwork/patch/749110) |
+| 2017/01/4 | Mel Gorman | [Fast noirq bulk page allocator](https://lore.kernel.org/patchwork/patch/747351) | 中断安全的批量内存分配器, RFC 补丁, 最终 Mel Gorman 为了完成这组优化做了大量的重构和准备工作. | v5 ☐ | [RFC](https://lore.kernel.org/patchwork/patch/747351)<br>*-*-*-*-*-*-*-* <br>[RFC v2](https://lore.kernel.org/patchwork/patch/749110) |
 | 2017/01/23 | Mel Gorman | [Use per-cpu allocator for !irq requests and prepare for a bulk allocator v5](https://lore.kernel.org/patchwork/patch/753645) | 重构了 Per CPU Pages 分配器, 使它独占 !irq 请求, 这将减少大约 30% 的分配/释放开销. 这是完成 Bulk memory allocation 工作的第一步  | v5 ☑ 4.11-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/753645) |
 | 2017/01/25 | Mel Gorman | [mm, page_alloc: Use static global work_struct for draining per-cpu pages](https://lore.kernel.org/patchwork/patch/754235) | 正如 Vlastimil Babka 和 Tejun Heo 所建议的, 这个补丁使用一个静态 work_struct 来协调 Per CPU Pages 在工作队列上的排泄. 一次只能有一个任务耗尽, 但这比以前允许多个任务同时发送IPIs的方案要好. 一个需要考虑的问题是并行请求是否应该彼此同步. | v5 ☑ 4.11-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/754235) |
 | 2017/01/25 | Mel Gorman | [Recalculate per-cpu page allocator batch and high limits after deferred meminit](https://lore.kernel.org/patchwork/patch/1141598) | 由于 PCP(Per CPU Page) Allocation 中不正确的高限制导致的高阶区域 zone->lock 的竞争, 在初始化阶段, 但是在初始化结束之前, PCP 分配器会计算分批分配/释放的页面数量, 以及 Per CPU 列表上允许的最大页面数量. 由于 zone->managed_pages 还不是最新的, pcp 初始化计算不适当的低批量和高值. 在某些情况下, 这会严重增加区域锁争用, 严重程度取决于共享一个本地区域的cpu数量和区域的大小. 这个问题导致了构建内核的时间比预期的长得多时, AMD epyc2 机器上的系统 CPU 消耗也过多. 这组补丁修复了这个问题 | v5 ☑ 4.11-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/1141598) |
@@ -1954,6 +2003,14 @@ __alloc_pages_nodemask()
 #### 4.1.2.3 __alloc_pages_high_priority
 -------
 
+
+[commit 11e33f6a55ed ("page allocator: break up the allocator entry point into fast and slow paths")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=11e33f6a55ed7847d9c8ffe185ef87faf7806abe) 从分配流程中拆解出慢速路径 `__alloc_pages_slowpath()` 时就引入了 `is_allocation_high_priority()` 和 `__alloc_pages_high_priority()`,
+
+如果分配请求是 `__GFP_NOFAIL` 的, 那么 `__alloc_pages_high_priority()` 就循环循环通过 get_page_from_freelist 忽略水线(ALLOC_NO_WATERMARKS) 去请求分配页面. 这其实是非常脆弱的, 因为我们当前并没有足够的页面来完成分配, 所以这里基本上是依靠别人来为我们进行回收(不管是异步回收, 直接回收还是 OOM Killer). 他们可能竞争某些资源(例如锁等), 从而阻止其他回收者取得任何进展. 因此 4.5 期间, [`get rid of __alloc_pages_high_priority`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=33d5310306ec244d96533da5f9183e05a7a51106) 这组补丁[删除了 `__alloc_pages_high_priority()` 不断重试的循环](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fde82aaa731de8a23d817971f6080041a4917d06), 直接通过 get_page_from_freelist() 请求页面, 并依赖 `__alloc_pages_slowpath()` 中的其他回收和重试操作来达成分配的请求. 有一点是需要谨慎的, 那就是 PF_MEMALLOC 上下文中的 `__GFP_NOFAIL` 分配, 它根本不能保证任何进展. 但是我们不能排除没有内核路径可能会有这种组合.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2015/11/16 | mhocko@kernel.org <mhocko@kernel.org> | [`get rid of __alloc_pages_high_priority`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=33d5310306ec244d96533da5f9183e05a7a51106) | 1447680139-16484-1-git-send-email-mhocko@kernel.org | v1 ☑✓ 4.5-rc1 | [LORE RFC](https://lore.kernel.org/all/1447343618-19696-1-git-send-email-mhocko@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/2](https://lore.kernel.org/all/1447680139-16484-1-git-send-email-mhocko@kernel.org) |
 
 fde82aaa731de8a23d817971f6080041a4917d06
 
@@ -3136,6 +3193,8 @@ v2.5 的时候引入了 shrink 机制, 并提供了 API 统一了各个模块的
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/07/03 | Kirill Tkhai <ktkhai@virtuozzo.com> | [Improve shrink_slab() scalability (old complexity was O(n^2), new is O(n))](https://lore.kernel.org/all/153063036670.1818.16010062622751502.stgit@localhost.localdomain/) | 降低 shrink_slab 的算法复杂度, 从 O(N^2) 降低到 O(N). | v8 ☑ 4.19-rc1 | [LORE v8,00/17](https://lore.kernel.org/all/153063036670.1818.16010062622751502.stgit@localhost.localdomain), [LORE v9,00/17](https://lore.kernel.org/all/153112469064.4097.2581798353485457328.stgit@localhost.localdomain) |
 | 2018/08/07 | Kirill Tkhai <ktkhai@virtuozzo.com> | [ Introduce lockless shrink_slab()](https://patchwork.kernel.org/project/linux-mm/cover/153365347929.19074.12509495712735843805.stgit@localhost.localdomain) | NA | RFC ☐ | [LORE v8,00/17](https://patchwork.kernel.org/project/linux-mm/cover/153365347929.19074.12509495712735843805.stgit@localhost.localdomain) |
+| 2022/04/02 | Hillf Danton <hdanton@sina.com> | [[RFC] mm/vmscan: add periodic slab shrinker](https://patchwork.kernel.org/project/linux-mm/patch/20220402072103.5140-1-hdanton@sina.com/) | 当一个具有大量内存的系统在一个目录中有数百万个 negative dentries 时, 在添加 inotify watch 时可能[会发生 softlookup](https://lore.kernel.org/linux-fsdevel/20220209231406.187668-1-stephen.s.brennan@oracle.com). 为了解决这个问题可以添加独立于直接回收和后台回收运行的周期性(periodic) slab shrinker, 以回收已冷却 30 秒以上的 slab 对象. 向 shrink 控件添加 periodic flag, 让缓存所有者知道这是一个周期性收缩器, 它与以最低 recalim 优先级运行的常规 shrinker 相同, 并且可以在没有一次性对象的情况下随意执行任何操作.
+ | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220402072103.5140-1-hdanton@sina.com) |
 
 
 ## 4.4 主动的页面回收
@@ -4483,7 +4542,7 @@ https://events.static.linuxfound.org/sites/events/files/slides/mm.pdf
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/02/02 | Liam Howlett <liam.howlett@oracle.com> | [Introducing the Maple Tree](https://lore.kernel.org/patchwork/patch/1477973) | Maple Tree 是一种基于 RCU 安全范围的 B树, 旨在高效使用现代处理器缓存. 在内核中有许多地方, 基于范围的非重叠树是有益的, 尤其是具有简单接口的树. Maple Tree 的第一个用户是 vm_area_struct, 当前替换了三个结构: 增强 rbtree、vma 缓存和 mm_struct 中的 vma linked 链表. 长期目标是减少或消除 mmap_sem 争用. | v3 ☐ | [2021/08/17 PatchWork v2,00/61](https://patchwork.kernel.org/project/linux-mm/cover/20210817154651.1570984-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/05 PatchWork v3](https://patchwork.kernel.org/project/linux-mm/cover/20211005012959.1110504-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/01 PatchWork v4,00/66](https://patchwork.kernel.org/project/linux-mm/cover/20211201142918.921493-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/02/02 PatchWork v5,00/70](https://patchwork.kernel.org/project/linux-mm/cover/20220202024137.2516438-1-Liam.Howlett@oracle.com) |
+| 2022/04/04 | Liam Howlett <liam.howlett@oracle.com> | [Introducing the Maple Tree](https://lore.kernel.org/patchwork/patch/1477973) | Maple Tree 是一种基于 RCU 安全范围的 B树, 旨在高效使用现代处理器缓存. 在内核中有许多地方, 基于范围的非重叠树是有益的, 尤其是具有简单接口的树. Maple Tree 的第一个用户是 vm_area_struct, 当前替换了三个结构: 增强 rbtree、vma 缓存和 mm_struct 中的 vma linked 链表. 长期目标是减少或消除 mmap_sem 争用. | v3 ☐ | [2021/08/17 PatchWork v2,00/61](https://patchwork.kernel.org/project/linux-mm/cover/20210817154651.1570984-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/05 PatchWork v3](https://patchwork.kernel.org/project/linux-mm/cover/20211005012959.1110504-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/01 PatchWork v4,00/66](https://patchwork.kernel.org/project/linux-mm/cover/20211201142918.921493-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/02/02 PatchWork v5,00/70](https://patchwork.kernel.org/project/linux-mm/cover/20220202024137.2516438-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/04/04 LORE v7,00/70](https://lore.kernel.org/r/20220404143501.2016403-1-Liam.Howlett@oracle.com) |
 
 
 ## 8.3 反向映射 RMAP(Reverse Mapping)
@@ -4637,7 +4696,7 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 | 2009/09/25 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [memcg updates v5](https://lore.kernel.org/patchwork/patch/129608) | IO 感知的 MEMCG. | v7 ☐ | [PatchWork 0/12](https://lore.kernel.org/patchwork/patch/129608) |
 | 2009/06/15 | Balbir Singh <balbir@linux.vnet.ibm.com>| [Remove the overhead associated with the root cgroup](https://lore.kernel.org/patchwork/patch/160500) | 通过删除与 root cgroup 有关的开销来降低 mem cgroup 的开销<br>1. 删除了与计算 root cgroup中所有页面相关的开销. 作为一个副作用, 我们不能再在 root cgroup中设置内存硬限制.<br>2. 添加了一个新的标记 PCG_ACCT_LRU, 用于跟踪页面是否已被计入. page_cgroup的标记现在被原子地设置, pcg_default_flags 现在已经过时并被删除. | v5 ☑ 2.6.32-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/160500) |
 | 2009/07/10 | Balbir Singh <balbir@linux.vnet.ibm.com>| [Memory controller soft limit patches (v9)](https://lore.kernel.org/patchwork/patch/163652) | 实现内存资源控制器的软限制.<br>软限制是内存资源控制器的一个新特性, 类似的东西已经以共享的形式存在于组调度程序中. CPU控制器对共享的解释是非常不同的. 对于管理员希望过度使用系统的环境, 软限制是最有用的特性, 这样只有在内存争用时, 限制才会生效. 当前的软限制实现为内存控制器提供了 soft_limit_in_bytes 接口, 而不是为内存+交换控制器提供的接口. 该实现维护一个 RB-Tree, 其中的组超过了其软限制, 并开始从超出该限制的组中回收最大数量的组. | v9 ☑ 2.6.32-rc1 | [PatchWork RFC,0/5](https://lore.kernel.org/patchwork/patch/163652) |
-| 2022/03/31 | zhaoyang.huang <zhaoyang.huang@unisoc.com> | [[RFC] cgroup: introduce dynamic protection for memcg](https://patchwork.kernel.org/project/linux-mm/patch/1648713656-24254-1-git-send-email-zhaoyang.huang@unisoc.com) | 动态限制的 MEMCG.<br>对于某些类型的 MEMCG, 使用情况因场景而异. 例如, 多媒体应用的使用范围可能在 50MB 到 500MB 之间, 这是通过在其虚拟地址空间中加载特殊算法生成的, 如果没有用户空间的交互, 很难保护扩展的使用. 此外, 固定的 mem.low 有点违背了它的软保护作用, 因为它会以同样的方式响应任何系统的内存压力. 在此基础上, 提出了一种基于组水印和系统内存压力的动态保护方案. 目标是: 1. 动态保护, 无固定设置限值. 2. 正确的内存保护值. 3. 基于时间的衰变保护 4. 记忆压力相关保护.<br>引入 elow, emin<br>1. 在保护方面, elow 是根据水印的比例在适当的范围内.<br>2. 经过时间通过 decayed_watermark 对 elow 有积极的影响.<br>3. 内存压力对 low 有负面影响, 当系统压力较小时, low 可以保持更多的使用. | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/1648713656-24254-1-git-send-email-zhaoyang.huang@unisoc.com) |
+| 2022/03/31 | zhaoyang.huang <zhaoyang.huang@unisoc.com> | [[RFC] cgroup: introduce dynamic protection for memcg](https://patchwork.kernel.org/project/linux-mm/patch/1648713656-24254-1-git-send-email-zhaoyang.huang@unisoc.com) | 动态限制的 MEMCG.<br>对于某些类型的 MEMCG, 使用情况因场景而异. 例如, 多媒体应用的使用范围可能在 50MB 到 500MB 之间, 这是通过在其虚拟地址空间中加载特殊算法生成的, 如果没有用户空间的交互, 很难保护扩展的使用. 此外, 固定的 mem.low 有点违背了它的软保护作用, 因为它会以同样的方式响应任何系统的内存压力. 在此基础上, 提出了一种于组水印和系统内存压力的动态保护方案. 目标是: 1. 动态保护, 无固定设置限值. 2. 正确的内存保护值. 3. 基于时间的衰变保护 4. 记忆压力相关保护.<br>引入 elow, emin<br>1. 在保护方面, elow 是根据水印的比例在适当的范围内.<br>2. 经过时间通过 decayed_watermark 对 elow 有积极的影响.<br>3. 内存压力对 low 有负面影响, 当系统压力较小时, low 可以保持更多的使用. | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/all/1648713656-24254-1-git-send-email-zhaoyang.huang@unisoc.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/all/1649040193-10073-1-git-send-email-zhaoyang.huang@unisoc.com) |
 
 
 
@@ -6056,10 +6115,6 @@ https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7e
 
 <div id="ref-anchor-11"></div>
 - [11] [进程的虚拟地址和内核中的虚拟地址有什么关系? - 詹健宇的回答](http://www.zhihu.com/question/34787574/answer/60214771)
-
-<div id="ref-anchor-12"></div>
-- [12] [Physical Page Allocation](https://link.zhihu.com/?target=https%3A//www.kernel.org/doc/gorman/html/understand/understand009.html)
-
 
 <div id="ref-anchor-17"></div>
 - [17] [kernel 3.10内核源码分析--TLB相关--TLB概念、flush、TLB lazy模式-humjb\_1983-ChinaUnix博客](https://link.zhihu.com/?target=http%3A//blog.chinaunix.net/uid-14528823-id-4808877.html)

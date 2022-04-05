@@ -48,7 +48,7 @@ Apple 的内核叫做 XNU(XNU's Not UNIX), 这是个混合内核, XNU 包含两�
 3.      在 Mach 的基础上, 就是 IOKit 和各类 Kext 了.
 
 
-# 2 Mach
+# 2 SCHED
 -------
 
 ## 2.1 CONFIG_SCHED_EDGE
@@ -71,6 +71,14 @@ xnu-6153.11.26
 [Mach Overview](https://developer.apple.com/library/archive/documentation/Darwin/Conceptual/KernelProgramming/Mach/Mach.html#//apple_ref/doc/uid/TP30000905-CH209-TPXREF101)
 
 
+# 3 IPC
+-------
+
+[Using Continuations to Implement Thread Management and Communication in Operating Systems](https://xueshu.baidu.com/usercenter/paper/show?paperid=f90d3d724dd390723bcfaffa88edcfda)
+
+[Interface and Execution Models in the Fluke Kernel](http://staff.ustc.edu.cn/~bjhua/courses/ats/2014/ref/ford99interface.pdf)
+
+在 [Mach3.0 中对系统线程所作的一项改进即称为 continuation](https://www.gnu.org/software/hurd/microkernel/mach/gnumach/continuation.html), 其动因恰在于避免保留线程堆栈, 希望使用完全无状态的 continuation 函数.(参见 Uresh Vahalia 的经典著作 "UNIX Internals" http://www.china-pub.com/computers/common/info.asp?id=12731).
 
 <br>
 
