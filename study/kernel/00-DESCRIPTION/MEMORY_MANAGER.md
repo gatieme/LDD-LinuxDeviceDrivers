@@ -581,18 +581,15 @@ NUMA 系统中 CPU 访问不同节点的内存速度很有大的差别. 位于�
 ## 1.10.1 [Mitosis: Transparently Replicating Page Tables](https://research.vmware.com/projects/mitosis-transparently-self-replicating-page-tables)
 -------
 
+传统的 NUMA Balacning 当前策略只涉及: Memory Migration(将进程的私有内存迁移到进程所在的 NUMA Node 上) 和 Task Placement(将进程迁移到其频繁访问的内存所在的 NUMA Node 上). 但是页表本身也是在内存中存储的, 迁移的过程中, 并没有考虑对页表进行迁移, 因此页表可能在远端节点上. 这样如果 TLB 都是 Hint 的, 倒是影响不太大, 但是如果存在大量的 TLB Miss, 那么每次 Page Table Walk 都不得不去访问访问远端的页表.
 
-
-
-NUMA 系统下, 页表在内存中的存储位置, 对性能也有较大的影响. 在 4 插槽 Intel Haswell 机器上, 对于 HPCC RandomAccess 基准测试工作负载, 由于页表放置在远端的 NUMA NODE 上导致的性能下降可能高达 3.4 倍. 虽然此工作负载的设计目的是具有较高的缓存未命中率, 但在 Redis 等 Key-Value 数据库也可以看到类似的效果, 在最坏的情况下, 性能下降可能高达 2 倍.
+那么理论上, NUMA 系统下, 页表在内存中的存储位置, 对性能也有较大的影响. Mitosis 团队测试发现, 在 4 插槽 Intel Haswell 机器上, 对于 HPCC RandomAccess 基准测试工作负载, 由于页表放置在远端的 NUMA NODE 上导致的性能下降可能高达 3.4 倍. 虽然此工作负载的设计目的是具有较高的缓存未命中率, 但在 Redis 等 Key-Value 数据库也可以看到类似的效果, 在最坏的情况下, 性能下降可能高达 2 倍.
 
 为了减少 NUMA 机器上页表行走的远程访问开销, [Mitosis](https://www.cs.yale.edu/homes/abhishek/reto-osdi18.pdf) 设计了一种用于透明自复制页表的技术. 通过更改页表分配和管理子系统, 在 NUMA 节点上完全复制页表. 可以在每个进程的基础上启用页表复制, 从而为进程运行的每个 NUMA 节点创建和维护一个副本. 当进程计划在内核上运行时, 它会用本地 NUMA 节点的页表副本的物理地址写入内核的页表指针(x86 处理器上的 CR3 寄存器). 每次操作系统修改页面表时, 我们都会确保更新有效地传播到所有副本页面表, 并基于所有副本(包括硬件更新的脏位和访问位)返回一致的值.
 
 测试表明, Mitosis 可以完全缓解 HPCC RandomAccess 的性能劣化, 并将其他单线程工作负载分别提高 30% 和 15%.
 
-
 随后, 2021 年作者所在团队进一步扩展了 Mitosis 的设计, 以支持虚拟化环境. 通过支持 KVM 扩展, 以提高在虚拟化系统中运行的应用程序的性能. 在具有硬件支持(扩展页表)的虚拟环境中, 处理 TLB 未命中比在本机情况下的开销更高, 因为所需的 2D 页表遍历最多引入 24 次内存访问来解决单个 TLB 未命中. 通过修改虚拟机监控程序, 以便在 guest 操作系统下透明地执行复制, 从而使未修改的 guest 操作系统能够在 VM 中运行.
-
 
 [Mitosis 公开地址](https://gandhijayneel.github.io/mitosis)
 
