@@ -807,9 +807,22 @@ v3.7-rc1, [commit d95ea5d18e69 ("cma: fix watermark checking")](https://git.kern
 ### 2.2.5 PCP(Per CPU Page) Allocation
 -------
 
-*   [Hot and cold pages](https://lwn.net/Articles/14768)
+[说说 perf 里面的 kmem(顺便聊下 pcp)](https://zhuanlan.zhihu.com/p/479922331)
+
+伙伴系统 buddy 是最基础的页面管理机制, 每次从 buddy 分配意味着需要持有对应的 zone lock, 这可能会导致频繁的锁竞争. 因此内核考虑为每个 CPU 增加了一个本地页面的缓存池, 就是 per-cpu page allocator(PCP).
+
+1.  当 get_page_from_freelist() 分配页面的时候, 如果允许的话(参见 pcp_allowed_order()), 会优先从 PCP 中去获取页面.
+
+2.  当 PCP 没有空闲页面可供分配时, 就不得不从 zone buddy 里面再捞一些页面出来, 由于此过程只是一个空闲页面的转移(从 zone buddy 的 freelist 到 pcp 的 freelist), 所以并不算是 "alloc", 而是 "refill".
+
+3.  反过来, 如果一个 CPU 上的 PCP 的空闲页面太多了(超过上限 pcp->high), 就要还一些给 zone buddy, 该过程叫做 "drain".
+
+#### 2.2.5.1 [Hot and cold pages](https://lwn.net/Articles/14768)
+-------
 
 [Linux 中的冷热页机制概述](https://toutiao.io/posts/d4cz9u/preview)
+
+[Hot and cold pages](https://lwn.net/Articles/14768)
 
 [内存管理中的cold page和hot page,  冷页 vs 热页](https://blog.csdn.net/kickxxx/article/details/9306361)
 
@@ -821,18 +834,9 @@ v2.5.45, Martin Bligh 和 Andrew Morton 以及其他人提交了一个内核分�
 
 此外使用 per-CPU page 链表也削减了锁竞争, 提高了性能. Andrew Morton 测试了这个patch, 在不同环境下获得了 `%1~%12` 不等的性能提升.
 
-
-```cpp
-8d6282a1cf8 [PATCH] hot-n-cold pages: free and allocate hints
-5019ce29f74 [PATCH] hot-n-cold pages: use cold pages for readahead
-a206231bbe6 [PATCH] hot-n-cold pages: page allocator core
-1d2652dd2c3 [PATCH] hot-n-cold pages: bulk page freeing
-38e419f5b01 [PATCH] hot-n-cold pages: bulk page allocator
-```
-
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2002/10/29 | Jan Kara <jack@suse.cz> | [hot-n-cold pages: bulk page allocator](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8d6282a1cf812279f490875cd55cb7a85623ac89) | 气氛热门页面和冷页面. | v2 ☑ 2.5.45 | [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8d6282a1cf812279f490875cd55cb7a85623ac89) |
+| 2002/10/29 | Jan Kara <jack@suse.cz> | [hot-n-cold pages: bulk page allocator](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8d6282a1cf812279f490875cd55cb7a85623ac89) | 气氛热门页面和冷页面. | v2 ☑ 2.5.45 | [CGIT, 0/5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8d6282a1cf812279f490875cd55cb7a85623ac89) |
 
 后来经过测试后, 大家一致认为, 将热门页面和冷页面分开列出可能没有什么意义. 因为有一种方法可以连接这两个列表: 使用单一列表, 将冷页面放在末尾, 将热页面放在开头. 这样, 一个列表就可以为这两种类型的分配服务. [Page allocator: get rid of the list of cold pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3dfa5721f12c3d5a441448086bee156887daa961).
 
@@ -847,21 +851,8 @@ a206231bbe6 [PATCH] hot-n-cold pages: page allocator core
 | 2020/11/11 | Vlastimil Babka <vbabka@suse.cz> | [disable pcplists during memory offline](https://lore.kernel.org/patchwork/patch/1336780) | 当内存下线的时候, 禁用 PCP | v3 ☑ [5.11-rc1](https://kernelnewbies.org/Linux_5.11#Memory_management) | [v4](https://lore.kernel.org/patchwork/patch/1336780) |
 
 
-*   [High-order per-cpu page allocator](https://lore.kernel.org/patchwork/patch/740275)
-
-很长一段时间以来, SLUB 一直是默认的小型内核对象分配器, 但由于性能问题和对高阶页面的依赖, 它并不是普遍使用的. 高阶关注点有两个主要组件——高阶页面并不总是可用, 高阶页面分配可能会在 zone->lock 上发生冲突.
-
-[mm: page_alloc: High-order per-cpu page allocator v4](https://lore.kernel.org/patchwork/patch/740275) 通过扩展 Per CPU Pages(PCP) 分配器来缓存高阶页面, 解决了一些关于区域锁争用的问题. 这个补丁做了以下修改
-
-1.  添加了新的 Per CPU 列表来缓存高阶页面. 这会增加 Per CPU Allocation 的缓存空间和总体使用量, 但对于某些工作负载, 这将通过减少 zone->lock 上的争用而抵消. 列表中的第一个 MIGRATE_PCPTYPE 条目是每个 migratetype 的. 剩余的是高阶缓存, 直到并包括 PAGE_ALLOC_COSTLY_ORDER. 页面释放时, PCP 的计算现在被限制为 free_pcppages_bulk, 因为调用者不可能知道到底释放了多少页. 由于使用了高阶缓存, 请求耗尽的页面数量不再精确.
-
-2.  增加 Per CPU Pages 的高水位, 以减少一次重新填充导致下一个空闲页面的溢出的概率. 这个改动的优化效果跟硬件环境和工作负载有较大的关系, 取决定因素的是当前有业务在 zone->lock 上的反弹和争用是否占主导.
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2016/12/01 | Mel Gorman | [mm: page_alloc: High-order per-cpu page allocator v4](https://lore.kernel.org/patchwork/patch/740275) | 为高阶内存分配提供 Per CPU Pages 缓存  | v4 ☐ | [v4](https://lore.kernel.org/patchwork/patch/740275) |
-
-*   [Bulk memory allocation](https://lwn.net/Articles/711075)
+#### 2.2.5.2 [Bulk memory allocation](https://lwn.net/Articles/711075)
+-------
 
 由于存储设备和网络接口等外围设备可以处理不断增加的数据速率, 因此内核面临许多可扩展性挑战. 通常, 提高吞吐量的关键是分批工作. 在许多情况下, 执行一系列相关操作的开销不会比执行单个操作的开销高很多. 内存分配是批处理可以显着提高性能的地方, 但是到目前为止, 关于如何进行批处理社区进行了多次激烈的讨论.
 
@@ -875,16 +866,16 @@ a206231bbe6 [PATCH] hot-n-cold pages: page allocator core
 | 2017/01/4 | Mel Gorman | [Fast noirq bulk page allocator](https://lore.kernel.org/patchwork/patch/747351) | 中断安全的批量内存分配器, RFC 补丁, 最终 Mel Gorman 为了完成这组优化做了大量的重构和准备工作. | v5 ☐ | [RFC](https://lore.kernel.org/patchwork/patch/747351)<br>*-*-*-*-*-*-*-* <br>[RFC v2](https://lore.kernel.org/patchwork/patch/749110) |
 | 2017/01/23 | Mel Gorman | [Use per-cpu allocator for !irq requests and prepare for a bulk allocator v5](https://lore.kernel.org/patchwork/patch/753645) | 重构了 Per CPU Pages 分配器, 使它独占 !irq 请求, 这将减少大约 30% 的分配/释放开销. 这是完成 Bulk memory allocation 工作的第一步  | v5 ☑ 4.11-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/753645) |
 | 2017/01/25 | Mel Gorman | [mm, page_alloc: Use static global work_struct for draining per-cpu pages](https://lore.kernel.org/patchwork/patch/754235) | 正如 Vlastimil Babka 和 Tejun Heo 所建议的, 这个补丁使用一个静态 work_struct 来协调 Per CPU Pages 在工作队列上的排泄. 一次只能有一个任务耗尽, 但这比以前允许多个任务同时发送IPIs的方案要好. 一个需要考虑的问题是并行请求是否应该彼此同步. | v5 ☑ 4.11-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/754235) |
-| 2017/01/25 | Mel Gorman | [Recalculate per-cpu page allocator batch and high limits after deferred meminit](https://lore.kernel.org/patchwork/patch/1141598) | 由于 PCP(Per CPU Page) Allocation 中不正确的高限制导致的高阶区域 zone->lock 的竞争, 在初始化阶段, 但是在初始化结束之前, PCP 分配器会计算分批分配/释放的页面数量, 以及 Per CPU 列表上允许的最大页面数量. 由于 zone->managed_pages 还不是最新的, pcp 初始化计算不适当的低批量和高值. 在某些情况下, 这会严重增加区域锁争用, 严重程度取决于共享一个本地区域的cpu数量和区域的大小. 这个问题导致了构建内核的时间比预期的长得多时, AMD epyc2 机器上的系统 CPU 消耗也过多. 这组补丁修复了这个问题 | v5 ☑ 4.11-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/1141598) |
-| 2021/03/25 | Mel Gorman | [Introduce a bulk order-0 page allocator with two in-tree users](https://lore.kernel.org/patchwork/patch/1399888) | 批量 order-0 页面分配器, 目前 sunrpc 和 network 页面池是这个特性的第一个用户 | v6 ☑ 5.13-rc1 | [RFC](https://lore.kernel.org/patchwork/patch/1383906)<br>*-*-*-*-*-*-*-* <br>[v1](https://lore.kernel.org/patchwork/patch/1385629)<br>*-*-*-*-*-*-*-* <br>[v2](https://lore.kernel.org/patchwork/patch/1392670)<br>*-*-*-*-*-*-*-* <br>[v3](https://lore.kernel.org/patchwork/patch/1393519)<br>*-*-*-*-*-*-*-* <br>[v4](https://lore.kernel.org/patchwork/patch/1394347)<br>*-*-*-*-*-*-*-* <br>[v5](https://lore.kernel.org/patchwork/patch/1399888)<br>*-*-*-*-*-*-*-* <br>[v6](https://lore.kernel.org/patchwork/patch/1402140) |
-| 2021/03/29 | Mel Gorman | [Use local_lock for pcp protection and reduce stat overhead](https://lore.kernel.org/patchwork/patch/1404513) | Bulk memory allocation 的第一组修复补丁, PCP 与 vmstat 共享锁定要求, 这很不方便, 并且会导致一些问题. 可能因为这个原因, PCP 链表和 vmstat 共享相同的 Per CPU 空间, 这意味着 vmstat 可能跨 CPU 更新包含 Per CPU 列表的脏缓存行, 除非使用填充. 该补丁集拆分该结构并分离了锁. | RFC ☐ | [RFC](https://lore.kernel.org/patchwork/patch/1404513) |
-| 2020/03/20 | Mel Gorman | [mm/page_alloc: Add a bulk page allocator -fix -fix](https://lore.kernel.org/patchwork/patch/1405057) | Bulk memory allocation 的第二组修复补丁 | v1 ☐ | [RFC](https://lore.kernel.org/patchwork/patch/1405057) |
+| 2020/03/20 | Mel Gorman | [mm/page_alloc: Add a bulk page allocator -fix -fix](https://lore.kernel.org/patchwork/patch/1405057) | Bulk memory allocation 的第二组修复补丁 | v6 ☐ | [LORE](https://lore.kernel.org/lkml/20210330114847.GX3697@techsingularity.net) |
 | 2020/03/20 | Mel Gorman | [mm/page_alloc: enable alloc bulk when page owner is on](https://lore.kernel.org/patchwork/patch/1461499) | 上一个 alloc bulk 版本有一个bug, 当 page_owner 打开时, 系统可能会由于 irq 禁用上下文中的 alloc bulk 调用 prep_new_page() 而崩溃, 这个问题是由于  set_page_owner() 在 local_irq 关闭的情况下通过 GFP_KERNEL 标志分配内存来保存栈信息导致的. 所以, 我们不能假设 alloc 标志应该与 new page 相同, prep_new_page() 应该准备/跟踪页面 gfp, 但不应该使用相同的gfp来获取内存, 这取决于调用方. 现在, 这里有两个gfp标志, alloc_gfp 用于分配内存, 取决于调用方, page_gfp 是 page 的 gfp, 用于跟踪/准备自身. 在大多数情况下, 两个 flag 相同是可以的, 在 alloc_pages_bulk() 中, 使用 GFP_ATOMIC, 因为 irq 被禁用. | v1 ☐ | [RFC](https://lore.kernel.org/patchwork/patch/1461499) |
-| 2020/08/14 | Minchan Kim <minchan@kernel.org> | [Support high-order page bulk allocation](https://lore.kernel.org/all/20200814173131.2803002-1-minchan@kernel.org) | 20200814173131.2803002-1-minchan@kernel.org | v1 ☐☑✓ | [LORE v1,0/7](https://lore.kernel.org/all/20200814173131.2803002-1-minchan@kernel.org) |
+| 2020/08/14 | Minchan Kim <minchan@kernel.org> | [Support high-order page bulk allocation](https://lore.kernel.org/all/20200814173131.2803002-1-minchan@kernel.org) | 20200814173131.2803002-1-minchan@kernel.org | v1 ☐☑✓ | [LORE RFC,0/7](https://lore.kernel.org/all/20200814173131.2803002-1-minchan@kernel.org) |
+| 2021/03/25 | Mel Gorman | [Introduce a bulk order-0 page allocator with two in-tree users](https://lore.kernel.org/patchwork/patch/1399888) | 批量 order-0 页面分配器, 目前 sunrpc 和 network 页面池是这个特性的第一个用户 | v6 ☑ 5.13-rc1 | [RFC](https://lore.kernel.org/patchwork/patch/1383906)<br>*-*-*-*-*-*-*-* <br>[v1](https://lore.kernel.org/patchwork/patch/1385629)<br>*-*-*-*-*-*-*-* <br>[v2](https://lore.kernel.org/patchwork/patch/1392670)<br>*-*-*-*-*-*-*-* <br>[v3](https://lore.kernel.org/patchwork/patch/1393519)<br>*-*-*-*-*-*-*-* <br>[v4](https://lore.kernel.org/patchwork/patch/1394347)<br>*-*-*-*-*-*-*-* <br>[v5](https://lore.kernel.org/patchwork/patch/1399888)<br>*-*-*-*-*-*-*-* <br>[v6](https://lore.kernel.org/patchwork/patch/1402140) |
+| 2021/03/29 | Mel Gorman | [Use local_lock for pcp protection and reduce stat overhead](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=902499937e3a82156dcb5069b6df27640480e204) | Bulk memory allocation 的第一组修复补丁, PCP 与 vmstat 共享锁定要求, 这很不方便, 并且会导致一些问题. 可能因为这个原因, PCP 链表和 vmstat 共享相同的 Per CPU 空间, 这意味着 vmstat 可能跨 CPU 更新包含 Per CPU 列表的脏缓存行, 除非使用填充. 该补丁集拆分该结构并分离了锁. | v6 ☑ 5.14-rc1 | [LORE RFC,0/6](https://lore.kernel.org/lkml/20210329120648.19040-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/11](https://lore.kernel.org/lkml/20210407202423.16022-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v3,00/11](https://lore.kernel.org/lkml/20210414133931.4555-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v4,00/10](https://lore.kernel.org/lkml/20210419141341.26047-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/9](https://lore.kernel.org/lkml/20210512095458.30632-1-mgorman@techsingularity.net) |
 
 
 
-*   Adjust high and batch
+#### 2.2.5.3 Adjust PCP high and batch
+-------
 
 percpu 页分配器(PCP)旨在减少对区域锁的争用, 但是 PCP 中的页面数量也要有限制. 因此 PCP 引入了 high 和 batch 来控制 pcplist 中的页面大小. 当 PCP 中的页面超过了 pcp->high 的时候, 则会释放 batch 的页面回到 BUDDY 中.
 
@@ -897,19 +888,32 @@ Mel Gorman 发现了这一问题, 开发了 [Calculate pcp->high based on zone s
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2005/12/09 | Mel Gorman <mgorman@techsingularity.net> | [Making high and batch sizes of per_cpu_pagelists configurable](https://lore.kernel.org/patchwork/patch/47659) | 引入了 percpu_pagelist_fraction 来调整各个 zone PCP 的 high, 同时将 batch 值设置为 min(high / 4, PAGE_SHIFT * 8).  | v1 ☑ 2.6.16-rc1 | [RFC](https://lore.kernel.org/patchwork/patch/47659), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8ad4b1fb8205340dba16b63467bb23efc27264d6) |
-| 2021/05/25 | Mel Gorman <mgorman@techsingularity.net> | [Calculate pcp->high based on zone sizes and active CPUs](https://lore.kernel.org/patchwork/patch/1435878) | pcp->high 和 pcp->batch 根据 zone 内内存的大小进行调整. 移除了不适用的 vm.percpu_pagelist_fraction 参数. | v2 ☑ 5.14-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/patch/1435878) |
+| 2005/12/09 | Rohit Seth <rohit.seth@intel.com> | [Making high and batch sizes of per_cpu_pagelists configurable](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8ad4b1fb8205340dba16b63467bb23efc27264d6) | 引入了 percpu_pagelist_fraction 来调整各个 zone PCP 的 high, 同时将 batch 值设置为 min(high / 4, PAGE_SHIFT * 8).  | v1 ☑ 2.6.16-rc1 | [LORE](https://lore.kernel.org/patchwork/patch/47659), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8ad4b1fb8205340dba16b63467bb23efc27264d6) |
+| 2017/01/25 | Mel Gorman | [Recalculate per-cpu page allocator batch and high limits after deferred meminit](https://lore.kernel.org/patchwork/patch/1141598) | 由于 PCP(Per CPU Page) Allocation 中不正确的高限制导致的高阶区域 zone->lock 的竞争, 在初始化阶段, 但是在初始化结束之前, PCP 分配器会计算分批分配/释放的页面数量, 以及 Per CPU 列表上允许的最大页面数量. 由于 zone->managed_pages 还不是最新的, pcp 初始化计算不适当的低批量和高值. 在某些情况下, 这会严重增加区域锁争用, 严重程度取决于共享一个本地区域的cpu数量和区域的大小. 这个问题导致了构建内核的时间比预期的长得多时, AMD epyc2 机器上的系统 CPU 消耗也过多. 这组补丁修复了这个问题 | v5 ☑ 4.11-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/1141598) |
+| 2021/05/25 | Mel Gorman <mgorman@techsingularity.net> | [Calculate pcp->high based on zone sizes and active CPUs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=74f44822097c665041010994502b5971d6cd9f04) | pcp->high 和 pcp->batch 根据 zone 内内存的大小进行调整. 移除了不适用的 vm.percpu_pagelist_fraction 参数. | v2 ☑ 5.14-rc1 | [PatchWork v2,0/6](https://lore.kernel.org/lkml/20210525080119.5455-1-mgorman@techsingularity.net) |
 
-*   High Order PCP
+
+#### 2.2.5.4 High Order PCP
+-------
+
+很长一段时间以来, SLUB 一直是默认的小型内核对象分配器, 但由于性能问题和对高阶页面的依赖, 它并不是普遍使用的. 高阶关注点有两个主要组件——高阶页面并不总是可用, 高阶页面分配可能会在 zone->lock 上发生冲突.
+
+[mm: page_alloc: High-order per-cpu page allocator v4](https://lore.kernel.org/patchwork/patch/740275) 通过扩展 Per CPU Pages(PCP) 分配器来缓存高阶页面, 解决了一些关于区域锁争用的问题. 这个补丁做了以下修改
+
+1.  添加了新的 Per CPU 列表来缓存高阶页面. 这会增加 Per CPU Allocation 的缓存空间和总体使用量, 但对于某些工作负载, 这将通过减少 zone->lock 上的争用而抵消. 列表中的第一个 MIGRATE_PCPTYPE 条目是每个 migratetype 的. 剩余的是高阶缓存, 直到并包括 PAGE_ALLOC_COSTLY_ORDER. 页面释放时, PCP 的计算现在被限制为 free_pcppages_bulk, 因为调用者不可能知道到底释放了多少页. 由于使用了高阶缓存, 请求耗尽的页面数量不再精确.
+
+2.  增加 Per CPU Pages 的高水位, 以减少一次重新填充导致下一个空闲页面的溢出的概率. 这个改动的优化效果跟硬件环境和工作负载有较大的关系, 取决定因素的是当前有业务在 zone->lock 上的反弹和争用是否占主导.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/12/01 | Mel Gorman | [mm: page_alloc: High-order per-cpu page allocator v4](https://lore.kernel.org/patchwork/patch/740275) | 为高阶内存分配提供 Per CPU Pages 缓存  | v4 ☐ | [LORE v4](https://lore.kernel.org/lkml/20161201002440.5231-1-mgorman@techsingularity.net) |
 | 2021/06/03 | Mel Gorman <mgorman@techsingularity.net> | [Allow high order pages to be stored on PCP v2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=44042b4498728f4376e84bae1ac8016d146d850b) | PCP 支持缓存高 order 的页面. | v2 ☑ 5.14-rc1 | [OLD v6](https://lore.kernel.org/patchwork/patch/740779)<br>*-*-*-*-*-*-*-* <br>[OLD v7](https://lore.kernel.org/patchwork/patch/741937)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/lkml/20210603142220.10851-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/all/20210611135753.GC30378@techsingularity.net) |
 | 2022/02/16 | Mel Gorman <mgorman@techsingularity.net> | [Follow-up on high-order PCP caching](https://patchwork.kernel.org/project/linux-mm/cover/20220215145111.27082-1-mgorman@techsingularity.net/) | commit 44042b449872 ("mm/page_alloc: allow high-order pages to storage on the per-cpu list") 的主要目的是通过两种方式降低高阶页面的 SLUB 缓存重新填充的成本. 首先, 区域锁获取减少, 其次, 好友列表修改减少. 这是一个后续系列, 修复了合并后出现的一些问题.<br>补丁 1 是一个功能补丁. 这是无害的, 但效率低下.<br>补丁 2-4 减少了大量释放 PCP 页面的开销. 虽然开销很小, 但在截断大文件时, 它是累积的, 并且是可以注意到的.<br>它可以删除带有页面缓存中的数据的大型稀疏文件, 稀疏文件用于消除文件系统开销.<br>补丁 5 解决了高阶 PCP 页面在 PCP 列表中存储时间过长的问题. CPU 上释放的页面可能无法快速重用, 在某些情况下, 这可能会增加缓存未命中率. 详细信息包含在变更日志中. | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20220215145111.27082-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/6](https://lore.kernel.org/r/20220217002227.5739-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE 1/1](https://patchwork.kernel.org/project/linux-mm/patch/20220221094119.15282-2-mgorman@techsingularity.net) |
 | 2022/03/10 | Mel Gorman <mgorman@techsingularity.net> | [mm/page_alloc: check high-order pages for corruption during PCP operations](https://patchwork.kernel.org/project/linux-mm/patch/20220310092456.GJ15701@techsingularity.net) | Eric Dumazet 指出, [commit 44042b449872 ("mm/page_alloc: allow high-order pages to storage to the per-cpu list")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44042b4498728f4376e84bae1ac8016d146d850b) 仅在 PCP 重新填充和分配操作期间检查首页. 这是一个疏忽, 所有页面都应该检查. 这将导致一个小的性能损失, 但这对正确性是必要的. | v1 ☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220310092456.GJ15701@techsingularity.net) |
 
 
-*   Remote per-cpu cache access
+#### 2.2.5.5 Remote per-cpu cache access
+-------
 
 最初释放 PCP 是通过 IPI 来完成的, 并且经历了不断的修正和优化, 参见 v2.6.24-rc1 的 [Drain per-cpu lists when high-order allocations fail](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e2c55dc87f4a398b9c4dcc702dbc23a07fe14e23), v2.6.25-rc1 的 [Page allocator: clean up pcp draining functions](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9f8f2172537de7af0b0fbd33502d18d52b1339bc), v3.4-rc1 的 [mm: only IPI CPUs to drain local pages if they exist](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=74046494ea68676d29ef6501a4bd950f08112a2c). 以及 v4.11-rc1 的 [mm, page_alloc: drain per-cpu pages from workqueue context](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0ccce3b924212e121503619df97cc0f17189b77b).
 
