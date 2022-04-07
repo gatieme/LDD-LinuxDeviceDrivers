@@ -288,6 +288,20 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 | 2020/09/11 | Kan Liang <kan.liang@linux.intel.com> | [TopDown metrics support for Ice Lake (perf tool)](https://lore.kernel.org/lkml/20200911144808.27603-1-kan.liang@linux.intel.com) | 为 perf metrics 分析增加对 Ice Lake 的支持. 将原本 group 重命名为 topdown. | v3 ☑ 5.10-rc1 | [PatchWork v3,0/4](https://lore.kernel.org/lkml/20200911144808.27603-1-kan.liang@linux.intel.com) |
 | 2021/04/07 | John Garry <john.garry@huawei.com> | [perf arm64 metricgroup support](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1617791570-165223-1-git-send-email-john.garry@huawei.com) | perf 支持 HiSilicon hip08 平台的 topdown metric. 支持到 Level 3. 自此鲲鹏 920 的 ARM64 服务器上, 可以使用:<br>`sudo perf stat -M TopDownL1 sleeep 1`<br>来进行 TopDown 分析了. | v1 ☑ 5.13-rc1 | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1614784938-27080-1-git-send-email-john.garry@huawei.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1616668398-144648-1-git-send-email-john.garry@huawei.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1617791570-165223-1-git-send-email-john.garry@huawei.com) |
 
+## 11.4 分支预测
+-------
+
+### 11.4.1 AMD Branch Samling "BRS" Feature
+-------
+
+[AMD Branch Sampling Support Being Worked On For Linux](https://www.phoronix.com/scan.php?page=news_item&px=AMD-BRS-Branch-Sampling)
+
+[AMD Branch Sampling "BRS" Feature To Land With Linux 5.19](https://www.phoronix.com/scan.php?page=news_item&px=AMD-Branch-Sampling-v5.19)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2022/03/22 | Stephane Eranian <eranian@google.com> | [perf/x86/amd: Add AMD Fam19h Branch Sampling support](https://lore.kernel.org/all/20220322221517.2510440-1-eranian@google.com) | 引入 CONFIG_PERF_EVENTS_AMD_BRS. perf 支持 BRS. AMD 系列 19h "Zen 3" 处理器新增了分支采样功能 BRS, 用于收集代码执行期间所采用分支的详细信息. 该功能可用于 AMD 处理器上的 AutoFDO 样式优化, 编译器利用收集的硬件数据来做出更明智和准确的优化决策. | v7 ☑✓ 5.19-rc1 | [LORE v7,0/13](https://lore.kernel.org/all/20220322221517.2510440-1-eranian@google.com) |
+
 
 # 12 KPROBE
 -------

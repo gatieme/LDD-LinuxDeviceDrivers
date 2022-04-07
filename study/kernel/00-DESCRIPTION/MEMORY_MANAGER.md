@@ -581,17 +581,28 @@ NUMA 系统中 CPU 访问不同节点的内存速度很有大的差别. 位于�
 ## 1.10.1 [Mitosis: Transparently Replicating Page Tables](https://research.vmware.com/projects/mitosis-transparently-self-replicating-page-tables)
 -------
 
+
+
+
+NUMA 系统下, 页表在内存中的存储位置, 对性能也有较大的影响. 在 4 插槽 Intel Haswell 机器上, 对于 HPCC RandomAccess 基准测试工作负载, 由于页表放置在远端的 NUMA NODE 上导致的性能下降可能高达 3.4 倍. 虽然此工作负载的设计目的是具有较高的缓存未命中率, 但在 Redis 等 Key-Value 数据库也可以看到类似的效果, 在最坏的情况下, 性能下降可能高达 2 倍.
+
+为了减少 NUMA 机器上页表行走的远程访问开销, [Mitosis](https://www.cs.yale.edu/homes/abhishek/reto-osdi18.pdf) 设计了一种用于透明自复制页表的技术. 通过更改页表分配和管理子系统, 在 NUMA 节点上完全复制页表. 可以在每个进程的基础上启用页表复制, 从而为进程运行的每个 NUMA 节点创建和维护一个副本. 当进程计划在内核上运行时, 它会用本地 NUMA 节点的页表副本的物理地址写入内核的页表指针(x86 处理器上的 CR3 寄存器). 每次操作系统修改页面表时, 我们都会确保更新有效地传播到所有副本页面表, 并基于所有副本(包括硬件更新的脏位和访问位)返回一致的值.
+
+测试表明, Mitosis 可以完全缓解 HPCC RandomAccess 的性能劣化, 并将其他单线程工作负载分别提高 30% 和 15%.
+
+
+随后, 2021 年作者所在团队进一步扩展了 Mitosis 的设计, 以支持虚拟化环境. 通过支持 KVM 扩展, 以提高在虚拟化系统中运行的应用程序的性能. 在具有硬件支持(扩展页表)的虚拟环境中, 处理 TLB 未命中比在本机情况下的开销更高, 因为所需的 2D 页表遍历最多引入 24 次内存访问来解决单个 TLB 未命中. 通过修改虚拟机监控程序, 以便在 guest 操作系统下透明地执行复制, 从而使未修改的 guest 操作系统能够在 VM 中运行.
+
+
 [Mitosis 公开地址](https://gandhijayneel.github.io/mitosis)
 
-github 地址: [linux 内核](https://github.com/gandhijayneel/mitosis-linux-release), [numactl](https://github.com/gandhijayneel/mitosis-numactl-release)
+github 地址: [Mitosis Project](https://github.com/mitosis-project), [linux 内核](https://github.com/gandhijayneel/mitosis-linux-release), [numactl](https://github.com/gandhijayneel/mitosis-numactl-release)
 
-
-[Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines October, 2019, 1910.05398.pd](https://research.vmware.com/files/attachments/0/0/0/0/0/9/5/1910.05398.pdf)
-
-[Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines March, 2020, aspl0359a-achermanna.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/0/3/aspl0359a-achermanna.pdf)
-
-[Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis April, 2021, asplos21_vmitosis.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/8/asplos21_vmitosis.pdf)
-[Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis April, 2021, vmitosis_ext_abstract.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/1/vmitosis_ext_abstract.pdf)
+| 时间线 | 相关论文 |
+|:-----:|:-------:|
+| 2019 | [Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines; October, 2019; 1910.05398.pdf](https://research.vmware.com/files/attachments/0/0/0/0/0/9/5/1910.05398.pdf) |
+| 2020 | [Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines; March, 2020; aspl0359a-achermanna.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/0/3/aspl0359a-achermanna.pdf) |
+| 2021 | [Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; asplos21_vmitosis.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/8/asplos21_vmitosis.pdf)<br>[Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; vmitosis_ext_abstract.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/1/vmitosis_ext_abstract.pdf) |
 
 
 
@@ -1418,6 +1429,8 @@ gpu 和高吞吐量设备在 TLB 丢失和随后的页表遍行情况下, 与 CP
 | 2012/04/03 | Michal Nazarewicz <m.nazarewicz@samsung.com><br>*-*-*-*-*-*-*-* <br>Marek Szyprowski <m.szyprowski@samsung.com> | [Contiguous Memory Allocator](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=58f42fd54144346898e6dc6d6ae3acd4c591b42f) | 实现 CMA, 参见 [LWN](https://lwn.net/Articles/486301) | v24 ☑ [3.5-rc1](https://kernelnewbies.org/Linux_3.5#Memory_Management) | [PatchWork v7](https://lore.kernel.org/patchwork/patch/229177)<br>*-*-*-*-*-*-*-* <br>[PatchWork v24](https://lore.kernel.org/patchwork/patch/295656) |
 | 2015/02/12 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [mm/compaction: enhance compaction finish condition](https://lore.kernel.org/patchwork/patch/542063) | 同样的, 之前 NULL 指针和错误指针的输出也很混乱, 进行了归一化. | v1 ☑ 4.1-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/542063)<br>*-*-*-*-*-*-*-* <br>[关键 commit 2149cdaef6c0](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2149cdaef6c0eb59a9edf3b152027392cd66b41f) |
 | 2015/02/23 | SeongJae Park <sj38.park@gmail.com> | [introduce gcma](https://lore.kernel.org/patchwork/patch/544555) | [GCMA(Guaranteed Contiguous Memory Allocator)方案](http://ceur-ws.org/Vol-1464/ewili15_12.pdf), 倾向于使用 writeback 的page cache 和 完成 swap out 的 anonymous pages 来做 seconday client, 进行迁移. 从而确保 primary client 的分配. | RFC v2 ☐ | [PatchWork](https://lore.kernel.org/patchwork/patch/544555), [GitHub](https://github.com/sjp38/linux.gcma/releases/tag/gcma/rfc/v2) |
+| 2021/03/02 | Minchan Kim <minchan@kernel.org> | [mm: vmstat: add cma statistics](https://lore.kernel.org/all/20210302183346.3707237-1-minchan@kernel.org) | 将 CMA 分配统计信息输出到 vmstat, 从而可以使用户知道系统使用 CMA 分配成功 (CMA_ALLOC_SUCCESS) 和失败 (CMA_ALLOC_SUCCESS) 的次数和频率. | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20210302183346.3707237-1-minchan@kernel.org) |
+
 
 #### 2.4.2.2 contiguous pages
 -------
@@ -1822,7 +1835,7 @@ v3.6 [commit 7db8889ab05b ("mm: have order > 0 compaction start off where it lef
 
 内核提供了 zone_reclaim_mode 来控制内存 zone 回收模式的开启以及回收行为. zone_reclaim_mode 模式是在 2.6 版本后期开始加入引入的, 可以用来管理当一个内存区域(zone)内部的内存耗尽时, 是从其内部进行内存回收还是可以从其他 zone 进行回收的选项. 过 `/proc/sys/vm/zone_reclaim_mode` 结点来设置.
 
-在使用 get_page_from_freelist() 申请内存时, 内核在当前 zone 内没有足够内存可用的情况下, 会根据 zone_reclaim_mode 的设置来决策是从下一个 zone 找空闲内存还是在 zone 内部进行回收. 当 NUMA 系统某个 node 内存不足的时候，会从相邻的 node 分配内存.
+在使用 get_page_from_freelist() 申请内存时, 内核在当前 zone 内没有足够内存可用的情况下, 会根据 zone_reclaim_mode 的设置来决策是从下一个 zone 找空闲内存还是在 zone 内部进行回收. 当 NUMA 系统某个 node 内存不足的时候, 会从相邻的 node 分配内存.
 
 
 > 早期的本地快速回收也是基于 zone 的, 因此控制参数名称为 zone_reclaim_mode.
@@ -3050,18 +3063,32 @@ Refault Distance 算法是为了解决前者, 在第二次读时, 人为地把 p
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2010/06/29 | Mel Gorman <mel@csn.ul.ie> | [Avoid overflowing of stack during page reclaim V3](https://lore.kernel.org/patchwork/patch/204944) | NA | v3 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/patch/685701)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3](https://lore.kernel.org/patchwork/patch/204944) |
-| 2010/09/15 | Mel Gorman <mel@csn.ul.ie> | [Reduce latencies and improve overall reclaim efficiency v2](https://lore.kernel.org/patchwork/patch/215977) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/patch/215977) |
+| 2010/09/06 | Mel Gorman <mel@csn.ul.ie> | [Reduce latencies and improve overall reclaim efficiency](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=08fc468f4eaf6683bae5bdb94743a09d8630cb80) | 成块回收过于激进, 会在 LRU 系统造成一定的破坏. 由于 SLUB 使用高阶分配, 块状回收产生的巨大成本将是显而易见的. 这些补丁应该可以在不禁用 Lumpy Reclaim 的情况下缓解该问题. 引入 lumpy_mode, 减少成块回收过程中的等待和延迟. | v2 ☑✓ 2.6.37-rc1 | [LORE v1,0/9](https://lore.kernel.org/all/1283770053-18833-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/8](https://lore.kernel.org/lkml/1284553671-31574-1-git-send-email-mel@csn.ul.ie) |
 | 2010/10/28 | Mel Gorman <mel@csn.ul.ie> | [Reduce the amount of time spent in watermark-related functions V4](https://lore.kernel.org/patchwork/patch/222014) | NA | v4 ☐ | [PatchWork v4](https://lore.kernel.org/patchwork/patch/222014) |
 | 2010/07/30 | Mel Gorman <mel@csn.ul.ie> | [Reduce writeback from page reclaim context V6](https://lore.kernel.org/patchwork/patch/209074) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/patch/209074) |
 | 2021/12/20 | Muchun Song <songmuchun@bytedance.com> | [Optimize list lru memory consumption](https://lore.kernel.org/patchwork/patch/1436887) | 优化列表lru内存消耗<br> | v3 ☐ | [2021/05/27 PatchWork v2,00/21](https://patchwork.kernel.org/project/linux-mm/cover/20210527062148.9361-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/14 PatchWork v3,00/76](https://patchwork.kernel.org/project/linux-mm/cover/20210914072938.6440-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/13 PatchWork v4,00/17](https://patchwork.kernel.org/project/linux-mm/cover/20211213165342.74704-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/20 PatchWork v5,00/16](https://patchwork.kernel.org/project/linux-mm/cover/20211220085649.8196-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/16](https://lore.kernel.org/r/20220228122126.37293-1-songmuchun@bytedance.com) |
 
 
-### 4.2.10 LRU 的整体框架
+### 4.2.10 LRU 的调试和维测手段
+-------
+
+*   tracepoint
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2009/04/21 | Larry Woodman <lwoodman@redhat.com> | [mm tracepoints update](https://lwn.net/Articles/329577/) | 清理 mm 的 tracepoint, 以跟踪页面分配和释放、各种类型的页面错误和取消映射, 以及页面回收等路径. 这对在高内存压力下调试和分析内存分配问题和系统性能问题非常有用. | v1 ☐ | [LORE v1,0/9](https://lore.kernel.org/all/1283770053-18833-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/8](https://lore.kernel.org/lkml/1284553671-31574-1-git-send-email-mel@csn.ul.ie) |
+| 2010/09/06 | Mel Gorman <mel@csn.ul.ie> | [tracing, vmscan: add trace events for LRU list shrinking](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e11da5b4fdf01d71d73c21cb92b00595b917d7fd) | [Reduce latencies and improve overall reclaim efficiency](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=08fc468f4eaf6683bae5bdb94743a09d8630cb80) 引入 lumpy_mode, 减少成块回收过程中的等待和延迟系列补丁集的其中一个补丁. 为了方便跟踪和计算扫描nr_scanned/回收nr_scanned比率, 作为页面回收所做工作量的度量. 在 shrink_inactive_list() 中添加了 tracepoint mm_vmscan_lru_shrink_inactive. | v2 ☑✓ 2.6.37-rc1 | [LORE v1,0/9](https://lore.kernel.org/all/1283770053-18833-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/8](https://lore.kernel.org/lkml/1284553671-31574-1-git-send-email-mel@csn.ul.ie) |
+| 2010/06/14 | Mel Gorman <mel@csn.ul.ie> | [Avoid overflowing of stack during page reclaim V2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1489fa14cb757b496c8fa2b63097dbcee6690695) | 这是两个补丁集的合并. 第一个减少了页面回收中的堆栈使用, 第二个在回收过程中写入连续页面, 并避免了直接回收器中的写回. 其中前几个补丁引入了一些 LRU 相关的 tracepoint, 可以用来评估在回收中发生了什么, 以及事情是变得更好还是更糟.<br>1. [commit1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=33906bc5c87b50028364405ec425de9638afc719) 添加了[直接回收](https://elixir.bootlin.com/linux/v2.6.36/source/mm/vmscan.c), [唤醒 KSWAPD](https://elixir.bootlin.com/linux/v2.6.36/source/mm/vmscan.c#L2403), 以及 [KSWAPD 睡眠](https://elixir.bootlin.com/linux/v2.6.36/source/mm/vmscan.c#L2380) 的 tracepoint.<br>2. [commit2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a8a94d151521b248727c1f88756174e15260815a) 添加了 [isolate_lru_pages() 的 tracepoint](https://elixir.bootlin.com/linux/v2.6.36/source/mm/vmscan.c#L1038).<br>3. [commit3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=755f0225e8347b23a33ee6e3fb14a35310f95766) 中在 pageout 中添加了 [writepage 的 tracepoint](https://elixir.bootlin.com/linux/v2.6.36/source/mm/vmscan.c#L404).<br>4. [commit4](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b898cc70019ce1835bbf6c47bdf978adc36faa42) 为回收相关跟踪事件添加一个简单的[后处理脚本 trace-vmscan-postprocess.pl](https://elixir.bootlin.com/linux/v2.6.36/source/Documentation/trace/postprocess/trace-vmscan-postprocess.pl). 它可以用来指示 LRU 列表上有多少流量, 以及回收造成的延迟有多严重.<br>之后的 6 个 commit 通过将较大的分配移出主调用路径, 减少了页面回收的堆栈占用空间. 如果 KSWAPD 要直接回写页面, 那么这是为了给文件系统提供尽可能多的堆栈. [补丁 11](https://lore.kernel.org/all/1276514273-27693-12-git-send-email-mel@csn.ul.ie) 在找到脏页面时将它们放在一个临时列表中, 然后使用一个助手函数将它们全部写出来. [补丁 12](https://lore.kernel.org/all/1276514273-27693-13-git-send-email-mel@csn.ul.ie) 完全阻止直接回收写出来的页面, 取而代之的是脏页面被放回 LRU. 但是需要注意的是补丁 11/12 未合入主线. | v1 ☑✓ 2.6.36-rc1 | [LORE v1,00/10](https://lore.kernel.org/lkml/1271352103-2280-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/12](https://lore.kernel.org/all/1276514273-27693-1-git-send-email-mel@csn.ul.ie) |
+| 2013/05/17 | Mel Gorman <mgorman@suse.de> | [mm: add tracepoints for LRU activation and insertions](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c6286c983900c77410a951874f1589f4a41fbbae) | [Obey mark_page_accessed hint given by filesystems v3r1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c53954a092d07c5684d31ea1fc813d262cff08a5) 补丁集的其中一个补丁. Alexey Lyahkov 和 Robin Dong 等最近(v3.10期间)报告了[诸多问题](https://www.spinics.net/lists/linux-ext4/msg37340.html), 这些问题可能是由于热页太快到达非活动列表的末尾并被回收造成的. 这个补丁集解决了这个问题. [当前补丁](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c6286c983900c77410a951874f1589f4a41fbbae)为 LRU 页面激活和插入添加了两个跟踪点 mm_lru_insertion 和 mm_lru_activate. 使用这些 tracepoint, 可以在 LRU 中构建一个可以脱机处理的页面模型, 用于离线检查 LRU 上不同页面类型的平均使用时间(ms). | v3 ☑✓ 3.11-rc1 | [LORE RFC,0/3](https://lore.kernel.org/lkml/1367253119-6461-1-git-send-email-mgorman@suse.de)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/lkml/1368440482-27909-1-git-send-email-mgorman@suse.de)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/5](https://lore.kernel.org/all/1368784087-956-1-git-send-email-mgorman@suse.de) |
+| 2017/01/04 | Michal Hocko <mhocko@kernel.org> | [vm, vmscan: enahance vmscan tracepoints](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=93607e5a554a6408a1b56cdd146edc91e5da9983) | 在调试问题 [OOM: Better, but still there on 4.9](http://lkml.kernel.org/r/20161215225702.GA27944@boerne.fritz.box) 时, 作者意识到当前提供的跟踪点集还有一些改进的空间. 新增了 tracepoint [mm_vmscan_lru_shrink_active](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9d998b4f1e39abd69441d29a1ef3250514479267) 和 [mm_vmscan_inactive_list_is_low](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dcec0b60a8213aeb876823a15d834009fce3b36e). 原来 tracepoint 中[输出 LRU 的名字](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=32b3f2974adca13f8a4a610c396e88c6f81eb10e). 封装了 [reclaim_stat](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3c710c1ad11b4a856a396b181911568f3851a5d8), 并在 mm_vmscan_lru_shrink_inactive 中进行了输出. 同时将这些新增的改进同步到了 [后处理脚本 trace-vmscan-postprocess.pl](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=93607e5a554a6408a1b56cdd146edc91e5da9983) | v1 ☑✓ 4.11-rc1 | [LORE v1,0/7](https://lore.kernel.org/all/20161228153032.10821-1-mhocko@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/all/20170104101942.4860-1-mhocko@kernel.org) |
+
+
+### 4.2.11 LRU 的整体框架
 -------
 
 
 
-#### 4.2.10.1 LRU 回收框架
+#### 4.2.11.1 LRU 回收框架
 -------
 
 shrink_lruvec() 和 shrink_slab() 是 LRU 处理的几个最基础函数.
@@ -3127,20 +3154,20 @@ __alloc_pages_direct_reclaim()
 
 
 
-#### 4.2.10.2 shrink_list
+#### 4.2.11.2 shrink_list
 -------
 
 
-#### 4.2.10.3 shrink_active_list
+#### 4.2.11.3 shrink_active_list
 -------
 
 
-#### 4.2.10.4 shrink_inactive_list
+#### 4.2.11.4 shrink_inactive_list
 -------
 
 
 
-### 4.2.11 其他页面替换算法
+### 4.2.12 其他页面替换算法
 -------
 
 [AdvancedPageReplacement](https://linux-mm.org/AdvancedPageReplacement)
@@ -4882,7 +4909,9 @@ zone->lru_锁是一个竞争激烈的锁, 因此 2012 年左右 Konstantin Khleb
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2012/02/16 | Konstantin Khlebnikov <khlebnikov@openvz.org> | [mm: lru_lock splitting](https://lore.kernel.org/all/20120215224221.22050.80605.stgit@zurg) | 20120215224221.22050.80605.stgit@zurg | v1 ☐☑✓ | [LORE v1,0/15](https://lore.kernel.org/all/20120215224221.22050.80605.stgit@zurg)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/22](https://lore.kernel.org/lkml/20120220171138.22196.65847.stgit@zurg)<br>*-*-*-*-*-*-*-* <br>[LORE v3,00/21](https://lore.kernel.org/lkml/20120223133728.12988.5432.stgit@zurg) |
 | 2012/02/20 | Hugh Dickins <hughd@google.com> | [mm/memcg: per-memcg per-zone lru locking](https://lore.kernel.org/patchwork/patch/288055) | per-memcg lru lock | v1 ☐ 3.4 | [PatchWork v1, 00/10](https://lore.kernel.org/lkml/alpine.LSU.2.00.1202201518560.23274@eggly.anvils) |
+| 2018/01/31 | Daniel Jordan <daniel.m.jordan@oracle.com> | [lru_lock scalability](https://lore.kernel.org/all/20180131230413.27653-1-daniel.m.jordan@oracle.com) | lru_lock 是内核中争抢非常严重的一把锁, 它保护 per-node lru list. 提高 lru_lock 可伸缩性的一种方法就是使用细粒度锁, 引入一系列锁, 每个锁保护特定批次的 lru 页面. | v1 ☐☑✓ | [LORE v1,0/13](https://lore.kernel.org/all/20180131230413.27653-1-daniel.m.jordan@oracle.com) |
 | 2020/12/05 | Alex Shi <alex.shi@linux.alibaba.com> | [per memcg lru lock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=15b447361794271f4d03c04d82276a841fe06328) | per memcg LRU lock | v21 ☑ [5.11](https://kernelnewbies.org/Linux_5.11#Memory_management) | [LORE v4,0/9](https://lore.kernel.org/lkml/1574166203-151975-1-git-send-email-alex.shi@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[LORE v21,00/19](https://lore.kernel.org/all/1604566549-62481-1-git-send-email-alex.shi@linux.alibaba.com) |
+
 
 ### 9.4.5 MEMCG Reclaim
 -------
@@ -5558,7 +5587,7 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 | 2021/08/02 | Gavin Shan <gshan@redhat.com> | [mm/debug_vm_pgtable: Enhancements](https://patchwork.kernel.org/project/linux-mm/cover/20210802060419.1360913-1-gshan@redhat.com) | 目前的实现存在一些问题, 本系列试图解决这些问题:<br>1. 所有需要的信息分散在变量中, 传递给各种测试函数. 代码以非常轻松的方式组织.<br>2. 在页面表条目修改测试期间, 页面没有从 buddy 分配. 该页面可能是无效的, 与 ARM64 上的 set_xxx_at() 的实现冲突. 访问目标页面, 以便在 ARM64 上授予执行权限时刷新 iCache.<br>3. 此外, 目标页面可以被取消映射, 访问它会导致内核崩溃.<br>引入"struct pgtable_debug_args"来解决问题(1).<br>对于问题(2), 使用的页面是从页表条目修改测试中的 buddy 分配的. 如果我们没有分配(巨大的)页面, 则跳过. 对于其他测试用例, 仍然使用到内核符号(@start_kernel)的原始页面. | RFC ☐ 5.14-rc4 | [PatchWork v5,00/12](https://patchwork.kernel.org/project/linux-mm/cover/20210802060419.1360913-1-gshan@redhat.com) |
 
 
-### 13.4.2   Page Owner
+### 13.4.2 Page Owner
 -------
 
 早在 2.6.11 的时代就通过 [Page owner tracking leak detector](https://lwn.net/Articles/121271) 给大家展示了页面所有者跟踪 [Page Owner](https://lwn.net/Articles/121656). 但是它一直停留在 Andrew 的源代码树上, 然而, 没有人试图 upstream 到 mainline, 虽然已经有不少公司使用这个特性来调试内存泄漏或寻找内存占用者. 最终在 v3.19, Joonsoo Kim 在一个重构中, 将这个特性推到主线.
@@ -5598,7 +5627,7 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 | 2007/10/09 | Matt Mackall <mpm@selenic.com> | [maps4: pagemap monitoring v4](https://lore.kernel.org/patchwork/patch/95279) | 引入 CONFIG_PROC_PAGE_MONITOR, 管理了 `/proc/pid/clear_refs`, `/proc/pid/smaps`, `/proc/pid/pagemap`, `/proc/kpagecount`, `/proc/kpageflags` 多个接口. | v1 ☑ 2.6.25-rc1 | [PatchWork v4 0/12](https://lore.kernel.org/patchwork/patch/95279) |
 | 201=09/05/08 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [export more page flags in /proc/kpageflags (take 6)](https://lore.kernel.org/patchwork/patch/155330) | 在 kpageflags 中导出了更多的 type. 同时新增了一个用户态工具 page-types 可以调试进程和内核的 page-types. 该工具后期[移到了 tools/vm 目录下](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c6dd897f3bfc54a44942d742d6dfa842e33d88e0) | v6 ☑ 3.4-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/patch/520462), [Kernel Newbies](https://kernelnewbies.org/Linux_3.19#Memory_management) |
 
-### 13.4.4   数据访问监视器 DAMON
+### 13.4.4 数据访问监视器 DAMON
 -------
 
 [Software Visualizations to Analyze Memory Consumption: A Literature Review](https://dl.acm.org/doi/pdf/10.1145/3485134)
@@ -5665,6 +5694,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2022/02/17 | SeongJae Park <sj@kernel.org> | [Introduce DAMON sysfs interface](https://patchwork.kernel.org/project/linux-mm/cover/20220217161938.8874-1-sj@kernel.org/) | 615483 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20220217161938.8874-1-sj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE, v1,00/12](https://patchwork.kernel.org/project/linux-mm/cover/20220223152051.22936-1-sj@kernel.org) |
 | 2022/02/18 | Jonghyeon Kim <tome01@ajou.ac.kr> | [Rebase DAMON_RECALIM for NUMA system](https://patchwork.kernel.org/project/linux-mm/cover/20220218102611.31895-1-tome01@ajou.ac.kr/) | 615730 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20220218102611.31895-1-tome01@ajou.ac.kr)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/13](https://lore.kernel.org/r/20220228081314.5770-1-sj@kernel.org) |
 | 2022/03/15 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon: Add CMA minotor support](https://patchwork.kernel.org/project/linux-mm/cover/cover.1647378112.git.xhao@linux.alibaba.com/) | 为 DAMON 增加 CMA 内存监控功能. 在某些内存紧张的情况下, 通过监控 CMA 内存释放更多内存将是一个不错的选择. | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/cover.1647378112.git.xhao@linux.alibaba.com) |
+| 2021/01/07 | SeongJae Park <sjpark@amazon.com> | [tools/perf: Integrate DAMON in perf](https://lore.kernel.org/all/20210107120729.22328-1-sjpark@amazon.com) | perf 支持 DAMON 监控. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20210107120729.22328-1-sjpark@amazon.com) |
 
 
 ### 13.4.5 vmstat
