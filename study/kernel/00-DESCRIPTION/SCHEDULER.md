@@ -391,6 +391,14 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
     特别是在之前提到的 [sched/fair: Fallback to sched-idle CPU in absence of idle CPUs](https://lore.kernel.org/patchwork/cover/1094197) 合入之后, SCHED_NORMAL 的时延已经很低, 其实可以理解为在 SCHED_NORMAL(CFS) 下面又添加了一层时延不敏感的离线任务, 只不过不是使用新增调度类的方式. 而是借助了 CFS 的框架和策略实现.
 
 
+- 历史上昙花一现的调度算法 ARTiS
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2005/05/03 | Eric Piel <Eric.Piel@lifl.fr> | [ARTiS, an asymmetric real-time scheduler](https://lore.kernel.org/all/42778532.7090806@lifl.fr) | 427785A3.2050601@lifl.fr | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/42778532.7090806@lifl.fr) |
+
+
 ## 1.5 调度类的一些其他优化点
 -------
 

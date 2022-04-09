@@ -41,6 +41,13 @@ blogexcerpt: Intel CPU 微架构的演进与发展
 
 参见 [CPU 流水线的前世今生](https://kernel.blog.csdn.net/article/details/121461313)
 
+[Intel 所有 Microarchitectures 一览](https://en.wikichip.org/wiki/intel/microarchitectures)
+
+[维基百科-Intel 所有 Microarchitectures 一览](https://en.wikipedia.org/wiki/List_of_Intel_CPU_microarchitectures)
+
+[Intel 各 Family/Model 对应的微架构和 CPU 一览](https://en.wikichip.org/wiki/intel/cpuid)
+
+
 # 2 Tick-Tock 战略
 -------
 
