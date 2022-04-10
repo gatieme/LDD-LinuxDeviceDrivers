@@ -147,7 +147,8 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/10/05 | David Hildenbrand <david@redhat.com> | [proc/vmcore: sanitize access to virtio-mem memory](https://patchwork.kernel.org/project/linux-mm/cover/20211005121430.30136-1-david@redhat.com) | NA | v2 ☑ 4.19-rc1 | [PatchWork v2,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20211005121430.30136-1-david@redhat.com) |
-| 2021/11/11 | Chao Peng <chao.p.peng@linux.intel.com> | [KVM: mm: fd-based approach for supporting KVM guest private memory](https://patchwork.kernel.org/project/linux-mm/cover/20211111141352.26311-1-chao.p.peng@linux.intel.com) | NA | RFC ☐ | [PatchWork RFC,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211111141352.26311-1-chao.p.peng@linux.intel.com) |
+| 2021/11/11 | Chao Peng <chao.p.peng@linux.intel.com> | [KVM: mm: fd-based approach for supporting KVM guest private memory](https://patchwork.kernel.org/project/linux-mm/cover/20211111141352.26311-1-chao.p.peng@linux.intel.com) | [Private memory for KVM guests
+](https://lwn.net/Articles/890224) | RFC ☐ | [LORE RFC,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211111141352.26311-1-chao.p.peng@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,00/13](https://lore.kernel.org/lkml/20220310140911.50924-1-chao.p.peng@linux.intel.com) |
 
 
 
