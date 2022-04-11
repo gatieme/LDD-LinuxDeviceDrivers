@@ -2382,15 +2382,46 @@ Xen 的 CPU 调度算法主要有 3 种: BVT(borrowed virtual time)调度算法�
 
 "Google Fibers" 是一个用户空间调度框架, 在谷歌广泛使用并成功地用于改善进程内工作负载隔离和响应延迟. 我们正在开发这个框架, UMCG(用户管理并发组)内核补丁是这个框架的基础.
 
+#### 11.2.1.1 Directly Switch To
+-------
 
 [FUTEX_SWAP补丁分析-SwitchTo 如何大幅度提升切换性能？](https://mp.weixin.qq.com/s/dDg5WKb8vqo5WfArAuav9Q)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/08/03 | Peter Oskolkov <posk@google.com>/<posk@posk.io> | [FUTEX_SWAP](https://lore.kernel.org/patchwork/cover/1433967) | 通过对 futex 的魔改, 使得在用户态使用 switch_to() 指定任务切换的能力. 这就是用户模式线程的用途: 极低的切换开销, 意味着我们操作系统可以支持的数以千计的线程可以提高到 10 倍以上甚至百万级别. | [2020/06/15 PatchWork RFC,0/3](https://lore.kernel.org/patchwork/cover/1256264)<br>*-*-*-*-*-*-*-* <br>[2020/06/16 PatchWork RFC,0/3,v2](https://lore.kernel.org/patchwork/cover/1257233)<br>*-*-*-*-*-*-*-* <br>[2021/07/16 PatchWork RFC,0/3,v3](https://lore.kernel.org/patchwork/cover/1263506)<br>*-*-*-*-*-*-*-* <br>[2020/08/03 PatchWork for,5.9,v2,0/4](https://lore.kernel.org/patchwork/cover/1283798) |
-| 2021/12/14 | Peter Oskolkov <posk@google.com>/<posk@posk.io> | [sched,mm,x86/uaccess: implement User Managed Concurrency Groups](https://lore.kernel.org/patchwork/cover/1433967) | UMCG (User-Managed Concurrency Groups)  | [PatchWork RFC,v0.1,0/9](https://lore.kernel.org/patchwork/cover/1433967)<br>*-*-*-*-*-*-*-* <br>[2021/07/08 PatchWork RFC,0/3,v0.2](https://lore.kernel.org/patchwork/cover/1455166)<br>*-*-*-*-*-*-*-* <br>[2021/07/16 PatchWork RFC,0/4,v0.3](https://lore.kernel.org/patchwork/cover/1461708)<br>*-*-*-*-*-*-*-* <br>[2021/08/01 PatchWork 0/4,v0.4](https://lore.kernel.org/patchwork/cover/1470650)<br>*-*-*-*-*-*-*-* <br>[2021/08/01 LWN 0/4,v0.5](https://lore.kernel.org/patchwork/cover/1470650)<br>*-*-*-*-*-*-*-* <br>[2021/10/12 PatchWork v0.7,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20211012232522.714898-1-posk@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/04 PatchWork v0.8,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211104195804.83240-1-posk@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/21 PatchWork v0.9,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211121212040.8649-1-posk@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/23 PatchWork v0.9.1,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211122211327.5931-1-posk@google.com) |
-| 2016/02/19 | Paul Gortmaker <paul.gortmaker@windriver.com> | [sched: User Managed Concurrency Groups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=abedf8e2419fb873d919dd74de2e84b510259339) | 引入 hugetlb cgroup | v9 ☑ 4.6-rc1 | [PatchWork RFC,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211214204445.665580974@infradead.org)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20220120155517.066795336@infradead.org) |
+
+### 11.2.1.2 ghOSt
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/09/08 | Peter Oskolkov <posk@google.com>/<posk@posk.io> | [google ghOSt](https://github.com/google/ghost-kernel) | ghOSt 是在 Linux 内核上实现的用户态调度策略的通用代理. ghOSt 框架提供了一个丰富的 API, 该 API 从用户空间接收进程的调度决策, 并将其作为事务执行. 程序员可以使用任何语言或工具来开发策略, 这些策略可以在不重新启动机器的情况下升级. ghOSt 支持一系列调度目标的策略, 从 µs 级延迟到吞吐量, 再到能源效率, 等等, 并且调度操作的开销较低. 许多策略只是几百行代码. 总之, ghOSt 提供了一个性能框架, 用于将线程调度策略委托给用户空间进程, 从而实现策略优化、无中断升级和故障隔离. | [github kernel](https://github.com/google/ghost-kernel)<br>*-*-*-*-*-*-*-* <br>[github userspace](https://github.com/google/ghost-userspace) |
+
+
+### 11.2.1.3 UMCG
+-------
+
+2021 年, Google 宣布开源他们的 Fibers 用户空间调度框架的计划, 并向 Linux Kernel 社区发送了 UMCG 的内核补丁集合. [LWN: UMCG(User-managed concurrency groups)](https://lwn.net/Articles/879398) 用户并发进程组是一组用户态调度框架, 它提供了一个 M:N 线程子系统和工具集合 ToolKit, 允许开发人员实现进程内用户空间调度程序. 其思想来源于 1992 年的论文 [Scheduler activations: effective kernel support for the user-level management of parallelism](https://dl.acm.org/doi/abs/10.1145/146941.146944). 参见 [Google Continues Work On User-Managed Concurrency Groups For Linux](https://www.phoronix.com/scan.php?page=news_item&px=Google-UMCG-Linux-v0.7).
+
+UMCG 要求多线程应用程序将自己划分为"服务线程 Server"和"工作线程 Worker", 其中系统上的每个 CPU 可能有一个服务线程 Server. 服务线程 Server 做出调度决策, 而工作人员根据这些决策运行并完成实际工作. UMCG 的优势在于, 调度可以快速发生, 并且内核的开销很小.
+
+据 Google 公开资料透露, UMCG 在 Google 用于 2 个场景: 安全沙箱和用户空间调度(比如协程框架等). 参见 [Google Makes New Attempt At "UMCG" As Part Of Their Open-Sourcing Effort Around Fibers](https://www.phoronix.com/scan.php?page=news_item&px=Google-UMCG-0.2-Fibers) 以及 [Google Working On Open-Sourcing Their Fibers User-Space Scheduling Framework](https://www.phoronix.com/scan.php?page=news_item&px=Google-Fibers-Toward-Open).
+
+| 使用场景 | 描述 | 解决问题 |
+|:-------:|:---:|:-------:|
+| 安全沙箱 | 快速的 X-process 上下文切换将为更多用例打开一堆轻量级的安全工具, 例如 gVisor 或 Tor Project 的 Shadow 模拟器. | NA |
+| 用户态调度 | Google 广泛使用进程内用户空间调度, 为各种工作负载提供延迟控制和隔离保证, 同时保持高 CPU 利用率. | 1. 使用协程等, 可以很好的处理用户态 wait 等语义, 但是如果协程实际的载体进程/线程因为系统调用或者 IO 等阻塞, 协程库无法及时感知, 从而造成其他协程也不能执行. 通过 UMCG 提供的 upcall 机制, 可以在协程的执行线程 Worker 阻塞后, 通过 UMCG Server 拉起新的执行线程 Worker 来执行.<br>2. 此外可以把 Worker 的调度策略也放到用户态, 每次协程甚至是 Worker 的 PICK NEXT, 都可以交给用户态调度策略来完成. |
+
+Google 的 Peter Oskolkov 发布了[最早的 RFC v0.1 补丁](https://lore.kernel.org/lkml/20210520183614.1227046-1-posk@google.com), 并持续工作到 [v0.9.1](https://lore.kernel.org/lkml/20211122211327.5931-1-posk@google.com). 但是社区对此特性一直没有达成一致意见.
+
+随后, Peter Zijlstra 对 UMCG 进行了重新设计 [UMCG RFC,0/3](https://lwn.net/ml/linux-kernel/20211214204445.665580974@infradead.org), 参见 [社区讨论](https://lore.kernel.org/lkml/20211215222524.GH16608@worktop.programming.kicks-ass.net).
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/12/14 | Peter Oskolkov <posk@google.com>/<posk@posk.io> | [sched,mm,x86/uaccess: implement User Managed Concurrency Groups](https://lore.kernel.org/patchwork/cover/1433967) | UMCG (User-Managed Concurrency Groups)  | [PatchWork RFC,v0.1,0/9](https://lore.kernel.org/patchwork/cover/1433967)<br>*-*-*-*-*-*-*-* <br>[2021/07/08 PatchWork RFC,0/3,v0.2](https://lore.kernel.org/patchwork/cover/1455166)<br>*-*-*-*-*-*-*-* <br>[2021/07/16 PatchWork RFC,0/4,v0.3](https://lore.kernel.org/patchwork/cover/1461708)<br>*-*-*-*-*-*-*-* <br>[2021/08/01 PatchWork 0/4,v0.4](https://lore.kernel.org/patchwork/cover/1470650)<br>*-*-*-*-*-*-*-* <br>[2021/08/01 LWN 0/4,v0.5](https://lore.kernel.org/patchwork/cover/1470650)<br>*-*-*-*-*-*-*-* <br>[2021/10/12 PatchWork v0.7,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20211012232522.714898-1-posk@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/04 PatchWork v0.8,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211104195804.83240-1-posk@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/21 PatchWork v0.9,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211121212040.8649-1-posk@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/11/23 PatchWork v0.9.1,0/6](https://patchwork.kernel.org/project/linux-mm/cover/20211122211327.5931-1-posk@google.com) |
+| 2022/01/20 | Paul Gortmaker <paul.gortmaker@windriver.com> | [sched: User Managed Concurrency Groups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=abedf8e2419fb873d919dd74de2e84b510259339) | Peter Zijlstra 对 UMCG 的重新实现. | v9 ☑ 4.6-rc1 | [PatchWork RFC,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211214204445.665580974@infradead.org)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20220120155517.066795336@infradead.org) |
 
 
 ### 11.2.2 Scheduler BPF
@@ -2418,6 +2449,9 @@ BPF 钩子(它已经成功地用于各种内核子系统)为外部代码(安全�
 
 
 *   Facebook 的尝试
+
+[当 BPF 邂逅 CPU 调度器](https://www.ebpf.top/post/cfs_scheduler_bpf)
+
 
 Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论, 它提交的 patchset 旨在为调度器提供一些非常基本的 BPF 基础设施, 以便向调度器添加新的 BPF钩子、一组最小的有用助手以及相应的 libbpf 更改等等. 他们在 CFS 中使用 BPF 的第一次实验看起来非常有希望. 虽然还处于非常早期的阶段, 但在 Facebook 的主网页工作量已经获得了不错的延迟和约 1% 的 RPS. 参见 [LWN: Controlling the CPU scheduler with BPF](https://lwn.net/Articles/873244), 以及 [Early Patches Bring BPF To The Linux Scheduler](https://www.phoronix.com/scan.php?page=news_item&px=Linux-BPF-Scheduler).
 

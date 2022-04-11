@@ -161,6 +161,7 @@ raw_tracepoint 相比 tracepoint
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/08/26 | Kumar Kartikeya Dwivedi <memxor@gmail.com> | [Implement file local storage](https://patchwork.kernel.org/project/netdevbpf/cover/20210826133913.627361-1-memxor@gmail.com/) | 本系列实现了 eBPF LSM 程序的文件本地存储映射. 这允许将映射中数据的生存期与打开的文件描述联系起来. 与其他本地存储映射类型一样, 数据的生存期与结构文件实例相关联. 主要用途是:<br>1. 用于将与 eBPF 程序中打开的文件(而非 fd)关联的数据绑定在一起, 以便在文件消失时释放数据(例如, 检查点checkpoint/恢复用例restore usecase).<br>2. 使用eBPF LSM 在用户空间中实现[辣椒(Capsicum)风格的功能沙盒](https://www.usenix.org/legacy/event/sec10/tech/full_papers/Watson), 使用此机制在文件级别强制执行权限. | v2 ☐ | [PatchWork bpf-next,v2,0/5](https://patchwork.kernel.org/project/netdevbpf/cover/20210826133913.627361-1-memxor@gmail.com) |
+| 2022/04/08 | Song Liu <song@kernel.org> | [vmalloc: bpf: introduce VM_ALLOW_HUGE_VMAP](https://patchwork.kernel.org/project/linux-mm/cover/20220408223443.3303509-1-song@kernel.org/) | 630581 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20220408223443.3303509-1-song@kernel.org) |
 
 
 
