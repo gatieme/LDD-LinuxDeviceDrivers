@@ -495,85 +495,11 @@ MADV_PAGEOUT 在某种程度上类似于 MADV_DONTNEED, 它提示内核当前不
 | 2022/01/26 | Pasha Tatashin <pasha.tatashin@soleen.com> | [Hardening page _refcount](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com) | 目前很难从根本上解决 `_refcount` 问题, 因为它们通常在损坏发生后才会显现出来. 然而, 它们可能导致灾难性的故障, 如内存损坏.<br>通过添加更多的检查来提高可调试性, 确保 `page->_refcount` 永远不会变成负数(例如, 双空闲不发生, 或冻结后空闲等).<br>1. 增加了对 `_refcount` 异常值的检测.<br>2. 删除了 set_page_count(), 这样就不会无条件地用不受限制的值覆盖 `_refcount` | RFC,0/8 ☐ | [PatchWork RFC,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211117012059.141450-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20211221150140.988298-1-pasha.tatashin@soleen.com), [LORE v2,0/9](https://lore.kernel.org/all/20211221154650.1047963-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/9](https://lore.kernel.org/r/20220126183429.1840447-1-pasha.tatashin@soleen.com) |
 | 2022/03/17 | Tong Tiangen <tongtiangen@huawei.com> | [mm: page_table_check: add support on arm64 and riscv](https://patchwork.kernel.org/project/linux-mm/cover/20220317141203.3646253-1-tongtiangen@huawei.com) | 页面表检查通过将新页面的页面表条目(PTE, PMD 等)添加到表中, 在用户空间访问新页面时执行额外的验证 X86 支持它.<br>这个补丁集做了一些简单的更改, 使其更容易支持新的体系结构, 然后我们在 ARM64 和 RICV 上支持这个功能. | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20220317141203.3646253-1-tongtiangen@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20220322144447.3563146-1-tongtiangen@huawei.com) |
 
-
-### 1.7.4 安全
--------
-
-#### 1.7.4.1 PKS
--------
-
-页表是许多类型保护的基础, 因此是攻击者的攻击目标. 将它们映射为只读将使它们更难在攻击中使用. 内核开发者提出了通过 PKS 来对内核页表进行写保护. 这可以防止攻击者获得写入页表的能力. 这并不是万无一失的. 因为能够执行任意代码的攻击者可以直接禁用 PKS. 或者简单地调用内核用于合法页表写入的相同函数.
-
-[PKS](https://lore.kernel.org/lkml/20210401225833.566238-1-ira.weiny@intel.com) 是即将推出的 CPU 功能, 它允许在不刷新 TLB 的情况下更改监控器虚拟内存权限, 就像 PKU 对用户内存所做的那样. 保护页表通常会非常昂贵, 因为您必须通过分页本身来实现. PKS 提供了一种切换页面表可写性的方法, 这只需要 MSR 操作即可完成.
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/09/04 | Rick Edgecombe <rick.p.edgecombe@intel.com> | [arm64: Memory Tagging Extension user-space support](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) | 使用 [PKS(Protection Keys for Supervisor)]() 对页表进行写保护. 其基本思想是使页表成为只读的, 除非在需要修改页表时临时基于每个 cpu 来修改. | v1  ☐ | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) |
-
-#### 1.7.4.2 内存标签扩展(Arm v8.5 memory tagging extension-MTE)
--------
-
-[MTE技术在Android上的应用](https://zhuanlan.zhihu.com/p/353807709)
-
-[Memory Tagging Extension (MTE) 简介(一)](https://blog.csdn.net/weixin_47569031/article/details/114694733)
-
-[LWN: Arm64的内存标记扩展功能！](https://blog.csdn.net/Linux_Everything/article/details/109396397)
-
-
-MTE(Memory Tag) 是 ARMV8.5 增加一个硬件特性, 主要用于内存安全. 通过硬件 Arch64 MTE 和 compiler 辅助, 可以增加 64bit 进程的内存安全.
-
-MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内存和密钥上设置锁. 如果钥匙与锁匹配, 则允许进入. 如果不匹配, 则报告错误. 通俗讲就是为每个分配内存都打上一个 TAG(可以认为是访问内存的密钥或者键值), 当通过指针地址访问内存的时候, 硬件会比较指针里面的 TAG 与实际内存 TAG 是否匹配, 如果不匹配则检测出错误.
-
-
-通过在物理内存的每个 16 字节中添加 4 位元数据来标记内存位置. 这是标签颗粒. 标记内存实现了锁. 指针和虚拟地址都被修改为包含键. 为了实现关键位而不需要更大的指针, MTE 使用了 ARMv8-A 体系结构的 Top Byte Ignore (TBI) 特性. 当启用 TBI 时, 当将虚拟地址作为地址转换的输入时, 虚拟地址的上字节将被忽略.
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/09/04 | Catalin Marinas <catalin.marinas@arm.com> | [arm64: Memory Tagging Extension user-space support](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) | NA | v9 ☑ 5.10-rc1 | [2019/12/11 PatchWork 00/22](https://patchwork.kernel.org/project/linux-mm/cover/20191211184027.20130-1-catalin.marinas@arm.com)<br>*-*-*-*-*-*-*-* <br>[2020/09/04 PatchWork v9,00/29](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) |
-
-#### 1.7.4.4 Linear Address Masking
--------
-
-代码参见
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/02/05 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [Linear Address Masking enabling](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com) | [线性地址屏蔽(LAM)](https://software.intel.com/content/dam/develop/external/us/en/documents-tps/architecture-instruction-set-extensions-programming-reference.pdf) 修改应用于 64 位线性地址的检查, 允许软件将未翻译的地址位用于元数据. 手册参见 [ISE, Chapter 14](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com). 代码参见 [kas/linux.git](https://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git/log/?h=lam). | RFC ☐ | [PatchWork RFC,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com) |
-
-
-## 1.8 memory policy
--------
-
-NUMA 系统中 CPU 访问不同节点的内存速度很有大的差别. 位于本地 NUMA 节点(或附近节点)上的内存比远程节点上的内存访问速度更快. 因此如果能通过策略去控制优先在哪些节点上内存分配, 能有效地提升业务的性能.
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/08/03 | Feng Tang <feng.tang@intel.com> | [Introduce multi-preference mempolicy](https://lore.kernel.org/patchwork/patch/1471473) | 参见 LWN 报道 [NUMA policy and memory types](https://lwn.net/Articles/862707).<br>引入 MPOL_PREFERRED_MANY 的 policy, 该 mempolicy 模式可用于 set_mempolicy 或 mbind 接口.<br>1. 与 MPOL_PREFERRED 模式一样, 它允许应用程序为满足内存分配请求的节点设置首选项. 但是与 MPOL_PREFERRED 模式不同, 它需要一组节点.<br>2. 与 MPOL_BIND 接口一样, 它在一组节点上工作, 与 MPOL_BIND 不同, 如果首选节点不可用, 它不会导致 SIGSEGV 或调用 OOM killer. | v7 ☑ 5.15-rc1 | [PatchWork v7,0/5](https://patchwork.kernel.org/project/linux-mm/cover/1627970362-61305-1-git-send-email-feng.tang@intel.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/tools/perf/builtin-record.c?id=a38a59fdfa10be55d08e4530923d950e739ac6a2) |
-| 2021/11/01 | "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com> | [mm: add new syscall set_mempolicy_home_node](https://patchwork.kernel.org/project/linux-mm/cover/20211101050206.549050-1-aneesh.kumar@linux.ibm.com) | 增加了 set_mempolicy_home_node() 来为用户空间的一段地址 [start, srart + len] 指定内存分配的主节点 home_node. 主节点 home_node 应与 MPOL_PREFERRED_MANY 或 MPOL_BIND 内存分配策略结合使用. 这些策略可以指定一组将用于新内存分配的节点, 但不能说明这些节点中的哪个节点(如果有)是首选节点. 如果设置了 home_node, 则分配内存时将优先在该节点上进行分配; 否则, 主节点 home_node 内存不足, 则将回退到有效策略允许的其他节点上分配, 首选最接近主节点的节点. 其目的是让应用程序能够更好地控制内存分配, 同时避免来自慢速节点的内存. 参见 LWN 报道 [Some upcoming memory-management patches](https://lwn.net/Articles/875587). | v1 ☐ | [PatchWork v4,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211101050206.549050-1-aneesh.kumar@linux.ibm.com) |
-
-
-
-
-## 1.9 page attributes
--------
-
-## 1.9.1 CPA(Change Page Attribute)
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2018/09/17 | Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com> | [x86/mm/cpa: Improve large page preservation handling](https://lore.kernel.org/patchwork/patch/987147) | 优化 页面属性(CPA) 代码中的 try_preserve_large_page(), 降低 CPU 消耗. | v3 ☑ 4.20-rc1 | [PatchWork RFC v3](https://lore.kernel.org/patchwork/patch/987147) |
-
-
-
-
-## 1.10 Local Page Tables
+### 1.7.4 Local Page Tables
 -------
 
 
-## 1.10.1 [Mitosis: Transparently Replicating Page Tables](https://research.vmware.com/projects/mitosis-transparently-self-replicating-page-tables)
+#### 1.7.4.1 [Mitosis: Transparently Replicating Page Tables](https://research.vmware.com/projects/mitosis-transparently-self-replicating-page-tables)
 -------
 
 传统的 NUMA Balacning 当前策略只涉及: Memory Migration(将进程的私有内存迁移到进程所在的 NUMA Node 上) 和 Task Placement(将进程迁移到其频繁访问的内存所在的 NUMA Node 上). 但是页表本身也是在内存中存储的, 迁移的过程中, 并没有考虑对页表进行迁移, 因此页表可能在远端节点上. 这样如果 TLB 都是 Hint 的, 倒是影响不太大, 但是如果存在大量的 TLB Miss, 那么每次 Page Table Walk 都不得不去访问访问远端的页表.
@@ -595,6 +521,87 @@ github 地址: [Mitosis Project](https://github.com/mitosis-project), [linux 内
 | 2019 | [Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines; October, 2019; 1910.05398.pdf](https://research.vmware.com/files/attachments/0/0/0/0/0/9/5/1910.05398.pdf) |
 | 2020 | [Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines; March, 2020; aspl0359a-achermanna.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/0/3/aspl0359a-achermanna.pdf) |
 | 2021 | [Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; asplos21_vmitosis.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/8/asplos21_vmitosis.pdf)<br>[Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; vmitosis_ext_abstract.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/1/vmitosis_ext_abstract.pdf) |
+
+
+### 1.7.5 Shared Page Table
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/01/18 | Khalid Aziz <khalid.aziz@oracle.com> | [Add support for shared PTEs across processes](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com) | 内核中的页表会消耗一些内存, 只要要维护的映射数量足够小, 那么页表所消耗的空间是可以接受的. 当进程之间共享的内存页很少时, 要维护的页表条目(PTE)的数量主要受到系统中内存页的数量的限制. 但是随着共享页面的数量和共享页面的次数的增加, 页表所消耗的内存数量开始变得非常大.<br>比如在一些实际业务中, 通常会看到非常多的进程共享内存页面. 在 x86_64 上, 每个页面页面在每个进程空间都需要占用一个只有 8Byte 大小的 PTE, 共享此页面的进程数目越多, 占用的内存会非常的大. 如果这些 PTE 可以共享, 那么节省的内存数量将非常可观.<br>这组补丁在内核中实现一种机制, 允许用户空间进程选择共享 PTE. 一个进程可以通过 通过 mshare() 和 mshare_unlink() syscall 来创建一个 mshare 区域(mshare'd region), 这个区域可以被其他进程使用共享 PTE 映射相同的页面. 其他进程可以通过 mashare() 使用共享 PTE 将共享页面映射到它们的地址空间. 然后还可以通过 mshare_unlink() syscall 来结束对共享页面的访问. 当最后一个访问 mshare'd region 的进程调用 mshare_unlink() 时, mshare'd region就会被销毁, 所使用的内存也会被释放. | v1 ☐ | [LKML RFC,0/6](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/14](https://lore.kernel.org/all/cover.1649370874.git.khalid.aziz@oracle.com) |
+
+## 1.8 安全
+-------
+
+### 1.8.1 PKS
+-------
+
+页表是许多类型保护的基础, 因此是攻击者的攻击目标. 将它们映射为只读将使它们更难在攻击中使用. 内核开发者提出了通过 PKS 来对内核页表进行写保护. 这可以防止攻击者获得写入页表的能力. 这并不是万无一失的. 因为能够执行任意代码的攻击者可以直接禁用 PKS. 或者简单地调用内核用于合法页表写入的相同函数.
+
+[PKS](https://lore.kernel.org/lkml/20210401225833.566238-1-ira.weiny@intel.com) 是即将推出的 CPU 功能, 它允许在不刷新 TLB 的情况下更改监控器虚拟内存权限, 就像 PKU 对用户内存所做的那样. 保护页表通常会非常昂贵, 因为您必须通过分页本身来实现. PKS 提供了一种切换页面表可写性的方法, 这只需要 MSR 操作即可完成.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/09/04 | Rick Edgecombe <rick.p.edgecombe@intel.com> | [arm64: Memory Tagging Extension user-space support](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) | 使用 [PKS(Protection Keys for Supervisor)]() 对页表进行写保护. 其基本思想是使页表成为只读的, 除非在需要修改页表时临时基于每个 cpu 来修改. | v1  ☐ | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) |
+
+#### 1.8.2 内存标签扩展(Arm v8.5 memory tagging extension-MTE)
+-------
+
+[MTE技术在Android上的应用](https://zhuanlan.zhihu.com/p/353807709)
+
+[Memory Tagging Extension (MTE) 简介(一)](https://blog.csdn.net/weixin_47569031/article/details/114694733)
+
+[LWN: Arm64的内存标记扩展功能！](https://blog.csdn.net/Linux_Everything/article/details/109396397)
+
+
+MTE(Memory Tag) 是 ARMV8.5 增加一个硬件特性, 主要用于内存安全. 通过硬件 Arch64 MTE 和 compiler 辅助, 可以增加 64bit 进程的内存安全.
+
+MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内存和密钥上设置锁. 如果钥匙与锁匹配, 则允许进入. 如果不匹配, 则报告错误. 通俗讲就是为每个分配内存都打上一个 TAG(可以认为是访问内存的密钥或者键值), 当通过指针地址访问内存的时候, 硬件会比较指针里面的 TAG 与实际内存 TAG 是否匹配, 如果不匹配则检测出错误.
+
+
+通过在物理内存的每个 16 字节中添加 4 位元数据来标记内存位置. 这是标签颗粒. 标记内存实现了锁. 指针和虚拟地址都被修改为包含键. 为了实现关键位而不需要更大的指针, MTE 使用了 ARMv8-A 体系结构的 Top Byte Ignore (TBI) 特性. 当启用 TBI 时, 当将虚拟地址作为地址转换的输入时, 虚拟地址的上字节将被忽略.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/09/04 | Catalin Marinas <catalin.marinas@arm.com> | [arm64: Memory Tagging Extension user-space support](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) | NA | v9 ☑ 5.10-rc1 | [2019/12/11 PatchWork 00/22](https://patchwork.kernel.org/project/linux-mm/cover/20191211184027.20130-1-catalin.marinas@arm.com)<br>*-*-*-*-*-*-*-* <br>[2020/09/04 PatchWork v9,00/29](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) |
+
+#### 1.8.3 Linear Address Masking
+-------
+
+代码参见
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/02/05 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [Linear Address Masking enabling](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com) | [线性地址屏蔽(LAM)](https://software.intel.com/content/dam/develop/external/us/en/documents-tps/architecture-instruction-set-extensions-programming-reference.pdf) 修改应用于 64 位线性地址的检查, 允许软件将未翻译的地址位用于元数据. 手册参见 [ISE, Chapter 14](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com). 代码参见 [kas/linux.git](https://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git/log/?h=lam). | RFC ☐ | [PatchWork RFC,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com) |
+
+
+## 1.9 memory policy
+-------
+
+NUMA 系统中 CPU 访问不同节点的内存速度很有大的差别. 位于本地 NUMA 节点(或附近节点)上的内存比远程节点上的内存访问速度更快. 因此如果能通过策略去控制优先在哪些节点上内存分配, 能有效地提升业务的性能.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/03 | Feng Tang <feng.tang@intel.com> | [Introduce multi-preference mempolicy](https://lore.kernel.org/patchwork/patch/1471473) | 参见 LWN 报道 [NUMA policy and memory types](https://lwn.net/Articles/862707).<br>引入 MPOL_PREFERRED_MANY 的 policy, 该 mempolicy 模式可用于 set_mempolicy 或 mbind 接口.<br>1. 与 MPOL_PREFERRED 模式一样, 它允许应用程序为满足内存分配请求的节点设置首选项. 但是与 MPOL_PREFERRED 模式不同, 它需要一组节点.<br>2. 与 MPOL_BIND 接口一样, 它在一组节点上工作, 与 MPOL_BIND 不同, 如果首选节点不可用, 它不会导致 SIGSEGV 或调用 OOM killer. | v7 ☑ 5.15-rc1 | [PatchWork v7,0/5](https://patchwork.kernel.org/project/linux-mm/cover/1627970362-61305-1-git-send-email-feng.tang@intel.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/tools/perf/builtin-record.c?id=a38a59fdfa10be55d08e4530923d950e739ac6a2) |
+| 2021/11/01 | "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com> | [mm: add new syscall set_mempolicy_home_node](https://patchwork.kernel.org/project/linux-mm/cover/20211101050206.549050-1-aneesh.kumar@linux.ibm.com) | 增加了 set_mempolicy_home_node() 来为用户空间的一段地址 [start, srart + len] 指定内存分配的主节点 home_node. 主节点 home_node 应与 MPOL_PREFERRED_MANY 或 MPOL_BIND 内存分配策略结合使用. 这些策略可以指定一组将用于新内存分配的节点, 但不能说明这些节点中的哪个节点(如果有)是首选节点. 如果设置了 home_node, 则分配内存时将优先在该节点上进行分配; 否则, 主节点 home_node 内存不足, 则将回退到有效策略允许的其他节点上分配, 首选最接近主节点的节点. 其目的是让应用程序能够更好地控制内存分配, 同时避免来自慢速节点的内存. 参见 LWN 报道 [Some upcoming memory-management patches](https://lwn.net/Articles/875587). | v1 ☐ | [PatchWork v4,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211101050206.549050-1-aneesh.kumar@linux.ibm.com) |
+
+
+
+
+## 1.10 page attributes
+-------
+
+## 1.10.1 CPA(Change Page Attribute)
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/09/17 | Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com> | [x86/mm/cpa: Improve large page preservation handling](https://lore.kernel.org/patchwork/patch/987147) | 优化 页面属性(CPA) 代码中的 try_preserve_large_page(), 降低 CPU 消耗. | v3 ☑ 4.20-rc1 | [PatchWork RFC v3](https://lore.kernel.org/patchwork/patch/987147) |
+
+
+
 
 ## 1.11 其他页面页表相关
 -------
@@ -1678,6 +1685,8 @@ vmalloc_to_page 则提供了通过 vmalloc 地址查找到对应 page 的操作.
 | 2021/03/17 | Nicholas Piggin <npiggin@gmail.com> | [huge vmalloc mappings](https://lore.kernel.org/patchwork/patch/1397495) | 支持大页面 vmalloc 映射. 配置选项 HAVE_ARCH_HUGE_VMALLOC 支持定义 HAVE_ARCH_HUGE_VMAP 的架构, 并支持 PMD 大小的 vmap 映射. 如果分配 PMD 大小或更大的页面, vmalloc 将尝试分配 PMD 大小的页面, 如果不成功, 则返回到小页面. 架构必须确保任何需要 PAGE_SIZE 映射的 arch 特定的 vmalloc 分配(例如, 模块分配与严格的模块rwx) 使用 VM_NOHUGE 标志来禁止更大的映射. 对于给定的分配, 这可能导致更多的内部碎片和内存开销, nohugevmalloc 选项在引导时被禁用. | v13 ☑ [5.13-rc1](https://kernelnewbies.org/Linux_5.13#Memory_management) | [PatchWork v13,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210317062402.533919-1-npiggin@gmail.com) |
 | 2021/05/12 | Christophe Leroy <christophe.leroy@csgroup.eu> | [Implement huge VMAP and VMALLOC on powerpc 8xx](https://lore.kernel.org/patchwork/patch/1425630) | 本系列在 powerpc 8xx 上实现了大型 VMAP 和 VMALLOC. Powerpc 8xx 有 4 个页面大小: 4k, 16k, 512k, 8M. 目前, vmalloc() 和 vmap() 只支持 PMD 级别的大页. 这里的 PMD 级别是 4M, 它不对应于任何受支持的页面大小. 现在, 实现 16k 和 512k 页的使用, 这是在PTE级别上完成的. 对 8M 页面的支持将在以后实现, 这需要使用 gepd表. 为了实现这一点, 该体系结构提供了两个功能: <br>1. arch_vmap_pte_range_map_size() 告诉 vmap_pte_range() 使用什么页面大小. <br>2. arch_vmap_pte_supported_shift() 告诉 `__vmalloc_node_range()` 对于给定的区域大小使用什么分页移位.<br>当体系结构不提供这些函数时, 将返回PAGE_SHIFT. | v2 ☑ 5.14-rc1 | [PatchWork v2,0/5](https://lore.kernel.org/patchwork/patch/1425630) |
 | 2021/12/26 | Kefeng Wang <wangkefeng.wang@huawei.com> | [mm: support huge vmalloc mapping on arm64/x86](https://patchwork.kernel.org/project/linux-mm/cover/20211226083912.166512-1-wangkefeng.wang@huawei.com) | NA | v1 ☐ | [PatchWork 0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211226083912.166512-1-wangkefeng.wang@huawei.com) |
+| 2022/04/11 | Song Liu <song@kernel.org> | [vmalloc: bpf: introduce VM_ALLOW_HUGE_VMAP](https://lore.kernel.org/all/20220411231808.667073-1-song@kernel.org) | 在 x86_64 上启用 HAVE_ARCH_HUGE_VMALLOC 并将其用于 bpf_prog_pack 会导致[一些问题](https://lore.kernel.org/lkml/20220204185742.271030-1-song@kernel.org), 因为许多 vmalloc 的用户还没有准备好处理巨大的页面. 为了能够更平稳地过渡到使用大页面支持的 vmalloc 内存, 这个集合将 VM_NO_HUGE_VMAP 标志替换为一个新的可选标志 VM_ALLOW_HUGE_VMAP. 更多[相关的讨论可以参照](https://lore.kernel.org/linux-mm/20220330225642.1163897-1-song@kernel.org).<br>1. 删除 VM_NO_HUGE_VMAP, 引入 VM_ALLOW_HUGE_VMAP 逻辑上更简洁.<br>2. 实现了 module_alloc_huge(), <br>3. 实现使用 bpf_prog_pack 中的 VM_ALLOW_HUGE_VMAP. | v2 ☐☑✓ | [LORE v2,0/3](https://lore.kernel.org/all/20220411231808.667073-1-song@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/r/20220413153340.326834-1-song@kernel.org) |
+
 
 #### 2.4.1.7 vmallocinfo
 -------
@@ -2130,9 +2139,11 @@ v3.6 [commit 7db8889ab05b ("mm: have order > 0 compaction start off where it lef
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2018/11/23 | Mel Gorman | [Fragmentation avoidance improvements v5](https://lore.kernel.org/patchwork/patch/1016503) | 伙伴系统页面分配时的反碎片化 | v5 ☑ 5.0-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/1016503) |
-| 2017/03/07 | Vlastimil Babka <vbabka@suse.cz> | [try to reduce fragmenting fallbacks](https://lore.kernel.org/patchwork/patch/766804) | 修复 [Regression in mobility grouping?](https://lkml.org/lkml/2016/9/28/94) 上报的碎片化问题, 通过修改 fallback 机制和 compaction 机制来减少永久随便化的可能性. 其中 fallback 修改时, 仅尝试从不同 migratetype 的 pageblock 中窃取的页面中挑选最小(但足够)的页面. | v3 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v6](https://lore.kernel.org/patchwork/patch/766804), [KernelNewbies](https://kernelnewbies.org/Linux_4.12#Memory_management), [关键 commit 3bc48f96cf11 ("mm, page_alloc: split least stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) |
+| 2005/05/03 | Mel Gorman <mel@csn.ul.ie> | [Avoiding external fragmentation with a placement policy Version 10](https://lore.kernel.org/all/20050503164452.A3AB9E592@skynet.csn.ul.ie) | 20050503164452.A3AB9E592@skynet.csn.ul.ie | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20050503164452.A3AB9E592@skynet.csn.ul.ie) |
+| 2005/05/11 | Wolfgang Wander <wwc@rentec.com> | [Avoiding mmap fragmentation (against 2.6.12-rc4) to](https://lore.kernel.org/all/17026.6227.225173.588629@gargle.gargle.HOWL) | 17026.6227.225173.588629@gargle.gargle.HOWL | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/17026.6227.225173.588629@gargle.gargle.HOWL) |
 | 2008/08/11 | Christoph Lameter <cl@linux-foundation.org> | [Slab Fragmentation Reduction V14](https://lore.kernel.org/patchwork/patch/125818) | SLAB 抗碎片化 | v14 ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/patch/90742)<br>*-*-*-*-*-*-*-* <br>[PatchWork v14](https://lore.kernel.org/patchwork/patch/125818) |
+| 2017/03/07 | Vlastimil Babka <vbabka@suse.cz> | [try to reduce fragmenting fallbacks](https://lore.kernel.org/patchwork/patch/766804) | 修复 [Regression in mobility grouping?](https://lkml.org/lkml/2016/9/28/94) 上报的碎片化问题, 通过修改 fallback 机制和 compaction 机制来减少永久随便化的可能性. 其中 fallback 修改时, 仅尝试从不同 migratetype 的 pageblock 中窃取的页面中挑选最小(但足够)的页面. | v3 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v6](https://lore.kernel.org/patchwork/patch/766804), [KernelNewbies](https://kernelnewbies.org/Linux_4.12#Memory_management), [关键 commit 3bc48f96cf11 ("mm, page_alloc: split least stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) |
+| 2018/11/23 | Mel Gorman | [Fragmentation avoidance improvements v5](https://lore.kernel.org/patchwork/patch/1016503) | 伙伴系统页面分配时的反碎片化 | v5 ☑ 5.0-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/1016503) |
 
 
 # 4 页面回收
@@ -2225,7 +2236,7 @@ v3.6 [commit 7db8889ab05b ("mm: have order > 0 compaction start off where it lef
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2005/06/21 | Martin Hicks <mort@sgi.com> | [VM: early zone reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=753ee728964e5afb80c17659cc6c3a6fd0a42fe0) | 实现了最初版本的 zone reclaim, 在 `__alloc_pages()` 的过程中, 如果水线不满足要求 !zone_watermark_ok(), 则通过 zone_reclaim() 尝试回收本地 zone 的内存. 引入了 set_zone_reclaim syscall, 用来开启和关闭 zone reclaim. | v1 ☑ 2.6.13-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=753ee728964e5afb80c17659cc6c3a6fd0a42fe0) |
+| 2005/06/21 | Martin Hicks <mort@sgi.com> | [VM: early zone reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1e7e5a9048b30c57ba1ddaa6cdf59b21b65cde99) | 实现了最初版本的 zone reclaim, 在 `__alloc_pages()` 的过程中, 如果水线不满足要求 !zone_watermark_ok(), 则通过 zone_reclaim() 尝试回收本地 zone 的内存. 引入了 set_zone_reclaim syscall, 用来开启和关闭 zone reclaim. | v1 ☑ 2.6.13-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=753ee728964e5afb80c17659cc6c3a6fd0a42fe0) |
 | 2005/08/01 | Mel Gorman <mel@csn.ul.ie> | [remove sys_set_zone_reclaim()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6cb54819d7b1867053e2dfd8c0ca3a8dc65a7eff) | 删除了 set_zone_reclaim syscall | v1 ☑ 2.6.13-rc5 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6cb54819d7b1867053e2dfd8c0ca3a8dc65a7eff) |
 | 2005/08/01 | Mel Gorman <mel@csn.ul.ie> | [kill last zone_reclaim() bits](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7756b9e4e321c3c83c7aa5b9532d3e7fd7ddeb4a) | 删除了 set_zone_reclaim syscall. | v1 ☑ 2.6.16-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7756b9e4e321c3c83c7aa5b9532d3e7fd7ddeb4a) |
 
@@ -4196,12 +4207,23 @@ huge page 最开始只支持 PMD 级别(基础页 4K, 则 PMD 级别为 2MB)的�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2010/08/10 | Naoya Horiguchi <n-horiguchi@ah.jp.nec.com> | [Hugepage migration](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=86cdb465cf3a9d81058b517af05074157fa9dcdd) | 实现 hugepage 迁移.<br>1. 将 hugepage 迁移函数与原始迁移代码分开, 这是为了避免复杂性.<br>2. 在当前版本中, 定义了一些高级迁移例程来处理 hugepage, 但同时一些基础的辅助函数与原始迁移代码共享, 以避免增加重复.<br>HWPOISION 的部分参见 [HWPOISON for hugepage](https://lwn.net/Articles/387568). | v2 ☑ 2.6.37 | [LORE v2,0/9](https://lore.kernel.org/lkml/1281432464-14833-1-git-send-email-n-horiguchi@ah.jp.nec.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=290408d4a25002f099efeee7b6a5778d431154d6) |
 | 2013/09/11 | Michal Hocko <mhocko@suse.com> | [extend hugepage migration](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=86cdb465cf3a9d81058b517af05074157fa9dcdd) | 一步扩展 Hugepage 迁移.<br> HugePage 迁移现在仅适用于软脱机 soft offlining(将半损坏页面上的数据移动到另一个页面以保存数据). 但是它对页面迁移的其他用户也很有用, 所以这个补丁集试图扩展一些这样的用户以支持 hugepage.<br>这个补丁集并没有在内存压缩中扩展页面迁移, 因为我认为内存压缩的用户主要希望通过安排原始页面来构建 thp, 但 hugepage 迁移并没有帮助.<br>页面迁移的另一个用户 CMA 可以从 hugepage 迁移中获益, 但现在还未支持它.<br>目前还没有启用 1GB Hugepage 的 Hugepage 迁移, 因为作者不确定 1GB Hugepage 的用户是否真的需要它. | v5 ☑ 3.12-rc1 | [LORE RFC,0/9](https://lore.kernel.org/lkml/1361475708-25991-1-git-send-email-n-horiguchi@ah.jp.nec.coms)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/8](https://lore.kernel.org/lkml/1374183272-10153-1-git-send-email-n-horiguchi@ah.jp.nec.com), [LKML v3,0/8](https://lkml.org/lkml/2013/7/18/542)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/8](https://lore.kernel.org/lkml/1374728103-17468-1-git-send-email-n-horiguchi@ah.jp.nec.com)<br>*-*-*-*-*-*-*-* <br>[LKML v5,0/8](https://lkml.org/lkml/2013/8/9/21)<br>*-*-*-*-*-*-*-* <br>[COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=86cdb465cf3a9d81058b517af05074157fa9dcdd) |
+| 2018/09/04 | "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com> | [mm/hugetlb: filter out hugetlb pages if HUGEPAGE migration is not](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=464c7ffbcb164b2e5cebfa406b7fc6cdb7945344) | TODO | v1 ☐☑✓ 4.19-rc3 | [LORE](http://lkml.kernel.org/r/20180824063314.21981-1-aneesh.kumar@linux.ibm.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=464c7ffbcb164b2e5cebfa406b7fc6cdb7945344) |
 
 
 ### 7.1.7 HugeTLB reserve & allocations
 -------
 
-#### 7.1.7.1 HugeTLB from ZONE_MOVABLE
+
+#### 7.1.7.1 分配 HugeTLB 的常规路径
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/10/07 | Michal Hocko <mhocko@kernel.org> | [mm, hugetlb: allow hugepage allocations to excessively reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3f36d8669457605910cb7a40089b485949569c41) | NA | v1 ☑✓ 5.4-rc4 | [LORE](https://lore.kernel.org/all/20191007075548.12456-1-mhocko@kernel.org) |
+
+
+#### 7.1.7.2 HugeTLB from ZONE_MOVABLE
 -------
 
 [commit 396faf0303d2 ("Allow huge page allocations to use GFP_HIGH_MOVABLE")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=396faf0303d273219db5d7eb4a2879ad977ed185) 允许在 ZONE_MOVABLE 上进行 hugetlb 的分配. HugeTLB 的页面通常是不能移动的, 所以不会从 ZONE_MOVABLE 中分配. 然而, 由于 ZONE_MOVABLE 区总是有可以迁移或回收的页面, 因此即使系统已经运行了很长时间, 它也有足够的连续内存可以用来满足大页的分配. 因此这允许管理员在运行时根据 ZONE_MOVABLE 的大小调整巨大页面池的大小.
@@ -4227,7 +4249,7 @@ hugepages_treat_as_movable 的目的是减少内存碎片, 而 hugetlb 页面的
 
 2. 在启动时预留的大页不能被释放. 只有在运行时分配的常规大页面不会有这些问题. 这是因为在 sysfs 中用于运行时分配的 HugeTLB 接口支持 NUMA, 运行时分配的页面可以通过好友分配器释放.
 
-#### 7.1.7.2 HugeTLB CMA(支持运行时分配大页)
+#### 7.1.7.3 HugeTLB CMA(支持运行时分配大页)
 -------
 
 HugeTLB 的分配和使用多数情况下是静态的. x86_64 支持 2M 和 1G 的巨页, 但是只有 2M 的巨页可以在运行时分配和释放. 如果想要分配 1G 的巨大页面, 在系统启动阶段通过命令行参数 `hugepagesz =` 和 `hugepages =` 来预留页面完成. 这是因为当前实现下, HugeTLB 子系统在运行时使用伙伴系统来分配器分配大页. 这意味着运行时的大页的大小被限制在 MAX_ORDER order. 对于支持巨页(即 gigantic pages, 页面大小大于 MAX_ORDER) 的对象, 这意味着不能在运行时分配这些页面.
@@ -4248,13 +4270,17 @@ HugeTLB 的分配和使用多数情况下是静态的. x86_64 支持 2M 和 1G �
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2014/06/04 | Luiz Capitulino <lcapitulino@redhat.com> | [hugetlb: add support gigantic page allocation at runtime](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=944d9fec8d7aee3f2e16573e9b6a16634b33f403) | 通过在 CMA 区域中分配 HugeTLB 来支持 HugeTLB 的运行时分配. | v1 ☑ 3.16-rc1 | [LORE v3,0/5](https://lore.kernel.org/lkml/1397152725-20990-1-git-send-email-lcapitulino@redhat.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=944d9fec8d7aee3f2e16573e9b6a16634b33f403) |
+| 2016/02/03 | Vlastimil Babka <vbabka@suse.cz> | [mm, hugetlb: don't require CMA for runtime gigantic pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=080fe2068e1c7f19f565b30b78baf78edf16a980) | commit 944d9fec8d7a ("hugetlb: hugetlb: add support for gigantic page allocation at runtime") 通过 alloc_contig_range() 支持了运行时巨页的分配, 但是这项支持仅在启用 CONFIG_CMA 时可用. 但是其实它不依赖于 MIGRATE_CMA 页面块和相关的基础设施, 只需要一些简单的调整就可以不依赖 CONFIG_CMA, 只需要 CONFIG_MEMORY_ISOLATION 而不是完全的 CONFIG_CMA.<br>在这个补丁之后, 只需要启用了 CONFIG_MEMORY_ISOLATION, alloc_contig_range() 就支持运行时分配巨页, 而无需在页面分配器快速路径中进行特定于 cma 的检查. 注意 CONFIG_CMA slect 了 CONFIG_MEMORY_ISOLATION. | v1 ☑✓ 4.5-rc3 | [LORE](https://lore.kernel.org/all/1454521811-11409-1-git-send-email-vbabka@suse.cz) |
+| 2019/03/27 | Alexandre Ghiti <alex@ghiti.fr> | [Fix free/allocation of runtime gigantic pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4eb0716e868eed963967adb0b1b11d9bd8ca1d01) | NA | v8 ☑✓ 5.2-rc1 | [LORE v8,0/4](https://lore.kernel.org/all/20190327063626.18421-1-alex@ghiti.fr) |
 | 2020/04/10 | Roman Gushchin <guro@fb.com> | [mm: using CMA for 1 GB hugepages allocation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cf11e85fc08cc6a4fe3ac2ba2e610c962bf20bc3) | 引入 hugetlb_cma 参数, 预留一块指定大小的 CMA 区域用来做 HugeTLB 的分配. 对于有多个 NUMA 节点的机器, 每个 NUMA 节点上都会进行预留. | v1 ☑ 5.7-rc1 | [LORE v5,0/2](https://lore.kernel.org/all/20200407163840.92263-1-guro@fb.com) |
 | 2020/06/18 | Barry Song <song.bao.hua@hisilicon.com> | [arm64: mm: reserve hugetlb CMA after numa_init](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=618e07865b7453d02410c1f3407c2d78a670eabb) | ARM64 中 HugeTLB CMA 的预留应该在 numa_init 之后. | v1 ☑ 5.8-rc2 | [LORE v3](https://lore.kernel.org/all/20200617215828.25296-1-song.bao.hua@hisilicon.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=618e07865b7453d02410c1f3407c2d78a670eabb) |
 | 2020/07/01 | Roman Gushchin <guro@fb.com> | [arm64/hugetlb: Reserve CMA areas for gigantic pages on 16K and 64K configs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=abb7962adc80ab4f4313e8a065302525b6a9c2dc) | ARM64 下不光有[多种 PAGE_SIZE, 还有各类 CONT PAGE](https://elixir.bootlin.com/linux/v5.9/source/arch/arm64/mm/hugetlbpage.c#L25) 的情况. HugeTLB CMA 当前不支持 ARM64 下其他 PAGE_SIZE 情况下的预留, 因此引入 arm64_hugetlb_cma_reserve() 增加了 ARM64 下多种 PAGE_SIZE 的支持. | v1 ☑ 5.9-rc1 | [LORE v3](https://lore.kernel.org/all/1593578521-24672-1-git-send-email-anshuman.khandual@arm.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=abb7962adc80ab4f4313e8a065302525b6a9c2dc) |
 | 2020/07/13 | Roman Gushchin <guro@fb.com> | [powerpc/hugetlb/cma: Allocate gigantic hugetlb pages using CMA](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ef26b76d1af61b90eb0dd3da58ad4f97d8e028f8) | POWERPC 支持从 CMA 中分配 HugeTLB. | v5 ☑ 5.9-rc1 | [LORE v3](https://lore.kernel.org/all/20200407163840.92263-1-guro@fb.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ef26b76d1af61b90eb0dd3da58ad4f97d8e028f8) |
+| 2022/04/13 | liupeng (DM) <liupeng256@huawei.com> | [hugetlb: Fix some incorrect behavior](https://patchwork.kernel.org/project/linux-mm/cover/20220413032915.251254-1-liupeng256@huawei.com/) | 631696 | v3 ☐☑ | [LORE v3,0/4](https://lore.kernel.org/r/20220413032915.251254-1-liupeng256@huawei.com) |
+| 2022/04/13 | Anshuman Khandual <anshuman.khandual@arm.com> | [tlb/hugetlb: Add framework to handle PGDIR_SIZE HugeTLB pages](https://patchwork.kernel.org/project/linux-mm/patch/20220413100714.509888-1-anshuman.khandual@arm.com) | 改变 tlb_remove_huge_tlb_entry() 来适应更大的 PGDIR_SIZE HugeTLB 页面, 通过添加一个新的助手 tlb_flush_pgd_range(). 而这里也更新 struct mmu_gather 需要, 即添加一个新成员 cleared_pgds. | v1 ☐☑ | [LORE v1](https://lore.kernel.org/r/20220413100714.509888-1-anshuman.khandual@arm.com) |
 
 
-#### 7.1.7.3 Numa Aware HugeTLB reserve
+#### 7.1.7.4 Numa Aware HugeTLB reserve
 -------
 
 HugeTLB CMA 在设计的时候, 已经考虑了 NUMA 的存在.
@@ -4292,10 +4318,12 @@ Google 的工程师 Mina Almasry 提出了一种新的思路, 通过 [mremap 的
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/12/22 | Liang Li <liliang.opensource@gmail.com> | [add support for free hugepage reporting](https://lore.kernel.org/patchwork/patch/1355899) | Free page reporting 只支持伙伴系统中的页面, 它不能报告为 hugetlbfs 预留的页面. 这个补丁在 hugetlb 的空闲列表中增加了对报告巨大页的支持, 它可以被 virtio_balloon 驱动程序用于内存过载和预归零空闲页, 以加速内存填充和页面错误处理. | RFC ☐ | [PatchWork RFC,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20201222074538.GA30029@open-light-1.localdomain) |
-| 2021/10/07 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: add demote/split page functionality](https://lore.kernel.org/patchwork/patch/1465517) | 实现了 hugetlb 降低策略. 提供了一种"就地"将 hugetlb 页面分割为较小的页面的方法. | v4 ☐ | [2021/07/21 PatchWork 0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210721230511.201823-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/08/16 PatchWork RESEND,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210816224953.157796-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/23 PatchWork v2,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20210923175347.10727-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/07 PatchWork v4,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20211007181918.136982-1-mike.kravetz@oracle.com) |
+| 2021/10/07 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: add demote/split page functionality](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8531fc6f52f5fc201f43d8c36c2606e25748b1c4) | 实现了 hugetlb 降低策略. 提供了一种"就地"将 hugetlb 页面分割为较小的页面的方法. | v4 ☑ 5.16-rc1 | [2021/07/21 PatchWork 0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210721230511.201823-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/08/16 PatchWork RESEND,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20210816224953.157796-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/23 PatchWork v2,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20210923175347.10727-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/07 PatchWork v4,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20211007181918.136982-1-mike.kravetz@oracle.com) |
 | 2022/02/01 | Anshuman Khandual <anshuman.khandual@arm.com> | [mm/hugetlb: Generalize ARCH_WANT_GENERAL_HUGETLB](https://patchwork.kernel.org/project/linux-mm/patch/1643718465-4324-1-git-send-email-anshuman.khandual@arm.com/) | 610328 |v1 ☐☑ | [PatchWork v1,0/1](https://lore.kernel.org/r/1643718465-4324-1-git-send-email-anshuman.khandual@arm.com) |
 | 2022/03/07 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: do not demote poisoned hugetlb pages](https://patchwork.kernel.org/project/linux-mm/patch/20220307215707.50916-1-mike.kravetz@oracle.com/) | 621194 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220307215707.50916-1-mike.kravetz@oracle.com) |
 | 2022/03/18 | Muchun Song <songmuchun@bytedance.com> | [add hugetlb_free_vmemmap sysctl](https://patchwork.kernel.org/project/linux-mm/cover/20220307130708.58771-1-songmuchun@bytedance.com/) | 621009 | v3 ☐☑ | [2022/03/07 LORE v3,0/4](https://lore.kernel.org/r/20220307130708.58771-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2022/03/18 LORE v4,0/4](https://lore.kernel.org/r/20220318100720.14524-1-songmuchun@bytedance.com) |
+| 2022/04/12 | Muchun Song <songmuchun@bytedance.com> | [add hugetlb_optimize_vmemmap sysctl](https://patchwork.kernel.org/project/linux-mm/cover/20220412111434.96498-1-songmuchun@bytedance.com/) | 631440 | v7 ☐☑ | [LORE v7,0/4](https://lore.kernel.org/r/20220412111434.96498-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,0/4](https://lore.kernel.org/r/20220413144748.84106-1-songmuchun@bytedance.com) |
+| 2013/03/20 | David Rientjes <rientjes@google.com> | [mm, hugetlb: include hugepages in meminfo](https://lore.kernel.org/all/alpine.DEB.2.02.1303201207110.28997@chino.kir.corp.google.com) | alpine.DEB.2.02.1303201207110.28997@chino.kir.corp.google.com | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/alpine.DEB.2.02.1303201207110.28997@chino.kir.corp.google.com) |
 
 
 
@@ -4581,7 +4609,7 @@ Anthony Yznaga 接替了之前同事 Nitin Gupta 的工作, 并基于 Mel 的思
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2016/06/15 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [THP-enabled tmpfs/shmem (using compound pages)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1b5946a84d6eb096158e535bdb9bda06e7cdd941) | 支持 tmpfs 和 shmem page cache 的透明大页支持.<br>1. 引入了 [CONFIG_TRANSPARENT_HUGE_PAGECACHE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e496cf3d782135c1cca0d154d4b924517ff58de0).<br>2. 实现了 [shmem page cache 大页](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=800d8c63b2e989c2e349632d1648119bf5862f01)的支持.<br>3. 完成了 khugepaged [对 tmpfs/shmem page cache 页面合并](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f3f0e1d2150b2b99da2cbdfaad000089efe9bf30)的支持. | v9 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Support_for_using_Transparent_Huge_Pages_in_the_page_cache) | [PatchWork v4,00/25](https://lore.kernel.org/patchwork/patch/658181)<br>*-*-*-*-*-*-*-* <br>[PatchWork v9,00/32](https://lore.kernel.org/lkml/1465222029-45942-1-git-send-email-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v9-rebased2,00/37](https://lore.kernel.org/lkml/1466021202-61880-1-git-send-email-kirill.shutemov@linux.intel.com)  |
+| 2016/06/15 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [THP-enabled tmpfs/shmem using compound pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1b5946a84d6eb096158e535bdb9bda06e7cdd941) | 支持 tmpfs 和 shmem page cache 的透明大页支持.<br>1. 引入了 [CONFIG_TRANSPARENT_HUGE_PAGECACHE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e496cf3d782135c1cca0d154d4b924517ff58de0).<br>2. 实现了 [shmem page cache 大页](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=800d8c63b2e989c2e349632d1648119bf5862f01)的支持.<br>3. 完成了 khugepaged [对 tmpfs/shmem page cache 页面合并](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f3f0e1d2150b2b99da2cbdfaad000089efe9bf30)的支持. | v9 ☑ [4.8-rc1](https://kernelnewbies.org/Linux_4.8#Support_for_using_Transparent_Huge_Pages_in_the_page_cache) | [PatchWork v4,00/25](https://lore.kernel.org/patchwork/patch/658181)<br>*-*-*-*-*-*-*-* <br>[PatchWork v9,00/32](https://lore.kernel.org/lkml/1465222029-45942-1-git-send-email-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v9-rebased2,00/37](https://lore.kernel.org/lkml/1466021202-61880-1-git-send-email-kirill.shutemov@linux.intel.com)  |
 
 
 #### 7.2.7.3 THP EXT4
@@ -4744,6 +4772,7 @@ khugepaged 处理流程
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2003/02/05 | Andrew Morton <akpm@digeo.com> | [Infrastructure for correct hugepage refcounting](https://github.com/gatieme/linux-history/commit/eefb08ee7da81e1548ffd5b664682dc5b229ddc2) | 实现了复合页(Compound Page), 如果用户的地址在一个大页面中, 设置页面的 refcount 是一个有歧义的事情, 我们应该设置的是组成这个大页的 4K 普通页, 而不是高阶分配单元的头页. 为了方便处理, 实现了一种处理高阶页面的通用方式:<br>1. 高阶页面称为 "复合页面", 复合页面的第一个 (控制) 4k 页面称为 "head" 页面, 剩余页面为尾页.<br>2. 所有复合页面都有 PG_compound 集合, 所有页面都有自己的 lru, 尾页面都指向头页面.<br>3. 紧接着就完成了 [convert hugetlb code to use compound pages](https://github.com/gatieme/linux-history/commit/b3a656b6d36622e628974bad5cf19c006c395efe) | v1 ☑ 2.5.60~33 | [COMMIT](https://github.com/gatieme/linux-history/commit/eefb08ee7da81e1548ffd5b664682dc5b229ddc2) |
 | 2007/10/04 | Christoph Lameter <clameter@sgi.com> | [Virtual Compound Page Support V2](https://lore.kernel.org/patchwork/patch/93090) | NA | ☑ 4.11-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/patch/93090) |
+| 2008/10/23 | Andy Whitcroft <apw@shadowen.org> | [Fixes for gigantic compounds pages V3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=18229df5b613ed0732a766fc37850de2e7988e43) | NA | v1 ☑✓ 2.6.28-rc4 | [LORE v1](https://lore.kernel.org/all/1223458499-12752-1-git-send-email-apw@shadowen.org)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/2](https://lore.kernel.org/all/1224771559-19363-1-git-send-email-apw@shadowen.org) |
 
 
 # 8 进程虚拟地址空间(VMA)
@@ -4889,7 +4918,7 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 | 2022/03/15 | Bibo Mao <maobibo@loongson.cn> | [[2/2] mm: add access/dirty bit on numa page fault](https://patchwork.kernel.org/project/linux-mm/patch/20220315092323.620610-1-maobibo@loongson.cn/) | 在 x86/arm 等支持 hw 页面行走的平台上, access 和 dirty bit 由 hw 设置, 而在一些没有这些 hw 功能的平台上, access 和 dirty bit 由 next trap 中的软件设置.<br>在 numa 页面故障期间, 如果写入故障时迁移失败, 可以为旧 pte 添加脏位. 如果迁移成功, 可以为迁移后的新 pte 增加访问位, 也可以为写错误增加脏位. | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20220315092323.620610-1-maobibo@loongson.cn)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/r/20220317065033.2635123-1-maobibo@loongson.cn) |
 
 
-### 8.2.3 MMAP locing
+### 8.2.3 MMAP locking
 -------
 
 [[LSF/MM TOPIC] mmap locking topics](https://www.spinics.net/lists/linux-mm/msg258803.html)
@@ -5664,6 +5693,7 @@ Intel 的吴峰光 [PMEM NUMA node and hotness accounting/migration](https://lor
 | 2021/11/24 | Hasan Al Maruf <hasan3050@gmail.com> | [Transparent Page Placement for Tiered-Memory](https://patchwork.kernel.org/project/linux-mm/cover/cover.1637778851.git.hasanalmaruf@fb.com) | 由于不同类型的内存对性能的影响程度不同, 因此如何跨 NUMA 节点管理页面应该是一个值得关注的问题.  Dave Hansen 的补丁集 ["Migrate Pages in replace of discard"](https://lwn.net/Articles/860215) 在回收过程中将顶级页面降级到慢级节点. 然而, 他的补丁集不包括将慢层内存节点上的页面提升到顶级内存节点的功能. 因此, 在慢层节点上降级或新分配的页面将经历 NUMA 延迟, 并损害应用程序性能. 在这个补丁集中,<br>1. 通过增强现有的 AutoNUMA 机制, 将页面从慢级节点提升到顶级节点.<br>2. 将顶级节点的回收和分配逻辑解耦, 以便回收在更高的水印处触发, 并将较冷的页面降级到慢层内存中. 因此, 顶级节点可以保留一些空闲空间, 以接受来自慢级节点的新分配和提升.<br>在对页面升级期间, 添加滞后性, 只升级那些在短时间内不太可能被降级页面. 这减少了页面在短时间内频繁降级和提升而在 NUMA 节点之间来回跳转的机会. 作者在支持 cxl 的 DRAM 和 PMEM 层的系统上测试了这个补丁集. 可以将较热的页面转移到顶级节点, 而将较冷的页面移动到慢层节点, 从而产生大量的 Meta 生产工作负载和实时流量. 因此, 顶级节点提供更多的热页面, 应用程序的性能也得到了提高. 将 80% 的匿名者带到顶级节点. 慢层内存中的匿名页大多是冷页. 由于顶级节点不能承载所有热内存, 一些热文件仍然留在慢级节点上. 尽管如此, 远程 NUMA 读带宽从 80% 减少到 40%. 与服务于整个工作集的顶级节点的基线相比, 使用这个补丁集的吞吐量回归仅为 5%. 参见报道 [Facebook/Meta Tackling Transparent Page Placement For Tiered-Memory Linux Systems](https://www.phoronix.com/scan.php?page=news_item&px=Meta-Hot-Pages-High-Tiers). | v1 ☐ | [PatchWork 0/5]https://patchwork.kernel.org/project/linux-mm/cover/cover.1637778851.git.hasanalmaruf@fb.com) |
 | 2021/12/11 | Baolin Wang <baolin.wang@linux.alibaba.com> | [Add speculative numa fault support](https://lore.kernel.org/patchwork/patch/1479229) | 这个 RFC 补丁集为分级内存等场景添加了推测性的 numa 错误支持. 在分层内存系统上, 它将依靠 numa 平衡将慢内存和热内存提升为快内存, 以提高性能. 因此, 我们可以根据某些工作负载的数据局部性, 提前在低速内存中提升多个顺序页面, 以提高性能. 那么现在有多少页面需要提升到最快的内存是最好的? 现在这个 RFC 补丁集只实现了一个基本而简单的机制来推测每个 VMA 的 numa 故障窗口. 它将为每个 VMA 引入一个新的原子成员来记录 numa 故障窗口信息, 该信息用于确定它是扩展还是减少 numa 故障窗口的顺序流. 在分层内存系统中测试 mysql 可以看到大约 6% 的改进. 注意: 这个补丁集是[基于实现分级内存提升的补丁集 NUMA balancing: optimize page placement for memory tiering system](https://lore.kernel.org/lkml/87bl2gsnrd.fsf@yhuang6-desk2.ccr.corp.intel.com). 参见报道 [Speculative NUMA Fault Support Proposed For Improving Tiered Memory Linux Performance](https://www.phoronix.com/scan.php?page=news_item&px=Speculative-NUMA-Fault) | v1 ☐ | [LORE](https://lore.kernel.org/lkml/cover.1639306956.git.baolin.wang@linux.alibaba.com), [PatchWork](https://patchwork.kernel.org/project/linux-mm/cover/cover.1639306956.git.baolin.wang@linux.alibaba.com) |
 | 2022/04/08 | Huang Ying <ying.huang@intel.com> | [memory tiering: hot page selection](https://patchwork.kernel.org/project/linux-mm/cover/20220408071222.219689-1-ying.huang@intel.com/) | 在分级内存的系统中, 需要使用 NUMA 来优化页面在内存中的位置. 基本上, 最初的 NUMA Balancing 实现选择并提升最近访问最多(mostly recently accessed/MRU)的页面. 但最近访问的页面可能很冷. 因此, 在这个补丁集中, 我们基于 NUMA 平衡页表扫描和页面 Page Fault & Hint 之间的延迟实现了一个新的热页识别算法. 另外一方面热页升级可能会在系统中产生一些开销. 为了控制开销, 实现了一种简单的提升速率限制机制. 用于识别热页的热阈值通常取决于工作负载. 因此, 我们还实现了一个热页阈值自动调整算法. 基本思想是增加/减少热页阈值, 使通过热页阈值提升到快速内存的页面数接近速率限制. | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20220408071222.219689-1-ying.huang@intel.com) |
+| 2022/04/13 | Jagdish Gediya <jvgediya@linux.ibm.com> | [mm: demotion: Introduce new node state N_DEMOTION_TARGETS](https://patchwork.kernel.org/project/linux-mm/cover/20220413092206.73974-1-jvgediya@linux.ibm.com/) | 631805 | v2 ☐☑ | [LORE v2,0/5](https://lore.kernel.org/r/20220413092206.73974-1-jvgediya@linux.ibm.com) |
 
 
 ## 12.5 异构内存(CPU & GPU)
@@ -5976,7 +6006,7 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2007/10/09 | Matt Mackall <mpm@selenic.com> | [maps4: pagemap monitoring v4](https://lore.kernel.org/patchwork/patch/95279) | 引入 CONFIG_PROC_PAGE_MONITOR, 管理了 `/proc/pid/clear_refs`, `/proc/pid/smaps`, `/proc/pid/pagemap`, `/proc/kpagecount`, `/proc/kpageflags` 多个接口. | v1 ☑ 2.6.25-rc1 | [PatchWork v4 0/12](https://lore.kernel.org/patchwork/patch/95279) |
-| 201=09/05/08 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [export more page flags in /proc/kpageflags (take 6)](https://lore.kernel.org/patchwork/patch/155330) | 在 kpageflags 中导出了更多的 type. 同时新增了一个用户态工具 page-types 可以调试进程和内核的 page-types. 该工具后期[移到了 tools/vm 目录下](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c6dd897f3bfc54a44942d742d6dfa842e33d88e0) | v6 ☑ 3.4-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/patch/520462), [Kernel Newbies](https://kernelnewbies.org/Linux_3.19#Memory_management) |
+| 201=09/05/08 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [export more page flags in /proc/kpageflags (take 6)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=35efa5e993a7a00a50b87d2b7725c3eafc80b083) | 在 kpageflags 中导出了更多的 type. 同时新增了一个用户态工具 page-types 可以调试进程和内核的 page-types. 该工具后期[移到了 tools/vm 目录下](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c6dd897f3bfc54a44942d742d6dfa842e33d88e0) | v6 ☑ 3.4-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/patch/520462), [Kernel Newbies](https://kernelnewbies.org/Linux_3.19#Memory_management) |
 
 ### 13.4.4 数据访问监视器 DAMON
 -------
@@ -6484,7 +6514,7 @@ ZONE_MOVABLE 一个 pseudo zone, 它实际是从内核划分的某个 zone 中�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/11/11  | Mina Almasry <almasrymina@google.com> | [mm/shmem: support deterministic charging of tmpfs](https://patchwork.kernel.org/project/linux-mm/patch/20211110211951.3730787-2-almasrymina@google.com) | NA | v1 ☐ | [PatchWork v2,1/4](https://patchwork.kernel.org/project/linux-mm/patch/20211110211951.3730787-2-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,1/4](https://patchwork.kernel.org/project/linux-mm/patch/20211111234203.1824138-2-almasrymina@google.com) |
-| 2022/01/18 | Khalid Aziz <khalid.aziz@oracle.com> | [Add support for shared PTEs across processes](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com) | NA| v9 ☑ 4.6-rc1 | [LKML RFC,0/6](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com) |
+| 2022/01/18 | Khalid Aziz <khalid.aziz@oracle.com> | [Add support for shared PTEs across processes](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com) | NA| v1 ☐ | [LKML RFC,0/6](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/14](https://lore.kernel.org/r/cover.1649370874.git.khalid.aziz@oracle.com) |
 | 2022/02/11 | Charan Teja Kalla <quic_charante@quicinc.com> | [mm: shmem: implement POSIX_FADV_[WILL|DONT]NEED for shmem](https://patchwork.kernel.org/project/linux-mm/patch/1644572051-24091-1-git-send-email-quic_charante@quicinc.com/) | 613418 | v4 ☐☑ | [PatchWork v4,0/1](https://lore.kernel.org/r/1644572051-24091-1-git-send-email-quic_charante@quicinc.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/2](https://lore.kernel.org/r/cover.1646987674.git.quic_charante@quicinc.com) |
 | 2022/03/14 | Xavier Roche <xavier.roche@algolia.com> | [[v4] tmpfs: support for file creation time](https://patchwork.kernel.org/project/linux-mm/patch/20220314211150.GA123458@xavier-xps/) | 623317 | v4 ☐☑ | [LORE v4,0/1](https://lore.kernel.org/r/20220314211150.GA123458@xavier-xps)|
 | 2022/03/28 | Gabriel Krisman Bertazi <krisman@collabora.com> | [shmem: Allow userspace monitoring of tmpfs for lack of space.](https://patchwork.kernel.org/project/linux-mm/cover/20220322222738.182974-1-krisman@collabora.com/) | 625589 | v1 ☐☑ | [2022/03/22 LORE v1,0/3](https://lore.kernel.org/r/20220322222738.182974-1-krisman@collabora.com)<br>*-*-*-*-*-*-*-* <br>[2022/03/28 LORE v2,0/3](https://lore.kernel.org/r/20220328020443.820797-1-krisman@collabora.com) |
