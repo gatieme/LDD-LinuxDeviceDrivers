@@ -367,6 +367,7 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2017/11/27 | Andi Kleen <andi@firstfloor.org>/<ak@linux.intel.com> | [x86: Enable GCC Link Time Optimization](https://lwn.net/Articles/512548/) | NA | v1 ☐ | [2012/08/19 Patchwork 67/74](https://patchwork.kernel.org/project/linux-kbuild/patch/1345345030-22211-68-git-send-email-andi@firstfloor.org), [LKML](https://lkml.org/lkml/2012/8/18/273)<br>*-*-*-*-*-*-*-* <br>[2014/02/08 Patchwork 14/17](https://patchwork.kernel.org/project/linux-kbuild/patch/1391846481-31491-14-git-send-email-ak@linux.intel.com), [LKML](https://lkml.org/lkml/2014/2/14/662)<br>*-*-*-*-*-*-*-* <br>[2014/02/14 Patchwork 16/19](https://patchwork.kernel.org/project/linux-kbuild/patch/1392412903-25733-17-git-send-email-andi@firstfloor.org), [LKML](https://lkml.org/lkml/2014/2/14/662)<br>*-*-*-*-*-*-*-* <br>[2014/02/18 Patchwork 16/20](https://patchwork.kernel.org/project/linux-kbuild/patch/1392733738-8290-17-git-send-email-andi@firstfloor.org), [LKML](https://lkml.org/lkml/2014/2/18/1060)<br>*-*-*-*-*-*-*-* <br>[2017/11/27 Patchwork 0/21](https://patchwork.kernel.org/project/linux-kbuild/patch/20171127213423.27218-22-andi@firstfloor.org), [LKML](https://lkml.org/lkml/2017/11/27/1076) |
 | 2020/12/11 | Masahiro Yamada <yamada.masahiro@socionext.com> | [Add support for Clang LTO](https://patchwork.kernel.org/project/linux-kbuild/cover/20201211184633.3213045-1-samitolvanen@google.com) | 本补丁系列增加了对使用 Clang 的链接时间优化(LTO) 构建内核的支持. 除了性能之外, LTO 的主要动机是允许在内核中使用 Clang 的控制流完整性(CFI). 自 2018 年以来, 谷歌已经发布了数百万个运行 LTO + CFI 三个主要内核版本的 Pixel 设备.<br>大多数补丁是为了处理 LLVM 位码而进行的构建系统更改, Clang 使用 LTO 而不是 ELF 对象文件生成 LLVM 位码, 将 ELF 处理推迟到后面的阶段, 并确保初始化调用顺序.<br>arm64支持依赖于 [Will 的内存排序补丁](https://git.kernel.org/pub/scm/linux/kernel/git/arm64/linux.git/log/?h=for-next/lto). 早期版本同时做了 X86_64 和 ARM64 的适配和支持. | v9 ☑ 5.12-rc1 | [Patchwork v6,00/25](https://patchwork.kernel.org/project/linux-kbuild/cover/20201211184633.3213045-1-samitolvanen@google.com)<br>*-*-*-*-*-*-*-* <br>v7 之后不再包含 X86 的使能的补丁.<br>*-*-*-*-*-*-*-* <br>[Patchwork v9,00/16](https://patchwork.kernel.org/project/linux-kbuild/cover/20201211184633.3213045-1-samitolvanen@google.com) |
+| 2021/04/07 | Bill Wendling <morbo@google.com> | [pgo: add clang's Profile Guided Optimization infrastructure](https://lore.kernel.org/all/20210407211704.367039-1-morbo@google.com) | 20210116094357.3620352-1-morbo@google.com | v9 ☐☑✓ | [LORE](https://lore.kernel.org/all/20210407211704.367039-1-morbo@google.com) |
 | 2021/4/29 | Wende Tan <twd2.me@gmail.com> | [x86: Enable clang LTO for 32-bit as well](https://patchwork.kernel.org/project/linux-riscv/cover/20210719205208.1023221-1-twd2.me@gmail.com) | CLANG LTO 支持 X86 32 位. | v1 ☑ 5.14-rc1 | [LKML](https://lkml.org/lkml/2021/4/29/873) |
 | 2021/07/19 | Wende Tan <twd2.me@gmail.com> | [RISC-V: build: Allow LTO to be selected](https://patchwork.kernel.org/project/linux-riscv/cover/20210719205208.1023221-1-twd2.me@gmail.com) | NA | v1 ☐ | [Patchwork 0/3](https://patchwork.kernel.org/project/linux-riscv/cover/20210719205208.1023221-1-twd2.me@gmail.com) |
 
@@ -415,7 +416,10 @@ BOLT 代码在 [github 开源](https://github.com/facebookincubator/BOLT).
 | 2020/06/14 | Alexander Potapenko <glider@google.com> | [security: allow using Clang's zero initialization for stack variables](https://lore.kernel.org/patchwork/cover/1255765) | 支持 clang 的局部变量零初始化. 通过 CONFIG_INIT_STACK_ALL_ZERO 来启用, clang 可以通过选项 `-ftrivial-auto-var-init=zero -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang` 来保证未初始化局部变量初始化为 0. | RFC v2 ☑ 5.9-rc1 | [PatchWork v2,RFC](https://lore.kernel.org/patchwork/cover/1255765)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC](https://lore.kernel.org/patchwork/patch/1256566), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f0fe00d4972a8cd4b98cc2c29758615e4d51cdfe) |
 | 2021/02/18 | NA | [gcc Stack variable initialization-无需合入补丁, GCC 支持即可](https://lwn.net/Articles/870045) | gcc 也引入了 [Auto Initialize Automatic Variables](https://www.phoronix.com/scan.php?page=news_item&px=GCC-12-Auto-Var-Init) 通过 `-ftrivial-auto-var-init` 选项将未初始化的[变量默认初始化为 0](https://gcc.gnu.org/pipermail/gcc-patches/2021-February/565514.html). | RFC v2 ☑ 5.9-rc1 | NA |
 
-## 13.6 Randomizing structure layout
+## 13.6 Randomize Structure Layout
+-------
+
+### 13.6.1 GCC Plugin 的支持
 -------
 
 将来自 grsecurity 的[结构布局随机化(Randomizing structure layout)](http://xuxinting.cn/2020/12/20/2020-12-20-kernel-randomize-layout) 推送到 linux 主线. 这个特性通过在编译时将所选结构的布局随机化, 作为对需要知道内核中结构布局的攻击的概率防御. 这对于"内部"内核构建非常有用, 因为攻击者既不能使用随机种子也不能使用其他构建工件.
@@ -439,6 +443,13 @@ BOLT 代码在 [github 开源](https://github.com/facebookincubator/BOLT).
 
     task_struct 是一种在利用漏洞时特别敏感且经常被滥用的结构, 但由于某些字段需要在开头和结尾, 因此对其进行随机化需要一些特殊处理. 为了解决这个问题, 使用一个[内部匿名结构](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=29e48ce87f1eaaa4b1fe3d9af90c586ac2d1fb74) 来标记将随机化的部分. 随机的这部分(匿名结构)字段用 [randomized_struct_fields_start](https://elixir.bootlin.com/linux/v4.13/source/include/linux/sched.h#L534) 和 [randomized_struct_fields_end](https://elixir.bootlin.com/linux/v4.13/source/include/linux/sched.h#L1094) 来标记.
 
+### 13.6.1 LLVM/CLANG 支持
+-------
+
+
+到目前为止, Linux 内核 Randomize Structure Layout 的支持还只支持 GCC, 以更高的安全性的名义随机化Linux内核的敏感结构. 随后 LLVM/Clang 编译器开始支持这一特性, 实现方式与 GCC 类似, 旨在作为编译时强化, 使攻击者更难从程序结构中检索数据. 可以通过 "-frandomize-layout-seed=" 或 "-frandomize-layout-seed-file=" 选项启用支持, 以提供确定性随机种子以允许可重现的构建. CLANG  支持的补丁已经合入 LLVM/Clang 15. 与此同时, Google 的 Kees Cook 也已经准备了 Linux内核对 CLANG Randomize Structure Layout 的支持. 参见 phoronix 报道: [Clang 15 Lands Support To Randomize Structure Layout, Linux Prepares To Use It](https://www.phoronix.com/scan.php?page=news_item&px=Clang-Linux-RandStruct).
+
+利用 Linux 内核的 Randomize Structure Layout 强化可能会引起一些性能影响, 但尝试将结构布局的随机化限制为缓存行大小的成员组以降低性能成本(尽管随机化减少了), 但构建时间也无法调整.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -558,6 +569,19 @@ https://patchwork.kernel.org/project/linux-trace-devel/list/?submitter=200911&st
 | 2019/08/27 | Peter Zijlstra <peterz@infradead.org> | [Rewrite x86/ftrace to use text_poke()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=768ae4406a5cab7e8702550f2446dbeb377b798d) | 615872606-56087-1-git-send-email-aubrey.li@intel.com | v3 ☑✓ 5.6-rc1 | [LORE v3,0/3](https://lore.kernel.org/all/20190827180622.159326993@infradead.org) |
 | 2021/06/05 | Jiri Olsa <jolsa@kernel.org> | [x86/ftrace/bpf: Add batch support for direct/tracing attach](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a3ad1a7e39689005cb04a4f2adb82f9d55b4724f) | 1615872606-56087-1-git-send-email-aubrey.li@intel.com | RRC,v3 ☐ | [LORE RRC,v3,00/19](https://lkml.kernel.org/netdev/20210605111034.1810858-1-jolsa@kernel.org) |
 | 2021/10/8 | Jiri Olsa <jolsa@kernel.org> | [x86/ftrace: Add direct batch interface](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=5fae941b9a6f95773df644e7cf304bf199707876) | 1615872606-56087-1-git-send-email-aubrey.li@intel.com | v2 ☑✓ 5.16-rc1 | [LKML v2,0/8](https://lkml.org/lkml/2021/10/8/186), [LORE v2,0/8](https://lore.kernel.org/all/20211008091336.33616-1-jolsa@kernel.org) |
+
+
+## 14.8 user_events
+-------
+
+
+[User events — but not quite yet](https://lwn.net/Articles/889607)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/01/18 | Beau Belgrave <beaub@linux.microsoft.com> | [user_events: Enable user processes to create and write to trace events](https://lore.kernel.org/all/20220118204326.2169-1-beaub@linux.microsoft.com) | 20220118204326.2169-1-beaub@linux.microsoft.com | v10 ☐☑✓ | [LORE v10,0/12](https://lore.kernel.org/all/20220118204326.2169-1-beaub@linux.microsoft.com) |
+
+
 
 # 15 kptr_restrict
 -------
