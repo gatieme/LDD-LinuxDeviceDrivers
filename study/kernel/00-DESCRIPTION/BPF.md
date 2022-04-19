@@ -175,8 +175,18 @@ raw_tracepoint 相比 tracepoint
 
 
 
-# 9
+# 9 JIT
 -------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2016/06/22 | Naveen N. Rao <naveen.n.rao@linux.vnet.ibm.com> | [eBPF JIT for PPC64](https://lore.kernel.org/all/cover.1466612260.git.naveen.n.rao@linux.vnet.ibm.com) | cover.1466612260.git.naveen.n.rao@linux.vnet.ibm.com | v2 ☐☑✓ | [LORE v2,0/7](https://lore.kernel.org/all/cover.1466612260.git.naveen.n.rao@linux.vnet.ibm.com) |
+| 2017/05/26 | Shubham Bansal <illusionist.neo@gmail.com> | [arm: eBPF JIT compiler](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=39c13c204bb1150d401e27d41a9d8b332be47c49) | 1495754003-21099-1-git-send-email-illusionist.neo@gmail.com | v2 ☑✓ 4.14-rc1 | [LORE](https://lore.kernel.org/all/1495754003-21099-1-git-send-email-illusionist.neo@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4](https://lore.kernel.org/lkml/1503383553-5650-1-git-send-email-illusionist.neo@gmail.com) |
+| 2014/08/26 | Zi Shen Lim <zlim.lnx@gmail.com> | [arm64: eBPF JIT compiler](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e54bcde3d69d40023ae77727213d14f920eb264a) | 1409112930-25677-1-git-send-email-zlim.lnx@gmail.com | v2 ☐☑✓ | [LORE v1,00/14](https://lore.kernel.org/lkml/1405708100-13604-1-git-send-email-zlim.lnx@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/14](https://lore.kernel.org/all/1409112930-25677-1-git-send-email-zlim.lnx@gmail.com) |
+
+
+
+
 
 [Toward signed BPF programs](https://lwn.net/Articles/853489)
 
