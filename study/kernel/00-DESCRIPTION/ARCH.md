@@ -88,11 +88,14 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 2021/10/04 | Tvrtko Ursulin <tvrtko.ursulin@linux.intel.com> | [CPU + GPU synchronised priority scheduling](https://www.phoronix.com/scan.php?page=news_item&px=Intel-CPU-GPU-Prio-Nice-Sched) | Intel 在 CPU 和 GPU 协同调度领域进行了探索与尝试. | v1 ☐ | [Patchwork RFC,0/6](https://lists.freedesktop.org/archives/intel-gfx/2021-September/279200.html), [LWN](https://lwn.net/Articles/871467), [LKML](https://lkml.org/lkml/2021/9/30/852)<br>*-*-*-*-*-*-*-* <br>[LKML v2,0/8](https://lkml.org/lkml/2021/10/4/1004), [LWN news](https://lwn.net/Articles/873334) |
 
 
-## 1.4 让人眼前一亮的新架构
+## 1.4 hybrid CPUs
 -------
 
-### 1.4.1 hybrid CPUs
+[该感谢 AMD 还是 ARM？：Intel Alder Lake 为什么要搞大小核？](https://zhuanlan.zhihu.com/p/350097861)
+
+### 1.4.1 Intel hybrid CPUs
 -------
+
 
 phoronix 上所有与 [Alder Lake 相关的报道](https://www.phoronix.com/scan.php?page=search&q=Alder%20Lake).
 
@@ -112,6 +115,8 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 | 2021/09/10 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://lwn.net/Articles/880367/) | 在使用非对称封装(ASM_PACKING)时, 可能存在具有三个优先级的 CPU 拓扑, 其中只有物理核心的子集支持 SMT. 这种架构下 ASM_PACKING 和 SMT 以及 load_balance 都存在冲突.<br>这种拓扑的一个实例是 Intel Alder Lake. 在 Alder Lake 上, 应该通过首先选择 Core(酷睿) cpu, 然后选择 Atoms, 最后再选择 Core 的 SMT 兄弟 cpu 来分散工作. 然而, 当前负载均衡器的行为与使用 ASYM_PACKING 时描述的不一致. 负载平衡器将选择高优先级的 CPU (Intel Core) 而不是中优先级的 CPU (Intel Atom), 然后将负载溢出到低优先级的 SMT 同级 CPU. 这使得中等优先级的 Atoms cpu 空闲, 而低优先级的 cpu sibling 繁忙.<br>1. 首先改善了 SMT 中 sibling cpu 优先级的计算方式, 它将比单个 core 优先级更低.<br>2. 当决定目标 CPU 是否可以从最繁忙的 CPU 提取任务时, 还检查执行负载平衡的 CPU 和最繁忙的候选组的 SMT 同级 CPU 的空闲状态. | v5 ☑ 5.16-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1408312)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1413015)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3 0/6](https://lore.kernel.org/patchwork/cover/1428441)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,0/6](https://lore.kernel.org/patchwork/cover/1474500)<br>*-*-*-*-*-*-*-* <br>[LKML v5,0/6](https://lkml.org/lkml/2021/9/10/913), [LORE v5,0/6](https://lore.kernel.org/all/20210911011819.12184-1-ricardo.neri-calderon@linux.intel.com) |
 | 2021/11/19 | Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com> | [cpufreq: intel_pstate: ITMT support for overclocked system](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Patch-ITMT-OC-ADL) | Intel ITMT (Intel Turbo Boost Max Technology) 感知混合架构, Alder Lake CPU 上 P-Core/E-core 优先级应该有不同的值(P-core 0x40, P-core HT sibling 0x10, E-core 0x26). | v1 ☑ 5.16-rc3 | [Patchwork](https://patchwork.kernel.org/project/linux-pm/patch/20211119051801.1432724-1-srinivas.pandruvada@linux.intel.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=03c83982a0278207709143ba78c5a470179febee) |
 | 2021/12/16 | Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com> | [cpufreq: intel_pstate: Update EPP for AlderLake mobile](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-P-State-ADL-Mobile) | 修正 AlderLake 的 EPP. | v1 ☑ 5.17-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b6e6f8beec98ba7541213c506fe908517fdc52b8) |
+| 2022/04/15 | Zhang Rui <rui.zhang@intel.com> | [intel_idle: add AlderLake support](https://lore.kernel.org/all/20220415093951.2677170-1-rui.zhang@intel.com) | 参见 [phoronix 报道](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Idle-Alder-Lake) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220415093951.2677170-1-rui.zhang@intel.com) |
+
 
 #### 1.4.1.2 Thread Director
 -------
@@ -157,8 +162,29 @@ Intel Alder Lake CPU 支持 AVX 512
 
 2.  硬件将进程的运行能效换算后, 直接填写到内存中. 当进程在 P/E core 上运行时负责某种规则时(比如进程行为特征发生变化, 即能效发生变化), 直接通知 OS/Kernel 调度器进行决策, 以达到最好的能效.
 
+### 1.4.2 AMD's version of big.LITTLE
+-------
 
-#### 1.4.1.5 理论研究
+AMD 关于大小核的专利 [US20210173715A1: METHOD OF TASK TRANSITION BETWEEN HETEROGENOUS PROCESSORS](https://www.freepatentsonline.com/y2021/0173715.html), 最初于 2019 年 12 月提交, 2021 年被公布. 根据该专利, CPU 将依靠 CPU 利用率等指标来确定何时适合将工作负载从一种类型的 CPU 转移到另一种类型. 建议的指标包括 CPU 以最大速度工作的时间量、CPU 使用最大内存的时间量、一段时间内的平均利用率以及工作负载从一个 CPU 转移的更一般类别另一个基于与任务执行相关的未指定指标等. 当 CPU 确定工作负载应从 CPU A 转移到 CPU B 时, 当前执行工作的内核(在本例中为 CPU A)将进入空闲或停止状态. CPU A 的架构状态保存到内存并由 CPU B 加载, 然后继续该过程. 通过这种 Save/Restore 的方式可以实现软件无感的快速迁移, 并且支持的迁移是双向的, 小核可以将任务迁移到大核, 反之亦然.
+
+参见相关报道:
+
+[效仿 Arm, AMD 也在做大小核芯片](https://mp.weixin.qq.com/s/ckDRWep-ih287wIsjddRrw).
+
+[AMD “big.LITTLE” aka heterogeneous computing in Ryzen 8000 series](https://videocardz.com/newz/amd-patents-a-task-transition-method-between-big-and-little-processors).
+
+[AMD reportedly working on its heterogeneous CPU design](https://technosports.co.in/2021/06/14/amd-reportedly-working-on-its-heterogeneous-cpu-design).
+
+[Recently published patent hints at AMD hybrid CPU plans](https://m.hexus.net/tech/news/cpu/147956-recently-published-patent-hints-amd-hybrid-cpu-plans).
+
+
+### 1.4.3 ARM big.LITTLE & DynamIQ
+-------
+
+
+
+
+#### 1.4.4 理论研究
 -------
 
 2012 年 Intel 发布了一篇关于大小核的论文 [Scheduling Heterogeneous Multi-Cores through Performance Impact Estimation (PIE)](http://www.jaleels.org/ajaleel/publications/isca2012-PIE.pdf). 论文中小核使用了 In-Order 的微架构, 大核则使用了 Out-Order 的微架构, 传统的想法都是计算密集型(compute-intensive)的进程跑到大核上, 访存密集型(memory-intensive)的进程跑到小核上去. 但是论文中提出了不一样的想法. 因为内存访问的密集程序并不是一个能反应进程的负载对 CPU 需求的好指标.
@@ -534,7 +560,7 @@ SLS 被认为是 Spectre 漏洞的变体, 但二者的攻击范围略有不同, 
 
 [LLVM Adds Additional Protections For Arm's SLS Speculation Vulnerability Mitigation](https://www.phoronix.com/scan.php?page=news_item&px=Arm-SLS-More-In-LLVM)
 
-11 月 17 日, 将 x86/x86_64 的 SLS 缓解选项 -mharden-SLS 合并到 GCC 12 Git 上，预计不久将推出内核补丁，将 -mharden-SLS 缓解选项作为对 x86 cpu 最新的安全保护. 这个选项包括 none、all、return 或 indirect-branch 四个值, x86/x86_64 架构上的原理是通过在函数返回和间接分支之后添加 INT3 断点指令, 来减少函数返回和间接分支的直线推测(SLS). 参见 [Linux + GCC/Clang Patches Coming For Straight-Line Speculation Mitigation On x86/x86_64](https://www.phoronix.com/scan.php?page=news_item&px=Straight-Line-Speculation-x86), [x86 Straight Line Speculation CPU Mitigation Appears For Linux 5.17](https://www.phoronix.com/scan.php?page=news_item&px=x86-SLS-Mitigation-5.17)
+11 月 17 日, 将 x86/x86_64 的 SLS 缓解选项 -mharden-SLS 合并到 GCC 12 Git 上, 预计不久将推出内核补丁, 将 -mharden-SLS 缓解选项作为对 x86 cpu 最新的安全保护. 这个选项包括 none、all、return 或 indirect-branch 四个值, x86/x86_64 架构上的原理是通过在函数返回和间接分支之后添加 INT3 断点指令, 来减少函数返回和间接分支的直线推测(SLS). 参见 [Linux + GCC/Clang Patches Coming For Straight-Line Speculation Mitigation On x86/x86_64](https://www.phoronix.com/scan.php?page=news_item&px=Straight-Line-Speculation-x86), [x86 Straight Line Speculation CPU Mitigation Appears For Linux 5.17](https://www.phoronix.com/scan.php?page=news_item&px=x86-SLS-Mitigation-5.17)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
