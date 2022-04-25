@@ -290,6 +290,14 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 | 2020/09/11 | Kan Liang <kan.liang@linux.intel.com> | [TopDown metrics support for Ice Lake (perf tool)](https://lore.kernel.org/lkml/20200911144808.27603-1-kan.liang@linux.intel.com) | 为 perf metrics 分析增加对 Ice Lake 的支持. 将原本 group 重命名为 topdown. | v3 ☑ 5.10-rc1 | [PatchWork v3,0/4](https://lore.kernel.org/lkml/20200911144808.27603-1-kan.liang@linux.intel.com) |
 | 2021/04/07 | John Garry <john.garry@huawei.com> | [perf arm64 metricgroup support](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1617791570-165223-1-git-send-email-john.garry@huawei.com) | perf 支持 HiSilicon hip08 平台的 topdown metric. 支持到 Level 3. 自此鲲鹏 920 的 ARM64 服务器上, 可以使用:<br>`sudo perf stat -M TopDownL1 sleeep 1`<br>来进行 TopDown 分析了. | v1 ☑ 5.13-rc1 | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1614784938-27080-1-git-send-email-john.garry@huawei.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1616668398-144648-1-git-send-email-john.garry@huawei.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1617791570-165223-1-git-send-email-john.garry@huawei.com) |
 
+## 11.3 Userspace counter access
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/12/08 | Rob Herring <robh@kernel.org> | [arm64 userspace counter support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=aa1005d15d2aee10e5b93a25db076c47e05c4efa) | 20211208201124.310740-1-robh@kernel.org | v13 ☑✓ 5.17-rc1 | [LORE v13,0/5](https://lore.kernel.org/all/20211208201124.310740-1-robh@kernel.org) |
+
+
 ## 11.4 分支预测
 -------
 
@@ -480,7 +488,7 @@ v2: [Fast Kernel Headers v2 Posted - Speeds Up Clang-Built Linux Kernel Build By
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/01/02 | Ingo Molnar <mingo@kernel.org> | ["Fast Kernel Headers" Tree -v1: Eliminate the Linux kernel's "Dependency Hell"](https://lore.kernel.org/lkml/YdIfz+LMewetSaEB@gmail.com) | "Fast Kernel Headers" 的补丁集, 新增 config 配置, CONFIG_FAST_HEADERS 和 CONFIG_KALLSYMS_FAST.<br>这个补丁集非常庞大, 包含了 2000+ 补丁, 这可能是内核有史以来代码量最大的一个功能. 但是效果也很不错.<br>1. 启用了 CONFIG_FAST_HEADERS 的内核每小时的内核构建次数可能比当前的库存内核多出 78%, 在支持的架构上，绝对内核构建性能可以提高 50~80%.将许多高级标头与其他标头分离, 取消不相关的函数, 类型和 API 标头的分离, 头文件的自动依赖关系处理以及各种其他更改.<br>2. CONFIG_KALLSYMS_FAST 则实现了一个基于 objtool 的未压缩符号表功能, 它避免了 vmlinux 对象文件的通常三重链接, 这是增量内核构建的主要瓶颈. 由于即使使用 distro 配置, kallsyms 表也只有几十 MB 大, 因此在内核开发人员的桌面系统上, 内存成本是可以接受的. 不过当前只在 x86_64 下实现了此功能.<br>到目前为止, 这个庞大的补丁系列已经在 x86/x86_64, SPARC, MIPS 和 ARM64 上进行了测试. | v1 ☐ | [LORE RFC, 0000/2297](https://patchwork.kernel.org/project/kernel-hardening/patch/1495829844-69341-20-git-send-email-keescook@chromium.org)[LORE v2,](https://lore.kernel.org/lkml/Ydm7ReZWQPrbIugn@gmail.com), [LORE -v3, 0000/2300](https://lore.kernel.org/lkml/YjBr10JXLGHfEFfi@gmail.com) |
+| 2022/01/02 | Ingo Molnar <mingo@kernel.org> | ["Fast Kernel Headers" Tree -v1: Eliminate the Linux kernel's "Dependency Hell"](https://lore.kernel.org/lkml/YdIfz+LMewetSaEB@gmail.com) | "Fast Kernel Headers" 的补丁集, 新增 config 配置, CONFIG_FAST_HEADERS 和 CONFIG_KALLSYMS_FAST.<br>这个补丁集非常庞大, 包含了 2000+ 补丁, 这可能是内核有史以来代码量最大的一个功能. 但是效果也很不错.<br>1. 启用了 CONFIG_FAST_HEADERS 的内核每小时的内核构建次数可能比当前的库存内核多出 78%, 在支持的架构上, 绝对内核构建性能可以提高 50~80%.将许多高级标头与其他标头分离, 取消不相关的函数, 类型和 API 标头的分离, 头文件的自动依赖关系处理以及各种其他更改.<br>2. CONFIG_KALLSYMS_FAST 则实现了一个基于 objtool 的未压缩符号表功能, 它避免了 vmlinux 对象文件的通常三重链接, 这是增量内核构建的主要瓶颈. 由于即使使用 distro 配置, kallsyms 表也只有几十 MB 大, 因此在内核开发人员的桌面系统上, 内存成本是可以接受的. 不过当前只在 x86_64 下实现了此功能.<br>到目前为止, 这个庞大的补丁系列已经在 x86/x86_64, SPARC, MIPS 和 ARM64 上进行了测试. | v1 ☐ | [LORE RFC, 0000/2297](https://patchwork.kernel.org/project/kernel-hardening/patch/1495829844-69341-20-git-send-email-keescook@chromium.org)[LORE v2,](https://lore.kernel.org/lkml/Ydm7ReZWQPrbIugn@gmail.com), [LORE -v3, 0000/2300](https://lore.kernel.org/lkml/YjBr10JXLGHfEFfi@gmail.com) |
 
 由于这组补丁如此庞大, 涉及的模块也如此多, 因此它不可能在短时间内合入, 因此 Ingo 决定先从调度入手, [Merge branch 'sched/fast-headers' into sched/core](https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/commit/?h=sched/core&id=ccacfe56d7ecdd2922256b87e9ea46f13bb03b55), 先行合并到 TIP 分支, 这些补丁将构建内核的调度程序部分所需的 CPU 时间减少了 60.9%. 挂钟时间下降了3.9%. 参见 [Linux Scheduler Build Improvements From "Fast Kernel Headers" Queued, FKH v3 Posted](https://www.phoronix.com/scan.php?page=news_item&px=Sched-Core-Fast-Kernel-Headers).
 
@@ -533,6 +541,11 @@ Mold 是目前 Unix 链接器的现代替代品, 已经达到了 1.0 版本. 由
 ## 14.5 OSNOISE & TimerLat
 -------
 
+OSNOISE & TimerLat Tracer 用于跟踪系统内部活动的噪音, 分析那些对业务应用可能造成性能干扰的因素. 是将 PREEMPT_RT 合入 mainline 的一部分工作.
+
+### 14.5.1 OSNOISE & TimerLat Tracer
+-------
+
 在高性能计算 (HPC) 的上下文中, 操作系统噪声 (OSNOISE) 是指应用程序由于操作系统内部的活动而遭受的干扰. 在 Linux 的上下文中, NMI、IRQ、softirqs 和任何其他系统线程都可能对应用程序造成噪音. 此外, 与硬件相关的作业也会产生噪音, 例如, 通过 SMIs.
 
 关心操作系统窃取的每一微秒的 HPC 用户和开发人员不仅需要一种精确的方法来测量 OSNOISE, 而且主要是找出谁在窃取 CPU 时间, 以便他们可以追求系统的完美调谐. 因此为 linux 内核设计了 [OSNOISE Tracer](https://docs.kernel.org/trace/OSNOISE-tracer.html) 来分析和发现干扰源. OSNOISE Tracer 运行内核内循环, 测量有多少时间可用. 它通过启用抢占, softirq 和 IRQ 来做到这一点, 从而在其执行期间允许所有 OSNOISE 源.
@@ -546,6 +559,27 @@ Mold 是目前 Unix 链接器的现代替代品, 已经达到了 1.0 版本. 由
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/06/22 | Daniel Bristot de Oliveira <bristot@redhat.com> | [hwlat improvements and osnoise/timerlat tracers](https://patchwork.kernel.org/project/linux-trace-devel/patch/162936876189.187130.17558311387542061930.stgit@devnote2) | NA | v5 ☑ 5.14-rc1 | [Patchwork v5,09/14](https://lore.kernel.org/all/e649467042d60e7b62714c9c6751a56299d15119.1624372313.git.bristot@redhat.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bce29ac9ce0bb0b0b146b687ab978378c21e9078) |
 | 2021/11/29 | Daniel Bristot de Oliveira <bristot@kernel.org> | [osnoise: Support multiple instances (for RTLA)](https://patchwork.kernel.org/project/linux-trace-devel/patch/162936876189.187130.17558311387542061930.stgit@devnote2) | 为 osnoise/timerlat 跟踪器启用多个实例. 目前, osnoise 和 timerlat 仅在单个实例上运行. 为了减少这种限制, 本系列增加了对同一跟踪程序的并行实例的支持. 也就是说, 可以使用不同的跟踪配置运行 osnoise tracer 的两个实例. 例如, 一个仅用于跟踪器输出, 另一个用于跟踪器和一组跟踪点. 这个补丁集是 RTLA 的内核依赖项. 此修补程序集与 [RTLA](https://patchwork.kernel.org/project/linux-trace-devel/cover/cover.1638182284.git.bristot@kernel.org) 一起发送, 但我们将内核和用户空间修补程序集分开. | v9 ☑ 5.16-rc1 | [Patchwork V9,0/9](https://patchwork.kernel.org/project/linux-trace-devel/cover/cover.1635702894.git.bristot@kernel.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2fac8d6486d5c34e2ec7028580142b8209da3f92) |
+
+### 14.5.2 New Real-Time Linux Analysis (RTLA) tool
+-------
+
+在 OSNOISE & TimerLat Tracer 合入后, 开发者又向 linux 社区提交了一个用于实时性(噪音)分析的工具集(RTLA/Real-Time Linux Analysis), 它包含一组旨在分析 Linux 实时性的工具(命令). 它并没有将 Linux 作为一个黑盒进行测试, 而是利用内核 OSNOISE & TimerLat Tracer 提供关于意外结果的属性和根源的精确信息, 使用户和开发人员更容易收集性能和跟踪数据, 并帮助微调他们的系统或者算法.
+
+
+参见作者 [Daniel's 关于 RTLA 的 Blog](https://bristot.me/and-now-linux-has-a-real-time-linux-analysis-rtla-tool), RTLA 可以理解为 OSNOISE & TimerLat TRACER 的用户界面, 提供了一个直观的界面来使用和处理数据. 对于那些不熟悉 PREEMPT_RT, 但是必须却想要评估内核实时性的开发人员来说, 这也是很有帮助的.
+
+比如通过如下命令:
+
+```cpp
+rtla timerlat top-p f: 95-t 150-t trace_output.txt
+```
+
+用户可以得到高优先级任务所经历的延迟的信息(-pf: 95), 如果延迟高于150us (-t 150), 并且将带有调试信息的跟踪日志保存在 trace_output.txt 中.
+
+其他评估调度延迟的方法, 可以参照 [Demystifying the Real-Time Linux Scheduling Latency](https://bristot.me/demystifying-the-real-time-linux-latency).
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/12/10 | Daniel Bristot de Oliveira <bristot@kernel.org> | [RTLA: An interface for osnoise/timerlat tracers](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=5dce5904e3b9bc11d9635dd3458c7ff32caebb59) | [rtla](https://github.com/bristot/rtsl) 是一个旨在分析 Linux 实时属性的工具集. rtla 并没有将 Linux 作为一个黑盒来测试, 而是利用内核跟踪功能来提供关于属性和意外结果的根本原因的精确信息. 首先, 它提供了一个 osnoise 和 timerlat 示踪器的接口. 在未来, 它还将作为 rtsl 和其他延迟 / 噪声跟踪器的基础. V6 版本前五个补丁是 [osnoise: Support multiple instances](https://lore.kernel.org/lkml/cover.1628775552.git.bristot@kernel.org) 的重新发送, 它为 osnoise/timerlat 跟踪器启用多个实例. 接下来的七个补丁是 rtla, rtla osnoise 和 rtla timerlat. 后面的版本都将内核态和用户态拆开来提交. 参见 [Linux 5.17 Picks Up A Real-Time Analysis Tool](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-RTLA) | v5 ☐ 5.17-rc1 | [2021/10/27 Patchwork v6,00/20](https://lore.kernel.org/lkml/cover.1635284863.git.bristot@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2021/11/29 Patchwork v8,00/14](https://patchwork.kernel.org/project/linux-trace-devel/cover/cover.1638182284.git.bristot@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v9,00/14](https://lore.kernel.org/all/cover.1639158831.git.bristot@kernel.org) |
 
 

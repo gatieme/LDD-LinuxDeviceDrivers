@@ -548,6 +548,8 @@ ARM v8.2 引入了 [UAO](https://community.arm.com/arm-community-blogs/b/archite
 ## 4.1 Straight Line Speculation
 -------
 
+[Blocking straight-line speculation — eventually](https://lwn.net/Articles/877845)
+
 Google 的 SafeSide 小组发现 ARM CPU 存在新的投机执行漏洞, 可导致侧信道攻击. 研究人员在 Armv8-A(Cortex-A) CPU 体系结构中发现了一个名为直线推测( Straight-Line Speculation , SLS) 的新漏洞, 被追踪为 [CVE-2020-13844](https://nvd.nist.gov/vuln/detail/CVE-2020-13844). 该漏洞可导致攻击者对 ARM 架构处理器进行侧边信道攻击(SCA).
 
 让目标处理器通过预先访问数据来提升性能, 然后再扔掉所有使用过的计算分支(computational branches), 而 SLS 则通过类似的侧道攻击就能让黑客从处理器直接获得(窃取)重要数据.
@@ -564,7 +566,8 @@ SLS 被认为是 Spectre 漏洞的变体, 但二者的攻击范围略有不同, 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/06/10 | Anup Patel <anup.patel@wdc.com> | [ARM: Implement Clang's SLS mitigation](https://patchwork.kernel.org/project/linux-security-module/patch/20210212051500.943179-1-jiancai@google.com) | RISC-V高级核心本地中断(Advacned Core Local Interruptor-ACLINT) 支持 | v8 ☐ | [2021/06/10Patchwork v7,0/8](https://patchwork.kernel.org/project/linux-riscv/cover/20210830041729.237252-1-anup.patel@wdc.com)<br>*-*-*-*-*-*-*-*<br>[LWN v8, 0/8](https://lwn.net/Articles/872513) |
+| 2021/06/10 | Anup Patel <anup.patel@wdc.com> | [ARM: Implement Clang's SLS mitigation](https://patchwork.kernel.org/project/linux-security-module/patch/20210212051500.943179-1-jiancai@google.com) | NA | v8 ☐ | [2021/06/10Patchwork v7,0/8](https://patchwork.kernel.org/project/linux-riscv/cover/20210830041729.237252-1-anup.patel@wdc.com)<br>*-*-*-*-*-*-*-*<br>[LWN v8, 0/8](https://lwn.net/Articles/872513) |
+| 2021/12/04 | Peter Zijlstra <peterz@infradead.org> | [x86: Add stright-line-speculation mitigations](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e463a09af2f0677b9485a7e8e4e70b396b2ffb6f) | 20211204134338.760603010@infradead.org | v2 ☑✓ 5.17-rc1 | [LORE v2,0/6](https://lore.kernel.org/all/20211204134338.760603010@infradead.org) |
 
 
 ## 4.2  Control-Flow Enforcement Technology (CET)
@@ -613,6 +616,7 @@ ARM 规范 [DEN0098](https://developer.arm.com/documentation/den0098/latest) 中
 Arm True Random Number Generator Firmware Interface 1.0 于去年发布, 最终由Arm TrustZone的TRNG或其他原始噪声等硬件设备
 提供支持.
 
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/12/11 | Vladimir Murzin <vladimir.murzin@arm.com> | [ARM: arm64: Add SMCCC TRNG entropy service](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=38db987316a38a3fe55ff7f5f4653fcb520a9d26) | NA | v4 ☑ 5.12-rc1 | [LORE v4,0/5](https://lore.kernel.org/lkml/20201211160005.187336-1-andre.przywara@arm.com) |
@@ -627,6 +631,8 @@ Arm True Random Number Generator Firmware Interface 1.0 于去年发布, 最终�
 [smuellerDD/lrng](https://github.com/smuellerDD/lrng)
 
 [Uniting the Linux random-number devices](https://lwn.net/Articles/884875)
+
+[Random number generator enhancements for Linux 5.17 and 5.18](https://www.zx2c4.com/projects/linux-rng-5.17-5.18)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

@@ -2602,7 +2602,8 @@ ARM & Linaro 的内核团队针对 Android/linux 等做了大量的调度的优�
 
 
 
-### 12.5.1 调度器延迟基准测试
+### 12.4.1 调度器延迟基准测试
+-------
 
 | benchmark | 描述 | 测试目的 |
 |:---------:|:---:|:-------:|
@@ -2610,6 +2611,14 @@ ARM & Linaro 的内核团队针对 Android/linux 等做了大量的调度的优�
 | [Schbench](https://git.kernel.org/pub/scm/linux/kernel/git/mason/schbench.git) | 提供了调度器详细唤醒延迟分布统计数据的基准测试程序, hackbench 在分析延迟时, 只提供了均值, 而异常值(高延迟值)可能被汇总统计(如算术平均值)隐藏, 但是查看尽可能多的延迟样本非常重要. 特别地, 关注 P99(99分位点) 延迟而不是平均延迟是非常有意义的, 只有当开始查看延迟图中的长尾时, 才会发现很多问题. 因此作者认为这是一个真正的微观基准. | 调度器唤醒延迟的详细分布(百分位图) |
 | [adrestia](https://github.com/mfleming/adrestia) | 更简单的调度器唤醒延迟微基准测试, hackbench 等进行 pipe 测试往往都经过了 futex 路径. 因此 [Matt Fleming](https://www.codeblueprint.co.uk) 在 2016 年编写了此 benchmark, 以便通过在唤醒路径中覆盖测试到不同的路径. 同时提供了第 95 百分位唤醒延迟值. | 第 95 百分位唤醒延迟值 |
 | [unixbench/context1]() | NA | NA |
+
+### 12.4.2 调度器延迟分析
+-------
+
+
+ECRTS 2020(32nd Euromicro Conference on Real-Time Systems) 上 Daniel 等人发表了论文 [Demystifying the Real-Time Linux Scheduling Latency](https://bristot.me/demystifying-the-real-time-linux-latency). 他们源代码开源在 Github [bristot/rtsl, Real-Time Linux Scheduling Latency](https://github.com/bristot/rtsl). 更多详细的信息可以参考 [Daniel's Blog, Demystifying the Real-Time Linux Scheduling Latency](https://bristot.me/demystifying-the-real-time-linux-latency).
+
+随后 2022 年, Daniel 等人开发了 OSNOISE & TimerLat Tracer 用于跟踪系统内部活动的噪音, 分析那些对业务应用可能造成性能干扰的因素. 这些 TRACER 于 v5.14 合入. 是 PREEMPT_RT 合入 mainline 的一部分工作. 随后 v5.17 提供了 RTLA 作为基于 OSNOISE & TimerLat Tracer 数据分析的工具集用于分析和测试系统的实时性. 参见 [And now Linux has a Real-Time Linux Analysis (RTLA) tool!](https://bristot.me/and-now-linux-has-a-real-time-linux-analysis-rtla-tool)
 
 
 
