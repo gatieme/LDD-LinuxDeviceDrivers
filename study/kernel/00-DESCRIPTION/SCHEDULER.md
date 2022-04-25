@@ -2348,13 +2348,47 @@ Xen 的 CPU 调度算法主要有 3 种: BVT(borrowed virtual time)调度算法�
 | 2022/01/18 | Khalid Aziz <khalid.aziz@oracle.com> | [Add support for shared PTEs across processes](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com) | 内核中的页表会消耗一些内存, 只要要维护的映射数量足够小, 那么页表所消耗的空间是可以接受的. 当进程之间共享的内存页很少时, 要维护的页表条目(PTE)的数量主要受到系统中内存页的数量的限制. 但是随着共享页面的数量和共享页面的次数的增加, 页表所消耗的内存数量开始变得非常大.<br>比如在一些实际业务中, 通常会看到非常多的进程共享内存页面. 在 x86_64 上, 每个页面页面在每个进程空间都需要占用一个只有 8Byte 大小的 PTE, 共享此页面的进程数目越多, 占用的内存会非常的大. 如果这些 PTE 可以共享, 那么节省的内存数量将非常可观.<br>这组补丁在内核中实现一种机制, 允许用户空间进程选择共享 PTE. 一个进程可以通过 通过 mshare() 和 mshare_unlink() syscall 来创建一个 mshare 区域(mshare'd region), 这个区域可以被其他进程使用共享 PTE 映射相同的页面. 其他进程可以通过 mashare() 使用共享 PTE 将共享页面映射到它们的地址空间. 然后还可以通过 mshare_unlink() syscall 来结束对共享页面的访问. 当最后一个访问 mshare'd region 的进程调用 mshare_unlink() 时, mshare'd region 就会被销毁, 所使用的内存也会被释放. | RFC ☐ | [LKML RFC,0/6](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com) |
 
 
-### 10.2 进程退出
+### 10.1.2 进程退出
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/11/18 | Sebastian Andrzej Siewior <bigeasy@linutronix.de> | [kernel/fork: Move thread stack free otu of the scheduler path](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) | [sched: Delay task stack freeing on RT](https://lore.kernel.org/all/20210928122411.593486363@linutronix.de) 的完善方案. 在 finish_task_switch() 完成后任务可能会死亡并退出, 这时候虽然快速回收任务堆栈有利于繁重的工作负载, 但这是内核实时性延迟的源头. 因此, 延迟启用 RT 的内核上的堆栈清理. | v1 ☐ | [PatchWork 0/8](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) |
 | 2021/11/18 | Linus Torvalds <torvalds@linux-foundation.org> | [task: Making tasks on the runqueue rcu protected](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) | [sched: Delay task stack freeing on RT](https://lore.kernel.org/all/20210928122411.593486363@linutronix.de) 的完善方案. 在 finish_task_switch() 完成后任务可能会死亡并退出, 这时候虽然快速回收任务堆栈有利于繁重的工作负载, 但这是内核实时性延迟的源头. 因此, 延迟启用 RT 的内核上的堆栈清理. | v1 ☐ | [PatchWork 0/8](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) |
+
+## 10.3 IPC
+-------
+
+### 10.3.1 Continuation
+-------
+
+[User-level Real-Time Network System on Microkernel-based Operating Systems]()
+
+早在 1991 年, Richard P. Draves 等开发者就使用 Continuation 机制优化了内部线程和进程间 RPC, 从而改进 Mach 3.0 操作系统的性能. 与以前版本的 Mach 3.0 相比, 我们的新系统每线程占用的空间减少了85%. 跨地址空间远程过程调用的执行速度提高了 14%. 异常处理运行速度提高了 60% 以上. 参见 ACM 论文 [Using Continuations to Implement Thread Management and Communication in Operating Systems](https://dl.acm.org/doi/10.1145/121132.121155) 以及 [User-level Real-Time Network System on Microkernel-based Operating Systems](https://keio.pure.elsevier.com/en/publications/user-level-real-time-network-system-on-microkernel-based-operatin/fingerprints). 随后 IOS XNU-Drawin 的内核集成了 Mach 3.0, 从而继承了这一功能.
+
+以一个 client 向 server IPC 请求数据为例, 当前 linix 上传统的 IPC 需要经历 3 次切换(包括进程/线程切换以及线程的栈切换).
+
+1.  client 通过系统调用进入内核, 内核栈切换成 client 的内核栈.
+
+2.  (client 在)内核态发送数据到 server 端, 这个过程会将 server 唤醒 WAKE_UP.
+
+3.  server 被唤醒, 并在一段时间后 SCHED_IN 开始执行.(因此 PICK_NEXT 不一定会选到 server 立马执行, 因此可能存在一次或者多次进程切换).
+
+4.  最后 server 从内核态返回到用户态, 这个过程伴随着内核栈到用户态栈的切换.
+
+而 IOS 的 IPC 则通过 Continuation 实现了 stack handoff 机制, 降低了 IPC 的单次开销.
+
+1.  client 通过系统调用进入内核, 内核栈切换成 client 的内核栈.
+
+2.  (client 在)内核态发送数据到 server 端, 这个过程会唤醒 server 线程, client 将自己内核栈交给 server 线程直接使用, server 直接使用 client 的内核栈.
+
+4.  最后 server 从内核态返回到用户态, 这个过程只有栈切换, 而不需要恢复寄存器堆.
+
+可以看到使用了 Continuation 的 IPC:
+
+1.  server 线程直接被 client 唤醒, 不需要走调度(WAKE_UP + PICK_NEXT + SCHED_IN)流程, 完成了 DIRECTLY SWITCH_TO server, 降低了整个唤醒时延.
+
+2.  server 线程唤醒后直接借助 client 的内核栈执行, server 和 client 都使用了 client 的内核栈, 不需要再进行数据传递, 直接调用 server 的 Continuation 返回到用户态执行.
 
 
 # 11 其他
@@ -2481,6 +2515,13 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 
 基于 Plugsched 实现的调度器热升级, 不修改现有内核代码, 就能获得较好的可修改能力, 天然支持线上的老内核版本. 如果提前在内核调度器代码的关键数据结构中加入 Reserve 字段, 可以额外获得修改数据结构的能力, 进一步提升可修改能力.
 
+## 11.3 协程(Coroutine)
+-------
+
+[关于 Coroutine(协程)、Continuation(接续)的参考资料](https://blog.csdn.net/zoomdy/article/details/89704634)
+
+
+[有栈协程与无栈协程](https://mthli.xyz/stackful-stackless)
 
 ## 11.4 其他
 -------
