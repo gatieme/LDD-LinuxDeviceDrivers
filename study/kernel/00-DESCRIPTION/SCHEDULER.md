@@ -281,6 +281,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 | 2021/02/22 | NA | [sched: pull tasks when CPU is about to run SCHED_IDLE tasks](https://lore.kernel.org/patchwork/patch/1382990) | 在 CPU 从 SCHED_NORMAL 进程切换到 SCHED_IDLE 任务之前, 尝试通过 load_balance 从其他核上 PULL SCHED_NORMAL 进程过来执行. | v2 | [2020/12/27 v1](https://lore.kernel.org/patchwork/patch/1356241), [2021/02/22 v2](https://lore.kernel.org/patchwork/patch/1143783) |
 | 2021/08/20 | Josh Don <joshdon@google.com> |[cgroup SCHED_IDLE support/SCHED_IDLE extensions](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=304000390f88d049c85e9a0958ac5567f38816ee) | 1. cgroup [组支持 SCHED_IDLE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=304000390f88)<br>2. RQ 上维护了 [idle_nr_running](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a480addecc0d) 的跟踪.<br>3. 引入 [`sysctl_sched_idle_min_granularity`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=51ce83ed523b), 当 SCHED_IDLE 任务与正常任务竞争时适用, 表示 SCHED_IDLE 任务的最小抢占粒度. 这样在与普通实体竞争时, 通过对 SCHED_IDLE 的调度实体使用较小的、无伸缩性的最小抢占粒度(由 sched_slice 计算). 可以减少普通调度实体切回来的延迟, 但代价是增加了SCHED_IDLE实体的上下文切换频率. 有效地减少了普通调度实体在与 SCHED_IDLE 调度实体竞争时的轮询延迟.<br>4. 在 place_entity() 中对于 `SCHED_IDLE` 实体唤醒时得到的补偿减少到 `sysctl_sched_min_granularity`. 因此, 唤醒的 SCHED_IDLE 实体将花费更长的时间来抢占正常实体. 此更改的好处是, 降低了新唤醒的 `SCHED_IDLE` 实体在阻塞之前抢占短期运行的普通调度实体的可能性. | v3 ☑ [5.15-rc1](https://kernelnewbies.org/LinuxChanges#Linux_5.15.cgroup_support_for_SCHED_IDLE) | [2021/06/08 v1](https://lore.kernel.org/lkml/20210608231132.32012-1-joshdon@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/7/29 LKML v2 0/2](https://lkml.org/lkml/2021/7/29/1201)<br>*-*-*-*-*-*-*-* <br>[2021/08/20 LORE v3,0/4](https://lore.kernel.org/all/20210820010403.946838-1-joshdon@google.com)<br>*-*-*-*-*-*-*-* <br>[关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=304000390f88d049c85e9a0958ac5567f38816ee) |
 | 2022/02/17 | Abel Wu <wuyun.abel@bytedance.com> | [introduce sched-idle balancing](https://lore.kernel.org/all/20220217154403.6497-1-wuyun.abel@bytedance.com) | 当前负载平衡主要基于 cpu capacity 和 task util, 这在整体吞吐量的 POV 中是有意义的. 虽然如果存在 sched 闲置或闲置 RQ, 则可以通过减少过载 CFS RQ 的数量来完成一些改进. 当 CFS RQ 上有多个可伸缩的非闲置任务时(因为 schedidle CPU 被视为闲置 CPU), CFS RQ 被认为是过载的. 空闲任务计入 rq->cfs.idle_h_nr_running.<br>过载的 CFS RQ 可能会导致两种任务类型的性能问题:<br>1. 对于诸如 SCHED_NORMAL 之类的延迟关键任务, RQ 中的等待时间将增加并导致更高的 PCT99 延迟, 并且如果存在 SCHED_DILE, 批处理任务 SCHED_BATCH 可能无法充分利用 CPU 容量, 因此吞吐量较差.<br>所以简而言之, sched-idle balancing 的目标是让非闲置任务充分利用 CPU 资源.<br>为此, 我们主要做两件事:<br>1. 为 sched-idle 的 CPU 拉取 non-idle 的任务来运行, 或者将 overload CPU 上的任务拉取到 idle 的 CPU 上.<br>2. 防止在 RQ 中 PULL 出最后一个非闲置任务. 此外 overloaded CPUs 的掩码会周期性更新, 空闲路径在 LLC 域上. 这个 cpumask 还将在 SIS 中用作过滤器, 改善空闲的 CPU 搜索. | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20220217154403.6497-1-wuyun.abel@bytedance.com) |
+| 2019/12/24 | Viresh Kumar <viresh.kumar@linaro.org> | [sched/fair: Load balance aggressively for SCHED_IDLE CPUs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=323af6deaf70f204880caf94678350802682e0dc) | NA | v1 ☑✓ 5.6-rc1 | [LORE](https://lore.kernel.org/all/885b1be9af68d124f44a863f54e337f8eb6c4917.1577090998.git.viresh.kumar@linaro.org) |
 
 
 ### 1.1.6 吭哧吭哧跑计算 SCHED\_BATCH
@@ -691,7 +692,7 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 | 2017/04/13 | Lauro Ramos Venancio <lvenanci@redhat.com> | [sched/topology: fix sched groups on NUMA machines with mesh topology](https://lore.kernel.org/all/1492091769-19879-1-git-send-email-lvenanci@redhat.com) | 目前, 调度器不能在网格拓扑机器上的 NUMA 节点之间直接移动任务. 这是因为一些 NUMA 节点属于所有调度组. 这个 BUG 在 [The Linux Scheduler: a Decade of Wasted Cores](http://www.ece.ubc.ca/~sasha/papers/eurosys16-final29.pdf) 中被报告为调度组构造 BUG. 这个补丁集从每个 CPU 的角度构造调度组. 因此, 每个 NUMA 节点可以在最后一个 NUMA 调度域级别拥有不同的组. SPECjbb2005 的结果显示, 在具有 8 个 NUMA 节点和网格拓扑的机器上, 性能提高了 63%, 并大幅降低了抖动. Patch 1 只是准备 Patch 2 的代码, Patch 2 改变调度组的构造, Patch 3 修复了不同组从同一个 CPU 开始的问题. | RFC ☐ | [LORE RFC,0/3](https://lore.kernel.org/all/1492091769-19879-1-git-send-email-lvenanci@redhat.com) |
 | 2018/05/30 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [Skip numa distance for offline nodes](https://lore.kernel.org/patchwork/patch/1433871) | NA | v1 ☐ | [LORE 0/3](https://lore.kernel.org/lkml/20210520154427.1041031-1-srikar@linux.vnet.ibm.com) |
 | 2019/5/13 | Len Brown <len.brown@intel.com> | [v6 multi-die/package topology support](https://lore.kernel.org/patchwork/patch/1433871) | 支持 DIE 拓扑层级. | v6 ☑ 5.3-rc1 | [LKML 0/19](https://lkml.org/lkml/2019/5/13/768) |
-| 2020/03/11 | Valentin Schneider <valentin.schneider@arm.com> | [sched: Instrument sched domain flags](https://lore.kernel.org/patchwork/cover/1224722) | 基于上一组补丁, 重构了 SD_FLAGS 的定义 | v4 ☑ 5.10-rc1 | [PatchWork v5 00/17](https://lore.kernel.org/patchwork/cover/1224722) |
+| 2020/03/11 | Valentin Schneider <valentin.schneider@arm.com> | [sched: Instrument sched domain flags](https://lore.kernel.org/patchwork/cover/1224722) | 基于上一组补丁, 重构了 SD_FLAGS 的定义 | v4 ☑ 5.10-rc1 | [PatchWork v5,00/17](https://lore.kernel.org/patchwork/cover/1224722)<br>*-*-*-*-*-*-*-* <br>[LORE v6,00/17](https://lore.kernel.org/all/20200817113003.20802-1-valentin.schneider@arm.com) |
 
 
 ### 4.1.2 3-hops 问题
@@ -1068,9 +1069,7 @@ t/torvalds/linux.git/log/?id=b6a60cf36d497e7fbde9dd5b86fabd96850249f6) 进行了
 | 2019/10/18 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: rework the CFS load balance](https://linuxplumbersconf.org/event/4/contributions/480) | 重构 load balance | v4 ☑ 5.5-rc1 | [LWN](https://lwn.net/Articles/793427), [PatchWork](https://lore.kernel.org/patchwork/patch/1141687), [lkml](https://lkml.org/lkml/2019/10/18/676), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0b0695f2b34a4afa3f6e9aa1ff0e5336d8dad912) |
 | 2019/10/22 | | [sched/fair: fix rework of find_idlest_group()](https://lore.kernel.org/patchwork/patch/1143049) | fix 补丁 | | |
 | 2019/11/29 | | [sched/cfs: fix spurious active migration](https://lore.kernel.org/patchwork/patch/1160934) | fix 补丁 | | |
-| 2019/12/20 | | [sched/fair : Improve update_sd_pick_busiest for spare capacity case 1171109 diffmboxseries](https://lore.kernel.org/patchwork/patch/1171109/) | | |
-| 2021/01/06 | Vincent Guittot | [sched/fair: ensure tasks spreading in LLC during LB](https://lore.kernel.org/patchwork/cover/1330614) | 之前的重构导致 schbench 延迟增加95%以上, 因此将 load_balance 的行为与唤醒路径保持一致, 尝试为任务选择一个同属于LLC 的空闲 CPU. 从而在空闲 CPU 上更好地分散任务. | v1 ☑ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1330614) |
-
+| 2020/11/02 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: ensure tasks spreading in LLC during LB](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=16b0a7a1a0af9db6e008fecd195fe4d6cb366d83) | 之前的重构导致 schbench 延迟增加95%以上, 因此将 load_balance 的行为与唤醒路径保持一致, 尝试为任务选择一个同属于LLC 的空闲 CPU. 从而在空闲 CPU 上更好地分散任务. | v1 ☑✓ 5.10-rc4 | [LORE](https://lore.kernel.org/all/20201102102457.28808-1-vincent.guittot@linaro.org) |
 
 
 CPU 负载均衡器在不同的域之间进行平衡, 以分散负载, 并努力在所有域之间保持平衡. 同时期望相互之间有通信的任务可以迁移到接近的拓扑上, 以便于通信的时延最小. 但是这些决策是独立的. 因此在负载较轻的 NUMA 机器上, 两个在唤醒时本来应该拉在一起的通信任务可以被负载平衡器推开.
@@ -1459,7 +1458,7 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:----:|:---:|:----------:|:---:|
-| 2022/03/10 | Chen Yu <yu.c.chen@intel.com> | [sched/fair: Change SIS_PROP to search idle CPU based on sum of util_avg](https://lore.kernel.org/all/20220310005228.11737-1-yu.c.chen@intel.com) |  | v2 ☐☑✓ | [LORE v1](https://lore.kernel.org/all/20220207034013.599214-1-yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/all/20220310005228.11737-1-yu.c.chen@intel.com) |
+| 2022/04/29 | Chen Yu <yu.c.chen@intel.com> | [sched/fair: Introduce SIS_UTIL to search idle CPU based on sum of util_avg](https://lore.kernel.org/all/20220310005228.11737-1-yu.c.chen@intel.com) |  | v2 ☐☑✓ | [LORE v1](https://lore.kernel.org/all/20220207034013.599214-1-yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/all/20220310005228.11737-1-yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3](https://lore.kernel.org/lkml/20220428182442.659294-1-yu.c.chen@intel.com) |
 
 
 ### 5.3.5 SIS avg_idle
@@ -1494,16 +1493,18 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 [Cluster-Aware Scheduling Lands In Linux 5.16](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.16-Sched-Core)
 
 
-| 计划 | 任务 | 描述 |
-|:---:|:----:|:---:|
-| 第一个系列 | 增加 cluster 调度域 | 让拓扑域感知 cluster 的存在, 在 sysfs 接口中提供 cluster 的信息(包括 id 和 cpumask 等), 并添加 CONFIG_SCHED_CLUSTER, 可以在 cluster 之间实现负载平衡, 从而使大量工作负载受益. 测试表明, 在 Jacobsville 上增加 25.1% 的 SPECrate mcf, 在 kunpeng920 上增加 13.574% 的 mcf. |
-| 第二个系列 | wake_affine 感知 cluster | 修改 wake_affine, 内核在扫描整个 LLC 之前先选择集群内的 cpu, 这样我们就可以从单个集群内缓存一致性的低延迟中获益. 这个系列要复杂得多. 原型在这里 [Linaro-open-discussions/PATCH 0/4/cluster-scheduler upstream plan - packing path](https://op-lists.linaro.org/pipermail/linaro-open-discussions/2021-June/000219.html) |
-| 第三个系列 | 允许用户启用或禁用 Tim Chen 提供的集群调度程序的 sysctl. | 原型在 [Linaro-open-discussions/RFC Patch v2 0/4/Add run time sysctl to enable/disable cluster scheduling](https://op-lists.linaro.org/pipermail/linaro-open-discussions/2021-July/000258.html) |
+| 计划 | 任务 | 描述 | 效果 |
+|:---:|:----:|:---:|:---:|
+| 第一个系列 | 增加 cluster 调度域 | 让拓扑域感知 cluster 的存在, 在 sysfs 接口中提供 cluster 的信息(包括 id 和 cpumask 等), 并添加 CONFIG_SCHED_CLUSTER, 可以在 cluster 之间实现负载平衡, 从而使大量工作负载受益. 测试表明, 在 Jacobsville 上增加 25.1% 的 SPECrate mcf, 在 kunpeng920 上增加 13.574% 的 mcf. | 支持 CLUSTER 之间的负载平衡, 从而带来更多内存带宽并减少缓存争用. |
+| 第二个系列 | wake_affine 感知 cluster | 修改 wake_affine, 内核在扫描整个 LLC 之前先选择集群内的 cpu, 这样我们就可以从单个集群内缓存一致性的低延迟中获益. 这个系列要复杂得多. 原型在这里 [Linaro-open-discussions/PATCH 0/4/cluster-scheduler upstream plan - packing path](https://op-lists.linaro.org/pipermail/linaro-open-discussions/2021-June/000219.html) | 1. select_idle_cpu() 试图在扫描整个 LLC 之前先通过 scan_cluster() 找到目标 CPU cluster 域 per_cpu(sd_cluster, target) 内空闲的 CPU, 以获得更低的延迟. |
+| 第三个系列 | 允许用户启用或禁用 Tim Chen 提供的集群调度程序的 sysctl. | 原型在 [Linaro-open-discussions/RFC Patch v2 0/4/Add run time sysctl to enable/disable cluster scheduling](https://op-lists.linaro.org/pipermail/linaro-open-discussions/2021-July/000258.html) | NA |
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:----:|:---:|:----------:|:---:|
-| 2021/09/20 | Barry Song <song.bao.hua@hisilicon.com> | [scheduler: expose the topology of clusters and add cluster scheduler](https://lore.kernel.org/patchwork/cover/1415806) | 增加了 cluster 层次的 CPU select. 多个架构都是有 CLUSTER 域的概念的, 比如 Kunpeng 920 一个 NODE(DIE) 24个 CPU 分为 8 个 CLUSTER, 整个 DIE 共享 L3 tag, 但是一个 CLUSTER 使用一个 L3 TAG. 这种情况下对于有数据共享的进程, 在一个 cluster 上运行, 通讯的时延更低.  | RFC v6 ☐ | [2020/12/01 PatchWork RFC,v2,0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20201201025944.18260-1-song.bao.hua@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[2021/03/01 PatchWork RFC,v4,0/4](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210301225940.16728-1-song.bao.hua@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[2021/03/19 PatchWork RFC,v5,0/4](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210319041618.14316-1-song.bao.hua@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/20 PatchWork v6,0/4](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210420001844.9116-1-song.bao.hua@hisilicon.com) |
-| 2021/06/15 | Peter Zijlstra | [Represent cluster topology and enable load balance between clusters](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210820013008.12881-1-21cnbao@gmail.com) | 第一个系列(series): 让拓扑域感知 cluster 的存在, 在 sysfs 接口中提供 cluster 的信息(包括 id 和 cpumask 等), 并添加 CONFIG_SCHED_CLUSTER, 可以在 cluster 之间实现负载平衡, 从而使大量工作负载受益. 测试表明, 在 Jacobsville 上增加 25.1% 的 SPECrate mcf, 在 kunpeng920 上增加 13.574% 的 mcf. 但是社区测试在 alder lake 上造成了一定的性能回归, [Linux 5.16's New Cluster Scheduling Is Causing Regression, Further Hurting Alder Lake](https://www.phoronix.com/scan.php?page=article&item=linux-516-regress&num=1), [Windows 11 Better Than Linux Right Now For Intel Alder Lake Performance](https://www.phoronix.com/scan.php?page=article&item=alderlake-windows-linux&num=1) | RFC ☑ [5.16-rc1](https://lore.kernel.org/lkml/163572864855.3357115.17938524897008353101.tglx@xen13/) | [2021/09/20 PatchWork 0/3](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210820013008.12881-1-21cnbao@gmail.com), [2021/09/20 PatchWork RESEND,0/3](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210924085104.44806-1-21cnbao@gmail.com), [LKML](https://lkml.org/lkml/2021/9/24/178), [LWN](https://lwn.net/Articles/866914) |
+| 2021/04/20 | Barry Song <song.bao.hua@hisilicon.com> | [scheduler: expose the topology of clusters and add cluster scheduler](https://lore.kernel.org/patchwork/cover/1415806) | 增加了 cluster 层次的 CPU select. 多个架构都是有 CLUSTER 域的概念的, 比如 Kunpeng 920 一个 NODE(DIE) 24个 CPU 分为 8 个 CLUSTER, 整个 DIE 共享 L3 tag, 但是一个 CLUSTER 使用一个 L3 TAG. 这种情况下对于有数据共享的进程, 在一个 cluster 上运行, 通讯的时延更低.  | RFC v6 ☐ | [2020/12/01 PatchWork RFC,v2,0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20201201025944.18260-1-song.bao.hua@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[2021/03/01 PatchWork RFC,v4,0/4](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210301225940.16728-1-song.bao.hua@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[2021/03/19 PatchWork RFC,v5,0/4](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210319041618.14316-1-song.bao.hua@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/20 PatchWork v6,0/4](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210420001844.9116-1-song.bao.hua@hisilicon.com) |
+| 2021/06/15 | Peter Zijlstra | [Represent cluster topology and enable load balance between clusters](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=66558b730f2533cc2bf2b74d51f5f80b81e2bad0) | 第一个系列(series): 让拓扑域感知 cluster 的存在, 在 sysfs 接口中提供 cluster 的信息(包括 id 和 cpumask 等), 并添加 CONFIG_SCHED_CLUSTER, 可以在 cluster 之间实现负载平衡, 从而使大量工作负载受益. 测试表明, 在 Jacobsville 上增加 25.1% 的 SPECrate mcf, 在 kunpeng920 上增加 13.574% 的 mcf. 但是社区测试在 alder lake 上造成了一定的性能回归, [Linux 5.16's New Cluster Scheduling Is Causing Regression, Further Hurting Alder Lake](https://www.phoronix.com/scan.php?page=article&item=linux-516-regress&num=1), [Windows 11 Better Than Linux Right Now For Intel Alder Lake Performance](https://www.phoronix.com/scan.php?page=article&item=alderlake-windows-linux&num=1) | RFC ☑ [5.16-rc1](https://kernelnewbies.org/Linux_5.16#Add_cluster_scheduler_support_to_the_task_scheduler) | [2021/09/20 PatchWork 0/3](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210820013008.12881-1-21cnbao@gmail.com), [2021/09/20 PatchWork RESEND,0/3](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210924085104.44806-1-21cnbao@gmail.com), [LKML](https://lkml.org/lkml/2021/9/24/178), [LWN](https://lwn.net/Articles/866914), [GIT PULL, 5.16-rc1](https://lore.kernel.org/lkml/163572864855.3357115.17938524897008353101.tglx@xen13/) |
+| 2022/01/26 | Yicong Yang <yangyicong@hisilicon.com> | [sched/fair: Wake task within the cluster when possible](https://lore.kernel.org/all/20220126080947.4529-1-yangyicong@hisilicon.com) | 这个补丁集负责唤醒路径的 cluster 感知, 在扫描整个 LLC 之前, 先在同一集群中其他的 CPU 尝试一下, 以使这些任务能够相互通信.<br>1. 引入 SD_CLUSTER 标记 cluster 域, 使用 per_cpu(sd_cluster, cpu) 和 per_cpu(sd_share_id, cpu) 标记 CPU 所属的 cluster 及其 ID<br>2. 接着 select_idle_cpu() 试图在扫描整个 LLC 之前先通过 scan_cluster() 找到目标 CPU cluster 域 per_cpu(sd_cluster, target) 内空闲的 CPU, 以获得更低的延迟. | v2 ☐☑✓ | [](https://lore.kernel.org/lkml/20211215041149.73171-1-yangyicong@hisilicon.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/2](https://lore.kernel.org/all/20220126080947.4529-1-yangyicong@hisilicon.com) |
 | 2021/12/03 | Tim Chen <tim.c.chen@linux.intel.com> | [Make Cluster Scheduling Configurable](https://lkml.org/lkml/2021/12/3/891 ) | Cluster Scheduling 并不适用于所有场景, 因此这组补丁支持了在运行时和引导时可以动态配置 Cluster Scheduling. 可以通过启动参数 `sched_cluster={1|0}` 来在启动时开启和关闭, 也可以通过 `/proc/sys/kernel/sched_cluster` 接口在运行时动态开启和关闭.<br>当系统负载适中时, 值得做额外的负载平衡来平衡 cluster 之间的负载, 以减少 cluster 内资源的争用. 但是如果系统负载较大, 各个资源已经得到充分利用, cluster 之间的负载平衡不太可能有助于减少 cluster 的资源争用, 因为 cluster 内已经完全繁忙.<br>同时由于不感知性能异构的 CPU 类型, 造成了 Intel Alder Lake CPU 上性能退化, 参见 [Linux 5.16's New Cluster Scheduling Is Causing Regression, Further Hurting Alder Lake](https://www.phoronix.com/scan.php?page=article&item=linux-516-regress&num=3). 因此在 x86 hybrid 类型的 CPU 上禁用 Cluster Scheduling.<br>在一个有 24 个 Atom 内核的 Jacobsville 系统上 (每个 cluster 有 4 个 Atom CPU 核共享一个 L2), 在 24 个 CPU 的系统上运行 mcf 基准测试, 从非常低的负载 1 个基准测试副本到 24 个基准测试副本. 我们看到, 在中等负载时吞吐量得到了提高, 但当系统满负载时, Cluster Scheduling 几乎没有什么提升.<br> 不过 Peter 最终直接选择在 x86 hybrid CPUs 上禁用 cluster. 参见 commit [cabdc3a8475b ("sched,x86: Don't use cluster topology for x86 hybrid CPUs")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cabdc3a8475b918e55744f43719b26a82dc8fa6b). | v1 ☐ | [LORE 0/5](https://lkml.kernel.org/lkml/cover.1638563225.git.tim.c.chen@linux.intel.com), [Peter Zijlstra COMMIT](https://lore.kernel.org/all/163899885798.11128.4032422680527135079.tip-bot2@tip-bot2) |
 
 *   multiple LLCs
@@ -1635,62 +1636,161 @@ ARM 的 Morten Rasmussen 一直致力于ANDROID 调度器优化的:
 ### 7.2.3 EAS(Energy Aware Scheduling)
 -------
 
+ARM 关于 ANDROID 上的特性支持: [Open Source Software and Platforms/Wiki--Linux/Android](https://community.arm.com/oss-platforms/w/docs/508/linux-android)
+
+ARM EAS 支持的主页: [Energy Aware Scheduling (EAS)](https://developer.arm.com/tools-and-software/open-source-software/linux-kernel/energy-aware-scheduling).
+
+
+[Energy Aware Scheduling (EAS) progress update](https://www.linaro.org/blog/energy-aware-scheduling-eas-progress-update)
+
+
+| static_key | 描述 | COMMIT |
+|:----------:|:---:|:------:|
+| sched_asym_cpucapacity | Capacity Aware Scheduling 特性开关 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=df054e8445a4011e3d693c2268129c0456108663) |
+| sched_energy_present | EAS 的特性开关. | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1f74de8798c93ce14801cc4e772603e51c841c33) |
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2018/12/03 | Quentin Perret | [Energy Aware Scheduling](https://lore.kernel.org/patchwork/cover/1020432) | 能效感知的调度器 EAS | v10 ☑ 5.0-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1020432) |
+| 2018/12/03 | Quentin Perret <quentin.perret@arm.com> | [Energy Aware Scheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=732cd75b8c920d3727e69957b14faa7c2d7c3b75) | 能效感知的调度器 EAS | v10 ☑ 5.0-rc1 | [LORE v10,00/15](https://lore.kernel.org/lkml/20181203095628.11858-1-quentin.perret@arm.com) |
 | 2019/08/22 | Patrick Bellasi | [Add utilization clamping support (CGroups API)](https://lore.kernel.org/patchwork/cover/1118345) | TASK util clamp(Android schedtune 的主线替代方案)  | v14 ☑ 5.4-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1118345) |
 | 2021/12/20 | Vincent Donnefort <vincent.donnefort@arm.com> | [Fix stuck overutilized](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) | NA | v1 ☐ | [LORE 0/3](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) |
 
 
+EAS 主线合入的特性时间线: [EAS Development for Mainline Linux](https://developer.arm.com/tools-and-software/open-source-software/linux-kernel/energy-aware-scheduling/eas-mainline-development)
 
-### 7.2.4 CAS(Capacity Aware Scheduling)
+| 版本 | 特性 | PatchSet |
+|:----:|:---:|---------:|
+| v4.13 | CPU Invariant Engine (CIE) | NA |
+| v4.15 | Frequency Invariant Engine (FIE) | NA |
+| v4.17 | Idle CPU Per-Entity Load-Tracking (PELT) update | NA |
+| v4.17 | Util(ization) Est(imated) | NA |
+| v4.20 | Misfit task, i.e. forcing migration of running tasks that do not fit on the CPU they are currently running on | [sched/fair: Migrate 'misfit' tasks on asymmetric capacity systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9c63e84db29bcf584040931ad97c2edd11e35f6c) |
+| v4.20 | Runtime scheduler domain flag detection | NA |
+| v5.0  | Per-cpu Energy Model (EM) and Energy Aware Scheduling (EAS) | NA |
+| v5.3  | Tracepoints (PELT and over-utilzation) | NA |
+| v5.3  | Util(ization) clamping (core and per-task interface) | NA |
+| v5.4  | Util(ization) clamping (cgroup interface) | NA |
+| v5.4  | Patch-set 'sched/fair: Reduce complexity of energy calculation' | NA |
+| v5.5  | Thermal/Cpu Cooling as Energy Model (EM) user | NA |
+| v5.7  | Activity Monitor Unit (AMU) support | NA |
+| v5.8  | Streamline select_task_rq() & select_task_rq_fair() (partly (4/9 patches)) | NA |
+| v5.9  | (Devfreq) devices as Energy Model user | NA |
+| v5.9  | SCHED_DEADLINE capacity awareness | NA |
+| v5.10 | Instrument sched domain flags | NA |
+| v5.10 | Cpufreq FIE cleanup | NA |
+| v5.16 | Inefficient OPPs | NA |
+| NA    | Arch_topology, ACPI: populate cpu capacity from CPPC (v2 on lkml)
+| NA    | Remove find_energy_efficient_cpu() energy margin (v2 on lkml)
+| NA    | Runtime modifiable Energy Model
+| NA    | Move Performance Domain list from Root Domain to Runqueue
+
+### 7.2.4 CAS(Capacity Aware Scheduling) vs EAS
 -------
 
-
-在支持 misfit task 的过程中, [commit df054e8445a4 ("sched/topology: Add static_key for asymmetric CPU capacity optimizations")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=df054e8445a4011e3d693c2268129c0456108663) 引入了 sched_asym_cpucapacity static_key, 来控制 CAS(Capacity Aware Scheduling).
+在支持 misfit task 的过程中, [commit df054e8445a4 ("sched/topology: Add static_key for asymmetric CPU capacity optimizations")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=df054e8445a4011e3d693c2268129c0456108663) 引入了 STATIC_KEY sched_asym_cpucapacity, 来控制 CAS(Capacity Aware Scheduling).
 
 在整个调度域过载(sd->overutilized) 的时候, 内核将禁用 EAS, 选择使用 CAS 来作为异构平台的首选调度器. CAS 的思路很简单, 通过 task_fits_capacity() 判断当前调度域或者 CPU 的 capacity 是否能满足当前进程的要求, 然后尽可能为进程选择 capacity 满足要求的 CPU.
 
-*   capacity asymmetry detection
+
+#### 7.2.4.1 Capacity Asymmetry Detection
+-------
+
+CAS 特性是通过 STATIC_KEY sched_asym_cpucapacity 控制的.
+
+EAS 特性是通过 STATIC_KEY sched_energy_present 控制的.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2016/10/14 | Vincent Guittot | [sched: Clean-ups and asymmetric cpu capacity support](https://lore.kernel.org/patchwork/cover/725608) | 调度程序目前在非对称计算能力的系统上没有做太多的工作来提高性能(读ARM big.LITTLE). 本系列主要通过对任务唤醒路径进行一些调整来改善这种情况, 这些调整主要考虑唤醒时的计算容量, 而不仅仅考虑cpu对这些系统是否空闲. 在部分使用的场景中, 这为我们提供了一致的、可能更高的吞吐量. SMP的行为和性能应该是不受影响. <br>注意这组补丁是分批合入的 | v1 ☑ 4.10-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/725608) |
+| 2019/10/23 | Valentin Schneider <valentin.schneider@arm.com> | [sched/topology: Asymmetric topologies fixes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e284df705cf1eeedb5ec3a66ed82d17a64659150) | 允许 sched_asym_cpucapacity 被 disable.<br>[sched_asym_cpucapacity 默认是关闭](https://elixir.bootlin.com/linux/v5.16/source/kernel/sched/topology.c#L651)的, 但是启动过程中 [build_sched_domains()](https://elixir.bootlin.com/linux/v5.16/source/kernel/sched/topology.c#L2271) 如果识别当前系统是大小核异构(比如 ARM big.LITTLE 等)的系统, 就会[标记 has_asym](https://elixir.bootlin.com/linux/v5.16/source/kernel/sched/topology.c#L2220), 然后把 STATIC_KEY sched_asym_cpucapacity 开启, 但一旦打开, 它将永远保持启用状态. 这意味着, 如果我们从一个非对称系统开始, 热插拔出足够多的 CPU, 最终得到一个 SMP 系统, sched_asym_cpucapacity 依旧将保持开启状态, 这显然是错误的. 应该检测到这一点, 并关闭不匹配迁移和容量感知唤醒等功能. 这个补丁就完成了这个功能. | v4 ☑✓ 5.4-rc6 | [LORE v4,0/2](https://lore.kernel.org/all/20191023153745.19515-1-valentin.schneider@arm.com) |
 | 2021/06/03 | Valentin Schneider | [Rework CPU capacity asymmetry detection](https://lore.kernel.org/patchwork/cover/1424708) | 当前版本 asym_cpu_capacity_level 存在几个问题.<br>1. 只能支持到最低的拓扑级别, 对全局的拓扑域不可见.<br>2. 不支持 NUMA 级别的异构, 因为初始化 NUMA 级别的 sd_numa_mask 中不包含其他 NODE, 最终 sched_domain_span 是在构建调度域的时候进行的更新的.<br>这对于大多数现有的不对称设计很实用, 但是却不支持普适的性能异构架构.这可能不是最好的方法, 在一些领域可能看不到任何不对称. 这对于不合适的迁移和能量感知的安置可能会有问题. 因此, 对于受影响的平台, 它可能导致对唤醒和 CPU 选择路径的自定义更改.<br>这组补丁修改了执行非对称检测的方式, 允许将非对称拓扑级别固定在最低的拓扑级别上, 在最低的拓扑级别上, 给定调度域中的所有 CPU 都可以看到整个 CPU 容量范围. asym_cpu_capacity_level 还将跟踪那些观察到任何非对称范围的级别, 以使用 SD_ASYM_CPUCAPACITY 标志表示相应的调度域, 并为这些域启用不匹配迁移. 为了区分局部和全范围 CPU 容量不对称的调度域, 引入了新的调度域标志: SD_ASYM_CPUCAPACITY_FULL. | v7 ☑ 5.14-rc1  | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1414557)<br>*-*-*-*-*-*-*-* <br>[PatchWork v7](https://lore.kernel.org/all/20210603140627.8409-1-beata.michalska@arm.com) |
+| 2022/04/27 | Vincent Donnefort <vincent.donnefort@arm.com> | [feec() energy margin removal](https://lore.kernel.org/all/20220427143304.3950488-1-vincent.donnefort@arm.com) | 20220427143304.3950488-1-vincent.donnefort@arm.com | v7 ☐☑✓ | [LORE v7,0/7](https://lore.kernel.org/all/20220427143304.3950488-1-vincent.donnefort@arm.com) |
 
 
+#### 7.2.4.3 Capacity Aware Wakeup & LoadBalance
+-------
 
-*   capacity aware wakeup
+*   asymmetric CPU capacity support for WAKEUP @4.9
+
+早期调度器目前并没有在 AMP 架构(比如 ARM big.LITTLE)上为提高性能做太多工作. v4.9 [sched: Clean-ups and asymmetric cpu capacity support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=3273163c6775c4c21823985304c2364b08ca6ea2) 为调度器实现 Capacity Awareness. 这是一次最基础的尝试. 完成了 wakeup 路径的 capacityt aware. 允许 SD_ASYM_CPUCAPACITY 域内做 SD_BALANCE_WAKE, 并且 wake_affine 时引入了 wake_cap().
+
+引入 [SD_ASYM_CPUCAPACITY 标记](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1f6e6c7cb9bcd58abb5ee11243e0eefe6b36fc8e).
+
+为 SD_ASYM_CPUCAPACITY 域下的所有 sched_domain [开启了 SD_BALANCE_WAKE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9ee1cda5ee25c7dd82acf25892e0d229e818f8c7).
+
+接着进一步为 SD_ASYM_CPUCAPACITY 增加了 wake_affine 的支持, 只有[当唤醒任务的 util 适合于 waker CPU 和 prev CPU](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3273163c6775c4c21823985304c2364b08ca6ea2), 并且他们属于 SD_SHARE_PKG_RESOURCES 域内时, 才允许 SD_WAKE_AFFINE. 否则就依旧使用 SD_BALANCE_WAKE 走 `find_idlest_{group, cpu}()` 的路径.
+
+*   asymmetric CPU capacity support for LOAD_BALANCE @4.10
+
+接着 v4.10 [sched: Clean-ups and asymmetric cpu capacity support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=893c5d2279041afeb593f1fa8edd9d02edf5b7cb) 为调度器实现 Capacity Awareness 的时候, 针对 load_balance 路径做了优化.
+
+在低利用率(low-utilization scenarios)的场景下, find_idlest_group() 中比较相对负载 runnable_load 和 avg_load 并不总是最优的选择. 在这些场景中, 如果系统组包含不同数量的 CPU 或不同计算能力的 CPU, 那么这时候考虑空闲容量, 系统的性能会明显优于只考虑相对负载的情况. 因此 [commit2 6a0b19c0f39a("sched/fair: Consider spare capacity in find_idlest_group()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6a0b19c0f39a7a7b7fb77d3867a733136ff059a3) 实现了 find_idlest_group() 对剩余容量的考虑, 除了现有的基于负载的搜索之外, 如果有足够的空闲容量, 还会找到并选择一个[剩余容量最大的 sched_group most_spare_sg 作为备选](https://elixir.bootlin.com/linux/v4.10/source/kernel/sched/fair.c#L5489). 如果没有, 则保留现有的行为.
+
+struct sched_group_capacity 当前表示 sched_group 内所有 CPU 的计算容量之和. 即使用它除以 group_weight 来得到每个 CPU 的平均容量, 它也隐藏了 AMP 系统中 CPU capacity 的差异(例如高 RT/IRQ 负载或 ARM big.LITTLE 架构). 因此 [commit bf475ce0a3dd ("sched/fair: Add per-CPU min capacity to sched_group_capacity")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bf475ce0a3dd75b5d1df6c6c14ae25168caa15ac) 通过扩展 struct sched_group_capacity, 添加 min_capacity 字段以指示组中 CPU 的最小容量. 可以更容易地找到针对给定任务负载的合适 sched_group, 从而可以让高负载的任务避免使用容量较少的 CPU.
+
+有这样一个假设: 应该优先使用 CPU capacity 高的 CPU, 而不是将进程单独放在具有较低 CPU capacity 的 sched_group 中运行, 这样一个前提下, 如果低 capacity 的 CPU 从 capacity 更高的非过载 CPU 中 PULL 任务出来, 吞吐量会适得其反. 通过使用 min_capacity, [commit 9e0994c0a1c1 ("sched/fair: Avoid pulling tasks from non-overloaded higher capacity groups")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9e0994c0a1c1f82c705f1f66388e1bcffcee8bb9) update_sd_pick_busiest() 中不再允许[任务比较少 sgs->sum_nr_running <= sgs->group_weight](https://elixir.bootlin.com/linux/v4.10/source/kernel/sched/fair.c#L7429) 但是 [CPU 容量较高](https://elixir.bootlin.com/linux/v4.10/source/kernel/sched/fair.c#L7429)的 sched_group 作为可能最繁忙的组, 否则可能会导致一系列失败的负载平衡尝试, 从而导致强制迁移.
+
+*   asymmetric CPU capacity WAKEUP @5.7
+
+
+当前在 AMP 系统下, 目前[依靠 wake_cap() 来推动 select_task_rq_fair() 朝以下方向发展](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3273163c6775c4c21823985304c2364b08ca6ea2), 如果 prev 或者 waker CPU 对于唤醒任务的 capacity 太小, 不足以承载当前被唤醒的任务, 那么将走到选核心慢路径(find_idlest_cpu()), 否则就进入 wake_affine 的快速路径 select_idle_sibling().
+
+这种直接借助 wake_affine 的策略对于早期的 AMP 架构(比如 ARM big.LITTLE)工作的很好, 之前的系统上同一个 SD_LLC 域内各个 CPU 是同构的, 但是随着架构不断的演进, ARM DynamIQ 架构允许单个 LLC 域中容纳不同 capacity 的 CPU. 这种策略就不能很好的工作了.
+
+因此 v4.10 [sched/fair: Capacity aware wakeup rework](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=000619680c3714020ce9db17eef6a4a7ce2dc28b) 就通过在选核快速路径 select_idle_sibling() 的显式使用 capacity aware CPU selector(select_idle_capacity()) 来替代原来 SD_BALANCE_WAKE + wake_cap()/wake_affine 的选核方式.
+
+[commit b7a331615d25 ("sched/fair: Add asymmetric CPU capacity wakeup scan")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b7a331615d254191e7f5f0e35aec9adcd6acdc54) 引入了 select_idle_sibling() -=> select_idle_capacity() 用于在选核快速路径下扫描 per_cpu(sd_asym_cpucapacity, target) 域中的空闲 CPU. 该函数将 CPU capacity 考虑在内. 策略是在 sd_asym_cpucapacity 域内, 选择第一个 capacity 足够大(能够满足任务运行, 即 task_util * margin < cpu_capacity) 的空闲 CPU 来执行任务. 如果没有满足要求的, 就尝试选择具有最高 capacity 的空闲 CPU.
+
+有了显式的 select_idle_capacity() 之后, 就移除了 [sd_asym_cpucapacity 域内的 SD_BALANCE_WAKE 标记](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a526d466798d65cff120ee00ef92931075bf3769) 以及 [wake_cap()/wake_affine 策略](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=000619680c3714020ce9db17eef6a4a7ce2dc28b).
+
+至此, 整个 capacity aware CPU selector 这个责任已经转移到 select_idle_sibling() -=> select_idle_capacity() 身上.
+
+移除了 SD_BALANCE_WAKE 就意味着 AMP 系统在唤醒路径不会再进入选核慢速路径 find_idlest_cpu(). 不过 exec 和 fork 路径依旧会走慢速路径. 这本身不会有太大的问题.
+
+*   asymmetric CPU capacity WAKEUP & LOAD_BALANCE @5.10
+
+注意 v4.10 版本的 select_idle_capacity() 在 select_idle_sibling() 路径下是截断了 wake_affine 有限选择 prev 和 waker CPU 的逻辑的. 因此移除了 wake_cap() 将导致 wake_affine 的 capacity aware 缺失了对 prev 和 waker CPU 的优选. 这个问题在 v5.10 [commit b4c9c9f15649 ("sched/fair: Prefer prev cpu in asymmetric wakeup path")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b4c9c9f15649c98a5b45408919d1ff4fd7f5531c) 被处理. select_idle_sibling() 中在优选 prev 以及 waker CPU 时必须保证它们能满足进程运行所需, 即 asym_fits_capacity(), 理所当然 [select_idle_capacity()](https://elixir.bootlin.com/linux/v5.10/source/kernel/sched/fair.c#L6285) 自然被移动到了优选 prev 以及 waker CPU 的处理后.
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2020/02/06 | Vincent Guittot | [sched/fair: Capacity aware wakeup rework](https://lore.kernel.org/patchwork/cover/1190300) | 异构 CPU 上 wakeup 路径优化. 实现了 select_idle_capacity(), wakeup 进程时, 为进程选择 capacity 更合适的 CPU.  | v4 ☑ 5.7-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1190300) |
-| 2020/12/19 | Vincent Guittot | [sched/fair: prefer prev cpu in asymmetric wakeup path](https://lore.kernel.org/patchwork/cover/1329119) | 异构 CPU 上 wakeup 路径倾向于使用 prev CPU | v1 ☑ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1308748) |
+| 2016/07/25 | Morten Rasmussen <morten.rasmussen@arm.com> | [sched: Clean-ups and asymmetric cpu capacity support/PART 1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=3273163c6775c4c21823985304c2364b08ca6ea2) | NA | v3 ☑✓ 4.9-rc1 | [LORE v3,0/13](https://lore.kernel.org/all/1469453670-2660-1-git-send-email-morten.rasmussen@arm.com) |
+| 2016/10/14 | Morten Rasmussen <morten.rasmussen@arm.com> | [sched: Clean-ups and asymmetric cpu capacity support/PART 2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=893c5d2279041afeb593f1fa8edd9d02edf5b7cb) | 本系列主要对任务唤醒路径进行了一些调整, 从而为调度器提供了 Capacity Aware 的能力, 该路径考虑了唤醒时的计算能力, 而不仅仅是 CPU 是否 IDLE 或者是不是 idlest. 这使我们在部分利用的情况下获得了一致且可能更高的吞吐量.<br>[COMMIT 1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=104cb16d9eb684f071d5bf3aa87c0d01af259b7c) 修复了唤醒路径的任务利用率不准确的问题.<br>COMMIT 2-5 为调度器改善了 capacity awareness.<br>COMMIT 6 修复了注释. | v5 ☐☑✓ 4.10-rc1 | [LORE v5,0/6](https://lore.kernel.org/all/1476452472-24740-1-git-send-email-morten.rasmussen@arm.com) |
+| 2020/02/06 | Valentin Schneider <valentin.schneider@arm.com> | [sched/fair: Capacity aware wakeup rework](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=000619680c3714020ce9db17eef6a4a7ce2dc28b) | 异构 CPU 上 wakeup 路径优化. 实现了 select_idle_capacity(), wakeup 进程时, 为进程选择 capacity 更合适的 CPU. | v4 ☑✓ 5.7-rc1 | [LORE v4,0/4](https://lore.kernel.org/all/20200206191957.12325-1-valentin.schneider@arm.com) |
+| 2020/12/19 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: Prefer prev cpu in asymmetric wakeup path](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b4c9c9f15649c98a5b45408919d1ff4fd7f5531c) | 异构 CPU 上 wakeup 路径倾向于使用 prev CPU | v1 ☑✓ 5.10-rc4 | [LORE v3](https://lore.kernel.org/all/20201029161824.26389-1-vincent.guittot@linaro.org) |
 
-*   misfit task
 
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2018/03/15 | Morten Rasmussen | [sched/fair: Migrate 'misfit' tasks on asymmetric capacity systems](https://lore.kernel.org/patchwork/cover/933989) | 实现 misfit, 可以理解为 asymmetric aware 的 load balance, 在进程运行过程中, 如果当前 CPU capacity 已经不能满足当前进程, 则将进程迁移到拥有更合适 capacity 的 CPU 上. | v1 ☑ 4.20-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/933989) |
-| 2021/03/11 | Valentin Schneider | [sched/fair: misfit task load-balance tweaks](https://lore.kernel.org/patchwork/cover/1393531) | 优化 misfit task 的一些逻辑 | v3 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1393531) |
-| 2021/04/07 | Valentin Schneider | [sched/fair: load-balance vs capacity margins](https://lore.kernel.org/patchwork/cover/1409479) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 1 | v3 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1409479) |
-| 2021/04/16 | Valentin Schneider | [sched/fair: (The return of) misfit task load-balance tweaks](https://lore.kernel.org/patchwork/cover/1414181) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 2 | v1 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1414181) |
-
-*   capacity aware sched class
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2020/05/20 | Dietmar Eggemann | [Capacity awareness for SCHED_DEADLINE](https://lore.kernel.org/patchwork/cover/1245028) | DEADLINE 感知 Capacity | v3 ☐ 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1245028) |
-
-*   capacity aware fork
+*   Capacity Aware Fork
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2022/01/21 | Chitti Babu Theegala <quic_ctheegal@quicinc.com> | [sched/fair: Prefer small idle cores for forkees](https://lore.kernel.org/all/20220121050233.8708-1-quic_ctheegal@quicinc.com) | 新创建的进程还没有任何有用的 task_util 数据, 也不可能预测它们对功耗的影响. 这些新创建出来的进程 forkees 大多数情况下负载都非常小, 最终会在非常短的时间内将大核从深度睡眠中唤醒. 这个补丁将所有 fork 都偏向于小内核, 以防止从深度睡眠中唤醒大核, 从而节省功耗. | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220121050233.8708-1-quic_ctheegal@quicinc.com) |
 
+#### 7.2.4.3 Misfit Task
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2018/03/15 | Morten Rasmussen | [sched/fair: Migrate 'misfit' tasks on asymmetric capacity systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9c63e84db29bcf584040931ad97c2edd11e35f6c) | misfit task 支持, 可以理解为 asymmetric aware 的 load balance, 在进程运行过程中, 如果当前 CPU capacity 已经不能满足当前进程, 则将进程迁移到拥有更合适 capacity 的 CPU 上. | v1 ☑ 4.20-rc1 | [LORE v4,00/12](https://lore.kernel.org/lkml/1530699470-29808-1-git-send-email-morten.rasmussen@arm.com) |
+| 2021/03/11 | Valentin Schneider | [sched/fair: misfit task load-balance tweaks](https://lore.kernel.org/patchwork/cover/1393531) | 优化 misfit task 的一些逻辑 | v3 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1393531) |
+| 2021/04/07 | Valentin Schneider | [sched/fair: load-balance vs capacity margins](https://lore.kernel.org/patchwork/cover/1409479) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 1 | v3 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1409479) |
+| 2021/04/16 | Valentin Schneider | [sched/fair: (The return of) misfit task load-balance tweaks](https://lore.kernel.org/patchwork/cover/1414181) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 2 | v1 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1414181) |
+
+#### 7.2.4.4 Capacity Aware Sched Class
+-------
+
+由于 RT/Deadline 没有 PELT 的支持, 因此这几种调度类线程的 Capcity Aware 是直接依赖于 uclamp 设置的 task min util 的.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2019/10/09 | Qais Yousef <qais.yousef@arm.com> | [sched: rt: Make RT capacity aware](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=804d402fb6f6487b825aae8cf42fda6426c62867) | NA | v2 ☑✓ 5.6-rc1 | [LORE](https://lore.kernel.org/all/20191009104611.15363-1-qais.yousef@arm.com) |
+| 2020/05/20 | Dietmar Eggemann | [Capacity awareness for SCHED_DEADLINE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=23e71d8ba42933bff12e453858fd68c073bc5258) | DEADLINE 感知 Capacity | v3 ☑✓ 5.9-rc1 | [LORE v3,0/5](https://lore.kernel.org/lkml/20200520134243.19352-1-dietmar.eggemann@arm.com) |
 
 
-*   Document
+
+
+
+#### 7.2.4.6 Document
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
