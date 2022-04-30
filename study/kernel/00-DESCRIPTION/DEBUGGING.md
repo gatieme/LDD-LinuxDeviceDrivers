@@ -299,7 +299,7 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/12/08 | Rob Herring <robh@kernel.org> | [arm64 userspace counter support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=aa1005d15d2aee10e5b93a25db076c47e05c4efa) | 20211208201124.310740-1-robh@kernel.org | v13 ☑✓ 5.17-rc1 | [LORE v13,0/5](https://lore.kernel.org/all/20211208201124.310740-1-robh@kernel.org) |
+| 2021/12/08 | Rob Herring <robh@kernel.org> | [arm64 userspace counter support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=aa1005d15d2aee10e5b93a25db076c47e05c4efa) | ARM64 的 PMU 是支持用户态直接访问的. 与 x86 上 rdpmc 机制类似, 为了防止出现安全问题, 当前只允许用户态访问 thread bound events, 在启用时, 为了防止从其他任务泄漏禁用的 PMU 数据, 还会有一些额外的开销来清除脏计数器. | v13 ☑✓ 5.17-rc1 | [LORE v13,0/5](https://lore.kernel.org/all/20211208201124.310740-1-robh@kernel.org) |
 
 
 ## 11.4 分支预测

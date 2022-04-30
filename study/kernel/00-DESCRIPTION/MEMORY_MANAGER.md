@@ -273,30 +273,48 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 最终该特性与 5.16 合入, [Memory Folios Merged For Linux 5.16](https://www.phoronix.com/scan.php?page=news_item&px=Memory-Folios-Lands-Linux-5.16), 代码仓库 [willy/pagecache.git](http://git.infradead.org/users/willy/pagecache.git), 合入链接 [GIT,PULL Memory folios for v5.1](https://patchwork.kernel.org/project/linux-mm/patch/YX4RkYNNZtO9WL0L@casper.infradead.org), [Merge tag 'folio-5.16' of git://git.infradead.org/users/willy/pagecache](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49f8275c7d9247cf1dd4440fc8162f784252c849)
 
-[[GIT,PULL] Folio patches for 5.18 (MM part)](https://patchwork.kernel.org/project/linux-mm/patch/Yjh+EuacJURShtJI@casper.infradead.org/)
 
 内存管理(memory management) 一般是以 page 为单位进行的, 一个 page 通常包含 4,096 个字节, 也可能更大. 内核已经将 page 的概念扩展到所谓的 compound page(复合页), 即一组组物理连续的单独 page 的组合. 这又使得 "page" 的定义变得有些模糊了. Matthew Wilcox 提出了 "page folio" 的概念, 它实际上仍然是一个 page structure, 只是保证了它一定不是 tail page. 任何接受 folio page 参数的函数都会是对整个 compound page 进行操作(如果传入的确实是一个 compound page 的话), 这样就不会有任何歧义. 从而可以使内核里的内存管理子系统更加清晰; 也就是说, 如果某个函数被改为只接受 folio page 作为参数的话, 很明确, 它们不适用于对 tail page 的操作. 通过 folio 结构来管理内存. 它提供了一些具有自身价值的基础设施, 将内核的文本缩减了约 6kB.
 
 
+
+#### 1.4.1.1 Memory folios core @5.16
+-------
+
+[Clarifying memory management with page folios](https://lwn.net/Articles/849538)
+
+[The folio pull-request pushback](https://lwn.net/Articles/868598)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/06/22 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Memory folios](https://lwn.net/Articles/849538) | NA | v13a ☐ | [PatchWork v13,000/137](https://patchwork.kernel.org/project/linux-mm/cover/20210712030701.4000097-1-willy@infradead.org/)<br>[PatchWork v13a](https://patchwork.kernel.org/project/linux-mm/cover/20210712190204.80979-1-willy@infradead.org) |
-| 2021/06/22 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folio-enabling the page cache](https://lwn.net/Articles/1450196) | NA | v2 ☐ | [PatchWork v2](https://lore.kernel.org/patchwork/patch/1450196), [PatchWork v2](https://patchwork.kernel.org/project/linux-mm/cover/20210622121551.3398730-1-willy@infradead.org) |
-| 2021/06/30 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folio conversion of memcg](https://lwn.net/Articles/1450196) | NA | v3 ☐ | [PatchWork v13b](https://patchwork.kernel.org/project/linux-mm/cover/20210712194551.91920-1-willy@infradead.org/) |
-| 2021/07/19 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folio support in block + iomap layers](https://lwn.net/Articles/1450196) | NA | v15 ☐ | [PatchWork v15,00/17](https://patchwork.kernel.org/project/linux-mm/cover/20210712194551.91920-1-willy@infradead.org/) |
-| 2021/07/15 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Memory folios: Pagecache edition](https://patchwork.kernel.org/project/linux-mm/cover/20210715200030.899216-1-willy@infradead.org) | NA | v14c ☑ 5.16-rc1 | [PatchWork v14c,00/39](https://patchwork.kernel.org/project/linux-mm/cover/20210715200030.899216-1-willy@infradead.org) |
-| 2021/11/10 | David Howells <dhowells@redhat.com> | [netfs, 9p, afs, ceph: Support folios, at least partially](https://www.phoronix.com/scan.php?page=news_item&px=AFS-9p-NETFS-Folios-Linux-5.16) | NA | v5 ☑ 5.16-rc1 | [PatchWork v4,0/5](https://patchwork.kernel.org/project/linux-mm/cover/163649323416.309189.4637503793406396694.stgit@warthog.procyon.org.uk)<br>*-*-*-*-*-*-*-* <br>[PatchWork v5,0/4](https://patchwork.kernel.org/project/linux-mm/cover/163657847613.834781.7923681076643317435.stgit@warthog.procyon.org.uk)<br>*-*-*-*-*-*-*-* <br>[Merge tag](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0f7ddea6225b9b001966bc9665924f1f8b9ac535) |
-| 2022/01/10 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Convert GUP to folios](https://patchwork.kernel.org/project/linux-mm/cover/20220102215729.2943705-1-willy@infradead.org) | NA | v1 ☐ | [PatchWork 00/17](https://patchwork.kernel.org/project/linux-mm/cover/20220102215729.2943705-1-willy@infradead.org)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,00/28](https://patchwork.kernel.org/project/linux-mm/cover/20220110042406.499429-1-willy@infradead.org) |
-| 2022/01/05 | Alex Shi <alexs@kernel.org> | [remove add/del page to lru functions](https://patchwork.kernel.org/project/linux-mm/cover/20220120131024.502877-1-alexs@kernel.org) | 使用了 folio 之后, LRU 后部分函数可以删除. | v1 ☐ | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-mm/cover/20220120131024.502877-1-alexs@kernel.org) |
+| 2021/07/15 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Memory folios](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=121703c1c817b3c77f61002466d0bfca7e39f25d) | 主要功能 [Memory folios](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=121703c1c817b3c77f61002466d0bfca7e39f25d) 以及 [BUGFIX](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c035713998700e8843c7d087f55bce3c54c0e3ec). | v14 ☑ [5.16-rc1](https://kernelnewbies.org/Linux_5.16#Memory_folios_infrastructure_for_a_faster_memory_management) | [PatchWork v13,000/137](https://patchwork.kernel.org/project/linux-mm/cover/20210712030701.4000097-1-willy@infradead.org/)<br>[PatchWork v13a](https://patchwork.kernel.org/project/linux-mm/cover/20210712190204.80979-1-willy@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LORE v14,000/138](https://patchwork.kernel.org/project/linux-mm/cover/20210715033704.692967-1-willy@infradead.org)<br>*-*-*-*-*-*-*-* <br>[[GIT,PULL] Memory folios for v5.16, 00/90](https://patchwork.kernel.org/project/linux-mm/patch/YX4RkYNNZtO9WL0L@casper.infradead.org), [[GIT,PULL] Folio fixes for 5.16, 0/6](https://patchwork.kernel.org/project/linux-mm/patch/YZ6enA9aRgJLL55w@casper.infradead.org) |
+| 2021/11/10 | David Howells <dhowells@redhat.com> | [netfs, 9p, afs, ceph: Support folios, at least partially](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=255ed63638da190e2485d32c0f696cd04d34fbc0) | 参见 phoronix 的报道 [AFS, 9p, Netfslib Wired Up To Use Newly-Merged Folios In Linux 5.16](https://www.phoronix.com/scan.php?page=news_item&px=AFS-9p-NETFS-Folios-Linux-5.16) | v5 ☑ 5.16-rc1 | [PatchWork v4,0/5](https://patchwork.kernel.org/project/linux-mm/cover/163649323416.309189.4637503793406396694.stgit@warthog.procyon.org.uk)<br>*-*-*-*-*-*-*-* <br>[PatchWork v5,0/4](https://patchwork.kernel.org/project/linux-mm/cover/163657847613.834781.7923681076643317435.stgit@warthog.procyon.org.uk)<br>*-*-*-*-*-*-*-* <br>[Merge tag](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0f7ddea6225b9b001966bc9665924f1f8b9ac535) |
 
+#### 1.4.1.2 Memory folios: Pagecache edition @5.17
+-------
 
 [Folio Improvements For Linux 5.17, Large Folio Patches Posted](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Folios)
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/10/08 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folios for 5.17](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=6b24ca4a1a8d4ee3221d6d44ddbb99f542e4bda3) | 将大部分 Page Cache 转换为使用 folios. 其中最大的变化是[在页面缓存 XArray 中使用大型条目](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6b24ca4a1a8d4ee3221d6d44ddbb99f542e4bda3), 而不是许多小型条目. 目前, 这只会影响到 shmem, 但对 shmem 来说, 这是一个相当大的变化, 因为[它改变了需要分配内存的位置](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b9a8a4195c7d3a51235a4fc974a46ad4e9689ffd)(在分割时而不是插入时). | v1 ☑ [5.17-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6020c204be997e3f5129839ff9c801800fb4336e) | [PatchWork 00/48](https://patchwork.kernel.org/project/linux-mm/cover/20211208042256.1923824-1-willy@infradead.org) |
-| 2022/01/16 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Enabling large folios for 5.17](https://patchwork.kernel.org/project/linux-mm/cover/20220116121822.1727633-1-willy@infradead.org/) | NA | v1 ☐ | [LKML 00/12](https://patchwork.kernel.org/project/linux-mm/cover/20220116121822.1727633-1-willy@infradead.org) |
+| 2021/06/22 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folio-enabling the page cache](https://patchwork.kernel.org/project/linux-mm/cover/20210622121551.3398730-1-willy@infradead.org) | NA | v2 ☐ | [PatchWork v2](https://patchwork.kernel.org/project/linux-mm/cover/20210622121551.3398730-1-willy@infradead.org) |
+| 2021/07/15 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Memory folios: Pagecache edition](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b27652d935f41793c5e229a1e8b3a8bb3afe3cc1) | NA | v14c ☑ 5.16-rc1 | [PatchWork v14c,00/39](https://patchwork.kernel.org/project/linux-mm/cover/20210715200030.899216-1-willy@infradead.org) |
+| 2021/10/08 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folios for 5.17](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=6b24ca4a1a8d4ee3221d6d44ddbb99f542e4bda3) | 将大部分 Page Cache 转换为使用 folios. 其中最大的变化是[在页面缓存 XArray 中使用大型条目](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6b24ca4a1a8d4ee3221d6d44ddbb99f542e4bda3), 而不是许多小型条目. 目前, 这只会影响到 shmem, 但对 shmem 来说, 这是一个相当大的变化, 因为[它改变了需要分配内存的位置](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b9a8a4195c7d3a51235a4fc974a46ad4e9689ffd)(在分割时而不是插入时). | v1 ☑ [5.17-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6020c204be997e3f5129839ff9c801800fb4336e) | [PatchWork 00/48](https://patchwork.kernel.org/project/linux-mm/cover/20211208042256.1923824-1-willy@infradead.org), [[GIT,PULL] Page cache for 5.17, 00/48](https://patchwork.kernel.org/project/linux-mm/patch/YdyuuBCe4EPmr3k2@casper.infradead.org) |
+| 2022/01/16 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Enabling large folios for 5.17](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=72e725887413f031fa72d27fea5795450bab1940) | NA | v1 ☐ | [LKML 00/12](https://patchwork.kernel.org/project/linux-mm/cover/20220116121822.1727633-1-willy@infradead.org) |
+
+#### 1.4.1.2 Memory folios @5.18
+-------
+
+[[GIT,PULL] Folio patches for 5.18 (MM part)](https://patchwork.kernel.org/project/linux-mm/patch/Yjh+EuacJURShtJI@casper.infradead.org/)
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/06/30 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folio conversion of memcg](https://lwn.net/Articles/1450196) | NA | v3 ☐ | [PatchWork v13b](https://patchwork.kernel.org/project/linux-mm/cover/20210712194551.91920-1-willy@infradead.org/) |
+| 2021/07/19 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Folio support in block + iomap layers](https://lwn.net/Articles/1450196) | NA | v15 ☐ | [PatchWork v15,00/17](https://patchwork.kernel.org/project/linux-mm/cover/20210712194551.91920-1-willy@infradead.org/) |
+| 2022/01/10 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Convert GUP to folios](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1b7f7e58decccb52d6bc454413e3298f1ab3a9c6) | NA | v1 ☑ 5.18-rc1 | [PatchWork 00/17](https://patchwork.kernel.org/project/linux-mm/cover/20220102215729.2943705-1-willy@infradead.org)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,00/28](https://patchwork.kernel.org/project/linux-mm/cover/20220110042406.499429-1-willy@infradead.org) |
+| 2022/01/05 | Alex Shi <alexs@kernel.org> | [remove add/del page to lru functions](https://patchwork.kernel.org/project/linux-mm/cover/20220120131024.502877-1-alexs@kernel.org) | 使用了 folio 之后, LRU 后部分函数可以删除. | v1 ☐ | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-mm/cover/20220120131024.502877-1-alexs@kernel.org) |
 
 
 ### 1.4.2 Pulling slabs out of struct page
@@ -3175,10 +3193,15 @@ active 头(热烈使用中) > active 尾 > inactive 头 > inactive 尾(被驱逐
 
 所有跟 MGLRU 相关的报道 [Phoronix: MGLRU](https://www.phoronix.com/scan.php?page=search&q=MGLRU)
 
+*   主体思想
+
 原来内核只维护了 active 和 inactive 两个 LRU LIST, Yu Zhao 最近提交的 Patch 中提出了 Multigenerational LRU 算法, 旨在解决现在内核使用的两级 LRU 的问题. 这个多级 LRU 借鉴了老化算法的思路, 按照页面的生成(分配)时间将 LRU 表分为若干 Generation. 在 LRU 页面扫面的时候, 使用增量的方式扫描, 根据周期内访问过的页面对页表进行扫描, 除非这段时间内访问的内存分布非常稀疏, 通常页表相对于倒排页表有更好的局部性, 进而可以提升 CPU 的缓存命中率.
 
-
 Multigenerational LRU 将 LRU 列表划分为多级. 当前实现试图增加两个中间状态, 即 likely to be active 和 likely to be unused. 这样不至于错误的回收 likely to be active 的页面, 也不至于对 likely to be unused 的页面置之不理. 设想是希望更有效的回收页面, 确保能够及时的回收内存. 参见 [Multi-generational LRU: the next generation](https://lwn.net/Articles/856931), [The multi-generational LRU](https://lwn.net/Articles/851184).
+
+
+*   性能数据
+
 
 最初在邮件列表中 Yu Zhao 说明了他使用更改后的算法在几个模拟场景中的情况, 参见 [Google Proposes Multi-Generational LRU For Linux To Yield Much Better Performance](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Multigen-LRU).
 
@@ -3196,6 +3219,11 @@ v8 和 v9 测试时, 测试场景进一步扩大, 参见 [MGLRU Continues To Loo
 
 v10 基本趋于稳定, 参见 [MGLRU Revised A 10th Time For Improving Linux Performance, Better Under Memory Pressure](https://www.phoronix.com/scan.php?page=news_item&px=MGLRU-v10).
 
+*   实现
+
+传统的 LRU 页面回收仅仅通过 ACTIVE/INACTIVE 划分页面的冷热和老化程度, 这是一锤子买卖, 粒度非常粗, 对页面也机器不友好, 一个页面要么热页, 可以被宣判延刑, 要么是冷页, 可以立即被回收. 而 MGLRU 将页面的冷热程度做了更细粒度的划分.
+
+因此 MGLRU 通过 generation number 来标记页面的老化程度, 只区分匿名页 LRU_GEN_ANON 和文件页 LRU_GEN_FILE. 然后使用 struct lru_gen_struct 维护了 LRU 列表. 其中 max_seq
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -5088,7 +5116,7 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/01/26 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 1: fix the COW security issue for THP and hugetlb](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com) | NA | v1 ☐ | [PatchWork v1,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20211217113049.23850-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://lore.kernel.org/r/20220126095557.32392-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/9](https://lore.kernel.org/r/20220131162940.210846-1-david@redhat.com) |
-| 2022/03/15 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 2: reliable GUP pins of anonymous pages](https://patchwork.kernel.org/project/linux-mm/cover/20220224122614.94921-1-david@redhat.com/) | 617540 | v1 ☐☑ | [2022/02/24 LORE v1,0/13](https://lore.kernel.org/r/20220224122614.94921-1-david@redhat.com))<br>*-*-*-*-*-*-*-* <br>[2022/03/08 LORE v1,0/15](https://lore.kernel.org/r/20220308141437.144919-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2022/03/15 LORE v2,0/15](https://lore.kernel.org/r/20220315104741.63071-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/16](https://lore.kernel.org/r/20220329160440.193848-1-david@redhat.com) |
+| 2022/03/15 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 2: reliable GUP pins of anonymous pages](https://patchwork.kernel.org/project/linux-mm/cover/20220224122614.94921-1-david@redhat.com/) | 617540 | v1 ☐☑ | [2022/02/24 LORE v1,00/13](https://lore.kernel.org/r/20220224122614.94921-1-david@redhat.com))<br>*-*-*-*-*-*-*-* <br>[2022/03/08 LORE v1,00/15](https://lore.kernel.org/r/20220308141437.144919-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2022/03/15 LORE v2,00/15](https://lore.kernel.org/r/20220315104741.63071-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,00/16](https://lore.kernel.org/r/20220329160440.193848-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,00/17](https://lore.kernel.org/r/20220428083441.37290-1-david@redhat.com) |
 | 2022/03/15 | David Hildenbrand <david@redhat.com> | [mm: COW fixes part 3: reliable GUP R/W FOLL_GET of anonymous pages](https://patchwork.kernel.org/project/linux-mm/cover/20220315141837.137118-1-david@redhat.com/) | 623540 | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20220315141837.137118-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/8](https://lore.kernel.org/r/20220329164329.208407-1-david@redhat.com) |
 
 
