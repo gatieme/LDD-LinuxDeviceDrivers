@@ -746,7 +746,7 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 | 2021/2/23 | Song Bao Hua (Barry Song) | [sched/topology: fix the issue groups don't span domain->span for NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1371875)| 修复问题 2<br>build_overlap_sched_groups() 中构建调度域的时候如果将某个 (child) sched_domain 作为 sched_group 加进 (parent) sched_domain 的时候, 如果发现其 sched_group_span 不是 parent sched_domain_span 子集的情况, 则通过 find_descended_sibling() 查找该 (child) sched_doman 的 child, 将符合要求的 child 作为 sched_group 加进来. | v4 ☑ 5.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1371875), [LKML](https://lkml.org/lkml/2021/2/23/1010), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=585b6d2723dc927ebc4ad884c4e879e4da8bc21f) |
 
 
-## 4.2 负载均衡
+## 4.2 负载均衡总概
 -------
 
 
@@ -1053,7 +1053,10 @@ t/torvalds/linux.git/log/?id=b6a60cf36d497e7fbde9dd5b86fabd96850249f6) 进行了
 | 2020/02/24 | Mel Gorman <mgorman@techsingularity.net> | [Reconcile NUMA balancing decisions with the load balancer v6](https://lore.kernel.org/all/20200224095223.13361-1-mgorman@techsingularity.net) | 20200224095223.13361-14-mgorman@techsingularity.net | v6 ☑✓ | [LORE v6,0/13](https://lore.kernel.org/all/20200224095223.13361-1-mgorman@techsingularity.net) |
 
 
-## 4.4 rework_load_balance
+## 4.4 Load Balance
+-------
+
+### 4.4.1 rework_load_balance
 -------
 
 [Rework load_balance](http://retis.sssup.it/luca/ospm-summit/2019/Downloads/01_05-Rework_load_balance_OSPM_19.pdf)
@@ -1066,7 +1069,7 @@ t/torvalds/linux.git/log/?id=b6a60cf36d497e7fbde9dd5b86fabd96850249f6) 进行了
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2019/10/18 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: rework the CFS load balance](https://linuxplumbersconf.org/event/4/contributions/480) | 重构 load balance | v4 ☑ 5.5-rc1 | [LWN](https://lwn.net/Articles/793427), [PatchWork](https://lore.kernel.org/patchwork/patch/1141687), [lkml](https://lkml.org/lkml/2019/10/18/676), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0b0695f2b34a4afa3f6e9aa1ff0e5336d8dad912) |
+| 2019/10/18 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: rework the CFS load balance](https://linuxplumbersconf.org/event/4/contributions/480) | 重构 load balance | v4 ☑ 5.5-rc1 | [LWN](https://lwn.net/Articles/793427), [PatchWork](https://lore.kernel.org/all/1571405198-27570-1-git-send-email-vincent.guittot@linaro.org), [lkml](https://lkml.org/lkml/2019/10/18/676), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0b0695f2b34a4afa3f6e9aa1ff0e5336d8dad912) |
 | 2019/10/22 | | [sched/fair: fix rework of find_idlest_group()](https://lore.kernel.org/patchwork/patch/1143049) | fix 补丁 | | |
 | 2019/11/29 | | [sched/cfs: fix spurious active migration](https://lore.kernel.org/patchwork/patch/1160934) | fix 补丁 | | |
 | 2020/11/02 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: ensure tasks spreading in LLC during LB](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=16b0a7a1a0af9db6e008fecd195fe4d6cb366d83) | 之前的重构导致 schbench 延迟增加95%以上, 因此将 load_balance 的行为与唤醒路径保持一致, 尝试为任务选择一个同属于LLC 的空闲 CPU. 从而在空闲 CPU 上更好地分散任务. | v1 ☑✓ 5.10-rc4 | [LORE](https://lore.kernel.org/all/20201102102457.28808-1-vincent.guittot@linaro.org) |
@@ -1096,10 +1099,7 @@ CPU 负载均衡器在不同的域之间进行平衡, 以分散负载, 并努力
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2020/03/11 | Valentin Schneider <valentin.schneider@arm.com> | [sched: Streamline select_task_rq() & select_task_rq_fair()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=36c5bdc4387056af3840adb4478c752faeb9d15e) | 选核流程上的重构和优化, 当然除此之外还做了其他操作, 比如清理了 sd->flags 信息, 甚至 sysfs 接口都变成只读了. 只合入了补丁集的前 4 个补丁. | v3 ☑ 5.8-rc1 | [LORE v2,0/9](https://lore.kernel.org/lkml/20200311181601.18314-1-valentin.schneider@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/9](https://lore.kernel.org/all/20200415210512.805-1-valentin.schneider@arm.com) |
 
-## 4.5 load_balance 的其他优化
--------
-
-### 4.5.1 load_balance vs wake_affine
+### 4.4.2 load_balance vs wake_affine
 -------
 
 Mel Gorman 深耕与解决 load_balance 以及 wake_affine 流程中一些不合理的行为.
@@ -1823,11 +1823,38 @@ v5.13-rc1 [commit 4aed8aa41524 ("sched/fair: Introduce a CPU capacity comparison
 #### 7.2.4.3 Misfit Task
 -------
 
+*   Migrate 'misfit' tasks on asymmetric capacity systems
+
+在 AMP(asymmetric CPU capacity systems) 系统上, 负载密集的任务最终可能会使用不适合其计算需求的 CPU. 在这种情况下, "不匹配的" 任务应该及时迁移到具有更高 capacity 的 CPU 上, 以确保更好的吞吐量. v4.20 [sched/fair: Migrate 'misfit' tasks on asymmetric capacity systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9c63e84db29bcf584040931ad97c2edd11e35f6c) 来使得负载均衡支持 Misfit Task.
+
+引入了 [group_misfit_task](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L7868) 表示这种场景. Misfit Balancing 只在每 CPU 容量较低的源组和计算容量较高的目标组之间有意义. 否则, 将忽略 misfit. group_misfit_task 具有[最低优先级](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L6964), 因此任何由于[过载造成的不平衡 group_overloaded](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L6966) 都将首先处理. Misfit 的不平衡值记录在 [rq->misfit_task_load](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L3724), 并在 update_sd_lb_stats() -=> update_sg_lb_stats() 时更新到 [struct sg_lb_stats 的 group_misfit_task_load](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L7947) 中.
+
+Misfit Task 对调度器**负载均衡**做了如下改造, 参见 [commit cad68e552e77 ("sched/fair: Consider misfit tasks when load-balancing")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cad68e552e7774b68ae6a2c5fedb792936098b72):
+
+1.  只有在目标组具有[更高的容量和空闲容量](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L7991)时, 才选择包含不适合的任务的组作为最繁忙的组.
+
+2.  对于 group_misfit_task 场景的负载均衡, find_busiest_queue() 只查询 "最大" 的不匹配任务, 将其所在 RQ 作为 busiest(即 src), 因此当当前查询的繁忙的 sched_group 是一个 "不适合" 的组时, 将直接跳过[标准负载均衡路径的平均负载和组容量检查](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L8521).
+
+3. calculate_imbalance 计算不平衡值 env->imbalance 时, 将 "misfit" 的不平衡值 env->imbalance [设置为足够高的平衡](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L8357), 以便将任务拉出, 忽略平均负载.
+
+4. 如果有多个 Misfit 发生, 那么 update_sd_pick_busiest() 会选择[不匹配最严重的(highest misfit load, 即 group_misfit_task_load 值最高)](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L8022)的 CPU 作为 busiest CPU(SRC)
+
+5. 如果 misfit 任务单独在源 CPU 上, 就[执行主动均衡 active load balance](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L8610).
+
+此外空闲平衡 Idle balance 是 Misfit Balancing 进行 PULL Task 的一个很好的时机. 但是, 在某些情况下, 即使存在 Misfit 的任务, 但过载标志阻止了空闲平衡. 目前只有[当任何 CPU 具有多个可运行任务时, 才会设置重载标志](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L7932). 因此, 当一个组被标记为具有不匹配 Misfit 的任务时, 在 update_sg_lb_stats() 中除了更新 [struct sg_lb_stats 的 group_misfit_task_load](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L7947) 还会设置重载标志. 参见 [COMMIT1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5fbdfae5221a5208ed8e7653fc1c4b31de420f74), [COMMIT2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=757ffdd705ee942fc8150b17942d968601d2a15b).
+
+当容量较低的 CPU 进行负载平衡, 需要谨慎考虑它从 capacity 较高的 sched_group 中 PULL 某些任务出来, 我们[不应该在只有一个任务运行的情况下从 CPU 中提取任务](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L8538), 因为这肯定会阻碍该任务的进度. 如果有多个任务在运行, 那么高 capacity 的 sched_group 的负载平衡已经采取了任何可能的措施来解决不平衡问题, 如果还有多个任务在运行, 我们应该通过移动一个任务来更好地利用系统计算能力. 参见 [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4ad3831a9d4af5e36da5d44a3b9c6522d0353cee).
+
+*   Misfit vs NO_HZ
+
+[sched/fair: Kick nohz balance if rq->misfit_task_load](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5fbdfae5221a5208ed8e7653fc1c4b31de420f74)
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2018/03/15 | Morten Rasmussen | [sched/fair: Migrate 'misfit' tasks on asymmetric capacity systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9c63e84db29bcf584040931ad97c2edd11e35f6c) | misfit task 支持, 可以理解为 asymmetric aware 的 load balance, 在进程运行过程中, 如果当前 CPU capacity 已经不能满足当前进程, 则将进程迁移到拥有更合适 capacity 的 CPU 上. | v1 ☑ 4.20-rc1 | [LORE v4,00/12](https://lore.kernel.org/lkml/1530699470-29808-1-git-send-email-morten.rasmussen@arm.com) |
-| 2021/03/11 | Valentin Schneider | [sched/fair: misfit task load-balance tweaks](https://lore.kernel.org/patchwork/cover/1393531) | 优化 misfit task 的一些逻辑 | v3 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1393531) |
-| 2021/04/07 | Valentin Schneider | [sched/fair: load-balance vs capacity margins](https://lore.kernel.org/patchwork/cover/1409479) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 1 | v3 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1409479) |
+| 2021/03/11 | Valentin Schneider | [sched/fair: misfit task load-balance tweaks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4aed8aa41524a1fc6439171881c2bb7ace197528) | 优化 misfit task 的一些逻辑, 随后被分成两个 PART 进行合入. | v3 ☐  | [LORE v3,0/7](https://lore.kernel.org/lkml/20210311120527.167870-1-valentin.schneider@arm.com) |
+| 2021/04/07 | Valentin Schneider | [sched/fair: load-balance vs capacity margins](https://lore.kernel.org/all/20210407220628.3798191-1-valentin.schneider@arm.com/) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 1 | v3 ☐ 5.13-rc1 | [LORE v5,0/3](https://lore.kernel.org/all/20210407220628.3798191-1-valentin.schneider@arm.com) |
 | 2021/04/16 | Valentin Schneider | [sched/fair: (The return of) misfit task load-balance tweaks](https://lore.kernel.org/patchwork/cover/1414181) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 2 | v1 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1414181) |
 
 #### 7.2.4.4 Capacity Aware Sched Class
@@ -1839,8 +1866,6 @@ v5.13-rc1 [commit 4aed8aa41524 ("sched/fair: Introduce a CPU capacity comparison
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2019/10/09 | Qais Yousef <qais.yousef@arm.com> | [sched: rt: Make RT capacity aware](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=804d402fb6f6487b825aae8cf42fda6426c62867) | NA | v2 ☑✓ 5.6-rc1 | [LORE](https://lore.kernel.org/all/20191009104611.15363-1-qais.yousef@arm.com) |
 | 2020/05/20 | Dietmar Eggemann | [Capacity awareness for SCHED_DEADLINE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=23e71d8ba42933bff12e453858fd68c073bc5258) | DEADLINE 感知 Capacity | v3 ☑✓ 5.9-rc1 | [LORE v3,0/5](https://lore.kernel.org/lkml/20200520134243.19352-1-dietmar.eggemann@arm.com) |
-
-
 
 
 
