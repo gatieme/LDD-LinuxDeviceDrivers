@@ -275,7 +275,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:----:|:---:|:------:|:---:|
-| 2019/6/26 | NA | [sched/fair: Fallback to sched-idle CPU in absence of idle CPUs](https://lore.kernel.org/patchwork/cover/1094197) | CFS SCHED_NORMAL 进程在选核的时候, 之前优先选择 idle 的 CPU, 现在也倾向于选择只有 SCHED_IDLE 的进程在运行的 CPU | v3 ☑ 5.4-rc1 | [LWN](https://lwn.net/Articles/805317), [PatchWork](https://lore.kernel.org/patchwork/cover/1094197), [lkml](https://lkml.org/lkml/2019/6/26/16) |
+| 2019/6/26 | Viresh Kumar <viresh.kumar@linaro.org> | [sched/fair: Fallback to sched-idle CPU in absence of idle CPUs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=3c29e651e16dd3b3179cfb2d055ee9538e37515c) | CFS SCHED_NORMAL 进程在选核的时候, 之前优先选择 IDLE 的 CPU, 现在在没有 IDLE 的 CPU 可选的时候, 也倾向于选择只有 SCHED_IDLE 的进程在运行的 CPU | v3 ☑ [5.4-rc1](https://kernelnewbies.org/Linux_5.4#Core_.28various.29) | [LWN](https://lwn.net/Articles/805317), [PatchWork](https://lore.kernel.org/patchwork/cover/1094197), [lkml](https://lkml.org/lkml/2019/6/26/16)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/2](https://lore.kernel.org/all/cover.1561523542.git.viresh.kumar@linaro.org) |
 | 2019/10/24 | NA | [sched/fair: Make sched-idle cpu selection consistent throughout 1143783 diffmboxseries](https://lore.kernel.org/patchwork/patch/1143783) | 重构了 SCHED_IDLE 时的选核逻辑, 所有的选核流程都将 avaliable_idle_cpu 和 sched_idle_cpu 同等对待 | v1 ☑ 5.4-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1143783) |
 | 2020/12/23 | NA | [sched/fair: Load balance aggressively for SCHED_IDLE CPUs](https://lkml.org/lkml/2020/1/8/112) | LOAD_BALANCE 感知 SCHED_IDLE 优化, SCHED_IDLE 的 CPU 虽然运行着进程但是在调度器看来其实也是空闲的, 应该积极地进行负载均衡 |  v1 ☑ 5.6-rc1 | [LKML](https://lkml.org/lkml/2020/1/8/112) |
 | 2021/02/22 | NA | [sched: pull tasks when CPU is about to run SCHED_IDLE tasks](https://lore.kernel.org/patchwork/patch/1382990) | 在 CPU 从 SCHED_NORMAL 进程切换到 SCHED_IDLE 任务之前, 尝试通过 load_balance 从其他核上 PULL SCHED_NORMAL 进程过来执行. | v2 | [2020/12/27 v1](https://lore.kernel.org/patchwork/patch/1356241), [2021/02/22 v2](https://lore.kernel.org/patchwork/patch/1143783) |
@@ -785,6 +785,21 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2009/09/01 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [load-balancing and cpu_power -v2](https://lore.kernel.org/patchwork/patch/169381) | load balance 感知 CPU PWOER, 对于 RT 任务, 引入了 sched_time_avg 来平均一段时间内实时任务的 CPU 消耗. 用得到的平均值来调整非实时任务的 CPU 功率, 以确保实时任务不必争抢 CPU. | v4 ☑ |[PatchWork](https://lore.kernel.org/patchwork/patch/169381) |
 
+[内核工匠-负载均衡情景分析](https://blog.csdn.net/feelabclihu/article/details/112057633)
+
+一般我们提到的负载均衡器都特指 CFS 任务的负载均衡器, 它在两个时机进行负载均衡的工作:
+
+1.  是为繁忙 CPU 们准备的周期性调度器 periodic balancer, 用于 CFS 任务在 busy CPU 上的均衡.
+
+2.  是为 idle CPU 们准备的空闲调度器 idle balancer, 用于把繁忙 CPU 上的任务均衡到 idle CPU 上来. idle balancer 有两种, 一种是 nohz idle balancer, 另外一种是 new idle balancer.
+
+周期性负载均衡(periodic load balance 或者 tick load balance)是指在 tick 中, 周期性的检测系统的负载均衡状况, 找到系统中负载最重的 sched_domain、 sched_group 和 CPU, 将其上的 runnable 任务拉到本 CPU 以便让系统的负载处于均衡的状态.
+
+周期性负载均衡只能在 busy CPU 之间均衡, 要想让系统中的 idle CPU "燥起来" 就需要借助 idle load balance.
+
+1.  NOHZ load balance 是指其他的 CPU 已经进入 idle, 本 CPU 任务太重, 需要通过 ipi 将其他 idle 的 CPUs 唤醒来进行负载均衡. 为什么叫 NOHZ load balance 呢? 那是因为这个 balancer 只有在内核配置了 NOHZ(即 tickless mode)下才会生效. 如果 CPU 进入 idle 之后仍然有周期性的 tick, 那么通过 tick load balance 就能完成负载均衡了, 不需要 IPI 来唤醒 idle 的 CPU. 和周期性均衡一样, NOHZ idle load balance 也是通过 busy CPU 上 tick 驱动的, 如果需要 kick idle load balancer, 那么就会通过 GIC 发送一个 ipi 中断给选中的 idle CPU, 让它代表系统所有的 idle CPU 们进行负载均衡.
+
+2.  new idle load balance 比较好理解, 就是在 CPU 上没有任务执行, 马上要进入 idle 状态的时候, 看看其他 CPU 是否需要帮忙, 从来从 busy CPU 上拉任务, 让整个系统的负载处于均衡状态. NOHZ load balance 涉及系统中所有的 idle CPU, 但 New idle load balance 只是和即将进入 idle 的本 CPU 相关.
 
 
 ## 4.3 Load Balance
@@ -803,7 +818,7 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2019/10/18 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: rework the CFS load balance](https://linuxplumbersconf.org/event/4/contributions/480) | 重构 load balance | v4 ☑ 5.5-rc1 | [LWN](https://lwn.net/Articles/793427), [PatchWork](https://lore.kernel.org/all/1571405198-27570-1-git-send-email-vincent.guittot@linaro.org), [lkml](https://lkml.org/lkml/2019/10/18/676), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0b0695f2b34a4afa3f6e9aa1ff0e5336d8dad912) |
+| 2019/10/18 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: rework the CFS load balance](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=57abff067a084889b6e06137e61a3dc3458acd56) | 重构 load balance, 参见 [LPC](https://linuxplumbersconf.org/event/4/contributions/480)) | v4 ☑ 5.5-rc1 | [LWN](https://lwn.net/Articles/793427), [PatchWork](https://lore.kernel.org/all/1571405198-27570-1-git-send-email-vincent.guittot@linaro.org), [lkml](https://lkml.org/lkml/2019/10/18/676), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0b0695f2b34a4afa3f6e9aa1ff0e5336d8dad912) |
 | 2019/10/22 | | [sched/fair: fix rework of find_idlest_group()](https://lore.kernel.org/patchwork/patch/1143049) | fix 补丁 | | |
 | 2019/11/29 | | [sched/cfs: fix spurious active migration](https://lore.kernel.org/patchwork/patch/1160934) | fix 补丁 | | |
 | 2020/11/02 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: ensure tasks spreading in LLC during LB](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=16b0a7a1a0af9db6e008fecd195fe4d6cb366d83) | 之前的重构导致 schbench 延迟增加95%以上, 因此将 load_balance 的行为与唤醒路径保持一致, 尝试为任务选择一个同属于LLC 的空闲 CPU. 从而在空闲 CPU 上更好地分散任务. | v1 ☑✓ 5.10-rc4 | [LORE](https://lore.kernel.org/all/20201102102457.28808-1-vincent.guittot@linaro.org) |
@@ -1647,14 +1662,13 @@ ARM EAS 支持的主页: [Energy Aware Scheduling (EAS)](https://developer.arm.c
 
 | static_key | 描述 | COMMIT |
 |:----------:|:---:|:------:|
-| sched_asym_cpucapacity | Capacity Aware Scheduling 特性开关 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=df054e8445a4011e3d693c2268129c0456108663) |
-| sched_energy_present | EAS 的特性开关. | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1f74de8798c93ce14801cc4e772603e51c841c33) |
+| sched_asym_cpucapacity | Capacity Aware Scheduling 特性开关 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=df054e8445a4011e3d693c2268129c0456108663) || sched_energy_present | EAS 的特性开关. | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1f74de8798c93ce14801cc4e772603e51c841c33) |
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2018/12/03 | Quentin Perret <quentin.perret@arm.com> | [Energy Aware Scheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=732cd75b8c920d3727e69957b14faa7c2d7c3b75) | 能效感知的调度器 EAS | v10 ☑ 5.0-rc1 | [LORE v10,00/15](https://lore.kernel.org/lkml/20181203095628.11858-1-quentin.perret@arm.com) |
-| 2019/08/22 | Patrick Bellasi | [Add utilization clamping support (CGroups API)](https://lore.kernel.org/patchwork/cover/1118345) | TASK util clamp(Android schedtune 的主线替代方案)  | v14 ☑ 5.4-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1118345) |
 | 2021/12/20 | Vincent Donnefort <vincent.donnefort@arm.com> | [Fix stuck overutilized](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) | NA | v1 ☐ | [LORE 0/3](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) |
+| 2019/09/12 | Quentin Perret <qperret@qperret.net> | [sched/fair: Speed-up energy-aware wake-ups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eb92692b2544d3f415887dbbc98499843dfe568b) | Speed-up energy-aware wake-ups from O(CPUS^2) to O(CPUS). | v1 ☑✓ 5.4-rc1 | [LORE](https://lore.kernel.org/all/20190912094404.13802-1-qperret@qperret.net) |
 
 
 EAS 主线合入的特性时间线: [EAS Development for Mainline Linux](https://developer.arm.com/tools-and-software/open-source-software/linux-kernel/energy-aware-scheduling/eas-mainline-development)
@@ -1666,12 +1680,12 @@ EAS 主线合入的特性时间线: [EAS Development for Mainline Linux](https:/
 | v4.17 | Idle CPU Per-Entity Load-Tracking (PELT) update | NA |
 | v4.17 | Util(ization) Est(imated) | NA |
 | v4.20 | Misfit task, i.e. forcing migration of running tasks that do not fit on the CPU they are currently running on | [sched/fair: Migrate 'misfit' tasks on asymmetric capacity systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9c63e84db29bcf584040931ad97c2edd11e35f6c) |
-| v4.20 | Runtime scheduler domain flag detection | NA |
-| v5.0  | Per-cpu Energy Model (EM) and Energy Aware Scheduling (EAS) | NA |
-| v5.3  | Tracepoints (PELT and over-utilzation) | NA |
-| v5.3  | Util(ization) clamping (core and per-task interface) | NA |
-| v5.4  | Util(ization) clamping (cgroup interface) | NA |
-| v5.4  | Patch-set 'sched/fair: Reduce complexity of energy calculation' | NA |
+| v4.20 | Runtime scheduler domain flag detection | [sched/topology: Set SD_ASYM_CPUCAPACITY flag automatically](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e1799a80a4f5a463f252b7325da8bb66dfd55471) |
+| v5.0  | Per-cpu Energy Model (EM) and Energy Aware Scheduling (EAS) | [Energy Aware Scheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=732cd75b8c920d3727e69957b14faa7c2d7c3b75) |
+| v5.3  | Tracepoints (PELT and over-utilzation) | [sched: Add new tracepoints required for EAS testing, v3,0/6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a056a5bed7fa67706574b00cf1122c38596b2be1) |
+| v5.3  | Util(ization) clamping (core and per-task interface) | Add utilization clamping support, v10,00/11](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=af24bde8df2029f067dc46aff0393c8f18ff6e2f) |
+| v5.4  | Util(ization) clamping (cgroup interface) | [Add utilization clamping support (CGroups API), v14,0/6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0413d7f33e60751570fd6c179546bde2f7d82dcb) |
+| v5.4  | Patch-set 'sched/fair: Reduce complexity of energy calculation' | [sched/fair: Speed-up energy-aware wake-ups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eb92692b2544d3f415887dbbc98499843dfe568b) |
 | v5.5  | Thermal/Cpu Cooling as Energy Model (EM) user | NA |
 | v5.7  | Activity Monitor Unit (AMU) support | NA |
 | v5.8  | Streamline select_task_rq() & select_task_rq_fair() (partly (4/9 patches)) | NA |
@@ -1747,7 +1761,7 @@ sched_init_domains()
 | 2022/04/27 | Vincent Donnefort <vincent.donnefort@arm.com> | [feec() energy margin removal](https://lore.kernel.org/all/20220427143304.3950488-1-vincent.donnefort@arm.com) | 20220427143304.3950488-1-vincent.donnefort@arm.com | v7 ☐☑✓ | [LORE v7,0/7](https://lore.kernel.org/all/20220427143304.3950488-1-vincent.donnefort@arm.com) |
 
 
-#### 7.2.4.3 Capacity Aware Wakeup & LoadBalance
+#### 7.2.4.2 Capacity Aware Wakeup & LoadBalance
 -------
 
 *   asymmetric CPU capacity support for WAKEUP @4.9
@@ -1869,13 +1883,23 @@ Misfit Task 对调度器**负载均衡**做了如下改造, 参见 [commit cad68
 | 2020/05/20 | Dietmar Eggemann | [Capacity awareness for SCHED_DEADLINE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=23e71d8ba42933bff12e453858fd68c073bc5258) | DEADLINE 感知 Capacity | v3 ☑✓ 5.9-rc1 | [LORE v3,0/5](https://lore.kernel.org/lkml/20200520134243.19352-1-dietmar.eggemann@arm.com) |
 
 
-
-#### 7.2.4.6 Document
+#### 7.2.4.5 Document
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2020/07/31 | Valentin Schneider <valentin.schneider@arm.com> | [sched: Document capacity aware scheduling](https://lore.kernel.org/all/20200731192016.7484-1-valentin.schneider@arm.com) | 补充了 CAS(capacity aware scheduling) 的文档. | v1 ☑ 5.7-rc1 | [LORE 0/3](https://lore.kernel.org/all/20200731192016.7484-1-valentin.schneider@arm.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=65065fd70b5a0f0bbe3f9f1e82c1d38c2db620d0) |
+| 2019/01/10 | Quentin Perret <quentin.perret@arm.com> | [Documentation: Explain EAS and EM](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=81a930d3a64a00c5adb2aab28dd1c904045adf57) | EAS 的文档, 参见 [sched: Energy cost model for energy-aware scheduling, RFC,v5,00/46](https://lkml.org/lkml/2015/7/7/754) | v1 ☑✓ 5.1-rc1 | [LORE v1,0/2](https://lore.kernel.org/all/20190110110546.8101-1-quentin.perret@arm.com) |
+| 2020/05/27 | john mathew <john.mathew@unikie.com> | [Add scheduler overview documentation](https://lore.kernel.org/all/20200527081505.1783-1-John.Mathew@unikie.com) | 调度器的文档更新. | v6 ☐☑✓ | [LORE v5,0/3](https://lore.kernel.org/all/20200514092637.15684-1-John.Mathew@unikie.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/3](https://lore.kernel.org/all/20200527081505.1783-1-John.Mathew@unikie.com) |
+
+### 7.2.5 IPA(Thermal 管控)
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2019/11/01 | Amit Kucheria <amit.kucheria@linaro.org> | [thermal: qcom: tsens: Add interrupt support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=634e11d5b450a9bcc921219611c5d2cdc0f9066e) | NA | v7 ☑✓ 5.5-rc1 | [LORE v7,0/15](https://lore.kernel.org/all/cover.1572526427.git.amit.kucheria@linaro.org) |
+| 2019/10/30 | Quentin Perret <qperret@google.com> | [Make IPA use PM_EM](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=163b00cde7cf2206e248789d2780121ad5e6a70b) | NA | v9 ☑✓ 5.5-rc1 | [LORE v9,0/4](https://lore.kernel.org/all/20191030151451.7961-1-qperret@google.com) |
+
 
 ### 7.2.5 社区其他相关讨论
 -------
@@ -1999,8 +2023,8 @@ schedtune 与 uclamp 都是由 ARM 公司的 Patrick Bellasi 主导开发.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
-| 2019/06/21 | Patrick Bellasi <patrick.bellasi@arm.com> | [Add utilization clamping support](https://lore.kernel.org/all/20190621084217.8167-1-patrick.bellasi@arm.com) | 20190621084217.8167-1-patrick.bellasi@arm.com | v10 ☐☑✓ | [LORE v10,0/16](https://lore.kernel.org/all/20190621084217.8167-1-patrick.bellasi@arm.com) |
-| 2019/08/22 | Patrick Bellasi <patrick.bellasi@arm.com> | [Add utilization clamping support (CGroups API)](https://lore.kernel.org/all/20190822132811.31294-1-patrick.bellasi@arm.com) | 20190822132811.31294-1-patrick.bellasi@arm.com | v14 ☐☑✓ | [LORE v14,0/6](https://lore.kernel.org/all/20190822132811.31294-1-patrick.bellasi@arm.com) |
+| 2019/06/21 | Patrick Bellasi <patrick.bellasi@arm.com> | [Add utilization clamping support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=af24bde8df2029f067dc46aff0393c8f18ff6e2f) | TASK util clamp(Android schedtune 的主线替代方案, 只合入了前 11 个补丁. | v10 ☑✓ 5.3-rc1 | [LORE v10,0/16](https://lore.kernel.org/all/20190621084217.8167-1-patrick.bellasi@arm.com) |
+| 2019/08/22 | Patrick Bellasi <patrick.bellasi@arm.com> | [Add utilization clamping support (CGroups API)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0413d7f33e60751570fd6c179546bde2f7d82dcb) | TASK util clamp(Android schedtune 的主线替代方案) | v14 ☑✓ 5.4-rc1 | [LORE v14,0/6](https://lore.kernel.org/all/20190822132811.31294-1-patrick.bellasi@arm.com) |
 
 
 
