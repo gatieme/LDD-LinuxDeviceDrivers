@@ -787,6 +787,8 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 
 [内核工匠-负载均衡情景分析](https://blog.csdn.net/feelabclihu/article/details/112057633)
 
+[干货｜CPU 可运行进程队列的负载均衡](https://zhuanlan.zhihu.com/p/489829757)
+
 一般我们提到的负载均衡器都特指 CFS 任务的负载均衡器, 它在两个时机进行负载均衡的工作:
 
 1.  是为繁忙 CPU 们准备的周期性调度器 periodic balancer, 用于 CFS 任务在 busy CPU 上的均衡.
