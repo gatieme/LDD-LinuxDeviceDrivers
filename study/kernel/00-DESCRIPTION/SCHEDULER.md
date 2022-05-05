@@ -954,8 +954,8 @@ idle balance 中执行 update_blocked_average 是很费时费力的, 可以做�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2021/2/24 | Vincent Guittot | [move update blocked load outside newidle_balance](https://lore.kernel.org/patchwork/cover/1383963) | Joel报告了 newidle_balance 中的抢占和irq关闭序列很长, 因为大量的 CPU cgroup 正在使用, 并且需要更新. 这个补丁集将更新 update_blocked_average 移动到 newidle_imblance 之外. | v2 ☑ 5.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1383963), [LKML  0/7 v4](https://lkml.org/lkml/2021/2/24/627) |
-| 2021/10/19 | Vincent Guittot <vincent.guittot@linaro.org> | [Improve newidle lb cost tracking and early abort](https://lore.kernel.org/patchwork/patch/403138) | 通过考虑更新阻塞负载 update_blocked_averages() 所花费的时间, 在没有机会运行至少一个负载平衡循环的情况下完全跳过负载平衡循环. 因此在 newidle_balance()中, 当 this_rq 的第一个 sd 满足 `this_rq->avg_idle < sd->max_newidle_lb_cost` 时, 认为执行 update_blocked_averages() 是非常昂贵且没有收益的, 只会增加开销. 因此在 newidle_balance() 中尽早检查条件, 尽可能跳过 update_blocked_averages() 的执行. | v3 ☑ [5.16-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9a7e0a90a454) | [2021/10/4 LKML v1](https://lkml.org/lkml/2021/10/4/1188)<br>*-*-*-*-*-*-*-* <br>[2021/10/04 PatchWork](https://lore.kernel.org/lkml/20211004171451.24090-1-vincent.guittot@linaro.org), [LKML](https://lkml.org/lkml/2021/10/4/1188)<br>*-*-*-*-*-*-*-* <br>[LKML v3,0/5](https://lkml.org/lkml/2021/10/19/590), [LORE v3,0/5](https://lore.kernel.org/all/20211019123537.17146-1-vincent.guittot@linaro.org), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9d783c8dd112) |
+| 2021/02/05 | Vincent Guittot <vincent.guittot@linaro.org> | [move update blocked load outside newidle_balance](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=39b6a429c30482c349f1bb3746470fe473cbdb0f) | Joel报告了 newidle_balance 中的抢占和irq关闭序列很长, 因为大量的 CPU cgroup 正在使用, 并且需要更新. 这个补丁集优化 NEWLY_IDLE CPU 的 Blocked Load 更新. | v1 ☑✓ 5.13-rc1 | [LORE v1,0/6](https://lore.kernel.org/all/20210205114830.781-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/7](https://lore.kernel.org/all/20210224133007.28644-1-vincent.guittot@linaro.org) |
+| 2021/10/19 | Vincent Guittot <vincent.guittot@linaro.org> | [Improve newidle lb cost tracking and early abort](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8ea9183db4ad8afbcb7089a77c23eaf965b0cacd) | 通过考虑更新阻塞负载 update_blocked_averages() 所花费的时间, 在没有机会运行至少一个负载平衡循环的情况下完全跳过负载平衡循环. 因此在 newidle_balance()中, 当 this_rq 的第一个 sd 满足 `this_rq->avg_idle < sd->max_newidle_lb_cost` 时, 认为执行 update_blocked_averages() 是非常昂贵且没有收益的, 只会增加开销. 因此在 newidle_balance() 中尽早检查条件, 尽可能跳过 update_blocked_averages() 的执行. | v3 ☑ [5.16-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9a7e0a90a454) | [2021/10/4 LKML v1](https://lkml.org/lkml/2021/10/4/1188)<br>*-*-*-*-*-*-*-* <br>[2021/10/04 PatchWork](https://lore.kernel.org/lkml/20211004171451.24090-1-vincent.guittot@linaro.org), [LKML](https://lkml.org/lkml/2021/10/4/1188)<br>*-*-*-*-*-*-*-* <br>[LKML v3,0/5](https://lkml.org/lkml/2021/10/19/590), [LORE v3,0/5](https://lore.kernel.org/all/20211019123537.17146-1-vincent.guittot@linaro.org), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9d783c8dd112) |
 
 
 ### 4.4.3 steal tasks
@@ -1132,6 +1132,7 @@ v3.3 [commit 0b005cf54eac ("sched, nohz: Implement sched group, domain aware noh
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2013/04/23 | Vincent Guittot <vincent.guittot@linaro.org> | [sched: fix init NOHZ_IDLE flag](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=25f55d9d01ad7a7ad248fd5af1d22675ffd202c5) | 移除了 rq_nohz_flag_bits 的 NOHZ_IDLE. | v8 ☐☑✓ | [LORE](https://lore.kernel.org/all/1366729142-14662-1-git-send-email-vincent.guittot@linaro.org) |
 | 2012/01/26 | Suresh Siddha <suresh.b.siddha@intel.com> | [sched/nohz: Fix nohz cpu idle load balancing state with cpu hotplug](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=71325960d16cd68ea0e22a8da15b2495b0f363f7) | 引入了 sched_ilb_notifier(). | v1☐☑✓ | [LORE](http://lkml.kernel.org/r/1327026538.16150.40.camel@sbsiddha-desk.sc.intel.com) |
+| 2017/06/19 | Frederic Weisbecker <fweisbec@gmail.com> | [sched: A few nohz_full improvements](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=387bc8b5536eeb0a92f4b4ab553539eaea2ac0ba) | 1497838322-10913-1-git-send-email-fweisbec@gmail.com | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/1497838322-10913-1-git-send-email-fweisbec@gmail.com) |
 
 ### 4.5.5 nohz.next_balance for NO_HZ Idle Balancing
 -------
@@ -1175,17 +1176,16 @@ v3.3 [commit 0b005cf54eac ("sched, nohz: Implement sched group, domain aware noh
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2015/02/27 | Vincent Guittot <vincent.guittot@linaro.org> | [sched: Move CFS tasks to CPUs with higher capacity](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1aaf90a4b88aae26a4535ba01dacab520a310d17) | [sched: consolidation of CPU capacity and usage](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1aaf90a4b88aae26a4535ba01dacab520a310d17) 的其中一个补丁. | v10 ☑✓ 4.1-rc1 | [LORE v10,0/11](https://lore.kernel.org/all/1425052454-25797-1-git-send-email-vincent.guittot@linaro.org) |
+| 2019/01/17 | Valentin Schneider <valentin.schneider@arm.com> | [sched/fair: NOHZ cleanups and misfit improvement](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b9a7b8831600afc51c9ba52c05f12db2266f01c7) | 降低 ARM big.LITTLE 平台 NOHZ 下不必要的 kick 操作. | v1 ☑✓ 5.1-rc2 | [LORE v1,0/5](https://lore.kernel.org/all/20190117153411.2390-1-valentin.schneider@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/lkml/20190211175946.4961-1-valentin.schneider@arm.com) |
 
 
 ### 4.5.7  Blocked Load Update for NO_HZ
 -------
 
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2014/1/28 | Mike Galbraith <mgalbraith@suse.de> | [sched, nohz: Exclude isolated cores from load balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d987fc7f3228) | isolated CPU 不再进行负载均衡. | v1 ☑ 3.15-rc1 | [LKML](https://lkml.org/lkml/2014/2/21/736) |
-| 2017/06/19 | Frederic Weisbecker <fweisbec@gmail.com> | [sched: A few nohz_full improvements](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=387bc8b5536eeb0a92f4b4ab553539eaea2ac0ba) | 1497838322-10913-1-git-send-email-fweisbec@gmail.com | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/1497838322-10913-1-git-send-email-fweisbec@gmail.com) |
-| 2017/06/23 | riel@redhat.com <riel@redhat.com> | [NUMA improvements with task wakeup and load balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=815abf5af45f04f759f12f3172afd15226fd7f71) | 20170623165530.22514-1-riel@redhat.com | v1 ☐☑✓ 4.13-rc1 | [LORE v1,0/4](https://lore.kernel.org/all/20170623165530.22514-1-riel@redhat.com) |
+#### 4.5.7.1 Update Blocked Load When NEWLY_IDLE @4.17
+-------
 
+社区普遍认为, 借助 IDLE CPU(特别是即将陷入 IDLE 的 NEWLY_IDLE CPU) 来完成 Blocked Load 的更新(update_blocked_average) 是一件特别划算的 事情. 因为这些 CPU 并不是 busy 的, 这些不占用业务主路径, 不会对系统的吞吐量起到反作用. 于是 v4.17 [sched: Update blocked load](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=31e77c93e432dec79c7d90b888bbfc3652592741) 和 [sched: On remote stats updates..](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=31e77c93e432dec79c7d90b888bbfc3652592741) 完成了这项工作.
 
 将 rq->nohz_flags 从 unsigned long 的 转变成了 atomic_t, 原来 set_bit/clear_bit 的方式[变成了 atomic 操作](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a22e47a4e3f5a9e50a827c5d94705ace3b1eac0b), [引入了 NOHZ_STATS_KICK](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b7031a02ec753bf9b52a94a966b05e1abad3b7a9), [移除了 NOHZ_TICK_STOPPED](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=00357f5ec5d67a52a175da6f29f85c2c19d59bc8).
 
@@ -1212,6 +1212,7 @@ v3.3 [commit 0b005cf54eac ("sched, nohz: Implement sched group, domain aware noh
 | 2017/12/01 | Brendan Jackman <brendan.jackman@arm.com> | [sched/fair: remote load updates for idle CPUs](https://lore.kernel.org/all/20171201180157.18937-1-brendan.jackman@arm.com) | NA | v2 ☐☑✓ | [LORE v2,0/2](https://lore.kernel.org/all/20171201180157.18937-1-brendan.jackman@arm.com) |
 | 2017/12/21 | Peter Zijlstra <peterz@infradead.org> | [sched: On remote stats updates..](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=31e77c93e432dec79c7d90b888bbfc3652592741) | 引入 update_nohz_stats(), 通过其他 CPU 更新 nohz CPU 的 blocked_averages. | v1 ☑✓ 4.17-rc1 | [LORE v1,0/5](https://lore.kernel.org/all/20171221102139.177253391@infradead.org) |
 | 2018/02/14 | Vincent Guittot <vincent.guittot@linaro.org> | [sched: Update blocked load](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=31e77c93e432dec79c7d90b888bbfc3652592741) | 1518622006-16089-1-git-send-email-vincent.guittot@linaro.org | v5 ☑✓ 4.17-rc1 | [LORE v5,0/3](https://lore.kernel.org/all/1518622006-16089-1-git-send-email-vincent.guittot@linaro.org) |
+| 2019/06/03 | Valentin Schneider <valentin.schneider@arm.com> | [sched/fair: Cleanup definition of NOHZ blocked load functions](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0c792244138d3ef099e7fce978675dc4acae570) | 引入了 update_blocked_load_status() 精简了部分逻辑. | v2 ☑✓ 5.3-rc1 | [LORE](https://lore.kernel.org/all/20190603115424.7951-1-valentin.schneider@arm.com) |
 
 内核通过 rq->has_blocked_load 标记了当前 IDLE CPU 上是否有 Blocked Load 需要被更新, 参见 [commit f643ea220701 ("sched/nohz: Stop NOHZ stats when decayed")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f643ea2207010db26f17fca99db031bad87c8461)
 
@@ -1335,13 +1336,77 @@ static bool nohz_idle_balance(struct rq *this_rq, enum cpu_idle_type idle)
 ```
 
 
+#### 4.5.7.2 Update Blocked Load Outside newidle_balance @5.13
+-------
+
+Blocked Load 的更新本身可能成为一项非常繁重的工作. 2021 年左右, Joel 在社区报告了 newidle_balance() 路径中长时间的关抢占和关中断所造成的延迟. 这是由于系统中存在有大量的 CPU cgroup 正在使用并且需要更新, 因此造成 update_blocked_averages() 的工作非常繁重, 这导致了 newilde_balance() 有时需要最多 500us 才能完成. Joel 尝试通过限制 update_blocked_averages() 调用的频率来规避问题, 参见 [sched/fair: Rate limit calls to update_blocked_averages() for NOHZ](https://lore.kernel.org/lkml/20210122154600.1722680-1-joel@joelfernandes.org). 但是这显然治标不治本.
+
+分析来看, 之前通过 NEWLY_IDLE CPU 更新 Blocked Load 的方式存在诸多问题, 于是 v5.13 [move update blocked load outside newidle_balance](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=39b6a429c30482c349f1bb3746470fe473cbdb0f) 将 update_blocked_averages() 更新移到 newidle_balance() 路径的外面, 从而从根本上解决问题.
+
+之前 NEWLY_IDLE CPU 下 newidle_balance()(原来的 idle_balance())更新 Blocked Load 的操作, 经历了较大的重构, :
+
+1.  newidle_balance() 中触发 NEWLY_IDLE Balancing 的情况下, 不再允许更新 Blocked Load. 即 load_balance() 路径下 update_sg_lb_stats() 过程中不再使用 LBF_NOHZ_STATS 标记和 update_nohz_stats() 更新 Blocked Load. 参见 [commit 0826530de3cb ("sched/fair: Remove update of blocked load from newidle_balance")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0826530de3cbdc89e60a89e86def94a5f0fc81ca).
+
+2.  newidle_balance() 中没有触发 NEWLY_IDLE Balancing 的情况下, 参见 [commit c6f886546cb8 ("sched/fair: Trigger the update of blocked load on newly idle cpu")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c6f886546cb8a38617cdbe755fe50d3acd2463e4).
+
+*    newidle_balance() 依旧会尝试[使用 nohz_newidle_balance(this_rq) (来通知需要)更新 Blocked Load](https://elixir.bootlin.com/linux/v5.13/source/kernel/sched/fair.c#L10730). 只是整个[过程不再持有 this_rq->lock](https://elixir.bootlin.com/linux/v5.13/source/kernel/sched/fair.c#L10667).
+
+*   nohz_newidle_balance(this_rq) 的更新的方式上也做了优化, 引入了 NOHZ_NEWILB_KICK, 在 NEWLY_IDLE CPU 即将休眠前来更新 Blocked Load. 之前通过 NEWLY_IDLE CPU 使用 `nohz_newidle_balance()` [更新其他所有 IDLE CPUs 的 Blocked Load](https://elixir.bootlin.com/linux/v4.17/source/kernel/sched/fair.c#L9682). 首先先通过 `_nohz_idle_balance()` 尝试通过当前这个 NEWLY_IDLE 的 CPU 来直接更新 Blocked Load, 如果更新失败了, 才 KICK 一个 IDLE CPU 通过 [kick_ilb(NOHZ_STATS_KICK)](https://elixir.bootlin.com/linux/v4.17/source/kernel/sched/fair.c#L9688) 来执行这项工作. 但是优化后, nohz_newidle_balance() 只作为一个通知机制, 不再直接更新 Blocked Load, 它只是[将 NOHZ_NEWILB_KICK 标记设置到当前 NEWLY_IDLE CPU 的 this_rq->nohz_flags](https://elixir.bootlin.com/linux/v5.13/source/kernel/sched/fair.c#L10603) 中, 在[当前 NEWLY_IDLE CPU 真正将陷入 IDLE(C-State) 的时候](https://elixir.bootlin.com/linux/v5.13/source/kernel/sched/idle.c#L268), 才使用 `do_idle() -=> nohz_run_idle_balance() -=> _nohz_idle_balance()` 去更新 Blocked Load, nohz_run_idle_balance() 中会[检查设置了 NOHZ_NEWILB_KICK 标记](https://elixir.bootlin.com/linux/v5.13/source/kernel/sched/fair.c#L10575), 才会调用 `_nohz_idle_balance()` 进行 Blocked Load 的更新.
+
+整个更新流程如下所示:
+
+```cpp
+static int newidle_balance(struct rq *this_rq, struct rq_flags *rf)
+{
+    if (pulled_task)
+        this_rq->idle_stamp = 0;
+    else
+        nohz_newidle_balance(this_rq);
+}
+
+static void nohz_newidle_balance(struct rq *this_rq)
+{
+    /*
+     * Set the need to trigger ILB in order to update blocked load
+     * before entering idle state.
+     */
+    atomic_or(NOHZ_NEWILB_KICK, nohz_flags(this_cpu));
+}
+
+static void do_idle(void)
+{
+    /*
+     * Check if we need to update blocked load
+     */
+    nohz_run_idle_balance(cpu);
+}
+
+void nohz_run_idle_balance(int cpu)
+{
+    unsigned int flags;
+
+    flags = atomic_fetch_andnot(NOHZ_NEWILB_KICK, nohz_flags(cpu));
+
+    /*
+     * Update the blocked load only if no SCHED_SOFTIRQ is about to happen
+     * (ie NOHZ_STATS_KICK set) and will do the same.
+    */
+    if ((flags == NOHZ_NEWILB_KICK) && !need_resched())
+        _nohz_idle_balance(cpu_rq(cpu), NOHZ_STATS_KICK, CPU_IDLE);
+}
+```
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2019/1/17 | Valentin Schneider | [sched/fair: NOHZ cleanups and misfit improvement](https://lkml.org/lkml/2019/1/17/510) | 降低 ARM big.LITTLE 平台 NOHZ 下不必要的 kick 操作. | v1 ☑ 5.1-rc1 | [LKML 0/5](https://lkml.org/lkml/2019/1/17/510) |
-| 2021/01/22 | Joel Fernandes (Google)" <joel@joelfernandes.org> | [sched/fair: Rate limit calls to update_blocked_averages() for NOHZ](https://lore.kernel.org/patchwork/patch/1369598) | 在运行ChromeOS Linux kernel v5.4 的 octacore ARM64 设备上, 发现有很多对 update_blocked_average() 的调用, 导致调度的开销增大, 造成 newilde_balance 有时需要最多500微秒. 我在周期平衡器中也看到了这一点. 将 update_blocked_average() 调用速率限制为每秒 20 次 | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1369598) |
-| 2021/02/05 | Vincent Guittot <vincent.guittot@linaro.org> | [move update blocked load outside newidle_balance](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=39b6a429c30482c349f1bb3746470fe473cbdb0f) | NA | v1 ☑✓ 5.13-rc1 | [LORE v1,0/6](https://lore.kernel.org/all/20210205114830.781-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/7](https://lore.kernel.org/all/20210224133007.28644-1-vincent.guittot@linaro.org) |
+| 2021/01/22 | Joel Fernandes (Google)" <joel@joelfernandes.org> | [sched/fair: Rate limit calls to update_blocked_averages() for NOHZ](https://lore.kernel.org/lkml/20210122154600.1722680-1-joel@joelfernandes.org) | 在运行ChromeOS Linux kernel v5.4 的 octacore ARM64 设备上, 发现有很多对 update_blocked_average() 的调用, 导致调度的开销增大, 造成 newilde_balance() 有时需要最多 500 微秒. 我在周期平衡器中也看到了这一点. 将 update_blocked_average() 调用速率限制为每秒 20 次 | v1 ☐ | [PatchWork](https://lore.kernel.org/lkml/20210122154600.1722680-1-joel@joelfernandes.org) |
+| 2021/02/05 | Vincent Guittot <vincent.guittot@linaro.org> | [move update blocked load outside newidle_balance](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=39b6a429c30482c349f1bb3746470fe473cbdb0f) | 优化 NEWLY_IDLE CPU 的 Blocked Load 更新. | v1 ☑✓ 5.13-rc1 | [LORE v1,0/6](https://lore.kernel.org/all/20210205114830.781-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/7](https://lore.kernel.org/all/20210224133007.28644-1-vincent.guittot@linaro.org) |
 | 2021/11/12 | Vincent Guittot <vincent.guittot@linaro.org> | [avoid spurious blocked load update](https://lore.kernel.org/all/20211112095857.7016-1-vincent.guittot@linaro.org) | 20211112095857.7016-1-vincent.guittot@linaro.org | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20211112095857.7016-1-vincent.guittot@linaro.org) |
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2014/1/28 | Mike Galbraith <mgalbraith@suse.de> | [sched, nohz: Exclude isolated cores from load balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d987fc7f3228) | isolated CPU 不再进行负载均衡. | v1 ☑ 3.15-rc1 | [LKML](https://lkml.org/lkml/2014/2/21/736) |
+
 
 ## 4.6 自动 NUMA 均衡(Automatic NUMA balancing)
 -------
@@ -1602,7 +1667,7 @@ t/torvalds/linux.git/log/?id=b6a60cf36d497e7fbde9dd5b86fabd96850249f6) 进行了
 | 2015/05/14 | Rik van Riel <riel@redhat.com> | [numa,sched: reduce conflict between fbq_classify_rq and migration](https://lore.kernel.org/all/20150514225936.35b91717@annuminas.surriel.com) | 20150514225936.35b91717@annuminas.surriel.com | v1 ☑✓ | [LORE](https://lore.kernel.org/all/20150514225936.35b91717@annuminas.surriel.com) |
 | 2015/05/27 | riel@redhat.com <riel@redhat.com> | [numa,sched: resolve conflict between load balancing and NUMA balancing](https://lore.kernel.org/all/1432753468-7785-1-git-send-email-riel@redhat.com) | 20150528095249.3083ade0@annuminas.surriel.com | v2 ☑✓ | [LORE v2,0/2](https://lore.kernel.org/all/1432753468-7785-1-git-send-email-riel@redhat.com) |
 | 2018/02/13 | Mel Gorman <mgorman@techsingularity.net> | [Reduce migrations and conflicts with automatic NUMA balancing v2](https://lore.kernel.org/all/20180213133730.24064-1-mgorman@techsingularity.net) | 20180213133730.24064-7-mgorman@techsingularity.net | v2 ☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20180213133730.24064-1-mgorman@techsingularity.net) |
-| 2017/06/23 | riel@redhat.com <riel@redhat.com> | [NUMA improvements with task wakeup and load balancing](https://lore.kernel.org/all/20170623165530.22514-1-riel@redhat.com) | 20170623165530.22514-4-riel@redhat.com | v1 ☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20170623165530.22514-1-riel@redhat.com) |
+| 2017/06/23 | riel@redhat.com <riel@redhat.com> | [NUMA improvements with task wakeup and load balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=815abf5af45f04f759f12f3172afd15226fd7f71) | 20170623165530.22514-1-riel@redhat.com | v1 ☑✓ 4.13-rc1 | [LORE v1,0/4](https://lore.kernel.org/all/20170623165530.22514-1-riel@redhat.com) |
 | 2018/02/13 | Mel Gorman <mgorman@techsingularity.net> | [Reduce migrations and conflicts with automatic NUMA balancing v2](https://lore.kernel.org/all/20180213133730.24064-1-mgorman@techsingularity.net) | 20180213133730.24064-7-mgorman@techsingularity.net | v2 ☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20180213133730.24064-1-mgorman@techsingularity.net) |
 | 2018/03/26 | Mel Gorman <mgorman@techsingularity.net> | [sched/numa: Avoid trapping faults and attempting migration of file-backed dirty pages](https://lore.kernel.org/all/20180326094334.zserdec62gwmmfqf@techsingularity.net) | 20180326094334.zserdec62gwmmfqf@techsingularity.net | v1 ☑✓ | [LORE](https://lore.kernel.org/all/20180326094334.zserdec62gwmmfqf@techsingularity.net) |
 | 2018/09/21 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [numabalancing patches](https://lore.kernel.org/all/1537552141-27815-1-git-send-email-srikar@linux.vnet.ibm.com) | 1537552141-27815-7-git-send-email-srikar@linux.vnet.ibm.com | v2 ☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/1537552141-27815-1-git-send-email-srikar@linux.vnet.ibm.com) |
