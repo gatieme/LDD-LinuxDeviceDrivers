@@ -524,6 +524,9 @@ ARM v8.2 引入了 [UAO](https://community.arm.com/arm-community-blogs/b/archite
 
 *   [AsahiLinux]() 国外一名资深操作系统移植专家 Hector Martin(网名为 Marcan) 主导发起的一个开源项目, 其目标是让用户可以在 Apple M1 上把基于 Linux 的发行版作为日常操作系统来使用.
 
+相关报道
+
+[Rewritten Apple Silicon CPUFreq Driver Posted For Linux](https://www.phoronix.com/scan.php?page=news_item&px=Apple-SoC-CPUFreq-Driver-v2)
 
 ## 2.8 clocksource
 -------

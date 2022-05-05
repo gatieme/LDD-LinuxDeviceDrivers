@@ -319,6 +319,8 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 #### 1.4.1.3 Memory folios @5.19
 -------
 
+[A memory-folio update](https://lwn.net/Articles/893512)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/04/29 | Matthew Wilcox (Oracle) <willy@infradead.org> | [Folio patches for 5.19](https://patchwork.kernel.org/project/linux-mm/cover/20220429192329.3034378-1-willy@infradead.org/) | 637111 | v1 ☐☑ | [LORE v1,0/21](https://lore.kernel.org/r/20220429192329.3034378-1-willy@infradead.org) |
@@ -5915,6 +5917,8 @@ Intel 的吴峰光 [PMEM NUMA node and hotness accounting/migration](https://lor
 
 [LWN: Top-tier memory management!](https://blog.csdn.net/Linux_Everything/article/details/117970246)
 
+[NUMA rebalancing on tiered-memory systems](https://lwn.net/Articles/893024)
+[Linux Developers Discuss Improvements To Memory Tiering](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Better-Memory-Tiering)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

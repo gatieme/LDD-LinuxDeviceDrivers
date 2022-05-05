@@ -235,6 +235,8 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 
 [printk: Why is it so complicated?, LPC2019](https://lpc.events/event/4/contributions/290/attachments/276/463/lpc2019_jogness_printk.pdf)
 
+[Printbuf rebuffed for now](https://lwn.net/Articles/892611)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/07/09 | John Ogness <john.ogness@linutronix.de> | [printk: replace ringbuffer](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=896fbe20b4e2333fb55cc9b9b783ebcc49eee7c7) | 20200709132344.760-1-john.ogness@linutronix.de | v5 ☑ 5.10-rc1 | [LORE v5,0/4](https://lore.kernel.org/all/20200709132344.760-1-john.ogness@linutronix.de) |

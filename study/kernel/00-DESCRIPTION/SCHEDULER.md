@@ -927,7 +927,7 @@ Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状�
 -------
 
 
-avg_idle 可以反应目前 RQ 进入 idle 的时间长短. 用来评估 idle balance 的收益. 如果一个 CPU 的 rq->avg_idle 小于
+avg_idle 可以反应目前 RQ 进入 idle 的时间长短. 用来评估 idle balance 的收益. 如果一个 CPU 的 rq->avg_idle 小于 sysctl_sched_migration_cost, 则不再进行 idle balance.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:----:|:---:|:----------:|:---:|
@@ -3256,6 +3256,21 @@ ECRTS 2020(32nd Euromicro Conference on Real-Time Systems) 上 Daniel 等人发�
 随后 2022 年, Daniel 等人开发了 OSNOISE & TimerLat Tracer 用于跟踪系统内部活动的噪音, 分析那些对业务应用可能造成性能干扰的因素. 这些 TRACER 于 v5.14 合入. 是 PREEMPT_RT 合入 mainline 的一部分工作. 随后 v5.17 提供了 RTLA 作为基于 OSNOISE & TimerLat Tracer 数据分析的工具集用于分析和测试系统的实时性. 参见 [And now Linux has a Real-Time Linux Analysis (RTLA) tool!](https://bristot.me/and-now-linux-has-a-real-time-linux-analysis-rtla-tool)
 
 
+### 12.4.3 用户态调优工具
+-------
+
+#### 12.4.3.1 System76 Scheduler
+[System76 Scheduler](https://github.com/pop-os/system76-scheduler) 是 POP-OS 上实现的优化 Linux 的 CPU 调度程序的服务, 他通过自动分配进程优先级等方式, 以提高桌面响应能力. 这些操作跟终端上的优化很像:
+
+1.  当笔记本插上电源时, 将自动激活低延迟 CPU 调度(性能模式), 但是在使用电池时只设置默认调度延迟(能效模式).
+
+2.  定期扫描进程, 并根据配置文件分配进程优先级. 当与 pop-shell 结合使用时, 前台进程及其子进程将被赋予更高的进程优先级, 从而保证前台应用的响应.
+
+这些更改可以显著提高应用程序和游戏的体验流畅度和性能. 在比较老旧的系统上, 应用程序的响应能力的提高最为明显, 而游戏将受益于更高的帧速率和更少的抖动.
+
+[System76 Scheduler v1.0 发布](https://www.phoronix.com/scan.php?page=news_item&px=System76-Scheduler-1.0)
+
+[System76 Scheduler v1.1 发布](https://www.phoronix.com/scan.php?page=news_item&px=System76-Scheduler-1.1)
 
 **引用: **
 
