@@ -5,7 +5,7 @@
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:------:|:---:|
-| 2012/8/23 | [per-entity load-tracking](https://lore.kernel.org/patchwork/cover/322242) | per-task 的负载跟踪首次引入内核 | V1 ☑3.8 | [LWN](https://lwn.net/Articles/531853), [PatchWork](https://lore.kernel.org/patchwork/cover/322242), [lkml](https://lkml.org/lkml/2012/8/23/267) |
+| 2012/8/23 | [per-entity load-tracking](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e9c84cb8d5f1b1ea6fcbe6190d51dc84b6975938) | per-task 的负载跟踪首次引入内核 | v1 ☑ 3.8 | [LWN](https://lwn.net/Articles/531853), [LORE 00/16](https://lore.kernel.org/lkml/20120823141422.444396696@google.com) |
 
 第一个版本的 PELT 在 3.8 的时候合入主线.
 
@@ -28,6 +28,7 @@ aff3e4988444 sched: Account for blocked load waking back up
 18bf2805d9b3 sched: Maintain per-rq runnable averages
 9d85f21c94f7 sched: Track the runnable average on a per-task entity basis
 ```
+
 当时整个 sched_avg 结构体如下所示:
 
 ```cpp
@@ -107,7 +108,7 @@ cfs_rq 上记录的负载信息, 如下所示:
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:------:|:---:|
-| 2012/8/23 | [consolidation of CPU capacity and usage](https://lore.kernel.org/patchwork/cover/322242/) | CPU 调频会导致 capacity 的变化, 在支持 DVFS 的系统还用最大 capacity 计算负载是不合理的, 因此 PELT 感知 capacity 的变化  | V1 ☑ 4.1 | [PatchWork](https://lore.kernel.org/patchwork/cover/545867), [lkml](https://lkml.org/lkml/2015/2/27/309) |
+| 2012/8/23 | [consolidation of CPU capacity and usage](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=dfbca41f347997e57048a53755611c8e2d792924) | CPU 调频会导致 CPU capacity 的变化, 在支持 DVFS 的系统还用最大 capacity 计算负载是不合理的, 因此 PELT 感知 capacity 的变化. | v10 ☑ 4.1 | [LORE v10,00/11](https://lore.kernel.org/all/1425052454-25797-1-git-send-email-vincent.guittot@linaro.org), [LKML](https://lkml.org/lkml/2015/2/27/309) |
 
 
 这组补丁为 PELT 引入了 `frequency scale invariance` 的特性, 当前的系统都是支持 DVFS 的, CPU 处于不同的频率对应的 capacity 肯定是不同的, 特别的对于 big.LITTLE 等架构, 不同 cluster 的能效也是不同的. 因此如果两个相同的进程在不同的频率运行相同的时间, 那么其利用率理论上应该是不一样的.
@@ -184,9 +185,9 @@ static __always_inline int __update_entity_runnable_avg(u64 now, int cpu,
 # 3 PELT 4.3@2015 Rewrite runnable load and utilization average tracking
 -------
 
-| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:------:|:---:|
-| 2012/8/23 | [Rewrite runnable load and utilization average tracking](https://lore.kernel.org/patchwork/cover/579066) | 重构组调度的 PELT 跟踪, 在每次更新平均负载的时候, 更新整个 CFS_RQ 的平均负载| v10 ☑4.3 | [LWN](https://lwn.net/Articles/579066), [PatchWork](https://lore.kernel.org/patchwork/cover/590249), [lkml](https://lkml.org/lkml/2015/7/15/159) |
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2012/8/23 | Yuyang Du <yuyang.du@intel.com> | [Rewrite runnable load and utilization average tracking](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7ea241afbf4924c58d41078599f7a32ba49fb985) | 重构组调度的 PELT 跟踪, 在每次更新平均负载的时候, 更新整个 CFS_RQ 的平均负载 | v10 ☑ 4.3-rc1 | [LWN](https://lwn.net/Articles/579066), [LORE v10,0/7](https://lore.kernel.org/all/1436918682-4971-1-git-send-email-yuyang.du@intel.com/), [lkml](https://lkml.org/lkml/2015/7/15/159) |
 
 
 在之前的 PELT 实现中, 一次更新只跟新一个调度实体的负载变化, 而没有更新 CFS_RQ 上所有调度实体的负载, 这就导致整个就绪队列上 runnable_load_avg 是失真的. 这组补丁对此做了优化. 在每次更新平均负载的时候, 会更新整个 CFS_RQ 的平均负载.
@@ -267,7 +268,7 @@ struct cfs_rq {
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:------:|:---:|
-| 2015/8/14 | [Compute capacity invariant load/utilization tracking](https://lore.kernel.org/patchwork/cover/590249) | PELT 支持 Capacity Invariant, 对之前, 对 frequency scale invariance 的进一步优化 | v1 ☑4.4 | [LWN](https://lwn.net/Articles/531853), [PatchWork](https://lore.kernel.org/patchwork/cover/590249), [lkml](https://lkml.org/lkml/2015/8/14/296) |
+| 2015/8/14 | [Compute capacity invariant load/utilization tracking](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=98d8fd8126676f7ba6e133e65b2ca4b17989d32c) | PELT 支持 Capacity Invariant, 对之前, 对 frequency scale invariance 的进一步优化 | v1 ☑4.4 | [LWN](https://lwn.net/Articles/531853), [LORE 0/6](https://lore.kernel.org/patchwork/cover/590249), [LKML](https://lkml.org/lkml/2015/8/14/296) |
 
 这组补丁 Morten Rasmussen 自打 2014 年就开始推. 当前, 每个实体的负载跟踪仅对利用率跟踪的频率缩放进行补偿. 这个补丁集也扩展了这种补偿, 并增加了计算能力(不同的微架构和/或最大频率/P-state)的不变性. 前者防止在 cpu 以不同频率运行时做出次优负载平衡决策, 而后者确保可以跨 cpu 比较利用率(sched_avg.util_avg), 并且可以直接将利用率与 cpu 容量进行比较, 以确定cpu是否过载.
 
@@ -289,11 +290,11 @@ e0f5f3afd2cf sched/fair: Make load tracking frequency scale-invariant
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:------:|:---:|
-| 2017/10/19 | Yuyang Du | [sched/fair: Add documentation and optimize `__update_sched_avg()`](https://lore.kernel.org/patchwork/cover/759850) | 异构系统(比如 big.LITTLE) 上通过 DTS 获取 cpu capacity 等信息 | v7 ☑ 4.15 | [PatchWork](https://lore.kernel.org/patchwork/cover/759850) |
+| 2017/10/19 | Yuyang Du | [sched/fair: Add documentation and optimize `__update_sched_avg()`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=283e2ed3990c36c00403b62b264ebfabaf931104) | 异构系统(比如 big.LITTLE) 上通过 DTS 获取 cpu capacity 等信息 | v7 ☑ 4.15 | [LORE 0/2](https://lore.kernel.org/lkml/1486935863-25251-1-git-send-email-yuyang.du@intel.com) |
 
 
 ```cpp
-83e2ed3990c sched/fair: Move the PELT constants into a generated header
+283e2ed3990c sched/fair: Move the PELT constants into a generated header
 bb0bd044e65c sched/fair: Increase PELT accuracy for small tasks
 3841cdc31099 sched/fair: Fix comments
 05296e7535d6 sched/fair: Fix corner case in __accumulate_sum()
@@ -337,8 +338,8 @@ Yuyang Du 在 Document 下新增了一个 `sched-pelt.c` 的文件, 用来生成
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:------:|:---:|
-| 2016/10/19 | Dietmar Eggemann | [CPUs capacity information for heterogeneous systems](https://lore.kernel.org/patchwork/cover/726135) | 异构系统(比如 big.LITTLE) 上通过 DTS 获取 cpu capacity 等信息 | v7 ☑ 4.15 | [PatchWork](https://lore.kernel.org/patchwork/cover/726135) |
-| 2017/08/26 | Dietmar Eggemann | [arm, arm64, cpufreq: frequency- and cpu-invariant accounting support for task scheduler](https://lore.kernel.org/patchwork/cover/834799) | 为 ARM/ARM64 提供 FIE/CIE 功能 | v5 ☑ 4.15 | [PatchWork](https://lore.kernel.org/patchwork/cover/834799) |
+| 2016/10/19 | Dietmar Eggemann | [CPUs capacity information for heterogeneous systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=be8f185d8af4dbd450023a42a48c6faa8cbcdfe6) | 异构系统(比如 big.LITTLE) 上通过 DTS 获取 cpu capacity 等信息 | v7 ☑ 4.15 | [LORE v7 REPOST 0/9](https://lore.kernel.org/lkml/20161017154650.18779-1-juri.lelli@arm.com/) |
+| 2017/08/26 | Dietmar Eggemann | [arm, arm64, cpufreq: frequency- and cpu-invariant accounting support for task scheduler](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=431ead0ff19b440b1ba25c72d732190b44615cdb) | 为 ARM/ARM64 提供 FIE/CIE 功能 | v5 ☑ 4.15 | [PatchWork](https://lore.kernel.org/lkml/20170926164115.32367-1-dietmar.eggemann@arm.com) |
 
 
 得益于 ARM big.LITTLE 架构在 ANDROID 的广泛使用, ARM64 是最早支持 FIE 和 CIE 的架构.
@@ -358,7 +359,7 @@ Peter 后来进行了一些优化
 
 | 时间  | 作者 |特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:--:|:----------:|:----:|
-| 2016/06/17 | Peter Zijlstra | [sched/fair: Fix PELT wobblies](https://lore.kernel.org/patchwork/cover/690025) | | v1 ☑ 4.8-rc1 | [PatchWork](ttps://lore.kernel.org/patchwok/cover/690025) |
+| 2016/06/17 | Peter Zijlstra | [sched/fair: Fix PELT wobblies](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7dc603c9028ea5d4354e0e317e8481df99b06d7e) | | v1 ☑ 4.8-rc1 | [PatchWork](https://lore.kernel.org/lkml/20160617120136.064100812@infradead.org) |
 | 2017/05/04 | Tejun Heo | [sched/fair: Propagate runnable_load_avg independently from load_avg](https://lore.kernel.org/patchwork/patch/785393) | | v1 ☑ 4.15 | [PatchWork](https://lore.kernel.org/patchwork/patch/782955)<br>*-*-*-*-*-*-*-*<br> [PatchWork](https://lore.kernel.org/patchwork/patch/785395) |
 | 2017/09/01 | Peter Zijlstra | [A bit of a cgroup/PELT overhaul](https://lore.kernel.org/patchwork/cover/827575) | | v2 ☑ 4.15 | 2017/05/12 [PatchWork RFC,00/14](https://lore.kernel.org/patchwork/cover/787364)<br>*-*-*-*-*-*-*-*<br> 2017/09/01 [PatchWork -v2,00/18](https://lore.kernel.org/patchwork/cover/827575), [LKML](https://lkml.org/lkml/2017/9/1/331) |
 
