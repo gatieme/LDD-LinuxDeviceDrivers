@@ -1725,13 +1725,132 @@ t/torvalds/linux.git/log/?id=b6a60cf36d497e7fbde9dd5b86fabd96850249f6) 进行了
 ### 4.7.1 Optimize TTWU(try_to_wake_up)
 -------
 
+v3.0 版本 [sched: Reduce runqueue lock contention -v6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bd8e7dded88a3e1c085c333f19ff31387616f71a) 对唤醒等流程做了 rq->lock LockLess 的优化, 将 try_to_wake_up() 分成了上下两半部分.
+
+1.  上半部分是不持有 rq->lock 的, 但是[持有 task_struct 的 pi_lock](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2680), 整个 task_struct 的状态检查以及[ select_task_rq()](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2721) 都在这个阶段. 引入了 [task_struct->on_rq](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2687) 以及 [task_struct->on_cpu](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2695) 标记进程的 RUNNABLE 以及 RUNNING 状态, TTWU 阶段通过监听和等待这些状态的更新与变化从而实现无锁化. 参见 [commit e4a52bcb9a18 ("sched: Remove rq->lock from the first half of ttwu()")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e4a52bcb9a18142d79e231b6733cabdbf2e67c1f)
+
+2.  下半部分则持有 rq->lock, 这个阶段[通过 ttwu_queue() 真正完成任务唤醒(主要是任务入队)](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2728), 由于第一阶段已经在不持有任何 rq->lock 的情况下完成了 select_task_rq(), 因此我们可以确保在希望任务运行的实际 CPU 上远程完成唤醒. 引入了 [TTWU_QUEUE sched_features](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2646) 来控制这项工作, 它实际上通过 [ttwu_queue_remote(p, cpu)](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2603) 完成. 这避免了必须使用 rq->lock 并远程执行任务入队, 不光节省了大量的 cache remote access, 甚至可能还需要 double_rq_lock() 这种费时费力的操作. 参见 [commit 317f394160e9 ("sched: Move the second half of ttwu() to the remote cpu")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=317f394160e9beb97d19a84c39b7e5eb3d7815a8).
+
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----------:|:---:|
-| 2020/05/24 | Mel Gorman | [Optimise try_to_wake_up() when wakee is descheduling](https://lore.kernel.org/patchwork/cover/1246560) | 唤醒时如果 wakee 进程正在睡眠或者调度(释放 CPU), 优化在 on_cpu 的自旋等待时间 | v1 ☑ 5.8-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1246560) |
+| 2011/04/05 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [sched: Reduce runqueue lock contention -v6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bd8e7dded88a3e1c085c333f19ff31387616f71a) | 缩短整个调度路径下 rq->lock 的持有范围, 减少对 rq->lock 锁的竞争. 引入了 task_struct->on_cpu 以及 task_struct->on_rq 标记进程的 RUNNING 以及 RUNNABLE 状态. | v6 ☑✓ 3.0-rc1 | [LORE v6,0/21](https://lore.kernel.org/all/20110405152338.692966333@chello.nl) |
+| 2012/09/12 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [`sched: Remove __ARCH_WANT_INTERRUPTS_ON_CTXSW`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f3e947867478af9a12b9956bcd000ac7613a8a95) | TODO | v1 ☐☑✓ 3.7-rc1 | [LORE](http://lkml.kernel.org/n/tip-g9p2a1w81xxbrze25v9zpzbf@git.kernel.org) |
+| 2013/08/09 | Oleg Nesterov <oleg@redhat.com> | [sched: fix the theoretical signal_wake_up() vs schedule() race](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e0acd0a68ec7dbf6b7a81a87a867ebd7ac9b76c4) | 20130812170257.GA32358@redhat.com | v1 ☑✓ 3.11-rc6 | [LORE v1](https://lore.kernel.org/lkml/20130812170257.GA32358@redhat.com) |
+| 2015/08/03 | tip-bot for Peter Zijlstra <tipbot@zytor.com> | [sched: Introduce the 'trace_sched_waking' tracepoint](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fbd705a0c6184580d0e2fbcbd47a37b6e5822511) | NA | v1 ☑✓ 4.3-rc1 | [LORE](https://lore.kernel.org/all/tip-fbd705a0c6184580d0e2fbcbd47a37b6e5822511@git.kernel.org/) |
+| 2020/05/24 | Mel Gorman | [Optimise try_to_wake_up() when wakee is descheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2ebb17717550607bcd85fb8cf7d24ac870e9d762) | 唤醒时如果 wakee 进程正在睡眠或者调度(释放 CPU), 优化在 on_cpu 的自旋等待时间 | v1 ☑ 5.8-rc1 | [LORE 0/2](https://lore.kernel.org/lkml/20200524202956.27665-1-mgorman@techsingularity.net) |
+
+
+#### 4.7.1.2 TTWU 中的内存屏障
+-------
+
+
+try_to_wake_up() 中有 4 处内存屏障(Memory Barrier).
+
+
+| 描述   | v2.6.25-rc3 | v3.0 | v3.11-rc6 | v4.4-rc4 | v4.5-rc1 | v4.8-rc7 | v4.14-rc1 | v5.8-rc6 |
+|:-----:|:-----------:|:----:|:---------:|:--------:|:--------:|:--------:|:---------:|:---------:|
+| 第一处 | [smp_wmb()](https://elixir.bootlin.com/linux/v2.6.25/source/kernel/sched.c#L1842), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=04e2f1741d235ba599037734878d72e57cb302b5) | [smp_wmb()](https://elixir.bootlin.com/linux/v2.6.25/source/kernel/sched.c#L1842) | [smp_mb__before_spinlock()](https://elixir.bootlin.com/linux/v3.11/source/kernel/sched/core.c#L1502), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e0acd0a68ec7dbf6b7a81a87a867ebd7ac9b76c4) | [smp_mb__before_spinlock()](https://elixir.bootlin.com/linux/v4.4/source/kernel/sched/core.c#L1935) | [smp_mb__before_spinlock()](https://elixir.bootlin.com/linux/v4.5/source/kernel/sched/core.c#L2038) | [smp_mb__before_spinlock()](https://elixir.bootlin.com/linux/v4.8/source/kernel/sched/core.c#L2009) | [smp_mb__after_spinlock()](https://elixir.bootlin.com/linux/v4.14/source/kernel/sched/core.c#L1980), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d89e588ca4081615216cc25f2489b0281ac0bfe9) | [smp_mb__after_spinlock()](https://elixir.bootlin.com/linux/v5.8/source/kernel/sched/core.c#L2547) |
+| 第二处 | NA | NA | NA | NA | NA | [smp_rmb()](https://elixir.bootlin.com/linux/v4.8/source/kernel/sched/core.c#L2040), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=135e8c9250dd5c8c9aae5984fde6f230d0cbfeaf) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.14/source/kernel/sched/core.c#L2011) | [smp_rmb()](https://elixir.bootlin.com/linux/v5.8/source/kernel/sched/core.c#L2579) |
+| 第三处 | NA | NA | NA | [smp_rmb()](https://elixir.bootlin.com/linux/v4.4/source/kernel/sched/core.c#L1966), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ecf7d01c229d11a44609c0067889372c91fb4f36) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.5/source/kernel/sched/core.c#L2069) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.8/source/kernel/sched/core.c#L2062) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.14/source/kernel/sched/core.c#L2033) | [smp_acquire__after_ctrl_dep()](https://elixir.bootlin.com/linux/v5.8/source/kernel/sched/core.c#L2612) |
+| 第四处 | NA | [smp_rmb()](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2713) | [smp_rmb()](https://elixir.bootlin.com/linux/v3.11/source/kernel/sched/core.c#L1523) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.4/source/kernel/sched/core.c#L1983) | [smp_cond_acquire(!p->on_cpu)](https://elixir.bootlin.com/linux/v4.5/source/kernel/sched/core.c#L2080), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b3e0b1b6d841a4b2f64fc09ea728913da8218424) | [smp_cond_load_acquire(&p->on_cpu, !VAL)](https://elixir.bootlin.com/linux/v4.8/source/kernel/sched/core.c#L2073) | [smp_cond_load_acquire(&p->on_cpu, !VAL)](https://elixir.bootlin.com/linux/v4.14/source/kernel/sched/core.c#L2044) | [smp_cond_load_acquire(&p->on_cpu, !VAL)](https://elixir.bootlin.com/linux/v5.8/source/kernel/sched/core.c#L2654) |
+
+
+| 描述   | 第一处 | 第二处 | 第三处 | 第四处 |
+|:-----:|:-----:|:-----:|:-----:|:-----:|
+| v2.6.25-rc3 | [smp_wmb()](https://elixir.bootlin.com/linux/v2.6.25/source/kernel/sched.c#L1842), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=04e2f1741d235ba599037734878d72e57cb302b5) | NA | NA | NA |
+| v3.0 |[smp_wmb()](https://elixir.bootlin.com/linux/v2.6.25/source/kernel/sched.c#L1842) | NA | NA | [smp_rmb()](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2713) | [smp_rmb()](https://elixir.bootlin.com/linux/v3.11/source/kernel/sched/core.c#L1523) |
+| v3.11-rc6 | [smp_mb__before_spinlock()](https://elixir.bootlin.com/linux/v3.11/source/kernel/sched/core.c#L1502), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e0acd0a68ec7dbf6b7a81a87a867ebd7ac9b76c4) | NA | NA | [smp_rmb()](https://elixir.bootlin.com/linux/v3.11/source/kernel/sched/core.c#L1523) |
+| v4.4-rc4 | [smp_mb__before_spinlock()](https://elixir.bootlin.com/linux/v4.4/source/kernel/sched/core.c#L1935) | NA | [smp_rmb()](https://elixir.bootlin.com/linux/v4.4/source/kernel/sched/core.c#L1966), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ecf7d01c229d11a44609c0067889372c91fb4f36) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.4/source/kernel/sched/core.c#L1983) |
+| v4.5-rc1 | [smp_mb__before_spinlock()](https://elixir.bootlin.com/linux/v4.5/source/kernel/sched/core.c#L2038) | NA | [smp_rmb()](https://elixir.bootlin.com/linux/v4.5/source/kernel/sched/core.c#L2069) | [smp_cond_acquire(!p->on_cpu)](https://elixir.bootlin.com/linux/v4.5/source/kernel/sched/core.c#L2080), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b3e0b1b6d841a4b2f64fc09ea728913da8218424) |
+| v4.8-rc7 | [smp_mb__before_spinlock()](https://elixir.bootlin.com/linux/v4.8/source/kernel/sched/core.c#L2009) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.8/source/kernel/sched/core.c#L2040), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=135e8c9250dd5c8c9aae5984fde6f230d0cbfeaf) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.8/source/kernel/sched/core.c#L2062) | [smp_cond_load_acquire(&p->on_cpu, !VAL)](https://elixir.bootlin.com/linux/v4.8/source/kernel/sched/core.c#L2073) |
+| v4.14-rc1 | [smp_mb__after_spinlock()](https://elixir.bootlin.com/linux/v4.14/source/kernel/sched/core.c#L1980) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.14/source/kernel/sched/core.c#L2011), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d89e588ca4081615216cc25f2489b0281ac0bfe9) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.14/source/kernel/sched/core.c#L2033) | [smp_cond_load_acquire(&p->on_cpu, !VAL)](https://elixir.bootlin.com/linux/v4.14/source/kernel/sched/core.c#L2044) |
+| v5.8-rc6 | [smp_mb__after_spinlock()](https://elixir.bootlin.com/linux/v5.8/source/kernel/sched/core.c#L2547) | [smp_rmb()](https://elixir.bootlin.com/linux/v5.8/source/kernel/sched/core.c#L2579) | [smp_acquire__after_ctrl_dep()](https://elixir.bootlin.com/linux/v5.8/source/kernel/sched/core.c#L2612) | [smp_cond_load_acquire(&p->on_cpu, !VAL)](https://elixir.bootlin.com/linux/v5.8/source/kernel/sched/core.c#L2654) |
+
+*   第四处内存屏障 smp_rmb() -=> smp_cond_acquire()
+
+v3.0-rc1 [commit e4a52bcb9a18 ("sched: Remove rq->lock from the first half of ttwu()")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e4a52bcb9a18142d79e231b6733cabdbf2e67c1f) 添加了 try_to_wake_up() 中的首个 smp_rmb().
+
+v4.4-rc4 [commit b75a22531588 ("sched/core: Better document the try_to_wake_up() barriers")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b75a22531588e77aa8c2daf228c9723916ae2cd0) 给这个 smp_rmb 添加了更清晰的注释.
+
+v4.5-rc1 [commit b3e0b1b6d841 ("locking, sched: Introduce smp_cond_acquire() and use it")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b3e0b1b6d841a4b2f64fc09ea728913da8218424) 将这个 smp_rmb() 修改为对 p->on_cpu 的 smp_cond_acquire().
+
+```cpp
+while (p->on_cpu)
+    cpu_relax();
+smp_rmb();
+
+上述逻辑 -=>  被替换为
+
+smp_cond_acquire(!p->on_cpu);
+```
+
+*   第三处内存屏障 smp_rmb() -=> smp_acquire__after_ctrl_dep()
+
+v4.4-rc4 [commit ecf7d01c229d ("sched/core: Fix an SMP ordering race in try_to_wake_up() vs. schedule()")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ecf7d01c229d11a44609c0067889372c91fb4f36) 引入了 try_to_wake_up() 中的[另外一个 smp_rmb()](https://elixir.bootlin.com/linux/v4.4/source/kernel/sched/core.c#L1966).
+
+v5.8-rc6 [commit dbfb089d360b ("sched: Fix loadavg accounting race")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dbfb089d360b1cc623c51a2c7cf9b99eff78e0e7) 将这个 smp_rmb() 替换为 smp_acquire__after_ctrl_dep().
+
+```cpp
+smp_rmb();
+
+-=>
+
+smp_acquire__after_ctrl_dep()
+```
+
+*   第二处内存屏障 smp_rmb()
+
+v4.8-rc7 [commit 135e8c9250dd ("Fix a race between try_to_wake_up() and a woken up task")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=135e8c9250dd5c8c9aae5984fde6f230d0cbfeaf) 引入了 try_to_wake_up() 又一个 smp_rmb().
+
+
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----------:|:---:|
+| 2015/11/02 | Peter Zijlstra <peterz@infradead.org> | [scheduler ordering bits](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8643cda549ca49a403160892db68504569ac9052) | NA | v1 ☑✓ 4.4-rc4 | [LORE v1,0/4](https://lore.kernel.org/all/20151102132901.157178466@infradead.org) |
+| 2016/09/05 | Balbir Singh <bsingharora@gmail.com> | [Fix a race between try_to_wake_up() and a woken up task](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=135e8c9250dd5c8c9aae5984fde6f230d0cbfeaf) | NA | v2 ☑✓ 4.8-rc7 | [LORE](https://lore.kernel.org/all/e02cce7b-d9ca-1ad0-7a61-ea97c7582b37@gmail.com) |
+| 2020/07/03 | Peter Zijlstra <peterz@infradead.org> | [sched: Fix loadavg accounting race](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dbfb089d360b1cc623c51a2c7cf9b99eff78e0e7) | TODO | v1 ☑✓ 5.8-rc6 | [LORE](https://lkml.kernel.org/r/20200707102957.GN117543@hirez.programming.kicks-ass.net) |
+
+*   第一处内存屏障 smp_mb__before_spinlock() and smp_mb__after_spinlock()
+
+v2.6.25-rc3 [commit 04e2f1741d23 ("Add memory barrier semantics to wake_up() & co")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=04e2f1741d235ba599037734878d72e57cb302b5) 在 try_to_wake_up() 的入口位置添加了 smp_wmb().
+
+v3.11-rc6 [commit e0acd0a68ec7 ("sched: fix the theoretical signal_wake_up() vs schedule() race")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e0acd0a68ec7dbf6b7a81a87a867ebd7ac9b76c4) 在 try_to_wake_up 路径引入了 smp_mb__before_spinlock(), 入口位置的 smp_wmb() 就被替换为 smp_mb__before_spinlock().
+
+v4.14-rc1 [commit d89e588ca408 ("Getting rid of smp_mb__before_spinlock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d89e588ca4081615216cc25f2489b0281ac0bfe9) 将 smp_mb__before_spinlock() 全部修改为 smp_mb__after_spinlock().
+
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----------:|:---:|
+| 2017/06/07 | Peter Zijlstra <peterz@infradead.org> | [Getting rid of smp_mb__before_spinlock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d89e588ca4081615216cc25f2489b0281ac0bfe9) | NA | v1 ☑✓ 4.14-rc1 | [LORE v1,0/5](https://lore.kernel.org/all/20170607161501.819948352@infradead.org)[LORE v2,0/4](https://lore.kernel.org/all/20170802113837.280183420@infradead.org) |
+| 2018/07/16 | Paul E. McKenney <paulmck@linux.vnet.ibm.com> | [locking/spinlock, sched/core: Clarify requirements for smp_mb__after_spinlock()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=71b7ff5ebc9b1d5aa95eb48d6388234f1304fd19) | [Updates to the formal memory model](https://lore.kernel.org/all/20180716180540.GA14222@linux.vnet.ibm.com) | v1 ☑✓ 4.19-rc1 | [LORE v1,0/14](https://lore.kernel.org/all/20180716180605.16115-11-paulmck@linux.vnet.ibm.com) |
+
+*   wait ON_CPU
+
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----------:|:---:|
+| 2014/08/20 | Kirill Tkhai <ktkhai@parallels.com> | [sched: Wrapper for checking task_struct::on_rq](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=163122b7fcfa28c0e4a838fcc8043c616746802e) | 1408528052.23412.87.camel@tkhai | v5 ☐☑✓ | [LORE v5,0/5](https://lore.kernel.org/all/1408528052.23412.87.camel@tkhai) |
+| 2017/06/29 | "Paul E. McKenney" <paulmck@linux.vnet.ibm.com> | [sched: Replace spin_unlock_wait() with lock/unlock pair](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=23a9b748a3d27f67cdb078fcb891a920285e75d9) | TODO | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=23a9b748a3d27f67cdb078fcb891a920285e75d9) |
+| 2018/04/30 | Peter Zijlstra <peterz@infradead.org> | [sched,kthread: Fix TASK_PARKED and special sleep states](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b5bf9a90bbebffba888c9144c5a8a10317b04064) | 20180430141751.377491406@infradead.org | v1 ☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20180430141751.377491406@infradead.org) |
+| 2020/05/24 | Mel Gorman | [Optimise try_to_wake_up() when wakee is descheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2ebb17717550607bcd85fb8cf7d24ac870e9d762) | 唤醒时如果 wakee 进程正在睡眠或者调度(释放 CPU), 优化在 on_cpu 的自旋等待时间 | v1 ☑ 5.8-rc1 | [LORE 0/2](https://lore.kernel.org/lkml/20200524202956.27665-1-mgorman@techsingularity.net) |
+
+
+*   IO
+
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----------:|:---:|
+| 2016/10/28 | Tejun Heo <tj@kernel.org> | [sched/core: move IO scheduling accounting from io_schedule_timeout() into scheduler](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e33a9bba85a869b85fd0a7f16e21a5ec8977e325) | 20161207204841.GA22296@htj.duckdns.org | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/1477673892-28940-1-git-send-email-tj@kernel.org) |
+| 2017/12/18 | Josh Snyder <joshs@netflix.com> | [delayacct: Account blkio completion on the correct task](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c96f5471ce7d2aefd0dda560cc23f08ab00bc65d) | 1513613712-571-1-git-send-email-joshs@netflix.com | v2 ☑✓ 4.15-rc9 | [LORE](https://lore.kernel.org/all/1513613712-571-1-git-send-email-joshs@netflix.com) |
+
+
+#### 4.7.1.2 TTWU 下半部
+-------
+
+
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----------:|:---:|
+| 2016/05/11 | Peter Zijlstra <peterz@infradead.org> | [sched/fair: Fix fairness issue on migration](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2f950354e6d535b892f133d20bd6a8b09430424c) | TODO | v1 ☐☑✓ 4.7-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2f950354e6d535b892f133d20bd6a8b09430424c) |
 
 
 
-### 4.6.2 WAKE_AFFINE
+### 4.7.2 WAKE_AFFINE
 -------
 
 *   smark wake_affine
