@@ -675,6 +675,21 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 | 2022/04/05 | Wyes Karny <wyes.karny@amd.com> | [x86: Prefer MWAIT over HALT on AMD processors](https://lore.kernel.org/all/20220405130021.557880-1-wyes.karny@amd.com) | Monitor Wait "MWAIT" 指令可用于电源管理目的, 以提示处理器在等待事件或 MONITOR 存储操作完成时可以进入指定的目标 C 状态. MWAIT 的使用旨在比 HALT 指令更有效. Intel Core 2 及更高版本已经将 MWAIT 置于 HALT 指令之上, 以进入 C1 状态. 但是 AMD CPU 此代码路径中依旧使用 HALT. 这个补丁使 AMD 使用 MWAIT 指令而不是 HALT, 当系统未使用 CPU 空闲驱动程序时, 无论是 BIOS 禁用 C 状态还是驱动程序不属于内核构建. 反过来, 这可以将受影响系统的退出延迟提高约 21%. 参见 [](https://www.phoronix.com/scan.php?page=news_item&px=AMD-MWAIT-Over-HALT-2022). | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220405130021.557880-1-wyes.karny@amd.com) |
 
 
+## 6.5 memory model
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2009/07/08 | Jiri Olsa <jolsa@redhat.com> | [memory barrier: adding smp_mb__after_lock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ad46276952f1af34cd91d46d49ba13d347d56367) | TODO | v1 ☑✓ 2.6.31-rc3 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ad46276952f1af34cd91d46d49ba13d347d56367) |
+| 2013/08/12 | Oleg Nesterov <oleg@redhat.com> | [sched: fix the theoretical signal_wake_up() vs schedule() race](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e0acd0a68ec7dbf6b7a81a87a867ebd7ac9b76c4) | 在 try_to_wake_up 路径引入了 smp_mb__before_spinlock(), 入口位置的 smp_wmb() 就被替换为 smp_mb__before_spinlock(). | v1 ☑✓ v3.11-rc6 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e0acd0a68ec7dbf6b7a81a87a867ebd7ac9b76c4) |
+| 2017/08/02 | Peter Zijlstra <peterz@infradead.org> | [Getting rid of smp_mb__before_spinlock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ae813308f4630642d2c1c87553929ce95f29f9ef) | 本系列删除了 smp_mb_before_spinlock() 用户, 并将调度路径下转换为使用 smp_mb_after_spinlock(), 从而在相同数量的障碍下提供更多保障. | v1 ☑✓ 4.14-rc1 | [LORE v1,0/4](https://lore.kernel.org/all/20170802113837.280183420@infradead.org) |
+| 2017/08/07 | Byungchul Park <byungchul.park@lge.com> | [lockdep: Implement crossrelease feature](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ef0758dd0fd70b98b889af26e27f003656952db8) | 1502089981-21272-1-git-send-email-byungchul.park@lge.com | v8 ☑✓ 4.14-rc1 | [LORE v8,0/14](https://lore.kernel.org/all/1502089981-21272-1-git-send-email-byungchul.park@lge.com) |
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/07/16 | Paul E. McKenney <paulmck@linux.vnet.ibm.com> | [Updates to the formal memory model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=71b7ff5ebc9b1d5aa95eb48d6388234f1304fd19) | NA | v1 ☑✓ 4.19-rc1 | [LORE v1,0/14](https://lore.kernel.org/all/20180716180540.GA14222@linux.vnet.ibm.com) |
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

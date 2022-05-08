@@ -1731,6 +1731,9 @@ v3.0 版本 [sched: Reduce runqueue lock contention -v6](https://git.kernel.org/
 
 2.  下半部分则持有 rq->lock, 这个阶段[通过 ttwu_queue() 真正完成任务唤醒(主要是任务入队)](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2728), 由于第一阶段已经在不持有任何 rq->lock 的情况下完成了 select_task_rq(), 因此我们可以确保在希望任务运行的实际 CPU 上远程完成唤醒. 引入了 [TTWU_QUEUE sched_features](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2646) 来控制这项工作, 它实际上通过 [ttwu_queue_remote(p, cpu)](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2603) 完成. 这避免了必须使用 rq->lock 并远程执行任务入队, 不光节省了大量的 cache remote access, 甚至可能还需要 double_rq_lock() 这种费时费力的操作. 参见 [commit 317f394160e9 ("sched: Move the second half of ttwu() to the remote cpu")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=317f394160e9beb97d19a84c39b7e5eb3d7815a8).
 
+
+ 使用 [sembench](http://oss.oracle.com/~mason/sembench.c) 进行了测试
+
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----------:|:---:|
 | 2011/04/05 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [sched: Reduce runqueue lock contention -v6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bd8e7dded88a3e1c085c333f19ff31387616f71a) | 缩短整个调度路径下 rq->lock 的持有范围, 减少对 rq->lock 锁的竞争. 引入了 task_struct->on_cpu 以及 task_struct->on_rq 标记进程的 RUNNING 以及 RUNNABLE 状态. | v6 ☑✓ 3.0-rc1 | [LORE v6,0/21](https://lore.kernel.org/all/20110405152338.692966333@chello.nl) |
@@ -1743,9 +1746,49 @@ v3.0 版本 [sched: Reduce runqueue lock contention -v6](https://git.kernel.org/
 #### 4.7.1.2 TTWU 中的内存屏障
 -------
 
+[<奔跑吧 Linux 内核> 卷2--附录E 关于try_to_wake_up()里的内存屏障使用](https://blog.csdn.net/rlk8888/article/details/123352327)
 
-try_to_wake_up() 中有 4 处内存屏障(Memory Barrier).
+try_to_wake_up() 中有 4 处内存屏障(Memory Barrier), 截至 v5.8 版本 [try_to_wake_up()](https://elixir.bootlin.com/linux/v5.8/source/kernel/sched/core.c#L2513) 中内存屏障如下所示:
 
+```cpp
+static int
+try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)
+{
+        /*
+         * If we are going to wake up a thread waiting for CONDITION we
+         * need to ensure that CONDITION=1 done by the caller can not be
+         * reordered with p->state check below. This pairs with mb() in
+         * set_current_state() the waiting thread does.
+         */
+        raw_spin_lock_irqsave(&p->pi_lock, flags);
+        smp_mb__after_spinlock();                           // 第一处内存屏障
+        if (!(p->state & state))
+                goto unlock;
+
+        trace_sched_waking(p);
+        /* We're going to change ->state: */
+        success = 1;
+
+        smp_rmb();                                          // 第二处内存屏障
+        if (READ_ONCE(p->on_rq) && ttwu_remote(p, wake_flags))
+                goto unlock;
+        // ......
+#ifdef CONFIG_SMP
+        smp_acquire__after_ctrl_dep();                      // 第三处内存屏障
+        p->state = TASK_WAKING;
+
+        if (smp_load_acquire(&p->on_cpu) &&
+            ttwu_queue_wakelist(p, task_cpu(p), wake_flags | WF_ON_CPU))
+                goto unlock;
+
+        smp_cond_load_acquire(&p->on_cpu, !VAL);            // 第四处内存屏障
+
+        cpu = select_task_rq(p, p->wake_cpu, SD_BALANCE_WAKE, wake_flags);
+        // ......
+}
+```
+
+这些内存屏障在内核各个阶段的严禁如下表所示:
 
 | 描述   | v2.6.25-rc3 | v3.0 | v3.11-rc6 | v4.4-rc4 | v4.5-rc1 | v4.8-rc7 | v4.14-rc1 | v5.8-rc6 |
 |:-----:|:-----------:|:----:|:---------:|:--------:|:--------:|:--------:|:---------:|:---------:|
@@ -1754,41 +1797,81 @@ try_to_wake_up() 中有 4 处内存屏障(Memory Barrier).
 | 第三处 | NA | NA | NA | [smp_rmb()](https://elixir.bootlin.com/linux/v4.4/source/kernel/sched/core.c#L1966), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ecf7d01c229d11a44609c0067889372c91fb4f36) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.5/source/kernel/sched/core.c#L2069) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.8/source/kernel/sched/core.c#L2062) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.14/source/kernel/sched/core.c#L2033) | [smp_acquire__after_ctrl_dep()](https://elixir.bootlin.com/linux/v5.8/source/kernel/sched/core.c#L2612) |
 | 第四处 | NA | [smp_rmb()](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2713) | [smp_rmb()](https://elixir.bootlin.com/linux/v3.11/source/kernel/sched/core.c#L1523) | [smp_rmb()](https://elixir.bootlin.com/linux/v4.4/source/kernel/sched/core.c#L1983) | [smp_cond_acquire(!p->on_cpu)](https://elixir.bootlin.com/linux/v4.5/source/kernel/sched/core.c#L2080), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b3e0b1b6d841a4b2f64fc09ea728913da8218424) | [smp_cond_load_acquire(&p->on_cpu, !VAL)](https://elixir.bootlin.com/linux/v4.8/source/kernel/sched/core.c#L2073) | [smp_cond_load_acquire(&p->on_cpu, !VAL)](https://elixir.bootlin.com/linux/v4.14/source/kernel/sched/core.c#L2044) | [smp_cond_load_acquire(&p->on_cpu, !VAL)](https://elixir.bootlin.com/linux/v5.8/source/kernel/sched/core.c#L2654) |
 
-*   第一处内存屏障 smp_mb__before_spinlock() and smp_mb__after_spinlock()
+*   第一处内存屏障 smp_wmb() -=> smp_mb__before_spinlock() -=> smp_mb__after_spinlock()
 
-v2.6.25-rc3 [commit 04e2f1741d23 ("Add memory barrier semantics to wake_up() & co")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=04e2f1741d235ba599037734878d72e57cb302b5) 在 try_to_wake_up() 的入口位置添加了 smp_wmb().
 
-v3.11-rc6 [commit e0acd0a68ec7 ("sched: fix the theoretical signal_wake_up() vs schedule() race")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e0acd0a68ec7dbf6b7a81a87a867ebd7ac9b76c4) 在 try_to_wake_up 路径引入了 smp_mb__before_spinlock(), 入口位置的 smp_wmb() 就被替换为 smp_mb__before_spinlock().
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----------:|:---:|
+| 2008/02/23 | Linus Torvalds <torvalds@woody.linux-foundation.org> | [Add memory barrier semantics to wake_up() & co](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=04e2f1741d235ba599037734878d72e57cb302b5) | 在 try_to_wake_up() 的入口位置添加了 smp_wmb(). | v1 ☑✓ v2.6.25-rc3 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=04e2f1741d235ba599037734878d72e57cb302b5) |
+| 2013/08/12 | Oleg Nesterov <oleg@redhat.com> | [sched: fix the theoretical signal_wake_up() vs schedule() race](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e0acd0a68ec7dbf6b7a81a87a867ebd7ac9b76c4) | 在 try_to_wake_up 路径引入了 smp_mb__before_spinlock(), 入口位置的 smp_wmb() 就被替换为 smp_mb__before_spinlock(). | v1 ☑✓ v3.11-rc6 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e0acd0a68ec7dbf6b7a81a87a867ebd7ac9b76c4) |
+| 2016/09/05 | Peter Zijlstra <peterz@infradead.org> | [locking: Introduce smp_mb__after_spinlock()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d89e588ca4081615216cc25f2489b0281ac0bfe9) | 将 smp_mb__before_spinlock() 全部修改为 smp_mb__after_spinlock(). | v1 ☑✓ v4.14-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d89e588ca4081615216cc25f2489b0281ac0bfe9) |
 
-v4.14-rc1 [commit d89e588ca408 ("Getting rid of smp_mb__before_spinlock")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d89e588ca4081615216cc25f2489b0281ac0bfe9) 将 smp_mb__before_spinlock() 全部修改为 smp_mb__after_spinlock().
+
+关于此 waker 和 wakee 之间 Barrier 的相关文档 [SLEEP AND WAKE-UP FUNCTIONS @Documentation/memory-barriers.txt,](https://elixir.bootlin.com/linux/v5.8/source/Documentation/memory-barriers.txt#L2106) 和注释, 如下所示:
+
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----------:|:---:|
+| 2009/04/28 | David Howells <dhowells@redhat.com> | [Document memory barriers implied by sleep/wake-up primitives](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=50fa610a3b6ba7cf91d7a92229177dfaff2b81a1) | NA | v1 ☑✓ 2.6.31-rc1 | [LORE](https://lore.kernel.org/all/20090428140138.1192.94723.stgit@warthog.procyon.org.uk) |
+| 2018/07/16 | Paul E. McKenney <paulmck@linux.vnet.ibm.com> | [sched/Documentation: Update wake_up() & co. memory-barrier guarantees](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7696f9910a9a40b8a952f57d3428515fabd2d889) | [Updates to the formal memory model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=71b7ff5ebc9b1d5aa95eb48d6388234f1304fd19) 的其中一个补丁. | v1 ☑✓ 4.19-rc1 | [LORE v1,0/14](https://lore.kernel.org/all/20180716180605.16115-12-paulmck@linux.vnet.ibm.com) |
+
+整个唤醒阶段涉及两个进程(Waker/Wakee)之间的状态交互
+
+*   Wakee 由于某个条件 CONDITION 不满足, 因此不得不阻塞. 这个是一个 {STORE wakee->state, LOAD CONDITION} 的序列.
+
+*   Waker 在将 CONDITION 条件设置后, 然后尝试唤醒 Wakee, 这个阶段是一个 {STORE CONDITION, LOAD wakee->state} 的序列.
+
+```cpp
+    CPU 1 (Wakee/Sleeper)
+    ===============================
+    set_current_state(TASK_UNINTERRUPTIBLE);                // STORE wakee->state
+        -=> smp_store_mb();
+            -=> WRITE_ONCE(&p->state, TASK_UNINTERRUPTIBLE);
+            -=> smp_mb();                                   // ① Wakee(Sleeper) 在判断 CONDITION_event 前添加 barrier
+    if (CONDITION)                                          // LOAD CONDITION
+        return;
+    schedule();
+
+    CPU 2 (Waker)
+    ===============================
+    CONDITION = 1;                                          // WRITE CONDITION
+    wake_up_process(p);
+        -=> try_to_wake_up();
+            -=> smp_wmb()                                   // ② Waker 在 CONDITION_event = 1 后, 添加 smp_wmb
+    if (!(p->state & state))                                // LOAD wakee->state
+        goto out;
+```
+
+由于这两个流程 wakee->state 和 CONDITION 是没有明确的数据依赖关系的, 本地 CPU 上由硬件保证指令即使是乱序执行的, 也是顺序提交的, 不会出问题, 但是 多 CPU 并发场景, 部分架构下(比如 ARM/ARM64 等), 一个变量被 STORE 后, 它在不同 CPU 上的可见性可能并不能按照你所看到的代码(指令)顺序被保证. 不加内存屏障, 就不能假定 Waker 在 LOAD wakee->state 一定能看到 wakee->state 已经被设置为 !TASK_RUNNING. 这样 Wakee 正在睡去, 而 Waker 却误以为它没有阻塞, 这样将错失将其唤醒的机会, 造成 Wakee 永久性阻塞. 这种情况下可以通过加锁或者内存屏障的方式来解决.
+
+[set_current_state()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/diff/include/linux/sched.h?id=b92b8b35a2e38bde319fd1d68ec84628c1f1b0fb) 通过 smp_store_mb() -=> smp_mb() 已经添加了 Wakee 端的内存屏障. 于是 [v2.6.31-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=04e2f1741d235ba599037734878d72e57cb302b5) 在 try_to_wake_up() 函数的入口位置添加了一个内存屏障 [smp_wmb()](https://elixir.bootlin.com/linux/v2.6.25/source/kernel/sched.c#L1842).
+
+但是细心的开发者会发现, try_to_wake_up() 入口位置的内存屏障完全没有必要用 smp_wmb() 这样的强屏障. 因为这个位置后面紧随着就是一个对 p->pi_lock 的 spin_lock 请求. spin_lock 本身已经有隐含的内存屏障原语, 虽然对 ARM64 等弱内存序架构来说, 这个屏障原语可能只有一半, 这个跟架构和具体实现有关系. 因此内核提供了诸如 smp_mb_after_spinlock() 和 smp_mb__after_lock() 的接口用来在 LOCK 后, 提供内存屏障原语的支持. 这些函数在一些强内存序的架构下是空函数, 在一些弱内存序的架构下, 由于 spin_lock 本身已经提供了一半屏障原语, 这些 after_lock 的内存屏障通常只提供另外一半即可, 他与锁本身保障的屏障原语共同保证整个内存屏障的功能.
+
+随后 [v3.11-rc6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e0acd0a68ec7dbf6b7a81a87a867ebd7ac9b76c4) 将其修改为 smp_mb__before_spinlock(), ARM64 下它依旧是一个 smp_wmb(). 随后 [v4.14-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d89e588ca4081615216cc25f2489b0281ac0bfe9) 它被替换为 smp_mb__after_spinlock(), 这仅仅是个 smp_mb().
 
 
 *   第二处内存屏障 smp_rmb()
 
-v4.8-rc7 [commit 135e8c9250dd ("Fix a race between try_to_wake_up() and a woken up task")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=135e8c9250dd5c8c9aae5984fde6f230d0cbfeaf) 引入了 try_to_wake_up() 又一个 smp_rmb().
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----------:|:---:|
+| 2016/09/05 | Balbir Singh <bsingharora@gmail.com> | [sched/core: Fix a race between try_to_wake_up() and a woken up task](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=135e8c9250dd5c8c9aae5984fde6f230d0cbfeaf) | 引入了 try_to_wake_up() 又一个 smp_rmb(). | v1 ☑✓ v4.8-rc7 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=135e8c9250dd5c8c9aae5984fde6f230d0cbfeaf) |
+| 2018/07/16 | Paul E. McKenney <paulmck@linux.vnet.ibm.com> | [locking/spinlock, sched/core: Clarify requirements for smp_mb__after_spinlock()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=71b7ff5ebc9b1d5aa95eb48d6388234f1304fd19) | [Updates to the formal memory model](https://lore.kernel.org/all/20180716180540.GA14222@linux.vnet.ibm.com) 的其中一个补丁, 修改了第二三处内存屏障的注释. | v1 ☑✓ 4.19-rc1 | [LORE v1,0/14](https://lore.kernel.org/all/20180716180605.16115-11-paulmck@linux.vnet.ibm.com) |
 
 
 *   第三处内存屏障 smp_rmb() -=> smp_acquire__after_ctrl_dep()
 
-v4.4-rc4 [commit ecf7d01c229d ("sched/core: Fix an SMP ordering race in try_to_wake_up() vs. schedule()")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ecf7d01c229d11a44609c0067889372c91fb4f36) 引入了 try_to_wake_up() 中的[另外一个 smp_rmb()](https://elixir.bootlin.com/linux/v4.4/source/kernel/sched/core.c#L1966).
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----------:|:---:|
+| 2015/10/07 | Peter Zijlstra <peterz@infradead.org> | [sched/core: Fix an SMP ordering race in try_to_wake_up() vs.](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ecf7d01c229d11a44609c0067889372c91fb4f36) | 引入了 try_to_wake_up() 中的[另外一个 smp_rmb()](https://elixir.bootlin.com/linux/v4.4/source/kernel/sched/core.c#L1966). | v1 ☑✓ v4.4-rc4 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ecf7d01c229d11a44609c0067889372c91fb4f36) |
+| 2020/07/03 | Peter Zijlstra <peterz@infradead.org> | [sched: Fix loadavg accounting race](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dbfb089d360b1cc623c51a2c7cf9b99eff78e0e7) | 将这个 smp_rmb() 替换为 smp_acquire__after_ctrl_dep(). | v1 ☑✓ v5.8-rc6 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dbfb089d360b1cc623c51a2c7cf9b99eff78e0e7) |
 
-v5.8-rc6 [commit dbfb089d360b ("sched: Fix loadavg accounting race")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dbfb089d360b1cc623c51a2c7cf9b99eff78e0e7) 将这个 smp_rmb() 替换为 smp_acquire__after_ctrl_dep().
-
-```cpp
-smp_rmb();
-
--=>
-
-smp_acquire__after_ctrl_dep()
-```
 
 *   第四处内存屏障 smp_rmb() -=> smp_cond_acquire()
 
-v3.0-rc1 [commit e4a52bcb9a18 ("sched: Remove rq->lock from the first half of ttwu()")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e4a52bcb9a18142d79e231b6733cabdbf2e67c1f) 添加了 try_to_wake_up() 中的首个 smp_rmb().
+| 2011/04/05 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [sched: Remove rq->lock from the first half of ttwu()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e4a52bcb9a18142d79e231b6733cabdbf2e67c1f) | 添加了 try_to_wake_up() 中的首个 smp_rmb(). | v1 ☑✓ v3.0-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e4a52bcb9a18142d79e231b6733cabdbf2e67c1f) |
+| 2015/10/06 | Peter Zijlstra <peterz@infradead.org> | [sched/core: Better document the try_to_wake_up() barriers](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b75a22531588e77aa8c2daf228c9723916ae2cd0) | 给这个 smp_rmb 添加了更清晰的注释. | v1 ☑✓ v4.4-rc4 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b75a22531588e77aa8c2daf228c9723916ae2cd0) |
+| 2015/10/16 | Peter Zijlstra <peterz@infradead.org> | [locking, sched: Introduce smp_cond_acquire() and use it](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b3e0b1b6d841a4b2f64fc09ea728913da8218424) | 将这个 smp_rmb() 修改为对 p->on_cpu 的 smp_cond_acquire(). | v1 ☑✓ v4.5-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b3e0b1b6d841a4b2f64fc09ea728913da8218424) |
 
-v4.4-rc4 [commit b75a22531588 ("sched/core: Better document the try_to_wake_up() barriers")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b75a22531588e77aa8c2daf228c9723916ae2cd0) 给这个 smp_rmb 添加了更清晰的注释.
-
-v4.5-rc1 [commit b3e0b1b6d841 ("locking, sched: Introduce smp_cond_acquire() and use it")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b3e0b1b6d841a4b2f64fc09ea728913da8218424) 将这个 smp_rmb() 修改为对 p->on_cpu 的 smp_cond_acquire().
 
 ```cpp
 while (p->on_cpu)
@@ -1801,20 +1884,10 @@ smp_cond_acquire(!p->on_cpu);
 ```
 
 
-
-
-
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----------:|:---:|
 | 2015/11/02 | Peter Zijlstra <peterz@infradead.org> | [scheduler ordering bits](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8643cda549ca49a403160892db68504569ac9052) | NA | v1 ☑✓ 4.4-rc4 | [LORE v1,0/4](https://lore.kernel.org/all/20151102132901.157178466@infradead.org) |
-| 2016/09/05 | Balbir Singh <bsingharora@gmail.com> | [Fix a race between try_to_wake_up() and a woken up task](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=135e8c9250dd5c8c9aae5984fde6f230d0cbfeaf) | NA | v2 ☑✓ 4.8-rc7 | [LORE](https://lore.kernel.org/all/e02cce7b-d9ca-1ad0-7a61-ea97c7582b37@gmail.com) |
-| 2020/07/03 | Peter Zijlstra <peterz@infradead.org> | [sched: Fix loadavg accounting race](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dbfb089d360b1cc623c51a2c7cf9b99eff78e0e7) | TODO | v1 ☑✓ 5.8-rc6 | [LORE](https://lkml.kernel.org/r/20200707102957.GN117543@hirez.programming.kicks-ass.net) |
-
-
-
-| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----------:|:---:|
-| 2017/06/07 | Peter Zijlstra <peterz@infradead.org> | [Getting rid of smp_mb__before_spinlock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d89e588ca4081615216cc25f2489b0281ac0bfe9) | NA | v1 ☑✓ 4.14-rc1 | [LORE v1,0/5](https://lore.kernel.org/all/20170607161501.819948352@infradead.org)[LORE v2,0/4](https://lore.kernel.org/all/20170802113837.280183420@infradead.org) |
+| 2017/06/07 | Peter Zijlstra <peterz@infradead.org> | [Getting rid of smp_mb__before_spinlock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ae813308f4630642d2c1c87553929ce95f29f9ef) | NA | v1 ☑✓ 4.14-rc1 | [LORE v1,0/5](https://lore.kernel.org/all/20170607161501.819948352@infradead.org)[LORE v2,0/4](https://lore.kernel.org/all/20170802113837.280183420@infradead.org) |
 | 2018/07/16 | Paul E. McKenney <paulmck@linux.vnet.ibm.com> | [locking/spinlock, sched/core: Clarify requirements for smp_mb__after_spinlock()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=71b7ff5ebc9b1d5aa95eb48d6388234f1304fd19) | [Updates to the formal memory model](https://lore.kernel.org/all/20180716180540.GA14222@linux.vnet.ibm.com) | v1 ☑✓ 4.19-rc1 | [LORE v1,0/14](https://lore.kernel.org/all/20180716180605.16115-11-paulmck@linux.vnet.ibm.com) |
 
 *   wait ON_CPU

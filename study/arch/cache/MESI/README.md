@@ -224,6 +224,10 @@ L3 缓存是所有CPU共享的一个缓存. 纵观刚才描述的MESI, 好像涉
 | 32 | [【并发编程】MESI--CPU缓存一致性协议](https://zhuanlan.zhihu.com/p/112605471) | NA |
 | 33 | [MESI 缓存一致性协议引发的一些思考](https://zhuanlan.zhihu.com/p/435009820) | NA |
 | 34 | [MESI Cache Coherency Protocol](https://www.scss.tcd.ie/Jeremy.Jones/vivio/caches/MESIHelp.htm?utm_source=wechat_session&utm_medium=social&utm_oi=714537833427136512) | 一个非常好的模拟网站, 模拟各种操作后, 多核之间 cache 和总线的交互以及状态变换 |
+| 35 | [解密内存屏障 (注释补充)](https://www.cnblogs.com/straybirds/p/8856726.html) | 从各种例子触发, 讲解①内存屏障, ②编译时内存乱序访问, ③运行时内存乱序访问, 摘自《程序员》, 2014/06, 作者: 梁国栋（搜狐畅游技术专家) |
+| 36 | [内存屏障详解](https://blog.csdn.net/weixin_39094034/article/details/123773446) | 讲解了 store buffer, Invalidate Queues 所解决的问题以及导致的内存可见性问题 |
+| 37 | [Volatile：内存屏障原理应该没有比这篇文章讲的更清楚了](https://www.bilibili.com/read/cv7429219/) | 提到了一个关键的点: ① 使用了 store buffer 后, 这两个操作是异步的. 这在多线程环境中, 有些情况下是可以接受的, 但是有些情况是不可接受的, 为了让程序员有能力根据业务需要达到同步完成, 就设计了内存屏障. ② 为什么要插入屏障?本质是业务层面不能接受写 store buffer 与刷回内存这两个异步操作产生的哪怕是极少的延迟, 即对内存可见性的要求极高. |
+| 38 | [理解内存屏障 | 《内存屏障就像版本控制一样》](https://zhuanlan.zhihu.com/p/491157678) | Preshing 先生编写的广受好评的文章 [Memory Barriers Are Like Source Control Operations](https://preshing.com/20120710/memory-barriers-are-like-source-control-operations) 的中文译文. |
 
 <br>
 
