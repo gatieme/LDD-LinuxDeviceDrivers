@@ -623,6 +623,12 @@ https://patchwork.kernel.org/project/linux-trace-devel/list/?submitter=200911&st
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/01/18 | Beau Belgrave <beaub@linux.microsoft.com> | [user_events: Enable user processes to create and write to trace events](https://lore.kernel.org/all/20220118204326.2169-1-beaub@linux.microsoft.com) | 20220118204326.2169-1-beaub@linux.microsoft.com | v10 ☐☑✓ | [LORE v10,0/12](https://lore.kernel.org/all/20220118204326.2169-1-beaub@linux.microsoft.com) |
 
+## 14.9 DEPT(Dependency Tracker)
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/05/04 | Byungchul Park <byungchul.park@lge.com> | [DEPT(Dependency Tracker)](https://patchwork.kernel.org/project/linux-mm/cover/1651652269-15342-1-git-send-email-byungchul.park@lge.com/) | 638196 | v6 ☐☑ | [LORE v6,0/21](https://lore.kernel.org/r/1651652269-15342-1-git-send-email-byungchul.park@lge.com) |
 
 
 # 15 kptr_restrict

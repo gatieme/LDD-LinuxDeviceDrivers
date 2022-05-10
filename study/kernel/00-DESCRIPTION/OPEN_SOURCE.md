@@ -26,7 +26,7 @@
 | 阿里巴巴 | [alikernel](https://github.com/alibaba/alikernel) | [阿里云智能基础软件部-技术博客](https://kernel.taobao.org), [Alibaba Cloud Linux 2 DOC](https://help.aliyun.com/document_detail/154950.html?spm=a2c4g.11186623.3.3.37157594hOc6qA) |
 | 腾讯 | [TencentOS-kernel](https://github.com/Tencent/TencentOS-kernel) | [腾讯开源 | Tencent Open Source](https://opensource.tencent.com/projects) |
 | AMAZON | [AmazonLinux](https://github.com/amazonlinux/linux) |
-| ORACLE | [linux-uek](https://github.com/oracle/linux-uek) | [linux-kernel-development](https://blogs.oracle.com/linux/linux-kernel-development) |
+| ORACLE | [linux-uek](https://github.com/oracle/linux-uek) | [linux-kernel-development](https://blogs.oracle.com/linux/linux-kernel-development), [2](https://blogs.oracle.com/linux/category/lnx-linux-kernel-development) |
 | openSuse | [openSUSE/kernel](https://github.com/openSUSE/kernel)<br>*-*-*-*-*-*-*-* <br>[openSUSE/kernel](https://github.com/openSUSE/kernel-source) | [opensuse.org](https://en.opensuse.org/openSUSE:Kernel_git) |
 | microsoft | [微软的 linux 内部版本 CBL-Mariner](https://github.com/microsoft/CBL-Mariner-Linux-Kernel)<br>*-*-*-*-*-*-*-* <br>[WSL2-Linux-Kernel](https://github.com/microsoft/WSL2-Linux-Kernel)<br>*-*-*-*-*-*-*-* <br>[azure-linux-kernel](https://github.com/microsoft/azure-linux-kernel) | NA |
 

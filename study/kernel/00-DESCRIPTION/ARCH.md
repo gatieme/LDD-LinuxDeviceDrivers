@@ -57,6 +57,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 [Intel® 64 and IA-32 Architectures Software Developer Manuals](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-sdm.html)
 
+[Intel Architecture Day 2021](https://www.intel.com/content/www/us/en/newsroom/resources/press-kit-architecture-day-2021.html)
 
 ## 1.1 架构新特性
 -------

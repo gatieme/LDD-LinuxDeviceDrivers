@@ -934,8 +934,11 @@ update_blocked_averages() 在多个场景都被发现成为非常严重的性能
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2017/04/24 | Tejun Heo | [sched/fair: Fix O(nr_cgroups) in load balance path](https://lore.kernel.org/patchwork/patch/783385) | 优化 update_blocked_averages 的负载  | v1 ☑✓ 4.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/783385) |
-| 2019/02/06 | Vincent Guittot | [sched/fair: Fix O(nr_cgroups) in load balance path]()](https://lore.kernel.org/patchwork/cover/1039223) | 优化 update_blocked_averages 的负载 | v1 ☑✓ 5.1-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1039223) |
+| 2017/04/24 | Tejun Heo | [sched/fair: Fix O(nr_cgroups) in load balance path](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a9e7f6544b9cebdae54d29f87a7ba2a83c0471b5) | 优化 update_blocked_averages 的负载  | v1 ☑✓ 4.13-rc1 | [LORE 1/2](https://lore.kernel.org/lkml/20170426004039.GA3222@wtj.duckdns.org) |
+| 2018/12/27 | Xie XiuQi <xiexiuqi@huawei.com> | [sched: fix infinity loop in update_blocked_averages](https://lore.kernel.org/all/1545879866-27809-1-git-send-email-xiexiuqi@huawei.com) | 华为复现出死循环问题后的修复补丁. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/1545879866-27809-1-git-send-email-xiexiuqi@huawei.com) |
+| 2018/12/27 | Linus Torvalds <torvalds@linux-foundation.org> | [sched/fair: Fix infinite loop in update_blocked_averages() by reverting a9e7f6544b9c](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c40f7d74c741a907cfaeb73a7697081881c497d0) | Linus 直接 revert 了引入死循环的优化补丁. | v1 ☑✓ 5.0-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c40f7d74c741a907cfaeb73a7697081881c497d0) |
+| 2019/01/30 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: Fix insertion in rq->leaf_cfs_rq_list](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f6783319737f28e4436a69611853a5a098cbe974) | 修复坏链导致的死循环问题. | v2 ☑✓ 5.1-rc1 | [LORE](https://lore.kernel.org/all/1548825767-10799-1-git-send-email-vincent.guittot@linaro.org) |
+| 2019/02/06 | Vincent Guittot | [sched/fair: Fix O(nr_cgroups) in load balance path]()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=039ae8bcf7a5f4476f4487e6bf816885fb3fb617) | 优化 update_blocked_averages 的负载 | v1 ☑✓ 5.1-rc1 | [LORE 0/2](https://lore.kernel.org/lkml/1549469662-13614-1-git-send-email-vincent.guittot@linaro.org) |
 
 
 ### 4.3.5 active load_balance
@@ -1001,7 +1004,7 @@ idle balance 中执行 update_blocked_average 是很费时费力的, 可以做�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2013/08/29 | Jason Low <jason.low2@hp.com> | [steal tasks to improve CPU utilization](http://lwn.net/Articles/769225) | 限制 idle balance  | v1 ☑ 4.13-rc1 | [PatchWork v1](https://lore.kernel.org/lkml/1540220381-424433-1-git-send-email-steven.sistare@oracle.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4 00/10](https://lkml.org/lkml/2018/12/6/1253) |
+| 2013/08/29 | Jason Low <jason.low2@hp.com> | [steal tasks to improve CPU utilization](http://lwn.net/Articles/769225) | steal tasks. | v1 ☑ 4.13-rc1 | [PatchWork v1](https://lore.kernel.org/lkml/1540220381-424433-1-git-send-email-steven.sistare@oracle.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4 00/10](https://lkml.org/lkml/2018/12/6/1253) |
 
 
 ## 4.5 NOHZ Idle Balance
@@ -2006,7 +2009,7 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2019/06/26 | subhra mazumdar <subhra.mazumdar@oracle.com> | [sched: introduce group balancer](https://lore.kernel.org/lkml/20190626224718.21973-1-subhra.mazumdar@oracle.com) | 为任务提供"软亲和力"的概念, 向调度程序指定在调度任务时首选一组 CPU, 但如果它们不全都繁忙, 则使用其他CPU. | RFC ☐ | [LORE RFC,0/3](https://lore.kernel.org/lkml/20190626224718.21973-1-subhra.mazumdar@oracle.com) |
+| 2019/06/26 | subhra mazumdar <subhra.mazumdar@oracle.com> | [Scheduler Soft Affinity](https://lore.kernel.org/lkml/20190626224718.21973-1-subhra.mazumdar@oracle.com) | 为任务提供"软亲和力"的概念, 向调度程序指定在调度任务时首选一组 CPU, 但如果它们不全都繁忙, 则使用其他CPU. | RFC ☐ | [LORE RFC,0/3](https://lore.kernel.org/lkml/20190626224718.21973-1-subhra.mazumdar@oracle.com) |
 
 
 
@@ -2195,6 +2198,61 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 | 2022/02/17 | K Prateek Nayak <kprateek.nayak@amd.com> | [sched/fair: Consider cpu affinity when allowing NUMA imbalance in find_idlest_group](https://lore.kernel.org/all/20220217055408.28151-1-kprateek.nayak@amd.com) | 当前的调度程序代码只是检查本地组中的任务数是否小于允许的 NUMA 不平衡阈值. 该阈值以前是 NUMA 域跨度的 25%), 但在 Mel 补丁集 "Adjust NUMA imbalance for multiple LLCs" 中 commit e496132ebedd ("sched/fair: Adjust the allowed NUMA imbalance when SD_NUMA spans multiple LLCs" 现在等于 NUMA 域中的 LLC 数目, 通常情况下这种机制运行良好.<br>但是对于进程都通过 numactl/taskset PIN 到一组分散的 CPU 上的情况(比如每个 LLC 域中选一个 CPU), 任务的数量将始终在阈值内, 因此所有 8 个流线程将在第一个 SOCKET 上唤醒, 从而导致次优性能. 在最初的少量 CPU 上堆积之后, 虽然负载平衡器可以工作, 但是稳定的均衡状态, 并且需要频繁的迁移 PING PONG.<br>我们可以通过检查本地组中允许的 CPU 数量是否少于本地组中运行的任务数量来检测并避免这种堆积, 并使用此信息将本来会堆积的县城分散到下一个 SOCKET 中(毕竟, 这个慢路径的目标是在初始放置期间找到最空闲的组和最空闲的 CPU).  | v4 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220217055408.28151-1-kprateek.nayak@amd.com) |
 
 
+## 5.6 相关学术研究
+-------
+
+
+### 5.6.1 [EuroSys '22, OS scheduling with nest](https://dl.acm.org/doi/10.1145/3492321.3519585)
+-------
+
+为了最好地支持高度并行的应用程序, 使系统的吞吐量最高, CFS 调度器总是倾向于在任务创建和唤醒时将任务尽可能均衡的分散到系统的各个 CPU 上. 然而, 这可能总是事与愿违的. 据观察, 在服务器环境中, 这种策略会导致任务不必要地放置在运行频率较低的长时间空闲的核心上, 而这些 IDLE 的 CPU 往往需要较长的时间才能唤醒, 从而降低了业务的性能, 而导致任务不必要地分布在各个 SCOKET 上, 也导致这些 SOCKET 不能进入低功耗模式, 从而导致功耗增加. 论文 [EuroSys '22, OS scheduling with nest: keeping tasks close together on warm cores, Julia Lawall](https://hal.inria.fr/hal-03612592/document?msclkid=ef0482efd02911ecac42ed2b3d62baa7) 中, 在 Linux 内核中实现了 Nest 调度器, 提出利用 CPU 核复用的原理, 通过构造一个多级 CPU 的集合, 使用这些集合的 priority 进行任务调度, 从而获得更高的频率和使用更少的 SOCKET. 对于高度并行的应用程序, 其性能和能耗与 CFS 不相上下, 但对于使用比核心更少任务的应用程序, Nest 调度器的的性能为原生 10% ~ 2 倍, 并且可以降低能耗.
+
+
+为进程维护了一个多级(从 WARM 到 COLD)的 CPU 集合, 用来在选核时作为参考, 类似于多级 CPU Cache 一样.
+
+
+| CPU 集合 | 描述 |
+|:--------:|:---:|
+| primary nest | 主要包括那些最近使用过或者正在使用, 或者预计很快就会用到的一些 CPU. 比如进程当前正在运行的 CPU 以及最近运行过的 CPU, 都属于此集合 |
+| reserve nest | 主要包括曾经在 primary nest 中, 但是最近一段时间进程已经没有运行过的 CPU, 这些 CPU 后期可能不太会使用了, 但是它们至少不是 COLD 的. 还包括那些 Nest 调度器选择出来的 CPU, 但是进程还没有运行过的. |
+| CFS | 进程所允许运行的所有 CPU 的集合. |
+
+
+其主体目标和之前的 [Soft Affinity](https://blogs.oracle.com/linux/post/soft-affinity-when-hard-partitioning-is-too-much) 有点类似, 甚至可以结合起来工作.
+
+通过将进程集保持在一组 WARM 的 CPU 集合上, 从而让 CPU 理论用更高, 这些 CPU 可以在高频(甚至超频运行), 而其他的 CPU 可以整体处于低功耗状态, 从而整体吞吐量更高, 功耗更低. 而当系统整体负载又很大的情况下, 又可以把其他空闲的 CPU 冲突利用起来. 整体通过对 CPU (按照冷热)分级的来完成, 优先使用 WARM 的 CPU. 会通过系统整体的负载来调整各个 Nest 分级的 CPU 范围.
+
+> 该论文相关补丁以及实验环境:
+>
+> [gitlab/nest-artifact](https://gitlab.inria.fr/nest-public/nest-artifact)
+>
+> [nest-artifact.tar.gz](https://doi.org/10.5281/zenodo.6344960)
+
+
+#### 5.6.1.1 Building the nest
+-------
+
+其核心算法流程如下图所示:
+
+![OS_Scheduling_with_Nest 算法流程](./images/0001-1-OS_Scheduling_with_Nest.png)
+
+1.  选核时按照优先级优先从 WARM CPUs 中选, 其次按照 WARM 的级数一级一级的 FallBack
+
+红色箭头标记了进程 select_task_rq() 的流程, 选核时先在 primary nest 的 CPU 集合中选择, 如果这些 CPU 中没有查找到 IDLE 的, 则退到 reserve nest 集合中选择, 如果还不行, 则 FallBack 到 CFS 的集合中去.
+
+2.  按照 WARMest -=> COLDest 的次序, 维护了所有 CPU 的集合. 类似于 Cache LRU 一样, CPU 在各个集合之间不断的衰减和流动
+
+蓝色箭头标记了 CPU 在各个 nest 集合中的流向:
+
+*   当前使用的 CPU 在 primary nest 中, 一段时间未使用后则降级到 reserve nest 集合.
+
+*   CFS 集合中被选中的则上升到 reserve nest, reserve nest 集合中的 CPU 被选中后, 则升级到 primary nest 中.
+
+
+#### 5.6.1.2 Keeping the cores in the nest warm
+-------
+
+此外, primary nest 中的 CPU 在 IDLE 而进入低功耗之间, 会先 spin 一段时间. 防止这些 CPU 因陷入深度睡眠, 而造成较大的唤醒延迟.
 
 # 6 pick_next_task
 -------
@@ -2561,6 +2619,12 @@ Misfit Task 对调度器**负载均衡**做了如下改造, 参见 [commit cad68
 | 2019/10/30 | Quentin Perret <qperret@google.com> | [Make IPA use PM_EM](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=163b00cde7cf2206e248789d2780121ad5e6a70b) | NA | v9 ☑✓ 5.5-rc1 | [LORE v9,0/4](https://lore.kernel.org/all/20191030151451.7961-1-qperret@google.com) |
 
 
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2022/04/20 | Daniel Lezcano <daniel.lezcano@linaro.org> | [tools/thermal: thermal library and tools](https://git.kernel.org/pub/scm/linux/kernel/git/thermal/linux.git/commit/?h=thermal/linux-next&id=a84a55b356add1baefcdaf9181b2f5d21f22934e) | Linaro 提出了一个与 Linux 内核的热框架接口的热库. 作为其中的一部分, 它也是一个用于用户空间的温度计实用程序, 用于监视热数据. 实现了 Netlink 通知机制, 以接收散热配置发现、跳变点更改和违规以及冷却设备更改通知. 这种抽象使用户空间更容易处理 Linux 内核的热框架. 在这个库之上构建的温控工具将允许从通过配置文件指定的一组热区域捕获温度. 这个低开销的工具可以很容易地捕获热数据, 然后集成到其他工具, 如 GNU Plot. 还提供了一个基本的 "散热" 守护程序. 参见 [New Thermal Library, "Thermometer" Tool Proposed For Linux](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Thermometer-RFC), [New Thermal Library & Temperature Capture Tool Readied For Linux 5.19](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.19-New-Thermal-Lib-Tool) | v3 ☑✓ 5.19-rc1 | [LORE RFC,v1,1/4](https://lore.kernel.org/lkml/20220214210446.255780-1-daniel.lezcano@linaro.org)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/all/20220420160933.347088-1-daniel.lezcano@linaro.org) |
+
+
 ### 7.2.5 社区其他相关讨论
 -------
 
@@ -2736,6 +2800,29 @@ v5.15 合入的 [Add support for 32-bit tasks on asymmetric AArch32 systems](htt
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/07/30 | Will Deacon <will@kernel.org> | [Add support for 32-bit tasks on asymmetric AArch32 systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=702f43872665) | 一些体系结构, 特别是 ARM, 配置了一些 CPU 支持传统的 32 位应用程序, 但是一些 CPU 只支持 64 位. 这组补丁增加了对 32 位程序调度的支持, 这些 32 位的程序只能在支持传统 32 位任务的 CPU 中执行. | v1 ☑ [5.15-rc1](https://kernelnewbies.org/LinuxChanges#Linux_5.15.Support_for_asymmetric_scheduling_affinity) | [PatchWork v11,00/16](https://lore.kernel.org/all/20210730112443.23245-1-will@kernel.org) |
+
+
+## 7.8 关联线程组 RTG
+-------
+
+RTG(Related Thread Group) 是高通为 ANDROID 提供的芯片解决方案中的一个调度关键特性, 提供了对一组线程进行(精准)资源供给(大小核, 频率等)的能力.
+
+参见 [微信公众号-内核工匠-调度器分支之 RTG](https://mp.weixin.qq.com/s/SOAmKof5xiDJ-OFx7Zqh-g)
+
+最新 msm-5.10 合入 [commit d3b261dbd232 ("sched/walt: Introduce WALT as a module")](https://source.codeaurora.cn/quic/la/kernel/msm-5.10/diff/kernel/sched/walt/walt.c?h=kernel.lnx.5.10.r1-rel&id=d3b261dbd2324c313bc4892bd6fba69bb8b50cc2).
+
+ANDROID 上很多实际应用场景, 比如说绘帧等, 往往是由多个线程(这些线程可能分属不同的进程)共同协同完成的, 但是不管是 PELT/WALT 的 Load Tracking 还是 schedutil 调频, 都是针对 per-task 或者 per-rq 的. 这就造成系统(主要是内核)并不感知这些之间的关联, 更不感知一帧的实际的负载. 可见系统中的线程不是孤立的, 它们之间或多或少存在各种依赖关系, 正是他们相互依赖共同协同才完成了特定的工作.那从不管是调度的角度讲、还是从动态调频 DCVS 的角度, 都不能忽视这种存在.
+
+由此 RTG 就应运而生, 它依赖于 WALT 的能力.
+
+可以将所有这些协同完成指定工作的任务就加入到 RTG 中, 用 struct related_thread_group 结构表示, 通过 WALT 跟踪 RTG 分组的整体负载. RTG 会根据 RTG 分组整体负载, 调度时为这些线程优先选择推荐的 cluster(preferred_cluster) 来运行. 通过这种方式可以实现聚合的调度和调频
+
+1.  聚合调度: 这些线程本身之间就必然存在数据交互, 通过聚合调度, 将他们安置在一个 cluster 上运行, cache 更亲和, 性能更好.
+
+2.  聚合调频(Frequency aggregation): 通过调整 preferred_cluster 的频率, 就实现了系统的分域调频, 那么 RTG 作为关键业务, preferred_cluster 的频率可以适当调整以满足 RTG 的供给, 其他的 cluster 就可以适当的压低频率, 从而实现精准的调频控制, 整体能效较优.
+
+3.  Busy Hysteresis 优化: 通过预制的每一个 CPU 的 capactity 的阈值, 当 CPU 的负载大于这个阈值的时候, 会迟滞一定的时间, 不让 CPU 进入 LPM 模式(low power mode).  CPU IDLE 是进入 LPM, 分多个等级, 层级越高越省电, 但是相应的睡眠跟唤醒的时延越高. 因此当一个 CPU 的负载较重的时候, 即使可以短暂的进入 LPM 模式, 大概率也会很快因为有任务需要运行而退出, 并且对于处于 RTG 的关键业务来说, 唤醒的时延过长, 则实时性得不到保证. 绘帧等场景, 对时延要求极其敏感, 特别是对于 120MHZ 的刷新率来说, 稍有不慎, 就会造成丢帧.
+
 
 # 8 实时性 linux PREEMPT_RT
 -------

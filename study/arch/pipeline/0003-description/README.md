@@ -251,6 +251,7 @@ riscv-boom 是用 Chisel 硬件构造语言编写的 RV64G RISC-V 超标量 Berk
 | 12 | [CPU体系结构](https://my.oschina.net/fileoptions/blog/1633021) | 从流水线开始讲起, 讲到了超标量以及内存一致性模型等, 提到了 load buffer、store buffer |
 | 13 | [Re-Order Buffer](https://www.cnblogs.com/TaigaCon/p/7604152.html)<br>[Intel Core Microarchitecture Pipeline](https://www.cnblogs.com/TaigaCon/p/7678394.html)<br>[micro-fusion & macro-fusion](https://www.cnblogs.com/TaigaCon/p/7702920.html)<br>[Stack Pointer Tracker](https://www.cnblogs.com/TaigaCon/p/7711504.html)<br>[Branch Prediction](https://www.cnblogs.com/TaigaCon/p/7791303.html) | NA |
 | 14 | [Intel X86 优化指南阅读笔记--基础体系结构](https://zhuanlan.zhihu.com/p/354130316) | NA |
+| 15 | 知乎-拓荒犬的专栏, uOps 哲学三问—— 带你梳理 x86 微架构, [① 我是谁?](https://zhuanlan.zhihu.com/p/509264784), [我来自哪里?](https://zhuanlan.zhihu.com/p/511035787) |
 
 <br>
 

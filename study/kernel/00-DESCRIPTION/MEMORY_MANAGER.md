@@ -323,7 +323,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/04/29 | Matthew Wilcox (Oracle) <willy@infradead.org> | [Folio patches for 5.19](https://patchwork.kernel.org/project/linux-mm/cover/20220429192329.3034378-1-willy@infradead.org/) | 637111 | v1 ☐☑ | [LORE v1,0/21](https://lore.kernel.org/r/20220429192329.3034378-1-willy@infradead.org) |
+| 2022/04/29 | Matthew Wilcox (Oracle) <willy@infradead.org> | [Folio patches for 5.19](https://patchwork.kernel.org/project/linux-mm/cover/20220429192329.3034378-1-willy@infradead.org/) | 637111 | v1 ☐☑ | [LORE v1,0/21](https://lore.kernel.org/r/20220429192329.3034378-1-willy@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/26](https://lore.kernel.org/r/20220504182857.4013401-1-willy@infradead.org) |
 
 
 ### 1.4.2 Pulling slabs out of struct page
@@ -523,7 +523,7 @@ MADV_PAGEOUT 在某种程度上类似于 MADV_DONTNEED, 它提示内核当前不
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/01/26 | Pasha Tatashin <pasha.tatashin@soleen.com> | [Hardening page _refcount](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com) | 目前很难从根本上解决 `_refcount` 问题, 因为它们通常在损坏发生后才会显现出来. 然而, 它们可能导致灾难性的故障, 如内存损坏.<br>通过添加更多的检查来提高可调试性, 确保 `page->_refcount` 永远不会变成负数(例如, 双空闲不发生, 或冻结后空闲等).<br>1. 增加了对 `_refcount` 异常值的检测.<br>2. 删除了 set_page_count(), 这样就不会无条件地用不受限制的值覆盖 `_refcount` | RFC,0/8 ☐ | [PatchWork RFC,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20211026173822.502506-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211117012059.141450-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20211221150140.988298-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/9](https://lore.kernel.org/r/20220126183429.1840447-1-pasha.tatashin@soleen.com) |
 | 2021/12/21 | Pasha Tatashin <pasha.tatashin@soleen.com> | [page table check](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d283d422c6c4f0264fe8ecf5ae80036bf73f4594) | NA | v3 ☐☑✓ | [LORE v3,0/4](https://lore.kernel.org/all/20211221154650.1047963-1-pasha.tatashin@soleen.com) |
-| 2022/04/21 | Tong Tiangen <tongtiangen@huawei.com> | [mm: page_table_check: add support on arm64 and riscv](https://patchwork.kernel.org/project/linux-mm/cover/20220317141203.3646253-1-tongtiangen@huawei.com) | 页面表检查通过将新页面的页面表条目(PTE, PMD 等)添加到表中, 在用户空间访问新页面时执行额外的验证 X86 支持它.<br>这个补丁集做了一些简单的更改, 使其更容易支持新的体系结构, 然后我们在 ARM64 和 RICV 上支持这个功能. | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20220317141203.3646253-1-tongtiangen@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20220322144447.3563146-1-tongtiangen@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/4](https://lore.kernel.org/r/20220418034444.520928-1-tongtiangen@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/5](https://lore.kernel.org/r/20220421082042.1167967-1-tongtiangen@huawei.com) |
+| 2022/04/21 | Tong Tiangen <tongtiangen@huawei.com> | [mm: page_table_check: add support on arm64 and riscv](https://patchwork.kernel.org/project/linux-mm/cover/20220317141203.3646253-1-tongtiangen@huawei.com) | 页面表检查通过将新页面的页面表条目(PTE, PMD 等)添加到表中, 在用户空间访问新页面时执行额外的验证 X86 支持它.<br>这个补丁集做了一些简单的更改, 使其更容易支持新的体系结构, 然后我们在 ARM64 和 RICV 上支持这个功能. | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20220317141203.3646253-1-tongtiangen@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20220322144447.3563146-1-tongtiangen@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/4](https://lore.kernel.org/r/20220418034444.520928-1-tongtiangen@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/5](https://lore.kernel.org/r/20220421082042.1167967-1-tongtiangen@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/6](https://lore.kernel.org/r/20220507110114.4128854-1-tongtiangen@huawei.com) |
 
 ### 1.7.4 Local Page Tables
 -------
@@ -4551,9 +4551,7 @@ Google 的工程师 Mina Almasry 提出了一种新的思路, 通过 [mremap 的
 | 2022/04/12 | Muchun Song <songmuchun@bytedance.com> | [add hugetlb_optimize_vmemmap sysctl](https://patchwork.kernel.org/project/linux-mm/cover/20220412111434.96498-1-songmuchun@bytedance.com/) | 631440 | v7 ☐☑ | [LORE v7,0/4](https://lore.kernel.org/r/20220412111434.96498-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,0/4](https://lore.kernel.org/r/20220413144748.84106-1-songmuchun@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v9,0/4](https://lore.kernel.org/r/20220429121816.37541-1-songmuchun@bytedance.com) |
 | 2013/03/20 | David Rientjes <rientjes@google.com> | [mm, hugetlb: include hugepages in meminfo](https://lore.kernel.org/all/alpine.DEB.2.02.1303201207110.28997@chino.kir.corp.google.com) | alpine.DEB.2.02.1303201207110.28997@chino.kir.corp.google.com | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/alpine.DEB.2.02.1303201207110.28997@chino.kir.corp.google.com) |
 | 2022/04/15 | Christophe Leroy <christophe.leroy@csgroup.eu> | [mm, hugetlbfs: Allow for "high" userspace addresses](https://patchwork.kernel.org/project/linux-mm/patch/ab847b6edb197bffdfe189e70fb4ac76bfe79e0d.1650033747.git.christophe.leroy@csgroup.eu/) | 632590 | v10 ☐☑ | [LORE v10](https://lore.kernel.org/r/ab847b6edb197bffdfe189e70fb4ac76bfe79e0d.1650033747.git.christophe.leroy@csgroup.eu) |
-| 2022/04/20 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: Change huge pmd sharing synchronization again](https://patchwork.kernel.org/project/linux-mm/cover/20220420223753.386645-1-mike.kravetz@oracle.com/) | 633940 | v2 ☐☑ | [LORE v2,0/6](https://lore.kernel.org/r/20220420223753.386645-1-mike.kravetz@oracle.com) |
-
-
+| 2022/05/08 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: Change huge pmd sharing synchronization again](https://patchwork.kernel.org/project/linux-mm/cover/20220420223753.386645-1-mike.kravetz@oracle.com/) | 之前 [v5.7 中添加了](https://lore.kernel.org/linux-mm/43faf292-245b-5db5-cce9-369d8fb6bd21@infradead.org) commit c0d0381ade79 ("hugetlbfs: use i_mmap_rwsem for more pmd sharing synchronization") 时, 社区就[报告了性能回归](https://lore.kernel.org/lkml/20200622005551.GK5535@shao2-debian). 当时,  Mike Kravetz 提出了一个[解决回归的建议](https://lore.kernel.org/linux-mm/20200706202615.32111-1-mike.kravetz@oracle.com), 但没有被合入. 这个补丁集使用一个新的 hugetlb 特定的 per-vma rw 信号量来同步 PMD 共享. 为了更好的演示这个性能回归, 作者构造了一个简单的测试用例. | v2 ☐☑ | [2022/04/20 LORE v2,0/6](https://lore.kernel.org/r/20220420223753.386645-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/05/08 LORE v3,0/8](https://lore.kernel.org/r/20220508183420.18488-1-mike.kravetz@oracle.com) |
 
 
 ## 7.2 透明大页的支持
@@ -4715,7 +4713,7 @@ David Rientjes 率先提出了这种想法 [Hugepage collapse in process context
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/02/16 | David Rientjes <rientjes@google.com> | [Hugepage collapse in process context](https://lore.kernel.org/all/d098c392-273a-36a4-1a29-59731cdf5d3d@google.com) | 允许用户空间通过新的 process_madvise() 调用来诱导 HugePage Collapse | RFC,v1 ☐ | [LORE RFC v1,00/14](https://lore.kernel.org/all/d098c392-273a-36a4-1a29-59731cdf5d3d@google.com) |
-| 2022/03/08 | Zach O'Keefe <zokeefe@google.com> | [mm: userspace hugepage collapse](https://patchwork.kernel.org/project/linux-mm/cover/20220308213417.1407042-1-zokeefe@google.com/) | 这组补丁为用户空间提供了一种机制, 可以在进程上下文中将符合条件的内存范围压缩为 THP, 从而允许用户精细化地控制自己的 HugePages 使用策略. 借鉴了 David Rientjes 的想法. | v1 ☐☑ | [LORE v1,00/14](https://lore.kernel.org/r/20220308213417.1407042-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/12](https://lore.kernel.org/r/20220414180612.3844426-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/12](https://lore.kernel.org/r/20220426144412.742113-1-zokeefe@google.com) |
+| 2022/03/08 | Zach O'Keefe <zokeefe@google.com> | [mm: userspace hugepage collapse](https://patchwork.kernel.org/project/linux-mm/cover/20220308213417.1407042-1-zokeefe@google.com/) | 这组补丁为用户空间提供了一种机制, 可以在进程上下文中将符合条件的内存范围压缩为 THP, 从而允许用户精细化地控制自己的 HugePages 使用策略. 借鉴了 David Rientjes 的想法. | v1 ☐☑ | [LORE v1,00/14](https://lore.kernel.org/r/20220308213417.1407042-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/12](https://lore.kernel.org/r/20220414180612.3844426-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/12](https://lore.kernel.org/r/20220426144412.742113-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/12](https://lore.kernel.org/r/20220502181714.3483177-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/12](https://lore.kernel.org/r/20220504214437.2850685-1-zokeefe@google.com) |
 
 
 *   其他
@@ -5069,6 +5067,12 @@ khugepaged 处理流程
 | do_wp_page | 用于[处理写时复制(COW/Copy On Write)](https://elixir.bootlin.com/linux/v5.15/source/mm/memory.c#L4586), 会在以下两种情况处理:<br>1. 创建子进程时, 父子进程会以只读方式共享私有的匿名页和文件页, 当试图写的时候, 触发页错误异常, 从而复制物理页, 并创建映射;<br>2. 进程创建私有文件映射, 读访问后触发异常, 将文件页读入到 page cache 中, 并以只读模式创建映射, 之后发生写访问后, 触发 COW; |
 
 
+
+|  时间  | 作者 | 特性  | 描述  |  是否合入主线  | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2022/05/05 | Peter Xu <peterx@redhat.com> | [mm: Avoid unnecessary page fault retires on shared memory types](https://patchwork.kernel.org/project/linux-mm/patch/20220505211748.41127-1-peterx@redhat.com/) | 638888 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220505211748.41127-1-peterx@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20220506135205.46810-1-peterx@redhat.com) |
+
+
 ### 8.2.1 零页
 -------
 
@@ -5151,13 +5155,34 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 ### 8.2.3 MMAP locking
 -------
 
-[[LSF/MM TOPIC] mmap locking topics](https://www.spinics.net/lists/linux-mm/msg258803.html)
+2013 年, [LSFMM: Problems with mmap_sem](https://lwn.net/Articles/548098)
 
-[The LRU lock and mmap_sem](https://lwn.net/Articles/753058)
+2015 年, [Topics of interest from the MM summit](https://events.static.linuxfound.org/sites/events/files/slides/mm.pdf)
 
-https://events.static.linuxfound.org/sites/events/files/slides/mm.pdf
+2017 年, [Another attempt at speculative page-fault handling](https://lwn.net/Articles/730531)
+
+2018 年, [Zone-lock and mmap_sem scalability](https://lwn.net/Articles/753269), [The LRU lock and mmap_sem](https://lwn.net/Articles/753058)
+
+2019 年, [How to get rid of mmap_sem](https://lwn.net/Articles/787629)
+
+2021 年, [Introducing maple trees](https://lwn.net/Articles/845507)
+
+2021 年, [[LSF/MM TOPIC] mmap locking topics](https://www.spinics.net/lists/linux-mm/msg258803.html)
+
+2022 年 [The ongoing search for mmap_lock scalability](https://lwn.net/Articles/893906)
+
+
+*   mmap_sem Scalability
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/03/21 | Yang Shi <yang.shi@linux.alibaba.com> | [Drop mmap_sem during unmapping large map](https://lore.kernel.org/all/1521581486-99134-1-git-send-email-yang.shi@linux.alibaba.com) | 1521581486-99134-1-git-send-email-yang.shi@linux.alibaba.com | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/1521581486-99134-1-git-send-email-yang.shi@linux.alibaba.com) |
+
 
 *   SPF(Speculative page faults)
+
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -5175,11 +5200,13 @@ https://events.static.linuxfound.org/sites/events/files/slides/mm.pdf
 
 * Maple Tree
 
+
 [Maple Tree "RFC" Patches Sent Out As New Data Structure To Help With Linux Performance](https://www.phoronix.com/scan.php?page=news_item&px=Maple-Tree-Linux-RFC)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/04/26 | Liam Howlett <liam.howlett@oracle.com> | [Introducing the Maple Tree](https://lore.kernel.org/patchwork/patch/1477973) | Maple Tree 是一种基于 RCU 安全范围的 B树, 旨在高效使用现代处理器缓存. 在内核中有许多地方, 基于范围的非重叠树是有益的, 尤其是具有简单接口的树. Maple Tree 的第一个用户是 vm_area_struct, 当前替换了三个结构: 增强 rbtree、vma 缓存和 mm_struct 中的 vma linked 链表. 长期目标是减少或消除 mmap_sem 争用. | v3 ☐ | [2021/08/17 PatchWork v2,00/61](https://patchwork.kernel.org/project/linux-mm/cover/20210817154651.1570984-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/05 PatchWork v3](https://patchwork.kernel.org/project/linux-mm/cover/20211005012959.1110504-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/01 PatchWork v4,00/66](https://patchwork.kernel.org/project/linux-mm/cover/20211201142918.921493-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/02/02 PatchWork v5,00/70](https://patchwork.kernel.org/project/linux-mm/cover/20220202024137.2516438-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/04/04 LORE v7,00/70](https://lore.kernel.org/r/20220404143501.2016403-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/04/26 LORE v8,0/70](https://lore.kernel.org/r/20220426150616.3937571-1-Liam.Howlett@oracle.com) |
+| 2022/04/26 | Liam Howlett <liam.howlett@oracle.com> | [Introducing the Maple Tree](https://lore.kernel.org/patchwork/patch/1477973) | Maple Tree 是一种基于 RCU 安全范围的 B树, 旨在高效使用现代处理器缓存. 在内核中有许多地方, 基于范围的非重叠树是有益的, 尤其是具有简单接口的树. Maple Tree 的第一个用户是 vm_area_struct, 当前替换了三个结构: 增强 rbtree、vma 缓存和 mm_struct 中的 vma linked 链表. 长期目标是减少或消除 mmap_sem 争用. | v9 ☐ | [2021/08/17 PatchWork v2,00/61](https://patchwork.kernel.org/project/linux-mm/cover/20210817154651.1570984-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/05 PatchWork v3](https://patchwork.kernel.org/project/linux-mm/cover/20211005012959.1110504-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/01 PatchWork v4,00/66](https://patchwork.kernel.org/project/linux-mm/cover/20211201142918.921493-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/02/02 PatchWork v5,00/70](https://patchwork.kernel.org/project/linux-mm/cover/20220202024137.2516438-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/04/04 LORE v7,00/70](https://lore.kernel.org/r/20220404143501.2016403-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/04/26 LORE v8,0/70](https://lore.kernel.org/r/20220426150616.3937571-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v9,0/69](https://lore.kernel.org/r/20220504010716.661115-1-Liam.Howlett@oracle.com) |
+| 2022/05/04 | Liam Howlett <Liam.Howlett@Oracle.com> | [Prepare for maple tree](https://patchwork.kernel.org/project/linux-mm/cover/20220504002554.654642-1-Liam.Howlett@oracle.com/) | 638130 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220504002554.654642-1-Liam.Howlett@oracle.com) |
 
 
 ## 8.3 反向映射 RMAP(Reverse Mapping)
@@ -5564,6 +5591,16 @@ zone->lru_锁是一个竞争激烈的锁, 因此 2012 年左右 Konstantin Khleb
 | 2009/06/02 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [mm rss counting updates](https://lore.kernel.org/patchwork/patch/182191) | NA | v1 ☑ 2.6.29-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/patch/182191)) |
 | 2015/12/17 | Vladimir Davydov <vdavydov@virtuozzo.com> | [Add swap accounting to cgroup2](https://lore.kernel.org/patchwork/patch/628754) | NA | v2 ☑ 2.6.29-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/patch/628754)) |
 | 2020/08/20 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: charge swapin pages on instantiation](https://lore.kernel.org/patchwork/patch/1239175) | memcg swapin 的延迟统计, 对memcg进行了修改, 使其在交换时直接对交换页统计, 而不是在出错时统计, 这可能要晚得多, 或者根本不会发生. | v2 ☑ [5.8-rc1](https://kernelnewbies.org/Linux_5.8#Memory_management) | [PatchWork v1](https://lore.kernel.org/patchwork/patch/1227833), [PatchWork v2](https://lore.kernel.org/patchwork/patch/1239175) |
+
+
+## 9.7 MEMCG THP
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/05/05 | CGEL <cgel.zte@gmail.com> | [mm/memcg: support control THP behaviour in cgroup](https://patchwork.kernel.org/project/linux-mm/patch/20220505033814.103256-1-xu.xin16@zte.com.cn) | 使用 THP 可以提高内存的性能, 但会增加内存占用. 应用程序可能会使用 madvise 来减少占用空间, 但并非所有应用程序都支持使用 madvise, 而且重新编码所有应用程序需要花费大量成本. 但是当前容器越来越流行于管理一组任务. 因此, 添加对 cgroup 的支持以控制 THP 行为将提供很大的便利, 管理员可能只对重要容器启用 THP, 而对其他容器禁用它. 这样我们就可以享受 THP 的高性能, 同时最大限度地减少内存占用, 而无需重新编写任何应用程序. | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220505033814.103256-1-xu.xin16@zte.com.cn)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20220506031804.437642-1-yang.yang29@zte.com.cn) |
+
 
 # 10 内存热插拔支持
 -------
@@ -6183,6 +6220,7 @@ KFENCE 被设计为在生产内核中启用, 它的性能开销几乎为零. 与
 
 KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是一个具有类似属性的用户空间工具. "KFENCE" 这个名字是对 [Electric Fence Malloc Debugger](https://linux.die.net/man/3/efence) 的致敬.
 
+[利器解读！Linux 内核调测中最最让开发者头疼的 bug 有解了｜龙蜥技术](https://openanolis.cn/blog/detail/553167069912907824)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -6321,6 +6359,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2021/12/10 | SeongJae Park <sj@kernel.org> | [mm/damon/schemes: Extend stats for better online analysis and tuning](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=dbcb9b9f954f71fb46be34af624c9edaaa171414) | 20211210150016.35349-1-sj@kernel.org | v1 ☑✓ 5.17-rc1 | [LORE v1,0/6](https://lore.kernel.org/all/20211210150016.35349-1-sj@kernel.org) |
 | 2022/01/14 | Baolin Wang <baolin.wang@linux.alibaba.com> | [mm/damon: add access checking for hugetlb pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49f4203aae06ba9d67b500c90339b262b0a52637) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/6afcbd1fda5f9c7c24f320d26a98188c727ceec3.1639623751.git.baolin.wang@linux.alibaba.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49f4203aae06ba9d67b500c90339b262b0a52637) |
 | 2022/04/29 | SeongJae Park <sj@kernel.org> | [mm/damon: Support online tuning](https://patchwork.kernel.org/project/linux-mm/cover/20220429160606.127307-1-sj@kernel.org/) | 637059 | v1 ☐☑ | [LORE v1,0/14](https://lore.kernel.org/r/20220429160606.127307-1-sj@kernel.org) |
+| 2022/05/07 | Gautam Menghani <gautammenghani201@gmail.com> | [Add documentation for Enum value 'NR_DAMON_OPS' in](https://patchwork.kernel.org/project/linux-mm/patch/20220507165620.110706-1-gautammenghani201@gmail.com/) | 639422 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220507165620.110706-1-gautammenghani201@gmail.com) |
 
 
 ### 13.4.5 vmstat
@@ -6436,6 +6475,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2021/08/19 | Zhansaya Bagdauletkyzy <zhansayabagdaulet@gmail.com> | [add KSM performance tests](https://lore.kernel.org/patchwork/patch/1470603) | 新增 KSM 性能相关的 selftest. | v1 ☑ NA | [PatchWork 0/2](https://patchwork.kernel.org/project/linux-mm/cover/cover.1627828548.git.zhansayabagdaulet@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/2](https://patchwork.kernel.org/project/linux-mm/cover/cover.1629386192.git.zhansayabagdaulet@gmail.com) |
 | 2022/03/14 | Lv Ruyi <cgel.zte@gmail.com> | [ksm: Count ksm-merging pages for each process](https://patchwork.kernel.org/project/linux-mm/patch/20220314015355.2111696-1-xu.xin16@zte.com.cn/) | 由于当前 KSM 只计算 KSM 合并页面的数量(例如, ksm_pages_sharing 和 ksm_pages_shared), 无法看到更细粒度的 KSM 合并, 对于上层应用程序优化, 无法根据每个进程的 KSM 页面合并概率轻松设置合并区域. 因此, 有必要添加额外的统计手段, 以便上层用户能够了解每个进程的详细 KSM 合并信息.<br>这个补丁在 proc 下添加了一个名为 ksm_merging_pages 的新文件, 以表示该进程中涉及的 KSM 合并页面. | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/all/20220314015355.2111696-1-xu.xin16@zte.com.cn)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/all/20220315114849.2119443-1-xu.xin16@zte.com.cn) |
 | 2022/03/23 | CGEL <cgel.zte@gmail.com> | [mm/vmstat: add events for ksm cow](https://patchwork.kernel.org/project/linux-mm/patch/20220323031730.2342930-1-yang.yang29@zte.com.cn/) | 当用户想要节省内存时, 可以通过调用 madvise MADV_MERGEABLE 来使用 KSM, 但是这会导致 KSM COW 延迟. 用户可以通过读取 `/sys/kernel/mm/ksm/pages_sharing` 来了解 KSM 节省了多少内存, 但他们不知道 KSM COW 的成本, 这对于一些延迟敏感的任务来说是很重要的. 因此, 添加 KSM COW 事件(KSM_COW_SUCCESS 和 KSM_COW_FAIL)来帮助用户评估是否或如何使用 KSM. | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/all/20220323031730.2342930-1-yang.yang29@zte.com.cn)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/all/20220323075714.2345743-1-yang.yang29@zte.com.cn)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/1](https://lore.kernel.org/all/20220324104332.2350482-1-yang.yang29@zte.com.cn) |
+| 2022/05/08 | CGEL <cgel.zte@gmail.com> | [mm/ksm: introduce ksm_force for each process](https://patchwork.kernel.org/project/linux-mm/patch/20220508091426.928094-1-xu.xin16@zte.com.cn) | 要使用 KSM, 我们必须在应用程序代码中显式调用 madvise(), 这意味着在操作系统上安装的应用程序需要卸载, 源代码需要修改. 很不方便. 为了改变这种情况, 我们在 `/proc/<pid>` 下添加一个 proc 文件 ksm_force, 以支持动态地打开/关闭进程的 MM 的 KSM 扫描.<br>1. 如果 ksm_force 设置为 1, 强制该 mm 的所有匿名和 "合格" 的 VMA 参与 KSM 扫描, 而不显式调用 madvise() 将 VMA 标记为 MADV_MERGEABLE. 但仅当 "/sys/kernel/mm/ksm/run" 的 klob 设置为 1 时有效.<br>2. 如果 ksm_force 设置为 0, 则取消该进程的 ksm_force 特性, 并取消属于 vma 的合并页面, 这些 vma 不再被合并, 但是依旧保留合并的 MADV_MERGEABLE 区域的行为. | v4 ☐☑ | [LORE v4,0/1](https://lore.kernel.org/r/20220508091426.928094-1-xu.xin16@zte.com.cn) |
 
 
 
@@ -6459,7 +6499,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 
 2.6.32 引入的 HWPoison 的 patch, 就是这个操作系统定义的处理程序, 它对错误数据的处理是以页为单位, 针对该错误页是匿名页还是文件缓存页, 是系统页还是进程页, 等等, 多种细致情况采取不同的措施. 关于此类细节, 可看此文章: [HWPOISON](https://lwn.net/Articles/348886)
 
-
+[How to cope with hardware-poisoned page-cache pages](https://lwn.net/Articles/893565)
 
 ## 14.3 Cross Memory Attach - 进程间快速消息传递
 -------
