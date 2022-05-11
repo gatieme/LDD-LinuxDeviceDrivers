@@ -272,7 +272,7 @@ SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安�
 
 ARM & Linaro [Kernel versions highlights](https://developer.arm.com/tools-and-software/open-source-software/linux-kernel)
 
-ARM64 架构文档地址下载 [](https://developer.arm.com/architectures/cpu-architecture)
+ARM64 架构文档地址下载 [cpu-architecture](https://developer.arm.com/architectures/cpu-architecture)
 
 
 [Memory Layout on AArch64 Linux](https://www.kernel.org/doc/html/latest/arm64/memory.html)
@@ -280,6 +280,16 @@ ARM64 架构文档地址下载 [](https://developer.arm.com/architectures/cpu-ar
 [ARM64 Instruction](https://courses.cs.washington.edu/courses/cse469/19wi/arm64.pdf)
 
 [硬件特性列表](https://developer.arm.com/architectures/cpu-architecture/a-profile/exploration-tools/feature-names-for-a-profile)
+
+
+[Armv8/armv9 架构入门指南(中文)](http://hehezhou.cn/arm_doc)
+
+[arm8/armv9寄存器速查](http://hehezhou.cn/arm)
+
+[arm8/armv9指令集](http://hehezhou.cn/isa)
+
+[代码在线阅读(含有Linux Kernel5.14、TF-A2.5、optee3.16、ffa-spmc等)](http://hehezhou.cn:8080/optee316)
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
