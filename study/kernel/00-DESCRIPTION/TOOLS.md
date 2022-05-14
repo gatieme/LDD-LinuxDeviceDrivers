@@ -83,6 +83,13 @@ systrace, perfetto, drgn
 [LWN/A kernel debugger in Python: drgn(https://lwn.net/Articles/789641)
 [LWN: 想用python命令来调试kernel吗？drgn就是了！](https://blog.csdn.net/Linux_Everything/article/details/93270705)
 
+*   ControlFlag
+
+Intel 发布的 ControlFlag 用机器学习来发现代码中的错误, 支持 C/C++. 参见:
+
+[Intel Makes ControlFlag Open-Source For Helping To Detect Bugs In Code](https://www.phoronix.com/scan.php?page=news_item&px=Intel-ControlFlag-Open-Source)
+
+[Intel's ControlFlag 1.2 Released To Use AI To Provide Full Support For Spotting C++ Bugs](https://www.phoronix.com/scan.php?page=news_item&px=Intel-ControlFlag-1.2).
 
 ## 2.2 call kernel func from userspace
 -------

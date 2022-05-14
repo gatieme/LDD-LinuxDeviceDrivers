@@ -539,6 +539,13 @@ ARM v8.2 引入了 [UAO](https://community.arm.com/arm-community-blogs/b/archite
 
 [Rewritten Apple Silicon CPUFreq Driver Posted For Linux](https://www.phoronix.com/scan.php?page=news_item&px=Apple-SoC-CPUFreq-Driver-v2)
 
+| 时间   | 作者 | 特性  | 描述  | 是否合入主线  | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2022/05/04 | Hector Martin <marcan@marcan.st> | [Apple SoC cpufreq driver](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20220504075153.185208-1-marcan@marcan.st/) | 638189 | v2 ☐☑ | [LORE v2,0/4](https://lore.kernel.org/r/20220504075153.185208-1-marcan@marcan.st) |
+
+
+
+
 ## 2.8 clocksource
 -------
 
@@ -700,6 +707,15 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/07/16 | Paul E. McKenney <paulmck@linux.vnet.ibm.com> | [Updates to the formal memory model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=71b7ff5ebc9b1d5aa95eb48d6388234f1304fd19) | NA | v1 ☑✓ 4.19-rc1 | [LORE v1,0/14](https://lore.kernel.org/all/20180716180540.GA14222@linux.vnet.ibm.com) |
+
+## 6.6 objtool
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/04/29 | Chen Zhongjin <chenzhongjin@huawei.com> | [objtool: add base support for arm64](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20220429094355.122389-1-chenzhongjin@huawei.com/) | 636883 | v4 ☐☑ | [LORE v4,0/37](https://lore.kernel.org/r/20220429094355.122389-1-chenzhongjin@huawei.com) |
+
 
 <br>
 

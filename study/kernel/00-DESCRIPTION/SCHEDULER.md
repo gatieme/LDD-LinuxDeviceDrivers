@@ -620,11 +620,15 @@ Chang 的 patch set 采用了与之前不同的方法：允许 cgroup 将一些�
 
 这组 patch set 附带了一些 benchmark 数据, 结果显示当使用 burstable controller 时, 最坏情况延迟数据有数量级的减少. 这个想法目前已经在 mailing list 上看到过好几次, 既有当前这个版本, 也有 Cong Wang 和 Konstantin Khlebnikov 独立实现的版本. 目前看来, 最大的障碍已经被克服了, 所以这个改动可能会在 5.13 合并窗口中进入 mainline.
 
-https://lore.kernel.org/lkml/20180522062017.5193-1-xiyou.wangcong@gmail.com/
-https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
+
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2021/02/08 | [The burstable CFS bandwidth controller](https://lwn.net/Articles/844976) | [LWN: 针对突发情况改善 CFS 分配器](https://blog.csdn.net/Linux_Everything/article/details/113874581) |
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/05/21 | Cong Wang <xiyou.wangcong@gmail.com> | [sched/fair: improve CFS throttle](https://lore.kernel.org/all/20180522062017.5193-1-xiyou.wangcong@gmail.com) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20180522062017.5193-1-xiyou.wangcong@gmail.com) |
+| 2019/11/26 | Konstantin Khlebnikov <khlebnikov@yandex-team.ru> | [sched/fair: add burst to cgroup cpu bandwidth controller](https://lore.kernel.org/all/157476581065.5793.4518979877345136813.stgit@buzz) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/157476581065.5793.4518979877345136813.stgit@buzz) |
 | 2021/06/21 | JHuaixin Chang | [sched/fair: Burstable CFS bandwidth controller](https://lore.kernel.org/patchwork/cover/1396878) | 突发任务的带宽控制优化, 通过临时之前剩余累计的配额, 使得突发进程在当前周期的配额突然用尽之后, 还可以临时使用之前累计的配额使用, 从而降低突发任务的时延. | v6 ☑ 5.14-rc1 | [ 2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1354613)<br>*-*-*-*-*-*-*-*<br>[2021/01/20 v2](https://lore.kernel.org/patchwork/cover/1368037)<br>*-*-*-*-*-*-*-*<br>[2021/01/21 v3](https://lore.kernel.org/patchwork/cover/1368746)<br>*-*-*-*-*-*-*-*<br>[2021-02-02 v4](https://lore.kernel.org/patchwork/cover/1396878)<br>*-*-*-*-*-*-*-*<br>[2021/05/20 v5](https://lore.kernel.org/patchwork/cover/1433660)<br>*-*-*-*-*-*-*-*<br>[2021/06/21 v6](https://lore.kernel.org/patchwork/cover/1449268)<br>*-*-*-*-*-*-*-*<br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f4183717b370ad28dd0c0d74760142b20e6e7931) |
 | 2021/08/30 | Huaixin Chang <changhuaixin@linux.alibaba.com> | [Add statistics and ducument for cfs bandwidth burst](https://lore.kernel.org/patchwork/cover/1396878) | 为 Burstable CFS bandwidth 添加统计信息和文档. | v1 ☑ 5.16-rc1 | [2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1396878)<br>*-*-*-*-*-*-*-*<br>[2021/08/30 LORE v2 0/2](https://lore.kernel.org/all/20210830032215.16302-1-changhuaixin@linux.alibaba.com) |
 | 2021/11/29 | Honglei Wang <wanghonglei@didichuxing.com> | [sched/fair: prevent cpu burst too many periods](https://lore.kernel.org/patchwork/cover/1396878) | commit f4183717b370 ("sched/fair: Introduce the burstable CFS controller") 引入了一个问题, 任务在持久性期间可能获得比配额更多的 cpu. 例如, 一个任务组的配额为每周期 100ms, 可以获得 100ms 突发, 其平均利用率约为每周期 105ms. 一旦这个组获得了一个空闲时间段, 它就有机会在公共带宽配置中获得超过其配额的 10 个或更多时间段的计算能力(例如, 100 毫秒作为时间段). 这意味着任务获得了可以 "偷走" 完成日常工作的能力, 因为所有任务都可以安排出去或睡觉, 以帮助团队获得空闲时间. cpu burst 的本来目的是帮助处理突发性工作负载. 但是, 如果一个任务组在没有突发性工作负载的情况下, 能够在持续时间内获得超过其配额的计算能力, 那么它违背了初衷. 此修补程序将突发限制为一个时段, 以便在很长时间内不会突破配额限制. 有了这个, 我们可以给任务组更多的 cpu 突发能力来处理真正的突发性工作负载,  而不必担心被恶意 "窃取". | v1 ☑ 5.16-rc1 | [LKML](https://lkml.org/lkml/2021/11/29/663) |
@@ -681,22 +685,274 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 
 [improving exynos 9810 galaxy s9](https://www.anandtech.com/show/12620/improving-the-exynos-9810-galaxy-s9-part-2)
 
+[悟空明镜-CSDN 博客--[scheduler for WALT] task 运行时间, util 和 frequency 三者之前的关系](https://blog.csdn.net/wukongmingjing/article/details/100164365)
+
+[CPU 负载均衡之 WALT 学习](https://blog.csdn.net/xiaoqiaoq0/article/details/107135747)
+
 ## 3.2 PELT
 -------
 
+v3.8 合入了 [LWN-2013/01/29, Per-entity load tracking](https://lwn.net/Articles/531853).
+
 从Arm的资源来看, 这很像该公司意识到性能问题, 并正在积极尝试改善 PELT 的行为以使其更接近 WALT.
+
 
 1.  一个重要的变化是称为 [util_est 利用率估计的特性](http://retis.santannapisa.it/~luca/ospm-summit/2017/Downloads/OSPM_PELT_DecayClampingVsUtilEst.pdf), [Utilization estimation (util_est) for FAIR tasks](https://lore.kernel.org/patchwork/cover/932237)
 
 2.  改善PELT的另一种简单方法是[减少斜坡/衰减时间](https://lore.kernel.org/lkml/20180409165134.707-1-patrick.bellasi@arm.com/#r), 主线默认的 PELT 衰减周期为 32MS, 该补丁提供了 8MS/16MS/32MS 的可选择衰减周期. 通常的测试结果会认为 8ms 的半衰期是一种偏性能的选择, 默认的 32ms 设置, 无法满足终端场景突发的负载变化, 因此往往 16ms 的折中方案能提供最佳性能和电池折衷.
 
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2013/01/29 | [Per-entity load tracking](https://lwn.net/Articles/531853) | [郭健-蜗窝科技--PELT](http://www.wowotech.net/process_management/PELT.html), [郭健-蜗窝科技--PELT tag](http://www.wowotech.net/tag/pelt) |
 
-不少同学发现, `{sched_}prio_to_weight` 的值并不是严格的 1.25 倍. 这是因为 CPU 在计算的过程中会损失精度, 为了使得 prio_to_weight * prio_to_wmult 与 2^32 的值会存在较大的偏差. 为了使得偏差尽可能的小, 因此[commit 254753dc321e ("sched: make the multiplication table more accurate")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=254753dc321ea2b753ca9bc58ac329557a20efac) 对 prio_to_weight 和 prio_to_wmult 的值做了一定的调整. 社区邮件列表中后期曾有人咨询过这个问题, 参见讨论 [Question about sched_prio_to_weight values](https://lkml.org/lkml/2019/10/7/1117). 提问的同学在了解了问题之后, 制作了一个脚本来模拟调整的思路和过程.
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2012/08/23 | pjt@google.com <pjt@google.com> | [sched: per-entity load-tracking](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e9c84cb8d5f1b1ea6fcbe6190d51dc84b6975938) | PELT | v1 ☐☑✓ | [LORE v1,0/16](https://lore.kernel.org/all/20120823141422.444396696@google.com) |
+
+### 3.2.1 PELT 算法思想
+-------
+
+
+进程消耗的 CPU 时间 和 负载 load 是否有区别, 是的, 当然有区别, Paul Turner 在提交 per-entity load tracking 补丁集的时候对这个问题做了回答.
+
+*   一个进程即便当前没有在 CPU 上运行, 该进程仅仅是挂入 runqueue 等待执行, 它也能够对 CPU 负载作出贡献. "负载" 是一个瞬时量, 表示当前时间点的进程对系统产生的 "压力" 是怎样的? 显然 runqueue 中有 10 个等待运行的进程对系统造成的 "压力" 要大于一个 runqueue 中只有 1 个等待进程的场景.
+
+*   与之相对的 "CPU 使用率(usage)不一样, 它不是瞬时量, 而是一个累积量. 有一个长时间运行的进程, 它可能上周占用大量的处理器时间, 但是现在可能占用很少的 CPU 时间, 尽管它过去曾经 "辉煌" 过(占用大量 CPU 时间), 但这对现在的系统负荷贡献很小.
+
+PELT 很好地解决了这些问题, 这是通过把负载跟踪从 per rq 推进到 per-entity 的层次. 所谓调度实体(scheduling entity)其实就是一个进程或者 control group 中的一组进程. 为了做到 Per-entity 的负载跟踪:
+
+*   将时间切分为以 1ms 为单位的 period, 为了便于计算, 将 1ms 设置为 1024us.
+
+*   在一个单位 period 中, 一个 scheduling entity 对系统的负载贡献, 可以根据该 entity 处于 runnable 状态的时间进行计算. 如果在该 period 中, runnable 的时间为 delta, 那么对系统负载的贡献 $L = \frac{delta}{1024}$.
+
+*   离当前越近的历史负载对当前负载的贡献越高, 越早之前的历史负载对当前负载的贡献越小. 因此对于过去的负载, 要乘上一个衰减因子(decay factor)进行负载衰减.
+
+*   以上这个系统负载值也可能会超过 1024us, 这是因为我们会累积过去 period 中的负载.
+
+如果我们用 $L_i$ 表示在周期 $P_i$ 中该 scheduling entity 对系统负载的贡献, 然后用 y 表示衰减因子, 那么 i 个周期之间该 entity 的负载 $L_i$ 对当前周期的负载贡献(需要衰减 i 次)就是 $L_iy^i$, 那么该 entity 对系统负载的总贡献(累积负载)就是自 entity 最早开始运行开始到现在为止所有周期 $P_i$ 的历史负载贡献 $L_iy^i$ 之和表示为:
+
+$load = \displaystyle \sum^{n}_{i = 0}{{L_i}{y^i}} = L_0+L_1y+L_2y^2+L_3y^3......+L_ny^n$
+
+### 3.2.2 decay_load 计算衰减
+-------
+
+#### 3.2.2.1 衰减因子 y 与无穷级数
+-------
+
+那么衰减因子 y 是多少呢, 内核假设 PELT 的半衰期为 32ms(即 32 个窗口期), 也就是说
+
+*   32 个 period 之前负载对当前 period 的影响力降到原来一半. 也就是说 $y^{32} = 0.5$, 即 $y \approx 0.97857206$
+
+*   period [超过 $32^63-1$ 之后, 就会将 load 衰减为 0](https://elixir.bootlin.com/linux/v4.12/source/kernel/sched/fair.c#L2738), 也就是只会统计前 64*63-1 个 perod 的 load.
+
+
+很明显这是一个无穷级数, 那么一个 entity, 从创建开始如果一直运行, 那么 $L_i$ 一直为 1, 那么就成为一个等比数列求和(公比为衰减因子 y).
+
+$Sum_n = L_i{\frac{1-q^n}{1-q}}$
+
+对于一个无穷递降数列, 数列的公比 y < 1, 因此无穷级数是收敛的, 当上式得 n 趋向于正无穷大时, 分子括号中的值趋近于 1, 取极限即得无穷递减数列求和公式.
+
+$Sum_{\infty} = L_i{\frac{1}{1-q}}$
+
+为了方便计算, 每个 $L_i$ 都乘以 1024 做归一化. 理论上能达到的 load 最大值 LOAD_AVG_MAX 为:
+
+$load_{\infty} = {1024} \times {L_i{\frac{1}{1-q}}} = {\frac{1024}{1-0.97857206}} \approx 47788.07482193801$
+
+但是计算机计算误差的存在, PELT 算法所能达到的 LOAD_AVG_MAX 的值计算结果为 47742. 而我们知道, 无穷级数最终会越来越趋近于最大值, 但是永远达不到. 而这个误差值 47742 是可以达到的, 达到 LOAD_AVG_MAX 理论上需要经过的周期 LOAD_AVG_MAX_N 大约(同样存在误差)为 345. 而半衰期就用 LOAD_AVG_PERIOD(32 个周期) 表示.
+
+
+#### 3.2.2.1 runnable_avg_yN_inv[] 与衰减函数 decay_load()
+-------
+
+内核通过 decay_load(u64 val, u64 n) 来完成对历史 load 的衰减, 将 val 衰减 n 个周期,  即计算 $val \times {y^n}$.
+
+最开始引入 PELT 的时候, 内核采用了最暴力的计算方法, 每次 $ \times y^n$, 而 $$y \approx \frac{4008}{2^{12}} \approx 0.978515625$, 因此每次计算都要乘上 4008 再右移 12 位. 参见 [COMMIT @v3.8](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9d85f21c94f7f7a84d0ba686c58aa6d9da58fdbb).
+
+这个暴力的求解肯定不是社区开发者所能承受的, 紧随其后, [commit 5b51f2f80b3b ("sched: Make `__update_entity_runnable_avg()` fast")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5b51f2f80b3b906ce59bd4dce6eca3c7f34cb1b9) 就对算法进行了优化. 将一些 PELT 运算过程中经常使用的一些常量硬编码到 code 中, 从而避免重复计算的开销. 这个补丁的 commit mesage 中展示了计算 PELT 中一些常用常量的工具程序. 后来 v4.12-rc1 [commit 76d034edcf658 ("sched/Documentation: Add 'sched-pelt' tool")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=76d034edcf658e3c74fd90b149882ab1464e4af9) 提交了此工具的最新版本到内核 `Documentation/scheduler/sched-pelt.c`.
+
+那么 decay_load() 是怎么计算对一个 load 衰减 n 个周期呢?
+
+首先我们对 $y^n$ 的计算做了一个推导, 借助 $y^{32}= 0.5 = \frac{1}{2}$, 而对 $2^i$ 的运算, 可以很方便的通过位运算来完成, 因此我们尽量将 $y^n$ 转换为 $2^i$ 的运算来完成:
+
+$$
+y^n =
+\\ = y^{\frac {32 \times n}{32}}
+\\ = ({\frac{1}{2}})^{\frac{n}{32}} \times y^{n\%32}
+\\ = \frac{1}{2^{\frac{n}{32}}} \times y^{n\%32}
+$$
+
+![衰减的公式推导](https://latex.codecogs.com/svg.image?y^n&space;=\\&space;=&space;y^{\frac&space;{32&space;\times&space;n}{32}}\\&space;=&space;({\frac{1}{2}})^{\frac{n}{32}}&space;\times&space;y^{n\%32}\\&space;=&space;\frac{1}{2^{\frac{n}{32}}}&space;\times&space;y^{n\%32})
+
+首先内核通过 `runnable_avg_yN_inv` 数组缓存了 $y^n$ 的值. 即
+
+$runnable\_avg\_yN\_inv_{n} = (2^{32} - 1) \times y^{n}$
+
+那么套用上面的公式:
+
+$y^n = (runnable\_avg\_yN\_inv_{n\%32}) >> (\frac{n}{32})$
+
+每次 decay_load() 将 load 衰减 n 个周期的时候, 只需要将其右移 `n/LOAD_AVG_PERIOD` 位, 再乘上 runnable_avg_yN_inv[n%32], 由于 runnable_avg_yN_inv 数组计算时放大了 $2^32$, 因此最终结果需要再右移 32 位. 参见 [decay_load(), v3.8](https://elixir.bootlin.com/linux/v3.8/source/kernel/sched/fair.c#L1146).
+
+随后这个计算方法一直延续至今, 中间只经历了一些小小地 cleanup, 参见 [COMMIT1 @v3.13-rc5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9dbdb155532395ba000c5d5d187658b0e17e529f) 引入 mul_u64_u32_shr() 函数, [COMMIT2 @v4.3-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9d89c257dfb9c51a532d69397f6eed75e5168c35) 使用 mul_u64_u32_shr(val, runnable_avg_yN_inv[local_n], 32) 封装了乘上 runnable_avg_yN_inv, 并右移 32 位的操作.
+
+### 3.2.3 PELT 累计负载的分段计算方法
+-------
+
+[PELT(Per-Entity Load Tracking)](https://blog.csdn.net/weixin_30911451/article/details/102086050)
+
+[内核工匠--PELT 算法浅析](https://blog.csdn.net/feelabclihu/article/details/108414156)
+
+但是我们 PELT 在计算负载时不能使用这种无穷级数或者等比数列求和极简的公式去计算, 我们只能从当前的输入出来来计算 entity 的负载.
+
+
+首先对问题进行分解.
+
+| 信息 | 描述 |
+|:---:|:----:|
+| 已知变量 | 在当前周期 $P_0$, 我们已知的信息包括: 当前 entity 上次更新 load 的时间 sa->last_update_time 及其对应的累计负载 util, 当前周期距上次更新所经历的时间 delta. |
+| 带求解变量 | 我们需要通过这些信息计算当前周期 $P_0$ 的累计负载 util' |
+
+![PELT 3 段式计算 Loading](./images/0001-2-pelt_delta_3_step.jpg)
+
+sa->last_update_time 记录上一次更新计算的时间, 灰色部分为上次负载贡献计算时, 未满 1024us 的部分, 该值记录在 sa->period_contrib 中. 这样 delta 可以分为三个部分:
+
+
+| 阶段 | 描述 | 衰减信息 |
+|:---:|:---:|:--------:|
+| d1 | 蓝色部分为填充上次更新是未满 1024us 的 d1 时间, 即 (d1 = 1024 - sa->period_contrib + d1) | 由于经历了一个完成的 p 周期, 因此 $(u + d_1)$ 构成了完成的 `N * 1024` 的窗口期, 这部分负载要衰减 p 个周期, 即 $\times y^p$ |
+| d2 | 黄色部分为本次计算时满 1024us 的 d2 时间, 记为 (p-1) 个周期, 即 d2 / 1024 = p - 1, 且 d2 % 1024 == 0. | 这部分负载每个周期由远及近依次衰减 p-1 ~ 1 个周期 |
+| d3 | 最后的绿色部分即为本次计算时未满 1024us 的 d3 时间, 该值会更新到 sa->period_contrib 中 | 这部分是当前周期的负载, 不做任何衰减 |
+
+
+整个 PELT 累计负载的计算, 就是不断地追踪三个时间段 (d1/d2/d3), 对其 load 分别做衰减, 从而来计算 now 时刻的 load, 周而复始, 生生不息.
+
+记三个时间区段分比为 d1, d2, d3, 上次 d1 段之前(上次更新累计负载贡献的时刻)到 now 时刻总计经历了 p 个周期, 上次计算出的累计负载贡献为 u, 当前时刻 now 的累计负载贡献为 u', 则:
+
+$$u' = (u + d_1) \times {y^p}+  1024 \times \displaystyle \sum^{p-1}_{n = 0}{y^n} + {d_3} \times {y^0}$$
+
+
+#### 3.2.3.1 runnable_avg_yN_sum[] 与 `__compute_runnable_contrib()`
+-------
+
+v4.12 之前, 内核采用了与 decay_load() 类似的查表法来计算 entity 的累计负载贡献值. 参见 [悟空明镜-CSDN 博客--[scheduler] 八. CFS 调度算法怎么计算进程 (PELT 算法)/cpu/ 系统 利用率的](https://blog.csdn.net/wukongmingjing/article/details/82531950)
+
+runnable_avg_yN_sum[] 数组缓存了用于查表的 32 以内等比队列的和, 即:
+
+$runnable\_avg\_yN\_sum_n= \displaystyle \sum^{n}_{i = 0}{{L_i}{y^i}} = L_0+L_1y+L_2y^2+L_3y^3......+L_ny^n$
+
+
+首先是
+
+1.  首先是历史累计负载贡献[补齐了 1024us 的窗口](https://elixir.bootlin.com/linux/v3.8/source/kernel/sched/fair.c#L1272)后, 直接使用[同步 decay_load() 衰减 p 个周期](https://elixir.bootlin.com/linux/v3.8/source/kernel/sched/fair.c#L1282)即可.
+
+2.  对中间 d2 窗口内的, 每个 1024us 的周期由近及远依次衰减 p-1 ~ 1 个周期. 使用 [`__compute_runnable_contrib()`](https://elixir.bootlin.com/linux/v3.8/source/kernel/sched/fair.c#L1286) 借助 runnable_avg_yN_sum[] 来完成.
+
+3.  d3 阶段的负载[不需要衰减](https://elixir.bootlin.com/linux/v3.8/source/kernel/sched/fair.c#L1295).
+
+主要是看 [`__compute_runnable_contrib()`](https://elixir.bootlin.com/linux/v3.8/source/kernel/sched/fair.c#L1286) 怎么使用 runnable_avg_yN_sum[] 辅助完成 d2 的累计负载贡献的计算和衰减.
+
+*   如果 d2 <= LOAD_AVG_PERIOD, 那么[直接返回缓存好的 runnable_avg_yN_sum[n]](https://elixir.bootlin.com/linux/v3.8/source/kernel/sched/fair.c#L1187) 即可.
+
+*   同样如果 d2 >= LOAD_AVG_MAX_N, 那么已经趋于收敛了, 直接返回 LOAD_AVG_MAX.
+
+*   问题的关键在于, LOAD_AVG_PERIOD < d2 < LOAD_AVG_MAX_N 时, 怎么计算.
+
+
+跟计算累计负载贡献把窗口拆成 1024us 一个个小周期来计算类似, 这里同样采用分治的思想, 我们把 d2 按照 LOAD_AVG_PERIOD 一个大窗口.
+
+$$
+d_2
+\\ = \frac{d_{2}}{32} \times 32 + (d_{2} \% 32)
+\\ = M \times LOAD\_AVG\_PERIOD + N
+$$
+
+![d2 按照 LOAD_AVG_PERIOD 拆分](https://latex.codecogs.com/svg.image?d_2\\&space;=&space;\frac{d_{2}}{32}&space;\times&space;32&space;&plus;&space;(d_{2}&space;\%&space;32)\\&space;=&space;M&space;\times&space;LOAD\_AVG\_PERIOD&space;&plus;&space;N)
+
+其中 $N = d_{2} \% 32$ 比较好计算, 直接就是 runnable_avg_yN_sum[N - 1].
+
+假设在 d2 阶段之前, 当前 entity 的累计负载贡献为 u, 则每执行 32 个周期, 其负载累计贡献都为:
+
+$$
+u'
+= \frac{u + 1024 \times \displaystyle \sum^{32}_{i = 0}{y^i}}{2}
+= \frac{u + runnable\_avg\_yN\_sum_{31}}{2}
+$$
+
+![按照 LOAD_AVG_PERIOD 为大窗口递归衰减](https://latex.codecogs.com/svg.image?u'=&space;\frac{u&space;&plus;&space;1024&space;\times&space;\displaystyle&space;\sum^{32}_{i&space;=&space;0}{y^i}}{2}=&space;\frac{u&space;&plus;&space;runnable\_avg\_yN\_sum_{31}}{2})
+
+每次执行 32 个周期, 都会经历一次上述的运算, 那么经历 $M =\frac{d_{2}}{32}$ 个周期, 就递归执行上述操作 M 次. 最后再加上 runnable_avg_yN_sum[N - 1] 即可. 参见 [`__compute_runnable_contrib()`, v3.8](https://elixir.bootlin.com/linux/v3.8/source/kernel/sched/fair.c#L1191).
+
+可见 [`__compute_runnable_contrib()`, v3.8](https://elixir.bootlin.com/linux/v3.8/source/kernel/sched/fair.c#L1191) 其实就是上述递归操作的非递归实现版本. 整体算法还是比较耗时的.
+
+#### 3.2.3.2 分段计算 PELT load
+-------
+
+v4.12 开始, 对 PELT 分段计算累计负载贡献的算法进行了重构与优化, 参见 [CFS 调度器：负载跟踪与更新](https://zhuanlan.zhihu.com/p/158185705)
+
+其实从之前的分析就可以看出, 耗时的操作主要在对 $\displaystyle \sum^{p-1}_{n = 0}{y^n}$ 的计算上, 之前的算法已 32 个周期为一个大窗口进行划分, 不算的递归求解, 那有没有一种更简单的方式呢?
+
+我们对它继续进行转换和推到:
+
+$$
+1024 \times \displaystyle \sum^{p-1}_{n = 0}{y^n}
+\\ = 1024 \times (\displaystyle \sum^{\infty}_{n = 0}{y^n} - \displaystyle \sum^{\infty}_{n = p}{y^n} - y^0)
+\\ = 1024 \times (\displaystyle \sum^{\infty}_{n = 0}{y^n} - y^p \times \displaystyle \sum^{\infty}_{n = 0}{y^n} - y^0)
+\\ = LOAD\_AVG\_MAX - LOAD\_AVG\_MAX \times {y^p} - 1024
+$$
+
+![公式优化推导](https://latex.codecogs.com/svg.image?1024&space;\times&space;\displaystyle&space;\sum^{p-1}_{n&space;=&space;0}{y^n}\\&space;=&space;1024&space;\times&space;(\displaystyle&space;\sum^{\infty}_{n&space;=&space;0}{y^n}&space;-&space;\displaystyle&space;\sum^{\infty}_{n&space;=&space;p}{y^n}&space;-&space;y^0)\\&space;=&space;1024&space;\times&space;(\displaystyle&space;\sum^{\infty}_{n&space;=&space;0}{y^n}&space;-&space;y^p&space;\times&space;\displaystyle&space;\sum^{\infty}_{n&space;=&space;0}{y^n}&space;-&space;y^0)\\&space;=&space;LOAD\_AVG\_MAX&space;-&space;LOAD\_AVG\_MAX&space;\times&space;{y^p}&space;-&space;1024)
+
+因为整个周期 delta = (d1 + d2 + d3), 计算累计负载的公式可以继续展开, 如下所示:
+
+$$
+u'
+\\ = (u + d_1) \times {y^p}+  1024 \times \displaystyle \sum^{p-1}_{n = 0}{y^n} + {d_3} \times {y^0}
+\\ = u \times {y^p} + d_1 \times {y^p} + 1024 \times \displaystyle \sum^{p-1}_{n = 0}{y^n} + {d_3}
+\\ = u \times {y^p} + d_1 \times {y^p} + 1024 \times ({\displaystyle \sum^{\infty}_{n = 0}{y^n}} - {\displaystyle \sum^{\infty}_{n = p}{y^n}} - {y^0}) + {d_3}
+\\ = u \times {y^p} + d_1 \times {y^p} + 1024 \times ({\displaystyle \sum^{\infty}_{n = 0}{y^n}} - {\displaystyle \sum^{\infty}_{n = 0}{y^{n+p}}} - {y^0}) + {d_3}
+\\ = u \times {y^p} + d_1 \times {y^p} + 1024 \times ({Sum_{\infty}} - {Sum_{\infty}} \times {y^p} - 1) + {d_3}
+\\ = u \times {y^p} + d_1 \times {y^p} + (LOAD\_AVG\_MAX - LOAD\_AVG\_MAX \times {y^p} - 1024) + {d_3}
+\\ = u \times {y^p} \qquad \qquad \qquad\qquad \qquad \qquad \qquad \qquad(Step 1)
+\\ + d_1 \times {y^p} + (LOAD\_AVG\_MAX - LOAD\_AVG\_MAX \times {y^p} - 1024) + {d_3}\qquad \qquad (Step 2)
+$$
+
+![累计负载贡献的优化推导](https://latex.codecogs.com/svg.image?u'\\&space;=&space;(u&space;&plus;&space;d_1)&space;\times&space;{y^p}&plus;&space;&space;1024&space;\times&space;\displaystyle&space;\sum^{p-1}_{n&space;=&space;0}{y^n}&space;&plus;&space;{d_3}&space;\times&space;{y^0}\\&space;=&space;u&space;\times&space;{y^p}&space;&plus;&space;d_1&space;\times&space;{y^p}&space;&plus;&space;1024&space;\times&space;\displaystyle&space;\sum^{p-1}_{n&space;=&space;0}{y^n}&space;&plus;&space;{d_3}\\&space;=&space;u&space;\times&space;{y^p}&space;&plus;&space;d_1&space;\times&space;{y^p}&space;&plus;&space;1024&space;\times&space;({\displaystyle&space;\sum^{\infty}_{n&space;=&space;0}{y^n}}&space;-&space;{\displaystyle&space;\sum^{\infty}_{n&space;=&space;p}{y^n}}&space;-&space;{y^0})&space;&plus;&space;{d_3}\\&space;=&space;u&space;\times&space;{y^p}&space;&plus;&space;d_1&space;\times&space;{y^p}&space;&plus;&space;1024&space;\times&space;({\displaystyle&space;\sum^{\infty}_{n&space;=&space;0}{y^n}}&space;-&space;{\displaystyle&space;\sum^{\infty}_{n&space;=&space;0}{y^{n&plus;p}}}&space;-&space;{y^0})&space;&plus;&space;{d_3}\\&space;=&space;u&space;\times&space;{y^p}&space;&plus;&space;d_1&space;\times&space;{y^p}&space;&plus;&space;1024&space;\times&space;({Sum_{\infty}}&space;-&space;{Sum_{\infty}}&space;\times&space;{y^p}&space;-&space;1)&space;&plus;&space;{d_3}\\&space;=&space;u&space;\times&space;{y^p}&space;&plus;&space;d_1&space;\times&space;{y^p}&space;&plus;&space;(LOAD\_AVG\_MAX&space;-&space;LOAD\_AVG\_MAX&space;\times&space;{y^p}&space;-&space;1024)&space;&plus;&space;{d_3}\\&space;=&space;u&space;\times&space;{y^p}&space;\qquad&space;\qquad&space;\qquad\qquad&space;\qquad&space;\qquad&space;\qquad&space;\qquad(Step&space;1)\\&space;&plus;&space;d_1&space;\times&space;{y^p}&space;&plus;&space;(LOAD\_AVG\_MAX&space;-&space;LOAD\_AVG\_MAX&space;\times&space;{y^p}&space;-&space;1024)&space;&plus;&space;{d_3}\qquad&space;\qquad&space;(Step&space;2))
+
+PELT 计算过程中, 将计算 u' 拆分成 2 个 step 来计算, 参见 [accumulate_sum, v4.12](https://elixir.bootlin.com/linux/v4.12/source/kernel/sched/fair.c#L2786).
+
+| step 1 | step 2 |
+|:------:|:------:|
+| $u \times {y^p}$ | $d_1 \times {y^p} + 1024 \times (LOAD\_AVG\_MAX - LOAD\_AVG\_MAX \times {y^p} - 1) + {d_3}$ |
+
+step 2 的计算再被拆分成 3 个小段(segments)来完成, 参见 [`__accumulate_pelt_segments()`, v4.12](https://elixir.bootlin.com/linux/v4.12/source/kernel/sched/fair.c#L2760).
+
+| c1 | c2 | c3 |
+|:--:|:--:|:--:|
+| $d_1 \times {y^p}$ | $LOAD\_AVG\_MAX - LOAD\_AVG\_MAX \times {y^p} - 1024$ | ${d_3}$ |
+
+PELT 算法几个关键的函数:
+
+| 函数 | 功能 |
+|:---:|:---:|
+| `u64 decay_load(u64 val, u64 n)` | 将 val 衰减 n 个周期, 即计算 $val \times {y^n}$ |
+| `u32 __accumulate_pelt_segments(u64 periods, u32 d1, u32 d3)` | 分段计算 step 2, 即计算 c1 + c2 + c3 |
+| `accumulate_sum()` | 分段式求解 entity 当前的累计负载 |
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:--:|:----:|:---:|:----------:|:----:|
+| 2017/02/13 | Yuyang Du <yuyang.du@intel.com> | [sched/fair: Add documentation and optimize `__update_sched_avg()`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a481db34b9beb7a9647c23f2320dd38a2b1d681f) | 优化 PELT load_avg 的计算算法. 引入三段式的注释. | v1 ☑✓ 4.12-rc1 | [LORE v1,0/2](https://lore.kernel.org/all/1486935863-25251-1-git-send-email-yuyang.du@intel.com) |
+| 2017/03/31 | Peter Zijlstra <peterz@infradead.org> | [sched/fair: Fix corner case in `__accumulate_sum()`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=05296e7535d67ba4926b543a09cf5d430a815cb6) | 修复上述补丁引入的问题. | v1 ☑✓ 4.12-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=05296e7535d67ba4926b543a09cf5d430a815cb6) |
+
+
+### 3.2.1 Load Weight
+-------
+
+不少同学发现, `{sched_}prio_to_weight` 的值并不是严格的 1.25 倍. 这是因为 CPU 在计算的过程中会损失精度, 为了使得 prio_to_weight * prio_to_wmult 与 2^32 的值会存在较大的偏差. 为了使得偏差尽可能的小, 因此 [commit 254753dc321e ("sched: make the multiplication table more accurate")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=254753dc321ea2b753ca9bc58ac329557a20efac) 对 prio_to_weight 和 prio_to_wmult 的值做了一定的调整. 社区邮件列表中后期曾有人咨询过这个问题, 参见讨论 [Question about sched_prio_to_weight values](https://lkml.org/lkml/2019/10/7/1117). 提问的同学在了解了问题之后, 制作了一个脚本来模拟调整的思路和过程.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2007/08/09 | Ingo Molnar <mingo@elte.hu> | [sched: make the multiplication table more accurate](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=254753dc321ea2b753ca9bc58ac329557a20efac) | 对 prio_to_weight 和 prio_to_wmult 做一定的调整. | v1 ☐ | [ 2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1396878) |
-| 2012/08/23 | pjt@google.com <pjt@google.com> | [sched: per-entity load-tracking](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e9c84cb8d5f1b1ea6fcbe6190d51dc84b6975938) | PELT | v1 ☐☑✓ | [LORE v1,0/16](https://lore.kernel.org/all/20120823141422.444396696@google.com) |
+
 
 
 # 4 基于调度域的负载均衡
@@ -734,7 +990,7 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 |:----:|:----:|:----:|:---:|:----------:|:---:|
 | 2020/3/24 | Valentin Schneider <valentin.schneider@arm.com> | [sched/topology: Fix overlapping sched_group build](https://lore.kernel.org/lkml/20200324125533.17447-1-valentin.schneider@arm.com) | NA | v1 ☐ | [LKML](https://lkml.org/lkml/2020/3/24/615) |
 | 2020/8/14 | Valentin Schneider | [sched/topology: NUMA topology limitations](https://lkml.org/lkml/2020/8/14/214) | 修复 | v1 ☐ | [LKML](https://lkml.org/lkml/2020/8/14/214) |
-| 2020/11/10 | Valentin Schneider | [sched/topology: Warn when NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1336369) | WARN | v1 ☑ 5.11-rc1 | [PatchWork](https://lore.kernel.org/lkml/20201110184300.15673-1-valentin.schneider@arm.com), [LKML](https://lkml.org/lkml/2020/11/10/925), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b5b217346de85ed1b03fdecd5c5076b34fbb2f0b) |
+| 2020/11/10 | Valentin Schneider | [sched/topology: Warn when NUMA diameter > 2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b5b217346de85ed1b03fdecd5c5076b34fbb2f0b) | WARN | v1 ☑ 5.11-rc1 | [PatchWork](https://lore.kernel.org/lkml/20201110184300.15673-1-valentin.schneider@arm.com), [LKML](https://lkml.org/lkml/2020/11/10/925), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b5b217346de85ed1b03fdecd5c5076b34fbb2f0b) |
 
 随后告警的合入, 越来越多的人发现了这个问题, 并进行了讨论 [5.11-rc4+git: Shortest NUMA path spans too many nodes](https://lkml.org/lkml/2021/1/21/726).
 
@@ -748,8 +1004,8 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:--:|:----:|:---------:|:----:|
-| 2021/01/22 | Valentin Schneider | [sched/topology: NUMA distance deduplication](https://lore.kernel.org/patchwork/cover/1369363) | 修复问题 1 | v1 ☑ 5.12-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1369363), [LKML](https://lkml.org/lkml/2021/1/22/460), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=620a6dc40754dc218f5b6389b5d335e9a107fd29) |
-| 2021/01/22 | Valentin Schneider | [sched/topology: Fix sched_domain_topology_level alloc in sched_init_numa](https://lkml.org/lkml/2021/2/1/261) | 上面的修复补丁 1 引入了一个问题. 这个补丁修复了这个问题. | v1 ☑ 5.12-rc1 | [LKML](https://lkml.org/lkml/2021/2/1/261), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=71e5f6644fb2f3304fcb310145ded234a37e7cc1) |
+| 2021/01/22 | Valentin Schneider | [sched/topology: Make sched_init_numa() use a set for the deduplicating sort](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=620a6dc40754dc218f5b6389b5d335e9a107fd29) | 修复问题 1. 解决方案是 sched_init_numa() 中 | v1 ☑ 5.12-rc1 | [LORE](https://lkml.kernel.org/r/20210122123943.1217-2-valentin.schneider@arm.com), [LKML](https://lkml.org/lkml/2021/1/22/460), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=620a6dc40754dc218f5b6389b5d335e9a107fd29) |
+| 2021/01/22 | Valentin Schneider | [sched/topology: Fix sched_domain_topology_level alloc in sched_init_numa](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=71e5f6644fb2f3304fcb310145ded234a37e7cc1) | 上面的修复补丁 1 引入了一个问题. 这个补丁修复了这个问题. | v1 ☑ 5.12-rc1 | [LORE](https://lkml.kernel.org/r/6000e39e-7d28-c360-9cd6-8798fd22a9bf@arm.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=71e5f6644fb2f3304fcb310145ded234a37e7cc1) |
 
 
 ```cpp
@@ -766,8 +1022,8 @@ https://lore.kernel.org/lkml/157476581065.5793.4518979877345136813.stgit@buzz/
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:--:|:----:|:---------:|:----:|
-| 2021/01/15 | Song Bao Hua (Barry Song) | [sched/fair: first try to fix the scheduling impact of NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1366256) | 修复问题 2 | RFC ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/1366256) |
-| 2021/2/23 | Song Bao Hua (Barry Song) | [sched/topology: fix the issue groups don't span domain->span for NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1371875)| 修复问题 2<br>build_overlap_sched_groups() 中构建调度域的时候如果将某个 (child) sched_domain 作为 sched_group 加进 (parent) sched_domain 的时候, 如果发现其 sched_group_span 不是 parent sched_domain_span 子集的情况, 则通过 find_descended_sibling() 查找该 (child) sched_doman 的 child, 将符合要求的 child 作为 sched_group 加进来. | v4 ☑ 5.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1371875), [LKML](https://lkml.org/lkml/2021/2/23/1010), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=585b6d2723dc927ebc4ad884c4e879e4da8bc21f) |
+| 2021/01/15 | Song Bao Hua (Barry Song) | [sched/fair: first try to fix the scheduling impact of NUMA diameter > 2](https://lore.kernel.org/lkml/20210115203632.34396-1-song.bao.hua@hisilicon.com/) | 修复问题 2 | RFC ☐ | [LORE](https://lore.kernel.org/lkml/20210115203632.34396-1-song.bao.hua@hisilicon.com) |
+| 2021/2/23 | Song Bao Hua (Barry Song) | [sched/topology: fix the issue groups don't span domain->span for NUMA diameter > 2](https://lore.kernel.org/patchwork/patch/1371875) | 修复问题 2<br>build_overlap_sched_groups() 中构建调度域的时候如果将某个 (child) sched_domain 作为 sched_group 加进 (parent) sched_domain 的时候, 如果发现其 sched_group_span 不是 parent sched_domain_span 子集的情况, 则通过 find_descended_sibling() 查找该 (child) sched_doman 的 child, 将符合要求的 child 作为 sched_group 加进来. | v4 ☑ 5.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1371875), [LKML](https://lkml.org/lkml/2021/2/23/1010), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=585b6d2723dc927ebc4ad884c4e879e4da8bc21f) |
 
 
 ## 4.2 负载均衡总概
@@ -2610,11 +2866,33 @@ Misfit Task 对调度器**负载均衡**做了如下改造, 参见 [commit cad68
 | 2019/01/10 | Quentin Perret <quentin.perret@arm.com> | [Documentation: Explain EAS and EM](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=81a930d3a64a00c5adb2aab28dd1c904045adf57) | EAS 的文档, 参见 [sched: Energy cost model for energy-aware scheduling, RFC,v5,00/46](https://lkml.org/lkml/2015/7/7/754) | v1 ☑✓ 5.1-rc1 | [LORE v1,0/2](https://lore.kernel.org/all/20190110110546.8101-1-quentin.perret@arm.com) |
 | 2020/05/27 | john mathew <john.mathew@unikie.com> | [Add scheduler overview documentation](https://lore.kernel.org/all/20200527081505.1783-1-John.Mathew@unikie.com) | 调度器的文档更新. | v6 ☐☑✓ | [LORE v5,0/3](https://lore.kernel.org/all/20200514092637.15684-1-John.Mathew@unikie.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/3](https://lore.kernel.org/all/20200527081505.1783-1-John.Mathew@unikie.com) |
 
-### 7.2.5 IPA(Thermal 管控)
+### 7.2.5 Energy Model
+-------
+
+EAS 依赖于 EM(Energy Model) 提供的能效模型等信息来计算能效最优的调度行为.
+
+v5.0 EAS 合入主线之前, 内核通过 init_sched_energy_costs() 解析 DTB 中 sched-energy-costs, freq-energy-model, busy-cost-data 等节点和字段来构建 CPU 的能效表.
+
+v5.0 EAS 合入主线之后, 引入了 EM, 各平台或者设备通过 [em_dev_register_perf_domain()](https://elixir.bootlin.com/linux/v5.10/A/ident/em_dev_register_perf_domain) 注册能效模型.
+
+| 能效模型 | 描述 | 流程 |
+|:------:|:----:|:----:|
+| OF dtb 方式的能效模型 | 当前使用 DTB 的设备和平台都使用了此种方式注册能效模型, 参见 [Add callback to register with energy model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=37f188318ea3f1da75b32df3b1a19f45d9840652). | drivers/opp/of.c, dev_pm_opp_of_register_em |
+| SCMI 的能效模型 | NA | drivers/cpufreq/scmi-cpufreq.c |
+| NA | NA | drivers/cpufreq/mediatek-cpufreq-hw.c |
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:---:|:----:|:---:|:---------:|:----:|
+| 2018/02/23 | Sudeep Holla <sudeep.holla@arm.com> | [firmware: ARM System Control and Management Interface(SCMI) support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=02f208c5c60549039445402505dea284e15f0f4f) | 注册了 SCMI 的能效模型. | v6 ☑✓ 4.17-rc1 | [LORE v6,0/20](https://lore.kernel.org/all/1519403030-21189-1-git-send-email-sudeep.holla@arm.com) |
+| 2019/02/04 | Quentin Perret <quentin.perret@arm.com> | [Register an Energy Model for Arm reference platforms](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1058d1efbc84e3b48d2130f46a149cea178b28a1) | TODO | v4 ☑✓ 5.1-rc1 | [LORE v4,0/5](https://lore.kernel.org/all/20190204110952.16025-1-quentin.perret@arm.com) |
+| 2021/08/12 | Viresh Kumar <viresh.kumar@linaro.org> | [Add callback to register with energy model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=37f188318ea3f1da75b32df3b1a19f45d9840652) | TODO | v3 ☑✓ 5.15-rc1 | [LORE v3,0/9](https://lore.kernel.org/all/cover.1628742634.git.viresh.kumar@linaro.org) |
+
+
+### 7.2.6 IPA(Thermal 管控)
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:-----:|:----:|:----:|:----:|:------------:|:----:|
+|:-----:|:---:|:----:|:---:|:---------:|:----:|
 | 2019/11/01 | Amit Kucheria <amit.kucheria@linaro.org> | [thermal: qcom: tsens: Add interrupt support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=634e11d5b450a9bcc921219611c5d2cdc0f9066e) | NA | v7 ☑✓ 5.5-rc1 | [LORE v7,0/15](https://lore.kernel.org/all/cover.1572526427.git.amit.kucheria@linaro.org) |
 | 2019/10/30 | Quentin Perret <qperret@google.com> | [Make IPA use PM_EM](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=163b00cde7cf2206e248789d2780121ad5e6a70b) | NA | v9 ☑✓ 5.5-rc1 | [LORE v9,0/4](https://lore.kernel.org/all/20191030151451.7961-1-qperret@google.com) |
 
@@ -3217,7 +3495,13 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 
 在 OSPM 2020年会议上讨论了调度延迟的问题, 但似乎没有就正确的方法达成共识.
 
-两年后, 2022 年, Vincent Guittot 在 Parth Shah 工作的基础上, 重提了 [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org). 参见 [Improved response times with latency nice](https://lwn.net/Articles/887842).
+两年后, 2022 年, Vincent Guittot 在 Parth Shah 工作的基础上, 重提了 [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org). 参见 LWN 报道.
+
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2020/05/18 | [The many faces of Latency nice](https://lwn.net/Articles/820659) | [LWN: Latency nice 的方方面面](https://blog.csdn.net/Linux_Everything/article/details/106435501) |
+| 2022/03/17 | [Improved response times with latency nice](https://lwn.net/Articles/887842) | [LWN: 采用 latency nice 改善响应时间](https://blog.csdn.net/Linux_Everything/article/details/123887454) |
+| 2022/04/05 | NA | 国内对这组补丁的分析 [latency-nice 优先级补丁源码分析](https://blog.csdn.net/qq_23662505/article/details/123977540) |
 
 
 | 时间  | 作者  | 特性  | 描述  | 是否合入主线   | 链接 |
@@ -3467,6 +3751,7 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 
 [关于 Coroutine(协程)、Continuation(接续)的参考资料](https://blog.csdn.net/zoomdy/article/details/89704634)
 
+[微信公众号-极客重生--深入理解协程 | 业界设计和实现的决策分析](https://mp.weixin.qq.com/s/JZUSQk-FnO1WVc85H3CqVQ)
 
 [有栈协程与无栈协程](https://mthli.xyz/stackful-stackless)
 
