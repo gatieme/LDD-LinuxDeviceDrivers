@@ -766,6 +766,8 @@ $load = \displaystyle \sum^{n}_{i = 0}{{L_i}{y^i}} = L_0+L_1y+L_2y^2+L_3y^3.....
 
 $Sum_n = L_i{\frac{1-q^n}{1-q}}$
 
+该公式的图像参见 [函数图像绘制工具](https://zh.numberempire.com/graphingcalculator.php?functions=y%3D1024*(1-0.9785%5Ex)%2F(1-0.9785)&xmin=0&xmax=603.054551&ymin=0&ymax=47628&var=x).
+
 对于一个无穷递降数列, 数列的公比 y < 1, 因此无穷级数是收敛的, 当上式得 n 趋向于正无穷大时, 分子括号中的值趋近于 1, 取极限即得无穷递减数列求和公式.
 
 $Sum_{\infty} = L_i{\frac{1}{1-q}}$
@@ -1433,7 +1435,7 @@ v3.3 [commit 0b005cf54eac ("sched, nohz: Implement sched group, domain aware noh
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2011/11/18 | Suresh Siddha <suresh.b.siddha@intel.com> | [sched, nohz: load balancing patches](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=786d6dc7aeb2bfbfe417507b7beb83919f319db3) | NA | v1 ☑✓ 3.3-rc1 | [LORE](https://lore.kernel.org/all/1320191558.28097.44.camel@sbsiddha-desk.sc.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/6](https://lore.kernel.org/all/20111118230323.592022417@sbsiddha-desk.sc.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/all/20111202010731.344451602@sbsiddha-desk.sc.intel.com) |
+| 2011/11/18 | Suresh Siddha <suresh.b.siddha@intel.com> | [nohz idle load balancing patches](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=786d6dc7aeb2bfbfe417507b7beb83919f319db3) | NA | v1 ☑✓ 3.3-rc1 | [LORE](https://lore.kernel.org/all/1320191558.28097.44.camel@sbsiddha-desk.sc.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/6](https://lore.kernel.org/all/20111118230323.592022417@sbsiddha-desk.sc.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/all/20111202010731.344451602@sbsiddha-desk.sc.intel.com) |
 | 2012/09/10 | Alex Shi <alex.shi@intel.com> | [nohz: clean up select_nohz_load_balancer()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c1cc017c59c44d9ede7003631c43adc0cfdce2f9) | 现在已经没有 load_balancer selector. 因此重新命名函数.nohz_balance_exit_idle | v1 ☑✓ 3.7-rc1 | [LORE v1,0/2](https://lore.kernel.org/all/1347261059-24747-1-git-send-email-alex.shi@intel.com) |
 
 此后经历了诸多 bugfix 修复.
@@ -2018,7 +2020,7 @@ v3.0 版本 [sched: Reduce runqueue lock contention -v6](https://git.kernel.org/
 | 2020/05/24 | Mel Gorman | [Optimise try_to_wake_up() when wakee is descheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2ebb17717550607bcd85fb8cf7d24ac870e9d762) | 唤醒时如果 wakee 进程正在睡眠或者调度(释放 CPU), 优化在 on_cpu 的自旋等待时间 | v1 ☑ 5.8-rc1 | [LORE 0/2](https://lore.kernel.org/lkml/20200524202956.27665-1-mgorman@techsingularity.net) |
 
 
-#### 4.7.1.2 TTWU 中的内存屏障
+### 4.7.2 TTWU 中的内存屏障
 -------
 
 [<奔跑吧 Linux 内核> 卷2--附录E 关于try_to_wake_up()里的内存屏障使用](https://blog.csdn.net/rlk8888/article/details/123352327)
@@ -2183,13 +2185,46 @@ smp_cond_acquire(!p->on_cpu);
 | 2017/12/18 | Josh Snyder <joshs@netflix.com> | [delayacct: Account blkio completion on the correct task](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c96f5471ce7d2aefd0dda560cc23f08ab00bc65d) | 1513613712-571-1-git-send-email-joshs@netflix.com | v2 ☑✓ 4.15-rc9 | [LORE](https://lore.kernel.org/all/1513613712-571-1-git-send-email-joshs@netflix.com) |
 
 
-#### 4.7.1.2 TTWU 下半部
+### 4.7.3 TTWU 下半部
 -------
 
+v3.0 [commit 317f394160e9 ("sched: Move the second half of ttwu() to the remote cpu")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=317f394160e9beb97d19a84c39b7e5eb3d7815a8) 将 try_to_wake_up() 拆分成了两半部分, 下半部分持有 rq->lock 并[通过 ttwu_queue() 真正完成任务唤醒(主要是任务入队)](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2728), 由于第一阶段已经在不持有任何 rq->lock 的情况下完成了 select_task_rq(), 因此如果[开启了 TTWU_QUEUE](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2646), ttwu_queue() 唤醒时将允许在任务运行的 CPU 上通过 [ttwu_queue_remote()](https://elixir.bootlin.com/linux/v3.0/source/kernel/sched.c#L2603) 完成远程唤醒.
+
+1.  引入唤醒列表 rq->wake_list 维护 RQ 上待唤醒的 task_struct, 每次远程唤醒只需要将待唤醒进程插入到唤醒列表 rq->wake_list 上. 然后给对应 RQ smp_send_reschedule() 发送 IPI_RESCHEDULE 即可.
+
+2.  然后在 IPI_RESCHEDULE 的 handler 中, 通过 sched_ttwu_pending() 遍历当前 RQ 的 wake_list, 执行 ttwu_do_activate() 将进程唤醒.
+
+可见远程唤醒路径下, 进程真正的唤醒操作是在 wakee CPU 上执行的. 因此 v4.3-rc1 [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fbd705a0c6184580d0e2fbcbd47a37b6e5822511) 引入了 sched_waking TRACEPOINT, wakeup 标记了 waker CPU 执行的上半段, waking 则记录了 wakee CPU 的下半段.
+
+随后, Mike 报告了一起由于远程唤醒造成的 netperf TCP_RR 性能下降了 13%. Suresh 也注意到了它的一些其他性能问题. 因此 [commit 518cd6234178 ("sched: Only queue remote wakeups when crossing cache boundaries")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=518cd62341786aa4e3839810832af2fbc0de1ea4) 不允许同一个 LLC 域内进行远程唤醒, 将 IPIs 减少到跨 LLC 缓存域, 从而可以解决观察到的性能问题. 这个过程中引入了 update_top_cache_domain() 来设置 per-CPU sd_llc 和 sd_llc_id.
+
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----------:|:---:|
+| 2011/09/08 | Huang Ying <ying.huang@intel.com> | [sched: Convert to struct llist](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fa14ff4accfb24e59d2473f3d864d6648d80563b) | [Convert to use llist](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f0f1d32f931b705c4ee5dd374074d34edf3eae14) 的其中一个补丁. 将 rq->wake_list 从 task_struct 的链表切换到 list_head 的实现. | v1 ☑✓ 3.2-rc1 | [LORE v1,0/5](https://lore.kernel.org/all/1315836353.26517.42.camel@twins) |
+| 2011/12/07 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [sched: Only queue remote wakeups when crossing cache boundaries](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=518cd62341786aa4e3839810832af2fbc0de1ea4) | 不允许同一个 LLC 域内进行远程唤醒, 将 IPIs 减少到跨 LLC 缓存域, 从而可以解决观察到的性能问题. | v1 ☐☑✓ 3.3-rc1| [LORE](https://lore.kernel.org/all/1323338531.17673.7.camel@twins) |
+
+
+*   sched_wake_idle_without_ipi
+
+随后 v3.16 进一步减少了 TTWU 路径下的 IPIs.
+
+1.  首先每次 poll_idle 准备进入 polling 操作之前就通过 [current_set_polling_and_test()](https://elixir.bootlin.com/linux/v3.16/source/drivers/cpuidle/driver.c#L190) 把 TIF_POLLING_NRFLAG 设置, 然后 polling 结束后再通过 current_clr_polling() 将 TIF_POLLING_NRFLAG 标志位清掉. 这样通过[检查 TIF_POLLING_NRFLAG 标记](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=84c407084137d4e491b07ea5ff8665d19106a5ac)就可以知道 CPU 是否处于 polling 状态, 还没有进入 C-state. 这样的 IDLE CPU 是不需要发送 IPI 唤醒的.
+
+2.  这样唤醒路径下, ttwu_queue_remote() 中, 通过 set_nr_if_polling() 检查对应 wakee CPU 是否处在 polling 状态(直接检查 TIF_POLLING_NRFLAG 标志是否被设置即可)下, 如果是则不需要发送 IPI 去唤醒, 只需要设置抢占标记 nr(TIF_NEED_RESCHED) 即可.
+
+3.  之前都是在 IPI_RESCHEDULE 的处理函数 scheduler_ipi() 中使用 sched_ttwu_pending() 来将本地 wake_list 上的 task 唤醒的, 现在 polling 的 CPU 并不会收到 IPI_RESCHEDULE, 因此 IDLE 的 loop 循环 cpu_idle_loop() 中也需要通过 [sched_ttwu_pending()](https://elixir.bootlin.com/linux/v3.16/source/kernel/sched/idle.c#L249) 来处理唤醒.
+
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----------:|:---:|
+| 2014/06/04 | Andy Lutomirski <luto@amacapital.net> | [sched: Cleanup and improve polling idle loops](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e3baac47f0e82c4be632f4f97215bb93bf16b342) | 这组补丁将系统 IPI 数量减少了 99% 左右, 从每秒数百次下降到了很少. 主要思想是使 TIF_POLLING_NRFLAG 成为 [poll_idle()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=84c407084137d4e491b07ea5ff8665d19106a5ac) 正在轮询的可靠指示. 对于正在轮询的 IDLE CPU 不需要对其发送 IPI 的. 诸如此类的 CPU, 唤醒路径下也[不需要通过 smp_send_reschedule() 来发送 IPI](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e3baac47f0e82c4be632f4f97215bb93bf16b342) 去触发 RESCHED, 同时[新增了 sched_wake_idle_without_ipi TRACEPOINT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dfc68f29ae67f2a6e799b44e6a4eb3417dffbfcd) 来标记这种情况的发生. | v2 ☑✓ 3.16-rc1 | [LORE v2,0/5](https://lore.kernel.org/all/cover.1401902905.git.luto@amacapital.net) |
+| 2014/09/04 | Chuansheng Liu <chuansheng.liu@intel.com> | [sched: Add new API wake_up_if_idle() to wake up the idle cpu](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2ed903c5485bad0eafdd3d59ff993598736e4f31) | 引入 wake_up_if_idle() | v1 ☑✓ 3.18-rc1 | [LORE v1,0/3](https://lore.kernel.org/all/1409815075-4180-1-git-send-email-chuansheng.liu@intel.com) |
+
+*   fairness problems on migration
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----------:|:---:|
 | 2016/05/11 | Peter Zijlstra <peterz@infradead.org> | [sched/fair: Fix fairness issue on migration](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2f950354e6d535b892f133d20bd6a8b09430424c) | TODO | v1 ☐☑✓ 4.7-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2f950354e6d535b892f133d20bd6a8b09430424c) |
+| 2022/05/13 | Tianchen Ding <dtcccc@linux.alibaba.com> | [sched: Queue task on wakelist in the same llc if the wakee cpu is idle](https://lore.kernel.org/all/20220513062427.2375743-1-dtcccc@linux.alibaba.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220513062427.2375743-1-dtcccc@linux.alibaba.com) |
 
 
 
@@ -3524,7 +3559,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2020/02/28 | Parth Shah <parth@linux.ibm.com> | [Introduce per-task latency_nice for scheduler hints](https://lore.kernel.org/all/20200228090755.22829-1-parth@linux.ibm.com) | 20200228090755.22829-1-parth@linux.ibm.com | v5 ☐☑✓ | [LORE v4,0/4](https://lore.kernel.org/lkml/20200224085918.16955-1-parth@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/4](https://lore.kernel.org/all/20200228090755.22829-1-parth@linux.ibm.com) |
 | 2020/05/07 | Parth Shah <parth@linux.ibm.com> | [IDLE gating in presence of latency-sensitive tasks](https://lore.kernel.org/all/20200507133723.18325-1-parth@linux.ibm.com) | 20200507133723.18325-1-parth@linux.ibm.com | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20200507133723.18325-1-parth@linux.ibm.com) |
-| 2022/03/11 | Vincent Guittot <vincent.guittot@linaro.org> | [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) | 参见 [Improved response times with latency nice](https://lwn.net/Articles/887842). | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) |
+| 2022/03/11 | Vincent Guittot <vincent.guittot@linaro.org> | [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) | 参见 [Improved response times with latency nice](https://lwn.net/Articles/887842). | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/all/20220512163534.2572-1-vincent.guittot@linaro.org) |
 
 ### 8.9.2 Xen CPU Scheduling
 -------
