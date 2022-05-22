@@ -268,6 +268,8 @@ PV_SPINLOCKS 的合入引起了[性能问题 Performance overhead of paravirt_op
 
 [What is RCU? Part 2: Usage](https://lwn.net/Articles/263130)
 
+[Recent RCU changes](https://lwn.net/Articles/894379)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/06/01 | "Joel Fernandes (Google)" <joel@joelfernandes.org> | [Harden list_for_each_entry_rcu() and family](https://lore.kernel.org/patchwork/cover/1082845) | 本系列增加了一个新的内部函数rcu_read_lock_any_held(), 该函数在调用这些宏时检查reader节是否处于活动状态. 如果不存在reader section, 那么list_for_each_entry_rcu()的可选第四个参数可以是一个被计算的lockdep表达式(类似于rcu_dereference_check()的工作方式). . | RFC ☑ 5.4-rc1 | [PatchWork RFC,0/6](https://lore.kernel.org/patchwork/cover/1082845) |

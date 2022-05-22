@@ -608,7 +608,7 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 #### 1.8.3 Linear Address Masking
 -------
 
-代码参见
+[Intel Gets Back To Working On Linear Address Masking Support For The Linux Kernel](https://www.phoronix.com/scan.php?page=news_item&px=Intel-LAM-Linux-Kernel-May-2022)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -2313,9 +2313,9 @@ v3.6 [commit 7db8889ab05b ("mm: have order > 0 compaction start off where it lef
 
 
 
-
 ## 3.5 抗碎片化优化
 -------
+
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -2325,6 +2325,7 @@ v3.6 [commit 7db8889ab05b ("mm: have order > 0 compaction start off where it lef
 | 2008/08/11 | Christoph Lameter <cl@linux-foundation.org> | [Slab Fragmentation Reduction V14](https://lore.kernel.org/patchwork/patch/125818) | SLAB 抗碎片化 | v14 ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/patch/90742)<br>*-*-*-*-*-*-*-* <br>[PatchWork v14](https://lore.kernel.org/patchwork/patch/125818) |
 | 2017/03/07 | Vlastimil Babka <vbabka@suse.cz> | [try to reduce fragmenting fallbacks](https://lore.kernel.org/patchwork/patch/766804) | 修复 [Regression in mobility grouping?](https://lkml.org/lkml/2016/9/28/94) 上报的碎片化问题, 通过修改 fallback 机制和 compaction 机制来减少永久随便化的可能性. 其中 fallback 修改时, 仅尝试从不同 migratetype 的 pageblock 中窃取的页面中挑选最小(但足够)的页面. | v3 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v6](https://lore.kernel.org/patchwork/patch/766804), [KernelNewbies](https://kernelnewbies.org/Linux_4.12#Memory_management), [关键 commit 3bc48f96cf11 ("mm, page_alloc: split least stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) |
 | 2018/11/23 | Mel Gorman | [Fragmentation avoidance improvements v5](https://lore.kernel.org/patchwork/patch/1016503) | 伙伴系统页面分配时的反碎片化 | v5 ☑ 5.0-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/1016503) |
+| 2022/01/27 | Mike Rapoport <rppt@kernel.org> | [Prototype for direct map awareness in page allocator](https://lore.kernel.org/all/20220127085608.306306-1-rppt@kernel.org) | [LSFMM-2022/Solutions for direct-map fragmentation](https://lwn.net/Articles/894557) | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20220127085608.306306-1-rppt@kernel.org) |
 
 
 # 4 页面回收
@@ -3241,6 +3242,8 @@ v8 和 v9 测试时, 测试场景进一步扩大, 参见 [MGLRU Continues To Loo
 
 v10 基本趋于稳定, 参见 [MGLRU Revised A 10th Time For Improving Linux Performance, Better Under Memory Pressure](https://www.phoronix.com/scan.php?page=news_item&px=MGLRU-v10).
 
+[LWN: Merging the multi-generational LRU](https://lwn.net/Articles/894859)
+
 *   实现
 
 传统的 LRU 页面回收仅仅通过 ACTIVE/INACTIVE 划分页面的冷热和老化程度, 这是一锤子买卖, 粒度非常粗, 对页面也机器不友好, 一个页面要么热页, 可以被宣判延刑, 要么是冷页, 可以立即被回收. 而 MGLRU 将页面的冷热程度做了更细粒度的划分.
@@ -3867,6 +3870,8 @@ Facebook 指出他们也面临过同样的问题, 所有的 workload 都需要�
 | 2021/08/09 | SeongJae Park <sjpark@amazon.com> | [mm: introduce process_mrelease system call](https://lore.kernel.org/patchwork/patch/1474134) | 引入 process_mrelease() 加速进程的清理, 以更快地释放被杀死的进程的内存.<br>我们经常希望能杀死不必要的进程, 为更重要的进程释放内存. 例如 Facebook 的 OOM killer 守护程序 oomd 和 Android的低内存killer守护程序lmkd. 对于这样的系统组件, 能够快速有效地释放内存非常. 但是不幸的是, 当一个进程接收到 SIGKILL 信号的时候并不一定能及时释放自己的内存, 这可能会受到很多因素的影响, 譬如进程的状态(它可能是处于 uninterruptible sleep 态)、正在运行进程的的 core 的 OPP 级别等. 而通过调用这个新的 process_mrelease() 系统调用, 它会在调用者的上下文中释放被杀死的进程的内存. 这种方式下, 内存的释放更可控, 因为它直接在当前 CPU 上运行, 只取决于调用者任务的优先级大小. 释放内存的工作量也将由调用方承担. | v9 ☑ [5.15-rc1](https://kernelnewbies.org/LinuxChanges#Linux_5.15.Introduce_process_mrelease.282.29_system_call) | [PatchWork v9,1/2](https://lore.kernel.org/patchwork/patch/1474134) |
 
 *   per-memcg proactive reclaim
+
+参见 [Proactive reclaim for tiered memory and more](https://lwn.net/Articles/894849)
 
 当前的 MG-LRU 提议[引入了一个 debugfs](https://lore.kernel.org/linux-mm/20220208081902.3550911-12-yuzhao@google.com). 可用于 MGLRU 的调试分析, 从而帮助用户出发主动回收. 这是对 MGLRU 的 lru_gen debugfs 机制的一个增量添加, 但是, 由于这是个 debug 接口, 本身独立于正在使用的回收机制(包括 CONFIG_LRU_GEN 和没有 CONFIG_LRU_GEN), 且没有直接证据表明他是直接用于进行主动回收的, 但是大家都相信通过对这些 debug 信息进行分析可以进行有效地辅助直接回收的进行.
 
@@ -5885,10 +5890,17 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 
 
-# 12 非易失性内存 (NVDIMM, Non-Volatile DIMM) 支持
+# 12 分级内存支持
 -------
 
+## 12.1 分级内存
+-------
 
+### 12.1.1 不同介质的内存的支持
+-------
+
+#### 12.1.1.1 非易失性内存 (NVDIMM, Non-Volatile DIMM) 支持
+-------
 
 [Linux Kernel中AEP的现状和发展](https://kernel.taobao.org/2019/05/NVDIMM-in-Linux-Kernel)
 
@@ -5896,11 +5908,7 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 计算机的存储层级是一个金字塔体系, 从塔尖到塔基, 访问速度递减, 而存储容量递增. 从访问速度考量, 内存(DRAM)与磁盘(HHD)之间, 存在着[显著的差异(可达到10^5级别)](https://www.directionsmag.com/article/3794). 因此, 基于内存的缓存技术一直都是系统软件或数据库软件的重中之重. 即使近些年出现的新兴的最快的基于PCIe总线的SSD, 这中间依然存在着鸿沟.
 
 
-
 ![](https://pic4.zhimg.com/50/0c0850cde43c84764e65bc24942bc6d3_hd.jpg)
-
-
-
 
 
 另一方面, 非可易失性内存也并不是新鲜产物. 然而实质要么是一块DRAM, 后端加上一块 NAND FLASH 闪存, 以及一个超级电容, 以在系统断电时的提供保护; 要么就是一块简单的 NAND FLASH, 提供类似 SSD 一样的存储特性. 所有这些, 从访问速度上看, 都谈不上真正的内存, 并且, NAND FLASH 的物理特性, 使其免不了磨损(wear out); 并且在长时间使用后, 存在写性能下降的问题.
@@ -5914,21 +5922,17 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 相应的, Linux 内核也在进行相应的功能支持.
 
 
-
-## 12.1 NVDIMM 支持框架
+#### 12.1.1.2 NVDIMM 支持框架
 -------
 
 ** libnvdimm 4.2(2015年8月30日发布)**
 
 2015 年 4 月发布的 [ACPI 6.0 规范](https://uefi.org/sites/default/files/resources/ACPI/_6.0.pdf](https://link.zhihu.com/?target=http%3A//www.uefi.org/sites/default/files/resources/ACPI_6.0.pdf), 定义了NVDIMM Firmware Interface Table (NFIT), 详细地规定了 NVDIMM 的访问模式, 接口数据规范等细节. 在 Linux 4.2 中, 内核开始支持一个叫 libnvdimm 的子系统, 它实现了 NFIT 的语义, 提供了对 NVDIMM 两种基本访问模式的支持, 一种即内核所称之的 PMEM 模式, 即把 NVDIMM 设备当作持久性的内存来访问; 另一种则提供了块设备模式的访问. 开始奠定 Linux 内核对这一新兴技术的支持.
 
-## 12.2 DAX
+#### 12.1.1.3 DAX
 -------
 
-
 **4.0(2015年4月发布)**
-
-
 
 与这一技术相关的还有另外一个特性值得一提, 那就是 DAX(Direct Access, 直接访问, X 无实义, 只是为了酷).
 
@@ -5936,7 +5940,16 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 传统的基于磁盘的文件系统, 在被访问时, 内核总会把页面通过前面所提的文件缓存页(page cache)的缓存机制, 把文件系统页从磁盘中预先加载到内存中, 以提速访问. 然后, 对于新兴的 NVDIMM 设备, 基于它的非易失特性, 内核应该能直接访问基于此设备之上的文件系统的内容, 它使得这一拷贝到内存的操作变得不必要. 4.0 开始引入的 DAX 就是提供这一支持. 截至 4.3, 内核中已经有 XFS, EXT2, EXT4 这几个文件系统实现这一特性.
 
-## 12.3 NUMA nodes for persistent-memory management
+
+#### 12.1.1.4 Compute Express Link(CXL)
+-------
+
+[LWN: LSFMM-2022/CXL 1: Management and tiering](https://lwn.net/Articles/894598)
+
+### 12.1.2 多级内存(Top-tier memory management)/内存分级(memory tiering) 支持
+-------
+
+#### 12.1.2.1 NUMA nodes for persistent-memory management
 -------
 
 多亏了 Dave Hansen 的补丁 [Allow persistent memory to be used like normal RAM](https://lore.kernel.org/patchwork/patch/1045596), 它使 PMEM 作为 NUMA 节点的一部分当普通内存一样来使用.
@@ -5957,8 +5970,7 @@ Intel 的吴峰光 [PMEM NUMA node and hotness accounting/migration](https://lor
 | 2019/04/04 | Zi Yan <zi.yan@sent.com> | [Accelerate page migration and use memcg for PMEM management](https://patchwork.kernel.org/project/linux-mm/cover/20190404020046.32741-1-zi.yan@sent.com) | TODO | RFC ☐ | [PatchWork RFC,00/25](https://patchwork.kernel.org/project/linux-mm/cover/20190404020046.32741-1-zi.yan@sent.com) |
 
 
-
-## 12.4 多级内存(Top-tier memory management)/内存分级(memory tiering)
+#### 12.1.2.2 memory tiering
 -------
 
 
@@ -5967,6 +5979,7 @@ Intel 的吴峰光 [PMEM NUMA node and hotness accounting/migration](https://lor
 [LWN: Top-tier memory management!](https://blog.csdn.net/Linux_Everything/article/details/117970246)
 
 [NUMA rebalancing on tiered-memory systems](https://lwn.net/Articles/893024)
+
 [Linux Developers Discuss Improvements To Memory Tiering](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Better-Memory-Tiering)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -5981,7 +5994,16 @@ Intel 的吴峰光 [PMEM NUMA node and hotness accounting/migration](https://lor
 | 2022/04/13 | Jagdish Gediya <jvgediya@linux.ibm.com> | [mm: demotion: Introduce new node state N_DEMOTION_TARGETS](https://patchwork.kernel.org/project/linux-mm/cover/20220413092206.73974-1-jvgediya@linux.ibm.com/) | 631805 | v2 ☐☑ | [LORE v2,0/5](https://lore.kernel.org/r/20220413092206.73974-1-jvgediya@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/7](https://lore.kernel.org/r/20220422195516.10769-1-jvgediya@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/3](https://lore.kernel.org/r/20220426085105.60822-1-ying.huang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/3](https://lore.kernel.org/r/20220510063958.86985-1-ying.huang@intel.com) |
 
 
-## 12.5 异构内存(CPU & GPU)
+## 12.2 远端内存
+-------
+
+[持久内存 - RDMA 让远程数据不再远](http://blog.itpub.net/31493717/viewspace-2731431)
+
+[详谈 RDMA（远程直接内存访问）技术原理和三种实现方式](https://blog.csdn.net/Rong_Toa/article/details/114747763)
+
+[关于 RDMA 技术原理、三种主流实现技术对比](https://www.idcbest.com/idcnews/11004565.html)
+
+## 12.3 异构内存(CPU & GPU)
 -------
 
 
@@ -5997,6 +6019,9 @@ AMD 正在研究一种异构超级计算机架构, 该架构在 CPU 和 GPU 之�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/05 | Alex Sierra <alex.sierra@amd.com> | [Support DEVICE_GENERIC memory in migrate_vma_*](https://lore.kernel.org/patchwork/patch/1472581) | NA | v1 ☐ | [PatchWork v6,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20210813063150.2938-1-alex.sierra@amd.com) |
+
+
+
 
 
 # 13 内存管理调试支持
@@ -6520,6 +6545,10 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 
 这一节相对于其他本章内容是独立的. MPI(Message Passing Interface, 消息传递接口) [The Message Passing Interface (MPI) standard](https://www.mcs.anl.gov/research/projects/mpi) 是一个定义并行编程模型下用于进程间消息传递的一个高性能, 可扩展, 可移植的接口规范(注意这只是一个标准, 有多个实现). 之前的 MPI 程序在进程间共享信息是用到共享内存(shared memory)方式, 进程间的消息传递需要 2 次内存拷贝. 而 3.2 版本引入的 "Cross Memory Attach" 的 patch, 引入两个新的系统调用接口. 借用这两个接口, MPI 程序可以只使用一次拷贝, 从而提升性能.
 
+## 14.4 OOM
+-------
+
+[Better tools for out-of-memory debugging](https://lwn.net/Articles/894546)
 
 
 ## 14.5 能耗感知(EAMM)

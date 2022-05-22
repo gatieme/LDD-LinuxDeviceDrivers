@@ -684,13 +684,16 @@ https://www.servethehome.com/vmware-project-capitola-enables-local-and-cluster-m
 
 https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 
+[Dbus-Broker 30 Released For High Performance Linux Message Bus](https://www.phoronix.com/scan.php?page=news_item&px=Dbus-Broker-30), [bus1/dbus-broker](https://github.com/bus1/dbus-broker)
 
 ## 6.4 CPU IDLE(C-state)
 -------
 
+[AMD Updates Linux Patches For Lowering Idle Exit Latency](https://www.phoronix.com/scan.php?page=news_item&px=AMD-Prefer-MWAIT-v3)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/04/05 | Wyes Karny <wyes.karny@amd.com> | [x86: Prefer MWAIT over HALT on AMD processors](https://lore.kernel.org/all/20220405130021.557880-1-wyes.karny@amd.com) | Monitor Wait "MWAIT" 指令可用于电源管理目的, 以提示处理器在等待事件或 MONITOR 存储操作完成时可以进入指定的目标 C 状态. MWAIT 的使用旨在比 HALT 指令更有效. Intel Core 2 及更高版本已经将 MWAIT 置于 HALT 指令之上, 以进入 C1 状态. 但是 AMD CPU 此代码路径中依旧使用 HALT. 这个补丁使 AMD 使用 MWAIT 指令而不是 HALT, 当系统未使用 CPU 空闲驱动程序时, 无论是 BIOS 禁用 C 状态还是驱动程序不属于内核构建. 反过来, 这可以将受影响系统的退出延迟提高约 21%. 参见 [](https://www.phoronix.com/scan.php?page=news_item&px=AMD-MWAIT-Over-HALT-2022). | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220405130021.557880-1-wyes.karny@amd.com) |
+| 2022/04/05 | Wyes Karny <wyes.karny@amd.com> | [x86: Prefer MWAIT over HALT on AMD processors](https://lore.kernel.org/all/20220405130021.557880-1-wyes.karny@amd.com) | Monitor Wait "MWAIT" 指令可用于电源管理目的, 以提示处理器在等待事件或 MONITOR 存储操作完成时可以进入指定的目标 C 状态. MWAIT 的使用旨在比 HALT 指令更有效. Intel Core 2 及更高版本已经将 MWAIT 置于 HALT 指令之上, 以进入 C1 状态. 但是 AMD CPU 此代码路径中依旧使用 HALT. 这个补丁使 AMD 使用 MWAIT 指令而不是 HALT, 当系统未使用 CPU 空闲驱动程序时, 无论是 BIOS 禁用 C 状态还是驱动程序不属于内核构建. 反过来, 这可以将受影响系统的退出延迟提高约 21%. 参见 [](https://www.phoronix.com/scan.php?page=news_item&px=AMD-MWAIT-Over-HALT-2022). | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220405130021.557880-1-wyes.karny@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/3](https://lore.kernel.org/lkml/cover.fba143c82098dffab6bbf0a2f3c4be8bae07ccf1.1652176835.git-series.wyes.karny@amd.com/) |
 
 
 ## 6.5 memory model
