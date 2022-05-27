@@ -1531,15 +1531,48 @@ static inline void calculate_imbalance(struct lb_env *env, struct sd_lb_stats *s
 
 博主个人一直是计算机先驱"高德纳"教授"文学化编程"思想的坚定追随者, 小米创始人雷军雷布斯先生也说"写代码要有写诗一样的感觉". 这种代码才真的让人眼前一亮, 如沐春风. 这个就是我看到 [rework_load_balance 这组补丁](https://lore.kernel.org/patchwork/cover/1141687) 的感觉. 这组补丁通过重构 (CFS) load_balance 的逻辑, 将原来逻辑混乱的 load_balance 变成了内核中一抹亮丽的风景, 不光使得整个 load_balance 的框架更清晰, 可读性更好. 更带来了性能的提升.
 
-它将系统中调度组的状态[归结于几种类型](https://lore.kernel.org/lkml/1571405198-27570-5-git-send-email-vincent.guittot@linaro.org), 对于其中的负载不均衡状态分别采用不同的处理方式.
+*   它将系统中调度组的状态[归结于几种类型](https://lore.kernel.org/lkml/1571405198-27570-5-git-send-email-vincent.guittot@linaro.org), 对于其中的负载不均衡状态分别采用不同的处理方式.
 
-1.  find_busiest_group() 根据 busiest_group 和 local_group 的 group_type, 采取了不同的策略查找更 busiest 的 sched_group.
+group_type 标记了当前 sched_group 的不平衡状态. 可以通过 group_classify() 获取当前 sched_group 的 group_type. 然后在 BALANCE_FORK/WAKE 等路径 find_idlest_group() 以及 Load Balancing 常规路径 find_busiest_group 都通过分析和比较 group_type, 来查找更 idlest/busiest 的 sched_group. 指导后续工作.
 
-2.  find_busiest_group() -=> calculate_imbalanc() 根据 busiest_group 和 local_group 的 group_type, 设置 env->migration_type, 记录 env->imbalance.
+env->migration_type 和 env->imbalance 则记录了当前 Load Balancing 针对当前的不均衡所需要做的迁移动作和迁移的量.
 
-3.  find_busiest_queue() 根据 env->migration_type, 采取不同的策略查找更 busiest 的 RQ.
 
-4.  detach_tasks() 根据 env->migration_type, 选择不同的策略去迁移进程, 具体迁移的量由 env->imbalance 指定.
+*   BALANCE_FORK/WAKE 等路径下
+
+```cpp
+select_task_rq_fair() -=> find_idlest_cpu()
+    -=> group = find_idlest_group(sd, p, cpu);
+        -=> 遍历当前 SD 下所有 sched_group
+            -=> update_sg_wakeup_stats();
+                -=> sgs->group_type = group_classify(env->sd->imbalance_pct, group, sgs);
+            -=> update_pick_idlest();   分析和比较当前 sched_group 和当前查找到 idlest sched_group, 找到更 idlest 的 sched_group.
+    -=> new_cpu = find_idlest_group_cpu(group, p, cpu);
+```
+
+*   Load Balancing 路径下:
+
+```cpp
+load_balance()
+    -=> group = find_busiest_group(&env);
+        -=> update_sd_lb_stats(env, &sds);
+            -=> 遍历当前 SD 下所有的 sched_group
+                -=> update_sg_lb_stats(env, sds, sg, sgs, &sg_status);
+                    -=> sgs->group_type = group_classify(env->sd->imbalance_pct, group, sgs);
+        -=> calculate_imbalance(env, &sds);
+    -=> busiest = find_busiest_queue(&env, group);
+    -=> cur_ld_moved = detach_tasks(&env);
+    -=> attach_tasks(&env);
+```
+
+
+1.  find_busiest_group() 通过分析和比较 [busiest_group](https://elixir.bootlin.com/linux/v5.5/source/kernel/sched/fair.c#L8800) 和 【local_group](https://elixir.bootlin.com/linux/v5.5/source/kernel/sched/fair.c#L8819) 的 group_type, 采取了不同的策略查找更 busiest 的 sched_group.
+
+2.  find_busiest_group() -=> calculate_imbalanc() 根据 busiest_group 和 [local_group](https://elixir.bootlin.com/linux/v5.5/source/kernel/sched/fair.c#L8656) 的 group_type, 设置 [env->migration_type](https://elixir.bootlin.com/linux/v5.5/source/kernel/sched/fair.c#L8666), 记录 [env->imbalance](https://elixir.bootlin.com/linux/v5.5/source/kernel/sched/fair.c#L8667).
+
+3.  find_busiest_queue() 根据 [env->migration_type](https://elixir.bootlin.com/linux/v5.5/source/kernel/sched/fair.c#L8953), 采取[不同的策略查找更 busiest 的 RQ](https://elixir.bootlin.com/linux/v5.5/source/kernel/sched/fair.c#L8985).
+
+4.  detach_tasks() 根据 [env->migration_type](https://elixir.bootlin.com/linux/v5.5/source/kernel/sched/fair.c#L7324), 选择不同的策略去迁移进程, 具体迁移的量[由 env->imbalance 指定](https://elixir.bootlin.com/linux/v5.5/source/kernel/sched/fair.c#L7350).
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
