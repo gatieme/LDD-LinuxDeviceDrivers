@@ -5982,6 +5982,8 @@ Intel 的吴峰光 [PMEM NUMA node and hotness accounting/migration](https://lor
 
 [Linux Developers Discuss Improvements To Memory Tiering](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Better-Memory-Tiering)
 
+[RFC: Memory Tiering Kernel Interfaces (v2)](https://lore.kernel.org/lkml/CAAPL-u-DGLcKRVDnChN9ZhxPkfxQvz9Sb93kVoX_4J2oiJSkUw@mail.gmail.com)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/04/15 | Tim Chen <tim.c.chen@linux.intel.com> | [Manage the top tier memory in a tiered memory](https://lore.kernel.org/patchwork/patch/1408180) |  memory tiers 的配置管理. 监控系统和每个 cgroup 中各自使用的 top-tier 内存的数量. 当前使用了 soft limit, 用 kswapd 来把某个 cgroup 中超过 soft limit 限制的 page 迁移到较慢的 memory 类型上去. 这里所说的 soft limit, 是指如果 top-tier memory 很充足的话, cgroup 可以拥有超过此限制的 page 数量, 但如果资源紧张的话则会被迅速削减从而满足这个 limit 值. 后期可用于对于不同的任务划分快、慢内存(fast and slow memory). 即让高优先级的任务获得更多 top-tier memory 访问优先, 而低优先级的任务则要受到更严格的限制 | v1 ☐ 5.13 | [PatchWork RFC,v1,00/11](https://patchwork.kernel.org/project/linux-mm/cover/cover.1617642417.git.tim.c.chen@linux.intel.com/) |

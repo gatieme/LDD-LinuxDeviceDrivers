@@ -1200,7 +1200,7 @@ rebalance_domains()
         -=> 遍历 env->src_rq->cfs_tasks -=> move_task(p, env);
 ```
 
-最后 v3.18 [sched/fair: Remove double_lock_balance(), 0/5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=163122b7fcfa28c0e4a838fcc8043c616746802e) 通过将 task->on_rq 分解为 TASK_ON_RQ_QUEUED/TASK_ON_RQ_MIGRATING 多个状态, 减少调度路径下 double_lock_balance() 的使用情况.
+最后 v3.18 [sched/fair: Remove double_lock_balance(), 0/5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=163122b7fcfa28c0e4a838fcc8043c616746802e) 通过将 task->on_rq 分解为 [TASK_ON_RQ_QUEUED](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=da0c1e65b51a289540159663aa4b90ba2366bc21)/[TASK_ON_RQ_MIGRATING](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cca26e8009d1939a6a5bf0200d276fa26f03e536) 多个状态, 减少调度路径下 double_lock_balance() 的使用情况.
 
 1.  [commit a1e01829796a ("sched: Remove double_rq_lock() from `__migrate_task()`")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a1e01829796aa7a993e28ffd7fee5c8d525be175) 将 `__migrate_task()` 中对 src_rq 和 dest_rq 的 double_rq_lock() 修改为对 src_rq 和 dest_rq 的分别持锁.
 
@@ -1223,6 +1223,7 @@ rebalance_domains()
             -=> list_del_init(&p->se.group_node);
             -=> activate_task(rq, p, 0);
 ```
+
 
 ### 4.3.2 CFS Task Lists
 -------
@@ -1266,7 +1267,260 @@ v3.4 [commit c308b56b5398 ("sched: Ditch per cgroup task lists for load-balancin
 | 2017/09/13 | Uladzislau Rezki (Sony) <urezki@gmail.com> | [sched/fair: search a task from the tail of the queue](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=93824900a2e242766f5fe6ae7697e3d7171aa234) | TODO | v2 ☑✓ 4.15-rc1 | [LORE RFC,v2](https://lore.kernel.org/all/20170913102430.8985-1-urezki@gmail.com) |
 
 
-### 4.3.3 Reworking CFS load balancing
+### 4.3.3 Imbalance Logic
+
+#### 4.3.3.1 Group Imbalance 检测
+-------
+
+v3.13 [Various load-balance cleanups/optimizations -v2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c61037e905a5cb74c7d786c35ee2cdbab9ed63af) 对 Load Balancing 的逻辑又做了不少优化和重构.
+
+1.  首先是对 [struct sd_lb_stat](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L5202) 结构做了精简, 在 sd_lb_stat 中为 this_group 和 busiest_group 重复维护 truct sg_lb_stats 中已有的统计信息是没有意义的. 由于这个结构总是在堆栈中分配, peterz 认为这有效地减少堆栈占用, 可读性也增加足够多. [sched: Clean-up struct sd_lb_stat](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=56cf515b4b1567c4e8fa9926175b40c66b9ec472).
+
+2.  最重要的是 [commit 6263322c5e8f ("sched/fair: Rewrite group_imb trigger")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6263322c5e8ffdaf5eaaa29e9d02d84a786aa970) 将 group_imb 检测从旧的 "load-spike" 检测更改为实际的失衡检测. 当它无法在任务亲和性存在的情况(LBF_SOME_PINNED)下完成负载平衡时, 允许在[较低的域平衡通道](https://elixir.bootlin.com/linux/v3.13/source/kernel/sched/fair.c#L6266)设置它. 这样做的好处是, 它将不再产生假阳性的 group_imb 条件, group_imb 条件是由正常的平衡/批量唤醒等行为产生的瞬态负载峰值产生的.
+
+v3.18 使用了 enum group_type 替代原来 group_imb 的表达方式. update_sd_pick_busiest() 用于检查当前探测的 sched_group 是不是比之前找到的 busier_group 更 BUSY, 如果是的, 就会返回 true, 但是当前只能标识[过载](https://elixir.bootlin.com/linux/v3.17/source/kernel/sched/fair.c#L5974)或[组失衡](https://elixir.bootlin.com/linux/v3.17/source/kernel/sched/fair.c#L5977)的最繁忙的 sd. 当没有 sd 不均衡或负载过重时, 负载均衡器无法找到最繁忙的域 busiest_group. 特别是 !SD_ASYM_PACKING 情况下, 直接打破了未过载域之间的负载平衡.
+
+于是 [commit caeb178c60f4 ("sched/fair: Make update_sd_pick_busiest() return 'true' on a busier sd")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=caeb178c60f4f93f1b45c0bc056b5cf6d217b67f) 优化了当前 sched_group 和已经查找到的 busiest 的比较逻辑, 使得 update_sd_pick_busiest() 在遇到更繁忙的 sd 时总能正确返回 true. 在 Peter Zijlstra 的建议下, 使用 enum group_type 标记和分类 sched_group 的当前不均衡状态, 当前的排列顺序是超载 group_overloaded > 不平衡 group_imbalanced > 其他 group_other, 即使负载较低, 级别较高的组也获得优先级, 这通过直接[比较两个 sched_group 的 group_type 来确定](https://elixir.bootlin.com/linux/v3.18/source/kernel/sched/fair.c#L6067). 并且直接[考虑了 SD_ASYM_PACKING 的情况](https://elixir.bootlin.com/linux/v3.18/source/kernel/sched/fair.c#L6085), 组内的域之间可能存在不平等的容量和 cpumask.
+
+这样是为了确保系统中的负载平衡不会过载, 但是他也有副作用. 这样修改后, update_sd_pick_busiest() 总是返回一个最繁忙的 sched_group, 但是这个 sched_group 可能是一个既不平衡也不超载的组, 它只是比其他 sched_group 负载更大,这就造成它可能在 sched_group 之间生成无用的主动迁移(active load_balance()).
+
+让我们以四核系统上的 3 个任务为例. 我们总是有一个空闲的 CPU, 所以每当 ILB 被触发时, 负载均衡就会找到一个最繁忙的 CPU, 它会强制一个主动迁移(一旦超过 nr_balance_failed 阈值), 这样空闲的 CPU 会变得繁忙, 而另一个 CPU会变得空闲. 在下一个 ILB 中, 新空闲的 CPU 将尝试拉出一个繁忙的 CPU 的任务. 这造成了任务频繁地颠簸. 在四核系统中, 由于 ILB 的触发较少, 假主动迁移的数量并不大. 但是, 如果您有多个 sched_domain 级别, 比如在四核的双集群中, 当有一个以上的 busy_cpu 时, 每隔一次就会触发 ILB, 那么这个问题就变得更加严重. 因此我们需要确保迁移生成一个真正的 improveùent, 而不仅仅是移动另一个 CPU 上的 avg_load 不平衡. 在 v3.18 之前, 这是通过在 FBG(find_busiest_group()) 中进行以下测试来确保该用例的过滤:
+
+
+```cpp
+// https://elixir.bootlin.com/linux/v3.17/source/kernel/sched/fair.c#L6369
+static struct sched_group *find_busiest_group(struct lb_env *env)
+{
+    // ......
+    if (env->idle == CPU_IDLE) {
+        /*
+         * This cpu is idle. If the busiest group load doesn't
+         * have more tasks than the number of available cpu's and
+         * there is no imbalance between this and busiest group
+         * wrt to idle cpu's, it is balanced.
+         */
+        if ((local->idle_cpus < busiest->idle_cpus) &&
+            busiest->sum_nr_running <= busiest->group_weight)
+            goto out_balanced;
+    } else {
+        // ......
+    }
+```
+
+[commit 43f4d66637bc ("sched: Improve sysbench performance by fixing spurious active migration")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=43f4d66637bc752e93a77ff2536474a5a3888442) 修改了此判断条件, 以考虑最忙组未过载的情况: 如果两个组中空闲 CPU 的数量之差小于或等于 1, 并且最忙的 sched_group 未过载, 则迁移任务不会改善负载平衡.
+
+```cpp
+        /*
+         * This cpu is idle. If the busiest group is not overloaded
+         * and there is no imbalance between this and busiest group
+         * wrt idle cpus, it is balanced. The imbalance becomes
+         * significant if the diff is greater than 1 otherwise we
+         * might end up to just move the imbalance on another group
+         */
+        if ((busiest->group_type != group_overloaded) &&
+                (local->idle_cpus <= (busiest->idle_cpus + 1)))
+            goto out_balanced;
+```
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2013/08/19 | Peter Zijlstra <peterz@infradead.org> | [Various load-balance cleanups/optimizations -v2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c61037e905a5cb74c7d786c35ee2cdbab9ed63af) | TODO | v2 ☑✓ 3.13-rc1 | [LORE v2,0/10,14](https://lore.kernel.org/all/20130819160058.539049611@infradead.org)<br>*-*-*-*-*-*-*-* <br>[PATCHSET PART1,0/9](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=10866e62e8a6907d9072f10f9a0561db0c0cf50b), [PATCHSET PART2, 10/14](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c61037e905a5cb74c7d786c35ee2cdbab9ed63af) |
+| 2014/07/28 | riel@redhat.com <riel@redhat.com> | [load balancing fixes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9a5d9ba6a3631d55c358fe1bdbaa162a97471a05) | TODO | v1 ☑✓ 3.18-rc1 | [LORE v1,0/2](https://lore.kernel.org/all/1406571388-3227-1-git-send-email-riel@redhat.com) |
+| 2014/10/01 | Vincent Guittot <vincent.guittot@linaro.org> | [sched: Improve sysbench performance by fixing spurious active migration](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=43f4d66637bc752e93a77ff2536474a5a3888442) | TODO | v2 ☑✓ 3.18-rc1 | [LORE](https://lore.kernel.org/all/1412170735-5356-1-git-send-email-vincent.guittot@linaro.org) |
+| 2014/11/05 | Wanpeng Li <wanpeng.li@linux.intel.com> | [sched/fair: fix use stale overloaded status to find busiest group](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c51b8ab5ad972df26fd9c0ffad34870e98273c4c) | TODO | v2 ☑✓ 3.19-rc1 | [LORE](https://lore.kernel.org/all/1415144690-25196-1-git-send-email-wanpeng.li@linux.intel.com) |
+| 2017/12/18 | Vincent Guittot | [sched/fair: Improve fairness between cfs tasks](https://lore.kernel.org/patchwork/cover/1308748) | 当系统没有足够的周期用于所有任务时, 调度器必须确保在CFS任务之间公平地分配这些cpu周期. 某些用例的公平性不能通过在系统上静态分配任务来解决, 需要对系统进行周期性的再平衡但是, 这种动态行为并不总是最优的, 也不总是能够确保CPU绑定的公平分配. <br>这组补丁通过减少选择可迁移任务的限制来提高公平性. 这个更改可以降低不平衡阈值, 因为  1st LB将尝试迁移完全匹配不平衡的任务.  | v1 ☑ [5.10-rc1](https://kernelnewbies.org/Linux_5.10#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/1308748) |
+| 2021/01/06 | Vincent Guittot | [Reduce number of active LB](https://lore.kernel.org/patchwork/cover/1361676) | 减少 ACTIVE LOAD_BALANCE 的次数 | v2 ☑ 5.12-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1361676) |
+| 2020/01/14 | Mel Gorman <mgorman@techsingularity.net> | [sched, fair: Allow a small load imbalance between low utilisation SD_NUMA domains v4](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b396f52326de20ec974471b7b19168867b365cbf) | TODO | v4 ☑✓ 5.6-rc2 | [LORE v4](https://lore.kernel.org/all/20200114101319.GO3466@techsingularity.net) |
+
+
+#### 4.3.3.2 Calculate Imbalance
+-------
+
+
+
+*   calculate_imbalance()
+
+早在 v2.6.0 的时代, find_busiest_queue() 就通过计算 imbalance 来表示两个 sched_group 之间负载不均衡的程序, 然后尝试 PULL 迁移 imbalane/2 的负载量从 busiest 到 local, 从而让两者之间负载均衡. 参见 [COMMIT1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=468e6d17ff42e6f291a88c87681b2b5e34e9ab33), [COMMIT2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=97db62cc99a0d92650fbf23b7fbc034107eb01f3), [COMMIT3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=875ee1e15641e6662264f9279b12cba1f1d3c4fc).
+
+彼时没有 sched_domain 等机制, cpu load 也是用 nr_running 近似表示的, 因此 imbalance 计算非常简单.
+
+1.  遍历所有 CPU, 查找到负载最高的 CPU 及其 Load max_load. 那么 imbalance = max_load - nr_running;
+
+2.  保持[至少 25% 以上的不均衡差异](https://elixir.bootlin.com/linux/v2.6.0/source/kernel/sched.c#L1109)才触发负载均衡, 否则就认为不均衡的程度很细微, 没必要触发负载均衡.
+
+3.  尝试从 busiest_rq 上[迁移 imbalance/2 的负载量](https://elixir.bootlin.com/linux/v2.6.0/source/kernel/sched.c#L1193)过来. 由于 load 近似用 nr_running 表示的, 则自然就是通过 pull_task() [迁移 imbalance/2 个进程](https://elixir.bootlin.com/linux/v2.6.0/source/kernel/sched.c#L1243)过来.
+
+
+随后 v2.6.7 引入了 sched_domain 的支持, 也对 CPU Capacity/Power 做了最基础的感知, 此时 load 不是直接用 nr_running 表示, 而是用 nr_running * SCHED_LOAD_SCALE 类似的形式表达, 参见 [COMMIT1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8c136f71934b05aebb7ffb9631415b74f0906bad), [COMMIT2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3dfa303d9839496fc21d3ac47d10ff017dbb1c3a), [COMMIT3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=482b99334b6998fbd3f2b048f90c56de33dd667b).
+
+1.  Load Balancing 总是期望让所有的 cpu 都达到 average_load, 因此 find_busiest_group() 通过 busiest_group 的 max_load 和 local_group 的 this_load 到平均负载 avg_load 的差距来计算 imbalance.
+
+2.  此时计算出的 imbalance 值依旧表示了需要迁移的进程的个数.
+
+```cpp
+static struct sched_group *
+find_busiest_group(struct sched_domain *sd, int this_cpu,
+           unsigned long *imbalance, enum idle_type idle)
+{
+    /*
+     * We're trying to get all the cpus to the average_load, so we don't
+     * want to push ourselves above the average load, nor do we wish to
+     * reduce the max loaded cpu below the average load, as either of these
+     * actions would just result in more rebalancing later, and ping-pong
+     * tasks around. Thus we look for the minimum possible imbalance.
+     * Negative imbalances (*we* are more loaded than anyone else) will
+     * be counted as no imbalance for these purposes -- we can't fix that
+     * by pulling tasks to us.  Be careful of negative numbers as they'll
+     * appear as very large values with unsigned longs.
+     */
+    *imbalance = min(max_load - avg_load, avg_load - this_load);
+
+    // ......
+
+    /* How much load to actually move to equalise the imbalance */
+    *imbalance = (*imbalance * min(busiest->cpu_power, this->cpu_power))
+                / SCHED_LOAD_SCALE;
+    // ......
+
+    /* Get rid of the scaling factor, rounding down as we divide */
+    *imbalance = (*imbalance + 1) / SCHED_LOAD_SCALE;
+}
+```
+
+v2.6.12  通过 [sched: find_busiest_group fixlets](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9ef1a7bf81c5f5e6c1ab5f6d98a04feb5363ceef)
+
+
+```cpp
+// https://elixir.bootlin.com/linux/v2.6.12/source/kernel/sched.c#L1825
+static struct sched_group *
+find_busiest_group(struct sched_domain *sd, int this_cpu,
+           unsigned long *imbalance, enum idle_type idle)
+{
+    *imbalance = min((max_load - avg_load) * busiest->cpu_power,
+                (avg_load - this_load) * this->cpu_power)
+            / SCHED_LOAD_SCALE;
+    // ......
+
+    /* Get rid of the scaling factor, rounding down as we divide */
+    *imbalance = *imbalance / SCHED_LOAD_SCALE;
+}
+```
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:---:|:---:|:----:|:---------:|:----:|
+| 2004/05/09 | Nick Piggin <nickpiggin@yahoo.com.au> | [sched: scheduler domain support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8c136f71934b05aebb7ffb9631415b74f0906bad) | TODO | v1 ☑✓ 2.6.7-rc1 | [COMMIT1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8c136f71934b05aebb7ffb9631415b74f0906bad), [COMMIT2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3dfa303d9839496fc21d3ac47d10ff017dbb1c3a), [COMMIT3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=482b99334b6998fbd3f2b048f90c56de33dd667b) |
+| 2005/02/24 | Nick Piggin <nickpiggin@yahoo.com.au> | [sched: find_busiest_group fixlets](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9ef1a7bf81c5f5e6c1ab5f6d98a04feb5363ceef) | [Multiprocessor CPU scheduler patches](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cfec4ab5852be481742b5af1880ebc185d1201e3) | v1 ☑✓ v2.6.12 | [LORE v1,0/13](https://lore.kernel.org/all/1109229293.5177.64.camel@npiggin-nld.site) |
+
+
+*   max_pull 与 load_per_task 通过限制 imbalance 从而限制迁移量
+
+如果 PULL 操作会导致当前 sched_group 的总负载降至其 CPU Capacity 以下(即导致 sched_group 开始空闲), 则不要从组中提取任务. 于是 v2.6.14 通过限制 max_pull 来完成这项工作. 参见 [sched: allow the load to grow upto its cpu_power](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0c117f1b4d14380baeed9c883f765ee023da8761). max_pull 被限制在 min(max_load - avg_load, max_load - SCHED_LOAD_SCALE) 以内. 这最终会影响 group imbalance 的计算.
+
+```cpp
+// https://elixir.bootlin.com/linux/v2.6.14/source/kernel/sched.c#L1988
+static struct sched_group *
+find_busiest_group(struct sched_domain *sd, int this_cpu,
+           unsigned long *imbalance, enum idle_type idle, int *sd_idle)
+{
+    /* Don't want to pull so many tasks that a group would go idle */
+    max_pull = min(max_load - avg_load, max_load - SCHED_LOAD_SCALE);
+
+    /* How much load to actually move to equalise the imbalance */
+    *imbalance = min(max_pull * busiest->cpu_power,
+                (avg_load - this_load) * this->cpu_power)
+            / SCHED_LOAD_SCALE;
+
+    // ......
+
+    /* Get rid of the scaling factor, rounding down as we divide */
+    *imbalance = *imbalance / SCHED_LOAD_SCALE;
+}
+```
+
+随后 v2.6.18 引入了 average load per runnable task(load_per_task) 用于不同 sched_group 之间负载的比较以及 imbalance 的计算. max_pull 也被限制在了更合理地 max_load - busiest_load_per_task 以内.
+
+自然而然, v2.6.30 对 FBG 逻辑 cleanup 的时候, 这部分逻辑就封装到了 [calculate_imbalance()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dbc523a3b86f9e1765b5e70e6886913b99cc5cec) 的逻辑中.
+
+Load Balancing 总是期望让所有的 cpu 都达到 average_load, 所以我们不想让自己的负载超过平均负载, 也不想让最大负载 CPU 低于平均负载. 同时我们也不希望将组负载降低到组容量以下(这样我们就可以实施节能策略等). 因此, v2.6.34 [sched: Fix SCHED_MC regression caused by change in sched cpu_power](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dd5feea14a7de4edbd9f36db1a2db785de91b88d) 尝试寻求尽可能最小的不平衡. 引入 load_above_capacity 表示超出 capcity 那部分负载, 进一步地将 max_pull 限制在 max_pull = min(sds->max_load - sds->avg_load, load_above_capacity).
+
+最终 [sched/fair: Rework load_balance()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0b0695f2b34a4afa3f6e9aa1ff0e5336d8dad912) 统一了 calculate_imbalance() 的逻辑, 移除了 max_pul 的复杂逻辑, 直接用两个 sched_group 负载的差值 busiest->avg_load - sds->avg_load 来计算 imbalance.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2005/08/09 | Siddha, Suresh B <suresh.b.siddha@intel.com> | [sched: allow the load to grow upto its cpu_power](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0c117f1b4d14380baeed9c883f765ee023da8761) | TODO | v1 ☑✓ 2.6.14-rc1 | [LORE](https://lore.kernel.org/all/20050801174221.B11610@unix-os.sc.intel.com), [LORE](https://lore.kernel.org/all/20050809160813.B1938@unix-os.sc.intel.com) |
+| 2006/06/27 | Peter Williams <pwil3058@bigpond.net.au> | [sched: implement smpnice](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=615052dc3bf96278a843a64d3d1eea03532028c3) | TODO | v1 ☑✓ 2.6.18-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=615052dc3bf96278a843a64d3d1eea03532028c3) |
+| 2010/02/23 | Suresh Siddha <suresh.b.siddha@intel.com> | [sched: Fix SCHED_MC regression caused by change in sched cpu_power](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dd5feea14a7de4edbd9f36db1a2db785de91b88d) | TODO | v1 ☑✓ 2.6.34-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dd5feea14a7de4edbd9f36db1a2db785de91b88d) |
+
+*   Small Imbalance
+
+我们在计算最大负载时跳过了低于 CPU capacity 的 sched_group, 这就造成在 sched_group 未过载的场景下, 某些场景的最大负载可能小于平均负载, 这将造成即使有细微的不平衡, 我们却可能无法迁移任何进程, 因此 v2.6.18 [commit 2dd73a4f09be ("sched: implement smpnice")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2dd73a4f09beacadde827a032cf15fd8b1fa3d48) 引入了 small_imbalance 流程, 考虑提高 imbalance 的值, 从而保证至少能迁移一个进程过去.
+
+随后 v2.6.30 [commit 2e6f44aeda42 ("sched: Create helper to calculate small_imbalance in fbg()")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2e6f44aeda426054fc58464df1ad571aecca0c92) 重构过程中, 引入了 fix_small_imbalance() 封装了整个 small_imbalance 的流程, 并被 calculate_imbalance() 直接使用.
+
+至此整体 calculate_imbalance() 的框架如下所示:
+
+```cpp
+// https://elixir.bootlin.com/linux/v5.4/source/kernel/sched/fair.c#L8406
+static inline void calculate_imbalance(struct lb_env *env, struct sd_lb_stats *sds)
+{
+    /*
+     * Avg load of busiest sg can be less and avg load of local sg can
+     * be greater than avg load across all sgs of sd because avg load
+     * factors in sg capacity and sgs with smaller group_type are
+     * skipped when updating the busiest sg:
+     */
+    if (busiest->group_type != group_misfit_task &&
+        (busiest->avg_load <= sds->avg_load ||
+         local->avg_load >= sds->avg_load)) {
+        env->imbalance = 0;
+        return fix_small_imbalance(env, sds);
+    }
+
+    // ......
+
+    /*
+     * We're trying to get all the CPUs to the average_load, so we don't
+     * want to push ourselves above the average load, nor do we wish to
+     * reduce the max loaded CPU below the average load. At the same time,
+     * we also don't want to reduce the group load below the group
+     * capacity. Thus we look for the minimum possible imbalance.
+     */
+    max_pull = min(busiest->avg_load - sds->avg_load, load_above_capacity);
+
+    /* How much load to actually move to equalise the imbalance */
+    env->imbalance = min(
+        max_pull * busiest->group_capacity,
+        (sds->avg_load - local->avg_load) * local->group_capacity
+    ) / SCHED_CAPACITY_SCALE;
+
+    /* Boost imbalance to allow misfit task to be balanced. */
+    if (busiest->group_type == group_misfit_task) {
+        env->imbalance = max_t(long, env->imbalance,
+                       busiest->group_misfit_task_load);
+    }
+
+    /*
+     * if *imbalance is less than the average load per runnable task
+     * there is no guarantee that any tasks will be moved so we'll have
+     * a think about bumping its value to force at least one task to be
+     * moved
+     */
+    if (env->imbalance < busiest->load_per_task)
+        return fix_small_imbalance(env, sds);
+}
+```
+
+最终在 v5.5 [LWN: Reworking CFS load balancing](https://lwn.net/Articles/793427) 对整体 Load Balancing 框架进行优化时
+
+1.  [commit fcf0553db6f4 ("sched/fair: Remove meaningless imbalance calculation")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fcf0553db6f4c79387864f6e4ab4a891601f395e) 移除了 fix_small_imbalance() 和 load_per_task 这种毫无任何理论依旧的代码.
+
+2.  [commit 0b0695f2b34a ("sched/fair: Rework load_balance()")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0b0695f2b34a4afa3f6e9aa1ff0e5336d8dad912) 移除了 max_pull 机制.
+
+3.  引入了基于 group_type 和 migration_type 的负载均衡 imbalance 计算方式. 对于不同的 migration_type, imbalance 可以表示待迁移的进程数量以及待迁移的负载量.
+
+
+#### 4.3.3.3 Reworking CFS load balancing
 -------
 
 [OSPM_19 的议题](http://retis.sssup.it/luca/ospm-summit/2019/Downloads/01_05-Rework_load_balance_OSPM_19.pdf)
@@ -1277,7 +1531,15 @@ v3.4 [commit c308b56b5398 ("sched: Ditch per cgroup task lists for load-balancin
 
 博主个人一直是计算机先驱"高德纳"教授"文学化编程"思想的坚定追随者, 小米创始人雷军雷布斯先生也说"写代码要有写诗一样的感觉". 这种代码才真的让人眼前一亮, 如沐春风. 这个就是我看到 [rework_load_balance 这组补丁](https://lore.kernel.org/patchwork/cover/1141687) 的感觉. 这组补丁通过重构 (CFS) load_balance 的逻辑, 将原来逻辑混乱的 load_balance 变成了内核中一抹亮丽的风景, 不光使得整个 load_balance 的框架更清晰, 可读性更好. 更带来了性能的提升.
 
-它将系统中调度组的状态[归结于几种类型](https://lore.kernel.org/patchwork/patch/1141698), 对于其中的负载不均衡状态分别采用不同的处理方式.
+它将系统中调度组的状态[归结于几种类型](https://lore.kernel.org/lkml/1571405198-27570-5-git-send-email-vincent.guittot@linaro.org), 对于其中的负载不均衡状态分别采用不同的处理方式.
+
+1.  find_busiest_group() 根据 busiest_group 和 local_group 的 group_type, 采取了不同的策略查找更 busiest 的 sched_group.
+
+2.  find_busiest_group() -=> calculate_imbalanc() 根据 busiest_group 和 local_group 的 group_type, 设置 env->migration_type, 记录 env->imbalance.
+
+3.  find_busiest_queue() 根据 env->migration_type, 采取不同的策略查找更 busiest 的 RQ.
+
+4.  detach_tasks() 根据 env->migration_type, 选择不同的策略去迁移进程, 具体迁移的量由 env->imbalance 指定.
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1312,7 +1574,14 @@ CPU 负载均衡器在不同的域之间进行平衡, 以分散负载, 并努力
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2020/03/11 | Valentin Schneider <valentin.schneider@arm.com> | [sched: Streamline select_task_rq() & select_task_rq_fair()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=36c5bdc4387056af3840adb4478c752faeb9d15e) | 选核流程上的重构和优化, 当然除此之外还做了其他操作, 比如清理了 sd->flags 信息, 甚至 sysfs 接口都变成只读了. 只合入了补丁集的前 4 个补丁. | v3 ☑ 5.8-rc1 | [LORE v2,0/9](https://lore.kernel.org/lkml/20200311181601.18314-1-valentin.schneider@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/9](https://lore.kernel.org/all/20200415210512.805-1-valentin.schneider@arm.com) |
 
-### 4.3.2 load_balance vs wake_affine
+#### 4.3.3.3 power aware scheduling
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:---:|:---:|:----:|:---------:|:----:|
+| 2012/01/09 | Peter Zijlstra <peterz@infradead.org> | [sched: Remove stale power aware scheduling remnants and dysfunctional](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8e7fbcbc22c1) | TODO | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8e7fbcbc22c1) |
+
+### 4.3.4 load_balance vs wake_affine
 -------
 
 Mel Gorman 深耕与解决 load_balance 以及 wake_affine 流程中一些不合理的行为.
@@ -1325,15 +1594,7 @@ Mel Gorman 深耕与解决 load_balance 以及 wake_affine 流程中一些不合
 | 2018/02/12 | Mel Gorman | [Stop wake_affine fighting with automatic NUMA balancing](https://lore.kernel.org/patchwork/cover/886622) | 处理 NUMA balancing 和 wake_affine 的冲突 | v1 ☑ 4.17-rc1 | [PatchWork](https://lore.kernel.org/lkml/20180212171131.26139-1-mgorman@techsingularity.net), [LKML](https://lkml.org/lkml/2018/2/12/625) |
 | 2018/02/13 | Mel Gorman | [Reduce migrations and conflicts with automatic NUMA balancing v2](https://lore.kernel.org/patchwork/cover/886940) | 处理 NUMA balancing 与负载均衡的冲突 | v1 | [PatchWork](https://lore.kernel.org/patchwork/cover/886940) |
 
-### 4.3.3 imbalance
--------
 
-Vincent Guittot 深耕与解决 load_balance 各种疑难杂症和不均衡状态, 特别是优化他对终端等嵌入式场景的性能.
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2017/12/18 | Vincent Guittot | [sched/fair: Improve fairness between cfs tasks](https://lore.kernel.org/patchwork/cover/1308748) | 当系统没有足够的周期用于所有任务时, 调度器必须确保在CFS任务之间公平地分配这些cpu周期. 某些用例的公平性不能通过在系统上静态分配任务来解决, 需要对系统进行周期性的再平衡但是, 这种动态行为并不总是最优的, 也不总是能够确保CPU绑定的公平分配. <br>这组补丁通过减少选择可迁移任务的限制来提高公平性. 这个更改可以降低不平衡阈值, 因为  1st LB将尝试迁移完全匹配不平衡的任务.  | v1 ☑ [5.10-rc1](https://kernelnewbies.org/Linux_5.10#Memory_management) | [PatchWork](https://lore.kernel.org/patchwork/cover/1308748) |
-| 2021/01/06 | Vincent Guittot | [Reduce number of active LB](https://lore.kernel.org/patchwork/cover/1361676) | 减少 ACTIVE LOAD_BALANCE 的次数 | v2 ☑ 5.12-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1361676) |
 
 ### 4.3.4 update_blocked_averages
 -------
@@ -2258,6 +2519,7 @@ v3.19 通过临近 NUMA NODES 的评分机制实现了 NUMA 聚合功能, 从而
 | 2015/05/14 | Rik van Riel <riel@redhat.com> | [numa,sched: reduce conflict between fbq_classify_rq and migration](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c1ceac6276e4ee12e4129afd380db10fae0db7df) | NA | v1 ☑✓ 4.2-rc1 | [LORE](https://lore.kernel.org/all/20150514225936.35b91717@annuminas.surriel.com) |
 | 2015/06/16 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [Improve numa load balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=44dcb04f0ea8eaac3b9c9d3172416efc5a950214) | 依旧存在一些情况进程会被移出其首选节点, 但它们最终可能会被 NUMA Balancing 再带回其首选节点. 为了避免上述情况, [实现 migrate_degrades_locality() 替代 migrate_improves_locality()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2a1ed24ce94036d00a7c5d5e99a77a80f0aa556a) 来处理 NUMA 下 can_migrate_task 的 cache hot.  它还用 NUMA sched_feature 替换了 3 个 sched_feature NUMA、NUMA_Upper 和 NUMA_RESIST_LOWER. 此外[比较 NUMA 域负载的时候使用了 imbalance_pct](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=44dcb04f0ea8eaac3b9c9d3172416efc5a950214). 补丁集只合入了前两个补丁. | v2 ☑✓ 4.3-rc1 | [LORE v2,0/4](https://lore.kernel.org/all/1434455762-30857-1-git-send-email-srikar@linux.vnet.ibm.com) |
 | 2017/06/23 | riel@redhat.com <riel@redhat.com> | [sched/numa: Override part of migrate_degrades_locality() when idle balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=739294fb03f590401bbd7faa6d31a507e3ffada5) | [NUMA improvements with task wakeup and load balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=815abf5af45f04f759f12f3172afd15226fd7f71) 的其中一个补丁. | v1 ☑✓ 4.13-rc1 | [LORE v1,0/4](https://lore.kernel.org/all/20170623165530.22514-1-riel@redhat.com) |
+| 2017/06/23 | riel@redhat.com <riel@redhat.com> | [sched/fair: Fix wake_affine() for !NUMA_BALANCING](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=90001d67be2fa2acbe3510d1f64fa6533efa30ef) | TODO | v1 ☑✓ 4.14-rc1 | [LORE v1,0/4](https://lore.kernel.org/all/20170801121912.fnykqlq3r5jcbtn2@hirez.programming.kicks-ass.net) |
 | 2018/06/20 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [sched/numa: Use group_weights to identify if migration degrades locality](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f35678b6a17063f3b0d391af5ab8f8c83cf31b0c) | [Fixes for sched/numa_balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b6a60cf36d497e7fbde9dd5b86fabd96850249f6) 的其中一个补丁. | v2 ☑✓ 4.19-rc1 | [LORE v1,00/19](https://lore.kernel.org/lkml/1528106428-19992-1-git-send-email-srikar@linux.vnet.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/19](https://lore.kernel.org/all/1529514181-9842-21-git-send-email-srikar@linux.vnet.ibm.com) |
 
 
@@ -3363,6 +3625,11 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 >
 >[Another attempt at power-aware scheduling](https://lwn.net/Articles/600419)
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2014/05/26 | Nicolas Pitre <nicolas.pitre@linaro.org> | [sched: expel confusing usage of the term "power"](https://lore.kernel.org/all/1401142779-6633-1-git-send-email-nicolas.pitre@linaro.org) | TODO | v2 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/1401142779-6633-1-git-send-email-nicolas.pitre@linaro.org) |
+| 2014/05/23 | Vincent Guittot <vincent.guittot@linaro.org> | [sched: consolidation of cpu_power](https://lore.kernel.org/all/1400860385-14555-1-git-send-email-vincent.guittot@linaro.org) | TODO | v2 ☐☑✓ | [LORE v2,0/11](https://lore.kernel.org/all/1400860385-14555-1-git-send-email-vincent.guittot@linaro.org) |
+
 ### 7.2.2 IKS -> HMP -> EAS & CAS
 -------
 
@@ -3401,6 +3668,7 @@ ARM EAS 支持的主页: [Energy Aware Scheduling (EAS)](https://developer.arm.c
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2014/05/23 | Morten Rasmussen <morten.rasmussen@arm.com> | [sched: Energy cost model for energy-aware scheduling](https://lore.kernel.org/all/1400869003-27769-1-git-send-email-morten.rasmussen@arm.com) | TODO | v1 ☐☑✓ | [LORE RFC v1,0/16](https://lore.kernel.org/all/1400869003-27769-1-git-send-email-morten.rasmussen@arm.com) |
 | 2018/12/03 | Quentin Perret <quentin.perret@arm.com> | [Energy Aware Scheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=732cd75b8c920d3727e69957b14faa7c2d7c3b75) | 能效感知的调度器 EAS | v10 ☑ 5.0-rc1 | [LORE v10,00/15](https://lore.kernel.org/lkml/20181203095628.11858-1-quentin.perret@arm.com) |
 | 2021/12/20 | Vincent Donnefort <vincent.donnefort@arm.com> | [Fix stuck overutilized](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) | NA | v1 ☐ | [LORE 0/3](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) |
 | 2019/09/12 | Quentin Perret <qperret@qperret.net> | [sched/fair: Speed-up energy-aware wake-ups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eb92692b2544d3f415887dbbc98499843dfe568b) | Speed-up energy-aware wake-ups from O(CPUS^2) to O(CPUS). | v1 ☑✓ 5.4-rc1 | [LORE](https://lore.kernel.org/all/20190912094404.13802-1-qperret@qperret.net) |
