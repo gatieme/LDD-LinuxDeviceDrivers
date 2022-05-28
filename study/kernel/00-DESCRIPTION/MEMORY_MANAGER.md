@@ -3240,19 +3240,18 @@ v6 测试时, Redis, PostgreSQL, MongoDB, Memcached, Hadoop, Spark, Cassandra, M
 
 v8 和 v9 测试时, 测试场景进一步扩大, 参见 [MGLRU Continues To Look Very Promising For Linux Kernel Performance](https://www.phoronix.com/scan.php?page=news_item&px=Linux-MGLRU-v9-Promising). 此时正处于 v5.18 开发窗口, 作者 Yu Zhao 发起了 Pull Request, 随后 [Multi-gen LRU for 5.18-rc1](https://lore.kernel.org/lkml/20220326010003.3155137-1-yuzhao@google.com), 但是并没有被直接合入. [MGLRU Could Land In Linux 5.19 For Improving Performance - Especially Low RAM Situations](https://www.phoronix.com/scan.php?page=news_item&px=MGLRU-Not-For-5.18).
 
-v10 基本趋于稳定, 参见 [MGLRU Revised A 10th Time For Improving Linux Performance, Better Under Memory Pressure](https://www.phoronix.com/scan.php?page=news_item&px=MGLRU-v10).
+v10 基本趋于稳定, 已经尝试发送合并请求 [LWN: Merging the multi-generational LRU](https://lwn.net/Articles/894859). 参见 [MGLRU Revised A 10th Time For Improving Linux Performance, Better Under Memory Pressure](https://www.phoronix.com/scan.php?page=news_item&px=MGLRU-v10).
 
-[LWN: Merging the multi-generational LRU](https://lwn.net/Articles/894859)
+至此, MGLRU 已经在  Cassandra, Hadooop, MySQL/MariaDB, Memcached, MongoDB, PostgreSQL, Redis 等场景都获得了较好的结果. v11 版本时, Google 已经向数千万 Chrome OS 用户和大约 100 万 Android 用户推出了 MGLRU. Google 的 Fleetwide 分析显示, 除了其他 UX 指标的改进之外, kswapd CPU 使用率总体降低了 40%, 其中第 75 百分位的 low-memory kills 次数减少了 85%, 第 50 百分位的应用启动时间减少了 18%. [MGLRU 再次为有希望的 Linux 性能改进而加速](https://www.phoronix.com/scan.php?page=news_item&px=MGLRU-v11-Linux-Perf).
 
 *   实现
 
 传统的 LRU 页面回收仅仅通过 ACTIVE/INACTIVE 划分页面的冷热和老化程度, 这是一锤子买卖, 粒度非常粗, 对页面也机器不友好, 一个页面要么热页, 可以被宣判延刑, 要么是冷页, 可以立即被回收. 而 MGLRU 将页面的冷热程度做了更细粒度的划分.
-
 因此 MGLRU 通过 generation number 来标记页面的老化程度, 只区分匿名页 LRU_GEN_ANON 和文件页 LRU_GEN_FILE. 然后使用 struct lru_gen_struct 维护了 LRU 列表. 其中 max_seq
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/04/07 | Yu Zhao <yuzhao@google.com> | [Multigenerational LRU Framework(https://lwn.net/Articles/856931) | Multi-Gen LRU Framework, 将 LRU 的列表划分为多代老化. 通过 CONFIG_LRU_GEN 来控制. | v10 ☐ | [Patchwork v1,00/14](https://lore.kernel.org/patchwork/patch/1394674)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2,00/16](https://lore.kernel.org/patchwork/patch/1412560)<br>*-*-*-*-*-*-*-*<br>[2021/05/20 PatchWork v3,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210520065355.2736558-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/08/18 PatchWork v4,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20210818063107.2696454-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/11/11 PatchWork v5,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211111041510.402534-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/01/04 PatchWork v6,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20220104202227.2903605-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/02/08 PatchWork v7,0/12](https://lore.kernel.org/all/20220208081902.3550911-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/03/08 LORE v8,0/14](https://lore.kernel.org/all/20220308234723.3834941-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/03/09 LORE v9,0/14](https://lore.kernel.org/all/20220309021230.721028-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/04/07 LORE,v10,00/14](https://lore.kernel.org/lkml/20220407031525.2368067-1-yuzhao@google.com) |
+| 2022/04/07 | Yu Zhao <yuzhao@google.com> | [Multigenerational LRU Framework(https://lwn.net/Articles/856931) | Multi-Gen LRU Framework, 将 LRU 的列表划分为多代老化. 通过 CONFIG_LRU_GEN 来控制. | v10 ☐ | [Patchwork v1,00/14](https://lore.kernel.org/patchwork/patch/1394674)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2,00/16](https://lore.kernel.org/patchwork/patch/1412560)<br>*-*-*-*-*-*-*-*<br>[2021/05/20 PatchWork v3,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210520065355.2736558-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/08/18 PatchWork v4,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20210818063107.2696454-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/11/11 PatchWork v5,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211111041510.402534-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/01/04 PatchWork v6,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20220104202227.2903605-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/02/08 PatchWork v7,0/12](https://lore.kernel.org/all/20220208081902.3550911-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/03/08 LORE v8,0/14](https://lore.kernel.org/all/20220308234723.3834941-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/03/09 LORE v9,0/14](https://lore.kernel.org/all/20220309021230.721028-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/04/07 LORE,v10,00/14](https://lore.kernel.org/lkml/20220407031525.2368067-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v11,00/14](https://lore.kernel.org/lkml/20220518014632.922072-1-yuzhao@google.com) |
 
 
 
@@ -5479,6 +5478,7 @@ git://github.com/glommer/linux.git kmemcg-slab
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/02/01 | Yosry Ahmed <yosryahmed@google.com> | [memcg: add per-memcg total kernel memory stat](https://patchwork.kernel.org/project/linux-mm/patch/20220201200823.3283171-1-yosryahmed@google.com/) | 610482 | v1 ☐☑ | [PatchWork v1,0/1](https://lore.kernel.org/r/20220201200823.3283171-1-yosryahmed@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/1](https://lore.kernel.org/r/20220203193856.972500-1-yosryahmed@google.com) |
+| 2022/05/21 | Vasily Averin <vvs@openvz.org> | [memcg: accounting for objects allocated by mkdir cgroup](https://lore.kernel.org/all/06505918-3b8a-0ad5-5951-89ecb510138e@openvz.org) | TODO | v2 ☐☑✓ | [LORE v2,0/9](https://lore.kernel.org/all/06505918-3b8a-0ad5-5951-89ecb510138e@openvz.org) |
 
 
 ## 9.4 MEMCG LRU
@@ -6865,7 +6865,7 @@ ZONE_MOVABLE 一个 pseudo zone, 它实际是从内核划分的某个 zone 中�
 
 [Improving memory-management documentation](https://lwn.net/Articles/894374)
 
-[都 2022 年了，这 20 篇 Linux 内存管理的期刊论文，你读了吗？](https://zhuanlan.zhihu.com/p/450826949)
+[都 2022 年了, 这 20 篇 Linux 内存管理的期刊论文, 你读了吗？](https://zhuanlan.zhihu.com/p/450826949)
 
 ---
 

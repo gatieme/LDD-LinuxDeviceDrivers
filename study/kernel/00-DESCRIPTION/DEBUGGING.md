@@ -219,6 +219,7 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 
 [Enhanced printk() with Enterprise Event Logging](http://evlog.sourceforge.net/enhanced_printk.html)
 
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2017/11/19 | Tobin C. Harding <me@tobin.cc> | [hash addresses printed with %p](https://lore.kernel.org/patchwork/cover/856356) | 内核中 %p 打印的地址会暴露内核态地址信息, 是极其不安全的, 因此限制 %p 的打印信息, 它将打印一个散列值, 并不是实际的地址. 如果想要打印实际地址, 需要显式指定 %px. | v11 ☑ 4.15-rc2 | [PatchWork](https://lore.kernel.org/patchwork/cover/856356)<br>*-*-*-*-*-*-*-* <br>[关键 commit 57e734423add](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=57e734423adda83f3b05505875343284efe3b39c) |
@@ -236,6 +237,9 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 [printk: Why is it so complicated?, LPC2019](https://lpc.events/event/4/contributions/290/attachments/276/463/lpc2019_jogness_printk.pdf)
 
 [Printbuf rebuffed for now](https://lwn.net/Articles/892611)
+
+[Linux 5.19's Printk To Offload Messages To Per-Console KThreads](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.19-Printk)
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

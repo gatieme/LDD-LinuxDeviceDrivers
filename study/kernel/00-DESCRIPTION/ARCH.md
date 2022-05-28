@@ -62,9 +62,43 @@ blogexcerpt: 虚拟化 & KVM 子系统
 ## 1.1 架构新特性
 -------
 
+### 1.1.1 split lock detect
+-------
+
+拆分锁是指原子指令对跨越多个高速缓存行的数据进行操作. 由于原子性质, 在两条高速缓存行上工作时需要全局总线锁, 这反过来又会对整体系统性能造成很大的性能影响.
+
+当原子指令跨越多个 cache line, 并且需要确保原子性所需的总线锁时, 就会发生拆分总线锁. 这些拆分锁总线至少比单个 cacheline 内的原子操作多需要 1000 个 cycles. 在锁定总线期间, 其他 CPU 或 BUS 代理要求控制 BUS 的请求被阻止, 阻止其他 CPU 的 BUS 访问, 加上配置总线锁定协议的开销不仅会降低一个 CPU 的性能, 还会降低整体系统性能.
+
+除了拆分锁的性能影响之外, 利用该行为还可能导致无特权的拒绝服务漏洞. 因此现代英特尔 CPU 可以在处理拆分锁时生成对齐检查异常, 使用此技术这组补丁为内核实现了拆分锁检测(split_lock_detect), 以警告或杀死违规应用.
+
+v5.7 引入了拆分锁检测的支持, 这依赖于 x86_64 intel CPU 遇到拆分锁时生成对齐检查异常的硬件特性. 参见 [The Linux Kernel Will Be Able To Detect Split-Locks To Then Warn Or Kill Offending Apps](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Split-Locks-Detection) 以及 [Split Lock Detection Sent In For Linux 5.7 To Spot Performance Issues, Unprivileged DoS](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.7-Split-Lock-Detection).
+
+通过配置 "split_lock_detect=fatal" 内核参数, 可以配置检测出 split_lock 后的处理.  默认行为是警告有问题的用户空间应用程序, 而如果配置了 `split_lock_detect=fatal` 内核参数将发送 SIGBUS 信号杀死该应用程序.
+
+在拆分锁检测代码合并后, 英特尔工程师将重点转向 Linux 的总线锁检测. 同样, 由于性能损失和可能的拒绝服务影响, 这很重要. 总线锁可能会破坏其他 CPU 内核的性能, 并且比缓存行内发生的原子操作慢得多. 与拆分锁检测一样, 总线锁检测依赖于 CPU 能够在用户指令获取总线锁时通知内核的硬件特性 X86_FEATURE_BUS_LOCK_DETECT, 参见 [commit ebb1064e7c2e ("x86/cpufeatures: Enumerate #DB for bus lock detection](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ebb1064e7c2e90b56e4d40ab154ef9796060a1c3). 给定的 CPU 是否支持总线锁定检测将可以通过 `/proc/cpuinfo` 中 bus_lock_detect 标志.
+
+目前主流的缓解措施都是杀死有问题的进程, 但在某些情况下, 需要识别并限制有问题的应用程序. 因此 v5.14 [x86/bus_lock: Set rate limit for bus lock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d28397eaf4c27947a1ffc720d42e8b3a33ae1e2a) 为总线锁添加系统范围的速率限制. 当系统检测到总线锁速度高于 N/秒 (其中 N 可以由内核启动参数设置范围 (1...1000)), 就会让任何触发总线锁任务强制睡眠至少 20 ms, 直到整个系统总线锁率低于阈值.
+
+随后 Intel 工程师 Tony Luck 提出来更激进的方案, 试图减慢违规应用程序的速度, 以便开发人员有望解决这个问题. 通过强制用户空间对拆分锁进行顺序访问. 在解决问题的同时, 也确保了在这些条件下整体系统性能更好. 参见 [Linux 5.19 To "Make Life Miserable" In Slowing Down Bad Behaving Split-Lock Apps](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.19-Split-Lock).
+
+| 配置 | 描述 |
+|:---:|:----:|
+| off | 关闭 split_lock 检测. |
+| warn | 默认情况, 当发生拆分锁定和有问题的进程时, Linux 内核将通过 dmesg 发出警告. 参见 handle_user_split_lock(). |
+| fatal | 它将向应用程序发送致命的 SIGBUS 信号并杀死进程. |
+| ratelimit:N | 限制总线锁的速率在每秒 N 次以内. |
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/04/19 | Fenghua Yu <fenghua.yu@intel.com> | [x86/bus_lock: Set rate limit for bus lock](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Bus-Lock-Detection-2021) | 当原子指令跨越多个 cache line, 并且需要确保原子性所需的总线锁时, 就会发生拆分锁. 这些拆分锁至少比单个 cacheline 内的原子操作多需要 1000 个 cycles. 在锁定总线期间, 其他 CPU 或 BUS 代理要求控制 BUS 的请求被阻止, 阻止其他 CPU 的 BUS 访问, 加上配置总线锁定协议的开销不仅会降低一个 CPU 的性能, 还会降低整体系统性能. 除了拆分锁的性能影响之外, 利用该行为还可能导致无特权的拒绝服务漏洞. 现代英特尔 CPU 可以在处理拆分锁时生成对齐检查异常, 使用此技术这组补丁为内核实现了拆分锁检测(split_lock_detect), 以警告或杀死违规应用. 默认行为是警告有问题的用户空间应用程序, 而如果配置了 `split_lock_detect=fatal` 内核参数将杀死使用 SIGBUS 的应用程序. 参考 [phoronix1](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.7-Split-Lock-Detection), [phoronix2](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Split-Locks-Detection), [phoronix3](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Bus-Lock-Detection-2021) | v1 ☐ | [Patchwork 0/4](https://lore.kernel.org/all/20210419214958.4035512-1-fenghua.yu@intel.com) |
+| 2020/01/26 | Luck, Tony <tony.luck@intel.com> | [x86/split_lock: Enable split lock detection by kernel](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6650cdd9a8ccf00555dbbe743d58541ad8feb6a7) | 支持 拆分锁检测(split_lock_detect). | v17 ☑✓ v5.7-rc1| [LORE](https://lore.kernel.org/all/20200126200535.GB30377@agluck-desk2.amr.corp.intel.com) |
+| 2021/03/22 | Fenghua Yu <fenghua.yu@intel.com> | [x86/bus_lock: Enable bus lock detection](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ebca17707e38f2050b188d837bd4646b29a1b0c2) | 拆分锁检测支持 Bus Lock. 参见 [Intel's Bus Lock Detection Might Be Ready For The Mainline Linux Kernel](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Bus-Lock-Detection-2021) | v6 ☑✓ 5.13-rc1 | [LORE v6,0/3](https://lore.kernel.org/all/20210322135325.682257-1-fenghua.yu@intel.com) |
+| 2021/04/19 | Fenghua Yu <fenghua.yuintel.com> | [x86/bus_lock: Set rate limit for bus lock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d28397eaf4c27947a1ffc720d42e8b3a33ae1e2a) | 通过限制总线锁的速率而不是杀死进程来缓解拆分锁带来的问题. | v1 ☑✓ 5.14-rc1 | [Patchwork 0/4](https://lore.kernel.org/all/20210419214958.4035512-1-fenghua.yu@intel.com) |
+| 2022/03/10 | Tony Luck <tony.luck@intel.com> | [Make life miserable for split lockers](https://lore.kernel.org/all/20220310204854.31752-1-tony.luck@intel.com) | 通过强制用户空间对拆分锁进行顺序访问. 在解决问题的同时, 也确保了在这些条件下整体系统性能更好. 参见 [Linux 5.19 To "Make Life Miserable" In Slowing Down Bad Behaving Split-Lock Apps](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.19-Split-Lock). | v2 ☐☑✓ | [LORE v2,0/2](https://lore.kernel.org/all/20220310204854.31752-1-tony.luck@intel.com) |
+
+
+### 1.1.2 Sub-Page Write Protection
+-------
+
 | 2020/01/19 | Yu-cheng Yu <yu-cheng.yu@intel.com> | [Enable Sub-Page Write Protection Support](https://lwn.net/Articles/810033) | 基于 EPT 的子页写保护(SPP) 允许虚拟机监视器(VMM)以子页(128字节)粒度为客户物理内存指定写权限. 当 SPP 工作时, 硬件强制对受保护的 4KB 页面中的子页面进行写访问检查. 该特性的目标是为内存保护和虚拟机内省等使用提供细粒度的内存保护. 当"子页面写保护"(第23位)在 Secondary VM-Execution Controls 中为1时, SPP 被启用. 该特性支持子页权限表(SPPT), 子页权限向量存储在SPPT的叶条目中. 根页面是通过VMCS中的子页面权限表指针(SPPTP)引用的.<br>要为 guest 内存启用 SPP, guest 页面应该首先映射到一个 4KB 的 EPT 条目, 然后设置相应条目的 SPP 的 61bit. 当硬件遍历 EPT 时, 它使用 gpa 遍历 SPPT 以查找 SPPT 叶子条目中的子页面权限向量. 如果设置了对应位, 则允许写子页, 否则产生 SPP 触发的 EPT 冲突. | v30 ☐ | [Patchwork v30,00/32](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) |
 
 
@@ -655,9 +689,16 @@ Arm True Random Number Generator Firmware Interface 1.0 于去年发布, 最终�
 
 [Random number generator enhancements for Linux 5.17 and 5.18](https://www.zx2c4.com/projects/linux-rng-5.17-5.18)
 
+[Linux's RNG Code Continues Modernization Effort With v5.19](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.19-RNG)
+
+[Linux To Try To Opportunistically Initialize /dev/urandom](https://www.phoronix.com/scan.php?page=news_item&px=Linux-RNG-Opportunistic-urandom)
+
+[Linux's getrandom() Sees A 8450% Improvement With Latest Code](https://www.phoronix.com/scan.php?page=news_item&px=Linux-getrandom-8450p)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/11/21 | "Stephan Müller" <smueller@chronox.de> | [/dev/random - a new approach](https://lore.kernel.org/lkml/2036923.9o76ZdvQCi@positron.chronox.de) | 随机数实现改进. | v1 ☐ | [Patchwork v43 00/15](https://lore.kernel.org/lkml/2036923.9o76ZdvQCi@positron.chronox.de) |
+| 2022/02/23 | Jason A. Donenfeld <Jason@zx2c4.com> | [VM fork detection for RNG](https://lore.kernel.org/all/20220223220456.666193-1-Jason@zx2c4.com) | [Linux RNG Improvements Aim For Better VM Security](https://www.phoronix.com/scan.php?page=news_item&px=Linux-RNG-VM-Forks) | v2 ☐☑✓ | [LORE v2,0/2](https://lore.kernel.org/all/20220223220456.666193-1-Jason@zx2c4.com) |
 
 
 

@@ -615,6 +615,7 @@ CFS 用户反复在社区抱怨并行 kbuild 对桌面交互性有负面影响, 
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2010/01/05 | Paul Turner <pjt@google.com> | [CFS Hard limits - v5](https://lwn.net/Articles/368685) | 实现 CFS 组调度. | v5 ☐ | [LWN v5,0/8](https://lwn.net/Articles/368685) |
 | 2011/02/15 | Paul Turner <pjt@google.com> | [CFS Bandwidth Control: Introduction](https://lwn.net/Articles/428175) | 实现 CFS Bandwidth. | v7.2 ☑ 2.6.23 | [LWN](https://lore.kernel.org/all/20110721164325.231521704@google.com) |
+| 2022/05/18 | Fam Zheng <fam.zheng@bytedance.com> | [sched: Enable root level cgroup bandwidth control](https://lore.kernel.org/all/20220518100841.1497391-1-fam.zheng@bytedance.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220518100841.1497391-1-fam.zheng@bytedance.com) |
 
 这个 bandwidth controller 提供了两个参数来管理针对各个 cgroup 的限制.
 
@@ -632,8 +633,8 @@ CFS 用户反复在社区抱怨并行 kbuild 对桌面交互性有负面影响, 
 
 
 
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/09/06 | Rik van Riel <riel@surriel.com> | [sched,fair: flatten CPU controller runqueues](https://lore.kernel.org/lkml/20190906191237.27006-1-riel@surriel.com/) | 当前 CPU cgroup 的实现使用了分层的运行队列, 当一个任务被唤醒时, 它会被放到它所在组的运行队列中, 这个组也会被放到它上面的组的运行队列中, 以此类推.对于每秒进行大量唤醒的工作负载, 这将增加相当大的开销, 特别是在默认的 systemd 层次结构为 2 或 3 级的情况下. 这个补丁系列试图通过将所有任务放在相同层次的运行队列上, 并根据组的优先级来调整任务优先级, 从而减少这种开销. 组的优先级是周期性计算的.<br>后续版本还计划完成 CONFIG_CFS_BANDWIDTH 的重构:<br>1. 当一个 cgroup 被 throttle 时, 将该 cgroup 及其子组标记为 throttle.<br>2. 当 pick_next_entity 发现一个任务在一个 throttched cgroup 上, 将它隐藏在 cgroup 运行队列(它不再用于可运行的任务). 保持 vruntime 不变, 并调整运行队列的 vruntime 为最左边的任务的 vruntime.<br>3. 当一个 cgroup 被 unthrottle, 并且上面有任务时, 把它放在一个 vruntime 排序的堆上, 与主运行队列分开.<br>4. 让 pick_next_task_fair 在每次调用时从堆中抓取一个任务, 并且该堆的最小 vruntime 低于 CPU 的 cfs_rq 的 vruntime (或者 CPU 没有其他可运行的任务).<br>5. 将选中的任务放置在 CPU 的 cfs_rq 上, 将其 vruntime 与 GENTLE_FAIR_SLEEPERS 逻辑重新规范化. 这应该有助于将已经可运行的任务与最近未被限制的组交织在一起, 并防止严重的群体问题.<br>6. 如果组在所有的任务都有机会运行之前再次被节流, 那么 vruntime 排序将确保被节流的 cgroup 中的所有任务都有机会运行一段 | v9 ☑ 4.6-rc1 | [LKML v8,0/5](https://lore.kernel.org/all/1455871601-27484-1-git-send-email-wagi@monom.org) |
 
 
@@ -1540,6 +1541,7 @@ env->migration_type 和 env->imbalance 则记录了当前 Load Balancing 针对�
 
 *   BALANCE_FORK/WAKE 等路径下
 
+
 ```cpp
 select_task_rq_fair() -=> find_idlest_cpu()
     -=> group = find_idlest_group(sd, p, cpu);
@@ -1552,15 +1554,18 @@ select_task_rq_fair() -=> find_idlest_cpu()
 
 *   Load Balancing 路径下:
 
+
 ```cpp
 load_balance()
     -=> group = find_busiest_group(&env);
         -=> update_sd_lb_stats(env, &sds);
             -=> 遍历当前 SD 下所有的 sched_group
-                -=> update_sg_lb_stats(env, sds, sg, sgs, &sg_status);
+                -=> update_sg_lb_stats(env, sds, sg, sgs, &sg_status); // 更新 sched_group 的 struct sg_lb_stats
                     -=> sgs->group_type = group_classify(env->sd->imbalance_pct, group, sgs);
-        -=> calculate_imbalance(env, &sds);
+                -=> update_sd_pick_busiest(env, sds, sg, sgs);  // 如果当前 sched_group 比 sds->busiest 更繁忙, 则更新 busiest
+        -=> calculate_imbalance(env, &sds);                     // 根据 busiest_group 和 local_group 的 group_type, 设置 env->migration_type, 记录 env->imbalance
     -=> busiest = find_busiest_queue(&env, group);
+        -=> 遍历 sched_group 中的所有 CPU -=> 根据 env->migration_type 按照不同策略查找 busiest 的 CPU
     -=> cur_ld_moved = detach_tasks(&env);
     -=> attach_tasks(&env);
 ```
@@ -2905,7 +2910,7 @@ static inline long adjust_numa_imbalance(int imbalance,
 | 2020/11/20 | Mel Gorman <mgorman@techsingularity.net> | [Revisit NUMA imbalance tolerance and fork balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=23e6082a522e32232f7377540b4d42d8304253b8) | 解决一个负载平衡问题<br>之前解决 NUMA Balancing 和 Load Balancing 被调和时, 尝试允许在一定程度的不平衡, 但是也引入了诸多问题. 因此当时限制不平衡只允许在几乎空闲的 NUMA 域. 现在大多数问题都已经解决掉了, 现在[允许不平衡扩大一定的范围](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7d2b5dd0bcc48095651f1b85f751eef610b3e034). 同时该补丁还解决了 fork 时候 balance 的问题. 性能测试发现, 这个补丁可以提升约 1.5% unixbench 的跑分, 参见 [e7f28850ea:  unixbench.score 1.5% improvement](https://lore.kernel.org/lkml/20201122150415.GJ2390@xsang-OptiPlex-9020) | v3 ☑ 5.11-rc1 | [LORE RRC,0/3](https://lore.kernel.org/lkml/20201117134222.31482-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/all/20201120090630.3286-1-mgorman@techsingularity.net) |
 | 2021/12/01 | Mel Gorman <mgorman@techsingularity.net> | [Adjust NUMA imbalance for multiple LLCs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e496132ebedd870b67f1f6d2428f9bb9d7ae27fd) | [commit 7d2b5dd0bcc4 ("sched/numa: Allow a floating imbalance between NUMA nodes")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7d2b5dd0bcc4) 允许 NUMA 节点之间的不平衡, 这样通信任务不会被 load balance 分开. 当 LLC 和 node 之间有 1:1 的关系时, 这种方法可以很好地工作, 但是对于多个 LLC, 如果独立的任务过早地使用 CPU 共享缓存, 这种方法就不太理想了. 本系列解决了两个问题:<br>1. 调度程序域权重的使用不一致, 以及当每个 NUMA 节点有许多 LLC 时性能不佳. NUMA之间允许的不均衡的进程数目不再是一个固定的值 NUMA_IMBALANCE_MIN(2), 而是在 build_sched_domains() 中实际探测 NUMA 域下辖的 LLC 的数目, 作为 sd->imb_numa_nr. | v4 ☑✓ 5.18-rc1 | [PatchWork v3,0/2](https://lore.kernel.org/lkml/20211201151844.20488-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/2](https://lore.kernel.org/lkml/20211210093307.31701-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/2](https://lore.kernel.org/all/20220208094334.16379-1-mgorman@techsingularity.net) |
 | 2022/02/17 | K Prateek Nayak <kprateek.nayak@amd.com> | [sched/fair: Consider cpu affinity when allowing NUMA imbalance in find_idlest_group](https://lore.kernel.org/all/20220217055408.28151-1-kprateek.nayak@amd.com) | 当前的调度程序代码只是检查本地组中的任务数是否小于允许的 NUMA 不平衡阈值. 该阈值以前是 NUMA 域跨度的 25%), 但在 Mel 补丁集 "Adjust NUMA imbalance for multiple LLCs" 中 commit e496132ebedd ("sched/fair: Adjust the allowed NUMA imbalance when SD_NUMA spans multiple LLCs" 现在等于 NUMA 域中的 LLC 数目, 通常情况下这种机制运行良好.<br>但是对于进程都通过 numactl/taskset PIN 到一组分散的 CPU 上的情况(比如每个 LLC 域中选一个 CPU), 任务的数量将始终在阈值内, 因此所有 8 个流线程将在第一个 SOCKET 上唤醒, 从而导致次优性能. 在最初的少量 CPU 上堆积之后, 虽然负载平衡器可以工作, 但是稳定的均衡状态, 并且需要频繁的迁移 PING PONG.<br>我们可以通过检查本地组中允许的 CPU 数量是否少于本地组中运行的任务数量来检测并避免这种堆积, 并使用此信息将本来会堆积的县城分散到下一个 SOCKET 中(毕竟, 这个慢路径的目标是在初始放置期间找到最空闲的组和最空闲的 CPU).  | v4 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220217055408.28151-1-kprateek.nayak@amd.com) |
-| 2022/05/11 | Mel Gorman <mgorman@techsingularity.net> | [Mitigate inconsistent NUMA imbalance behaviour](https://lore.kernel.org/all/20220511143038.4620-1-mgorman@techsingularity.net) | [Linux Patches Aim To Mitigate An Inconsistent Performance / NUMA Imbalancing Issue](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Fix-Inconsistent-NUMA) | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20220511143038.4620-1-mgorman@techsingularity.net) |
+| 2022/05/11 | Mel Gorman <mgorman@techsingularity.net> | [Mitigate inconsistent NUMA imbalance behaviour](https://lore.kernel.org/all/20220511143038.4620-1-mgorman@techsingularity.net) | [Linux Patches Aim To Mitigate An Inconsistent Performance / NUMA Imbalancing Issue](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Fix-Inconsistent-NUMA) | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20220511143038.4620-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/lkml/20220520103519.1863-1-mgorman@techsingularity.net) |
 
 
 #### 4.6.4.4 NUMA Blancing VS BALANCE_WAKE 的决策分歧
@@ -3183,10 +3188,10 @@ v3.0 [commit 317f394160e9 ("sched: Move the second half of ttwu() to the remote 
 
 *   fairness problems on migration
 
-| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----------:|:---:|
+| 时间 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----------:|:---:|
 | 2016/05/11 | Peter Zijlstra <peterz@infradead.org> | [sched/fair: Fix fairness issue on migration](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2f950354e6d535b892f133d20bd6a8b09430424c) | TODO | v1 ☐☑✓ 4.7-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2f950354e6d535b892f133d20bd6a8b09430424c) |
-| 2022/05/13 | Tianchen Ding <dtcccc@linux.alibaba.com> | [sched: Queue task on wakelist in the same llc if the wakee cpu is idle](https://lore.kernel.org/all/20220513062427.2375743-1-dtcccc@linux.alibaba.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220513062427.2375743-1-dtcccc@linux.alibaba.com) |
+| 2022/05/13 | Tianchen Ding <dtcccc@linux.alibaba.com> | [sched: Queue task on wakelist in the same llc if the wakee cpu is idle](https://lore.kernel.org/all/20220513062427.2375743-1-dtcccc@linux.alibaba.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220513062427.2375743-1-dtcccc@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/lkml/20220527090544.527411-1-dtcccc@linux.alibaba.com) |
 | 2021/08/15 | Thomas Gleixner <tglx@linutronix.de> | [sched: Split out the wakeup state check](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=43295d73adc8d3780e9f34206663e336678aaff8) | [locking, sched: The PREEMPT-RT locking infrastructure](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=026659b9774e4c586baeb457557fcfc4e0ad144b) 的其中一个补丁. | v5 ☑✓ 5.15-rc1 | [LORE v5,03/72](https://lore.kernel.org/all/20210815211302.088945085@linutronix.de) |
 
 ### 4.7.1.3 lockless wake-queues
@@ -3434,7 +3439,7 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 | 2021/03/26 | Rik van Riel | [sched/fair: bring back select_idle_smt, but differently](https://lore.kernel.org/patchwork/patch/1402916) | Mel Gorman 上面的补丁在 9fe1f127b913("sched/fair: Merge select_idle_core/cpu()") 中做了一些出色的工作, 从而提高了内核查找空闲 CPU 的效率, 可以有效地降低任务等待运行的时间. 但是较多的均衡和迁移, 减少的局部性和相应的 L2 缓存丢失的增加会带来一些负面的效应. 这个补丁重新将 `select_idle_smt` 引入回来, 并做了优化, 修复了性能回归, 在搜索所有其他 CPU 之前, 检查 prev 的兄弟 CPU 是否空闲. | v2 ☑ v5.12-rc7 | [PatchWork](https://lore.kernel.org/patchwork/patch/1402916), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c722f35b513f807629603bbf24640b1a48be21b5) |
 | 2021/07/26 | Mel Gorman <mgorman@techsingularity.net> | [Modify and/or delete SIS_PROP](https://lore.kernel.org/patchwork/cover/1467090) | NA | RFC | [PatchWork RFC,0/9](https://lore.kernel.org/patchwork/cover/1467090) |
 | 2021/08/04 | Mel Gorman <mgorman@techsingularity.net> | [Reduce SIS scanning](https://lore.kernel.org/patchwork/cover/1472054) | 将 [Modify and/or delete SIS_PROP](https://lore.kernel.org/patchwork/cover/1467090) 拆开进行提交. | RFC ☐ | [PatchWork 0/2](https://lore.kernel.org/patchwork/cover/1472054) |
-| 2022/05/05 | Abel Wu <wuyun.abel@bytedance.com> | [sched/fair: filter out overloaded cpus in SIS](https://lore.kernel.org/all/20220505122331.42696-1-wuyun.abel@bytedance.com) | [introduce sched-idle balancing](https://lore.kernel.org/all/20220217154403.6497-1-wuyun.abel@bytedance.com) 的其中一个补丁, v3 之后单独发到社区. | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220505122331.42696-1-wuyun.abel@bytedance.com) |
+| 2022/05/05 | Abel Wu <wuyun.abel@bytedance.com> | [sched/fair: filter out overloaded cpus in SIS](https://lore.kernel.org/all/20220505122331.42696-1-wuyun.abel@bytedance.com) | [introduce sched-idle balancing](https://lore.kernel.org/all/20220217154403.6497-1-wuyun.abel@bytedance.com) 的其中一个补丁, v3 之后单独发到社区. | v3 ☐☑✓ | [LORE v3](https://lore.kernel.org/all/20220505122331.42696-1-wuyun.abel@bytedance.com) |
 
 
 *   SIS_PROP to search idle CPU based on sum of util_avg
@@ -3462,6 +3467,14 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:----:|:---:|:----------:|:---:|
 | 2021/06/15 | Peter Zijlstra | [sched/fair: Age the average idle time](https://lore.kernel.org/patchwork/patch/1446838) | Peter Zijlstra [RFC select_idle_sibling rework 00/11](https://lore.kernel.org/lkml/20180530143105.977759909@infradead.org) 的其中[一个补丁](https://lore.kernel.org/lkml/20180530142236.667774973@infradead.org), 被 Mel Gorman 重写后合入主线.<br>当前, select_idle_cpu() 中限制 CPU 遍历层数的比例方案借用的是 CPU 平均空闲等待时间 rq->avg_idle, 这在时间上是有挑战的. 当 CPU 完全不空闲时, rq->avg_idle 将不具代表性. 为了解决这个问题, 引入一个单独的平均空闲时间 wake_avg_idle 并对它进行定期的老化.<br>1. 总的目标是不要花比 CPU 空闲时间更多的时间来扫描空闲 CPU. 否则性能不会有任何改观. 这意味着我们需要考虑连续空闲期间所有唤醒的成本. 为了跟踪这一点, 扫描成本从估计的平均空闲时间中减去.<br>2. 这个补丁的影响与具有完全繁忙或过载域的工作负载有关. 如果没有补丁, 可能会由于 CPU 未达到空闲状态, 导致扫描深度过高. 当域几乎完全繁忙或过载时, 这个补丁则有明显作用, 此时搜索可能会失败, 但空闲不会老化, 因为 cpu 处于活动状态, 所以搜索深度太大而无用. 当有空闲 cpu 时, 它可能会显示回归, 而深度搜索是有益的. 这个 tbench 结果在一个 2 插槽宽井机部分说明了这个问题. | v1 ☑ v5.13-rc6 | [LORE v2](https://lore.kernel.org/all/20210615111611.GH30378@techsingularity.net), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=94aafc3ee31dc199d1078ffac9edd976b7f47b3d) |
+
+### 5.3.6 分级搜索
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2020/07/28 | Xi Wang <xii@google.com> | [sched: Make select_idle_sibling search domain configurable](https://lore.kernel.org/all/20200728070131.1629670-1-xii@google.com) | select_idle_sibling() 空闲 CPU 搜索的范围是 LLC 域. 这对于 AMD 的 CCX 架构来说是一个问题, 因为 sd_llc 只有 4 个核. 在多核机器上, 搜索范围太小, 无法达到令人满意的统计复用/有效利用短空闲时间片的水平. 、这个补丁, 空闲的兄弟搜索就可以从 LLC 中分离出来, 并且可以在运行时进行配置. 为了减少搜索和迁移开销, 添加了一个预搜索域(presearch domain). 在对"主搜索域(main search)"搜索之前, 会先在预搜索域内进行搜索, 例如: sysctl_sched_wake_idle_domain == 2 ("MC" 域, 即 LLC), sysctl_sched_wake_idle_presearch_domain == 1 ("DIE" 域), Presearch 将遍历一个 MC 域的 4 个核心. 如果在预搜索过程中没有找到空闲的 CPU, 则全搜索将遍历 DIE 域内 CPU的剩余内核. 包括 sd->avg_scan_cost 和 sds->have_idle_cores 在内的启发式算法只在主搜索时有效. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20200728070131.1629670-1-xii@google.com) |
+
 
 
 ## 5.5 cluster_scheduler
@@ -3531,7 +3544,7 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 | CFS | 进程所允许运行的所有 CPU 的集合. |
 
 
-其主体目标和之前的 [Soft Affinity](https://blogs.oracle.com/linux/post/soft-affinity-when-hard-partitioning-is-too-much) 有点类似, 甚至可以结合起来工作.
+其主体目标和之前的 [Soft Affinity](https://blogs.oracle.com/linux/post/soft-affinity-when-hard-partitioning-is-too-much) 有点类似, 甚至可以结合起来工作. 思路又类似于 [sched: Make select_idle_sibling search domain configurable](https://lore.kernel.org/all/20200728070131.1629670-1-xii@google.com) 分级搜索的思想.
 
 通过将进程集保持在一组 WARM 的 CPU 集合上, 从而让 CPU 理论用更高, 这些 CPU 可以在高频(甚至超频运行), 而其他的 CPU 可以整体处于低功耗状态, 从而整体吞吐量更高, 功耗更低. 而当系统整体负载又很大的情况下, 又可以把其他空闲的 CPU 冲突利用起来. 整体通过对 CPU (按照冷热)分级的来完成, 优先使用 WARM 的 CPU. 会通过系统整体的负载来调整各个 Nest 分级的 CPU 范围.
 
