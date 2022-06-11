@@ -445,6 +445,9 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | 2019/04/18 | Mark Brown <broonie@kernel.org> | [KVM: arm64: SVE cleanups](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1555603631-8107-1-git-send-email-Dave.Martin@arm.com) | KVM guest SVE 指令的支持. | v2 ☑ 5.2-rc1 | [Patchwork v2,00/14](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1555603631-8107-1-git-send-email-Dave.Martin@arm.com) |
 | 2019/04/18 | Mark Brown <broonie@kernel.org> | [arm64: Expose SVE2 features for userspace](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1555609298-10498-1-git-send-email-Dave.Martin@arm.com) | 支持向用户空间报告 SVE2 的存在及其可选功能. 同时为 KVM 虚拟化 guest 提供了 SVE2 的可见性. | v2 ☑ 5.2-rc1 | [Patchwork v2,00/14](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1555609298-10498-1-git-send-email-Dave.Martin@arm.com) |
 
+2022 年 6 月, Arm 工程师 Wilco Dijkstra 为 Glibc 提供了 SVE 优化的 memcpy 实现, 超过 32 字节的 memcpy 使用 SVE 实现, 这显着改善了随机 memcpy 测试的性能. 参见 [glibc-commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=9f298bfe1f183804bb54b54ff9071afc0494906c), 以及 phoronix 报道--[Glibc Adds Arm SVE-Optimized Memory Copy - Can "Significantly" Help Performance](https://www.phoronix.com/scan.php?page=news_item&px=Glibc-Arm-SVE-Memcpy-Optimize).
+
+
 
 ### 2.3.3 SME
 -------
@@ -705,6 +708,9 @@ Arm True Random Number Generator Firmware Interface 1.0 于去年发布, 最终�
 ## 6.3 总线
 -------
 
+### 6.3.1 Compute Express Link
+-------
+
 FireBox: Warehouse-Scale Computers
 [FireBox: A Hardware Building Block for 2020 Warehouse-Scale Computers](https://www.usenix.org/conference/fast14/technical-sessions/presentation/keynote)
 
@@ -727,10 +733,28 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 
 [Dbus-Broker 30 Released For High Performance Linux Message Bus](https://www.phoronix.com/scan.php?page=news_item&px=Dbus-Broker-30), [bus1/dbus-broker](https://github.com/bus1/dbus-broker)
 
+
+### 6.3.2 CXL
+-------
+
+[phoronix 上关于 CXL(Compute Express Link) 的所有相关报道](https://www.phoronix.com/scan.php?page=search&q=Compute%20Express%20Link)
+
+
+英特尔工程师 Ben Widawsky 已经开始发布一个关于 Linux 上 CXL 的博客文章系列, 参见 [Compute Express Link Overview](https://bwidawsk.net/blog/2022/6/compute-express-link-intro)
+
+[公众号-半导体行业观察-越来越热的 CXL](https://mp.weixin.qq.com/s/sB2bmFcEaYsH1Jg19E0-eg)
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/02/16 | Ben Widawsky <ben.widawsky@intel.com> | [CXL 2.0 Support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=68a5a9a243354ed52f7b37b057bd5e98cba870c8) | TODO | v5 ☐☑✓ | [LORE v3,00/16](https://lore.kernel.org/lkml/20210111225121.820014-1-ben.widawsky@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/9](https://lore.kernel.org/all/20210217040958.1354670-1-ben.widawsky@intel.com) |
+
+
 ## 6.4 CPU IDLE(C-state)
 -------
 
 [AMD Updates Linux Patches For Lowering Idle Exit Latency](https://www.phoronix.com/scan.php?page=news_item&px=AMD-Prefer-MWAIT-v3)
+
+[Linux 5.20 With AMD Zen Will Prefer MWAIT Over HALT As An HPC Optimization](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.20-AMD-MWAIT)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -760,6 +784,13 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/04/29 | Chen Zhongjin <chenzhongjin@huawei.com> | [objtool: add base support for arm64](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20220429094355.122389-1-chenzhongjin@huawei.com/) | 636883 | v4 ☐☑ | [LORE v4,0/37](https://lore.kernel.org/r/20220429094355.122389-1-chenzhongjin@huawei.com) |
 
+
+## 6.7 指令转译
+-------
+
+Rosetta 是一个转译过程, 允许用户在 Apple Silicon 上运行包含 x86_64 指令的应用程序。在 macOS 中, 这允许为基于英特尔的 Mac 电脑构建的应用程序在 Apple Silicon 上无缝运行; Rosetta 可以在 ARM Linux 虚拟机中为英特尔 Linux 应用程序提供同样的功能.
+
+[macOS 13 Adding Ability To Use Rosetta In ARM Linux VMs For Speedy x86_64 Linux Binaries](https://www.phoronix.com/scan.php?page=news_item&px=macOS-13-Rosetta-Linux-Binaries)
 
 <br>
 

@@ -117,10 +117,14 @@ GCC 的支持 eBPF 经过了 3 个阶段.
 # 3 BPF Core
 -------
 
+## 3.1 eBPF support
+-------
+
 v3.15 对 BPF 进行了升级扩展, 参见 [BPF updates](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9a985cdc5ccb0d557720221d01bd70c19f04bb8c).
 
-eBPF 已经是一个独立的模块了, 因此后来 v3.18 直接将 eBPF 从 NET 子系统中分离出来. 参见 [bpf: split eBPF out of NET](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f89b7755f517cdbb755d7543eef986ee9d54e654).
+eBPF 已经是一个独立的模块了, 因此后来 3.18 直接将 eBPF 从 NET 子系统中分离出来. 参见 [bpf: split eBPF out of NET](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f89b7755f517cdbb755d7543eef986ee9d54e654).
 
+[BPF 数据传递的桥梁 ——BPF Map（一）](https://blog.csdn.net/alex_yangchuansheng/article/details/108332511)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -150,6 +154,147 @@ v3.19 支持了 MAP, [BPF maps](https://git.kernel.org/pub/scm/linux/kernel/git/
 | 2021/03/31 | Cong Wang <xiyou.wangcong@gmail.com> | [bpf: introduce bpf timer](https://lore.kernel.org/all/20210401042635.19768-1-xiyou.wangcong@gmail.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20210401042635.19768-1-xiyou.wangcong@gmail.com) |
 | 2021/11/02 | Joe Burton <jevburton.kernel@gmail.com> | [Introduce BPF map tracing capability](https://lore.kernel.org/all/20211102021432.2807760-1-jevburton.kernel@gmail.com) | TODO | v3 ☐☑✓ | [LORE v3,0/3](https://lore.kernel.org/all/20211102021432.2807760-1-jevburton.kernel@gmail.com) |
 | 2022/05/18 | Benjamin Tissoires <benjamin.tissoires@redhat.com> | [Introduce eBPF support for HID devices](https://lore.kernel.org/all/20220518205924.399291-1-benjamin.tissoires@redhat.com) | TODO | v5 ☐☑✓ | [LORE v5,0/17](https://lore.kernel.org/all/20220518205924.399291-1-benjamin.tissoires@redhat.com) |
+
+
+## 3.2 BPF_CMD
+-------
+
+[commit 3007098494be ("cgroup: add support for eBPF programs")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3007098494bec614fb55dee7bc0410bb7db5ad18)
+
+
+[commit f4324551489e ("bpf: add BPF_PROG_ATTACH and BPF_PROG_DETACH commands")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f4324551489e8781d838f941b7aee4208e52e8bf)
+
+## 3.3 BPF_PROG_TYPE AND BPF_ATTACH_TYPE
+-------
+
+```cpp
+git grep -W 'bpf_prog_type {' include/uapi/linux/bpf.h
+```
+
+[BPF 程序类型及其原理s](https://blog.csdn.net/weixin_41036447/article/details/107817340)
+
+### 3.3.1 SOCKET
+-------
+
+
+| enum bpf_prog_type | VERSION | COMMIT |
+|:------------------:|:-------:|:------:|
+| BPF_PROG_TYPE_SOCKET_FILTER |
+
+
+| enum bpf_prog_type | enum bpf_attach_type | VERSION | COMMIT |
+|:------------------:|:--------------------:|:-------:|:------:|
+| BPF_PROG_TYPE_SOCKET_FILTER | NA | v3.19 | [allow eBPF programs to be attached to sockets](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fbe3310840c65f3cf97dd90d23e177d061c376f2) |
+| BPF_PROG_TYPE_CGROUP_SKB | BPF_CGROUP_INET_INGRESS<br>BPF_CGROUP_INET_EGRESS | v4.10 | [bpf: add new prog type for cgroup socket filtering](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0e33661de493db325435d565a4a722120ae4cbf3) |
+| BPF_PROG_TYPE_CGROUP_SOCK | BPF_CGROUP_INET_SOCK_CREATE | v4.10 | [bpf: Add new cgroup attach type to enable sock modifications](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=61023658760032e97869b07d54be9681d2529e77) |
+| BPF_PROG_TYPE_CGROUP_SOCK_ADDR | BPF_CGROUP_INET4_BIND<br>BPF_CGROUP_INET6_BIND | v4.17 | [bpf: Hooks for sys_bind](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4fbac77d2d092b475dda9eea66da674369665427) |
+| BPF_PROG_TYPE_CGROUP_SOCK_ADDR | BPF_CGROUP_INET4_CONNECT<br>BPF_CGROUP_INET4_CONNECT | v4.17 | [bpf: Hooks for sys_connect](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d74bad4e74ee373787a9ae24197c17b7cdc428d5) |
+| BPF_PROG_TYPE_CGROUP_SOCK | BPF_CGROUP_INET4_POST_BIND<br>BPF_CGROUP_INET6_POST_BIND | v4.17 | [bpf: Post-hooks for sys_bind](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=aac3fc320d9404f2665a8b1249dc3170d5fa3caf) |
+| BPF_PROG_TYPE_CGROUP_SOCK_ADDR | BPF_CGROUP_UDP4_SENDMSG<br>BPF_CGROUP_UDP6_SENDMSG | v4.18 | [bpf: Hooks for sys_sendmsg](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1cedee13d25ab118d325f95588c1a084e9317229) |
+| BPF_PROG_TYPE_CGROUP_SOCK_ADDR | BPF_CGROUP_UDP4_RECVMSG<br>BPF_CGROUP_UDP6_RECVMSG | v5.6 | [bpf: fix unconnected udp hooks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=983695fa676568fc0fe5ddd995c7267aabc24632) |
+| BPF_PROG_TYPE_CGROUP_SOCK_ADDR | BPF_CGROUP_INET4_GETPEERNAME<br>BPF_CGROUP_INET6_GETPEERNAME<br>BPF_CGROUP_INET4_GETSOCKNAME<br>BPF_CGROUP_INET6_GETSOCKNAME | v5.8 | [bpf: Add get{peer, sock}name attach types for sock_addr](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1b66d253610c7f8f257103808a9460223a087469) |
+| BPF_PROG_TYPE_CGROUP_SOCK | BPF_CGROUP_INET_SOCK_RELEASE | v5.9 | [bpf: Add BPF_CGROUP_INET_SOCK_RELEASE hook](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f5836749c9c04a10decd2742845ad4870965fdef) |
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2014/11/26 | Alexei Starovoitov <ast@plumgrid.com> | [allow eBPF programs to be attached to sockets](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fbe3310840c65f3cf97dd90d23e177d061c376f2) | 引入可以通过 setsockopt() 附加到套接字的 BPF_PROG_TYPE_SOCKET_FILTER 类型的 eBPF 程序. 允许这些程序通过查找/更新/删除助手访问 MAPs.  | v1 ☑✓ 3.19-rc1 | [LORE v1,0/6](https://lore.kernel.org/all/1417066951-1999-1-git-send-email-ast@plumgrid.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/6](https://lore.kernel.org/lkml/1417475199-15950-1-git-send-email-ast@plumgrid.com) |
+| 2016/11/23 | Daniel Mack <daniel@zonque.org> | [Add eBPF hooks for cgroups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d8c5b17f2bc0de09fbbfa14d90e8168163a579e7) | TODO | v9 ☑✓ 4.10-rc1 | [LORE v9,0/6](https://lore.kernel.org/all/1479916350-28462-1-git-send-email-daniel@zonque.org) |
+| 2016/12/01 | David Ahern <dsa@cumulusnetworks.com> | [net: Add bpf support for sockets](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=554ae6e792ef38020b80b4d5127c51d510c0918f) | eBPF 程序支持 attach 到 | v7 ☑✓ 4.10-rc1 | [LORE v7,0/6](https://lore.kernel.org/all/1480610888-31082-1-git-send-email-dsa@cumulusnetworks.com) |
+| 2018/03/13 | Alexei Starovoitov <ast@kernel.org> | [bpf: introduce cgroup-bpf bind, connect, post-bind hooks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=aac3fc320d9404f2665a8b1249dc3170d5fa3caf) | eBPF 程序支持 attach 到 syscal bind 和 conntect. | v1 ☑✓ 4.17-rc1 | [LORE v1,0/6](https://lore.kernel.org/all/20180314033934.3502167-1-ast@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/9](https://lore.kernel.org/netdev/20180328034140.291484-1-ast@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v3](https://lore.kernel.org/netdev/20180330220808.763556-1-ast@kernel.org) |
+| 2018/05/25 | Andrey Ignatov <rdna@fb.com> | [bpf: Hooks for sys_sendmsg](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=04b6ab731209eac1e130fa00281a29278eca2f57) | eBPF 程序支持附加到 sendmsg SYSCALL. | v4 ☑✓ 4.18-rc1 | [LORE v4,0/6](https://lore.kernel.org/all/cover.1527263217.git.rdna@fb.com) |
+| 2019/06/07 | Daniel Borkmann <daniel@iogearbox.net> | [Fix unconnected bpf cgroup hooks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b714560f7b38de9f03b8670890ba130d4cc5604e) | eBPF 程序支持附加到 recvmsg SYSCALL. | v3 ☑✓ 5.2-rc6 | [LORE v3,0/6](https://lore.kernel.org/all/20190606234902.4300-1-daniel@iogearbox.net) |
+| 2020/05/19 | Daniel Borkmann <daniel@iogearbox.net> | [Add get{peer,sock}name cgroup attach types](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=566fc3f5d1c641b510ec487cf274a047f8a1e849) | 为 BPF sock_addr 程序添加 get {peer,sock} name cgroup 类型, 以便从两个调用以及 libbpf 和 bpftool 支持以及自检中重写 sockaddr structs. | v2 ☑✓ 5.8-rc1 | [LORE v2,0/4](https://lore.kernel.org/all/cover.1589841594.git.daniel@iogearbox.net) |
+| 2020/07/06 | Stanislav Fomichev <sdf@google.com> | [bpf: add BPF_CGROUP_INET_SOCK_RELEASE hook](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=65ffd797861a44ff97081de1db01e4aef716ed46) | 添加 BPF_CGROUP_INET_SOCK_RELEASE. | v4 ☑✓ 5.9-rc1 | [LORE v4,0/4](https://lore.kernel.org/all/20200706230128.4073544-1-sdf@google.com) |
+
+### 3.3.2 CGROUP
+-------
+
+
+[commit 3007098494be ("cgroup: add support for eBPF programs")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3007098494bec614fb55dee7bc0410bb7db5ad18)
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:---:|:----------:|:----:|
+| 2016/11/23 | Daniel Mack <daniel@zonque.org> | [Add eBPF hooks for cgroups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d8c5b17f2bc0de09fbbfa14d90e8168163a579e7) | TODO | v9 ☑✓ 4.10-rc1 | [LORE v9,0/6](https://lore.kernel.org/all/1479916350-28462-1-git-send-email-daniel@zonque.org) |
+
+
+### 3.3.3 BPF_PROG_TYPE_KPROBE
+-------
+
+| enum bpf_prog_type | enum bpf_attach_type | VERSION | COMMIT |
+|:------------------:|:--------------------:|:-------:|:------:|
+| BPF_PROG_TYPE_KPROBE | NA | v4.1 | [commit 2541517c32be ("tracing, perf: Implement BPF programs attached to kprobes")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2541517c32be2531e0da59dfd7efc1ce844644f5) |
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2015/03/25 | Alexei Starovoitov <ast@plumgrid.com> | [tracing: attach eBPF programs to kprobes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9811e35359d4b18baf5bb603b225e957255b9c46) | NA | v11 ☑ 4.1-rc1 | [PatchWork v11 0/9](https://lore.kernel.org/lkml/1427312966-8434-1-git-send-email-ast@plumgrid.com) |
+
+
+### 3.3.4 Traffic Control Subsystem
+-------
+
+[eBPF: Traffic Control Subsystem](https://blog.csdn.net/weixin_43705457/article/details/123388130)
+
+[eBPF 的发展历史和核心设计](https://blog.csdn.net/alex_yangchuansheng/article/details/114558126)
+
+[linux-next: manual merge of the tip tree with the net-next tree](https://lore.kernel.org/lkml/20150407171148.7a41ee90@canb.auug.org.au)
+
+| enum bpf_prog_type | enum bpf_attach_type | VERSION | COMMIT |
+|:------------------:|:--------------------:|:-------:|:------:|
+| BPF_PROG_TYPE_SCHED_CLS | NA | v4.1 | [ebpf: add sched_cls_type and map it to sk_filter's verifier ops](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=96be4325f443dbbfeb37d2a157675ac0736531a1) |
+| BPF_PROG_TYPE_SCHED_ACT | NA | v4.1 | [ebpf: add sched_act_type and map it to sk_filter's verifier ops](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=96be4325f443dbbfeb37d2a157675ac0736531a1) |
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2015/02/27 | Daniel Borkmann <daniel@iogearbox.net> | [eBPF support for cls_bpf](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e2e9b6541dd4b31848079da80fe2253daaafb549) | TODO | v1 ☑✓ 4.1-rc1 | [LORE v1,0/10](https://lore.kernel.org/all/cover.1425040939.git.daniel@iogearbox.net) |
+
+
+### 3.3.5 tracepoint
+-------
+
+#### 3.3.5.1 tracepoint
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/04/07 | Alexei Starovoitov <ast@fb.com> | [allow bpf attach to tracepoints](https://lore.kernel.org/patchwork/cover/665728) | BPF 支持 tracepoint 跟踪 | v2 ☑ 4.7-rc1 | [PatchWork v2 00/10](https://lore.kernel.org/patchwork/cover/665728) |
+
+#### 3.3.5.2 raw tracepoint
+-------
+
+raw_tracepoint 相比 tracepoint
+
+1.  效率更高, 跳过了参数的处理, 不必向 tracepoint 那样根据 format 解析了所有字段, 节约了不必要的开销.
+
+2.  自由度更大, 提供了对参数的原始访问, 可以直接操作传入 tracepoint 时的指针, 获取某个成员.
+
+3.  可以获得原始结构体指针. 用于做 key 比较方便, tracepoint 只能拿到里面的各个字段, 有些时候没法做 key.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/02/28 | Alexei Starovoitov <ast@kernel.org> | [bpf, tracing: introduce bpf raw tracepoints](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4662a4e53890badf4da17e441606a2885f29d56d) | BPF 支持 raw tracepoint 跟踪, 提供了对 tracepoint 参数的访问. | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20180301041957.399230-1-ast@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v4,00/10](https://lore.kernel.org/all/20180323003907.3113756-1-ast@fb.com) |
+| 2018/12/13 | Matt Mullins <mmullins@fb.com> | [bpf: support raw tracepoints in modules](https://lore.kernel.org/patchwork/cover/1024475) | NA | v2 ☑ 5.0-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1024475) |
+| 2019/04/26 | Matt Mullins <mmullins@fb.com> | [writable contexts for bpf raw tracepoints](https://lore.kernel.org/patchwork/cover/1067299) | 引入 BPF_PROG_TYPE_RAW_TRACEPOINT_WRITABLE, 允许 bpfs 程序修改 tracepoint 中的变量. | v5 ☑ 4.17-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/cover/1067299) |
+
+
+## 3.4 Helper Function
+-------
+
+| enum bpf_func_id | VERSION | COMMIT |
+|:----------------:|:-------:|:------:|
+| NA | NA | NA |
+
+
+| 2016/10/27 | Thomas Graf <tgraf@suug.ch> | [bpf: Print function name in addition to function id](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ebb676daa1a340ccef25eb769aefc09b79c01f8a) | TODO | v1 ☐☑✓ 4.10-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ebb676daa1a340ccef25eb769aefc09b79c01f8a) |
+| 2018/04/25 | Quentin Monnet <quentin.monnet@netronome.com> | [bpf: add documentation for eBPF helpers](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9cde0c8892b9bba07b27f2317d8d02707dc6ff92) | 提供 `scripts/bpf_helpers_doc.py` 脚本根据 `include/uapi/linux/bpf.h` 生成文档 `bpf-helpers.rst`. | v1 ☑✓ 4.18-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9cde0c8892b9) |
+| 2022/05/29 | Lorenzo Bianconi <lorenzo@kernel.org> | [introduce support for XDP programs in CPUMAP](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cover.1594734381.git.lorenzo@kernel.org) | TODO | v ☐☑✓ | [LORE v7,0/9](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cover.1594734381.git.lorenzo@kernel.org) |
+| 2022/05/29 | Tycho Andersen <tycho.andersen@canonical.com> | [c/r of seccomp filters via underlying eBPF](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1441382664-17437-1-git-send-email-tycho.andersen@canonical.com) | TODO | v ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1441382664-17437-1-git-send-email-tycho.andersen@canonical.com) |
+
 
 
 ### 3.1.1 dump kernel data
@@ -198,9 +343,6 @@ v3.19 支持了 MAP, [BPF maps](https://git.kernel.org/pub/scm/linux/kernel/git/
 
 
 
-
-
-
 ## 3.5 JIT
 -------
 
@@ -217,46 +359,6 @@ v3.19 支持了 MAP, [BPF maps](https://git.kernel.org/pub/scm/linux/kernel/git/
 [The BPF allocator runs into trouble](https://lwn.net/Articles/892743)
 
 [Toward signed BPF programs](https://lwn.net/Articles/853489)
-
-
-# 4 维测场景
--------
-
-## 4.1 kprobe
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2015/03/25 | Alexei Starovoitov <ast@plumgrid.com> | [tracing: attach eBPF programs to kprobes](https://lore.kernel.org/patchwork/cover/555274) | NA | v11 ☑ 4.1-rc1 | [PatchWork v11 0/9](https://lore.kernel.org/patchwork/cover/555274) |
-
-## 4.2 tracepoint
--------
-
-### 4.2.1 tracepoint
--------
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2016/04/07 | Alexei Starovoitov <ast@fb.com> | [allow bpf attach to tracepoints](https://lore.kernel.org/patchwork/cover/665728) | BPF 支持 tracepoint 跟踪 | v2 ☑ 4.7-rc1 | [PatchWork v2 00/10](https://lore.kernel.org/patchwork/cover/665728) |
-
-### 4.2.2 raw tracepoint
--------
-
-raw_tracepoint 相比 tracepoint
-
-1.  效率更高, 跳过了参数的处理, 不必向 tracepoint 那样根据 format 解析了所有字段, 节约了不必要的开销.
-
-2.  自由度更大, 提供了对参数的原始访问, 可以直接操作传入 tracepoint 时的指针, 获取某个成员.
-
-3.  可以获得原始结构体指针. 用于做 key 比较方便, tracepoint 只能拿到里面的各个字段, 有些时候没法做 key.
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2018/03/01 | Jan H. Schönherr | [bpf, tracing: introduce bpf raw tracepoints](https://lore.kernel.org/patchwork/cover/879278) | BPF 支持 raw tracepoint 跟踪, 提供了对 tracepoint 参数的访问. | v1 ☑ 4.17-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/879278) |
-| 2018/12/13 | Matt Mullins <mmullins@fb.com> | [bpf: support raw tracepoints in modules](https://lore.kernel.org/patchwork/cover/1024475) | NA | v2 ☑ 5.0-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1024475) |
-| 2019/04/26 | Matt Mullins <mmullins@fb.com> | [writable contexts for bpf raw tracepoints](https://lore.kernel.org/patchwork/cover/1067299) | 引入 BPF_PROG_TYPE_RAW_TRACEPOINT_WRITABLE, 允许 bpfs 程序修改 tracepoint 中的变量. | v5 ☑ 4.17-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/cover/1067299) |
 
 
 # 5 网络场景

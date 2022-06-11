@@ -459,6 +459,17 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 | 2012/06/17 | Roman Zippel <zippel@linux-m68k.org> | [[ANNOUNCE/RFC] Really Fair Scheduler](https://lore.kernel.org/all/Pine.LNX.4.64.0708310139280.1817@scrub.home) | NA | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/Pine.LNX.4.64.0708310139280.1817@scrub.home) |
 
 
+ARCHLINUX 的开发者 [hamadmarri](https://github.com/hamadmarri) 为 linux 开发和移植了很多调度器, 并开源在了其 github.
+
+| 调度器 | 描述 |
+|:-----:|:----:|
+| [CacULE CPU Scheduler](https://github.com/hamadmarri/cacule-cpu-scheduler) | 是基于交互性评分机制的 CFS 补丁集. 交互性分数的灵感来自FreeBSD 的 ULE 调度器, 可以增强系统响应能力/延迟. |
+| [Task Type(TT) CPU Scheduler](https://github.com/hamadmarri/TT-CPU-Scheduler) | 根据任务的行为检测并识别任务类型, 并根据其类型控制调度. 基于任务类型的好处是允许调度程序进行更多控制, 并选择接下来在 CPU 中运行的最佳任务. 当前有5种类型: 实时(REALTIME), 交互(INTERACTIVE), 无类型(NO_TYPE), 计算密集型(CPU_BOUND), 批处理(BATCH). |
+| [Baby-CPU-Scheduler](https://github.com/hamadmarri/Baby-CPU-Scheduler) | 一个非常基本, 轻量级但性能非常高的调度程序. 可以将其用作 Linux 上的基本调度程序进行学习 |
+
+ARCHLINUX 的开发者 ptr1337, 同样移植了 [CacULE Scheduler](https://github.com/ptr1337/linux-cacule), [CachyOS/linux-cachyos](https://github.com/CachyOS/linux-cachyos).
+
+
 ## 1.5 调度类的一些其他优化点
 -------
 
@@ -4934,6 +4945,8 @@ ECRTS 2020(32nd Euromicro Conference on Real-Time Systems) 上 Daniel 等人发�
 -------
 
 #### 12.4.3.1 System76 Scheduler
+-------
+
 [System76 Scheduler](https://github.com/pop-os/system76-scheduler) 是 POP-OS 上实现的优化 Linux 的 CPU 调度程序的服务, 他通过自动分配进程优先级等方式, 以提高桌面响应能力. 这些操作跟终端上的优化很像:
 
 1.  当笔记本插上电源时, 将自动激活低延迟 CPU 调度(性能模式), 但是在使用电池时只设置默认调度延迟(能效模式).
@@ -4945,6 +4958,11 @@ ECRTS 2020(32nd Euromicro Conference on Real-Time Systems) 上 Daniel 等人发�
 [System76 Scheduler v1.0 发布](https://www.phoronix.com/scan.php?page=news_item&px=System76-Scheduler-1.0)
 
 [System76 Scheduler v1.1 发布](https://www.phoronix.com/scan.php?page=news_item&px=System76-Scheduler-1.1)
+
+#### 12.4.3.2 Ananicy
+-------
+
+[Nefelim4ag/Ananicy](https://github.com/Nefelim4ag/Ananicy) 用于管理进程的 IO 和 CPU 优先级, 它主要用于桌面使用. 它的 github 允许开发人员贡献主流应用程序规则集.
 
 **引用: **
 

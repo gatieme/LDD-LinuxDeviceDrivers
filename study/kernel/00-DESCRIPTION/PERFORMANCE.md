@@ -68,7 +68,14 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 2019/10/22 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: Fix rework of find_idlest_group()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3318544b721d3072fdd1f85ee0f1f214c0b211ee) | TODO | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3318544b721d3072fdd1f85ee0f1f214c0b211ee) |
 
 
-# 2 网络
+# 2 内存
+-------
+
+[commit ff042f4a9b05 ("mm: lru_cache_disable: replace work queue synchronization with synchronize_rcu")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ff042f4a9b050895a42cae893cc01fa2ca81b95c) 引起了 NUMA 系统 stress-ng 的性能回归, 被 phoronix 测试并报告, 参见 [Poking At A Big NUMA Benchmark Regression In Linux 5.18 Git](https://www.phoronix.com/scan.php?page=news_item&px=Linux-518-Stress-NUMA-Goes-Boom) 以及社区报告邮件 [Re: [patch v5] mm: lru_cache_disable: replace work queue synchronization with synchronize_rcu](https://lore.kernel.org/lkml/0ce05ce7-1a00-82df-f37a-bf7f9e216504@MichaelLarabel.com).  Stress-NG 0.14 测试项 NUMA 的分数从 v5.17 的 412.88 下降到 v5.18 的 49.33.
+
+随后社区进行了修复, 参见 [A Fix Is On The Way For A Previously-Reported Linux 5.18 Performance Regression](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.18-NUMA-Regression-Fix).
+
+# 3 网络
 -------
 
 
@@ -85,7 +92,7 @@ https://www.phoronix.com/scan.php?page=news_item&px=UDP-IPV6-5P-Optimization
 [UDP IPv6 Optimizations Queued Up For Linux 5.18](https://www.phoronix.com/scan.php?page=news_item&px=UDP-IPv6-Opts-5.18)
 
 
-# 3 IO
+# 4 IO
 -------
 
 [Linux 5.17 To Continue With I/O Optimizations, 5~6% Improvement Pending For NVMe](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Will-Continue-IO)
@@ -97,7 +104,7 @@ https://www.phoronix.com/scan.php?page=news_item&px=UDP-IPV6-5P-Optimization
 | 2021/08/03 | Peter Oskolkov <posk@google.com> | [thread_info: use helpers to snapshot thread flags](https://lwn.net/Articles/722293) | 参见报道 [Linux 5.17 To Continue With I/O Optimizations, 5~6% Improvement Pending For NVMe](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Will-Continue-IO) | v1 ☐ | [PatchWork v4,00/10](https://lore.kernel.org/patchwork/cover/1471548) |
 
 
-# ARCH
+# 5 ARCH
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |

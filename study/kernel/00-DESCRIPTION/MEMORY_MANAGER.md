@@ -5117,20 +5117,34 @@ khugepaged 处理流程
 在 fork 进程的时候, 并不会为子进程直接分配物理页面, 而是使用 COW 的机制. 在 fork 之后, 父子进程都共享原来父进程的页面, 同时将父子进程的 COW mapping 都设置为只读. 这样当这两个进程触发写操作的时候, 触发缺页中断, 在处理缺页的过程中再为该进程分配出一个新的页面出来.
 
 ```cpp
-copy_process
-copy_mm
--=> dup_mm
-    -=> dup_mmap
-        -=> copy_page_range
-            -=> copy_p4d_range
-                -=> copy_pud_range
-                    -=> copy_pmd_range
-                        -=> copy_one_pte
-                            -=> ptep_set_wrprotect
+// https://www.cnblogs.com/pengdonglin137/p/16131785.html
+sys_fork
+    -> kernel_clone
+        -> copy_process
+            -> copy_mm
+                -> dup_mm
+                    -> dup_mmap
+                        -> copy_page_range
+                            -> copy_p4d_range
+                                -> 如果时PUD巨型页：copy_huge_pud: 分别将父子的PUD页表项设置为写保护
+                                    -> pudp_set_wrprotect(src_mm, addr, src_pud);
+                                    -> set_pud_at(dst_mm, addr, dst_pud, pud_mkold(pud_wrprotect(pud)));
+                                -> copy_pmd_range
+                                    -> 如果是PMD巨型页：copy_huge_pmd: 分别将父子的PMD页表项设置为写保护
+                                        -> pmdp_set_wrprotect(src_mm, addr, src_pmd);
+                                        -> set_pmd_at(dst_mm, addr, dst_pmd, pmd_mkold(pmd_wrprotect(pmd)));
+                                    -> copy_pte_range
+                                        -> copy_present_pte
+                                            -> 如果：is_cow_mapping(vm_flags) && pte_write(pte)
+                                                -> ptep_set_wrprotect(src_mm, addr, src_pte);
+                                                -> set_pte_at(dst_vma->vm_mm, addr, dst_pte, pte_wrprotect(pte));
 ```
 
-### 8.2.2.1 匿名页的写时拷贝
+执行 fork 完毕后, 原先父进程中可写的区域在父子进程中都被设置了 CoW, 即 pte 中可写的属性被清除. 那么下次对此地址进行写操作时(不管是父进程还是子进程), 都会触发 PageFault. 然后新分配一个页面出来公其使用, 同时原来 pte 的可写属性也会被重新设置.
 
+
+### 8.2.2.1 匿名页的写时拷贝
+-------
 
 
 ### 8.2.2.2 文件页的写时拷贝
@@ -5955,6 +5969,8 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 -------
 
 [LWN: LSFMM-2022/CXL 1: Management and tiering](https://lwn.net/Articles/894598)
+
+[](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.18-NUMA-Regression-Fix)
 
 ### 12.1.2 多级内存(Top-tier memory management)/内存分级(memory tiering) 支持
 -------

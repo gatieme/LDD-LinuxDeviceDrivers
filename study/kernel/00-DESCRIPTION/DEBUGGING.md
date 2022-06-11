@@ -300,14 +300,22 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 | 2017/08/31 | Andi Kleen <andi@firstfloor.org> | [perf arm64 metricgroup support](https://lore.kernel.org/all/20170831194036.30146-1-andi@firstfloor.org) | 为 perf stat 添加[对 JSON 文件中指定的独立指标](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b18f3e365019de1a5b26a851e123f0aedcce881f) 的通用支持. 这些指标是一个公式, 它使用多个事件来计算更高级别的结果(例如 IPC, TOPDOWN 分析等). 添加一个新的 `-M /--metrics` 选项来添加指定的度量或度量组. 并增加了对 Intel X86 平台的支持. 通过这些 JSON 文件定义的事件组合度量, 可以很好的支持 TOPDOWN 分析. | v3 ☑ 4.15-rc1 | [PatchWork v3,00/11](https://lore.kernel.org/all/20170831194036.30146-1-andi@firstfloor.org) |
 | 2020/09/11 | Kan Liang <kan.liang@linux.intel.com> | [TopDown metrics support for Ice Lake (perf tool)](https://lore.kernel.org/lkml/20200911144808.27603-1-kan.liang@linux.intel.com) | 为 perf metrics 分析增加对 Ice Lake 的支持. 将原本 group 重命名为 topdown. | v3 ☑ 5.10-rc1 | [PatchWork v3,0/4](https://lore.kernel.org/lkml/20200911144808.27603-1-kan.liang@linux.intel.com) |
 | 2021/04/07 | John Garry <john.garry@huawei.com> | [perf arm64 metricgroup support](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1617791570-165223-1-git-send-email-john.garry@huawei.com) | perf 支持 HiSilicon hip08 平台的 topdown metric. 支持到 Level 3. 自此鲲鹏 920 的 ARM64 服务器上, 可以使用:<br>`sudo perf stat -M TopDownL1 sleeep 1`<br>来进行 TopDown 分析了. | v1 ☑ 5.13-rc1 | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1614784938-27080-1-git-send-email-john.garry@huawei.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1616668398-144648-1-git-send-email-john.garry@huawei.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1617791570-165223-1-git-send-email-john.garry@huawei.com) |
+| 2022/05/28 | zhengjun <zhengjun.xing@linux.intel.com> | [perf vendor events intel: Add metrics for Sapphirerapids](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1bcca2b1bd67f3c0e5c3a88ed16c6389f01a5b31) | TODO | v2 ☑✓ 5.19-rc1 | [LORE v2,0/2](https://lore.kernel.org/all/20220528095933.1784141-1-zhengjun.xing@linux.intel.com) |
 
 ## 11.3 Userspace counter access
 -------
 
+x86 和 arm64 都支持直接访问用户空间中的事件计数器. 访问序列并不简单，目前存在于 perf 测试代码(tools/perf/arch/x86/tests/rdpmc.c)中, 在 PAPI 和 libpfm4 等项目中有类似的用例程序.
+
+为了支持 usersapce 访问，必须首先使用 perf_evsel__mmap() 映射事件. 然后, 对 perf_evsel__read() 对 PMU 进行读取.
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2011/12/21 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [perf, x86: Implement user-space RDPMC support, to allow fast, user-space access to self-monitoring counters](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fe4a330885aee20f233de36085fb15c38094e635) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/tip-mwxab34dibqgzk5zywutfnha@git.kernel.org) |
 | 2021/12/08 | Rob Herring <robh@kernel.org> | [arm64 userspace counter support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=aa1005d15d2aee10e5b93a25db076c47e05c4efa) | ARM64 的 PMU 是支持用户态直接访问的. 与 x86 上 rdpmc 机制类似, 为了防止出现安全问题, 当前只允许用户态访问 thread bound events, 在启用时, 为了防止从其他任务泄漏禁用的 PMU 数据, 还会有一些额外的开销来清除脏计数器. | v13 ☑✓ 5.17-rc1 | [LORE v13,0/5](https://lore.kernel.org/all/20211208201124.310740-1-robh@kernel.org) |
-
+| 2021/04/14 | Rob Herring <robh@kernel.org> | [libperf userspace counter access](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=47d01e7b9999b9591077a59a1ecec11c6ce570de) | libperf 支持用户态读取 PMU, 当前只支持了 X86 | v8 ☑✓ 5.13-rc1 | [LORE v8,0/4](https://lore.kernel.org/all/20210414155412.3697605-1-robh@kernel.org) |
+| 2022/02/01 | Rob Herring <robh@kernel.org> | [libperf: Add arm64 support to perf_mmap__read_self()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=407eb43ae87c969d98746c3274ae5d0f977b102e) | libperf 支持 ARM64 用户态读取 PMU. | v9 ☑✓ 5.17-rc3 | [LORE](https://lore.kernel.org/all/20220201214056.702854-1-robh@kernel.org) |
 
 ## 11.4 分支预测
 -------
