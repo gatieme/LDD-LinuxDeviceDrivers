@@ -70,6 +70,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 [狄卫华--eBPF 技术全面介绍 -- 历史、现在、未来(阅码场--直播回放)](https://shop.yomocode.com/live_pc/l_627e47efe4b0cedf38b1850f), 直播视频解读 [一文读懂 eBPF 的前世今生](https://mp.weixin.qq.com/s/ww510TUdLG8jd6VzfQnjxw)
 
+[bpftrace Cheat Sheet](https://www.brendangregg.com/BPF/bpftrace-cheat-sheet.html)
 
 # 2 工作流程
 -------
