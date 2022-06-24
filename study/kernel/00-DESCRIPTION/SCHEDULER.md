@@ -214,10 +214,18 @@ CFS的算法和实现都相当简单, 众多的测试表明其性能也非常优
 
 [[Announce] [patch] Modular Scheduler Core and Completely Fair Scheduler [CFS]](https://lore.kernel.org/lkml/20070413202100.GA9957@elte.hu/)
 
+#### 1.1.3.1 CFS 调度器
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2007/07/09 | Ingo Molnar <mingo@elte.hu> | [CFS Scheduler](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c31f2e8a42c41efa46397732656ddf48cc77593e) | 实现 CFS 调度器. | v1 ☑✓ 2.6.23-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c31f2e8a42c41efa46397732656ddf48cc77593e) |
 | 2007/10/15 | Ingo Molnar <mingo@elte.hu> | [CFS Group Scheduler](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9c63d9c021f375a2708ad79043d6f4dd1291a085) | CFS 支持组调度 | v1 ☑✓ 2.6.24-rc1| [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9c63d9c021f375a2708ad79043d6f4dd1291a085) |
+
+#### 1.1.3.2 load_weight
+-------
+
+[Linux CFS 调度器之负荷权重 load_weight--Linux 进程的管理与调度 (二十五）](https://blog.csdn.net/gatieme/article/details/52067665)
 
 
 ### 1.1.4 CK 的 BFS 和 MuQSS

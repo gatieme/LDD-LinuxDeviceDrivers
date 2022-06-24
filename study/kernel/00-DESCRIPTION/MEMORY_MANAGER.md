@@ -3841,6 +3841,11 @@ v2.5 的时候引入了 shrink 机制, 并提供了 API 统一了各个模块的
 
 Facebook 指出他们也面临过同样的问题, 所有的 workload 都需要放到 container 里去执行, 用户需要明确申明需要使用多少内存, 不过其实没人知道自己真的会用到多少内存, 因此用户申请的内存数量都太多了, 也就有了类似的overcommit和reclaim问题. Facebook的方案是采用 [PSI(pressure-stall information)](https://lwn.net/Articles/759781), 根据这个来了解内存是否变得很紧张了, 相应的会把LRU list里最久未用的page砍掉. 假如这个举动导致更多的 refault 发生. 不过通过调整内存的回收就调整的激进程度可以缓和 refault. 从而达到较合理的结果, 同时占用的CPU时间也会小得多. 描述其设计方案的论文在 ASPLOS’22 中发表, 并成为四篇 Best Paper 之一, 参见 [TMO: Transparent Memory Offloading in Datacenters](https://dl.acm.org/doi/10.1145/3503222.3507731). 网络上的分析 [知乎, 大荒落 TMO: Transparent Memory Offloading in Datacenters](https://zhuanlan.zhihu.com/p/477786756).
 
+参见:
+
+phoronix 报道 [Meta's Transparent Memory Offloading Saves Them 20~32% Of Memory Per Linux Server](https://www.phoronix.com/scan.php?page=news_item&px=Meta-Transparent-TMO).
+
+Meta(原 Facebook) 博客 [Transparent memory offloading: more memory at a fraction of the cost and power](https://engineering.fb.com/2022/06/20/data-infrastructure/transparent-memory-offloading-more-memory-at-a-fraction-of-the-cost-and-power).
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

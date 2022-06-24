@@ -412,7 +412,7 @@ facebook 在 LPC-2021 公布了其[最新基于 BOLT 优化 Linux 内核的进�
 
 BOLT 代码在 [github 开源](https://github.com/facebookincubator/BOLT).
 
-## 13.2 Shrinking the kernel
+## 13.3 Shrinking the kernel
 -------
 
 
@@ -521,6 +521,17 @@ Mold 是目前 Unix 链接器的现代替代品, 已经达到了 1.0 版本. 由
 2021 年 12 月 [Mold 1.0 发布](https://www.phoronix.com/scan.php?page=news_item&px=Mold-1.0-Released), 作为非常有前途的高性能链接器, 是当前主流编译器等(如 GNU 的 Gold 和 LLVM 的 LLD) 首选替代方案. 随即 GCC 12 宣布增加了[对 Mold 的支持](https://www.phoronix.com/scan.php?page=news_item&px=GCC-12-Mold-Linker). 紧接着 Mold 宣布 1.0.1 将[维护 1 年](https://www.phoronix.com/scan.php?page=news_item&px=Mold-1.0.1-Released), 成为事实上的 LTS 版本.
 
 2022 年 6 月 Mold 1.3 继续对 LTO 进行了优化. 参见 phoronix 报道 [Mold 1.3 High Speed Linker Released With LTO Improvements](https://www.phoronix.com/scan.php?page=news_item&px=Mold-1.3-Released).
+
+
+## 13.9 Compiler Optimization
+-------
+
+[Experimental -O3 Optimizing The Linux Kernel For Better Performance Brought Up Again](https://www.phoronix.com/scan.php?page=news_item&px=O3-Optimize-Kernel-2022-Patches)
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/06/21 | Miko Larsson <mikoxyzzz@gmail.com> | [Kconfig: -O3 enablement](https://lore.kernel.org/all/20220621133526.29662-1-mikoxyzzz@gmail.com) | 允许所有架构支持 -O3 编译. | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20220621133526.29662-1-mikoxyzzz@gmail.com) |
+
 
 # 14 FTRACE
 -------
