@@ -3823,6 +3823,8 @@ v2.5 的时候引入了 shrink 机制, 并提供了 API 统一了各个模块的
 
 2.  进程内存的 working set size(WSS) 估计: 为了在回收了内存之后还能满足业务的需求, 保障业务性能不下降, 需要能预测出业务运行所需要的实际最小内存. brendangregg 大神对此也有描述, [Working Set Size Estimation](https://www.brendangregg.com/wss.html), 并设计了 wss 工具 [Working Set Size (WSS) Tools for Linux](https://github.com/brendangregg/wss).
 
+Meta(原 Facebook) 开发了 [Senpai](https://github.com/facebookincubator/senpai)
+
 ### 4.4.1 Idle and stale page tracking
 -------
 
@@ -6405,6 +6407,8 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 [linux data access monitor (DAMON)](https://blog.csdn.net/zqh1630/article/details/109954910)
 
 [LWN: 用DAMON来优化memory-management!](https://blog.csdn.net/Linux_Everything/article/details/104707923)
+
+[知乎-DAMON: Linux内存数据访问监控框架](https://zhuanlan.zhihu.com/p/446677951)
 
 对指定的程序进行内存相关优化, 了解业务给定工作负载的数据访问模式至关重要. 但是, 从庞大和复杂的工作量中手动提取此类模式非常详尽. 更糟糕的是, 现有的内存访问分析工具会为不必要的详细分析结果带来不可接受的高开销.
 

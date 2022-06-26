@@ -176,6 +176,9 @@ Load Averages 是一项历史悠久的指标, 在 1973 年 8 月的 RFC 546 中�
 ## 6 PSI
 -------
 
+[知乎-兰新宇--Linux 的资源控制监测 - PSI [上]](https://zhuanlan.zhihu.com/p/523716850)
+
+[知乎-兰新宇--Linux 的资源控制监测 - PSI [下]](https://zhuanlan.zhihu.com/p/523554299)
 
 Pressure Stall Information 提供了一种评估系统资源压力的方法. 系统有三个基础资源: CPU、Memory 和 IO, 无论这些资源配置如何增加, 似乎永远无法满足软件的需求. 一旦产生资源竞争, 就有可能带来延迟增大, 使用户体验到卡顿.
 
@@ -183,12 +186,16 @@ Pressure Stall Information 提供了一种评估系统资源压力的方法. 系
 
 Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linux 内核组件和相关工具, PSI 是其中重要的资源度量工具, 它提供了一种实时检测系统资源竞争程度的方法, 以竞争等待时间的方式呈现, 简单而准确地供用户以及资源调度者进行决策.
 
-[纯干货, PSI 原理解析与应用](https://blog.csdn.net/feelabclihu/article/details/105534140)
+内核文档参见 [Documentation/accounting/psi.rst](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/accounting/psi.rst), 翻译参见 [`Documentation/translations/zh_CN/accounting/psi.rst`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/translations/zh_CN/accounting/psi.rst).
+
+[CSDN-内核工匠--纯干货, PSI 原理解析与应用](https://blog.csdn.net/feelabclihu/article/details/105534140)
+
+Meta(原 Facebook) 开发的 [Senpai](https://github.com/facebookincubator/senpai), 就是通过 PSI 来确定容器化应用程序的实际内存需求. 根据 PSI 提供的 Memory Pressure 信息, 不断地调整 memory.high, 从而找到指定 memcg 所承载的 workload 真正需要的内存大小.
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2018/08/28 | Johannes Weiner <hannes@cmpxchg.org> | [psi: pressure stall information for CPU, memory, and IO v4](https://lwn.net/Articles/759781) | 引入 PSI 评估系统 CPU, MEMORY, IO 等资源的压力. | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Core_.28various.29) | [Patchwork](https://lore.kernel.org/patchwork/patch/978495), [Patchwork 0/9](https://patchwork.kernel.org/project/linux-mm/cover/20180828172258.3185-1-hannes@cmpxchg.org), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eb414681d5a07d28d2ff90dc05f69ec6b232ebd2) |
+| 2018/08/28 | Johannes Weiner <hannes@cmpxchg.org> | [psi: pressure stall information for CPU, memory, and IO v4](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2ce7135adc9ad081aa3c49744144376ac74fea60) | 引入 PSI 评估系统 CPU, MEMORY, IO 等资源的压力. 参见 [LWN-Tracking pressure-stall information](https://lwn.net/Articles/759781) | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Core_.28various.29) | [Patchwork](https://lore.kernel.org/patchwork/patch/978495), [Patchwork 0/9](https://patchwork.kernel.org/project/linux-mm/cover/20180828172258.3185-1-hannes@cmpxchg.org), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eb414681d5a07d28d2ff90dc05f69ec6b232ebd2) |
 | 2019/03/19 | Suren Baghdasaryan <surenb@google.com> | [psi: pressure stall monitors v6](https://lwn.net/Articles/775971/) | NA | v6 ☑ [5.2-rc1](https://kernelnewbies.org/Linux_5.2#Improved_Presure_Stall_Information_for_better_resource_monitoring) | [Patchwork](https://lore.kernel.org/patchwork/patch/1052413) |
 | 2020/03/03 | Suren Baghdasaryan <surenb@google.com> | [psi: Add PSI_CPU_FULL state and some code optimization](ttps://lore.kernel.org/patchwork/patch/1388805) | 1. 添加 PSI_CPU_FULL 状态标记 cgroup 中的所有非空闲任务在 cgroup 之外的 CPU 资源上被延迟, 或者 cgroup 被 throttle<br>2. 使用 ONCPU 状态和当前的 in_memstall 标志来检测回收, 删除 timer tick 中的钩子, 使代码更简洁和可维护.<br>4. 通过移除两个任务的每个公共cgroup祖先的psi_group_change()调用来优化自愿睡眠开关.  | v2 ☑ 5.13-rc1 | [Patchwork](https://lore.kernel.org/patchwork/patch/1388805) |
 | 2020/03/31 | Yafang Shao <laoar.shao@gmail.com> | [psi: enhance psi with the help of ebpf](https://lwn.net/Articles/1218304) | 引入 psi_memstall_type 标记 MEMSTALL 的类别, 并在 tracepoint 输出, 从而可以被 ebpf 使用来增强工具. | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Core_.28various.29) | [Patchwork](https://lore.kernel.org/patchwork/patch/1218304) |
