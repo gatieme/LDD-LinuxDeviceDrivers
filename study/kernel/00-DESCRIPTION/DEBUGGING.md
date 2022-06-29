@@ -194,7 +194,7 @@ Meta(原 Facebook) 开发的 [Senpai](https://github.com/facebookincubator/senpa
 
 根据与压力目标的偏差, Senpai 每隔 interval 时间(默认 6s)重新确定要回收的页面数:
 
-$reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi\_some}{psi\_threshold})$
+$reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}{psi_threshold})$
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
