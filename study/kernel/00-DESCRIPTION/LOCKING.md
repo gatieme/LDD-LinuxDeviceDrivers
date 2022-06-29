@@ -243,6 +243,14 @@ PV_SPINLOCKS 的合入引起了[性能问题 Performance overhead of paravirt_op
 ## 2.2 PER-CPU RWSEM
 -------
 
+percpu rw 信号量是一种新的读写信号量设计, 针对读取锁定进行了优化.
+
+传统的读写信号量的问题在于, 当多个内核读取锁时, 包含信号量的 cache-line 在内核的 L1 缓存之间弹跳, 导致性能下降. 锁定读取速度非常快, 它使用 RCU, 并且避免了锁定和解锁路径中的任何原子指令. 另一方面, 写入锁定非常昂贵, 它调用 synchronize_rcu () 可能需要数百毫秒. 使用 RCU 优化 rw-lock 的想法是由 Eric Dumazet <eric.dumazet@gmail.com>. 代码由 Mikulas Patocka <mpatocka@redhat.com> 编写
+
+锁是用 “struct percpu_rw_semaphore” 类型声明的. 锁被初始化为 percpu_init_rwsem, 它在成功时返回 0, 在分配失败时返回 -ENOMEM. 必须使用 percpu_free_rwsem 释放锁以避免内存泄漏.
+
+使用 percpu_down_read 和 percpu_up_read 锁定读取, 使用 percpu_down_write 和 percpu_up_write 锁定写入.
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/06/22 | Peter Zijlstra <peterz@infradead.org> | [percpu rwsem -v2](https://lore.kernel.org/all/20150622121623.291363374@infradead.org) | TODO | v2 ☐☑✓ | [LORE v2,0/13](https://lore.kernel.org/all/20150622121623.291363374@infradead.org) |

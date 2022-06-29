@@ -190,8 +190,11 @@ Facebook 在 2018 年开源了一套解决重要计算集群管理问题的 Linu
 
 [CSDN-内核工匠--纯干货, PSI 原理解析与应用](https://blog.csdn.net/feelabclihu/article/details/105534140)
 
-Meta(原 Facebook) 开发的 [Senpai](https://github.com/facebookincubator/senpai), 就是通过 PSI 来确定容器化应用程序的实际内存需求. 根据 PSI 提供的 Memory Pressure 信息, 不断地调整 memory.high, 从而找到指定 memcg 所承载的 workload 真正需要的内存大小.
+Meta(原 Facebook) 开发的 [Senpai](https://github.com/facebookincubator/senpai), 就是通过 PSI 来确定容器化应用程序的实际内存需求. 根据 PSI 提供的 Memory Pressure 信息, 不断地调整 memory.high, 从而找到指定 memcg 所承载的 workload 真正需要的内存大小. Senpai 是一个用户空间代理, 它通过施加轻微的主动式内存压力, 跨不同的工作负载和异构硬件有效地卸载内存, 对应用程序性能的影响最小.
 
+根据与压力目标的偏差, Senpai 每隔 interval 时间(默认 6s)重新确定要回收的页面数:
+
+$reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi\_some}{psi\_threshold})$
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -516,7 +519,7 @@ v2: [Fast Kernel Headers v2 Posted - Speeds Up Clang-Built Linux Kernel Build By
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/01/02 | Ingo Molnar <mingo@kernel.org> | ["Fast Kernel Headers" Tree -v1: Eliminate the Linux kernel's "Dependency Hell"](https://lore.kernel.org/lkml/YdIfz+LMewetSaEB@gmail.com) | "Fast Kernel Headers" 的补丁集, 新增 config 配置, CONFIG_FAST_HEADERS 和 CONFIG_KALLSYMS_FAST.<br>这个补丁集非常庞大, 包含了 2000+ 补丁, 这可能是内核有史以来代码量最大的一个功能. 但是效果也很不错.<br>1. 启用了 CONFIG_FAST_HEADERS 的内核每小时的内核构建次数可能比当前的库存内核多出 78%, 在支持的架构上, 绝对内核构建性能可以提高 50~80%.将许多高级标头与其他标头分离, 取消不相关的函数, 类型和 API 标头的分离, 头文件的自动依赖关系处理以及各种其他更改.<br>2. CONFIG_KALLSYMS_FAST 则实现了一个基于 objtool 的未压缩符号表功能, 它避免了 vmlinux 对象文件的通常三重链接, 这是增量内核构建的主要瓶颈. 由于即使使用 distro 配置, kallsyms 表也只有几十 MB 大, 因此在内核开发人员的桌面系统上, 内存成本是可以接受的. 不过当前只在 x86_64 下实现了此功能.<br>到目前为止, 这个庞大的补丁系列已经在 x86/x86_64, SPARC, MIPS 和 ARM64 上进行了测试. | v1 ☐ | [LORE RFC, 0000/2297](https://patchwork.kernel.org/project/kernel-hardening/patch/1495829844-69341-20-git-send-email-keescook@chromium.org)[LORE v2,](https://lore.kernel.org/lkml/Ydm7ReZWQPrbIugn@gmail.com), [LORE -v3, 0000/2300](https://lore.kernel.org/lkml/YjBr10JXLGHfEFfi@gmail.com) |
 
-由于这组补丁如此庞大, 涉及的模块也如此多, 因此它不可能在短时间内合入, 因此 Ingo 决定先从调度入手, [Merge branch 'sched/fast-headers' into sched/core](https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/commit/?h=sched/core&id=ccacfe56d7ecdd2922256b87e9ea46f13bb03b55), 先行合并到 TIP 分支, 这些补丁将构建内核的调度程序部分所需的 CPU 时间减少了 60.9%. 挂钟时间下降了3.9%. 参见 [Linux Scheduler Build Improvements From "Fast Kernel Headers" Queued, FKH v3 Posted](https://www.phoronix.com/scan.php?page=news_item&px=Sched-Core-Fast-Kernel-Headers).
+由于这组补丁如此庞大, 涉及的模块也如此多, 因此它不可能在短时间内合入, 因此 Ingo 决定先从调度入手, [Merge branch 'sched/fast-headers' into sched/core](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/kernel/sched?id=ccacfe56d7ecdd2922256b87e9ea46f13bb03b55), 先行合并到 TIP 分支, 这些补丁将构建内核的调度程序部分所需的 CPU 时间减少了 60.9%. 挂钟时间下降了3.9%. 参见 [Linux Scheduler Build Improvements From "Fast Kernel Headers" Queued, FKH v3 Posted](https://www.phoronix.com/scan.php?page=news_item&px=Sched-Core-Fast-Kernel-Headers). [补丁集](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4ff8f2ca6ccd9e0cc5665d09f86d631b3ae3a14c) 于 v5.17-rc5 合入主线.
 
 
 ## 13.8 LINK
@@ -533,7 +536,7 @@ Mold 是目前 Unix 链接器的现代替代品, 已经达到了 1.0 版本. 由
 ## 13.9 Compiler Optimization
 -------
 
-[Experimental -O3 Optimizing The Linux Kernel For Better Performance Brought Up Again](https://www.phoronix.com/scan.php?page=news_item&px=O3-Optimize-Kernel-2022-Patches)
+随后 2022 年, 开发者 Miko 建议所有架构都开启 `-O3` 编译内核 [Experimental -O3 Optimizing The Linux Kernel For Better Performance Brought Up Again](https://www.phoronix.com/scan.php?page=news_item&px=O3-Optimize-Kernel-2022-Patches), 但是遭到了 Linus 的强烈反对, [Linus Torvalds' Latest Commentary Against -O3'ing The Linux Kernel](https://www.phoronix.com/scan.php?page=news_item&px=Linus-Against-O3-Kernel), [LKML 回复](https://lore.kernel.org/lkml/CA+55aFz2sNBbZyg-_i8_Ldr2e8o9dfvdSfHHuRzVtP2VMAUWPg@mail.gmail.com).
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|

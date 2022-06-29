@@ -3847,6 +3847,10 @@ Facebook 指出他们也面临过同样的问题, 所有的 workload 都需要�
 
 phoronix 报道 [Meta's Transparent Memory Offloading Saves Them 20~32% Of Memory Per Linux Server](https://www.phoronix.com/scan.php?page=news_item&px=Meta-Transparent-TMO).
 
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2022/06/20 | [Transparent memory offloading: more memory at a fraction of the cost and power](https://engineering.fb.com/2022/06/20/data-infrastructure/transparent-memory-offloading-more-memory-at-a-fraction-of-the-cost-and-power/) | [公众号-SegmentFault 思否--Meta “透明内存卸载” 功能亮相：可为 Linux 服务器节省 20%-32% 内存](https://mp.weixin.qq.com/s/J9hXRtEE-1x9a-I_hGwNPQ) |
+
 Meta(原 Facebook) 博客 [Transparent memory offloading: more memory at a fraction of the cost and power](https://engineering.fb.com/2022/06/20/data-infrastructure/transparent-memory-offloading-more-memory-at-a-fraction-of-the-cost-and-power).
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -5106,9 +5110,10 @@ khugepaged 处理流程
 ### 8.1.2 其他
 -------
 
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/10/19 | Jakub Matěna <matenajakub@gmail.com> | [Removing limitations of merging anonymous VMAs](https://patchwork.kernel.org/project/linux-mm/cover/20220218122019.130274-1-matenajakub@gmail.com/) | 615764 | v1 ☐☑ | [2022/02/18 LORE v1,0/4](https://lore.kernel.org/r/20220218122019.130274-1-matenajakub@gmail.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/19 LORE v3,0/6](https://lore.kernel.org/r/20220516125405.1675-1-matenajakub@gmail.com) |
+| 2022/05/16 | Jakub Matěna <matenajakub@gmail.com> | [Removing limitations of merging anonymous VMAs](https://patchwork.kernel.org/project/linux-mm/cover/20220218122019.130274-1-matenajakub@gmail.com/) | [Anonymous VMA merging improvements WIP](https://people.kernel.org/vbabka/anonymous-vma-merging-improvements-wip) | v1 ☐☑ | [2022/02/18 LORE v1,0/4](https://lore.kernel.org/r/20220218122019.130274-1-matenajakub@gmail.com)<br>*-*-*-*-*-*-*-* <br>[2022/05/16 LORE v3,0/6](https://lore.kernel.org/r/20220516125405.1675-1-matenajakub@gmail.com) |
 
 
 ## 8.2 Page Fault
@@ -6051,6 +6056,9 @@ Intel 的吴峰光 [PMEM NUMA node and hotness accounting/migration](https://lor
 
 [RFC: Memory Tiering Kernel Interfaces (v2)](https://lore.kernel.org/lkml/CAAPL-u-DGLcKRVDnChN9ZhxPkfxQvz9Sb93kVoX_4J2oiJSkUw@mail.gmail.com)
 
+[Two memory-tiering patch sets](https://lwn.net/Articles/898766)
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/04/15 | Tim Chen <tim.c.chen@linux.intel.com> | [Manage the top tier memory in a tiered memory](https://lore.kernel.org/patchwork/patch/1408180) |  memory tiers 的配置管理. 监控系统和每个 cgroup 中各自使用的 top-tier 内存的数量. 当前使用了 soft limit, 用 kswapd 来把某个 cgroup 中超过 soft limit 限制的 page 迁移到较慢的 memory 类型上去. 这里所说的 soft limit, 是指如果 top-tier memory 很充足的话, cgroup 可以拥有超过此限制的 page 数量, 但如果资源紧张的话则会被迅速削减从而满足这个 limit 值. 后期可用于对于不同的任务划分快、慢内存(fast and slow memory). 即让高优先级的任务获得更多 top-tier memory 访问优先, 而低优先级的任务则要受到更严格的限制 | v1 ☐ 5.13 | [PatchWork RFC,v1,00/11](https://patchwork.kernel.org/project/linux-mm/cover/cover.1617642417.git.tim.c.chen@linux.intel.com/) |
@@ -6282,6 +6290,10 @@ ARM 引入了一个[内存标签扩展](https://community.arm.com/developer/ip-p
 | 2021/12/30 | andrey.konovalov@linux.dev | [kasan, vmalloc, arm64: add vmalloc tagging support for SW/HW_TAGS](https://patchwork.kernel.org/project/linux-mm/cover/cover.1638308023.git.andreyknvl@google.com/) | NA | v1 ☐ | [2021/11/30 PatchWork 00/31](https://patchwork.kernel.org/project/linux-mm/cover/cover.1638308023.git.andreyknvl@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/13 PatchWork v3,00/38](https://patchwork.kernel.org/project/linux-mm/cover/cover.1639432170.git.andreyknvl@google.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/20 PatchWork v4,00/39](https://patchwork.kernel.org/project/linux-mm/cover/cover.1640036051.git.andreyknvl@google.com))<br>*-*-*-*-*-*-*-* <br>[2021/12/30 PatchWork v5,00/39](https://patchwork.kernel.org/project/linux-mm/cover/cover.1640891329.git.andreyknvl@google.com) |
 | 2022/02/02 | Christophe Leroy <christophe.leroy@csgroup.eu> | [mm/kasan: Add CONFIG_KASAN_SOFTWARE](https://patchwork.kernel.org/project/linux-mm/patch/a480ac6f31eece520564afd0230c277c78169aa5.1643791473.git.christophe.leroy@csgroup.eu/) | 610616 | v1 ☐ | [PatchWork v1,0/4](https://lore.kernel.org/r/a480ac6f31eece520564afd0230c277c78169aa5.1643791473.git.christophe.leroy@csgroup.eu) |
 | 2022/06/13 | andrey.konovalov@linux.dev <andrey.konovalov@linux.dev> | [kasan: switch tag-based modes to stack ring from per-object metadata](https://patchwork.kernel.org/project/linux-mm/cover/cover.1655150842.git.andreyknvl@google.com/) | 649958 | v1 ☐☑ | [LORE v1,0/32](https://lore.kernel.org/r/cover.1655150842.git.andreyknvl@google.com) |
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/07/23 | Andrey Konovalov <andreyknvl@google.com> | [arm64: untag user pointers passed to the kernel](https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/log/?id=9ce1263033cd2ad393e2ff0df4a1c4ab4992c9df) | 扩展内核 ABI 以允许将标记的用户指针(顶部字节设置为 0x00 以外的其他值)作为系统调用参数传递的系列的一部分. 通过 CONFIG_TAGGED_ADDR_ABI 选项控制. | v19 ☐☑✓ | [LORE v19,0/15](https://lore.kernel.org/all/cover.1563904656.git.andreyknvl@google.com) |
 
 
 ### 13.3.5 KCSAN
