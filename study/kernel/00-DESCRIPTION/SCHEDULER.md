@@ -1049,6 +1049,44 @@ Per Entity Load Tracking(PELT) 算法本身是高效. 然而, 它不能完全通
 
 [调度器 12—PELT 算法中的预估利用率 util_est](https://www.cnblogs.com/hellokitty2/p/15452178.html)
 
+#### 3.2.5.1 util_est on top of PELT
+-------
+
+cfs_rq->avg.util_est.enqueued 记录了所有 enqueue 到 rq 上的任务(包括 runnable + runing)的 util_est 之和. 参见 [commit 7f65ea42eb00 ("sched/fair: Add util_est on top of PELT")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7f65ea42eb00bc902f1c37a71e984e4f4064cfa9).
+
+1.  进程发生阻塞, 当任务 p 出队 dequeue 时:
+
+```cpp
+dequeue_task()
+	-=> dequeue_task_fair(rq, p, flags)
+		-=> util_est_dequeue(cfs_rq, p)
+```
+
+*  先将其 `_task_util_est(p)` [从 `cfs_rq->avg.util_est.enqueued` 中移除](https://elixir.bootlin.com/linux/v4.17/source/kernel/sched/fair.c#L3919)
+
+*  然后再更新任务的 util_est, [ue.enqueue 被设置为 task_util(p)](https://elixir.bootlin.com/linux/v4.17/source/kernel/sched/fair.c#L3943), ue.ewma 则是 task_util(p) 和 ewma 的加权和. 具体计算方式如下:
+
+$$
+ewma_t
+\\ = w \times task\_util_p + (1-w) * ewma_{t-1}
+\\ = w \times task\_util_p + ewma_{t-1} - w * ewma_{t-1}
+\\ = w \times (task\_util_p - ewma_{t-1}) + ewma_{t-1}
+\\ = w \times (last\_ewma\_diff) + ewma_{t-1}
+\\ = w \times (last\_ewma\_diff + \frac{ewma_{t-1}}{w})
+$$
+
+2.  进程入队时, 则直接将此任务的 util_est `_task_util_est(p)` 加回到 cfs_rq 的 `cfs_rq->avg.util_est.enqueued`.
+
+```cpp
+enqueue_task()
+	-=> enqueue_task_fair(rq, p, flags)
+		-=> util_est_enqueue(&rq->cfs, p)
+```
+
+[commit f9be3e5961c5 ("sched/fair: Use util_est in LB and WU paths")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f9be3e5961c5554879a491961187472e923f5ee0)
+
+[commit a07630b8b2c1 ("sched/cpufreq/schedutil: Use util_est for OPP selection")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a07630b8b2c16f82fd5b71d890079f4dd7599c1d)
+
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
