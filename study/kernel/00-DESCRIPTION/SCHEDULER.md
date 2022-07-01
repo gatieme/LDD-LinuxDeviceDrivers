@@ -228,6 +228,14 @@ CFS的算法和实现都相当简单, 众多的测试表明其性能也非常优
 [Linux CFS 调度器之负荷权重 load_weight--Linux 进程的管理与调度 (二十五）](https://blog.csdn.net/gatieme/article/details/52067665)
 
 
+不少同学发现, `{sched_}prio_to_weight` 的值并不是严格的 1.25 倍. 这是因为 CPU 在计算的过程中会损失精度, 为了使得 prio_to_weight * prio_to_wmult 与 2^32 的值会存在较大的偏差. 为了使得偏差尽可能的小, 因此 [commit 254753dc321e ("sched: make the multiplication table more accurate")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=254753dc321ea2b753ca9bc58ac329557a20efac) 对 prio_to_weight 和 prio_to_wmult 的值做了一定的调整. 社区邮件列表中后期曾有人咨询过这个问题, 参见讨论 [Question about sched_prio_to_weight values](https://lkml.org/lkml/2019/10/7/1117). 提问的同学在了解了问题之后, 制作了一个脚本来模拟调整的思路和过程.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2007/08/09 | Ingo Molnar <mingo@elte.hu> | [sched: make the multiplication table more accurate](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=254753dc321ea2b753ca9bc58ac329557a20efac) | 对 prio_to_weight 和 prio_to_wmult 做一定的调整. | v1 ☐ | [ 2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1396878) |
+
+
+
 ### 1.1.4 CK 的 BFS 和 MuQSS
 -------
 
@@ -750,6 +758,11 @@ Chang 的 patch set 采用了与之前不同的方法：允许 cgroup 将一些�
 
 [CPU 负载均衡之 WALT 学习](https://blog.csdn.net/xiaoqiaoq0/article/details/107135747)
 
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/10/28 | Vikram Mulukutla <markivx@codeaurora.org> | [sched: Introduce Window Assisted Load Tracking](https://lore.kernel.org/all/1477638642-17428-1-git-send-email-markivx@codeaurora.org) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/1477638642-17428-1-git-send-email-markivx@codeaurora.org) |
+
+
 ## 3.2 PELT
 -------
 
@@ -1010,15 +1023,36 @@ PELT 算法几个关键的函数:
 | 2017/03/31 | Peter Zijlstra <peterz@infradead.org> | [sched/fair: Fix corner case in `__accumulate_sum()`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=05296e7535d67ba4926b543a09cf5d430a815cb6) | 修复上述补丁引入的问题. | v1 ☑✓ 4.12-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=05296e7535d67ba4926b543a09cf5d430a815cb6) |
 
 
-### 3.2.1 Load Weight
+### 3.2.4 PELT 支持其他调度类
 -------
 
-不少同学发现, `{sched_}prio_to_weight` 的值并不是严格的 1.25 倍. 这是因为 CPU 在计算的过程中会损失精度, 为了使得 prio_to_weight * prio_to_wmult 与 2^32 的值会存在较大的偏差. 为了使得偏差尽可能的小, 因此 [commit 254753dc321e ("sched: make the multiplication table more accurate")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=254753dc321ea2b753ca9bc58ac329557a20efac) 对 prio_to_weight 和 prio_to_wmult 的值做了一定的调整. 社区邮件列表中后期曾有人咨询过这个问题, 参见讨论 [Question about sched_prio_to_weight values](https://lkml.org/lkml/2019/10/7/1117). 提问的同学在了解了问题之后, 制作了一个脚本来模拟调整的思路和过程.
+为了更好的支持 EAS(Capacity Aware) 和 schedutil 的工作, 为 RT_RQ, DL_RQ 以及 IRQ 实现了 PELT 跟踪负载的功能, 与 CFS_RQ 的负载用 cpu_util_cfs() 类似, 可以用 cpu_util_rt(), cpu_util_dl(), cpu_util_irq() 分别获取. 并让 schedutil 调频时参考这些 RQ 的负载信息. 注意这里只对其他调度类 RQ 的负载均衡进行了跟踪, 并没有完成 Per-Task 的 Load Tracking.
 
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2007/08/09 | Ingo Molnar <mingo@elte.hu> | [sched: make the multiplication table more accurate](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=254753dc321ea2b753ca9bc58ac329557a20efac) | 对 prio_to_weight 和 prio_to_wmult 做一定的调整. | v1 ☐ | [ 2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1396878) |
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/06/28 | Vincent Guittot <vincent.guittot@linaro.org> | [track CPU utilization](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=5fd778915ad29184a5ff8eb82d1118f6916b79e4) | TODO | v7 ☑✓ 4.19-rc1 | [LORE v7,0/11](https://lore.kernel.org/all/1530200714-4504-1-git-send-email-vincent.guittot@linaro.org) |
 
+### 3.2.5 Utilization Estimation(UTIL_EST)
+-------
+
+Per Entity Load Tracking(PELT) 算法本身是高效. 然而, 它不能完全通用地描述所有可能的任务类.
+
+1.  首先, PELT 的值爬升非常缓慢缓慢爬升, 例如, PELT 默认使用的半衰期为 32ms. 这意味着任务的利用率需要 32ms 才能从 0% 上升到 50%, 大约 100ms 才能产生约 90% 的利用率.
+
+2.  其次, 如果 PELT 衰减的存在(且衰减永远不会被限制), 因此通常一个历史上高负载的任务, 在长时间的阻塞后醒来, 可能会使其负载衰减到一定阈值以下甚至完全衰减.
+
+为了应对 PELT 的上述问题, 在 [2016 年的 LPC 会议](http://wiki.linuxplumbersconf.org/2016:power_management_and_energy-awareness)上, Paul Turner 建议实施 Decay Clamping 机制. 它的基本思想是, 一旦任务睡眠, 任务的负载只会在一定的时间(可动态配置)内衰减, 因此实际上在唤醒时保留我们在上次运行期间负载的一部分. Morten 已经实现了这种方法, 并将原型实现用于测试和评估. 总体结论是这种方法无法胜任这项工作
+
+随后 Morten Rasmussen, Patrick Bellasi 提出了一种新的思路 Utilization Estimation, 并在 [2017 年的 LPC](https://blog.linuxplumbersconf.org/2017/ocw/proposals/4771.html) 上进行了演示, 通过与 Decay Clamping 机制对比, 可预见性地证实 Utilization Estimation 机制更合理一些. 参见 [Slides--Improving PELT--Decay Clamping vs Utilization Estimation](http://retis.sssup.it/luca/ospm-summit/2017/Downloads/OSPM_PELT_DecayClampingVsUtilEst.pdf).
+
+预估负载(Utilization Estimation) 于 v4.17 合入主线, 为了提供更稳定的 PELT 负载, 在任务 (休眠) 出队列时更新任务的预估负载, 当任务入队列时将出队列时的负载加到 cfs_rq 的预估负载上.
+
+[调度器 12—PELT 算法中的预估利用率 util_est](https://www.cnblogs.com/hellokitty2/p/15452178.html)
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/03/09 | Patrick Bellasi <patrick.bellasi@arm.com> | [Utilization estimation (util_est) for FAIR tasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d519329f72a6f36bc4f2b85452640cfe583b4f81) | TODO | v6 ☑✓ 4.17-rc1 | [LKML RFC,0/3](https://lkml.org/lkml/2017/8/25/195)<br>*-*-*-*-*-*-*-* <br>[LKML 0/4](https://lkml.org/lkml/2017/11/9/546)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/all/20171205171018.9203-1-patrick.bellasi@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/3](https://lore.kernel.org/lkml/20180123180847.4477-1-patrick.bellasi@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/4](https://lore.kernel.org/all/20180222170153.673-1-patrick.bellasi@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/4](https://lore.kernel.org/all/20180309095245.11071-1-patrick.bellasi@arm.com) |
 
 
 # 4 基于调度域的负载均衡

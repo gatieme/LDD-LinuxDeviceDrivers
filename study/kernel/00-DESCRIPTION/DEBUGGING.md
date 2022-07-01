@@ -538,6 +538,8 @@ Mold 是目前 Unix 链接器的现代替代品, 已经达到了 1.0 版本. 由
 
 随后 2022 年, 开发者 Miko 建议所有架构都开启 `-O3` 编译内核 [Experimental -O3 Optimizing The Linux Kernel For Better Performance Brought Up Again](https://www.phoronix.com/scan.php?page=news_item&px=O3-Optimize-Kernel-2022-Patches), 但是遭到了 Linus 的强烈反对, [Linus Torvalds' Latest Commentary Against -O3'ing The Linux Kernel](https://www.phoronix.com/scan.php?page=news_item&px=Linus-Against-O3-Kernel), [LKML 回复](https://lore.kernel.org/lkml/CA+55aFz2sNBbZyg-_i8_Ldr2e8o9dfvdSfHHuRzVtP2VMAUWPg@mail.gmail.com).
 
+随后 对内核使用 `-O3` 进行了较为详细的性能测试 [](https://www.phoronix.com/scan.php?page=article&item=linux-kernel-o3&num=7)
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/06/21 | Miko Larsson <mikoxyzzz@gmail.com> | [Kconfig: -O3 enablement](https://lore.kernel.org/all/20220621133526.29662-1-mikoxyzzz@gmail.com) | 允许所有架构支持 -O3 编译. | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20220621133526.29662-1-mikoxyzzz@gmail.com) |
