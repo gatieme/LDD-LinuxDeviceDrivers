@@ -747,6 +747,11 @@ Chang 的 patch set 采用了与之前不同的方法：允许 cgroup 将一些�
 # 3 负载跟踪机制
 -------
 
+
+[PELT vs Window tracking and EAS on SMP multi-cluster](https://static.linaro.org/connect/bkk16/Presentations/Tuesday/BKK16-208.pdf)
+
+[CPU负载均衡之 loadavg、pelt、walt 涉及到结构体记录](https://blog.csdn.net/xiaoqiaoq0/article/details/107499007)
+
 ## 3.1 WALT
 -------
 
@@ -1049,6 +1054,8 @@ Per Entity Load Tracking(PELT) 算法本身是高效. 然而, 它不能完全通
 
 [调度器 12—PELT 算法中的预估利用率 util_est](https://www.cnblogs.com/hellokitty2/p/15452178.html)
 
+
+
 #### 3.2.5.1 util_est on top of PELT
 -------
 
@@ -1091,6 +1098,15 @@ enqueue_task()
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/03/09 | Patrick Bellasi <patrick.bellasi@arm.com> | [Utilization estimation (util_est) for FAIR tasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d519329f72a6f36bc4f2b85452640cfe583b4f81) | TODO | v6 ☑✓ 4.17-rc1 | [LKML RFC,0/3](https://lkml.org/lkml/2017/8/25/195)<br>*-*-*-*-*-*-*-* <br>[LKML 0/4](https://lkml.org/lkml/2017/11/9/546)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/all/20171205171018.9203-1-patrick.bellasi@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/3](https://lore.kernel.org/lkml/20180123180847.4477-1-patrick.bellasi@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/4](https://lore.kernel.org/all/20180222170153.673-1-patrick.bellasi@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/4](https://lore.kernel.org/all/20180309095245.11071-1-patrick.bellasi@arm.com) |
+
+
+### 3.2.6 PELT Simulator
+-------
+
+为了方便演示 Utilization Estimation(UTIL_EST) 的作者 Patrick Bellasi(derkling) 制作了几个 PELT 的示例 DEMO, 参见 [Analysis of PELT behaviours and DecayClamping effects](https://gist.github.com/derkling/6d1d3a3164b0291ef64fa409f61a81cb) 和 [pelt/PELT_Analysis.ipynb](https://gist.github.com/derkling/a0c6e03310a03e9721edbf453e131d25).
+
+
+[博客园--调度器3—PELT算法下util_avg的增速和减速](https://www.cnblogs.com/hellokitty2/p/15361706.html) 则使用示例程序演示了不同半衰期下 util_avg 的增长和衰减。
 
 
 # 4 基于调度域的负载均衡
