@@ -3757,12 +3757,17 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 ### 7.1.2 TurboSched
 -------
 
-后来到 2019 年, IBM 的 Parth Shah 有往社区推送了 TurboSched.
+后来到 2019 年, IBM 的 Parth Shah 又往社区推送了 TurboSched.
 
+[[SchedulerTaskPacking] Small background task packing](https://lore.kernel.org/lkml/39cc4666-6355-fb9f-654d-e85e1852bc6f@linux.ibm.com)
+
+[TurboSched: the return of small-task packing](https://lwn.net/Articles/792471).
+
+[TurboSched Is A New Linux Scheduler Focused On Maximizing Turbo Frequency Usage](https://www.phoronix.com/scan.php?page=news_item&px=Linux-TurboSched-V4)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2019/10/07 |  Parth Shah <parth@linux.ibm.com> | [TurboSched: A scheduler for sustaining Turbo Frequencies for longer durations](https://lwn.net/Articles/801473) | 尝试在繁忙的内核上打包小负载的后台任务, 这样可以通过保持其他核空闲来节省电源, 并允许更繁忙的核超频运行. | | v1 ☑ 4.11-rc1 | [PatchWork](https://lwn.net/Articles/801473) |
+| 2019/10/07 |  Parth Shah <parth@linux.ibm.com> | [TurboSched: A scheduler for sustaining Turbo Frequencies for longer durations](https://lwn.net/Articles/801473) | 尝试在繁忙的内核上打包小负载的后台任务, 这样可以通过保持其他核空闲来节省电源, 并允许更繁忙的核超频运行. | | v1 ☑ 4.11-rc1 | [LORE RFC,v6,0/5](https://lore.kernel.org/lkml/20200121063307.17221-1-parth@linux.ibm.com) |
 
 ## 7.2 能耗感知
 -------
@@ -3830,13 +3835,48 @@ ARM EAS 支持的主页: [Energy Aware Scheduling (EAS)](https://developer.arm.c
 |:----------:|:---:|:------:|
 | sched_asym_cpucapacity | Capacity Aware Scheduling 特性开关 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=df054e8445a4011e3d693c2268129c0456108663) || sched_energy_present | EAS 的特性开关. | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1f74de8798c93ce14801cc4e772603e51c841c33) |
 
+#### 7.2.3.1 Select an energy-efficient CPU on task wake-up
+-------
+
+2018 年, Quentin Perret 等开发的 EAS 终于在 v5.0 版本合入主线.
+
+[commit 732cd75b8c92 ("sched/fair: Select an energy-efficient CPU on task wake-up")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=732cd75b8c920d3727e69957b14faa7c2d7c3b75) 在调度器中添加了一个 find_energy_efficient_cpu() 的函数(简称 feec()); 它的工作是为给定的任务找到最佳位置(从能耗的角度来看). 其核心逻辑是找到每个 perf_domain 性能域 中最不繁忙的 CPU, 并估计将任务放在该 CPU 上所产生的能源成本(或节省). 最不繁忙的 CPU 最有可能保持低功耗状态, 因此它为一些额外工作提供了逻辑目标.
+
+由于, 将任务从一个 CPU 移动到另一个 CPU 是有代价的. 该任务可能会留下部分或全部内存缓存, 这会减慢其速度. 这会影响性能, 也不利于能源使用, 因此应尽可能避免使用. 为了防止 CPU 之间频繁地进程迁移, find_energy_efficient_cpu() 只有在结果是[至少节省了任务先前 CPU 所用能量的 6% 时](https://elixir.bootlin.com/linux/v5.0/source/kernel/sched/fair.c#L6576)才会迁移任务.
+
+
+#### 7.2.3.2 Speed-up energy-aware wake-ups
+-------
+
+但是, 最佳能效 CPU 的计算和搜索成本很高, 以至于给调度决策增加了不必要的延迟. 因此, Perret 在 2019 年的 v5.4 版本中对其进行了重新设计. 目的是以更低的CPU成本获得相同的结果. 参见 [commit eb92692b2544 ("sched/fair: Speed-up energy-aware wake-ups")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eb92692b2544d3f415887dbbc98499843dfe568b) 补丁 COMMIT 说"没有功能更改(No functional changes intended.)". 然而, 事实证明, 有一个微妙的变化显然逃脱了审查：6%规则现在与整个系统使用的能量进行了比较, 而不仅仅是运行任务的先前CPU. 这是一个相对较高的移动门槛, 在具有足够CPU的系统上, 任务可能无法满足.
+
+即使在较小的系统上, 新规则在许多情况下也能有效地阻止任务移动. 在运行相对较多的小任务的情况下尤其如此, 这种情况经常出现在 Android 设备上, 其中能效是一个真正的问题. 如果它不再能够移动任务以节省能源, 则 find_energy_efficient_cpu() 完成的所有工作都将被浪费, 并且设备的运行效率低于其他方式.
+
+### 7.2.3.3 energy margin removal
+-------
+
+
+[Removing the scheduler's energy-margin heuristic](https://lwn.net/Articles/899303/)
+
+
+回退 v5.4 的算法优化可以很直接的解决问题, 但是社区对此争议颇多, 因为本身 6% 这个收益阈值就没有任何理论以及数据依据, 在 EAS 的早期版本这个数字一直是 1.5%, 直到它在 v4 中被提高到6%, 参见 [[RFC PATCH v4 00/12] Energy Aware Scheduling](https://lore.kernel.org/all/20180628114043.24724-1-quentin.perret%40arm.com) 中 "Changed energy threshold for migration to from 1.5% to 6%". 这个改动最直接的原因可能是因为 6% 可以通过右移操作近似获得. 因此, Donnefort 直接建议完全删除 6% 的阈值, 并在看起来迁移可以降低能耗时直接迁移任务.
+
+参见 [feec() energy margin removal](https://lore.kernel.org/all/20220621090414.433602-1-vdonnefort@google.com), 根据补丁集发布时的测试数据表明, 系统确实获得了更好能效, 视频基准测试可降低5.6%, 在某些测试中, CPU 性能略有降低, 但变化似乎并不显著.
+
+Donnefort 称: 边距删除使内核能够充分利用能量模型, 任务更有可能放置在适合的位置, 这节省了大量的能量, 同时对性能的影响有限,
+这种变化的一个可能的缺点可能是 CPU 之间任务的反弹增加, 但 Donnefort 表示, 测试"没有显示任何问题".
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2014/05/23 | Morten Rasmussen <morten.rasmussen@arm.com> | [sched: Energy cost model for energy-aware scheduling](https://lore.kernel.org/all/1400869003-27769-1-git-send-email-morten.rasmussen@arm.com) | TODO | v1 ☐☑✓ | [LORE RFC v1,0/16](https://lore.kernel.org/all/1400869003-27769-1-git-send-email-morten.rasmussen@arm.com) |
 | 2018/12/03 | Quentin Perret <quentin.perret@arm.com> | [Energy Aware Scheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=732cd75b8c920d3727e69957b14faa7c2d7c3b75) | 能效感知的调度器 EAS | v10 ☑ 5.0-rc1 | [LORE v10,00/15](https://lore.kernel.org/lkml/20181203095628.11858-1-quentin.perret@arm.com) |
-| 2021/12/20 | Vincent Donnefort <vincent.donnefort@arm.com> | [Fix stuck overutilized](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) | NA | v1 ☐ | [LORE 0/3](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) |
 | 2019/09/12 | Quentin Perret <qperret@qperret.net> | [sched/fair: Speed-up energy-aware wake-ups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eb92692b2544d3f415887dbbc98499843dfe568b) | Speed-up energy-aware wake-ups from O(CPUS^2) to O(CPUS). | v1 ☑✓ 5.4-rc1 | [LORE](https://lore.kernel.org/all/20190912094404.13802-1-qperret@qperret.net) |
+| 2021/05/04 | Pierre Gondois <Pierre.Gondois@arm.com> | [sched/fair: find_energy_efficient_cpu() enhancements](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=619e090c8e409e09bd3e8edcd5a73d83f689890c) | 防止 find_energy_efficient_cpu() 出现下溢. | v3 ☑✓ 5.14-rc1 | [LORE v3,0/2](https://lore.kernel.org/all/20210504090743.9688-1-Pierre.Gondois@arm.com) |
+| 2021/12/20 | Vincent Donnefort <vincent.donnefort@arm.com> | [Fix stuck overutilized](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) | NA | v1 ☐ | [LORE 0/3](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) |
+| 2022/06/21 | Vincent Donnefort <vdonnefort@google.com> | [feec() energy margin removal](https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/log/?id=b812fc9768e0048582c8e18d7b66559c1758dde1) | feec() 将迁移任务以节省能源, 前提是它至少节省了系统消耗的总能源的 6%. 这种保守的方法对于终端来说是一个问题, 在这个系统中, 许多小任务会在总体上产生巨大的负载: 很少有任务可以迁移到较小的 CPU, 这会浪费大量的能量. 与其试图确定另一个裕度, 不如尝试删除它. | v11 ☐☑✓ | [LORE v11,0/7](https://lore.kernel.org/all/20220621090414.433602-1-vdonnefort@google.com) |
 
+#### 7.2.3.x EAS timeline
+-------
 
 EAS 主线合入的特性时间线: [EAS Development for Mainline Linux](https://developer.arm.com/tools-and-software/open-source-software/linux-kernel/energy-aware-scheduling/eas-mainline-development)
 
@@ -4692,6 +4732,11 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 
 两年后, 2022 年, Vincent Guittot 在 Parth Shah 工作的基础上, 重提了 [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org). 参见 LWN 报道.
 
+
+[Scheduler wakeup path tuning surface: Use-Cases and Requirements](https://lore.kernel.org/lkml/87imfi2qbk.derkling@matbug.net)
+
+[[SchedulerWakeupLatency] Per-task vruntime wakeup bonus](https://lore.kernel.org/lkml/87blla2pdt.derkling@matbug.net)
+
 | 日期 | LWN | 翻译 |
 |:---:|:----:|:---:|
 | 2020/05/18 | [The many faces of Latency nice](https://lwn.net/Articles/820659) | [LWN: Latency nice 的方方面面](https://blog.csdn.net/Linux_Everything/article/details/106435501) |
@@ -4815,6 +4860,19 @@ Xen 的 CPU 调度算法主要有 3 种: BVT(borrowed virtual time)调度算法�
 1.  server 线程直接被 client 唤醒, 不需要走调度(WAKE_UP + PICK_NEXT + SCHED_IN)流程, 完成了 DIRECTLY SWITCH_TO server, 降低了整个唤醒时延.
 
 2.  server 线程唤醒后直接借助 client 的内核栈执行, server 和 client 都使用了 client 的内核栈, 不需要再进行数据传递, 直接调用 server 的 Continuation 返回到用户态执行.
+
+
+### 10.3.2 Binder
+-------
+
+
+[Google 手册--使用 Binder IPC](https://source.android.com/devices/architecture/hidl/binder-ipc)
+
+ANDROID 8 实现了 BINDER 对实时优先级传递的支持. 但是经过测试发现, 对部分场景性能存在负面影响, 因此社区并未合入.
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2017/10/26 | Martijn Coenen <maco@android.com> | [ANDROID: binder: RT priority inheritance](https://lore.kernel.org/all/20171026140750.119265-1-maco@android.com) | binder 支持 RT 优先级传递. | v3 ☐☑✓ | [LORE 00/13](https://lore.kernel.org/all/20170825093335.100892-1-maco@android.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/13](https://lore.kernel.org/all/20170831080430.118765-1-maco@android.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/all/20171026140750.119265-1-maco@android.com) |
 
 
 # 11 其他

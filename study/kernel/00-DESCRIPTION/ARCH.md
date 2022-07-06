@@ -824,8 +824,23 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 ## 6.10 Software Branch Hinting
 -------
 
-[Software Branch Hinting](https://labs.engineering.asu.edu/mps-lab/research-themes/low-power-computing/sbh/)
+[Software Branch Hinting](https://labs.engineering.asu.edu/mps-lab/research-themes/low-power-computing/sbh)
 
+
+## 6.9 指令集
+-------
+
+
+| 指令集架构 | 描述 | 代表架构 |
+|:--------:|:----:|:------:|
+| CISC (Complex instruction set computer) 复杂指令集计算机 | NA | HP 的 PA-RISC，IBM 的 PowerPC，Compaq（被并入 HP）的 Alpha，MIPS 公司的 MIPS，SUN 公司的 SPARC 等. |
+| RISC (Reduced instruction set computer) 精简指令集计算机 | NA | NA |
+| [MISC (Minimal instruction set computer), 最小指令集计算机](http://en.wikipedia.org/wiki/Minimal_instruction_set_computer) | [从零开始手敲自举编译器(一): MISC 概览](https://zhuanlan.zhihu.com/p/412201989) 和 [github-whoiscc/miniboot/](https://github.com/whoiscc/miniboot) |
+| [OISC (One instruction set computer, 单指令集计算机)](http://en.wikipedia.org/wiki/One_instruction_set_computer) | NA | NA |
+| [ZISC (Zero instruction set computer)](https://en.wikipedia.org/wiki/Zero_instruction_set_computer) | NA | NA |
+| VLIM (Very long instruction word) 超长指令字架构 | 通过将多条指令放入一个指令字, 有效的提高了 CPU 各个计算功能部件的利用效率, 提高了程序的性能. | NA |
+| EPIC (Explicity parallel instruction computing) 显示并行指令集计算 | NA |  Intel 的 IA-64 |
+| EDGE | 显式数据图执行 (Explicit Data Graph Execution) 的指令集体系结构, 也被称为 EDGE 架构. | [微软处理器架构是新瓶装酒 历史早已证明是死路一条](http://www.360doc.com/content/18/0623/10/22587800_764605025.shtml), [与高通联手打造全新处理器架构，微软计算芯片界的至尊魔戒终浮现](https://zhuanlan.zhihu.com/p/38340253) | Microsoft 的 E2 |
 
 <br>
 
