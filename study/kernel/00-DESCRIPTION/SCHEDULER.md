@@ -3856,7 +3856,7 @@ ARM EAS 支持的主页: [Energy Aware Scheduling (EAS)](https://developer.arm.c
 -------
 
 
-[Removing the scheduler's energy-margin heuristic](https://lwn.net/Articles/899303/)
+[Removing the scheduler's energy-margin heuristic](https://lwn.net/Articles/899303)
 
 
 回退 v5.4 的算法优化可以很直接的解决问题, 但是社区对此争议颇多, 因为本身 6% 这个收益阈值就没有任何理论以及数据依据, 在 EAS 的早期版本这个数字一直是 1.5%, 直到它在 v4 中被提高到6%, 参见 [[RFC PATCH v4 00/12] Energy Aware Scheduling](https://lore.kernel.org/all/20180628114043.24724-1-quentin.perret%40arm.com) 中 "Changed energy threshold for migration to from 1.5% to 6%". 这个改动最直接的原因可能是因为 6% 可以通过右移操作近似获得. 因此, Donnefort 直接建议完全删除 6% 的阈值, 并在看起来迁移可以降低能耗时直接迁移任务.
@@ -4339,6 +4339,8 @@ ANDROID 上很多实际应用场景, 比如说绘帧等, 往往是由多个线�
 
 # 8 实时性 linux PREEMPT_RT
 -------
+
+[The 2022 embedded Linux update](https://lwn.net/Articles/899742)
 
 
 ## 8.1 抢占支持(preemption)

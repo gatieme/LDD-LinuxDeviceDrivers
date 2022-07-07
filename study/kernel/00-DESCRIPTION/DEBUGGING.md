@@ -685,7 +685,7 @@ LWN 上也对此进行了[汇总报道](https://lwn.net/Kernel/Index/#Android-Ge
 
 [Android to take an “upstream first” development model for the Linux kernel](https://arstechnica.com/gadgets/2021/09/android-to-take-an-upstream-first-development-model-for-the-linux-kernel)
 
-[](https://stackoverflow.com/questions/65415511/android-kernel-build-flow-with-gki-introduced-from-android-11)
+[ANDROID GTI](https://stackoverflow.com/questions/65415511/android-kernel-build-flow-with-gki-introduced-from-android-11)
 
 [LPC 2021-Generic Kernel Image](https://linuxplumbersconf.org/event/11/contributions/1046/attachments/824/1557/2021%20LPC%20GKI.pdf)
 
@@ -699,14 +699,6 @@ LWN 上也对此进行了[汇总报道](https://lwn.net/Kernel/Index/#Android-Ge
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/04/24 | Todd Kjos <tkjos@google.com> | [ANDROID: add support for vendor hooks](https://lore.kernel.org/patchwork/patch/1394812) | 启动阶段异步解压 initramfs. 可以加速系统启动. | v1 ☑ [5.13-rc1](https://kernelnewbies.org/Linux_5.13) | [Patchwork 00/28](https://github.com/aosp-mirror/kernel_common/commit/67e0a3df19970176f093ff8be72f201d8c76ae81) |
-
-# OTHER
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/03/21 | Rasmus Villemoes <linux@rasmusvillemoes.dk> | [background initramfs unpacking, and CONFIG_MODPROBE_PATH](https://lore.kernel.org/patchwork/patch/1394812) | 启动阶段异步解压 initramfs. 可以加速系统启动. | v1 ☑ [5.13-rc1](https://kernelnewbies.org/Linux_5.13) | [Patchwork](https://lore.kernel.org/patchwork/patch/1394812) |
-
 
 
 
@@ -741,6 +733,21 @@ LWN 上也对此进行了[汇总报道](https://lwn.net/Kernel/Index/#Android-Ge
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/12/18 | David Woodhouse <dwmw2@infradead.org> | [configs: introduce debug.config for CI-like setup](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0aaa8977acbf3996d351f51b3b15295943092f63) | 参见 [Linux 5.17 Making It Easier To Build A Kernel With All The Shiny Debug Features](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-debug-config) | v5 ☑ 5.17-rc1 | [Patchwork v5](https://lore.kernel.org/all/20211115134754.7334-1-quic_qiancai@quicinc.com) |
+
+# 19 启动加速
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/03/21 | Rasmus Villemoes <linux@rasmusvillemoes.dk> | [background initramfs unpacking, and CONFIG_MODPROBE_PATH](https://lore.kernel.org/patchwork/patch/1394812) | 启动阶段异步解压 initramfs. 可以加速系统启动. | v1 ☑ [5.13-rc1](https://kernelnewbies.org/Linux_5.13) | [Patchwork](https://lore.kernel.org/patchwork/patch/1394812) |
+
+# 20 形式化验证
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/06/16 | Daniel Bristot de Oliveira <bristot@kernel.org> | [The Runtime Verification (RV) interface](https://lore.kernel.org/all/cover.1655368610.git.bristot@kernel.org) | 运行时验证 Linux 内核的行为. 运行时验证(RV) 是一种轻量级 (但严格) 的方法, 它补充了经典的穷举验证技术 (如模型检查和定理证明), 并为复杂系统提供了一种更实用的方法. RV 不依赖于系统的细粒度模型 (例如, 重新实现指令级别), 而是通过分析系统实际执行的轨迹, 并将其与系统行为的形式化规范进行比较来工作. RV 使用确定性自动机是一种成熟的方法. | v4 ☐☑✓ | [LORE v4,0/20](https://lore.kernel.org/all/cover.1655368610.git.bristot@kernel.org) |
+
 
 
 
