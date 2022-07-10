@@ -4342,6 +4342,8 @@ ANDROID 上很多实际应用场景, 比如说绘帧等, 往往是由多个线�
 
 [The 2022 embedded Linux update](https://lwn.net/Articles/899742)
 
+[实时 Linux 内核调度器 | Real-Time Linux Kernel Scheduler
+](https://rtoax.blog.csdn.net/article/details/113728859)
 
 ## 8.1 抢占支持(preemption)
 -------
@@ -4728,23 +4730,40 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 ### 8.9.1 latency_nice
 -------
 
-2020 年, Parth Shah 提出了 latency nice 的概念. 旨在对应用的延迟进行感知和标记, 降低延迟敏感应用程序的调度延迟, 使其更快地获得 CPU 时间. latency_nice 值与现有 nice 值相对应, 介于 -20 和 19 之间. 数字越低, 优先级越高.
-
-在 OSPM 2020年会议上讨论了调度延迟的问题, 但似乎没有就正确的方法达成共识.
-
-两年后, 2022 年, Vincent Guittot 在 Parth Shah 工作的基础上, 重提了 [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org). 参见 LWN 报道.
-
-
-[Scheduler wakeup path tuning surface: Use-Cases and Requirements](https://lore.kernel.org/lkml/87imfi2qbk.derkling@matbug.net)
-
-[[SchedulerWakeupLatency] Per-task vruntime wakeup bonus](https://lore.kernel.org/lkml/87blla2pdt.derkling@matbug.net)
-
 | 日期 | LWN | 翻译 |
 |:---:|:----:|:---:|
 | 2020/05/18 | [The many faces of Latency nice](https://lwn.net/Articles/820659) | [LWN: Latency nice 的方方面面](https://blog.csdn.net/Linux_Everything/article/details/106435501) |
 | 2022/03/17 | [Improved response times with latency nice](https://lwn.net/Articles/887842) | [LWN: 采用 latency nice 改善响应时间](https://blog.csdn.net/Linux_Everything/article/details/123887454) |
 | 2022/04/05 | NA | 国内对这组补丁的分析 [latency-nice 优先级补丁源码分析](https://blog.csdn.net/qq_23662505/article/details/123977540) |
 
+2020 年, Parth Shah 提出了 latency nice 的概念. 旨在对应用的延迟进行感知和标记, 降低延迟敏感应用程序的调度延迟, 使其更快地获得 CPU 时间. latency_nice 值与现有 nice 值相对应, 介于 -20 和 19 之间. 数字越低, 优先级越高.
+
+在 OSPM 2020 年会议上讨论了调度延迟的问题, 但似乎没有就正确的方法达成共识. [Scheduler wakeup path tuning surface: Use-Cases and Requirements](https://lore.kernel.org/lkml/87imfi2qbk.derkling@matbug.net) 和 [[SchedulerWakeupLatency] Per-task vruntime wakeup bonus](https://lore.kernel.org/lkml/87blla2pdt.derkling@matbug.net).
+
+两年后, 2022 年, Vincent Guittot 在 Parth Shah 工作的基础上, 重提了 [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org). 调度路径上考虑 latency_nice 的优先唤醒和执行, 是通过修改 wakeup_preempt_entity() 感知 latency_nice 来完成的. wakeup_preempt_entity() 检查唤醒抢占的时候, 本身只比较两个进程的 vruntime, 现在进一步通过 wakeup_latency_gran() 比较两个进程的 latency_nice.
+
+1.  首先是唤醒抢占 check_preempt_curr(即 check_preempt_wakeup) 时, 延迟敏感的任务(latency_nice 值小) 将可以抢占其他非延迟敏感的任务.
+
+```cpp
+check_preempt_wakeup()
+    -=> wakeup_preempt_entity()
+```
+
+2.  pick_next_entity() 时, 将红黑树待选的 left 进程与 next_buddy 与 last_buddy 比较时原本就使用了 wakeup_preempt_entity(), 有了 altency_nice 后这里也将直接考虑进程的延迟敏感度.
+
+```cpp
+pick_task_fair()
+    -=> pick_next_entity()
+        -=> wakeup_preempt_entity()
+```
+
+2.  其次进程入队 enqueue_task_fair() 的过程中, 在从空闲状态同时唤醒的情况下, 通过比较多个同时唤醒的任务的 latency_nice 实现了延迟敏感的任务抢占同时唤醒的非敏感任务的机会.
+
+```cpp
+enqueue_task_fair()
+    -=> check_preempt_from_idle()
+        -=> wakeup_preempt_entity(next, se)
+```
 
 | 时间  | 作者  | 特性  | 描述  | 是否合入主线   | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
