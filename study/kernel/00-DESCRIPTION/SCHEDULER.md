@@ -379,7 +379,7 @@ RT 有两种调度策略, SCHED_FIFO 先到先服务 和 SCHED_RR 时间片轮�
 RR进程和FIFO进程都采用实时优先级做为调度的权值标准, RR是FIFO的一个延伸. FIFO时, 如果两个进程的优先级一样, 则这两个优先级一样的进程具体执行哪一个是由其在队列中的位置决定的, 这样导致一些不公正性(优先级是一样的, 为什么要让你一直运行?),如果将两个优先级一样的任务的调度策略都设为RR,则保证了这两个任务可以循环执行, 保证了公平.
 
 
-SHCED_RR和SCHED_FIFO的不同：
+SHCED_RR和SCHED_FIFO的不同:
 
 1.  当采用SHCED_RR策略的进程的时间片用完, 系统将重新分配时间片, 并置于就绪队列尾. 放在队列尾保证了所有具有相同优先级的RR任务的调度公平.
 
@@ -389,7 +389,7 @@ SHCED_RR和SCHED_FIFO的不同：
 
 
 
-相同点：
+相同点:
 
 1.  RR和FIFO都只用于实时任务.
 
@@ -486,6 +486,12 @@ ARCHLINUX 的开发者 [hamadmarri](https://github.com/hamadmarri) 为 linux 开
 ARCHLINUX 的开发者 ptr1337, 同样移植了 [CacULE Scheduler](https://github.com/ptr1337/linux-cacule), [CachyOS/linux-cachyos](https://github.com/CachyOS/linux-cachyos).
 
 [libhunt](https://www.libhunt.com/compare-linux-cacule-vs-linux-cachyos) 提供了两个 GITHUB 仓库的对比信息.
+
+此外还有 [xanmod](https://github.com/xanmod/linux) 补丁集.
+
+[linux-tkg](https://github.com/Frogging-Family/linux-tkg) 是一个高度可定制的内核构建系统, 提供一系列补丁和调整, 旨在提高桌面和游戏性能. 它由Etienne Juvigny维护. 在其他补丁中, 它提供了各种CPU调度程序: CFS, Project C PDS, Project C BMQ, MuQSS和CacULE.
+
+参考 [ARCHLINUX Kernel WIKI](https://wiki.archlinux.org/title/kernel).
 
 ## 1.5 调度类的一些其他优化点
 -------
@@ -681,7 +687,7 @@ CFS 用户反复在社区抱怨并行 kbuild 对桌面交互性有负面影响, 
 
 社区提出的一组 patch 旨在让它更好地适用于突发的(bursty)、对延迟敏感(latency-sensitive)的 workload.
 
-Chang 的 patch set 采用了与之前不同的方法：允许 cgroup 将一些未使用的配额从一个周期转到下一个周期. 引入的新参数 cpu.cfs_burst_us 就设置了这种方式可以累积的时长上限. 举个例子, 继续讨论配额为 25ms, 周期为 50ms 的 cgroup 配置. 如果将 cpu.cfs_burst_us 设置为 40000(40ms), 那么这个 cgroup 中的进程在某个周期内最多可以运行 40ms, 但前提是它已经在之前的周期中省下了这次额外所需的 15ms. 这样一来, 这个 cgroup 就可以既满足它的突发性工作需求, 又能够在长时间的统计中保证它的 CPU 耗时仍然不超过配额上限.
+Chang 的 patch set 采用了与之前不同的方法: 允许 cgroup 将一些未使用的配额从一个周期转到下一个周期. 引入的新参数 cpu.cfs_burst_us 就设置了这种方式可以累积的时长上限. 举个例子, 继续讨论配额为 25ms, 周期为 50ms 的 cgroup 配置. 如果将 cpu.cfs_burst_us 设置为 40000(40ms), 那么这个 cgroup 中的进程在某个周期内最多可以运行 40ms, 但前提是它已经在之前的周期中省下了这次额外所需的 15ms. 这样一来, 这个 cgroup 就可以既满足它的突发性工作需求, 又能够在长时间的统计中保证它的 CPU 耗时仍然不超过配额上限.
 
 可以用另一种方式来解释这个做法, 当使用了 cpu.cfs_burst_us 的时候, 配额(quota)的定义就跟从前不一样了. 配额不再是绝对的数值上限, 而是在每个周期内向此 CPU 时间账户内存入的时长, cfs_burst_us 值就是这个账户的封顶值. 需要预先为突发事件做准备的 cgroup 就可以在该账户中来储蓄一些(有限的) CPU 时间, 在需要时使用.
 
@@ -971,7 +977,7 @@ $$
 #### 3.2.3.2 分段计算 PELT load
 -------
 
-v4.12 开始, 对 PELT 分段计算累计负载贡献的算法进行了重构与优化, 参见 [CFS 调度器：负载跟踪与更新](https://zhuanlan.zhihu.com/p/158185705)
+v4.12 开始, 对 PELT 分段计算累计负载贡献的算法进行了重构与优化, 参见 [CFS 调度器: 负载跟踪与更新](https://zhuanlan.zhihu.com/p/158185705)
 
 其实从之前的分析就可以看出, 耗时的操作主要在对 $\displaystyle \sum^{p-1}_{n = 0}{y^n}$ 的计算上, 之前的算法已 32 个周期为一个大窗口进行划分, 不算的递归求解, 那有没有一种更简单的方式呢?
 
@@ -1106,7 +1112,7 @@ enqueue_task()
 为了方便演示 Utilization Estimation(UTIL_EST) 的作者 Patrick Bellasi(derkling) 制作了几个 PELT 的示例 DEMO, 参见 [Analysis of PELT behaviours and DecayClamping effects](https://gist.github.com/derkling/6d1d3a3164b0291ef64fa409f61a81cb) 和 [pelt/PELT_Analysis.ipynb](https://gist.github.com/derkling/a0c6e03310a03e9721edbf453e131d25).
 
 
-[博客园--调度器3—PELT算法下util_avg的增速和减速](https://www.cnblogs.com/hellokitty2/p/15361706.html) 则使用示例程序演示了不同半衰期下 util_avg 的增长和衰减。
+[博客园--调度器3—PELT算法下util_avg的增速和减速](https://www.cnblogs.com/hellokitty2/p/15361706.html) 则使用示例程序演示了不同半衰期下 util_avg 的增长和衰减.
 
 
 # 4 基于调度域的负载均衡
@@ -3848,7 +3854,7 @@ ARM EAS 支持的主页: [Energy Aware Scheduling (EAS)](https://developer.arm.c
 #### 7.2.3.2 Speed-up energy-aware wake-ups
 -------
 
-但是, 最佳能效 CPU 的计算和搜索成本很高, 以至于给调度决策增加了不必要的延迟. 因此, Perret 在 2019 年的 v5.4 版本中对其进行了重新设计. 目的是以更低的CPU成本获得相同的结果. 参见 [commit eb92692b2544 ("sched/fair: Speed-up energy-aware wake-ups")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eb92692b2544d3f415887dbbc98499843dfe568b) 补丁 COMMIT 说"没有功能更改(No functional changes intended.)". 然而, 事实证明, 有一个微妙的变化显然逃脱了审查：6%规则现在与整个系统使用的能量进行了比较, 而不仅仅是运行任务的先前CPU. 这是一个相对较高的移动门槛, 在具有足够CPU的系统上, 任务可能无法满足.
+但是, 最佳能效 CPU 的计算和搜索成本很高, 以至于给调度决策增加了不必要的延迟. 因此, Perret 在 2019 年的 v5.4 版本中对其进行了重新设计. 目的是以更低的CPU成本获得相同的结果. 参见 [commit eb92692b2544 ("sched/fair: Speed-up energy-aware wake-ups")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eb92692b2544d3f415887dbbc98499843dfe568b) 补丁 COMMIT 说"没有功能更改(No functional changes intended.)". 然而, 事实证明, 有一个微妙的变化显然逃脱了审查: 6%规则现在与整个系统使用的能量进行了比较, 而不仅仅是运行任务的先前CPU. 这是一个相对较高的移动门槛, 在具有足够CPU的系统上, 任务可能无法满足.
 
 即使在较小的系统上, 新规则在许多情况下也能有效地阻止任务移动. 在运行相对较多的小任务的情况下尤其如此, 这种情况经常出现在 Android 设备上, 其中能效是一个真正的问题. 如果它不再能够移动任务以节省能源, 则 find_energy_efficient_cpu() 完成的所有工作都将被浪费, 并且设备的运行效率低于其他方式.
 
@@ -5016,7 +5022,7 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 -------
 
 
-[Plugsched](https://gitee.com/anolis/plugsched) 是 OpenAnolos Linux 内核调度器子系统热升级的 SDK, 它可以实现在不重启系统、应用的情况下动态替换调度器子系统, 毫秒级 downtime. Plugsched 可以对生产环境中的内核调度特性动态地进行增、删、改, 以满足不同场景或应用的需求, 且支持回滚. 参见 [龙蜥开源 Plugsched：首次实现 Linux kernel 调度器热升级 | 龙蜥技术](https://openanolis.cn/blog/detail/532955762604705772).
+[Plugsched](https://gitee.com/anolis/plugsched) 是 OpenAnolos Linux 内核调度器子系统热升级的 SDK, 它可以实现在不重启系统、应用的情况下动态替换调度器子系统, 毫秒级 downtime. Plugsched 可以对生产环境中的内核调度特性动态地进行增、删、改, 以满足不同场景或应用的需求, 且支持回滚. 参见 [龙蜥开源 Plugsched: 首次实现 Linux kernel 调度器热升级 | 龙蜥技术](https://openanolis.cn/blog/detail/532955762604705772).
 
 基于 Plugsched 实现的调度器热升级, 不修改现有内核代码, 就能获得较好的可修改能力, 天然支持线上的老内核版本. 如果提前在内核调度器代码的关键数据结构中加入 Reserve 字段, 可以额外获得修改数据结构的能力, 进一步提升可修改能力.
 
