@@ -111,6 +111,37 @@ https://www.phoronix.com/scan.php?page=news_item&px=UDP-IPV6-5P-Optimization
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/12/22 | Wander Lairson Costa <wander@redhat.com> | [tty: serial: Use fifo in 8250 console driver](https://lwn.net/Articles/722293) | 参见报道 [Linux Serial Console Driver Lands Patch For Possible ~25% Performance Improvement](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Serial-16550-FIFO) | v1 ☑ 5.17-rc1 | [PatchWork v4,00/10](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5021d709b31b8a14317998a33cbc78be0de9ab30) |
 
+# 6 LIB
+-------
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/07/10 | Yu-Jen Chang <arthurchang09@gmail.com> | [Optimize memchr()](https://lore.kernel.org/all/20220710142822.52539-1-arthurchang09@gmail.com) | 优化 Linux 内核的 memchr() 实现, 以便更快地在内存块中定位字符. 这组补丁使得 memchr 在处理长字符串时可以快 4 倍左右. memchr() 的原始版本是使用按字节比较技术实现的, 该技术在 CPU 中不完全使用 64 位或 32 位寄存器. 使用全字范围的比较, 以便在 CPU 上可以同时比较 8 个字符. 参见 [Optimized memchr() Implementation For The Linux Kernel Up To ~4x Faster](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Kernel-Faster-memchr). | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20220710142822.52539-1-arthurchang09@gmail.com) |
+
+
+
+# 10 评测
+-------
+
+
+## 10.1 系统评测
+-------
+
+Intel AderLake 引入大小核之后, Windows & Intel 联盟做了足够多的优化, 但是 Linux 还没有针对性的优化, 因此在 Core i9 12900K(Alder Lake) 上测试, Window 11 性能领先于 Linux. [Windows 11 Better Than Linux Right Now For Intel Alder Lake Performance](https://www.phoronix.com/scan.php?page=article&item=alderlake-windows-linux&num=1).
+
+随后多个 Linux 版本都对性能进行了优化和修复. 参见 phoronix 报道 [Linux 5.15.35 Released With Important Performance Fix For Intel Alder Lake](https://www.phoronix.com/scan.php?page=article&item=linux-51535-adl&num=1).
+
+[Windows 11 vs. Linux Performance For Intel Core i9 12900K In Mid-2022](https://www.phoronix.com/scan.php?page=article&item=windows-linux-mid22adl&num=1).
+
+
+## 10.2 内核评测
+-------
+
+| 日期 | 版本 | 评测 |
+|:---:|:----:|:---:|
+| 2022/07/11 | [Linux 5.19 Looking Real Good On The HP Dev One, XanMod + Liquorix Also Tested](https://www.phoronix.com/scan.php?page=article&item=hp-devone-kernels) | 基于 HP Dev One 与 AMD Ryzen 7 PRO 5850U 测试了 Mainline 5.19 相比较 Pop_OS Stock 5.17/Mainline 5.18/XanMod 5.18/Liquorix 5.18 的性能. |
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

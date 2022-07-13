@@ -65,7 +65,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 ### 1.1.1 split lock detect
 -------
 
-[字节跳动技术团队的博客--深入剖析 split locks，i++ 可能导致的灾难](https://blog.csdn.net/ByteDanceTech/article/details/124701175)
+[字节跳动技术团队的博客--深入剖析 split locks, i++ 可能导致的灾难](https://blog.csdn.net/ByteDanceTech/article/details/124701175)
 
 拆分锁是指原子指令对跨越多个高速缓存行的数据进行操作. 由于原子性质, 在两条高速缓存行上工作时需要全局总线锁, 这反过来又会对整体系统性能造成很大的性能影响.
 
@@ -163,7 +163,9 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 
 早在 2018 年, 苹果就发布过自家 AMP 硬件上的软硬协同优化的调度器, 中文专利号 [CN108984282A 具有闭环性能控制器的 AMP 体系结构的调度器/Scheduler for AMP architecture with closed loop performance controller](https://www.patentguru.com/cn/CN108984282A).
 
-[Intel Hardware Feedback Interface "HFI" Driver Submitted For Linux 5.18](https://www.phoronix.com/scan.php?page=news_item&px=Intel-HFI-Thermal-Linux-5.18)
+[Intel Hardware Feedback Interface "HFI" Driver Submitted For Linux 5.18](https://www.phoronix.com/scan.php?page=news_item&px=Intel-HFI-Thermal-Linux-5.18).
+
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -177,6 +179,8 @@ intel_thermal_interrupt()
     -=> intel_hfi_process_event(msr_val & PACKAGE_THERM_STATUS_HFI_UPDATED);    // if (this_cpu_has(X86_FEATURE_HFI))
         -=> queue_delayed_work(hfi_updates_wq, &hfi_instance->update_work, HFI_UPDATE_INTERVAL);
 ```
+
+HFI 创建了一个名为 hfi-updates 的 workqueue, 最终通过 hfi_instance->update_work 即 hfi_update_work_fn 来更新信息.
 
 ```cpp
 hfi_update_work_fn
@@ -275,12 +279,34 @@ SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安�
 
 [SGX技术的分析和研究](http://www.jos.org.cn/html/2018/9/5594.htm)
 
+
+| 版本 | 特性 | PatchSet |
+|:----:|:---:|---------:|
+| v5.11 | Linux 支持 Intel SGX | [Intel SGX foundations](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bc4bac2ecef0e47fd5c02f9c6f9585fd477f9beb) |
+| v5.13 | Linux 虚拟化支持 Intel SGX |  [KVM SGX virtualization support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fe7e948837f312d87853b3fce743795d1ae3715a), [KVM SGX virtualization support (KVM part)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fe7e948837f312d87853b3fce743795d1ae3715a) |
+|
+
+#### 1.6.1.1 SGX support
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2020/11/13 | Jarkko Sakkinen <jarkko@kernel.org> | [Intel SGX foundations](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bc4bac2ecef0e47fd5c02f9c6f9585fd477f9beb) | 20201112220135.165028-1-jarkko@kernel.org | v41 ☑✓ 5.11-rc1 | [LORE v41,0/24](https://lore.kernel.org/all/20201112220135.165028-1-jarkko@kernel.org) |
-| 2021/03/19 | Kai Huang <kai.huang@intel.com> | [KVM SGX virtualization support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fe7e948837f312d87853b3fce743795d1ae3715a) | cover.1616136307.git.kai.huang@intel.com | v3 ☑✓ 5.13-rc1 | [LORE v3,0/25](https://lore.kernel.org/all/cover.1616136307.git.kai.huang@intel.com) |
-| 2021/04/12 | Kai Huang <kai.huang@intel.com> | [KVM SGX virtualization support (KVM part)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fe7e948837f312d87853b3fce743795d1ae3715a) | cover.1618196135.git.kai.huang@intel.com | v5 ☑✓ 5.13-rc1 | [LORE v5,0/11](https://lore.kernel.org/all/cover.1618196135.git.kai.huang@intel.com) |
+| 2020/11/13 | Jarkko Sakkinen <jarkko@kernel.org> | [Intel SGX foundations](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bc4bac2ecef0e47fd5c02f9c6f9585fd477f9beb) | Intel SGX 支持. 参见 phoronix 报道 [After Years Of Work With 40+ Revisions, Intel SGX Looks Like It Will Land In Linux 5.11](https://www.phoronix.com/scan.php?page=news_item&px=Intel-SGX-Linux-5.11) | v41 ☑✓ [5.11-rc1](https://lore.kernel.org/lkml/20201214114200.GD26358@zn.tnic/) | [LORE v41,0/24](https://lore.kernel.org/all/20201112220135.165028-1-jarkko@kernel.org) |
+| 2021/03/19 | Kai Huang <kai.huang@intel.com> | [KVM SGX virtualization support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fe7e948837f312d87853b3fce743795d1ae3715a) | Linux 虚拟化支持 Intel SGX | v3 ☑✓ 5.13-rc1 | [LORE v3,0/25](https://lore.kernel.org/all/cover.1616136307.git.kai.huang@intel.com) |
+| 2021/04/12 | Kai Huang <kai.huang@intel.com> | [KVM SGX virtualization support (KVM part)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fe7e948837f312d87853b3fce743795d1ae3715a) |  Linux 虚拟化支持 Intel SGX, 参见 phoronix 报道 [Linux 5.13 Bringing Code For Intel SX Within KVM Guests](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.13-SGX-KVM-Guests) | v5 ☑✓ 5.13-rc1 | [LORE v5,0/11](https://lore.kernel.org/all/cover.1618196135.git.kai.huang@intel.com) |
 | 2021/11/02 | Catalin Marinas <catalin.marinas@arm.com> | [Basic recovery for machine checks inside SGX](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=3ad6fd77a2d62e8f4465b429b65805eaf88e1b9e) | 支持混合微架构的 CPU(Alder Lake CPU) | v11 ☑✓ 5.17-rc1 | [Patchwork v11,0/7](https://patchwork.kernel.org/project/linux-mm/cover/20211026220050.697075-1-tony.luck@intel.com) |
+
+#### 1.6.1.1 SGX2 support
+-------
+
+
+[Which Platforms Support Intel® Software Guard Extensions (Intel® SGX) SGX2?](https://www.intel.com/content/www/us/en/support/articles/000058764/software/intel-security-products.html)
+
+[Intel SGX2 / Enclave Dynamic Memory Management Patches Posted For Linux](https://www.phoronix.com/scan.php?page=news_item&px=Intel-SGX2-Linux-Patches)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/12/01 | Reinette Chatre <reinette.chatre@intel.com> | [x86/sgx and selftests/sgx: Support SGX2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e0a5915f1cca21da8ffc0563aea9fa1df5d16fb4) | 参见 phoronix 报道 [Intel SGX2 Support Poised To Land In Linux 5.20](https://www.phoronix.com/scan.php?page=news_item&px=Intel-SGX2-Landing-Linux-5.20) | v1 ☐☑✓ | [LORE v1,0/25](https://lore.kernel.org/all/cover.1638381245.git.reinette.chatre@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,00/31](https://lore.kernel.org/lkml/cover.1652137848.git.reinette.chatre@intel.com) |
 
 ### 1.6.2 CET
 -------
@@ -439,6 +465,23 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | flush_tlb_range | 无效掉用户态地址 start ~ end 区间内的所有 tlb entry |
 | flush_tlb_kernel_range | 无效掉内核态 start ~ end 区间内的所有 TLB entry |
 | local_flush_tlb_all | 无效掉本 CPU 上所有的 TLB entry. 无需使用 TLB.IS |
+
+### 2.2.4 BATCHED_UNMAP_TLB_FLUSH
+-------
+
+在 x86 上, BATCHED_UNMAP_TLB_FLUSH 用于批处理 TLB, 在解除页面映射后, 发送一个 IPI 到 TLB 刷新所有条目, 而不是发送一个 IPI 来刷新每个单独的条目.
+
+在 arm64 TLB shootdown 是由硬件完成的. 刷新指令是内部共享的. 本地刷新限制在启动 (每个 CPU 1 次) 和任务获得新的 ASID 时. 像 ARM64 这样的平台有硬件 TLB shootdown 广播. 它们不维护 mm_cpumask, 只是发送 tlbi 和相关的同步指令用于 TLB 刷新. 在这种情况下, Task 的 mm_cpumask 通常是空的. 在这类平台上, 我们也允许延迟 TLB 刷新.
+
+
+在 x86 上, 批处理和延迟 TLB shootdown 的解决方案使 TLB shootdown 的性能提高了 90%. 在 arm64 上, 硬件可以在没有软件 IPI 的情况下执行 TLB shootdown. 但同步 tlbi 仍然相当昂贵.
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/02/23 | Barry Song <song.bao.hua@hisilicon.com> | [Documentation/features: mark BATCHED_UNMAP_TLB_FLUSH doesn't apply to ARM64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6bfef171d0d74cb050112e0e49feb20bfddf7f42) | 在 x86 上, BATCHED_UNMAP_TLB_FLUSH 用于批处理 TLB, 在解除页面映射后, 发送一个 IPI 到 TLB 刷新所有条目. 在 arm64 上, TLB shootdown 是由硬件完成的. 刷新指令是内部共享的. 本地刷新限制在启动(每个 CPU 1 次)和任务获得新的 ASID 时. 因此, 将该特性标记为 "TODO" 是不恰当的. 所以这个补丁对某些架构上不需要的这类功能标记为 "N/A". | v1 ☑✓ 5.13-rc1 | [LORE](https://lore.kernel.org/all/20210223003230.11976-1-song.bao.hua@hisilicon.com) |
+| 2022/07/11 | Barry Song <21cnbao@gmail.com> | [mm: arm64: bring up BATCHED_UNMAP_TLB_FLUSH](https://lore.kernel.org/all/20220711034615.482895-1-21cnbao@gmail.com) | 虽然 ARM64 有硬件来完成 TLB shootdown, 但硬件广播的开销并不小. 最简单的微基准测试表明, 即使在只有 8 核的 snapdragon 888 上, ptep_clear_flush() 的开销也是巨大的, 即使只分页一个进程映射的一个页面, perf top 显示这造成 5.36% 的 CPU 消耗. 当页面由多个进程映射或硬件有更多 CPU 时, 由于 TLB 分解的可扩展性较差, 成本应该会更高. 在这种场景下同样的基准测试可能会导致大约 100 核的 ARM64 服务器上 16.99% 的 CPU 消耗. 该补丁集利用了现有的 BATCHED_UNMAP_TLB_FLUSH 进行了优化.<br>1. 仅在第一阶段 arch_tlbbatch_add_mm() 中发送 tlbi 指令.<br>2. 等待 dsb 完成 tlbi, 同时在 arch_tlbbatch_flush() 中执行 tlbbatch sync. 在 snapdragon 上的测试表明, ptep_clear_flush() 的开销已被该补丁集优化掉. 即使在 snapdragon 888 上通过单个进程映射一个页面, 微基准也能提升 5% 的性能. | v2 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/lkml/20220707125242.425242-1-21cnbao@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/all/20220711034615.482895-1-21cnbao@gmail.com) |
+
+
 
 ## 2.3 指令加速
 -------
@@ -805,7 +848,7 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 ## 6.7 指令转译
 -------
 
-Rosetta 是一个转译过程, 允许用户在 Apple Silicon 上运行包含 x86_64 指令的应用程序。在 macOS 中, 这允许为基于英特尔的 Mac 电脑构建的应用程序在 Apple Silicon 上无缝运行; Rosetta 可以在 ARM Linux 虚拟机中为英特尔 Linux 应用程序提供同样的功能.
+Rosetta 是一个转译过程, 允许用户在 Apple Silicon 上运行包含 x86_64 指令的应用程序. 在 macOS 中, 这允许为基于英特尔的 Mac 电脑构建的应用程序在 Apple Silicon 上无缝运行; Rosetta 可以在 ARM Linux 虚拟机中为英特尔 Linux 应用程序提供同样的功能.
 
 [macOS 13 Adding Ability To Use Rosetta In ARM Linux VMs For Speedy x86_64 Linux Binaries](https://www.phoronix.com/scan.php?page=news_item&px=macOS-13-Rosetta-Linux-Binaries)
 
@@ -815,7 +858,7 @@ Rosetta 是一个转译过程, 允许用户在 Apple Silicon 上运行包含 x86
 
 Tachyum 宣布其设计一款完全通用的处理器 Prodigy T16128, 预计 2023 年发布, [Tachyum's Monster 128 Core 5.7GHz 'Universal Processor' Does Everything](https://www.tomshardware.com/news/tachyum-128-core-all-purpose-cpu), 号称一款芯片上可以同时运行通用计算, 高性能计算以及 AI 等业务和负载, 原生支持 x86, ARM, RISC-V 和 ISA 的二进制.
 
-Google Google 推出[芯片设计门户网站](https://developers.google.com/silicon), 计划名为 Open MPW Shuttle Program, 允许任何人利用开源 PDK 和其他开源 EDA 工具来提交开源集成电路设计, Google 会为他们免费制造, 不会收取任何费用。虽然芯片制造是在 130 纳米工艺（SKY130）上完成的, 但这一计划对资金有限的开源硬件项目具有巨大的推动作用.
+Google Google 推出[芯片设计门户网站](https://developers.google.com/silicon), 计划名为 Open MPW Shuttle Program, 允许任何人利用开源 PDK 和其他开源 EDA 工具来提交开源集成电路设计, Google 会为他们免费制造, 不会收取任何费用. 虽然芯片制造是在 130 纳米工艺（SKY130）上完成的, 但这一计划对资金有限的开源硬件项目具有巨大的推动作用.
 
 
 中国科学院大学("国科大")的 ["一生一芯" 计划](https://ysyx.org).
@@ -846,14 +889,14 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 
 | 指令集架构 | 描述 | 代表架构 |
 |:--------:|:----:|:------:|
-| CISC (Complex instruction set computer) 复杂指令集计算机 | NA | HP 的 PA-RISC，IBM 的 PowerPC，Compaq（被并入 HP）的 Alpha，MIPS 公司的 MIPS，SUN 公司的 SPARC 等. |
+| CISC (Complex instruction set computer) 复杂指令集计算机 | NA | HP 的 PA-RISC, IBM 的 PowerPC, Compaq（被并入 HP）的 Alpha, MIPS 公司的 MIPS, SUN 公司的 SPARC 等. |
 | RISC (Reduced instruction set computer) 精简指令集计算机 | NA | NA |
 | [MISC (Minimal instruction set computer), 最小指令集计算机](http://en.wikipedia.org/wiki/Minimal_instruction_set_computer) | [从零开始手敲自举编译器(一): MISC 概览](https://zhuanlan.zhihu.com/p/412201989) 和 [github-whoiscc/miniboot/](https://github.com/whoiscc/miniboot) |
 | [OISC (One instruction set computer, 单指令集计算机)](http://en.wikipedia.org/wiki/One_instruction_set_computer) | NA | NA |
 | [ZISC (Zero instruction set computer)](https://en.wikipedia.org/wiki/Zero_instruction_set_computer) | NA | NA |
 | VLIM (Very long instruction word) 超长指令字架构 | 通过将多条指令放入一个指令字, 有效的提高了 CPU 各个计算功能部件的利用效率, 提高了程序的性能. | NA |
 | EPIC (Explicity parallel instruction computing) 显示并行指令集计算 | NA |  Intel 的 IA-64 |
-| EDGE | 显式数据图执行 (Explicit Data Graph Execution) 的指令集体系结构, 也被称为 EDGE 架构. | [微软处理器架构是新瓶装酒 历史早已证明是死路一条](http://www.360doc.com/content/18/0623/10/22587800_764605025.shtml), [与高通联手打造全新处理器架构，微软计算芯片界的至尊魔戒终浮现](https://zhuanlan.zhihu.com/p/38340253) | Microsoft 的 E2 |
+| EDGE | 显式数据图执行 (Explicit Data Graph Execution) 的指令集体系结构, 也被称为 EDGE 架构. | [微软处理器架构是新瓶装酒 历史早已证明是死路一条](http://www.360doc.com/content/18/0623/10/22587800_764605025.shtml), [与高通联手打造全新处理器架构, 微软计算芯片界的至尊魔戒终浮现](https://zhuanlan.zhihu.com/p/38340253) | Microsoft 的 E2 |
 
 <br>
 

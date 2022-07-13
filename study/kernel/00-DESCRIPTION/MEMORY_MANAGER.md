@@ -6998,6 +6998,21 @@ ZONE_MOVABLE 一个 pseudo zone, 它实际是从内核划分的某个 zone 中�
 
 [都 2022 年了, 这 20 篇 Linux 内存管理的期刊论文, 你读了吗？](https://zhuanlan.zhihu.com/p/450826949)
 
+
+# 15 测试
+-------
+
+## 15.1 Intel® Memory Latency Checker (Intel® MLC)
+-------
+
+INTEL MLC 可以测量出机器的内存访问延迟和带宽, 并且可以观察出它们是如何随着机器负载的增加而变化的. Intel 的处理器有一些内存预取功能, 可能会影响测试结果.
+
+[INTEL MLC (Memory Latency Checker) 介绍](https://zhuanlan.zhihu.com/p/359823092)
+
+[MLC 内存测试结果解读到 CPU 架构设计分析](https://zhuanlan.zhihu.com/p/447936509)
+
+[Intel® Memory Latency Checker](https://www.intel.com/content/www/us/en/developer/articles/tool/intelr-memory-latency-checker.html)
+
 ---
 
 **引用:**
