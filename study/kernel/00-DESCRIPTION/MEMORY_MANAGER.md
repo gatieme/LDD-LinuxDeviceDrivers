@@ -559,6 +559,16 @@ github 地址: [Mitosis Project](https://github.com/mitosis-project), [linux 内
 ### 1.7.5 Shared Page Table
 -------
 
+
+Linux 进程使用不同的虚拟地址空间. 因此, 管理该地址空间状态的页表是每个进程专用的. 因此, 如果两个进程具有到物理内存中同一页的映射, 则每个进程都将具有该页的独立页表条目. 因此, PTE 的开销随着映射每个页面的进程数而线性增加. 虽然页表条目(PTE)相对较小, 在大多数系统上, 仅需要 8 个字节即可引用 4096 字节的页面. 这看起来貌似并不会浪费多少内存空间.
+
+但总会有人在那里做古怪的事情, 在 Oracle 的一个业务场景下: 在具有 300GB SGA [Oracle 系统全局区域] 的数据库服务器上, 当 1500 多个客户端尝试共享此 SGA 时, 即使系统具有 512GB 内存, 也会出现 OOM, 从而导致系统崩溃. 在此服务器上, 在最坏的情况下, 映射来自 SGA 的每个页面的所有 1500 个进程中, 仅 PTE 就需要 878GB+. 如果可以共享这些 PTE, 则节省的内存量非常大.
+
+在 2022 年 5 月份的 Linux 存储、文件系统、内存管理和 BPF 峰会上对此进行了讨论. 当时, Aziz 正在提议一个新的系统调用(mshare()) 来实现 PTE 页表的共享. 参见 [LWN 报道--Sharing page tables with mshare()](https://lwn.net/Articles/895217).
+
+随后经过讨论, v2 补丁集已更改此接口, 现在不需要新的系统调用. 而是提供了一个内核虚拟文件系统(msharefs), 参见 [LWN 报道--Sharing page tables with msharefs](https://lwn.net/Articles/901059). 它应该安装在 /sys/fs/mshare 上. 通过在 `/sys/fs/mshare` 下创建一个文件, 然后使用 mmap() 将该文件映射到进程的地址空间. 传递给 mmap() 的大小将决定生成的内存共享区域的大小.
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/01/18 | Khalid Aziz <khalid.aziz@oracle.com> | [Add support for shared PTEs across processes](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com) | 内核中的页表会消耗一些内存, 只要要维护的映射数量足够小, 那么页表所消耗的空间是可以接受的. 当进程之间共享的内存页很少时, 要维护的页表条目(PTE)的数量主要受到系统中内存页的数量的限制. 但是随着共享页面的数量和共享页面的次数的增加, 页表所消耗的内存数量开始变得非常大.<br>比如在一些实际业务中, 通常会看到非常多的进程共享内存页面. 在 x86_64 上, 每个页面页面在每个进程空间都需要占用一个只有 8Byte 大小的 PTE, 共享此页面的进程数目越多, 占用的内存会非常的大. 如果这些 PTE 可以共享, 那么节省的内存数量将非常可观.<br>这组补丁在内核中实现一种机制, 允许用户空间进程选择共享 PTE. 一个进程可以通过 通过 mshare() 和 mshare_unlink() syscall 来创建一个 mshare 区域(mshare'd region), 这个区域可以被其他进程使用共享 PTE 映射相同的页面. 其他进程可以通过 mashare() 使用共享 PTE 将共享页面映射到它们的地址空间. 然后还可以通过 mshare_unlink() syscall 来结束对共享页面的访问. 当最后一个访问 mshare'd region 的进程调用 mshare_unlink() 时, mshare'd region就会被销毁, 所使用的内存也会被释放. | v1 ☐ | [LKML RFC,0/6](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/14](https://lore.kernel.org/all/cover.1649370874.git.khalid.aziz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/9](https://lore.kernel.org/r/cover.1656531090.git.khalid.aziz@oracle.com) |

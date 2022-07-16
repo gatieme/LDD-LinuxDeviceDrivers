@@ -208,6 +208,8 @@ Intel Alder Lake CPU 支持 AVX 512
 
 [Intel Core i9 12900K "Alder Lake" AVX-512 On Linux](https://www.phoronix.com/scan.php?page=article&item=alder-lake-avx512&num=1)
 
+[Intel Core i7 1280P "Alder Lake P" Linux Laptop Performance](https://www.phoronix.com/scan.php?page=article&item=intel-corei7-1280p)
+
 #### 1.4.1.4 调度器优化
 -------
 

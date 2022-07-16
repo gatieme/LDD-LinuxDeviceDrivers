@@ -303,6 +303,8 @@ percpu rw 信号量是一种新的读写信号量设计, 针对读取锁定进�
 [FUTEX2's sys_futex_waitv() Sent In For Linux 5.16 To Help Linux Gaming](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.16-sys_futex_waitv)
 
 
+[FUTEX2 Begins Sorting Out NUMA Awareness](https://www.phoronix.com/scan.php?page=news_item&px=FUTEX2-NUMA-Awareness-RFC)
+
 # 7 Semaphores
 -------
 
