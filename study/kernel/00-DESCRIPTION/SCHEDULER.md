@@ -3815,13 +3815,13 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 
 功耗感知的调度器是如此的新颖, 以至于 2013 年 10 月, 致力于 ANDROID 调度器优化的 Morten Rasmussen [sched: Power scheduler design proposal](https://lore.kernel.org/patchwork/cover/391530) 也提出了自己的想法, 在发到了 [v2 PatchWork](https://lore.kernel.org/patchwork/cover/412619),在这之前他刚发出了他 HMP 的补丁.
 
-然后再 2013 年, Intel 的开发者 Yuyang Du 也不甘示弱, 提出了一个适用于能耗调度器的负载统计算法 CPU ConCurrency, 参见 [A new CPU load metric for power-efficient scheduler: CPU ConCurrency](https://lore.kernel.org/all/1399832221-8314-1-git-send-email-yuyang.du@intel.com). CC(CPU ConCurrency) 是运行队列长度加权的 CPU 利用率(utilization).
-
-由于 CFS 的模型化地完全公平调度器, CPU 就绪队列上的任务可以被视为并发运行, 并发度就是就绪队列的长度, 因此, CC(CPU ConCurrency) 使用任务并发度 concurrency 作为负载指示器.
+然后再 2013 年, Intel 的开发者 Yuyang Du 也不甘示弱, 提出了一个适用于能耗调度器的负载统计算法 CPU ConCurrency, 参见 [A new CPU load metric for power-efficient scheduler: CPU ConCurrency](https://lore.kernel.org/all/1399832221-8314-1-git-send-email-yuyang.du@intel.com). CC(CPU ConCurrency) 是运行队列长度加权的 CPU 利用率(utilization). 由于 CFS 的模型化地完全公平调度器, CPU 就绪队列上的任务可以被视为并发运行, 并发度就是就绪队列的长度, 因此, CC(CPU ConCurrency) 使用任务并发度 concurrency 作为负载指示器.
 
 $$ a = \sum_{1}^{n} \frac{concurrency \times time}{period} $$
 
 如果 concurrency 一直是 1, 那么这个负载 a 就等价于 CPU 利用率(utilization).
+
+这组补丁最终没有合入主线, 但是用 runnable 数量来 RQ 的 PELT 负载, 的确能很好地反应 CFS_RQ 上的可运行压力, 因此主线在 [Reconcile NUMA balancing decisions with the load balancer v6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a0f03b617c3b2644d3d47bf7d9e60aed01bd5b10) 补丁集中, 通过 [commit 9f68395333ad ("sched/pelt: Add a new runnable average signal")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9f68395333ad7f5bfe2f83473fed363d4229f11c) 实现了直接用 RQ 上 runnable 的数量来计算的 runnable_{sum|avg} 负载信息. 这个 runnable 负载计算方式只在意有多少进程在等待, 而不关心他们的 load_weight, 因此可以跟踪 RQ 上任务的等待压力, 有助于更好地定义 RQ 的状态. 这种计算方式与 load_{sum|avg} 的计算方式是类似的, 这样的好处是, 我们**可以直接将 runnable 的负载和 running 的负载进行比较**. 当任务竞争同一个 RQ时, 它们的可运行平均负载将高于 util_avg, 因为它将包含等待时间(不再包含之前的 load_weight 信息), 我们可以使用这个负载信息更好地对 CFS_RQ 进行分类.
 
 接着 2014 年, Preeti U Murthy 在总结了 Alex Shi 的经验之后, 接着完善了能耗感知调度器的设计, 但是由于缺少热度, 这个特性最终止步 v2 [Power Scheduler Design](https://lore.kernel.org/lkml/20140811113000.31956.52857.stgit@preeti.in.ibm.com) 版本.
 
@@ -3832,8 +3832,7 @@ $$ a = \sum_{1}^{n} \frac{concurrency \times time}{period} $$
 | 2014/08/11 | Preeti U Murthy <preeti@linux.vnet.ibm.com> | [Power Scheduler Design](https://lore.kernel.org/all/20140811113000.31956.52857.stgit@preeti.in.ibm.com) | TODO | v2 ☐☑✓ | [LORE v2,0/19](https://lore.kernel.org/all/20140811113000.31956.52857.stgit@preeti.in.ibm.com) |
 
 
-2013-2014 这几年是能耗感知的调度器的高光时刻, 赚足了社区的热点和讨论, 但是最终都难产了, 现在只有 LKML 中还依稀可见他们的身影,
-但是不可否认, 能耗感知的调度器提出了很多新颖的想法, 他将会后来的调度器知名一个新的方向.
+2013-2014 这几年是能耗感知的调度器的高光时刻, 赚足了社区的热点和讨论, 但是最终都难产了, 现在只有 LKML 中还依稀可见他们的身影, 但是不可否认, 能耗感知的调度器提出了很多新颖的想法, 它将会后来的调度器指明一个新的方向.
 
 
 >2014/08/27, 2014Jonathan Corbet, [The power-aware scheduling miniconference](https://lwn.net/Articles/609561)
@@ -3852,7 +3851,7 @@ $$ a = \sum_{1}^{n} \frac{concurrency \times time}{period} $$
 
 [The power-aware scheduling mini-summit](https://lwn.net/Articles/571414)
 
-ARM 的 Morten Rasmussen 一直致力于ANDROID 调度器优化的:
+ARM 的 Morten Rasmussen 一直致力于 ANDROID 调度器优化的:
 
 1.  最初版本的 IKS 调度器, [ELC: In-kernel switcher for big.LITTLE](https://lwn.net/Articles/539840)
 
