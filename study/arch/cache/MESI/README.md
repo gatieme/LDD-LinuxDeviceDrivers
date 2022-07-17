@@ -228,7 +228,7 @@ L3 缓存是所有CPU共享的一个缓存. 纵观刚才描述的MESI, 好像涉
 | 36 | [内存屏障详解](https://blog.csdn.net/weixin_39094034/article/details/123773446) | 讲解了 store buffer, Invalidate Queues 所解决的问题以及导致的内存可见性问题 |
 | 37 | [Volatile：内存屏障原理应该没有比这篇文章讲的更清楚了](https://www.bilibili.com/read/cv7429219/) | 提到了一个关键的点: ① 使用了 store buffer 后, 这两个操作是异步的. 这在多线程环境中, 有些情况下是可以接受的, 但是有些情况是不可接受的, 为了让程序员有能力根据业务需要达到同步完成, 就设计了内存屏障. ② 为什么要插入屏障?本质是业务层面不能接受写 store buffer 与刷回内存这两个异步操作产生的哪怕是极少的延迟, 即对内存可见性的要求极高. |
 | 38 | [理解内存屏障 | 《内存屏障就像版本控制一样》](https://zhuanlan.zhihu.com/p/491157678) | Preshing 先生编写的广受好评的文章 [Memory Barriers Are Like Source Control Operations](https://preshing.com/20120710/memory-barriers-are-like-source-control-operations) 的中文译文. |
-
+| 39 | [你应该了解的 memory barrier 背后细节](https://blog.hidva.com/2018/12/05/whymb) | 阅读 [Memory Barriers: a Hardware View for Software Hackers](http://www.rdrop.com/~paulmck/scalability/paper/whymb.2010.07.23a.pdf) 后的一些个人感悟. |
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

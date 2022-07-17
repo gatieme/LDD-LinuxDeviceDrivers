@@ -843,3 +843,5 @@ scale_delta = scale(delta, scale_freq) = delta * scale_freq / SCHED_CAPACITY_SCA
 
 [CFS调度器：负载跟踪与更新](https://zhuanlan.zhihu.com/p/158185705)
 
+[linux 中的 pelt](https://blog.hidva.com/2022/01/13/pelt)
+
