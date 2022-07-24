@@ -624,7 +624,11 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 #### 1.8.3 Linear Address Masking
 -------
 
+[Intel Preparing Linear Address Masking Support (LAM)](https://www.phoronix.com/scan.php?page=news_item&px=Intel-LAM-Glibc)
+
 [Intel Gets Back To Working On Linear Address Masking Support For The Linux Kernel](https://www.phoronix.com/scan.php?page=news_item&px=Intel-LAM-Linux-Kernel-May-2022)
+
+[Intel Revs Its Linear Address Masking Patches For Linux](https://www.phoronix.com/scan.php?page=news_item&px=Intel-LAM-Linux-v5)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -4628,6 +4632,16 @@ Google 的工程师 Mina Almasry 提出了一种新的思路, 通过 [mremap 的
 | 2022/02/02 | Mike Kravetz <mike.kravetz@oracle.com> | [Add hugetlb MADV_DONTNEED support](https://patchwork.kernel.org/project/linux-mm/cover/20220128222605.66828-1-mike.kravetz@oracle.com/) | 609660 | v1 ☐☑ | [PatchWork v1,0/3](https://lore.kernel.org/all/20220128222605.66828-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/3](https://lore.kernel.org/r/20220202014034.182008-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/3](https://lore.kernel.org/r/20220215002348.128823-1-mike.kravetz@oracle.com) |
 
 
+### 7.1.9 HugeTLBFS
+--------
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2015/06/22 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlbfs: add fallocate support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=72079ba0dfefc1444b4ef98a2fa3d040838a775f) | 为 HugeTLBFS 增加了 fallocate 功能. 目前, Hugetlbfs 用于那些想要对巨大页面使用进行高度控制的应用程序. 通常, 大型 HugeTLBFS 文件用于将大量巨面映射到应用程序进程中. 应用程序知道何时不再使用这些大文件中的页面范围, 理想情况下希望将它们释放回子池或全局池以作其他用途. fallocate() 系统调用提供了一个用于预分配和在文件中打孔的接口. 这是基于 shmem 版本的, 但它有相当大的分歧. 我们既不用担心交换, 也不用担心新文件的密封. 这允许我们在 HugeTLBFS 文件中移动物理内存, 而不需要映射它. 这也使我们能够支持 MADV_REMOVE, 因为它目前是使用 fallocate () 实现的. MADV_REMOVE 允许我们从 HugeTLBFS 文件中间删除数据, 这在以前是不可能的. | v5 ☐☑✓ | [LORE RFC,0/4](https://lore.kernel.org/lkml/1429225378-22965-1-git-send-email-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,00/10](https://lore.kernel.org/lkml/1437502184-14269-1-git-send-email-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/9](https://lore.kernel.org/all/1435019919-29225-1-git-send-email-mike.kravetz@oracle.com) |
+| 2022/06/13 | Mike Kravetz <mike.kravetz@oracle.com> | [hugeTLBfs: zero partial pages during fallocate hole punch](https://patchwork.kernel.org/project/linux-mm/patch/20220613180858.15933-1-mike.kravetz@oracle.com/) | NA | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220613180858.15933-1-mike.kravetz@oracle.com) |
+
+
 ### 7.1.x More HugeTLB Patchset
 -------
 
@@ -6693,6 +6707,10 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 
 [Better tools for out-of-memory debugging](https://lwn.net/Articles/894546)
 
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/07/08 | Gang Li <ligang.bdlg@bytedance.com> | [mm, oom: Introduce per numa node oom for CONSTRAINT_{MEMORY_POLICY,CPUSET}](https://lore.kernel.org/all/20220708082129.80115-1-ligang.bdlg@bytedance.com) | 在本系列补丁之前, OOM 只会通过选择整个系统上错误率最高的进程来杀死内存使用率最高(最富裕)的进程. 这在 UMA 系统上运行良好, 但在 NUMA 系统上可能会发生一些意外死亡. 比如, 如果进程 c.out 绑定到 Node1, 并继续从 Node1 分配页面, 而 OOM-Killer 将首先选择 a.out, 但是杀死 a.out 并没有释放 Node1 上的任何内存, 所以 c.out 将被杀死. 如果 mempolicy 或 cpuset 有效, out_of_memory() 将选择特定节点上的受害者进行杀死. 这样内核就可以避免 NUMA 系统上的意外杀戮. | v2 ☐☑✓ | [LORE v2,0/5](https://lore.kernel.org/all/20220708082129.80115-1-ligang.bdlg@bytedance.com) |
+
 
 ## 14.5 能耗感知(EAMM)
 -------
@@ -6994,6 +7012,7 @@ ZONE_MOVABLE 一个 pseudo zone, 它实际是从内核划分的某个 zone 中�
 -------
 
 [Bringing Android closer to the mainline](https://lwn.net/Articles/472984)
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

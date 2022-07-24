@@ -442,30 +442,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 ## 1.4 其他一些调度类的尝试
 -------
 
-
-业务场景中总存在一些对时延敏感但是负载很小的在线任务, 和一些时延不敏感但是负载很大的离线任务. 单独使用 isolation 等为时延敏感的业务分配 CPU 是比较浪费 CPU 资源的, 因此这些业务往往混部在一起. 然而, 现有的实现在混部后在线业务的服务质量下降严重.
-
-虽然内核提供了 SCHED_BATCH 和 SCHED_IDLE 两种优先级比较低的调度算法, 但它们仍然和CFS共用相同的实现, 尤其是在负载均衡时是未做区分的, 它们是没有完全的和CFS隔离开来, 所以效果上面介绍的通用方案存在类似的问题.
-
-
-其实, 在大家看来, 专门为这些应用新增一个调度类也是一个不错的想法, 通过各个调度类的优先级次序, 原生可以保证在线任务直接抢占离线任务, 保证在线任务的唤醒时延等.
-
-
-- 一种思路是为时延敏感的在线任务, 新增一个优先级比 CFS 高的调度类.
-
-    暂且称作 background 调度类, 这样在选择 idle 的调度类之前, background 可以兜底了. 各个厂商也都做过类型的尝试. 比如腾讯曾经发往邮件列表的 [BT scheduling class](https://lore.kernel.org/patchwork/cover/1092086), 不过这个版本不完善, 存在诸多问题, 如果大家关注的话, 可以查考查阅 TencentOS-kernel 的 商用版本 [离线调度算法bt](https://github.com/Tencent/TencentOS-kernel#离线调度算法bt).
-
-
-- 另外一种思路是为时延不敏感的离线任务, 新增一个优先级比 CFS 低的调度类.
-
-    [sched: Add micro quanta scheduling class](https://lkml.org/lkml/2019/9/6/178) 在 RT 之后, CFS 之前实现了一个类似于 RT 的策略, 为在线任务提供服务, 来解决同样的问题.
-
-- 当前其实很多情况下使用 SCHED_IDLE 策略也已经能满足我们的基本要求, SCHED_NORMAL 可以抢占 SCHED_IDLE, 而 SCHED_IDLE 的进程也只有在空闲时候才出来蹦跶蹦跶.
-
-    特别是在之前提到的 [sched/fair: Fallback to sched-idle CPU in absence of idle CPUs](https://lore.kernel.org/patchwork/cover/1094197) 合入之后, SCHED_NORMAL 的时延已经很低, 其实可以理解为在 SCHED_NORMAL(CFS) 下面又添加了一层时延不敏感的离线任务, 只不过不是使用新增调度类的方式. 而是借助了 CFS 的框架和策略实现.
-
-
-- 历史上昙花一现的调度算法 ARTiS
+历史上昙花一现的调度算法 ARTiS
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -493,7 +470,7 @@ ARCHLINUX 的开发者 ptr1337, 同样移植了 [CacULE Scheduler](https://githu
 
 参考 [ARCHLINUX Kernel WIKI](https://wiki.archlinux.org/title/kernel).
 
-## 1.5 调度类的一些其他优化点
+## 1.6 调度类的一些其他优化点
 -------
 
 调度器的演进是 linux 不断发展和完善的风向标之一. 调度器对性能的追求是无止境的, 不光调度本身对性能的影响比较大. 另外一方面, 调度器本身的性能影响也要最小. 于是内核开发者们在这条路上, 不断前行. 调度器的终极目标就是: 用最小的性能开销, 发挥 CPU 的最大能力.
@@ -1211,6 +1188,17 @@ X86 下提供了一种 Fake Numa 的方式来模拟 NUMA 配置.
 | 2011/01/19 | Jan Beulich <JBeulich@novell.com> | [x86: Unify "numa=" command line option handling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9032160275ba) | 使用 `numa=` 内核启动参数统一管理 NUMA 配置. | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9032160275ba) |
 | 2011/02/14 | Tejun Heo <tj@kernel.org> | [x86-64, NUMA: bring sanity to NUMA emulation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e23bba604433a202cd301a976454a90ea6b783ef) | TODO | v1 ☑✓ 2.6.39-rc1 | [LORE](https://lore.kernel.org/all/1297711715-3086-1-git-send-email-tj@kernel.org) |
 | 2012/05/01 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [x86/numa: Allow specifying node_distance() for numa=fake](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ad7687dde8780a0d618a3e3b5a62bb383696fc22) | TODO | v1 ☑✓ 3.5-rc1 | [LORE v1,0/5](https://lore.kernel.org/all/20120501181430.007891123@chello.nl) |
+
+
+### 4.1.4 NUMA Distance
+-------
+
+
+[NVIDIA Improving Linux NUMA Distance Interface To Enhance Performance](https://www.phoronix.com/scan.php?page=news_item&px=NVIDIA-NUMA-Distance-Metrics)
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/07/19 | Tariq Toukan <tariqt@nvidia.com> | [Introduce and use NUMA distance metrics](https://lore.kernel.org/all/20220719162339.23865-1-tariqt@nvidia.com) | NVIDIA 工程师一直在 Linux 内核中研究 NUMA 距离指标, 以取代某些驱动程序目前用于 NUMA 感知内存分配的简单本地/远程 NUMA 首选项接口. 在他们的测试中, 这种改进的 NUMA 距离处理对吞吐量和 CPU 利用率产生了"显著的性能影响". 根据调度程序的 sched_numa_find_closest() 实现并公开 CPU spread API sched_cpus_set_spread(). 在给定 NUMA 节点的情况下, 基于距离设置 CPU 分布替代基于 cpumask_local_spread() 的传统逻辑. 在 mlx5 和 enic 设备驱动程序中使用它. 这将使得 NUMA 首选项(本地/远程)替换为考虑实际距离的改进首选项, 因此短距离的远程 NUMA 优先于较远的 NUMA. | v3 ☐☑✓ | [LORE v3,0/3](https://lore.kernel.org/all/20220719162339.23865-1-tariqt@nvidia.com) |
 
 
 ## 4.2 负载均衡总概
@@ -4172,17 +4160,29 @@ v5.0 EAS 合入主线之后, 引入了 EM, 各平台或者设备通过 [em_dev_r
 ### 7.2.6 IPA(Thermal 管控)
 -------
 
+#### 7.2.6.1 Thermal Support
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:-----:|:---:|:----:|:---:|:---------:|:----:|
 | 2019/11/01 | Amit Kucheria <amit.kucheria@linaro.org> | [thermal: qcom: tsens: Add interrupt support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=634e11d5b450a9bcc921219611c5d2cdc0f9066e) | NA | v7 ☑✓ 5.5-rc1 | [LORE v7,0/15](https://lore.kernel.org/all/cover.1572526427.git.amit.kucheria@linaro.org) |
 | 2019/10/30 | Quentin Perret <qperret@google.com> | [Make IPA use PM_EM](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=163b00cde7cf2206e248789d2780121ad5e6a70b) | NA | v9 ☑✓ 5.5-rc1 | [LORE v9,0/4](https://lore.kernel.org/all/20191030151451.7961-1-qperret@google.com) |
 
-
+#### 7.2.6.2 Thermal Tools
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2013/10/14 | Jacob Pan <jacob.jun.pan@linux.intel.com> | [TMON thermal monitoring/tuning tool](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=94f69966faf8e70bd655ea25f9dd5b9400567b75) | 实现温控工具 tmon. | v1 ☑✓ 3.13-rc1 | [LORE v1](https://lore.kernel.org/lkml/1381791747-7458-1-git-send-email-jacob.jun.pan@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE](https://lore.kernel.org/lkml/1381259024-25433-1-git-send-email-jacob.jun.pan@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1](https://lore.kernel.org/all/1381791747-7458-1-git-send-email-jacob.jun.pan@linux.intel.com) |
 | 2022/04/20 | Daniel Lezcano <daniel.lezcano@linaro.org> | [tools/thermal: thermal library and tools](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cb4487d2b4043bbe98f60f2628387b40fa4896f8) | Linaro 提出了一个与 Linux 内核的热框架接口的热库. 作为其中的一部分, 它也是一个用于用户空间的温度计实用程序, 用于监视热数据. 实现了 Netlink 通知机制, 以接收散热配置发现、跳变点更改和违规以及冷却设备更改通知. 这种抽象使用户空间更容易处理 Linux 内核的热框架. 在这个库之上构建的温控工具将允许从通过配置文件指定的一组热区域捕获温度. 这个低开销的工具可以很容易地捕获热数据, 然后集成到其他工具, 如 GNU Plot. 还提供了一个基本的 "散热" 守护程序. 参见 [New Thermal Library, "Thermometer" Tool Proposed For Linux](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Thermometer-RFC), [New Thermal Library & Temperature Capture Tool Readied For Linux 5.19](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.19-New-Thermal-Lib-Tool) | v3 ☑✓ 5.19-rc1 | [LORE v1,0/4](https://lore.kernel.org/lkml/20220218125334.995447-1-daniel.lezcano@linaro.org)<br>*-*-*-*-*-*-*-* <br>[LORE RFC,v1,1/4](https://lore.kernel.org/lkml/20220214210446.255780-1-daniel.lezcano@linaro.org)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/all/20220420160933.347088-1-daniel.lezcano@linaro.org) |
+
+#### 7.2.6.3 Thermal Pressure
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/02/21 | Thara Gopinath <thara.gopinath@linaro.org> | [Introduce Thermal Pressure](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=05289b90c2e40ae80f5c70431cd0be4cc8a6038d) | TODO | v10 ☑✓ 5.7-rc1 | [LORE v10,0/9](https://lore.kernel.org/all/20200222005213.3873-1-thara.gopinath@linaro.org) |
+
 
 
 ### 7.2.5 社区其他相关讨论
@@ -4831,8 +4831,62 @@ enqueue_task_fair()
 Xen 的 CPU 调度算法主要有 3 种: BVT(borrowed virtual time)调度算法、SEDF(simple earliest deadline first)调度算法、以及 [Credit 调度算法](https://www.cnblogs.com/linanwx/tag/Xen/).
 
 
+### 8.9.3 混部场景(在离线)
+-------
+
+#### 8.9.3.1 在离线混部基本思路
+-------
+
+业务场景中总存在一些对时延敏感但是负载很小的在线任务, 和一些时延不敏感但是负载很大的离线任务. 单独使用 isolation 等为时延敏感的业务分配 CPU 是比较浪费 CPU 资源的, 因此这些业务往往混部在一起. 然而, 现有的实现在混部后在线业务的服务质量下降严重.
+
+虽然内核提供了 SCHED_BATCH 和 SCHED_IDLE 两种优先级比较低的调度算法, 但它们仍然和CFS共用相同的实现, 尤其是在负载均衡时是未做区分的, 它们是没有完全的和CFS隔离开来, 所以效果上面介绍的通用方案存在类似的问题.
 
 
+其实, 在大家看来, 专门为这些应用新增一个调度类也是一个不错的想法, 通过各个调度类的优先级次序, 原生可以保证在线任务直接抢占离线任务, 保证在线任务的唤醒时延等.
+
+
+- 一种思路是为时延敏感的在线任务, 新增一个优先级比 CFS 高的调度类.
+
+    暂且称作 background 调度类, 这样在选择 idle 的调度类之前, background 可以兜底了. 各个厂商也都做过类型的尝试. 比如腾讯曾经发往邮件列表的 [BT scheduling class](https://lore.kernel.org/patchwork/cover/1092086), 不过这个版本不完善, 存在诸多问题, 如果大家关注的话, 可以查考查阅 TencentOS-kernel 的 商用版本 [离线调度算法bt](https://github.com/Tencent/TencentOS-kernel#离线调度算法bt).
+
+
+- 另外一种思路是为时延不敏感的离线任务, 新增一个优先级比 CFS 低的调度类.
+
+    [sched: Add micro quanta scheduling class](https://lkml.org/lkml/2019/9/6/178) 在 RT 之后, CFS 之前实现了一个类似于 RT 的策略, 为在线任务提供服务, 来解决同样的问题.
+
+- 当前其实很多情况下使用 SCHED_IDLE 策略也已经能满足我们的基本要求, SCHED_NORMAL 可以抢占 SCHED_IDLE, 而 SCHED_IDLE 的进程也只有在空闲时候才出来蹦跶蹦跶.
+
+    特别是在之前提到的 [sched/fair: Fallback to sched-idle CPU in absence of idle CPUs](https://lore.kernel.org/patchwork/cover/1094197) 合入之后, SCHED_NORMAL 的时延已经很低, 其实可以理解为在 SCHED_NORMAL(CFS) 下面又添加了一层时延不敏感的离线任务, 只不过不是使用新增调度类的方式. 而是借助了 CFS 的框架和策略实现.
+
+
+#### 8.9.3.2 Group Identity(云场景)
+-------
+
+在业务的混合部署(延迟敏感型和计算型任务混合部署在同一台实例)场景中, Linux 内核调度器需要为高优先级任务赋予更多的调度机会以最小化调度延迟, 并需要把低优先级任务对内核调度带来的影响降到最低.
+
+基于该场景, Alibaba Cloud Linux 2 提供了 Group Identity 功能, 为 CPU cgroup 新增了配置调度优先级的接口, 且不同优先级的任务具有以下特点:
+
+- 高优先级任务的唤醒延迟最小化.
+
+- 低优先级任务不对高优先级任务造成性能影响. 主要体现在:
+
+- 低优先级任务的唤醒不会对高优先级任务造成性能影响.
+
+- 低优先级任务不会通过 SMT 调度器共享硬件 unit 而对高优先级任务造成性能影响.
+
+Group Identity 功能可以对每一个 CPU cgroup 设置身份标识, 以区分 cgroup 中的任务优先级. Group Identity 核心是双红黑树设计, 在 CFS(Completely Fair Scheduler)调度队列的单红黑树基础上, 新增了一颗低优先级的红黑树, 用于存放低优先级任务.
+
+[Alibaba Cloud Linux/内核功能与接口/Group Identity 功能说明](https://help.aliyun.com/document_detail/338407.html)
+
+#### 8.9.3.3 HUAWEI VIP Thread(终端场景)
+-------
+
+华为在终端场景提供了 CONFIG_HW_VIP_THREAD, CONFIG_HUAWEI_SCHED_VIP 两套 VIP 机制. 基本思路差不太多, 都是基于 CFS 调度类提供了一级优先级更高的运行队列,  由于终端上需要保证的关键线程基本只有前台绘帧相关的线程, 因此该 VIP 队列没有使用红黑树, 直接使用 list 维护更关键的业务线程.
+
+其中:
+CONFIG_HW_VIP_THREAD 被标记为 static_vip/dynamic_vip, VIP 线程提供了 mutex, rwsem 等锁以及 fork 时的 VIP 传递功能, 锁传递可以有效地防止优先级翻转问题, DYNAMIC_VIP_TYPE 标记的场景都可以被传递. 同时通过 trigger_vip_balance() 提供了简单的负载均衡机制. 系统直接设置的进程被标记为 static_vip, 动态传递出来的线程被标记为 dynamic_vip.
+
+CONFIG_HUAWEI_SCHED_VIP 被标记为 vip_prio, 为 VIP 线程提供了近似于优先级的功能. 同时提供了较为完善的 VIP Load Balance 机制.
 
 # 9 IDLE
 -------

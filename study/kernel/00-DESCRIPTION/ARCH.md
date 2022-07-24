@@ -210,6 +210,8 @@ Intel Alder Lake CPU 支持 AVX 512
 
 [Intel Core i7 1280P "Alder Lake P" Linux Laptop Performance](https://www.phoronix.com/scan.php?page=article&item=intel-corei7-1280p)
 
+[An Important Note On The Alder Lake Mobile Power/Performance With Linux 5.19](https://www.phoronix.com/scan.php?page=article&item=linux-519-alderlakep) 针对 AdlerLake 笔记本测试了 v5.18 和 v5.19 电源管理等带来的能效差异.
+
 #### 1.4.1.4 调度器优化
 -------
 
@@ -478,11 +480,28 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 在 x86 上, 批处理和延迟 TLB shootdown 的解决方案使 TLB shootdown 的性能提高了 90%. 在 arm64 上, 硬件可以在没有软件 IPI 的情况下执行 TLB shootdown. 但同步 tlbi 仍然相当昂贵.
 
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/02/23 | Barry Song <song.bao.hua@hisilicon.com> | [Documentation/features: mark BATCHED_UNMAP_TLB_FLUSH doesn't apply to ARM64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6bfef171d0d74cb050112e0e49feb20bfddf7f42) | 在 x86 上, BATCHED_UNMAP_TLB_FLUSH 用于批处理 TLB, 在解除页面映射后, 发送一个 IPI 到 TLB 刷新所有条目. 在 arm64 上, TLB shootdown 是由硬件完成的. 刷新指令是内部共享的. 本地刷新限制在启动(每个 CPU 1 次)和任务获得新的 ASID 时. 因此, 将该特性标记为 "TODO" 是不恰当的. 所以这个补丁对某些架构上不需要的这类功能标记为 "N/A". | v1 ☑✓ 5.13-rc1 | [LORE](https://lore.kernel.org/all/20210223003230.11976-1-song.bao.hua@hisilicon.com) |
 | 2022/07/11 | Barry Song <21cnbao@gmail.com> | [mm: arm64: bring up BATCHED_UNMAP_TLB_FLUSH](https://lore.kernel.org/all/20220711034615.482895-1-21cnbao@gmail.com) | 虽然 ARM64 有硬件来完成 TLB shootdown, 但硬件广播的开销并不小. 最简单的微基准测试表明, 即使在只有 8 核的 snapdragon 888 上, ptep_clear_flush() 的开销也是巨大的, 即使只分页一个进程映射的一个页面, perf top 显示这造成 5.36% 的 CPU 消耗. 当页面由多个进程映射或硬件有更多 CPU 时, 由于 TLB 分解的可扩展性较差, 成本应该会更高. 在这种场景下同样的基准测试可能会导致大约 100 核的 ARM64 服务器上 16.99% 的 CPU 消耗. 该补丁集利用了现有的 BATCHED_UNMAP_TLB_FLUSH 进行了优化.<br>1. 仅在第一阶段 arch_tlbbatch_add_mm() 中发送 tlbi 指令.<br>2. 等待 dsb 完成 tlbi, 同时在 arch_tlbbatch_flush() 中执行 tlbbatch sync. 在 snapdragon 上的测试表明, ptep_clear_flush() 的开销已被该补丁集优化掉. 即使在 snapdragon 888 上通过单个进程映射一个页面, 微基准也能提升 5% 的性能. | v2 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/lkml/20220707125242.425242-1-21cnbao@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/all/20220711034615.482895-1-21cnbao@gmail.com) |
 
+### 2.2.5 relaxed TLB flushes
+-------
+
+[VMware Is Exploring Reducing Meltdown/PTI Overhead With Deferred Flushes](https://www.phoronix.com/scan.php?page=news_item&px=VMware-RFC-Defer-PTI-Flushes)
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/08/23 | Nadav Amit <namit@vmware.com> | [x86/mm/tlb: Defer TLB flushes with PTI](https://lore.kernel.org/all/20190823225248.15597-1-namit@vmware.com) | TODO | v2 ☐☑✓ | [LORE v2,0/3](https://lore.kernel.org/all/20190823225248.15597-1-namit@vmware.com) |
+
+
+[Relaxed TLB Flushes Being Worked On For Linux As Another Performance Optimization](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Relaxed-TLB-Flushes).
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/07/18 | Nadav Amit <nadav.amit@gmail.com> | [mm: relaxed TLB flushes and other optimi.](https://lore.kernel.org/all/20220718120212.3180-1-namit@vmware.com) | TODO | v1 ☐☑✓ | [LORE v1,0/14](https://lore.kernel.org/all/20220718120212.3180-1-namit@vmware.com) |
 
 
 ## 2.3 指令加速
@@ -855,7 +874,14 @@ Rosetta 是一个转译过程, 允许用户在 Apple Silicon 上运行包含 x86
 [macOS 13 Adding Ability To Use Rosetta In ARM Linux VMs For Speedy x86_64 Linux Binaries](https://www.phoronix.com/scan.php?page=news_item&px=macOS-13-Rosetta-Linux-Binaries)
 
 
-## 6.8 芯片设计
+## 6.8 原子操作
+-------
+
+[ARMV8 datasheet 学习笔记 3：AArch64 应用级体系结构之 Atomicity](https://www.cnblogs.com/smartjourneys/p/6843978.html)
+
+[ARMv8 之 Atomicity](http://www.wowotech.net/?post=295)
+
+## 6.10 芯片设计
 -------
 
 Tachyum 宣布其设计一款完全通用的处理器 Prodigy T16128, 预计 2023 年发布, [Tachyum's Monster 128 Core 5.7GHz 'Universal Processor' Does Everything](https://www.tomshardware.com/news/tachyum-128-core-all-purpose-cpu), 号称一款芯片上可以同时运行通用计算, 高性能计算以及 AI 等业务和负载, 原生支持 x86, ARM, RISC-V 和 ISA 的二进制.
@@ -866,7 +892,7 @@ Google Google 推出[芯片设计门户网站](https://developers.google.com/sil
 中国科学院大学("国科大")的 ["一生一芯" 计划](https://ysyx.org).
 
 
-## 6.9 预取
+### 6.10.1 预取
 -------
 
 富士通添加了 sysfs 接口来控制 CPU L2 Cache/DCU 等硬件的预取行为, 以便从用户空间对 A64FX 处理器和 x86 行性能调优.
@@ -879,13 +905,13 @@ Google Google 推出[芯片设计门户网站](https://developers.google.com/sil
 openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/prefetch_tuning) 提供了鲲鹏芯片设计的渔区相关寄存器读写接口, 用于读取和配置在 CPU 的硬件层面的芯片性能调优参数. 内核中更是提供了 [CONFIG_HISILICON_ERRATUM_HIP08_RU_PREFETCH](https://gitee.com/openeuler/kernel/commit/13ab4b7fa6f92eb9819a01129c4e4a0a9c401ee8) 来在启动时配置预期.
 
 
-## 6.10 Software Branch Hinting
+### 6.10.2 Software Branch Hinting
 -------
 
 [Software Branch Hinting](https://labs.engineering.asu.edu/mps-lab/research-themes/low-power-computing/sbh)
 
 
-## 6.9 指令集
+### 6.10.3 指令集架构
 -------
 
 

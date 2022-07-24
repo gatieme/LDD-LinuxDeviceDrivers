@@ -337,9 +337,33 @@ x86 和 arm64 都支持直接访问用户空间中的事件计数器. 访问序�
 
 [AMD Branch Sampling "BRS" Feature To Land With Linux 5.19](https://www.phoronix.com/scan.php?page=news_item&px=AMD-Branch-Sampling-v5.19)
 
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/03/22 | Stephane Eranian <eranian@google.com> | [perf/x86/amd: Add AMD Fam19h Branch Sampling support](https://lore.kernel.org/all/20220322221517.2510440-1-eranian@google.com) | 引入 CONFIG_PERF_EVENTS_AMD_BRS. perf 支持 BRS. AMD 系列 19h "Zen 3" 处理器新增了分支采样功能 BRS, 用于收集代码执行期间所采用分支的详细信息. 该功能可用于 AMD 处理器上的 AutoFDO 样式优化, 编译器利用收集的硬件数据来做出更明智和准确的优化决策. | v7 ☑✓ 5.19-rc1 | [LORE v7,0/13](https://lore.kernel.org/all/20220322221517.2510440-1-eranian@google.com) |
+
+
+## 11.5 perf-KWork
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/07/09 | Yang Jihong <yangjihong1@huawei.com> | [perf: Add perf kwork](https://lore.kernel.org/all/20220709015033.38326-1-yangjihong1@huawei.com) | 开发者经常需要分析内核工作的时间属性, 例如 irq、softirq 和工作队列, 包括特定中断的延迟和运行时间. 目前, 这些事件具有内核跟踪点, 但 perf 工具不直接分析这些事件的延迟. perf kwork 工具用于跟踪内核工作的时间属性(如 irq、softirq 和 workqueue), 包括运行时、延迟和时间历史, 使用 perf 工具中的基础设施来允许跟踪额外的目标, 我们还使用 bpf 跟踪来收集和过滤内核中的数据, 以解决大 perf 数据量和额外文件系统中断的问题. | v3 ☐☑✓ | [LORE v3,0/17](https://lore.kernel.org/all/20220709015033.38326-1-yangjihong1@huawei.com) |
+
+## 11.6 perf-lock
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/06/15 | Namhyung Kim <namhyung@kernel.org> | [perf lock: New lock contention tracepoints support (v4)](https://lore.kernel.org/all/20220615163222.1275500-1-namhyung@kernel.org) | TODO | v4 ☐☑✓ | [LORE v4,0/7](https://lore.kernel.org/all/20220615163222.1275500-1-namhyung@kernel.org) |
+
+## 11.7 perf bench
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/07/04 | Marco Elver <elver@google.com> | [perf/hw_breakpoint: Optimize for thousands of tasks](https://lore.kernel.org/all/20220704150514.48816-1-elver@google.com) | TODO | v3 ☐☑✓ | [LORE v3,0/14](https://lore.kernel.org/all/20220704150514.48816-1-elver@google.com) |
+
+
 
 
 # 12 KPROBE

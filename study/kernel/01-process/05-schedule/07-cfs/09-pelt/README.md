@@ -662,38 +662,35 @@ Frequency Invariance 通过按照 CPU 频率和实际 capacity 对进程运行�
 得益于 ARM big.LITTLE 架构和 DynamicIQ 架构在安卓的广泛使用, FIE 和 CIE 的支持, ARM64 走在了其他架构的最前面, 但是 X86_64 服务器虽然更看重吞吐量, 但是对功耗的追求也是永恒的话题, 更何况 X86_64 也有一些低端嵌入式芯片, 因此这组补丁补齐了 X86 架构下 FIE 的支持.
 
 
-# 12 PELT 5.7@2020 remove runnable_load_avg and improve group_classify
+# 12 PELT 5.7@2020 Support frequency invariance for X86
 -------
 
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:---:|:----:|:---:|:---:|:----------:|:----:|
-| 2020/2/21 | Vincent Guittot | [remove runnable_load_avg and improve group_classify](https://lore.kernel.org/patchwork/cover/1198654) | 重构组调度的 PELT 跟踪, 在每次更新平均负载的时候, 更新整个 CFS_RQ 的平均负载| V10 ☑ 5.7 | [PatchWork](https://lore.kernel.org/patchwork/cover/1198654), [lkml](https://lkml.org/lkml/2020/2/21/1386) |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/02/21 | Thara Gopinath <thara.gopinath@linaro.org> | [Introduce Thermal Pressure](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=05289b90c2e40ae80f5c70431cd0be4cc8a6038d) | TODO | v10 ☑✓ 5.7-rc1 | [LORE v10,0/9](https://lore.kernel.org/all/20200222005213.3873-1-thara.gopinath@linaro.org) |
 
+# 13 PELT 5.7@2020 Rework the CFS load balance
+-------
 
-```cpp
-070f5e860ee2 sched/fair: Take into account runnable_avg to classify group
-9f68395333ad sched/pelt: Add a new runnable average signal
-0dacee1bfa70 sched/pelt: Remove unused runnable load average
-6499b1b2dd1b sched/numa: Replace runnable_load_avg by load_avg
-6d4d22468dae sched/fair: Reorder enqueue/dequeue_task_fair path
-```
 
 之前的负载均衡流程中, 较多的使用了 runnable_load_avg, 但是这也引入了不少问题.
 
-后来 Vincent Guittot 对整个 load_balance 和 numa_balancing 进行了重构和优化.
+## 13.1 rework the CFS load balance
+-------
 
-| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:------:|:---:|
-| 2019/10/18 | Vincent Guittot | [sched/fair: rework the CFS load balance](https://linuxplumbersconf.org/event/4/contributions/480) | 重构 load balance | v4 ☑ | [LWN](https://lwn.net/Articles/793427), [PatchWork](https://lore.kernel.org/patchwork/patch/1141687), [lkml](https://lkml.org/lkml/2019/10/18/676) |
-| 2020/2/21 | Vincent Guittot | [remove runnable_load_avg and improve group_classify](https://lore.kernel.org/patchwork/cover/1198654) | 重构组调度的 PELT 跟踪, 在每次更新平均负载的时候, 更新整个 CFS_RQ 的平均负载| V10 ☑ 5.7 | [PatchWork](https://lore.kernel.org/patchwork/cover/1198654), [lkml](https://lkml.org/lkml/2020/2/21/1386) |
-| 2019/2/24 | Mel Gorman | [Reconcile NUMA balancing decisions with the load balancer](https://linuxplumbersconf.org/event/4/contributions/480) | 重构 load balance | v4 ☑ | [LWN](https://lwn.net/Articles/793427), [PatchWork](https://lore.kernel.org/patchwork/cover/1199507), [lkml](https://lkml.org/lkml/2019/10/18/676) |
-| | [Accumulated fixes for Load/NUMA Balancing reconcilation series](https://lore.kernel.org/patchwork/cover/1203922) | fix 补丁 | | |
+v5.5 版本的 rq->runnable_load_avg 是一个带 weight 加权的 runnable 负载.
 
-其中 [rework the CFS load balance](https://lore.kernel.org/patchwork/patch/1141687) 中
+后来 Vincent Guittot 对整个 load_balance 和 numa_balancing 进行了重构和优化. [rework the CFS load balance](https://lore.kernel.org/lkml/1571405198-27570-1-git-send-email-vincent.guittot@linaro.org) 中
 
 [commit b0fb1eb4f04a sched/fair: Use load instead of runnable load in load_balance()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0fb1eb4f04a) 将 load_balance 路径下原来使用 RQ runnable_load_avg 的地方都修改成了 load_avg.
+
 [commit c63be7be59de sched/fair: Use utilization to select misfit task](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c63be7be59de) 修改了 misfit task 的路径.
+
 [commit 11f10e5420f6 sched/fair: Use load instead of runnable load in wakeup path](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=11f10e5420f6) 修改了唤醒路径.
+
+## 13.2 remove runnable_load_avg and improve group_classify
+-------
 
 接着的 [remove runnable_load_avg and improve group_classify](https://lore.kernel.org/patchwork/cover/1198654), Vincent Guittot 进一步修正了 numa_balance 下使用 runnable_load_avg 的路径. 这组补丁包含了几个 RFC 的补丁, 最后的 Mel Gorman 继续完善了 Vincent Guittot 在 numa balance 上的工作. [Reconcile NUMA balancing decisions with the load balancer v6](https://lore.kernel.org/patchwork/cover/1199507)
 
@@ -704,10 +701,21 @@ Frequency Invariance 通过按照 CPU 频率和实际 capacity 对进程运行�
 [9f68395333ad sched/pelt: Add a new runnable average signal](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9f68395333ad) 前脚把 runnable_load_{sum|avg} 删掉了, 这个补丁找了一种新的 runnable 计算方式来(runnable_{sum|avg})替代旧的方式. 之前 runnable_load_{sum|avg} 的计算包含了太多作者认为不合适的信息(比如 se 和 group 的 runnable 负载 包含了太多的权重 load_weight 信息), 而作者**更希望 runnable 能体现出等待进程的数量, 这个才能突出反应示 CFS_RQ 上的可运行压力**. 新的 runnable 负载计算方式只在意有多少进程在等待, 而不关心他们的 load_weight, 因此可以理解为该信号跟踪 RQ 上任务的等待压力, 有助于更好地定义 RQ 的状态. 这种计算方式与 load_{sum|avg} 的计算方式是类似的, 这样的好处是, 我们**可以直接将 runnable 的负载和 running 的负载进行比较**. 当任务竞争同一个 RQ时, 它们的可运行平均负载将高于 util_avg, 因为它将包含等待时间(不再包含之前的 load_weight 信息), 我们可以使用这个信号更好地对 CFS_RQ 进行分类.
 
 
-# 13 背景知识
+
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:------:|:---:|
+| 2019/10/18 | Vincent Guittot | [sched/fair: rework the CFS load balance](https://linuxplumbersconf.org/event/4/contributions/480) | 重构 load balance | v4 ☑ | [LWN](https://lwn.net/Articles/793427), [PatchWork](https://lore.kernel.org/patchwork/patch/1141687), [lkml](https://lkml.org/lkml/2019/10/18/676) |
+| 2020/2/21 | Vincent Guittot | [remove runnable_load_avg and improve group_classify](https://lore.kernel.org/patchwork/cover/1198654) | 合并到 [Reconcile NUMA balancing decisions with the load balancer v6](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a0f03b617c3b2644d3d47bf7d9e60aed01bd5b10) 中作为一个 patchset | V10 ☑ 5.7-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1198654), [lkml](https://lkml.org/lkml/2020/2/21/1386) |
+| 2019/2/24 | Mel Gorman | [Reconcile NUMA balancing decisions with the load balancer](https://linuxplumbersconf.org/event/4/contributions/480) | 重构 load balance | v4 ☑ 5.7-rc1 | [LWN](https://lwn.net/Articles/793427), [PatchWork](https://lore.kernel.org/patchwork/cover/1199507), [lkml](https://lkml.org/lkml/2019/10/18/676) |
+| | [Accumulated fixes for Load/NUMA Balancing reconcilation series](https://lore.kernel.org/patchwork/cover/1203922) | fix 补丁 | | |
+
+
+
+
+# 14 背景知识
 -------
 
-## 13.1 进程的最大运行负载
+## 14.1 进程的最大运行负载
 -------
 
 进程投入运行至今, 如果一直运行那么能达到的负载最大值是多少呢?
@@ -759,7 +767,7 @@ LOAD_AVG_MAX - 1024 + sa->period_contrib = LOAD_AVG_MAX - (1024 - sa->period_con
 语义上可以理解为, 最后一个的窗口只运行了 `sa->period_contrib`, 这个窗口不需要衰减.
 
 
-## 13.2 FIE 和 CIE
+## 14.2 FIE 和 CIE
 -------
 
 内核当前 PELT 在计算负载的时候, 考虑了两个跟 CPU 性能和频率相关的变量(scale_freq 和 scale_cpu
@@ -823,7 +831,7 @@ scale_delta = scale(delta, scale_freq) = delta * scale_freq / SCHED_CAPACITY_SCA
 
 真正计算 util 的时候, 同时考虑了 FIE 和 CIE.
 
-## 13.3 FI Support
+## 14.3 FI Support
 -------
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -832,11 +840,36 @@ scale_delta = scale(delta, scale_freq) = delta * scale_freq / SCHED_CAPACITY_SCA
 | 2015/8/14 | [Compute capacity invariant load/utilization tracking](https://lore.kernel.org/patchwork/cover/590249) | PELT 支持 Capacity Invariant, 对之前, 对 frequency scale invariance 的进一步优化 | V1 ☑4.4 | [LWN](https://lwn.net/Articles/531853), [PatchWork](https://lore.kernel.org/patchwork/cover/590249), [lkml](https://lkml.org/lkml/2015/8/14/296) |
 | 2019/01/16 | [sched/fair: update scale invariance of PELT](https://lore.kernel.org/patchwork/cover/1034952) | v9 ☑  5.1-rc1 | [v3](https://lore.kernel.org/patchwork/patch/784059)<br>*-*-*-*-*-*-*-*<br> [v9](https://lore.kernel.org/patchwork/cover/1034952) |
 
+## 14.4 Max Frequency Capping Engine (MFCE)
+-------
 
 
+| SCALE | 值 | 描述 |
+|:-----:|:--:|:---:|
+| topology_get_cpu_scale | per_cpu(cpu_scale, cpu); | 参见 topology_normalize_cpu_scale() -=> topology_set_cpu_scale(), 当前 CPU 硬件所能提供的最大 capacity, 不受频率影响, 不受限频影响. capacity << SCHED_CAPACITY_SHIFT / capacity_scale |
+| topology_get_freq_scale | per_cpu(arch_freq_scale, cpu) | 参见 topology_set_freq_scale(), policy->cur << SCHED_CAPACITY_SHIFT) / policy->cpuinfo.max_freq. 当前 CPU 在当前硬件下所能提供的相对于自身的 capacity, 不受频率影响, 不受限频影响.|
 
 
-# 14 参考资料
+举例来说, 小核最大 capacity 512, 对应频率 1.6G, 在当前频率 800M 下能提供的 capacity:
+
+cpu_scale 为 256, freq_scale 为 512.
+
+此外 ANDROID Mainline 还通过 [Max Frequency Capping Engine (MFCE) [commit 0cfe39fe403e ("ANDROID: cpufreq: arch_topology: implement max frequency capping")](https://github.com/aosp-mirror/kernel_common/commit/0cfe39fe403ea6dbe2fdfb38edd36022b35d4d66) 提供了 max-frequency-invariant accounting 的 SCALE 接口 arch_scale_max_freq_capacity()/topology_get_max_freq_scal()
+
+| SCALE | 值 | 描述 |
+|:-----:|:--:|:---:|
+| NA | per_cpu(max_cpu_freq, cpu) | 参见 topology_set_freq_scale(), 即 policy->cpuinfo.max_freq, CPU 硬件所能提供的最大频率, 不受限频影响. |
+| topology_get_max_freq_scale | per_cpu(max_freq_scale, cpu) | 参见 arch_set_max_freq_scale(), (per_cpu(max_cpu_freq, cpu) << SCHED_CAPACITY_SHIFT) / policy->max, CPU 硬件所能提供的最大频率相比较于当前能提供的最大频率(受限频影响的 scale), 该值 ≥ 1024. |
+
+topology_get_max_freq_scale() 是当前 CPU 受到限频影响的缩放比, 通过 [commit ff481da6367e ("ANDROID: sched/fair: add arch scaling function for max frequency capping")](https://github.com/aosp-mirror/kernel_common/commit/ff481da6367e6ab2d54ef27829bd2b54eaee9618) 和 [commit bfc73d183074 ("ANDROID: sched: Update max cpu capacity in case of max frequency constraints")](https://github.com/aosp-mirror/kernel_common/commit/bfc73d183074c72d8e90199e03cbcb98c7fc8357), update_cpu_capacity() 的时候, 会对 cpu_capacity 按照限频做 SCALE, 具体计算如下所示:
+
+$= \frac{cpu\_capacity\_orig \times arch\_scale\_max\_freq\_capacity}{1024}$
+$= \frac{cpu\_capacity\_orig \times \frac{cpuinfo.max_cpu_freq \times 1024}{policy->max}}{1024}$
+$= \frac{cpu\_capacity\_orig \times cpuinfo\_max\_freq}{policy\_max}$
+
+通过这种方式, rq->cpu_capacity 会受到限频的影响, 从而使得负载均衡路径下感知到 Thermal 等的变化.
+
+# 15 参考资料
 -------
 
 [task 的 load_avg_contrib 的更新参考](https://www.codenong.com/cs106477101)
