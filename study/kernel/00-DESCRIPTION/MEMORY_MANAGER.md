@@ -5015,6 +5015,8 @@ swap out 的时候打散, swap in 的时候可能又需要重新聚合回来, �
 
 支持 THP SWAP 的第一步是逐步延迟拆分 THP, 最终避免在 THP 交换期间拆分 THP, 并在整个 THP 中进行交换. [LWN 717707: 页交换（swap）的改进计划](https://tinylab.org/lwn-717707).
 
+[Linux 5.20 To Enable THP SWAP On 64-bit Arm For Better Swapping Performance](https://www.phoronix.com/news/Linux-5.20-THP-SWAP-ARM64)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2017/05/15 | "Huang, Ying" <ying.huang@intel.com> | [THP swap: Delay splitting THP during swapping out/STEP 1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=747552b1e71b400fa32a221e072be2c0b7661f14) | 在这个补丁集完成了延迟拆分 THP, 将拆分大页面的时间几乎从交换的第一步推迟到为 THP 分配交换空间并将 THP 添加到交换缓存之后. 这将减少交换缓存管理中使用的锁的获取/释放.<br>在 8 个进程的 vm-scalability swap-w-seq 测试用例(测试用例创建了 8 个进程, 它们依次分配和写入匿名页面, 直到 RAM 和交换设备的一部分用完)中, 使用补丁集, 换出的吞吐量提高了 15.5%(从 3.73GB/s 提高到 4.31GB/s). | v11 ☑ 4.13-rc1 | [2016/08/09 LORE RFC,00/11](https://lore.kernel.org/lkml/1470760673-12420-1-git-send-email-ying.huang@intel.com)[2016/09/01 LORE v2,00/10](https://lore.kernel.org/lkml/1472743023-4116-1-git-send-email-ying.huang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,00/12](https://lore.kernel.org/all/20170724051840.2309-1-ying.huang@intel.com)<br>*-*-*-*-*-*-*-* <br>[2017/05/15 LORE v11,0/5](https://lore.kernel.org/lkml/20170515112522.32457-1-ying.huang@intel.com) |

@@ -4388,6 +4388,34 @@ ANDROID 上很多实际应用场景, 比如说绘帧等, 往往是由多个线�
 
 3.  Busy Hysteresis 优化: 通过预制的每一个 CPU 的 capactity 的阈值, 当 CPU 的负载大于这个阈值的时候, 会迟滞一定的时间, 不让 CPU 进入 LPM 模式(low power mode).  CPU IDLE 是进入 LPM, 分多个等级, 层级越高越省电, 但是相应的睡眠跟唤醒的时延越高. 因此当一个 CPU 的负载较重的时候, 即使可以短暂的进入 LPM 模式, 大概率也会很快因为有任务需要运行而退出, 并且对于处于 RTG 的关键业务来说, 唤醒的时延过长, 则实时性得不到保证. 绘帧等场景, 对时延要求极其敏感, 特别是对于 120MHZ 的刷新率来说, 稍有不慎, 就会造成丢帧.
 
+## 7.9 Core Control Isolation
+------
+
+终端场景下, 中大核的能效比比较差, 因此必要的时候如果能提供必要的隔离功能, 对整个系统的能效的管控和优化将是非常有效地.
+
+1.  在系统负载较小的时候, 把中大核(特别是大核)给隔离出来, 不再允许线程 RUNNING ON. 保证系统的功耗.
+
+2.  在系统负载较高的时候, 按照策略逐步放开中大核, 保证系统的性能.
+
+足见这其实是小任务封包等思路另一个维度的思考和实现, 小任务封包考虑管控任务, 而核隔离则直接管控 CPU 核本身.
+
+核隔离有有几种实现方式:
+
+| 编号 | 特性 | 描述 |
+|:---:|:----:|:---:|
+| 1 | CONFIG_CPU_ISOLATION | 是一套静态地 CPU 配置, 不支持系统运行时自动化配置, 并且由于跟 cpuset 以及 nohz 的兼容性问题, 社区不建议使用. 并且隔离核, 独立于调度域之外. |
+| 2 | CONFIG_HOTPLUG_CPU | CPU 热插拔, 允许运行时动态配置, 但是每次重建调域的开销太大. |
+
+因此高通实现了一套 CONFIG_SCHED_CORE_CTL(Core Control Isolation) 的方案. 参见 [msm-4.19](https://source.codeaurora.cn/quic/la/kernel/msm-4.19/log/?id=295959371853).
+
+1.  引入 cpu_isolation_mask, 用来控制调度器不要将 isolated 的 CPU 当作 active 的 CPU 来调度进程. 参见 [commit 7a74af6396da ("cpumask: Add cpu isolation support")](https://source.codeaurora.cn/quic/la/kernel/msm-4.19/commit?id=7a74af6396da29f581ea36b924ff4fa0538c817c)
+
+2.  实现 core_ctl 控制动态地 isolation/unisolation CPU. [commit 07a16a8cc662 ("sched: Add snapshot of core_ctl")](https://source.codeaurora.cn/quic/la/kernel/msm-4.19/commit?id=07a16a8cc6623b2fd75641497b4b7df5a9219b1a).
+
+CONFIG_SCHED_CORE_CTL 的方案, 不光通过 do_isolation_work_cpu_stop() 支持迁移任务, 还通过 hrtimer_quiesce_cpu() 和 timer_quiesce_cpu() 完成了对 timer 的迁移. 一直到 MSM-5.4, CPU_ISOLATION & CORE_CTRL 的方案都运行良好.
+
+但是 msm-5.10 引入了 GKI 框架之后, CPU_ISOLATION 引入 cpu_isolation_mask 的方式, 在原生的调度等路径下需要感知 cpu_isolated(), 这种方式需要对原生内核增加较多的侵入式修改, 不被 AOSP 所接受. 因此 ARM 的开发者为 AOSP 引入了 pause_cpus/resume_cpus(), 借助 CPU_HOTPLUG 的框架实现快速地, pause_cpus 可以使 CPU 处于空闲状态, resume_cpus 则期望尽可能快地恢复, 同时对系统造成尽可能少的破坏. 由于全量的 CPU_HOTPLUG 流程太慢. 从调度器的角度来看, 暂停(pause)的 CPU 只是去激活(deactivated). 这对应于热插拔的第一步. 每个暂停操作仍然需要一些较重的同步, 因此 pause_cpus() 允许一次暂停多个 CPU 从而缓解这个问题.
+
 
 # 8 实时性 linux PREEMPT_RT
 -------
@@ -4664,6 +4692,9 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 
 3. 降低延迟的措施.
 
+[PREEMPT_RT Linux & Open-Source News](https://www.phoronix.com/search/PREEMPT_RT)
+
+[PREEMPT_RT Might Be Ready To Finally Land In Linux 5.20](https://www.phoronix.com/news/520-Maybe-Real-Time-PREEMPT_RT)
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -4686,7 +4717,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/09/17 | Thomas Gleixner | [sched: Migrate disable support for RT](https://lore.kernel.org/patchwork/cover/1307272) | 在启用 PREEMPT_RT 的内核上, 包括spin/rw锁持有部分在内的大部分代码都是可抢占的, 也使得任务可以迁移. 这违反了每个CPU的约束. 因此, PREEMPT_RT 需要一种独立于抢占的机制来控制迁移.  | v1 ☐ | [PatchWork](https://lwn.net/Articles/1307272) |
-| 2020/10/23 | Peter Zijlstra | [sched: Migrate disable support](https://lore.kernel.org/patchwork/cover/1323936) | Peter 自己实现的 Migrate disable | v4 ☑ 5.11-rc1 | [2020/09/11 preparations](https://lore.kernel.org/patchwork/cover/1304210)<br>*-*-*-*-*-*-*-* <br>[2020/09/21 v1 PatchWork](https://lore.kernel.org/patchwork/cover/1309702)<br>*-*-*-*-*-*-*-* <br>[2020/10/23 v4 PatchWork](https://lore.kernel.org/patchwork/cover/1323936) |
+| 2020/10/23 | Peter Zijlstra | [sched: Migrate disable support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c777d847107e80df24dae87fc9cf4b4c0bf4dfed) | Peter 自己实现的 Migrate disable | v4 ☑ 5.11-rc1 | [2020/09/11 preparations](https://lore.kernel.org/patchwork/cover/1304210)<br>*-*-*-*-*-*-*-* <br>[2020/09/21 v1 PatchWork](https://lore.kernel.org/patchwork/cover/1309702)<br>*-*-*-*-*-*-*-* <br>[2020/10/23 v4 PatchWork](https://lore.kernel.org/patchwork/cover/1323936) |
 | 2021/01/16 | Peter Zijlstra | [sched: Fix hot-unplug regressions](https://lore.kernel.org/patchwork/cover/1366383) | 修复 Migrate Disable 合入后导致的 CRASH 问题 | v3 ☑ 5.11-rc1 | [021/01/16 V1](https://lore.kernel.org/patchwork/cover/1366383)<br>*-*-*-*-*-*-*-*<br>[2021/01/21 V2](https://lore.kernel.org/patchwork/cover/1368710) |
 
 接着 Thomas Gleixner 完成了 KMAP_LOCAL API.
