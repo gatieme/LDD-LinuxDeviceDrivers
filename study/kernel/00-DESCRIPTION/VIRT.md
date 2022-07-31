@@ -80,7 +80,7 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 
 
 
-好吧, 说了这么多理论性的东西, 再来说下, 我们实际遇到的问题.  很早以前经常有windows用户的工单投诉, 说自己的vm里面cpu没有怎么使用, 为什么cpu显示百分之百.
+好吧, 说了这么多理论性的东西, 再来说下, 我们实际遇到的问题. 很早以前经常有windows用户的工单投诉, 说自己的vm里面cpu没有怎么使用, 为什么cpu显示百分之百.
 
 由于是windows系统, 加上我是小白, 很难给出一些技术细节上的分析, 只能通过简单滴一些测试实验进行调查.
 
@@ -161,6 +161,26 @@ jeremy很早就写了一个pv ticketlock, 原理大概就是vcpu在拿锁了一�
 | 2019/03/06 | Nitesh Narayan Lal <nitesh@redhat.com> | [mm: Support for page hinting](https://lkml.org/lkml/2019/7/10/742) | NA | v11 ☐  | [LWN RFC v9,0/6](https://lwn.net/Articles/782470), [LKML v11,0/2](https://lkml.org/lkml/2019/7/10/742) |
 | 2019/07/24 | Alexander Duyck <alexander.duyck-AT-gmail.com> | [mm / virtio: Provide support for page hinting](https://lwn.net/Articles/794540) | NA | v2 ☐ | [LKML v2,0/5](https://lwn.net/Articles/794540) |
 
+
+
+# 7 ANDROID
+-------
+
+
+## 7.1 AnBox
+-------
+
+
+Anbox 可让你在任何 GNU/Linux 操作系统上运行 Android 应用程序.
+
+Anbox 使用 Linux 命名空间 (user, pid, uts, net, mount, ipc) 在容器中运行完整的 Android 系统, 并在任何基于 GNU Linux 的平台上提供 Android 应用程序.
+
+容器内的 Android 无法直接访问任何硬件. 所有硬件访问都经过主机上的 anbox 进程. 我们正在重用 Android 中实现的基于 QEMU 的模拟器, 用于 Open GL ES 加速渲染, 容器内的 Android 系统使用不同的管道与主机系统进行通信, 并通过这些管道发送所有硬件访问命令.
+
+## 7.2 Waydroid
+-------
+
+[Android apps on Linux with Waydroid](https://lwn.net/Articles/901459)
 
 <br>
 
