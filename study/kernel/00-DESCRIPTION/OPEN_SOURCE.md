@@ -24,8 +24,8 @@
 |:-----:|:----------:|:-------:|
 | 华为| [openeuler](https://gitee.com/openeuler/kernel) | [openeuler](https://openeuler.org/zh) |
 | 阿里巴巴 | [alikernel](https://github.com/alibaba/alikernel) | [阿里云智能基础软件部-技术博客](https://kernel.taobao.org), [Alibaba Cloud Linux 2 DOC](https://help.aliyun.com/document_detail/154950.html?spm=a2c4g.11186623.3.3.37157594hOc6qA) |
-| 腾讯 | [TencentOS-kernel](https://github.com/Tencent/TencentOS-kernel) | [腾讯开源 | Tencent Open Source](https://opensource.tencent.com/projects) |
-| AMAZON | [AmazonLinux](https://github.com/amazonlinux/linux) |
+| 腾讯 | [TencentOS-kernel](https://github.com/Tencent/TencentOS-kernel) | [腾讯开源 |
+| AMAZON | [AmazonLinux](https://github.com/amazonlinux/linux) ||
 | ORACLE | [linux-uek](https://github.com/oracle/linux-uek) | [linux-kernel-development](https://blogs.oracle.com/linux/linux-kernel-development), [2](https://blogs.oracle.com/linux/category/lnx-linux-kernel-development) |
 | openSuse | [openSUSE/kernel](https://github.com/openSUSE/kernel)<br>*-*-*-*-*-*-*-* <br>[openSUSE/kernel](https://github.com/openSUSE/kernel-source) | [opensuse.org](https://en.opensuse.org/openSUSE:Kernel_git) |
 | microsoft | [微软的 linux 内部版本 CBL-Mariner](https://github.com/microsoft/CBL-Mariner-Linux-Kernel)<br>*-*-*-*-*-*-*-* <br>[WSL2-Linux-Kernel](https://github.com/microsoft/WSL2-Linux-Kernel)<br>*-*-*-*-*-*-*-* <br>[azure-linux-kernel](https://github.com/microsoft/azure-linux-kernel) | NA |
@@ -85,6 +85,17 @@
 
 其中 SOSP 与 OSDI 是系统领域的圣殿, 无数研究者的梦想.
 
+
+| 会议 | 描述 |
+|:---:|:----:|
+| [LPC](https://www.linuxplumbersconf.org) | 一年一度的 Linux Plumbers Conference(LPC) 是从事 Linux 系统底层(就像房屋的管道 plumbing 类似)细节工作的开发人员中小一部分人的聚会. 它的主题涵盖了从内核之下一直到用户空间的组件, 这些组件是大多数 Linux 用户交互界面和应用程序的基础. |
+| [LSFMM](https://events.linuxfoundation.org/lsfmm) | [Linux Storage, Filesystem, Memory-management and BPF Summit(LSFMM)](https://events.linuxfoundation.org/lsfmm) |
+| [ASPLOS](https://asplos-conference.org) | International Conference on Architectural Support for Programming Languages and Operating Systems Explanation<br>国际编程语言和操作系统架构支持会议 |
+| [SOSP](https://sosp.org) | ACM 操作系统原理大会(SOSP: ACM Symposium on Operating Systems Principles) |
+| [OSDI](https://www.usenix.org/conferences/all) | OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementation, 但随着时代的发展, 它早已不局限在操作系统领域. |
+| [USENIX](https://www.usenix.org/conferences/all) | NA |
+
+
 ## 5.1 LPC
 -------
 
@@ -94,9 +105,6 @@
 
 ## 5.2 ASPLOS
 -------
-
-International Conference on Architectural Support for Programming Languages and Operating Systems Explanation
-国际编程语言和操作系统架构支持会议
 
 
 | 日期 | 链接 |
@@ -118,12 +126,9 @@ OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementatio
 |:---:|:----:|:----:|
 | 2021/04/12 ~ 2021/04/23 | [ASPLOS 2021](https://asplos-conference.org/2021/index.html) | [OSDI2021 论文选读](https://zhuanlan.zhihu.com/p/393380577) |
 
-[ALL CONFERENCES](https://www.usenix.org/conferences/all)
 
 ## 5.5 LSFMM
 -------
-
-[Linux Storage, Filesystem, Memory-management and BPF Summit(LSFMM)](https://events.linuxfoundation.org/lsfmm)
 
 | 日期 | 链接 |
 |:---:|:----:|
