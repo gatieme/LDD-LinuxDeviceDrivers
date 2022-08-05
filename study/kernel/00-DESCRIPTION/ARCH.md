@@ -833,6 +833,8 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 
 [公众号-半导体行业观察-越来越热的 CXL](https://mp.weixin.qq.com/s/sB2bmFcEaYsH1Jg19E0-eg)
 
+[CXL 3.0 Specification Released - Doubles The Data Rate Of CXL 2.0](https://www.phoronix.com/news/CXL-3.0-Specification-Released)
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/02/16 | Ben Widawsky <ben.widawsky@intel.com> | [CXL 2.0 Support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=68a5a9a243354ed52f7b37b057bd5e98cba870c8) | TODO | v5 ☐☑✓ | [LORE v3,00/16](https://lore.kernel.org/lkml/20210111225121.820014-1-ben.widawsky@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/9](https://lore.kernel.org/all/20210217040958.1354670-1-ben.widawsky@intel.com) |
@@ -895,6 +897,8 @@ Rosetta 是一个转译过程, 允许用户在 Apple Silicon 上运行包含 x86
 Tachyum 宣布其设计一款完全通用的处理器 Prodigy T16128, 预计 2023 年发布, [Tachyum's Monster 128 Core 5.7GHz 'Universal Processor' Does Everything](https://www.tomshardware.com/news/tachyum-128-core-all-purpose-cpu), 号称一款芯片上可以同时运行通用计算, 高性能计算以及 AI 等业务和负载, 原生支持 x86, ARM, RISC-V 和 ISA 的二进制.
 
 Google Google 推出[芯片设计门户网站](https://developers.google.com/silicon), 计划名为 Open MPW Shuttle Program, 允许任何人利用开源 PDK 和其他开源 EDA 工具来提交开源集成电路设计, Google 会为他们免费制造, 不会收取任何费用. 虽然芯片制造是在 130 纳米工艺（SKY130）上完成的, 但这一计划对资金有限的开源硬件项目具有巨大的推动作用.
+
+[GlobalFoundries Partners With Google's Open-Source Silicon Effort To Provide 180nm Tech](https://www.phoronix.com/news/Google-GloFo-GF180MCU)
 
 
 中国科学院大学("国科大")的 ["一生一芯" 计划](https://ysyx.org).
