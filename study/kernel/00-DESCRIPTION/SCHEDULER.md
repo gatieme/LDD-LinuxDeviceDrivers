@@ -568,11 +568,11 @@ coscheduling 协同调度是为了解决云服务场景, 为不同用户提供�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2019/12/19 | Jan H. Schönherr | [[RFC,00/60] Coscheduling for Linux](https://lore.kernel.org/patchwork/cover/983568) | 亚马逊的协同调度方案 | RFC ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/983568) |
-| 2019/12/19 | Peter & Kirill Tkhai 等 | [Core scheduling (v9)](https://lore.kernel.org/patchwork/cover/1340764) | 核调度器, 限制同一个 SMT 域内的两个 CPU 只能运行同一组进程 | v9 ☐ |[PatchWork v9](https://lore.kernel.org/patchwork/cover/1340764) |
-| 2021/03/25 | Joel Fernandes 等 | [Core scheduling remaining patches rebase](https://lore.kernel.org/patchwork/cover/1369931) | Core scheduling v9 的大部分补丁都已经在合入队列了, 部分未合入补丁的重构与适配. | v10 ☐ | [PatchWork v9](https://lore.kernel.org/patchwork/cover/1369931)<br>*-*-*-*-*-*-*-* <br>[PatchWork v9 resend](https://lore.kernel.org/patchwork/cover/1401863) |
-| 2021/04/01 | Peter Zijlstra | [sched: Core scheduling interfaces](https://lore.kernel.org/patchwork/cover/1406301) | Peter 重新设计了 Core scheduling 的接口. | v10 ☐ |[PatchWork v9](https://lore.kernel.org/patchwork/cover/1406301) |
-| 2021/04/22 | Peter Zijlstra | [sched: Core Scheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9f26990074931bbf797373e53104216059b300b1) | Peter 重构的 Core scheduling. | v10 ☑ 5.14-rc1 |[LORE v10](https://lore.kernel.org/lkml/20210422120459.447350175@infradead.org) |
+| 2019/12/19 | Jan H. Schönherr | [[RFC,00/60] Coscheduling for Linux](https://lore.kernel.org/lkml/20180907214047.26914-1-jschoenh@amazon.de) | 亚马逊的协同调度方案 | RFC ☐ | [LORE RFC,00/60](https://lore.kernel.org/lkml/20180907214047.26914-1-jschoenh@amazon.de) |
+| 2019/12/19 | Peter & Kirill Tkhai 等 | [Core scheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=67692435c411e5c53a1c588ecca2037aebd81f2e) | 核调度器, 限制同一个 SMT 域内的两个 CPU 只能运行同一组进程.<br>1. v3 合入了 8 个重构的补丁.<br>2. | v9 ☑ 5.4-rc1 | [2019/02/18 LORE RFC](https://lore.kernel.org/lkml/20190218165620.383905466@infradead.org)<br>*-*-*-*-*-*-*-* <br>[2019/04/23 LORE v2,00/17](https://lore.kernel.org/lkml/cover.1556025155.git.vpillai@digitalocean.com)<br>*-*-*-*-*-*-*-* <br>[2019/05/29 LORE v3,00/16](https://lore.kernel.org/all/cover.1559129225.git.vpillai@digitalocean.com)<br>*-*-*-*-*-*-*-* <br>[2019/10/30 LORE v4,00/19](https://lore.kernel.org/lkml/cover.1572437285.git.vpillai@digitalocean.com)<br>*-*-*-*-*-*-*-* <br>[2020/03/04 LORE v5,00/13](https://lore.kernel.org/lkml/cover.1583332764.git.vpillai@digitalocean.com)<br>*-*-*-*-*-*-*-* <br>[2020/06/30 LORE v6,00/16](https://lore.kernel.org/lkml/cover.1593530334.git.vpillai@digitalocean.com)<br>*-*-*-*-*-*-*-* <br>[2020/08/28 LORE v7,00/23](https://lore.kernel.org/lkml/cover.1598643276.git.jdesfossez@digitalocean.com)<br>*-*-*-*-*-*-*-* <br>[2020/10/19 LORE v8,00/26](https://lore.kernel.org/lkml/20201020014336.2076526-1-joel@joelfernandes.org)<br>*-*-*-*-*-*-*-* <br>[2020/11/17 LORE v9,00/32](https://lore.kernel.org/lkml/20201117232003.3580179-1-joel@joelfernandes.org) |
+| 2021/03/25 | Joel Fernandes 等 | [Core scheduling remaining patches rebase](https://lore.kernel.org/patchwork/cover/1369931) | Core scheduling v9 的大部分补丁都已经在 TIP 分支了, 部分未合入补丁的重构与适配. | v10 ☐ | [2021/01/23 LORE v10,0/5](https://lore.kernel.org/lkml/20210123011704.1901835-1-joel@joelfernandes.org)<br>*-*-*-*-*-*-*-* <br>[2021/03/24 LORE v10 resend,0/8](https://lore.kernel.org/lkml/20210324214020.34142-1-joel@joelfernandes.org) |
+| 2021/04/01 | Peter Zijlstra | [sched: Core scheduling interfaces](https://lore.kernel.org/lkml/20210401131012.395311786@infradead.org/) | Peter 将 TIP 分支 core scheduling 进行了重构. 重新设计了 Core scheduling 的接口. | v11 ☐ |[2021/04/01 v11,0/9](https://lore.kernel.org/lkml/20210401131012.395311786@infradead.org) |
+| 2021/04/22 | Peter Zijlstra | [sched: Core Scheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9f26990074931bbf797373e53104216059b300b1) | Peter 重构后完整的 Core scheduling. | v12 ☑ 5.14-rc1 |[2021/04/22 LORE v12,00/19](https://lore.kernel.org/lkml/20210422120459.447350175@infradead.org) |
 | 2021/10/18 | Josh Don <joshdon@google.com> | [sched/core: forced idle accounting](https://lkml.org/lkml/2021/10/7/1187) | 增加了 "强制空闲" 时间的统计. 当 SMT 某个 CPU pick 了一个任务, 但是 sibling CPU 上找不到与其相互信任(cookie 相同)的任务时, sibling CPU 将不得不进入 force idle 状态, 即使有其他进程(互不信任的)在 RQ 中等待.<br>强制空闲时间是衡量启用 core scheduling 的一种指标. 可以估计强制闲置而导致的 CPU 容量损失. | v10 ☑ 5.14-rc1 | [2021/10/08 LKML v1](https://lkml.org/lkml/2021/10/7/1187)<br>*-*-*-*-*-*-*-* <br>[2021/10/18 LKML v2](https://lkml.org/lkml/2021/10/18/1529) |
 | 2021/11/23 | Christian Brauner | [core scheduling: add PR_SCHED_CORE_SHARE](https://lkml.org/lkml/2021/11/23/474) | NA | v10 ☑ 5.14-rc1 | [2021/10/08 LKML v1](https://lkml.org/lkml/2021/11/23/474) |
 | 2021/12/16 | Joel Fernandes <joel@joelfernandes.org> | [High latency with core scheduling](https://lore.kernel.org/all/Ybvcu5RIwV+Vko09@google.com) | Ybvcu5RIwV+Vko09@google.com | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/Ybvcu5RIwV+Vko09@google.com) |
@@ -2045,43 +2045,7 @@ v3.3 [commit 0b005cf54eac ("sched, nohz: Implement sched group, domain aware noh
 | 2012/01/26 | Suresh Siddha <suresh.b.siddha@intel.com> | [sched/nohz: Fix nohz cpu idle load balancing state with cpu hotplug](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=71325960d16cd68ea0e22a8da15b2495b0f363f7) | 引入了 sched_ilb_notifier(). | v1☐☑✓ | [LORE](http://lkml.kernel.org/r/1327026538.16150.40.camel@sbsiddha-desk.sc.intel.com) |
 | 2017/06/19 | Frederic Weisbecker <fweisbec@gmail.com> | [sched: A few nohz_full improvements](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=387bc8b5536eeb0a92f4b4ab553539eaea2ac0ba) | 1497838322-10913-1-git-send-email-fweisbec@gmail.com | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/1497838322-10913-1-git-send-email-fweisbec@gmail.com) |
 
-### 4.5.5 nohz.next_balance for NO_HZ Idle Balancing
--------
-
-*   使用 rq->next_balance 作为执行 ILB 的必要条件
-
-之前 NO_HZ Idle Balancing 所有 空闲 CPU 都进行了负载平衡, 而不考虑负载均衡的间隔 interval, 这引入了比必要时高得多的负载平衡开销. v3.16 [commit ed61bbc69c77 ("sched/balancing: Reduce the rate of needless idle load balancing")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed61bbc69c773465782476c7e5869fa5607fa73a) 只会[在需要进行负载平衡(即 time_after_eq(jiffies, rq->next_balance))时](https://elixir.bootlin.com/linux/v3.16/source/kernel/sched/fair.c#L7204), ILB owner 才会代表空闲 CPU 进行空闲负载平衡. 至此除了 nohz.next_balance 作为触发 KICK 和 ILB 的检查条件外, ILB owner CPU 的 rq->next_balance 也作为执行 ILB 的必要条件.
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2014/06/05 | Tim Chen <tipbot@zytor.com> | [sched/balancing: Reduce the rate of needless idle load balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed61bbc69c773465782476c7e5869fa5607fa73a) | nohz_idle_balance() 也使用 rq->next_balance 作为时间间隔来限制 ILB 的触发. | v1 ☑✓ 3.16-rc1 | [LORE v1](https://lore.kernel.org/all/1400617046.2970.270.camel@schen9-DESK)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/all/1400621967.2970.280.camel@schen9-DESK) |
-
-*   ILB owner CPU 先执行 NO_HZ Idle Balancing 再进行 Load Balancing
-
-当一个 CPU 被 KICK 去做 NO_HZ 的 Idle Balancing 时, run_rebalance_domains() 中它会在自身上进行负载平衡 rebalance_domains(this_rq, idle), 然后代表空闲 CPU 进行负载平衡 nohz_idle_balance(this_rq, idle). 但是在尝试对自身进行负载平衡之后, 它可能会以负载结束. 这将造成 NO_HZ Idle Balancing 也被中止. 这样一来, 就会有几个空闲的 CPU 没有任务, 直到 ILB CPU 发现自己不适合拉任务. 这会延迟在空闲 CPU 上的负载分配, 更糟糕的是, 只会使少数 CPU 上的任务变得混乱.
-
-在具有 2 级 NUMA 域的 SMT8 POWER 服务器上可以观察到上述问题的影响. 启动与 CPU 核数量相等的死循环程序来进行测试. 由于不鼓励跨 NUMA 域在 fork/exec 上进行负载平衡, 所以所有死循环程序都将在其中一个 NUMA 域上启动. 然后由于 NO_HZ Idle Balancing, 预计最终每个核上都会运行一个死循环的程序. 但是可以观察到, 将所有的死循环程序分散到各个 NUMA 域需要花费 10s 的时间. 造成这个问题的原因是:
-
-1. 从第一个 NUMA 域中选择一个 ILB CPU 来触发 NO_HZ Idle Balancing [根据实验, 在这个域中, 每个核可能有 6 个 CPU 处于空闲状态].
-
-2. 然而, ILB CPU 被 KICK 后, 在执行 run_rebalance_domains() 时会在 [nohz 空闲负载均衡 nohz_idle_balance(this_rq, idle)](https://elixir.bootlin.com/linux/v4.0/source/kernel/sched/fair.c#L7672) 之前调用 [rebalance_domains(this_rq, idle)](https://elixir.bootlin.com/linux/v4.0/source/kernel/sched/fair.c#L7665).
-
-3. 如果内核是 SMT8, ILB CPU 就有足够的机会将任务从它的 Sibling CPU 中 PULL 出来, 以平衡负载.
-
-4. 现在 ILB CPU 不再空闲, 它将中止 NO_HZ Idle Balancing.
-
-因此, 在第一个 NUMA 域中的核之间有相同数量的任务时, 就失去了跨 NUMA 域分配负载的机会. 这是一个非常糟糕的场景, 因为第一个 NUMA 域中的核将有多达 4 个任务, 而邻近 NUMA 域中的核将全部保持空闲.
-
-[commit d4573c3e1c99 ("sched: Improve load balancing in the presence of idle CPUs")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d4573c3e1c992668f5dcd57d1c2ced56ae9650b9) 修复了这个问题, 在它对自己进行负载平衡之前, 检查 CPU 是否被唤醒来做 NO_HZ Idle Balancing, 通过这种方式, 我们允许系统中的空闲 CPU 进行负载均衡, 从而更快地分配负载, 而不是在上述情况下单独在 ILB CPU 的本地调度域层次结构内执行负载均衡.
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2015/03/26 | Preeti U Murthy <preeti@linux.vnet.ibm.com> | [sched: Improve load balancing in the presence of idle CPUs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d4573c3e1c992668f5dcd57d1c2ced56ae9650b9) | NA | v2 ☑✓ 4.1-rc1 | [LORE](https://lore.kernel.org/all/20150326130014.21532.17158.stgit@preeti.in.ibm.com) |
-| 2015/08/03 | Vincent Guittot <vincent.guittot@linaro.org> | [sched: fix nohz.next_balance update](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c5afb6a87f2386bcf09fa051e6ca390d43e2222e) | NA | v2 ☑✓ 4.4-rc1 | [LORE](https://lore.kernel.org/all/1438595750-20455-1-git-send-email-vincent.guittot@linaro.org) |
-| 2021/08/23 | Valentin Schneider <valentin.schneider@arm.com> | [sched/fair: nohz.next_balance vs newly-idle CPUs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7fd7a9e0caba10829b4f8db1aa7711b558681fd4) | NA | v3 ☑✓ 5.16-rc1 | [LORE v3,0/2](https://lore.kernel.org/all/20210823111700.2842997-1-valentin.schneider@arm.com) |
-
-
-### 4.5.6 Capacity Aware NO_HZ Idle Balancing
+### 4.5.5 Capacity Aware NO_HZ Idle Balancing
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -2090,10 +2054,10 @@ v3.3 [commit 0b005cf54eac ("sched, nohz: Implement sched group, domain aware noh
 | 2019/01/17 | Valentin Schneider <valentin.schneider@arm.com> | [sched/fair: NOHZ cleanups and misfit improvement](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b9a7b8831600afc51c9ba52c05f12db2266f01c7) | 降低 ARM big.LITTLE 平台 NOHZ 下不必要的 kick 操作. | v1 ☑✓ 5.1-rc2 | [LORE v1,0/5](https://lore.kernel.org/all/20190117153411.2390-1-valentin.schneider@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/lkml/20190211175946.4961-1-valentin.schneider@arm.com) |
 
 
-### 4.5.7  Blocked Load Update for NO_HZ
+### 4.5.6  Blocked Load Update for NO_HZ
 -------
 
-#### 4.5.7.1 Update Blocked Load When NEWLY_IDLE @4.17
+#### 4.5.6.1 Update Blocked Load When NEWLY_IDLE @4.17
 -------
 
 社区普遍认为, 借助 IDLE CPU(特别是即将陷入 IDLE 的 NEWLY_IDLE CPU) 来完成 Blocked Load 的更新(update_blocked_average) 是一件特别划算的 事情. 因为这些 CPU 并不是 busy 的, 这些不占用业务主路径, 不会对系统的吞吐量起到反作用. 于是 v4.17 [sched: Update blocked load](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=31e77c93e432dec79c7d90b888bbfc3652592741) 和 [sched: On remote stats updates..](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=31e77c93e432dec79c7d90b888bbfc3652592741) 完成了这项工作.
@@ -2247,7 +2211,7 @@ static bool nohz_idle_balance(struct rq *this_rq, enum cpu_idle_type idle)
 ```
 
 
-#### 4.5.7.2 Update Blocked Load Outside newidle_balance @5.13
+#### 4.5.6.2 Update Blocked Load Outside newidle_balance @5.13
 -------
 
 Blocked Load 的更新本身可能成为一项非常繁重的工作. 2021 年左右, Joel 在社区报告了 newidle_balance() 路径中长时间的关抢占和关中断所造成的延迟. 这是由于系统中存在有大量的 CPU cgroup 正在使用并且需要更新, 因此造成 update_blocked_averages() 的工作非常繁重, 这导致了 newilde_balance() 有时需要最多 500us 才能完成. Joel 尝试通过限制 update_blocked_averages() 调用的频率来规避问题, 参见 [sched/fair: Rate limit calls to update_blocked_averages() for NOHZ](https://lore.kernel.org/lkml/20210122154600.1722680-1-joel@joelfernandes.org). 但是这显然治标不治本.
@@ -2317,6 +2281,64 @@ void nohz_run_idle_balance(int cpu)
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2014/1/28 | Mike Galbraith <mgalbraith@suse.de> | [sched, nohz: Exclude isolated cores from load balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d987fc7f3228) | isolated CPU 不再进行负载均衡. | v1 ☑ 3.15-rc1 | [LKML](https://lkml.org/lkml/2014/2/21/736) |
+
+
+### 4.5.7  NO_HZ Idle Balancing 的其他更新
+-------
+
+
+#### 4.5.7.1 nohz.next_balance for NO_HZ Idle Balancing
+-------
+
+*   使用 rq->next_balance 作为执行 ILB 的必要条件
+
+之前 NO_HZ Idle Balancing 所有 空闲 CPU 都进行了负载平衡, 而不考虑负载均衡的间隔 interval, 这引入了比必要时高得多的负载平衡开销. v3.16 [commit ed61bbc69c77 ("sched/balancing: Reduce the rate of needless idle load balancing")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed61bbc69c773465782476c7e5869fa5607fa73a) 只会[在需要进行负载平衡(即 time_after_eq(jiffies, rq->next_balance))时](https://elixir.bootlin.com/linux/v3.16/source/kernel/sched/fair.c#L7204), ILB owner 才会代表空闲 CPU 进行空闲负载平衡. 至此除了 nohz.next_balance 作为触发 KICK 和 ILB 的检查条件外, ILB owner CPU 的 rq->next_balance 也作为执行 ILB 的必要条件.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2014/06/05 | Tim Chen <tipbot@zytor.com> | [sched/balancing: Reduce the rate of needless idle load balancing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ed61bbc69c773465782476c7e5869fa5607fa73a) | nohz_idle_balance() 也使用 rq->next_balance 作为时间间隔来限制 ILB 的触发. | v1 ☑✓ 3.16-rc1 | [LORE v1](https://lore.kernel.org/all/1400617046.2970.270.camel@schen9-DESK)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/all/1400621967.2970.280.camel@schen9-DESK) |
+
+*   ILB owner CPU 先执行 NO_HZ Idle Balancing 再进行 Load Balancing
+
+当一个 CPU 被 KICK 去做 NO_HZ 的 Idle Balancing 时, run_rebalance_domains() 中它会在自身上进行负载平衡 rebalance_domains(this_rq, idle), 然后代表空闲 CPU 进行负载平衡 nohz_idle_balance(this_rq, idle). 但是在尝试对自身进行负载平衡之后, 它可能会以负载结束. 这将造成 NO_HZ Idle Balancing 也被中止. 这样一来, 就会有几个空闲的 CPU 没有任务, 直到 ILB CPU 发现自己不适合拉任务. 这会延迟在空闲 CPU 上的负载分配, 更糟糕的是, 只会使少数 CPU 上的任务变得混乱.
+
+在具有 2 级 NUMA 域的 SMT8 POWER 服务器上可以观察到上述问题的影响. 启动与 CPU 核数量相等的死循环程序来进行测试. 由于不鼓励跨 NUMA 域在 fork/exec 上进行负载平衡, 所以所有死循环程序都将在其中一个 NUMA 域上启动. 然后由于 NO_HZ Idle Balancing, 预计最终每个核上都会运行一个死循环的程序. 但是可以观察到, 将所有的死循环程序分散到各个 NUMA 域需要花费 10s 的时间. 造成这个问题的原因是:
+
+1. 从第一个 NUMA 域中选择一个 ILB CPU 来触发 NO_HZ Idle Balancing [根据实验, 在这个域中, 每个核可能有 6 个 CPU 处于空闲状态].
+
+2. 然而, ILB CPU 被 KICK 后, 在执行 run_rebalance_domains() 时会在 [nohz 空闲负载均衡 nohz_idle_balance(this_rq, idle)](https://elixir.bootlin.com/linux/v4.0/source/kernel/sched/fair.c#L7672) 之前调用 [rebalance_domains(this_rq, idle)](https://elixir.bootlin.com/linux/v4.0/source/kernel/sched/fair.c#L7665).
+
+3. 如果内核是 SMT8, ILB CPU 就有足够的机会将任务从它的 Sibling CPU 中 PULL 出来, 以平衡负载.
+
+4. 现在 ILB CPU 不再空闲, 它将中止 NO_HZ Idle Balancing.
+
+因此, 在第一个 NUMA 域中的核之间有相同数量的任务时, 就失去了跨 NUMA 域分配负载的机会. 这是一个非常糟糕的场景, 因为第一个 NUMA 域中的核将有多达 4 个任务, 而邻近 NUMA 域中的核将全部保持空闲.
+
+[commit d4573c3e1c99 ("sched: Improve load balancing in the presence of idle CPUs")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d4573c3e1c992668f5dcd57d1c2ced56ae9650b9) 修复了这个问题, 在它对自己进行负载平衡之前, 检查 CPU 是否被唤醒来做 NO_HZ Idle Balancing, 通过这种方式, 我们允许系统中的空闲 CPU 进行负载均衡, 从而更快地分配负载, 而不是在上述情况下单独在 ILB CPU 的本地调度域层次结构内执行负载均衡.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2015/03/26 | Preeti U Murthy <preeti@linux.vnet.ibm.com> | [sched: Improve load balancing in the presence of idle CPUs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d4573c3e1c992668f5dcd57d1c2ced56ae9650b9) | NA | v2 ☑✓ 4.1-rc1 | [LORE](https://lore.kernel.org/all/20150326130014.21532.17158.stgit@preeti.in.ibm.com) |
+| 2015/08/03 | Vincent Guittot <vincent.guittot@linaro.org> | [sched: fix nohz.next_balance update](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c5afb6a87f2386bcf09fa051e6ca390d43e2222e) | NA | v2 ☑✓ 4.4-rc1 | [LORE](https://lore.kernel.org/all/1438595750-20455-1-git-send-email-vincent.guittot@linaro.org) |
+| 2021/08/23 | Valentin Schneider <valentin.schneider@arm.com> | [sched/fair: nohz.next_balance vs newly-idle CPUs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7fd7a9e0caba10829b4f8db1aa7711b558681fd4) | NA | v3 ☑✓ 5.16-rc1 | [LORE v3,0/2](https://lore.kernel.org/all/20210823111700.2842997-1-valentin.schneider@arm.com) |
+
+#### 4.5.7.2 nohz_flags for NO_HZ Idle Balancing
+-------
+
+
+由于 smp_send_reschedule/IPI_RESCHEDULE 的处理函数 scheduler_ipi(), 包含了太多无关紧要的东西, 因此, v5.8-rc1 的时候进行了重构, scheduler_ipi() 仅剩下设置 need_resched 标记的 preempt_fold_need_resched()
+
+1.  之前 got_nohz_idle_kick() 的情况下通过 raise_softirq_irqoff(SCHED_SOFTIRQ), 触发 Load Balancing 的操作被分离到了 rq->nohz_csd/nohz_csd_func() 中, kick_ilb() 中通过 smp_call_function_single_async() 异步地执行 nohz_csd_func().
+
+2.  之前 ttwu_queue_remote() 中 sched_ttwu_pending() 的操作拆解到了 wake_csd_func, 同样通过 smp_call_function_single_async() 异步执行.
+
+3.  其他真正需要设置 NEED_RESCHED 的地方, 则直接使用 smp_send_reschedule() 发送 IPI_RESCHEDULE.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2020/03/27 | "Peter Zijlstra (Intel)" <peterz@infradead.org> | [sched: Clean up scheduler_ipi()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=90b5363acd4739769c3f38c1aff16171bd133e8c) | TODO | v1 ☑✓ 5.8-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=90b5363acd4739769c3f38c1aff16171bd133e8c) |
+| 2020/05/26 | Peter Zijlstra <peterz@infradead.org> | [Fix the scheduler-IPI mess.](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=19a1f5ec699954d21be10f74ff71c2a7079e99ad) | TODO | v1 ☐☑✓ | [LORE v1,0/7](https://lore.kernel.org/all/20200526161057.531933155@infradead.org) |
+
 
 
 ## 4.6 自动 NUMA 均衡(Automatic NUMA balancing)

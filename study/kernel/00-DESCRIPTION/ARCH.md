@@ -787,6 +787,8 @@ Arm True Random Number Generator Firmware Interface 1.0 于去年发布, 最终�
 
 [Linux's getrandom() Sees A 8450% Improvement With Latest Code](https://www.phoronix.com/scan.php?page=news_item&px=Linux-getrandom-8450p)
 
+[Linux 6.0 To Continue Advancing Its Random Number Generator (RNG)](https://www.phoronix.com/news/Linux-6.0-RNG)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/11/21 | "Stephan Müller" <smueller@chronox.de> | [/dev/random - a new approach](https://lore.kernel.org/lkml/2036923.9o76ZdvQCi@positron.chronox.de) | 随机数实现改进. | v1 ☐ | [Patchwork v43 00/15](https://lore.kernel.org/lkml/2036923.9o76ZdvQCi@positron.chronox.de) |
