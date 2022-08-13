@@ -264,28 +264,6 @@ BFS 的最后版本是 2016 年 12 月发布的 v0.512, 基于 v4.8 内核.
 之后 CK 发布了更现代化的 MuQSS(多队列跳过列表调度程序) [The MuQSS CPU scheduler](https://lwn.net/Articles/720227), CK 称之为原始 BFS 调度程序基于 per-CPU 运行队列改进版. 截止目前 MuQSS 都在不断维护.
 
 
-### 1.1.5 批处理进程 SCHED\_BATCH
--------
-
-从 Linux 2.6.16 开始, SCHED\_BATCH 可以用于静态优先级为 0 的线程. 该策略类似 SCHED_NORMAL, 并根据动态优先级(nice值)进行调度. 区别是使用该策略时, 调度器会假设线程是 CPU 密集型的, 因此, 该调度器会根据线程的唤醒行为施加调度惩罚, 因此这种调度策略比较不受欢迎.
-
-该策略比较适用于非交互且不期望降低 nice 值的负载, 以及需要不因为交互而(在负载之间)造成额外抢占的调度策略的负载
-
-
-[batch/idle priority scheduling, SCHED_BATCH](https://lwn.net/Articles/3866)
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2006/01/14 | Ingo Molnar <mingo@elte.hu> | [b0a9499c3dd5 sched: add new SCHED_BATCH policy](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0a9499c3dd5) | NA | v1 ☑ 2.6.24-rc1 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0a9499c3dd5) |
-| 2007/12/04 | Ingo Molnar <mingo@elte.hu> | [8ca0e14ffb12 sched: disable sleeper_fairness on SCHED_BATCH](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8ca0e14ffb12) | NA | v1 ☑ 2.6.24-rc1 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8ca0e14ffb12) |
-| 2007/12/04 | Ingo Molnar <mingo@elte.hu> | [91c234b4e341 sched: do not wakeup-preempt with SCHED_BATCH tasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=91c234b4e341) | 不要用 SCHED\_BATCH 任务唤醒时抢占其他进程, 它们的抢占由 tick 驱动. | v1 ☑ 2.6.24-rc5 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=91c234b4e341) |
-| 2007/12/04 | Ingo Molnar <mingo@elte.hu> | [db292ca302e8 sched: default to more agressive yield for SCHED_BATCH tasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=db292ca302e8) | 对 SCHED\_BATCH 调优的任务执行更积极的 yield. | v1 ☑ 2.6.24-rc5 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=db292ca302e8) |
-| 2007/12/18 | Ingo Molnar <mingo@elte.hu> | [6cbf1c126cf6 sched: do not hurt SCHED_BATCH on wakeup](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6cbf1c126cf6) | Yanmin Zhang的测量表明, 如果 SCHED\_BATCH 任务运行与 SCHED\_OTHER 任务相同的 place_entity() 逻辑, 则它们将受益. 因此统一该领域的行为. SCHED\_BATCH 进程唤醒时 vruntime 也将进行补偿. | v1 ☑ 2.6.24-rc6 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6cbf1c126cf6) |
-| 2011/02/22 | Darren Hart <dvhart@linux.intel.com> | [a2f5c9ab79f7 sched: Allow SCHED_BATCH to preempt SCHED_IDLE tasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a2f5c9ab79f7) | 非交互式任务 SCHED\_BATCH 仍然比 SCHED_BATCH 的任务重要, 因此应该优先于 SCHED\_IDLE 的任务唤醒和运行. | v1 ☑ 2.6.39-rc1 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a2f5c9ab79f7) |
-| 2022/03/11 | Chen Ying <chenying.kernel@bytedance.com> | [sched/fair: prioritize normal task over sched_idle task with vruntime offset](https://lore.kernel.org/all/f87a8c0d-527d-a9bc-9653-ff955e0e95b4@bytedance.com) | 对 SCHED_IDLE 类型的进程, 将其 vruntime 添加一个 sched_idle_vruntime_offset 的增量, 从而保证 SCHED_IDLE 进程的 sched_entity 在 CFS 红黑树中总是在非 SCHED_IDLE sched_entity 的右侧. 这可以允许选择非 SCHED_IDLE 任务, 并在空闲任务之前运行. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/f87a8c0d-527d-a9bc-9653-ff955e0e95b4@bytedance.com) |
-
-
-
 ### 1.1.5 不那么重要的进程 SCHED\_IDLE
 -------
 
@@ -368,6 +346,28 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 
 
 在引入该策略后, 原来的 SCHED\_OTHER 被改名为 SCHED\_NORMAL, 不过它的值不变, 因此保持 API 兼容, 之前的 SCHED\_OTHER 自动成为 SCHED\_NORMAL, 除非你设置 SCHED\_BATCH.
+
+
+
+从 Linux 2.6.16 开始, SCHED\_BATCH 可以用于静态优先级为 0 的线程. 该策略类似 SCHED_NORMAL, 并根据动态优先级(nice值)进行调度. 区别是使用该策略时, 调度器会假设线程是 CPU 密集型的, 因此, 该调度器会根据线程的唤醒行为施加调度惩罚, 因此这种调度策略比较不受欢迎.
+
+该策略比较适用于非交互且不期望降低 nice 值的负载, 以及需要不因为交互而(在负载之间)造成额外抢占的调度策略的负载
+
+
+[batch/idle priority scheduling, SCHED_BATCH](https://lwn.net/Articles/3866)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2006/01/14 | Ingo Molnar <mingo@elte.hu> | [b0a9499c3dd5 sched: add new SCHED_BATCH policy](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0a9499c3dd5) | NA | v1 ☑ 2.6.24-rc1 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0a9499c3dd5) |
+| 2007/12/04 | Ingo Molnar <mingo@elte.hu> | [8ca0e14ffb12 sched: disable sleeper_fairness on SCHED_BATCH](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8ca0e14ffb12) | NA | v1 ☑ 2.6.24-rc1 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=8ca0e14ffb12) |
+| 2007/12/04 | Ingo Molnar <mingo@elte.hu> | [91c234b4e341 sched: do not wakeup-preempt with SCHED_BATCH tasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=91c234b4e341) | 不要用 SCHED\_BATCH 任务唤醒时抢占其他进程, 它们的抢占由 tick 驱动. | v1 ☑ 2.6.24-rc5 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=91c234b4e341) |
+| 2007/12/04 | Ingo Molnar <mingo@elte.hu> | [db292ca302e8 sched: default to more agressive yield for SCHED_BATCH tasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=db292ca302e8) | 对 SCHED\_BATCH 调优的任务执行更积极的 yield. | v1 ☑ 2.6.24-rc5 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=db292ca302e8) |
+| 2007/12/18 | Ingo Molnar <mingo@elte.hu> | [6cbf1c126cf6 sched: do not hurt SCHED_BATCH on wakeup](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6cbf1c126cf6) | Yanmin Zhang的测量表明, 如果 SCHED\_BATCH 任务运行与 SCHED\_OTHER 任务相同的 place_entity() 逻辑, 则它们将受益. 因此统一该领域的行为. SCHED\_BATCH 进程唤醒时 vruntime 也将进行补偿. | v1 ☑ 2.6.24-rc6 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6cbf1c126cf6) |
+| 2011/02/22 | Darren Hart <dvhart@linux.intel.com> | [a2f5c9ab79f7 sched: Allow SCHED_BATCH to preempt SCHED_IDLE tasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a2f5c9ab79f7) | 非交互式任务 SCHED\_BATCH 仍然比 SCHED_BATCH 的任务重要, 因此应该优先于 SCHED\_IDLE 的任务唤醒和运行. | v1 ☑ 2.6.39-rc1 | [PATCH HISTORY](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a2f5c9ab79f7) |
+| 2022/03/11 | Chen Ying <chenying.kernel@bytedance.com> | [sched/fair: prioritize normal task over sched_idle task with vruntime offset](https://lore.kernel.org/all/f87a8c0d-527d-a9bc-9653-ff955e0e95b4@bytedance.com) | 对 SCHED_IDLE 类型的进程, 将其 vruntime 添加一个 sched_idle_vruntime_offset 的增量, 从而保证 SCHED_IDLE 进程的 sched_entity 在 CFS 红黑树中总是在非 SCHED_IDLE sched_entity 的右侧. 这可以允许选择非 SCHED_IDLE 任务, 并在空闲任务之前运行. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/f87a8c0d-527d-a9bc-9653-ff955e0e95b4@bytedance.com) |
+
+
+
 
 ## 1.2  SCHED\_RT
 -------
