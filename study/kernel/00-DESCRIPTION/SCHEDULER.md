@@ -4748,7 +4748,7 @@ Linux 内核会将大量(并且在不断增加中)工作放置在内核线程中
 
 
 
-## 8.7 PREEMPT_RT
+## 8.7 [PREEMPT_RT](https://www.phoronix.com/search/PREEMPT_RT)
 -------
 
 标准的 Linux 内核中不可中断的系统调用、中断屏蔽等因素, 都会导致系统在时间上的不可预测性, 对硬实时限制没有保证. 目前, 针对 real-time Linux 的修改有两种成功的方案.
@@ -4772,10 +4772,12 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 
 3. 降低延迟的措施.
 
+
 [PREEMPT_RT Linux & Open-Source News](https://www.phoronix.com/search/PREEMPT_RT)
 
-[PREEMPT_RT Might Be Ready To Finally Land In Linux 5.20](https://www.phoronix.com/news/520-Maybe-Real-Time-PREEMPT_RT)
+自从英特尔在 2022 年 2 月份收购 Linutronix 以来, 让Linux实时工作 upstream 的隧道尽头看到了曙光》 将 PREEMPT_RT补丁上游已经非常接近, 至 2022 年 7 月底的状态只剩下两个障碍. 甚至有望在 v6.0 版本(本来可能叫 v5.20)合入. 参见 [PREEMPT_RT Might Be Ready To Finally Land In Linux 5.20](https://www.phoronix.com/news/520-Maybe-Real-Time-PREEMPT_RT).
 
+[Real-Time "PREEMPT_RT" Work Down To Just 50 Patches Atop Linux 6.0-rc1](https://www.phoronix.com/news/Linux-6.0-RT-Patches)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

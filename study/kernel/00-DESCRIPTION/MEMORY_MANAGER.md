@@ -3274,7 +3274,7 @@ v5 测试时 [MariaDB 高并发条件](https://patchwork.kernel.org/project/linu
 
 v6 测试时, Redis, PostgreSQL, MongoDB, Memcached, Hadoop, Spark, Cassandra, MariaDB 和其他工作负载的最新基准测试看起来都非常有希望. 参见 [MGLRU Is A Very Enticing Enhancement For Linux In 2022](https://www.phoronix.com/scan.php?page=news_item&px=Linux-MGLRU-v6-Linux).
 
-v8 和 v9 测试时, 测试场景进一步扩大, 参见 [MGLRU Continues To Look Very Promising For Linux Kernel Performance](https://www.phoronix.com/scan.php?page=news_item&px=Linux-MGLRU-v9-Promising). 此时正处于 v5.18 开发窗口, 作者 Yu Zhao 发起了 Pull Request, 随后 [Multi-gen LRU for 5.18-rc1](https://lore.kernel.org/lkml/20220326010003.3155137-1-yuzhao@google.com), 但是并没有被直接合入. [MGLRU Could Land In Linux 5.19 For Improving Performance - Especially Low RAM Situations](https://www.phoronix.com/scan.php?page=news_item&px=MGLRU-Not-For-5.18).
+v8 和 v9 测试时, 测试场景进一步扩大, 参见 [MGLRU Continues To Look Very Promising For Linux Kernel Performance](https://www.phoronix.com/news/Linux-MGLRU-v9-Promising). 此时正处于 v5.18 开发窗口, 作者 Yu Zhao 发起了 Pull Request, 随后 [Multi-gen LRU for 5.18-rc1](https://lore.kernel.org/lkml/20220326010003.3155137-1-yuzhao@google.com), 但是并没有被直接合入. [MGLRU Could Land In Linux 5.19 For Improving Performance - Especially Low RAM Situations](https://www.phoronix.com/scan.php?page=news_item&px=MGLRU-Not-For-5.18).
 
 v10 基本趋于稳定, 已经尝试发送合并请求 [LWN: Merging the multi-generational LRU](https://lwn.net/Articles/894859). 参见 [MGLRU Revised A 10th Time For Improving Linux Performance, Better Under Memory Pressure](https://www.phoronix.com/scan.php?page=news_item&px=MGLRU-v10).
 
@@ -3286,8 +3286,7 @@ v12 版本已经没有什么特性变更, 仅仅是一些 bugfix, 参见 phoroni
 
 接着 7 月份发布了 v13 版本, phoronix 继续补充了性能测试, 参见 phoronix 报道 [MGLRU v13 Published, Benchmarks Continue Looking Good For This Kernel Feature](https://www.phoronix.com/scan.php?page=news_item&px=MGLRU-v13-More-Benchmarks).
 
-
-[MGLRU & Maple Tree Miss Out On Linux 6.0 But Will Aim For Linux 6.1](https://www.phoronix.com/news/MGLRU-Maple-Tree-Miss-6.0)
+接着 MGLRU 错过了 6.0 的 MergeWindow, 但是有望 6.1 合入主线 [MGLRU & Maple Tree Miss Out On Linux 6.0 But Will Aim For Linux 6.1](https://www.phoronix.com/news/MGLRU-Maple-Tree-Miss-6.0). 在 8 月份发布的 v14 版本, 已基于 Andrew Morton 分支的最新 mm-unnstable 代码进行了 rebase, 并使用 Linux 6.0-rc1 进行了测试, 从而为 v6.1 的合入做好准备, 参见 [MGLRU v14 Released For Improving Linux Low-Memory Performance](https://www.phoronix.com/news/MGLRU-v14-Released).
 
 *   实现
 
@@ -3296,7 +3295,7 @@ v12 版本已经没有什么特性变更, 仅仅是一些 bugfix, 参见 phoroni
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/04/07 | Yu Zhao <yuzhao@google.com> | [Multigenerational LRU Framework(https://lwn.net/Articles/856931) | Multi-Gen LRU Framework, 将 LRU 的列表划分为多代老化. 通过 CONFIG_LRU_GEN 来控制. | v10 ☐ | [Patchwork v1,00/14](https://lore.kernel.org/patchwork/patch/1394674)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2,00/16](https://lore.kernel.org/patchwork/patch/1412560)<br>*-*-*-*-*-*-*-*<br>[2021/05/20 PatchWork v3,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210520065355.2736558-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/08/18 PatchWork v4,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20210818063107.2696454-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/11/11 PatchWork v5,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211111041510.402534-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/01/04 PatchWork v6,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20220104202227.2903605-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/02/08 PatchWork v7,0/12](https://lore.kernel.org/all/20220208081902.3550911-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/03/08 LORE v8,0/14](https://lore.kernel.org/all/20220308234723.3834941-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/03/09 LORE v9,0/14](https://lore.kernel.org/all/20220309021230.721028-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/04/07 LORE,v10,00/14](https://lore.kernel.org/lkml/20220407031525.2368067-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v11,00/14](https://lore.kernel.org/lkml/20220518014632.922072-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v12,00/14](https://lore.kernel.org/lkml/20220614071650.206064-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v13,00/14](https://lore.kernel.org/lkml/20220706220022.968789-1-yuzhao@google.com) |
+| 2022/04/07 | Yu Zhao <yuzhao@google.com> | [Multigenerational LRU Framework(https://lwn.net/Articles/856931) | Multi-Gen LRU Framework, 将 LRU 的列表划分为多代老化. 通过 CONFIG_LRU_GEN 来控制. | v10 ☐ | [Patchwork v1,00/14](https://lore.kernel.org/patchwork/patch/1394674)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2,00/16](https://lore.kernel.org/patchwork/patch/1412560)<br>*-*-*-*-*-*-*-*<br>[2021/05/20 PatchWork v3,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210520065355.2736558-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/08/18 PatchWork v4,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20210818063107.2696454-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/11/11 PatchWork v5,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211111041510.402534-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/01/04 PatchWork v6,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20220104202227.2903605-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/02/08 PatchWork v7,0/12](https://lore.kernel.org/all/20220208081902.3550911-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/03/08 LORE v8,0/14](https://lore.kernel.org/all/20220308234723.3834941-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/03/09 LORE v9,0/14](https://lore.kernel.org/all/20220309021230.721028-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/04/07 LORE,v10,00/14](https://lore.kernel.org/lkml/20220407031525.2368067-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v11,00/14](https://lore.kernel.org/lkml/20220518014632.922072-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v12,00/14](https://lore.kernel.org/lkml/20220614071650.206064-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v13,00/14](https://lore.kernel.org/lkml/20220706220022.968789-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v14,00/14](https://lore.kernel.org/lkml/20220815071332.627393-1-yuzhao@google.com) |
 
 
 
@@ -5075,7 +5074,8 @@ khugepaged 处理流程
 | [khugepaged_scan_pmd](https://elixir.bootlin.com/linux/v2.6.38/source/mm/huge_memory.c#L1915) | 完成普通页面搬运到巨页的工作. 具体来说, khugepaged_scan_pmd() 通过访问 vma 中的每一个页面, 然后判断该页面是否可以用巨页代替, 可以的话[调用 collapse_huge_page() 处理](https://elixir.bootlin.com/linux/v2.6.38/source/mm/huge_memory.c#L1982). |
 | collapse_huge_page | 首先[通过 `__collapse_huge_page_copy` 将普通页面拷贝到巨页中](https://elixir.bootlin.com/linux/v2.6.38/source/mm/huge_memory.c#L1872), 然后释放普通页面. 不过释放之前会将原来页面的 tlb 刷出去, 然后将原来的页面从 LRU 链表移除, 最后拷贝到巨页中后, 还会更新内存相关信息. 如果是 numa 系统, 这里才会[真正分配巨页](https://elixir.bootlin.com/linux/v2.6.38/source/mm/huge_memory.c#L2151). |
 
-
+#### 7.2.9.2 khugepaged 的引入和优化
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

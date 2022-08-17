@@ -837,9 +837,12 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 
 [CXL 3.0 Specification Released - Doubles The Data Rate Of CXL 2.0](https://www.phoronix.com/news/CXL-3.0-Specification-Released)
 
+[Linux 6.0 Continues Plumbing For Compute Express Link (CXL)](https://www.phoronix.com/news/Linux-6.0-CXL)
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/02/16 | Ben Widawsky <ben.widawsky@intel.com> | [CXL 2.0 Support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=68a5a9a243354ed52f7b37b057bd5e98cba870c8) | TODO | v5 ☐☑✓ | [LORE v3,00/16](https://lore.kernel.org/lkml/20210111225121.820014-1-ben.widawsky@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/9](https://lore.kernel.org/all/20210217040958.1354670-1-ben.widawsky@intel.com) |
+| 2022/08/12 | Jonathan Cameron <Jonathan.Cameron@huawei.com> | [CXL 3.0 Performance Monitoring Unit support](https://lore.kernel.org/all/20220812151214.2025-1-Jonathan.Cameron@huawei.com) | CXL rev 3.0 规范引入了一个 CXL 性能监控单元定义. CXL 组件可以有任意数量的这样的块. 定义是高度灵活的, 但这也给驱动程序带来了复杂性. | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20220812151214.2025-1-Jonathan.Cameron@huawei.com) |
 
 
 ## 6.4 CPU IDLE(C-state)

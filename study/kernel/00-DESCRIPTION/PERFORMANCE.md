@@ -134,6 +134,7 @@ Intel AderLake 引入大小核之后, Windows & Intel 联盟做了足够多的�
 
 [Windows 11 vs. Linux Performance For Intel Core i9 12900K In Mid-2022](https://www.phoronix.com/scan.php?page=article&item=windows-linux-mid22adl&num=1).
 
+[Apple M2 vs. AMD Rembrandt vs. Intel Alder Lake Linux Benchmarks](https://www.phoronix.com/review/apple-m2-linux)
 
 ## 10.2 内核评测
 -------
@@ -141,6 +142,12 @@ Intel AderLake 引入大小核之后, Windows & Intel 联盟做了足够多的�
 | 日期 | 版本 | 评测 |
 |:---:|:----:|:---:|
 | 2022/07/11 | [Linux 5.19 Looking Real Good On The HP Dev One, XanMod + Liquorix Also Tested](https://www.phoronix.com/scan.php?page=article&item=hp-devone-kernels) | 基于 HP Dev One 与 AMD Ryzen 7 PRO 5850U 测试了 Mainline 5.19 相比较 Pop_OS Stock 5.17/Mainline 5.18/XanMod 5.18/Liquorix 5.18 的性能. |
+
+
+## 10.3 硬件评测
+-------
+
+[Intel Xeon Platinum 8380 Performance Is Looking Great For Linux 6.0](https://www.phoronix.com/news/Linux-6.0-Xeon-8380-Ice-Lake)
 
 <br>
 

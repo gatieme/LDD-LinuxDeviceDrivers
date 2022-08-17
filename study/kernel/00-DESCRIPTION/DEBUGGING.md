@@ -202,7 +202,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2019/03/19 | Suren Baghdasaryan <surenb@google.com> | [psi: pressure stall monitors v6](https://lwn.net/Articles/775971/) | NA | v6 ☑ [5.2-rc1](https://kernelnewbies.org/Linux_5.2#Improved_Presure_Stall_Information_for_better_resource_monitoring) | [Patchwork](https://lore.kernel.org/patchwork/patch/1052413) |
 | 2020/03/03 | Suren Baghdasaryan <surenb@google.com> | [psi: Add PSI_CPU_FULL state and some code optimization](ttps://lore.kernel.org/patchwork/patch/1388805) | 1. 添加 PSI_CPU_FULL 状态标记 cgroup 中的所有非空闲任务在 cgroup 之外的 CPU 资源上被延迟, 或者 cgroup 被 throttle<br>2. 使用 ONCPU 状态和当前的 in_memstall 标志来检测回收, 删除 timer tick 中的钩子, 使代码更简洁和可维护.<br>4. 通过移除两个任务的每个公共cgroup祖先的psi_group_change()调用来优化自愿睡眠开关.  | v2 ☑ 5.13-rc1 | [Patchwork](https://lore.kernel.org/patchwork/patch/1388805) |
 | 2020/03/31 | Yafang Shao <laoar.shao@gmail.com> | [psi: enhance psi with the help of ebpf](https://lwn.net/Articles/1218304) | 引入 psi_memstall_type 标记 MEMSTALL 的类别, 并在 tracepoint 输出, 从而可以被 ebpf 使用来增强工具. | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Core_.28various.29) | [Patchwork](https://lore.kernel.org/patchwork/patch/1218304) |
-| 2022/07/21 | Chengming Zhou <zhouchengming@bytedance.com> | [sched/psi: some optimization and extension](https://lore.kernel.org/all/20220721040439.2651-1-zhouchengming@bytedance.com) | TODO | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20220721040439.2651-1-zhouchengming@bytedance.com) |
+| 2022/07/21 | Chengming Zhou <zhouchengming@bytedance.com> | [sched/psi: some optimization and extension](https://lore.kernel.org/all/20220721040439.2651-1-zhouchengming@bytedance.com) | 优化 PSI 的性能, 同时增加对 IRQ/SOFTIRQ 的负载压力跟踪. | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20220721040439.2651-1-zhouchengming@bytedance.com) |
 
 
 # 7 DYNAMIC_DEBUG
@@ -296,11 +296,26 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 ## 11.1 perf-user
 -------
 
-
+### 11.1.1 perf script
+-------
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/09/18 | Yafang Shao <laoar.shao@gmail.com> | [introduce new perf-script page-reclaim](https://lore.kernel.org/patchwork/cover/1128886) | 为 perf 引入了一个新的 python 脚本 page-reclaim.py 页面回收, 用于报告页面回收详细信息.<br>此脚本目前的用途如下:<br>1. 识别由直接回收引起的延迟峰值<br>2. 延迟峰值与 pageout 是否相关<br>3. 请求页面回收的原因, 即是否是内存碎片<br>4. 页面回收效率等. 将来, 我们还可以将其增强以分析 memcg 回收. | v1 ☐ | [PatchWork 0/2](https://lore.kernel.org/patchwork/cover/1128886) |
 
+
+### 11.1.2 show-lost-events
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2009/03/25 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [perf_counter: Add event overlow handling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=43a21ea81a2400992561146327c4785ce7f7be38) | 使用 mmap() 提供更好的溢出管理和更可靠的数据流. 之前方法没有任何 user-> 内核反馈, 并依赖于用户空间保持更新, 与之不同的是，此方法依赖于用户空间将其最后一次读位置写入到控件页. 它将确保新输出不会覆盖尚未读取的事件, 同时允许丢失没有剩余空间的新事件, 并增加溢出计数器, 提供确切的事件丢失数字. 丢失事件用 PERF_EVENT_LOST(后来被改名为 [PERF_RECORD_LOST](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cdd6c482c9ff9c55475ee7392ec8f672eddb7be6)) 标记. | v1 ☑✓ 2.6.31-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=43a21ea81a2400992561146327c4785ce7f7be38) |
+| 2015/05/10 | Kan Liang <kan.liang@intel.com> | [large PEBS interrupt threshold](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c4937a91ea56b546234b0608a413ebad90536d26) | 其中 [perf/x86/intel: Introduce PERF_RECORD_LOST_SAMPLES](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f38b0dbb491a6987e198aa6b428db8692a6480f8) 引入 PERF_RECORD_LOST_SAMPLES. | v9 ☑✓ 4.2-rc1 | [LORE v9,0/8](https://lore.kernel.org/all/1431285195-14269-1-git-send-email-kan.liang@intel.com) |
+| 2011/01/29 | Arnaldo Carvalho de Melo <acme@redhat.com> | [perf top: Switch to non overwrite mode](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=93fc64f14472ae24fd640bf3834a178f59142842) | perf top 发现 PERF_RECORD_LOST 丢失事件时上报 WARN. | v1 ☑✓ 2.6.39-rc1  | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=93fc64f14472ae24fd640bf3834a178f59142842) |
+| 2011/10/29 | Arnaldo Carvalho de Melo <acme@redhat.com> | [perf hists browser: Warn about lost events](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7b27509fc62686c53e9301560034e6b0b001174d) | 发现 PERF_RECORD_LOST 丢失事件时上报 WARN. | v1 ☑✓ 3.2-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7b27509fc62686c53e9301560034e6b0b001174d) |
+| 2018/01/07 | Jiri Olsa <jolsa@kernel.org> | [perf script: Add support to display lost events](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3d7c27b6dbca4c90e7d921b45c2240e7c3cb92a2) | 用户态 perf 提供 `perf script --show-lost-events`, 显示 PERF_RECORD_LOST 信息. | v1 ☑✓ 4.16-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3d7c27b6dbca4c90e7d921b45c2240e7c3cb92a2) |
+| 2022/06/16 | Namhyung Kim <namhyung@kernel.org> | [perf/core: Add a new read format to get a number of lost samples](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=119a784c81270eb88e573174ed2209225d646656) | 有时候用户想知道样本的准确数量, 即使存在一定数量的样本丢失. 当因为环缓冲区冲突造成的事件丢失使用 PERF_RECORD_LOST 标记记录, 虽然很难知道每个事件丢失的次数, 但是聊胜于无. 因此定义 PERF_FORMAT_LOST, 通过 event->lost_samples 记录丢失的次数, 以便从用户空间获取到它. | v4 ☑✓ 6.0-rc1 | [LORE](https://lore.kernel.org/all/20220616180623.1358843-1-namhyung@kernel.org) |
+| 2022/08/16 | Namhyung Kim <namhyung@kernel.org> | [perf tools: Support reading PERF_FORMAT_LOST (v2)](https://lore.kernel.org/all/20220816221747.275828-1-namhyung@kernel.org) | TODO | v2 ☐☑✓ | [LORE 0/4](https://lore.kernel.org/lkml/20220815190106.1293082-1-namhyung@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/all/20220816221747.275828-1-namhyung@kernel.org) |
 
 ## 11.2 ARM SPE
 -------
@@ -580,17 +595,23 @@ Mold 是目前 Unix 链接器的现代替代品, 已经达到了 1.0 版本. 由
 ## 13.9 Compiler Optimization
 -------
 
-随后 2022 年, 开发者 Miko 建议所有架构都开启 `-O3` 编译内核 [Experimental -O3 Optimizing The Linux Kernel For Better Performance Brought Up Again](https://www.phoronix.com/scan.php?page=news_item&px=O3-Optimize-Kernel-2022-Patches), 但是遭到了 Linus 的强烈反对, [Linus Torvalds' Latest Commentary Against -O3'ing The Linux Kernel](https://www.phoronix.com/scan.php?page=news_item&px=Linus-Against-O3-Kernel), [LKML 回复](https://lore.kernel.org/lkml/CA+55aFz2sNBbZyg-_i8_Ldr2e8o9dfvdSfHHuRzVtP2VMAUWPg@mail.gmail.com).
+随后 2022 年, 开发者 Miko 建议所有架构都开启 `-O3` 编译内核 [Experimental -O3 Optimizing The Linux Kernel For Better Performance Brought Up Again](https://www.phoronix.com/news/O3-Optimize-Kernel-2022-Patches), 但是遭到了 Linus 的强烈反对, [Linus Torvalds' Latest Commentary Against -O3'ing The Linux Kernel](https://www.phoronix.com/scan.php?page=news_item&px=Linus-Against-O3-Kernel), [LKML 回复](https://lore.kernel.org/lkml/CA+55aFz2sNBbZyg-_i8_Ldr2e8o9dfvdSfHHuRzVtP2VMAUWPg@mail.gmail.com).
 
 随后 对内核使用 `-O3` 进行了较为详细的性能测试, 参照 phoronix 报道
 
-[Benchmarking The Linux Kernel With An "-O3" Optimized Build](https://www.phoronix.com/scan.php?page=article&item=linux-kernel-o3&num=7).
+[Benchmarking The Linux Kernel With An "-O3" Optimized Build](https://www.phoronix.com/review/linux-kernel-o3).
 
 [Benchmarking The Linux 5.19 Kernel Built With "-O3 -march=native"](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.19-O3-March-Native)
+
+
+随后 Intel 尝试为 ClearLinux 进行了 `-O3` 构建, [Ensure -O3 is default option for all archs in 5.19 kernel #2693](https://github.com/clearlinux/distribution/issues/2693), [use O3 (github #2693)](https://github.com/clearlinux-pkgs/linux/commit/71fbe0406686178c6a209a515c174df7ef77e4e4). 参见 [Intel's Clear Linux Taps -O3 For Its Kernel Builds](https://www.phoronix.com/news/Clear-Linux-O3-Kernel).
+
+["CC_OPTIMIZE_FOR_PERFORMANCE_O3" Performance Tunable Dropped In Linux 6.0](https://www.phoronix.com/news/Linux-6.0-Drops-O3-Kconfig)
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/06/21 | Miko Larsson <mikoxyzzz@gmail.com> | [Kconfig: -O3 enablement](https://lore.kernel.org/all/20220621133526.29662-1-mikoxyzzz@gmail.com) | 允许所有架构支持 -O3 编译. | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20220621133526.29662-1-mikoxyzzz@gmail.com) |
+| 2022/06/28 | Nick Desaulniers <ndesaulniers@google.com> | [kbuild: drop support for CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a6036a41bffba3d5007e377483b425d470ad8042) | 移除 CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3. | v1 ☑✓ 6.0-rc1 | [LORE](https://lore.kernel.org/all/20220628210407.3343118-1-ndesaulniers@google.com) |
 
 
 # 14 FTRACE
