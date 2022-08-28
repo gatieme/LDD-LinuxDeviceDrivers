@@ -757,7 +757,21 @@ Chang 的 patch set 采用了与之前不同的方法: 允许 cgroup 将一些�
 
 [CPU 负载均衡之 WALT 学习](https://blog.csdn.net/xiaoqiaoq0/article/details/107135747)
 
-WALT 以一个窗口 walt_ravg_window 内 task/rq 的平均执行速率作为其 utilization.
+WALT 以一个窗口 walt_ravg_window 内 TASK/RQ 的平均执行速率作为其 utilization. 通过窗口内每个周期对进程的运行时间 delta 按照 capacity_curr_of 进行缩放得到 scale\_exec\_time, 然后窗口内所有 scale\_exec\_time 累计求和, 即可得到窗口内 TASK/RQ 的负载信息. 即:
+
+$scale\_exec\_time=delta \times \frac{capacity\_curr\_of}{1024}$
+
+$ravg\_sum=\sum_{1}^{n}scale\_exec\_time$
+
+$walt\_util=\frac{ravg\_sum}{walt\_ravg\_window} \times 1024$
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/10/28 | Vikram Mulukutla <markivx@codeaurora.org> | [sched: Introduce Window Assisted Load Tracking](https://lore.kernel.org/all/1477638642-17428-1-git-send-email-markivx@codeaurora.org) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/1477638642-17428-1-git-send-email-markivx@codeaurora.org) |
+
+### 3.1.1 WALT @ QCOM-4.4
+-------
 
 QCOM-4.4 时采用的计算方法如下所示
 
@@ -765,10 +779,56 @@ $ravg\_sum=\sum_{1}^{n}scale\_exec\_time=\sum_{1}^{n}{\frac{delta \times capacit
 
 $walt\_util=\frac{\sum_{1}^{n}scale\_exec\_time}{walt\_ravg\_window} \times 1024 =\frac{\sum_{1}^{n}{\frac{delta \times capacity\_curr\_of}{1024}}}{walt\_ravg\_window} \times 1024=\frac{\sum_{1}^{n}delta \times capacity\_curr\_of}{walt\_ravg\_window}$
 
+如果整个 WALT 窗口内, CPU 频率没有发生变化, 则 capacity\_curr\_of 保持不变, 那么
 
-| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2016/10/28 | Vikram Mulukutla <markivx@codeaurora.org> | [sched: Introduce Window Assisted Load Tracking](https://lore.kernel.org/all/1477638642-17428-1-git-send-email-markivx@codeaurora.org) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/1477638642-17428-1-git-send-email-markivx@codeaurora.org) |
+$walt\_util=\frac{\sum_{1}^{n}delta}{walt\_ravg\_window} \times capacity\_curr\_of$
+
+ARM big.LITTLE 上, 一个进程以大核最高频(capacity = 1024)跑满一个窗口, 其 util 即为 1024.
+
+
+### 3.1.2 WALT @ QCOM-4.14
+-------
+
+随后 QCOM 4.14, 引入了 use_cycle_counter 方式, 在计算 scale\_exec\_time 的时候, 不再通过 capacity\_curr\_of 计算, 而是借助 CPU cycles 信息.
+
+capacity\_curr\_of=\frac {\frac{rq->cc.cycles}{rq->cc.time}}{max\_possible\_freq} \times rq->cluster->exec\_scale\_factor
+
+$scale\_exec\_time=delta \times \frac{capacity\_curr\_of}{1024}=delta \times \frac{\frac{\frac{rq->cc.cycles}{rq->cc.time}}{max\_possible\_freq} \times rq->cluster->exec\_scale\_factor}{1024}$
+
+通过 `update_task_rq_cpu_cycles()` 更新 TASK/RQ 的 cpu_cycle 信息 rq->cc.
+
+$cc.cycles = (curr\_cpu\_cycles - last_cpu_cycles) \times NSEC\_PER\_MSEC$
+
+$cc.time = wallclock - p->ravg.mark\_start$
+
+如果硬件不支持 use_cycle_counter, 则 cc.cycles = cpu_cur_freq(cpu), cc.time = 1.
+
+```cpp
+update_task_rq_cpu_cycles(struct task_struct *p, struct rq *rq, int event, u64 wallclock, u64 irqtime)
+{
+    if (!use_cycle_counter) {
+        rq->cc.cycles = cpu_cur_freq(cpu);
+        rq->cc.time = 1;
+        return;
+    }
+}
+```
+
+而我们知道 $freq = \frac{cycles}{times}$, 因此 capacity\_curr\_of 最终还是换算到了当前频率的折算. 而同时从频率折算到 capacity 是跟微架构强相关的, 对于不同的微架构, 比如大核和小核, 不同的频率下其 capacity 是不同的, 因此引入了不同 cluster 的折算系数 rq->cluster->exec\_scale\_factor.
+
+$exec\_scale\_factor_{cluster} = \frac{efficiency_{cluster}}{max\_possible\_efficiency} \times 1024$
+
+
+### 3.1.3 WALT @ QCOM-4.19
+-------
+
+QCOM 4.19 的时候, 不再使用 cluster->exec\_scale\_factor 来计算, 而是直接使用 cpu_scale(即 topology_get_cpu_scale(NULL, cpu)), 也就是 CPU 能提供的最大的 capacity. 这是一个不受限频影响的值.
+
+$task\_exec\_scale_{rq} = \frac{delta\_avg\_freq}{max\_possible\_freq_{cluster}} \times cpu\_scale = \frac{cycles\_delta \times cpu\_scale}{time\_delta \times max\_possible\_freq_{cluster}}$
+
+$scale\_exec\_time=\frac{delta\_time \times task\_exec\_scale_{rq}}{1024}$
+
+至此 5.4 和 5.10, 逻辑上没有变化, 只是计算 $task\_exec\_scale_{rq}$ 的时候, 不再使用 topology_get_cpu_scale(NULL, cpu)), 而是使用了 arch_scale_cpu_capacity(cpu). 但是实现上没有区别, 两者都是 cpu_scale.
 
 
 ## 3.2 PELT
