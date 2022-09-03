@@ -770,8 +770,7 @@ LOAD_AVG_MAX - 1024 + sa->period_contrib = LOAD_AVG_MAX - (1024 - sa->period_con
 ## 14.2 FIE 和 CIE
 -------
 
-内核当前 PELT 在计算负载的时候, 考虑了两个跟 CPU 性能和频率相关的变量(scale_freq 和 scale_cpu
-). 如下所示:
+内核当前 PELT 在计算负载的时候, 考虑了两个跟 CPU 性能和频率相关的变量(scale_freq 和 scale_cpu). 如下所示:
 
 ```cpp
 # https://elixir.bootlin.com/linux/v4.4/source/kernel/sched/fair.c#L2587

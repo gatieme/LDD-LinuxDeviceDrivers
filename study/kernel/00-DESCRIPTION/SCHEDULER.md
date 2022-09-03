@@ -850,6 +850,9 @@ v3.8 合入了 [LWN-2013/01/29, Per-entity load tracking](https://lwn.net/Articl
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2012/08/23 | pjt@google.com <pjt@google.com> | [sched: per-entity load-tracking](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e9c84cb8d5f1b1ea6fcbe6190d51dc84b6975938) | PELT | v1 ☐☑✓ | [LORE v1,0/16](https://lore.kernel.org/all/20120823141422.444396696@google.com) |
+| 2018/04/09 | Patrick Bellasi <patrick.bellasi@arm.com> | [sched/fair: add support to tune PELT ramp/decay timings](https://lore.kernel.org/all/20180409165134.707-1-patrick.bellasi@arm.com) | 内核支持不同的 PELT 半衰期设置, 通过 CONFIG_PELT_HALFLIFE_32/CONFIG_PELT_HALFLIFE_16/CONFIG_PELT_HALFLIFE_8 选择. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20180409165134.707-1-patrick.bellasi@arm.com) |
+| 2022/08/29 | Dietmar Eggemann <dietmar.eggemann@arm.com> | [sched/pelt: Change PELT halflife at runtime](https://lore.kernel.org/all/20220829055450.1703092-1-dietmar.eggemann@arm.com) | 允许系统运行时设置 PELT 的半衰期. 新的 sysctl sched_pelt_multiplier 允许用户将时钟乘数设置为 x1, x2 或 x4. 该时钟倍增器(clock multiplier artificially)加速 PELT 斜坡上升/下降, 它将影响 PELT 的半衰期(x1 对应 32ms, x2 对应 16ms, x3 对应 8ms). | v1 ☐☑✓ | [LORE v1,1/1](https://lore.kernel.org/all/20220829055450.1703092-2-dietmar.eggemann@arm.com) |
+
 
 ### 3.2.1 PELT 算法思想
 -------
@@ -3744,7 +3747,7 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 |:----:|:----:|:----:|:---:|:----------:|:---:|
 | 2022/06/12 | Chen Yu <yu.c.chen@intel.com> | [sched/fair: Introduce SIS_UTIL to search idle CPU based on sum of util_avg](https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/commit/?h=sched/core&id=70fb5ccf2ebb09a0c8ebba775041567812d45f86) |  | v2 ☐☑✓ | [LORE v1](https://lore.kernel.org/all/20220207034013.599214-1-yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/all/20220310005228.11737-1-yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3](https://lore.kernel.org/lkml/20220428182442.659294-1-yu.c.chen@intel.com))<br>*-*-*-*-*-*-*-* <br>[LORE v4](https://lore.kernel.org/all/20220612163428.849378-1-yu.c.chen@intel.com) |
 | 2022/06/19 | Abel Wu <wuyun.abel@bytedance.com> | [sched/fair: improve scan efficiency of SIS](https://lore.kernel.org/all/20220619120451.95251-1-wuyun.abel@bytedance.com) | 引入 SIS 过滤器, 以帮助在扫描深度有限时提高扫描效率. 过滤器仅包含未占用的 CPU, 并在 SMT 级负载平衡期间更新. 预计系统过载越多, 扫描的 CPU 就越少. [introduce sched-idle balancing](https://lore.kernel.org/all/20220217154403.6497-1-wuyun.abel@bytedance.com) 的其中一个补丁, v3 之后单独发到社区 [v3 sched/fair: filter out overloaded cpus in SIS](https://lore.kernel.org/all/20220505122331.42696-1-wuyun.abel@bytedance.com). v4 之后扩展成一个补丁集. | v4 ☐☑✓ | [2022/05/05, LORE v3](https://lore.kernel.org/all/20220505122331.42696-1-wuyun.abel@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2022/06/19, LORE v4,0/7](https://lore.kernel.org/all/20220619120451.95251-1-wuyun.abel@bytedance.com) |
-| 2022/07/12 | Abel Wu <wuyun.abel@bytedance.com> | [sched/fair: SIS improvements and cleanups](https://lore.kernel.org/all/20220712082036.5130-1-wuyun.abel@bytedance.com) | TODO | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20220712082036.5130-1-wuyun.abel@bytedance.com) |
+| 2022/07/12 | Abel Wu <wuyun.abel@bytedance.com> | [sched/fair: SIS improvements and cleanups](https://lore.kernel.org/all/20220712082036.5130-1-wuyun.abel@bytedance.com) | TODO | v1 ☐☑✓ | [2022/08/20 LORE v1,0/5](https://lore.kernel.org/all/20220712082036.5130-1-wuyun.abel@bytedance.com)<br>*-*-*-*-*-*-*-*<br>[2022/09/01 LORE v2,1/5](https://lore.kernel.org/all/20220901131107.71785-1-wuyun.abel@bytedance.com)<br>*-*-*-*-*-*-*-*<br>[2022/09/01 LORE v2,1/5](https://lore.kernel.org/all/20220901131107.71785-1-wuyun.abel@bytedance.com) |
 
 
 ### 5.3.5 SIS avg_idle
@@ -4402,9 +4405,42 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 
 基于 cpufreq 的 FIE 使用 [arch_set_freq_scale()](https://elixir.bootlin.com/linux/v5.6/source/drivers/base/arch_topology.c#L26) 来获取频率信息, 而基于 AMU 的 FIE 则实现 [arch_scale_freq_tick()](https://elixir.bootlin.com/linux/v5.7/source/kernel/sched/core.c#L3591) 来使用活动监视器来计算频率比例因子 freq_scale.
 
-
-### 7.4.1 X86 FIE
+### 7.4.1 PELT PIE and CIE
 -------
+
+*   FIE 是系统感知同一架构的 CPU 在不同的频点下, 所能提供的计算能力 capacity 是不同的.
+
+*   CIE 则使系统感知, 不同架构(比如 big.LITTLE 的小核和大核虽然都使用 ARM 架构, 但是是性能异构的) 的 CPU 即使处于相同频点下, 所能提供的计算能力 capacity 也是不同的.
+
+v4.1 [consolidation of CPU capacity and usage](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=dfbca41f347997e57048a53755611c8e2d792924) 通过 [commit 0c1dc6b27dac ("sched: Make sched entity usage tracking scale-invariant")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0c1dc6b27dac883ee78392189c8e20e764d79bfa) 为 PELT 实现了 PIE. 为了支持了 `frequency scale invariance`, 因此引入了利用率 utilization 的概念. 它表示进程真正占用 CPU 的比率, 这是一个跟当时运行时 CPU 频率(影响 capacity) 有关的累计平均值. 之前计算的 runnable_avg_sum 以及 load_avg_contrib 都同时包含了调度实体 runnable 和 running 的负载信息. 并不能很好的体现利用率. 利用率更在意的是它真正的运行. 因此 sched_avg 中引入了 running_avg_sum 和 utilization_avg_contrib, 分别表示其占用 CPU 的累计负载和利用率. 在不支持 `frequency scale invariance` 之前, 那么每个 1MS(1024us) 窗口, 其如果处于 R 状态, 那么当前窗口贡献的负载值就是 1024. 感知了频率变化之后, `__update_entity_runnable_avg` 每次在更新负载的时候, delta 会根据当前频率对应的 capacity 进行一个缩放.
+
+v4.4 [Compute capacity invariant load/utilization tracking](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=98d8fd8126676f7ba6e133e65b2ca4b17989d32c) 则继续通过 [commit e3279a2e6d69 ("sched/fair: Make utilization tracking CPU scale-invariant")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e3279a2e6d697e00e74f905851ee7cf532f72b2d) 为 PELT 实现了 CIE.
+
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:------:|:---:|
+| 2012/8/23 | [consolidation of CPU capacity and usage](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=dfbca41f347997e57048a53755611c8e2d792924) | CPU 调频会导致 CPU capacity 的变化, 在支持 DVFS 的系统还用最大 capacity 计算负载是不合理的, 因此 PELT 需要感知 capacity 的变化, 即 FIE(Frequency Invariance Engine). [使得 sched entity usage tracking(即 running_avg_sum 与 running_avg 等) 感知 DVFS](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0c1dc6b27dac883ee78392189c8e20e764d79bfa). 通过借助 scale_freq = arch_scale_freq_capacity(NULL, cpu) 来实现. | v10 ☑ 4.1 | [LORE v10,00/11](https://lore.kernel.org/all/1425052454-25797-1-git-send-email-vincent.guittot@linaro.org), [LKML](https://lkml.org/lkml/2015/2/27/309) |
+| 2015/8/14 | [Compute capacity invariant load/utilization tracking](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=98d8fd8126676f7ba6e133e65b2ca4b17989d32c) | PELT 支持 Capacity Invariant Engine. PELT 只感知频率的变化是不够的, 同架构但是不同微架构(比如 big.LITTLE 的小核和大核虽然都使用 ARM 架构, 但是是性能异构的)的 CPU 即使处于相同频点下, 所能提供的计算能力 capacity 也是不同的. 因此 PELT 也需要感知对不同微架构 CPU capacity 的差异. 通过借助 scale_cpu = arch_scale_cpu_capacity(NULL, cpu) 来实现. | v1 ☑4.4 | [LWN](https://lwn.net/Articles/531853), [LORE 0/6](https://lore.kernel.org/patchwork/cover/590249), [LKML](https://lkml.org/lkml/2015/8/14/296) |
+| 2019/01/16 | [sched/fair: update scale invariance of PELT](https://lore.kernel.org/patchwork/cover/1034952) | v9 ☑  5.1-rc1 | [v3](https://lore.kernel.org/patchwork/patch/784059)<br>*-*-*-*-*-*-*-*<br> [v9](https://lore.kernel.org/patchwork/cover/1034952) |
+
+
+### 7.4.2 ARM64 FIE
+-------
+
+得益于 ARM big.LITTLE 架构在 ANDROID 的广泛使用, ARM64 是最早支持 FIE 和 CIE 的架构.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:------:|:---:|
+| 2016/10/19 | Dietmar Eggemann | [CPUs capacity information for heterogeneous systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=be8f185d8af4dbd450023a42a48c6faa8cbcdfe6) | 异构系统(比如 big.LITTLE) 上通过 DTS 获取 cpu capacity 等信息 | v7 ☑ 4.15 | [LORE v7 REPOST 0/9](https://lore.kernel.org/lkml/20161017154650.18779-1-juri.lelli@arm.com/) |
+| 2017/08/26 | Dietmar Eggemann | [arm, arm64, cpufreq: frequency- and cpu-invariant accounting support for task scheduler](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=431ead0ff19b440b1ba25c72d732190b44615cdb) | 为 ARM/ARM64 提供 FIE/CIE 功能 | v5 ☑ 4.15 | [PatchWork](https://lore.kernel.org/lkml/20170926164115.32367-1-dietmar.eggemann@arm.com) |
+
+
+### 7.4.3 X86 FIE
+-------
+
+[Frequency scale-invariance on x86_64](https://lwn.net/Articles/793393)
+
+[Frequency-invariant utilization tracking for x86](https://lwn.net/Articles/816388)
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

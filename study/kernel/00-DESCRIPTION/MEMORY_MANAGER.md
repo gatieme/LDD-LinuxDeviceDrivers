@@ -1693,6 +1693,7 @@ kmalloc 的 API 家族对 mm 非常关键, 但有一个缺点, 就是它的对�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/04/14 | Hyeonggon Yoo <42.hyeyoo@gmail.com> | [common kmalloc subsystem on SLAB/SLUB](https://patchwork.kernel.org/project/linux-mm/cover/20220308114142.1744229-1-42.hyeyoo@gmail.com) | 清理 slab 公共代码. 在这组补丁之后后, kmalloc 子系统在 SLAB 和 SLUB 之间得到了完美的推广. | v1 ☐☑ | [2022/03/08 LORE v1,00/15](https://lore.kernel.org/r/20220308114142.1744229-1-42.hyeyoo@gmail.com)<br>*-*-*-*-*-*-*-* <br>[2022/04/14 LORE v2,0/23](https://lore.kernel.org/r/20220414085727.643099-1-42.hyeyoo@gmail.com)<br>*-*-*-*-*-*-*-* <br>[2022/07/12 LORE v3,0/15](https://lore.kernel.org/r/20220712133946.307181-1-42.hyeyoo@gmail.com) |
 | 2022/07/01 | Feng Tang <feng.tang@intel.com> | [mm/slub: enable debugging memory wasting of kmalloc](https://lore.kernel.org/all/20220701135954.45045-1-feng.tang@intel.com) | 这个补丁帮助显示了当前 kmalloc 下的浪费的空间, 信息在 `/sys/kernel/debug/slab/kmalloc-xx/alloc_traces` 中显示, 显示的格式为: waste=总共浪费的字节数目/单词请求浪费的字节数目. | v1 ☐☑✓ | [LORE RFC](https://lore.kernel.org/r/20220630014715.73330-1-feng.tang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE](https://lore.kernel.org/all/20220701135954.45045-1-feng.tang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/2](https://lore.kernel.org/r/20220725112025.22625-1-feng.tang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/17](https://lore.kernel.org/r/20220817101826.236819-1-42.hyeyoo@gmail.com) |
+| 2022/06/07 | Uladzislau Rezki (Sony) <urezki@gmail.com> | [Reduce a vmalloc internal lock contention preparation work](https://lore.kernel.org/all/20220607093449.3100-1-urezki@gmail.com) | TODO | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20220607093449.3100-1-urezki@gmail.com) |
 
 
 ### 2.3.6 改进与优化
@@ -3807,7 +3808,7 @@ __alloc_pages_direct_reclaim()
 | 2010/11/09 | Glauber Costa <glommer@openvz.org> | [vmscan: per-node deferred work](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1d3d4437eae1bb2963faab427f65f90663c64aa1) | 实现 per node 的内存回收. | v1 ☑ 3.19-rc1 | [LORE](https://lore.kernel.org/lkml/20101109123246.GA11477@amd), [LORE v9,00/17](https://lore.kernel.org/all/153112469064.4097.2581798353485457328.stgit@localhost.localdomain), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1d3d4437eae1bb2963faab427f65f90663c64aa1) |
 | 2010/11/09 | Nick Piggin <npiggin@kernel.dk> | [mm: vmscan implement per-zone shrinkers](https://lore.kernel.org/all/153063036670.1818.16010062622751502.stgit@localhost.localdomain/) | 实现 per zone 的内存回收. | v1 ☑ 3.19-rc1 | [LORE](https://lore.kernel.org/lkml/20101109123246.GA11477@amd), [LORE v9,00/17](https://lore.kernel.org/all/153112469064.4097.2581798353485457328.stgit@localhost.localdomain), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6b4f7799c6a5703ac6b8c0649f4c22f00fa07513) |
 | 2012/11/28 | Dave Chinner <david@fromorbit.com> | [Numa aware LRU lists and shrinkers](https://lore.kernel.org/all/1354058086-27937-1-git-send-email-david@fromorbit.com) | 实现 SHRINKER_NUMA_AWARE | v1 ☐☑✓ | [LORE v1,0/19](https://lore.kernel.org/all/1354058086-27937-1-git-send-email-david@fromorbit.com) |
-| 2022/04/22 | Roman Gushchin <roman.gushchin@linux.dev> | [mm: introduce shrinker debugfs interface](https://patchwork.kernel.org/project/linux-mm/cover/20220416002756.4087977-1-roman.gushchin@linux.dev/) | 内核中有 50 多个不同的 shrinker, 在内存压力下, 内核会按照它们在系统中创建/注册的顺序对它们施加一些压力. 其中一些只能包含很少的对象, 一些可以相当大. 有些可以有效地回收内存, 有些则不然. 但是当前却没有有效的方法对单个 shrinker 进行计数和扫描, 并对其进行分析. 现有的唯一调试机制是 do_shrink_slab() 中的两个 TRACEPOINT: mm_shrink_slab_start 和 mm_shrink_slab_end. 不过, 它们并没有涵盖所有内容: 报告 0 个对象的 shrinker永远不会出现, 也不支持支持支持 MEMCG 的 shrinker.  shrinker 通过其扫描功能进行识别, 但这并不总是足够的. 为了为内存 shrinker 提供更好的可见性和调试选项, 这个补丁集引入了 `/sys/kernel/shrinker` 接口, 在某种程度上类似于 `/sys/kernel/slab`. 为系统中注册的每个 shrinker 创建一个目录, 该目录包含两个文件结点 "count" 和 "scan" , 允许触发 count_objects() 和 scan_objects() 回调. 对于 MEMCG-Aware 和 NUMA-Aware 的 shrinker, 还额外提供了 count_memcg、scan_memcg、count_node、scan_node、count_memcg_node 和 scan_memcg_node. 它们允许获取每个 MEMCG 和每个 NUMA NODE 的对象计数, 并仅收缩特定的 MEMCG 或者 NUMA NODE. 为了使调试更加愉快, 补丁集还为所有 shrinker 命名, 以便 sysfs 条目可以有更多有意义的名称. | v2 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20220416002756.4087977-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/5](https://lore.kernel.org/all/20220422015853.748291-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/r/20220422202644.799732-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/r/20220509183820.573666-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/6](https://lore.kernel.org/r/20220601032227.4076670-1-roman.gushchin@linux.dev) |
+| 2022/04/22 | Roman Gushchin <roman.gushchin@linux.dev> | [mm: introduce shrinker debugfs interface](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bbf535fd6f06b94b9d07ed6f09397a936d4a58d8) | 内核中有 50 多个不同的 shrinker, 在内存压力下, 内核会按照它们在系统中创建/注册的顺序对它们施加一些压力. 其中一些只能包含很少的对象, 一些可以相当大. 有些可以有效地回收内存, 有些则不然. 但是当前却没有有效的方法对单个 shrinker 进行计数和扫描, 并对其进行分析. 现有的唯一调试机制是 do_shrink_slab() 中的两个 TRACEPOINT: mm_shrink_slab_start 和 mm_shrink_slab_end. 不过, 它们并没有涵盖所有内容: 报告 0 个对象的 shrinker永远不会出现, 也不支持支持支持 MEMCG 的 shrinker.  shrinker 通过其扫描功能进行识别, 但这并不总是足够的. 为了为内存 shrinker 提供更好的可见性和调试选项, 这个补丁集引入了 `/sys/kernel/shrinker` 接口, 在某种程度上类似于 `/sys/kernel/slab`. 为系统中注册的每个 shrinker 创建一个目录, 该目录包含两个文件结点 "count" 和 "scan" , 允许触发 count_objects() 和 scan_objects() 回调. 对于 MEMCG-Aware 和 NUMA-Aware 的 shrinker, 还额外提供了 count_memcg、scan_memcg、count_node、scan_node、count_memcg_node 和 scan_memcg_node. 它们允许获取每个 MEMCG 和每个 NUMA NODE 的对象计数, 并仅收缩特定的 MEMCG 或者 NUMA NODE. 为了使调试更加愉快, 补丁集还为所有 shrinker 命名, 以便 sysfs 条目可以有更多有意义的名称. | v2 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20220416002756.4087977-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/5](https://lore.kernel.org/all/20220422015853.748291-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/r/20220422202644.799732-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/r/20220509183820.573666-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/6](https://lore.kernel.org/r/20220601032227.4076670-1-roman.gushchin@linux.dev) |
 | 2022/04/21 | Kent Overstreet <kent.overstreet@gmail.com> | [Printbufs & shrinker OOM reporting](https://patchwork.kernel.org/project/linux-mm/cover/20220419203202.2670193-1-kent.overstreet@gmail.com) | 633514 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/all/20220419203202.2670193-1-kent.overstreet@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/4](https://lore.kernel.org/all/20220421234837.3629927-1-kent.overstreet@gmail.com) |
 
 
@@ -3843,6 +3844,17 @@ v2.5 的时候引入了 shrink 机制, 并提供了 API 统一了各个模块的
 | 2018/07/03 | Kirill Tkhai <ktkhai@virtuozzo.com> | [Improve shrink_slab() scalability (old complexity was O(n^2), new is O(n))](https://lore.kernel.org/all/153063036670.1818.16010062622751502.stgit@localhost.localdomain/) | 降低 shrink_slab 的算法复杂度, 从 O(N^2) 降低到 O(N). | v8 ☑ 4.19-rc1 | [LORE v8,00/17](https://lore.kernel.org/all/153063036670.1818.16010062622751502.stgit@localhost.localdomain), [LORE v9,00/17](https://lore.kernel.org/all/153112469064.4097.2581798353485457328.stgit@localhost.localdomain) |
 | 2018/08/07 | Kirill Tkhai <ktkhai@virtuozzo.com> | [ Introduce lockless shrink_slab()](https://patchwork.kernel.org/project/linux-mm/cover/153365347929.19074.12509495712735843805.stgit@localhost.localdomain) | NA | RFC ☐ | [LORE v8,00/17](https://patchwork.kernel.org/project/linux-mm/cover/153365347929.19074.12509495712735843805.stgit@localhost.localdomain) |
 | 2022/04/02 | Hillf Danton <hdanton@sina.com> | [[RFC] mm/vmscan: add periodic slab shrinker](https://patchwork.kernel.org/project/linux-mm/patch/20220402072103.5140-1-hdanton@sina.com/) | 当一个具有大量内存的系统在一个目录中有数百万个 negative dentries 时, 在添加 inotify watch 时可能[会发生 softlookup](https://lore.kernel.org/linux-fsdevel/20220209231406.187668-1-stephen.s.brennan@oracle.com). 为了解决这个问题可以添加独立于直接回收和后台回收运行的周期性(periodic) slab shrinker, 以回收已冷却 30 秒以上的 slab 对象. 向 shrink 控件添加 periodic flag, 让缓存所有者知道这是一个周期性收缩器, 它与以最低 recalim 优先级运行的常规 shrinker 相同, 并且可以在没有一次性对象的情况下随意执行任何操作. | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220402072103.5140-1-hdanton@sina.com) |
+
+
+### 4.3.3 THP Shrinker
+-------
+
+[Facebook Developing THP Shrinker To Avoid Linux Memory Waste](https://www.phoronix.com/news/Linux-THP-Shrinker)
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/08/05 | alexlzhu@fb.com <alexlzhu@fb.com> | [mm: add thp_utilization metrics to /proc/thp_utilization](https://lore.kernel.org/all/20220805184016.2926168-1-alexlzhu@fb.com) | 由于性能的提高或降低取决于特定应用程序如何使用物理内存, THP 在历史上一直是针对每个应用程序启用的. 当 THP 被大量利用时, 由于 TLB 缓存失败的减少, 应用程序性能会得到改善. 长期以来, 人们一直怀疑启用 THP 时的性能下降是由于大量未充分利用的匿名 THP 造成的. 以前, 没有办法跟踪到底有多少 THP 被实际使用. 通过这个补丁, 帮助开发者了解 THP 的使用情况, 以便在分页方面做出更智能的决策. 这个更改引入了一个工具, 该工具扫描匿名 THP 的所有物理内存, 并根据使用率将它们分组到桶中. 它还包括一个位于 `/sys/kernel/debug/thp_utilization` 下的接口. THP 的利用率定义为 THP 中非零页面的百分比. 工作线程将扫描所有物理内存, 并获得所有匿名 THP 的利用率. 它将通过定期扫描所有物理内存来收集这些信息, 寻找匿名 THP, 根据利用率将它们分组到桶中, 并通过 `/sys/kernel/debug/thp_utilization` 下的 debugfs 报告利用率信息. | v3 ☐☑✓ | [LORE v2](https://lore.kernel.org/lkml/20220809014950.3616464-1-alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3](https://lore.kernel.org/all/20220805184016.2926168-1-alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/1](https://lore.kernel.org/r/20220818000112.2722201-1-alexlzhu@fb.com) |
+| 2022/08/25 | alexlzhu@fb.com <alexlzhu@fb.com> | [THP Shrinker](https://lore.kernel.org/all/cover.1661461643.git.alexlzhu@fb.com) | TODO | v1☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/cover.1661461643.git.alexlzhu@fb.com) |
 
 
 ## 4.4 主动的页面回收(Proactive Reclaim)
@@ -3914,8 +3926,7 @@ Meta(原 Facebook) 博客 [Transparent memory offloading: more memory at a fract
 | 2007/10/09 | Matt Mackall <mpm@selenic.com> | [maps4: pagemap monitoring v4](https://lore.kernel.org/patchwork/patch/95279) | 引入 CONFIG_PROC_PAGE_MONITOR, 管理了 `/proc/pid/clear_refs`, `/proc/pid/smaps`, `/proc/pid/pagemap`, `/proc/kpagecount`, `/proc/kpageflags` 多个接口. | v1 ☑ 2.6.25-rc1 | [PatchWork v4 0/12](https://lore.kernel.org/patchwork/patch/95279) |
 | 2018/12/26 | Fengguang Wu <fengguang.wu@intel.com> | [PMEM NUMA node and hotness accounting/migration](https://lore.kernel.org/patchwork/patch/1027864) | 尝试使用 NVDIMM/PMEM 作为易失性 NUMA 内存, 使其对普通应用程序和虚拟内存透明. 其中引入 `/proc/PID/idle_pages` 接口, 用于用户空间驱动的热点页面进行统计. 实现冷热页扫描, 以及页面回收路径下的被动内核冷页面迁移, 改进了用于活动用户空间热/冷页面迁移的move_pages() | RFC v2 ☐ 4.20 | PatchWork RFC,v2,00/21](https://lore.kernel.org/patchwork/patch/1027864), [LKML](https://lkml.org/lkml/2018/12/26/138), [github/intel/memory-optimizer](http://github.com/intel/memory-optimizer) |
 | 2021/03/18 | liubo <liubo254@huawei.com> | [etmem: swap and scan](https://gitee.com/openeuler/kernel/issues/I3W4XW) | openEuler 实现的内存分级扩展技术. | v1 ☐ 4.19 | [etmem tools](https://gitee.com/src-openeuler/etmem) |
-| 2021/10/19 | SeongJae Park <sjpark@amazon.com> | [Introduce DAMON-based Proactive Reclamation](https://lwn.net/Articles/863753) | 该补丁集改进了用于生产质量的通用数据访问模式内存管理的引擎, 并在其之上实现了主动回收. | v4 ☑ 5.16-rc1 | [PatchWork RFC,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/14](https://patchwork.kernel.org/project/linux-mm/patch/20210608115254.11930-15-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v3,00/15](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4 00/15](https://patchwork.kernel.org/project/linux-mm/cover/20211019150731.16699-1-sj@kernel.org) |
-
+| 2021/10/19 | SeongJae Park <sjpark@amazon.com> | [Introduce DAMON-based Proactive Reclamation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bec976b691437d056a92964cb7af07ee1a54221a) | 该补丁集基于 DAMOS 改进了用于生产质量的通用数据访问模式内存管理的引擎, 并在其之上实现了主动回收. | v4 ☑ [5.16-rc1](https://kernelnewbies.org/Linux_5.16#DAMON-based_proactive_memory_reclamation.2C_operation_schemes_and_physical_memory_monitoring) | [PatchWork RFC,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/14](https://patchwork.kernel.org/project/linux-mm/patch/20210608115254.11930-15-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v3,00/15](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4 00/15](https://lore.kernel.org/all/20211019150731.16699-1-sj@kernel.org) |
 
 
 ### 4.4.3 提供用户态触发主动回收的接口(syscall or sysfs)
@@ -4700,6 +4711,7 @@ Google 的工程师 Mina Almasry 提出了一种新的思路, 通过 [mremap 的
 | 2022/05/08 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: Change huge pmd sharing synchronization again](https://patchwork.kernel.org/project/linux-mm/cover/20220420223753.386645-1-mike.kravetz@oracle.com/) | 之前 [v5.7 中添加了](https://lore.kernel.org/linux-mm/43faf292-245b-5db5-cce9-369d8fb6bd21@infradead.org) commit c0d0381ade79 ("hugetlbfs: use i_mmap_rwsem for more pmd sharing synchronization") 时, 社区就[报告了性能回归](https://lore.kernel.org/lkml/20200622005551.GK5535@shao2-debian). 当时,  Mike Kravetz 提出了一个[解决回归的建议](https://lore.kernel.org/linux-mm/20200706202615.32111-1-mike.kravetz@oracle.com), 但没有被合入. 这个补丁集使用一个新的 hugetlb 特定的 per-vma rw 信号量来同步 PMD 共享. 为了更好的演示这个性能回归, 作者构造了一个简单的测试用例. | v2 ☐☑ | [2022/04/20 LORE v2,0/6](https://lore.kernel.org/r/20220420223753.386645-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/05/08 LORE v3,0/8](https://lore.kernel.org/r/20220508183420.18488-1-mike.kravetz@oracle.com) |
 | 2022/05/27 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: speed up linear address scanning](https://patchwork.kernel.org/project/linux-mm/cover/20220527225849.284839-1-mike.kravetz@oracle.com/) | 645704 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20220527225849.284839-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-*<br>[LORE v1,0/4](https://lore.kernel.org/r/20220616210518.125287-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-*<br>[[LORE v2,0/4](https://lore.kernel.org/r/20220621235620.291305-1-mike.kravetz@oracle.com) |
 | 2022/06/24 | James Houghton <jthoughton@google.com> | [hugetlb: Introduce HugeTLB high-granularity mapping](https://patchwork.kernel.org/project/linux-mm/cover/20220624173656.2033256-1-jthoughton@google.com/) | 引入了HugeTLB高粒度映射(HGM)(曾经叫做 HugeTLB double mapping)的概念. 高粒度映射不需要分解大页面本身;它只影响它们的映射方式. 从广义上讲, 它主要探索如何在不同粒度上映射 HugeTLB 页面, 更重要的是, 部分映射 HugeTLB 页面. | v1 ☐☑ | [LORE v1,0/26](https://lore.kernel.org/r/20220624173656.2033256-1-jthoughton@google.com) |
+| 2022/08/24 | Mike Kravetz <mike.kravetz@oracle.com> | [hugetlb: Use new vma mutex for huge pmd sharing synchronization](https://lore.kernel.org/all/20220824175757.20590-1-mike.kravetz@oracle.com) | TODO | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20220824175757.20590-1-mike.kravetz@oracle.com) |
 
 
 ## 7.2 透明大页的支持
@@ -5054,7 +5066,7 @@ swap out 的时候打散, swap in 的时候可能又需要重新聚合回来, �
 *   Delay splitting THP during swapping out
 
 
-支持 THP SWAP 的第一步是逐步延迟拆分 THP, 最终避免在 THP 交换期间拆分 THP, 并在整个 THP 中进行交换. [LWN 717707: 页交换（swap）的改进计划](https://tinylab.org/lwn-717707).
+支持 THP SWAP 的第一步是逐步延迟拆分 THP, 最终避免在 THP 交换期间拆分 THP, 并在整个 THP 中进行交换. [LWN 717707: 页交换(swap)的改进计划](https://tinylab.org/lwn-717707).
 
 [Linux 5.20 To Enable THP SWAP On 64-bit Arm For Better Swapping Performance](https://www.phoronix.com/news/Linux-5.20-THP-SWAP-ARM64)
 
@@ -5362,6 +5374,13 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2013/01/31 | Michel Lespinasse <walken@google.com> | [Mapping range lock](https://lore.kernel.org/patchwork/patch/356467) | 文件映射的 mapping lock | RFC ☐  | [PatchWork RFC](https://lore.kernel.org/patchwork/patch/356467) |
 | 2020/02/24 | Michel Lespinasse <walken@google.com> | [Fine grained MM locking](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) | 细粒度 MM MMAP lock | RFC ☐  | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com), [fine_grained_mm.pdf](https://linuxplumbersconf.org/event/4/contributions/556/attachments/304/509/fine_grained_mm.pdf) |
+
+* per-VMA locks
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/08/29 | Suren Baghdasaryan <surenb@google.com> | [per-VMA locks proposal](https://lore.kernel.org/all/20220829212531.3184856-1-surenb@google.com) | TODO | v1 ☐☑✓ | [LORE v1,0/28](https://lore.kernel.org/all/20220829212531.3184856-1-surenb@google.com) |
+
 
 * Maple Tree
 
@@ -6145,6 +6164,7 @@ Intel 的吴峰光 [PMEM NUMA node and hotness accounting/migration](https://lor
 
 [Two memory-tiering patch sets](https://lwn.net/Articles/898766)
 
+[Explicit Memory Tiers May Be Ready For Linux 6.1](https://www.phoronix.com/news/Linux-6.1-Improve-Memory-Tiers)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -6167,7 +6187,7 @@ Intel 的吴峰光 [PMEM NUMA node and hotness accounting/migration](https://lor
 
 [持久内存 - RDMA 让远程数据不再远](http://blog.itpub.net/31493717/viewspace-2731431)
 
-[详谈 RDMA（远程直接内存访问）技术原理和三种实现方式](https://blog.csdn.net/Rong_Toa/article/details/114747763)
+[详谈 RDMA(远程直接内存访问)技术原理和三种实现方式](https://blog.csdn.net/Rong_Toa/article/details/114747763)
 
 [关于 RDMA 技术原理、三种主流实现技术对比](https://www.idcbest.com/idcnews/11004565.html)
 
@@ -6437,7 +6457,8 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/11/03 | Marco Elver <elver@google.com> | [KFENCE: A low-overhead sampling-based memory safety error detector](https://lore.kernel.org/patchwork/patch/1331483) | 轻量级基于采样的内存安全错误检测器 | v7 ☑ 5.12-rc1 | [PatchWork v24](https://lore.kernel.org/patchwork/patch/1331483) |
 | 2020/04/21 | Marco Elver <elver@google.com> | [kfence: optimize timer scheduling](https://lore.kernel.org/patchwork/patch/1416384) | ARM 支持 PTDUMP | RFC ☑ 3.19-rc1 | [PatchWork v24](https://lore.kernel.org/patchwork/patch/1416384) |
-| 2020/09/17 | Marco Elver <elver@google.com> | [kfence: count unexpectedly skipped allocations](https://patchwork.kernel.org/project/linux-mm/patch/20210917110756.1121272-1-elver@google.com) | ARM 支持 PTDUMP | RFC ☑ 3.19-rc1 | [PatchWork 1/3](https://patchwork.kernel.org/project/linux-mm/patch/20210917110756.1121272-1-elver@google.com) |
+| 2020/09/17 | Marco Elver <elver@google.com> | [kfence: count unexpectedly skipped allocations](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=5cc906b4b4a510b274113ddb3f88d60644553f79) | ARM 支持 PTDUMP | RFC ☑ 5.16-rc1 | [PatchWork 1/3](https://patchwork.kernel.org/project/linux-mm/patch/20210917110756.1121272-1-elver@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/5](https://lore.kernel.org/all/20210923104803.2620285-1-elver@google.com) |
+| 2021/10/19 | Marco Elver <elver@google.com> | [kfence: always use static branches to guard kfence_alloc()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4f612ed3f748962cbef1316ff3d323e2b9055b6e) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20211019102524.2807208-1-elver@google.com) |
 | 2022/03/07 | Tianchen Ding <dtcccc@linux.alibaba.com> | [provide the flexibility to enable KFENCE](https://patchwork.kernel.org/project/linux-mm/cover/20220307074516.6920-1-dtcccc@linux.alibaba.com/) | 620847 | v3 ☐☑ | [LORE v3,0/2](https://lore.kernel.org/r/20220307074516.6920-1-dtcccc@linux.alibaba.com) |
 | 2022/03/08 | Marco Elver <elver@google.com> | [kfence: allow use of a deferrable timer](https://patchwork.kernel.org/project/linux-mm/patch/20220308141415.3168078-1-elver@google.com/) | 采样间隔控制设置 KFENCE 分配的计时器. 默认情况下, 为了保持真实采样间隔的可预测性, 正常计时器会在系统完全空闲时导致 CPU 唤醒. 这在功率受限的系统上可能是不可取的. 因此这个补丁允许 KFENCE 使用可延迟 timer, 当系统空闲时, 它不会强制 CPU 唤醒. 引入一个选项 CONFIG_KFENCE_DEFERRABLE 来开启, 同时提供启动参数 ``kfence. deferrable=1`` 来切换到一个 "deferrable timer" 计时器, 该计时器不会强制在空闲系统上唤醒 CPU, 从而冒着采样间隔不可预测的风险. 使用延迟 timer 是样本间隔变得非常不可预测, 以至于无法保证 KFENCE-KUnit 测试仍然通过. 然而, 在功率受限的系统上, 这可能更可取, 因此, 如果用户接受上述权衡. | v2 ☐☑ | [LORE v2,0/1](https://lore.kernel.org/r/20220308141415.3168078-1-elver@google.com) |
 | 2022/06/09 | Jason A. Donenfeld <Jason@zx2c4.com> | [mm/kfence: select random number before taking raw lock](https://patchwork.kernel.org/project/linux-mm/patch/20220609121709.12939-1-Jason@zx2c4.com/) | 648846 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220609121709.12939-1-Jason@zx2c4.com)<br>*-*-*-*-*-*-*-*<br>[LORE v2,0/1](https://lore.kernel.org/r/20220609123319.17576-1-Jason@zx2c4.com) |
@@ -6501,97 +6522,6 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2007/10/09 | Matt Mackall <mpm@selenic.com> | [maps4: pagemap monitoring v4](https://lore.kernel.org/patchwork/patch/95279) | 引入 CONFIG_PROC_PAGE_MONITOR, 管理了 `/proc/pid/clear_refs`, `/proc/pid/smaps`, `/proc/pid/pagemap`, `/proc/kpagecount`, `/proc/kpageflags` 多个接口. | v1 ☑ 2.6.25-rc1 | [PatchWork v4 0/12](https://lore.kernel.org/patchwork/patch/95279) |
 | 201=09/05/08 | Joonsoo Kim <iamjoonsoo.kim@lge.com> | [export more page flags in /proc/kpageflags (take 6)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=35efa5e993a7a00a50b87d2b7725c3eafc80b083) | 在 kpageflags 中导出了更多的 type. 同时新增了一个用户态工具 page-types 可以调试进程和内核的 page-types. 该工具后期[移到了 tools/vm 目录下](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c6dd897f3bfc54a44942d742d6dfa842e33d88e0) | v6 ☑ 3.4-rc1 | [PatchWork v3](https://lore.kernel.org/patchwork/patch/520462), [Kernel Newbies](https://kernelnewbies.org/Linux_3.19#Memory_management) |
-
-### 13.4.4 数据访问监视器 DAMON
--------
-
-#### 13.4.4.1 数据访问监视器 DAMON 概述
--------
-
-[Software Visualizations to Analyze Memory Consumption: A Literature Review](https://dl.acm.org/doi/pdf/10.1145/3485134)
-
-[linux data access monitor (DAMON)](https://blog.csdn.net/zqh1630/article/details/109954910)
-
-[LWN: 用DAMON来优化memory-management!](https://blog.csdn.net/Linux_Everything/article/details/104707923)
-
-[知乎-DAMON: Linux内存数据访问监控框架](https://zhuanlan.zhihu.com/p/446677951)
-
-对指定的程序进行内存相关优化, 了解业务给定工作负载的数据访问模式至关重要. 但是, 从庞大和复杂的工作量中手动提取此类模式非常详尽. 更糟糕的是, 现有的内存访问分析工具会为不必要的详细分析结果带来不可接受的高开销.
-
-内存管理在很大程度上基于预测 : 给定进程在不久的将来将需要哪些内存页?
-
-不幸的是, 事实证明, 预测是困难的, 尤其是对于未来事件的预测. 在没有从未来发送回的有用信息的情况下, 内存管理子系统被迫依赖于对最近行为的观察, 并假设该行为可能会继续. 但是, 内核的内存管理决策对于用户空间是不透明的, 并且常常导致性能不佳. SeongJae Park 实现的 [DAMON](https://lwn.net/Articles/812707) 试图使内存使用模式对用户空间可见, 并让用户空间作为响应来更改内存管理决策.
-
-亚马逊工程师公开了他们关于 ["DAMON"](https://github.com/awslabs/damo) 的工作, 这是一个Linux内核模块, 用于监控特定用户空间过程的数据访问.
-
-[DAMON](https://damonitor.github.io/_index) 允许用户监控特定用户空间过程的实际内存访问模式. 从概念上讲, 它的操作很简单;
-
-1.  首先, 将进程的地址空间划分为多个大小相等的区域.
-
-2.  然后, 它监视对每个区域的访问, 并提供对每个区域的访问次数的直方图作为其输出.
-
-由此, 该信息的使用者(在用户空间或内核中)可以请求更改以优化进程对内存的使用.
-
-它的目标是 :
-
-1.  足够准确, 可用于实际性能分析和优化;
-
-2.  足够轻量, 以便它可以在线使用;
-
-DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域调整**, 允许用户将跟踪开销限制在有界范围内, 而与目标工作负载的大小和复杂性无关, 同时保留结果的质量.
-
-1.  基于区域的抽样允许用户在监控质量和开销之间做出自己的权衡, 并限制监控开销的上限.
-
-2.  自适应区域调整机制使 DAMON 在保持用户配置的权衡的同时, 最大限度地提高精度, 减少开销.
-
-
-[DAMON-Based Memory Reclamation Merged For Linux 5.16](https://www.phoronix.com/scan.php?page=news_item&px=DAMON-Reclamation-Linux-5.16)
-
-作者 SeongJae Park
-> github :https://github.com/sjp38/linux   /
-> 后期切到了 git.kernel.org https://git.kernel.org/pub/scm/linux/kernel/git/sj/linux.git
-
-主页 : [damonitor](https://github.com/damonitor)
-
-
-#### 13.4.4.2 DAMON Operation Schemes
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/07/16 | SeongJae Park <sjpark@amazon.com>/<sj38.park@gmail.com> | [Introduce Data Access MONitor (DAMON)](https://damonitor.github.io) | 数据访问监视器 DAMON | v34 ☑ [5.15-rc1](https://kernelnewbies.org/LinuxChanges#Linux_5.15.DAMON.2C_a_data_access_monitor) | [PatchWork v24,00/14](https://lore.kernel.org/patchwork/patch/1375732), [LWN](https://lwn.net/Articles/1461471)<br>*-*-*-*-*-*-*-* <br>[PatchWork v34,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20210716081449.22187-1-sj38.park@gmail.com) |
-| 2021/08/31 | SeongJae Park <sjpark@amazon.com>/<sj38.park@gmail.com>/<sjpark@amazon.de> | [mm/damon/vaddr: Safely walk page table](https://patchwork.kernel.org/project/linux-mm/patch/20210831161800.29419-1-sj38.park@gmail.com) | 提交 linux-mm 的 [3f49584b262c ("mm/damon: implement primitives for the virtual memory address spaces")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3f49584b262c)  尝试使用 follow_invalidate_PTE() 查找任意虚拟地址的 PTE 或 PMD, 但没有正确锁定. 此提交通过在正确的锁定(保持 mmap 读取锁定)下使用另一个页面表遍历函数来解决此问题, 并使用了更通用的 walk_page_range(). | v1 ☐ | [PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20210831161800.29419-1-sj38.park@gmail.com) |
-| 2021/09/17 | SeongJae Park <sjpark@amazon.com> | [mm, mm/damon: Trivial fixes](https://patchwork.kernel.org/project/linux-mm/cover/20210917123958.3819-1-sj@kernel.org) | DAMON 的 fix 补丁. | v1 ☐ | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-mm/cover/20210917123958.3819-1-sj@kernel.org) |
-| 2021/10/01 | SeongJae Park <sjpark@amazon.com> | [Implement Data Access Monitoring-based Memory Operation Schemes](https://patchwork.kernel.org/project/linux-mm/cover/20211001125604.29660-1-sj@kernel.org) | 实现了 DAMON 的基于数据访问监视的操作方案 (DAMOS).<br>DAMON 可以用作支持数据访问的内存管理优化的原语. 因此, 希望进行此类优化的用户应该运行 DAMON, 读取监视结果, 分析并优化内存管理方案.<br>然而, 在许多其他情况下, 用户只是希望系统对具有特定时间的特定访问频率的特定大小的内存区域应用内存管理操作. 例如, "page out a memory region than 100mib only rare visits more than 2 minutes", 或者 "Do not use THP For a memory region than 2mib rarely visits more than 1 seconds". 为了使工作更容易且不冗余, 这个补丁集实现了 DAMON 的一个新特性, 称为基于数据访问监视的操作方案 (DAMOS). 使用该特性, 用户可以以简单的方式描述常规方案, 并要求 DAMON 自行执行这些方案.<br>DAMOS 对于内存管理优化是准确和有用的.<br>1. THP 的一个实验性的基于 damon 的操作方案 'ethp' 减少了 76.15% 的 THP 内存开销, 同时保留了 51.25% 的 THP 加速.<br>2. 另一个实验性的基于 damon 的 "主动回收" 实现 "prcl", 减少了 93.38% 的  residential sets 和 23.63% 的内存占用, 而在最好的情况下只产生 1.22% 的运行时开销 (parsec3/freqmine). | v1 ☑ 5.16-rc1 | [2020/12/16 PatchWork RFC,v15.1,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20201216084404.23183-1-sjpark@amazon.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/01 PatchWork 0/7](https://patchwork.kernel.org/project/linux-mm/cover/20211001125604.29660-1-sj@kernel.org) |
-| 2021/10/08 | SeongJae Park <sjpark@amazon.com> | [mm/damon/dbgfs: Implement recording feature](https://patchwork.kernel.org/project/linux-mm/patch/20211008094509.16179-1-sj@kernel.org) | 为 'damon-dbgfs' 实现 'recording' 特性<br>用户空间可以通过 'damon_aggregate' 跟踪点事件获得监视结果. 为了简单起见, 跟踪点事件有一些重复的信息, 比如 'target_id' 和 'nr_regions'. 这造成它的大小比实际需要的要大. 另外, 对于一些简单的用例, 处理跟踪点可能会很复杂. 为了给用户空间提供一种更有效和简单的监控结果的方法, 这个提交实现了 'damon-dbgfs' 中的 'recording' 特性. 该特性通过一个名为 'record' 的新 debugfs 文件导出到用户空间, 该文件位于 '/damon/' 目录下. 该文件允许用户以简单格式在常规二进制文件中记录监视的访问模式. 记录的结果首先写入内存缓冲区并批处理刷新到文件中. 用户可以通过读取和写入 record 文件来获取和设置缓冲区的大小和结果文件的路径. | v1 ☐ | [PatchWork 1/4](https://patchwork.kernel.org/project/linux-mm/patch/20211008094509.16179-1-sj@kernel.org) |
-| 2021/10/12 | SeongJae Park <sjpark@amazon.com> | [DAMON: Support Physical Memory Address Space Monitoring](https://www.phoronix.com/scan.php?page=news_item&px=DAMON-Physical-Monitoring) | 允许物理地址空间监控. | v1 ☑ 5.16-rc1 | [PatchWork RFC,v9,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20201007071409.12174-1-sjpark@amazon.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v10,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20201216094221.11898-1-sjpark@amazon.com))<br>*-*-*-*-*-*-*-* <br>[PatchWork 0/7](https://patchwork.kernel.org/project/linux-mm/cover/20211012205711.29216-1-sj@kernel.org)|
-| 2021/10/12 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon/dbgfs: add region_stat interface](https://patchwork.kernel.org/project/linux-mm/patch/20211012054948.90381-1-xhao@linux.alibaba.com) | DAMON 中使用 damon-dbgfs 操作带来了很大的遍历, 有时候如果我希望能够查看任务的划分区域 nr_access 等值, 当前这不能直接通过 dbgfs 接口查看, 所以添加一个接口 "region_stat" 来显示. | v1 ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-mm/patch/20211012054948.90381-1-xhao@linux.alibaba.com/) |
-| 2021/10/13 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon: Adjust the size of kbuf array to avoid overflow](https://patchwork.kernel.org/project/linux-mm/patch/20211013114854.15705-1-xhao@linux.alibaba.com) | NA | v1 ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-mm/patch/20211013114854.15705-1-xhao@linux.alibaba.com) |
-| 2021/10/16 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon/core: Optimize kdamod.%d thread creation code](https://patchwork.kernel.org/project/linux-mm/patch/20211016165914.96049-1-xhao@linux.alibaba.com) | 当 ctx->adaptive_targets 列表为空, 无需创建并调用kdamond. 只有当 ctx->adaptive_targets 列表不为空, 且 ctx->kdamond 指针为 NULL 时, 才调用__damon_start函数. | v1 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211016165616.95849-1-xhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211016165914.96049-1-xhao@linux.alibaba.com) |
-| 2021/10/21 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon/dbgfs: Optimize target_ids interface write operation](https://patchwork.kernel.org/project/linux-mm/patch/bc341f48b5558f6816dcef22eca4f4a590efdc67.1634834628.git.xhao@linux.alibaba.com) | NA | v2 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211021085611.81211-1-xhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/bc341f48b5558f6816dcef22eca4f4a590efdc67.1634834628.git.xhao@linux.alibaba.com) |
-| 2021/10/27 | Changbin Du <changbin.du@gmail.com> | [mm/damon: simplify stop mechanism](https://patchwork.kernel.org/project/linux-mm/patch/20211027130517.4404-1-changbin.du@gmail.com) | NA | v2 ☐ | [PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211027130517.4404-1-changbin.du@gmail.com) |
-| 2021/12/21 | Changbin Du <changbin.du@gmail.com> | [Add a new scheme to support demotion on tiered memory system](https://patchwork.kernel.org/project/linux-mm/cover/cover.1640077468.git.baolin.wang@linux.alibaba.com) | 现在, 在具有不同内存类型的分级内存系统上, shrink_page_list() 中的回收路径已经支持将页面降级以减慢内存节点的速度, 而不是丢弃页面. 然而, 此时快速内存节点的内存水印已经紧张, 这将增加页面降级期间的内存分配延迟. 因此, 从用户空间主动降格冷页面的新方法将更有帮助. 我们可以依靠用户空间中的 DAMON 来帮助监控快速内存节点上的冷内存, 并主动降级冷页面来降低内存节点的速度, 以保持快速内存节点处于健康状态. 这个补丁集引入了一个名为 DAMOS_DEMOTE 的新模式来支持这个特性. | v2 ☐ | [PatchWork 0/2](https://patchwork.kernel.org/project/linux-mm/cover/cover.1640077468.git.baolin.wang@linux.alibaba.com) |
-| 2022/02/15 | SeongJae Park <sj@kernel.org> | [Allow DAMON user code independent of monitoring primitives](https://patchwork.kernel.org/project/linux-mm/cover/20220215184603.1479-1-sj@kernel.org/) | 614655 | v1 ☐☑ | [PatchWork v1,0/8](https://lore.kernel.org/r/20220215184603.1479-1-sj@kernel.org) |
-| 2022/02/16 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon: Add NUMA access statistics function support](https://patchwork.kernel.org/project/linux-mm/cover/cover.1645024354.git.xhao@linux.alibaba.com/) | 614856 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/cover.1645024354.git.xhao@linux.alibaba.com) |
-| 2022/02/17 | SeongJae Park <sj@kernel.org> | [Introduce DAMON sysfs interface](https://patchwork.kernel.org/project/linux-mm/cover/20220217161938.8874-1-sj@kernel.org/) | 615483 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20220217161938.8874-1-sj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE, v1,00/12](https://patchwork.kernel.org/project/linux-mm/cover/20220223152051.22936-1-sj@kernel.org) |
-| 2022/03/15 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon: Add CMA minotor support](https://patchwork.kernel.org/project/linux-mm/cover/cover.1647378112.git.xhao@linux.alibaba.com/) | 为 DAMON 增加 CMA 内存监控功能. 在某些内存紧张的情况下, 通过监控 CMA 内存释放更多内存将是一个不错的选择. | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/cover.1647378112.git.xhao@linux.alibaba.com) |
-| 2021/01/07 | SeongJae Park <sjpark@amazon.com> | [tools/perf: Integrate DAMON in perf](https://lore.kernel.org/all/20210107120729.22328-1-sjpark@amazon.com) | perf 支持 DAMON 监控. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20210107120729.22328-1-sjpark@amazon.com) |
-| 2022/04/18 | Yuanchu Xie <yuanchu@google.com> | [[RESEND] selftests/damon: add damon to selftests root Makefile](https://patchwork.kernel.org/project/linux-mm/patch/20220418202017.3583638-1-yuanchu@google.com/) | 633136 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220418202017.3583638-1-yuanchu@google.com) |
-| 2021/12/10 | SeongJae Park <sj@kernel.org> | [mm/damon/schemes: Extend stats for better online analysis and tuning](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=dbcb9b9f954f71fb46be34af624c9edaaa171414) | 20211210150016.35349-1-sj@kernel.org | v1 ☑✓ 5.17-rc1 | [LORE v1,0/6](https://lore.kernel.org/all/20211210150016.35349-1-sj@kernel.org) |
-| 2022/01/14 | Baolin Wang <baolin.wang@linux.alibaba.com> | [mm/damon: add access checking for hugetlb pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49f4203aae06ba9d67b500c90339b262b0a52637) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/6afcbd1fda5f9c7c24f320d26a98188c727ceec3.1639623751.git.baolin.wang@linux.alibaba.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49f4203aae06ba9d67b500c90339b262b0a52637) |
-| 2022/04/29 | SeongJae Park <sj@kernel.org> | [mm/damon: Support online tuning](https://patchwork.kernel.org/project/linux-mm/cover/20220429160606.127307-1-sj@kernel.org/) | 637059 | v1 ☐☑ | [LORE v1,0/14](https://lore.kernel.org/r/20220429160606.127307-1-sj@kernel.org) |
-| 2022/05/07 | Gautam Menghani <gautammenghani201@gmail.com> | [Add documentation for Enum value 'NR_DAMON_OPS' in](https://patchwork.kernel.org/project/linux-mm/patch/20220507165620.110706-1-gautammenghani201@gmail.com/) | 639422 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220507165620.110706-1-gautammenghani201@gmail.com) |
-
-#### 13.4.4.2 DAMON RECLAIM
--------
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/10/19 | SeongJae Park <sjpark@amazon.com> | [Introduce DAMON-based Proactive Reclamation](https://lwn.net/Articles/863753) | 该补丁集改进了用于生产质量的通用数据访问模式内存管理的引擎, 并在其之上实现了主动回收. | v4 ☑ 5.16-rc1 | [PatchWork RFC,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/14](https://patchwork.kernel.org/project/linux-mm/patch/20210608115254.11930-15-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v3,00/15](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4 00/15](https://patchwork.kernel.org/project/linux-mm/cover/20211019150731.16699-1-sj@kernel.org) |
-| 2022/02/04 | Jonghyeon Kim <tome01@ajou.ac.kr> | [mm/damon: Rebase DAMON_RECALIM watermarks for NUMA nodes](https://patchwork.kernel.org/project/linux-mm/patch/20220204064059.6244-1-tome01@ajou.ac.kr/) | 611199 | v1 ☐☑ | [PatchWork v1,0/1](https://lore.kernel.org/r/20220204064059.6244-1-tome01@ajou.ac.kr) |
-| 2022/02/18 | Jonghyeon Kim <tome01@ajou.ac.kr> | [Rebase DAMON_RECALIM for NUMA system](https://patchwork.kernel.org/project/linux-mm/cover/20220218102611.31895-1-tome01@ajou.ac.kr/) | 615730 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20220218102611.31895-1-tome01@ajou.ac.kr)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/13](https://lore.kernel.org/r/20220228081314.5770-1-sj@kernel.org) |
-| 2022/06/13 | SeongJae Park <sj@kernel.org> | [Extend DAMOS for Proactive LRU-lists Sorting](https://lore.kernel.org/all/20220613192301.8817-1-sj@kernel.org) | TODO | v1 ☐☑✓ | [2022/05/13 LORE RFC,0/3](https://lore.kernel.org/damon/20220513150000.25797-1-sj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2022/06/13 LORE v1,0/8](https://lore.kernel.org/all/20220613192301.8817-1-sj@kernel.org) |
 
 
 
@@ -6672,6 +6602,135 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2016/02/19 | Paul Gortmaker <paul.gortmaker@windriver.com> | [mmap_lock: add tracepoints around lock acquisition](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=abedf8e2419fb873d919dd74de2e84b510259339) | mmap lock tracepoint | v9 ☑ 4.6-rc1 | [LKML v8,0/5](https://lore.kernel.org/all/20201105211739.568279-1-axelrasmussen@google.com) |
 | 2022/01/07 | Anshuman Khandual <anshuman.khandual@arm.com> | [mm/migration: Add trace events for THP migrations](https://patchwork.kernel.org/project/linux-mm/patch/1641531575-28524-1-git-send-email-anshuman.khandual@arm.com) | THP migrations tracepoint | v1 ☐ | [LORE v1](https://patchwork.kernel.org/project/linux-mm/patch/1641531575-28524-1-git-send-email-anshuman.khandual@arm.com) |
+
+
+
+
+## 13.6 数据访问监视器 DAMON
+-------
+
+### 13.6.1 数据访问监视器 DAMON 概述
+-------
+
+[Software Visualizations to Analyze Memory Consumption: A Literature Review](https://dl.acm.org/doi/pdf/10.1145/3485134)
+
+[linux data access monitor (DAMON)](https://blog.csdn.net/zqh1630/article/details/109954910)
+
+[LWN: 用DAMON来优化memory-management!](https://blog.csdn.net/Linux_Everything/article/details/104707923)
+
+[知乎-DAMON: Linux内存数据访问监控框架](https://zhuanlan.zhihu.com/p/446677951)
+
+[openEuler kernel SIG 2021-11-19 周例会](https://www.bilibili.com/video/BV1Ji4y1Z7o3) 上讲解了这个特性.
+
+对指定的程序进行内存相关优化, 了解业务给定工作负载的数据访问模式至关重要. 但是, 从庞大和复杂的工作量中手动提取此类模式非常详尽. 更糟糕的是, 现有的内存访问分析工具会为不必要的详细分析结果带来不可接受的高开销.
+
+内存管理在很大程度上基于预测 : 给定进程在不久的将来将需要哪些内存页?
+
+不幸的是, 事实证明, 预测是困难的, 尤其是对于未来事件的预测. 在没有从未来发送回的有用信息的情况下, 内存管理子系统被迫依赖于对最近行为的观察, 并假设该行为可能会继续. 但是, 内核的内存管理决策对于用户空间是不透明的, 并且常常导致性能不佳. SeongJae Park 实现的 [DAMON](https://lwn.net/Articles/812707) 试图使内存使用模式对用户空间可见, 并让用户空间作为响应来更改内存管理决策.
+
+亚马逊工程师公开了他们关于 ["DAMON"](https://github.com/awslabs/damo) 的工作, 这是一个Linux内核模块, 用于监控特定用户空间过程的数据访问.
+
+[DAMON](https://damonitor.github.io/_index) 允许用户监控特定用户空间过程的实际内存访问模式. 从概念上讲, 它的操作很简单;
+
+1.  首先, 将进程的地址空间划分为多个大小相等的区域.
+
+2.  然后, 它监视对每个区域的访问, 并提供对每个区域的访问次数的直方图作为其输出.
+
+由此, 该信息的使用者(在用户空间或内核中)可以请求更改以优化进程对内存的使用.
+
+它的目标是 :
+
+1.  足够准确, 可用于实际性能分析和优化;
+
+2.  足够轻量, 以便它可以在线使用;
+
+DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域调整**, 允许用户将跟踪开销限制在有界范围内, 而与目标工作负载的大小和复杂性无关, 同时保留结果的质量.
+
+| 机制 | 描述 |
+|:---:|:----:|
+| Access Frequency Monitor<br>访问频率监控 | 1. 采样间隔, DAMON 在每个采样间隔内统计每个页面访问的次数;<br>2. 聚合间隔, DAMON 在每个聚合间隔后, 调用自定义的聚合函数读取聚合的结果. |
+| Region Based Sampling<br>基于区域的采样 | 基于区域的采样允许用户在监控质量和开销之间做出自己的权衡, 并限制监控开销的上限.<br>将具有相同访问频率的连续页面块分组到一个 region, 这样只需要从每个 region 内随机选取一个页面, 检查该页面的访问情况.<br>通过设置 regions 的个数, 可以控制 DAMON 的开销, 用户可以设置最小和最大的 region 数量. |
+| Adaptive Regions Adjustment<br>自适应的区域调整 | 自适应区域调整机制使 DAMON 在保持用户配置的权衡的同时, 最大限度地提高精度, 减少开销.<br>为了保持 region 内的页面具有相似的访问频率, DAMON 会动态地合并该和切割 region. 每次聚合间隔, DAMON 比较相邻 region 的访问频率, 如果频率相差较小, 则进行合并, 减少的 region 数量可以减少开销. 如果总 region 数不超过用户配置的最大 region, 则为了提高精度, 可以对 region 进行拆分. |
+| Dynamic Target Space Update Handling | 监视目标地址范围可以动态的变化. 例如, 虚拟内存可以动态映射和取消映射. 物理内存可能被热插拔. 由于在某些情况下更改可能非常频繁, 因此 DAMON 会检查动态内存映射更改, 并仅针对每个用户指定的时间间隔(regions update interval)将其应用于抽象的目标区域. |
+
+
+
+作者 SeongJae Park
+> github :https://github.com/sjp38/linux   /
+> 后期切到了 git.kernel.org https://git.kernel.org/pub/scm/linux/kernel/git/sj/linux.git
+
+主页 : [damonitor](https://github.com/damonitor)
+
+
+### 13.6.2 DAMON Data Access MONitor
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/07/16 | SeongJae Park <sjpark@amazon.com>/<sj38.park@gmail.com> | [Introduce Data Access MONitor (DAMON)](https://damonitor.github.io) | 数据访问监视器 DAMON | v34 ☑ [5.15-rc1](https://kernelnewbies.org/LinuxChanges#Linux_5.15.DAMON.2C_a_data_access_monitor) | [PatchWork v24,00/14](https://lore.kernel.org/patchwork/patch/1375732), [LWN](https://lwn.net/Articles/1461471)<br>*-*-*-*-*-*-*-* <br>[PatchWork v34,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20210716081449.22187-1-sj38.park@gmail.com) |
+| 2021/08/31 | SeongJae Park <sjpark@amazon.com>/<sj38.park@gmail.com>/<sjpark@amazon.de> | [mm/damon/vaddr: Safely walk page table](https://patchwork.kernel.org/project/linux-mm/patch/20210831161800.29419-1-sj38.park@gmail.com) | 提交 linux-mm 的 [3f49584b262c ("mm/damon: implement primitives for the virtual memory address spaces")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3f49584b262c)  尝试使用 follow_invalidate_PTE() 查找任意虚拟地址的 PTE 或 PMD, 但没有正确锁定. 此提交通过在正确的锁定(保持 mmap 读取锁定)下使用另一个页面表遍历函数来解决此问题, 并使用了更通用的 walk_page_range(). | v1 ☐ | [PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20210831161800.29419-1-sj38.park@gmail.com) |
+| 2021/09/17 | SeongJae Park <sjpark@amazon.com> | [mm, mm/damon: Trivial fixes](https://patchwork.kernel.org/project/linux-mm/cover/20210917123958.3819-1-sj@kernel.org) | DAMON 的 fix 补丁. | v1 ☐ | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-mm/cover/20210917123958.3819-1-sj@kernel.org) |
+| 2021/10/08 | SeongJae Park <sjpark@amazon.com> | [mm/damon/dbgfs: Implement recording feature](https://patchwork.kernel.org/project/linux-mm/patch/20211008094509.16179-1-sj@kernel.org) | 为 'damon-dbgfs' 实现 'recording' 特性<br>用户空间可以通过 'damon_aggregate' 跟踪点事件获得监视结果. 为了简单起见, 跟踪点事件有一些重复的信息, 比如 'target_id' 和 'nr_regions'. 这造成它的大小比实际需要的要大. 另外, 对于一些简单的用例, 处理跟踪点可能会很复杂. 为了给用户空间提供一种更有效和简单的监控结果的方法, 这个提交实现了 'damon-dbgfs' 中的 'recording' 特性. 该特性通过一个名为 'record' 的新 debugfs 文件导出到用户空间, 该文件位于 '/damon/' 目录下. 该文件允许用户以简单格式在常规二进制文件中记录监视的访问模式. 记录的结果首先写入内存缓冲区并批处理刷新到文件中. 用户可以通过读取和写入 record 文件来获取和设置缓冲区的大小和结果文件的路径. | v1 ☐ | [PatchWork 1/4](https://patchwork.kernel.org/project/linux-mm/patch/20211008094509.16179-1-sj@kernel.org) |
+| 2021/10/12 | SeongJae Park <sjpark@amazon.com> | [DAMON: Support Physical Memory Address Space Monitoring](https://www.phoronix.com/scan.php?page=news_item&px=DAMON-Physical-Monitoring) | 允许物理地址空间监控. | v1 ☑ 5.16-rc1 | [PatchWork RFC,v9,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20201007071409.12174-1-sjpark@amazon.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v10,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20201216094221.11898-1-sjpark@amazon.com))<br>*-*-*-*-*-*-*-* <br>[PatchWork 0/7](https://patchwork.kernel.org/project/linux-mm/cover/20211012205711.29216-1-sj@kernel.org)|
+| 2021/10/12 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon/dbgfs: add region_stat interface](https://patchwork.kernel.org/project/linux-mm/patch/20211012054948.90381-1-xhao@linux.alibaba.com) | DAMON 中使用 damon-dbgfs 操作带来了很大的遍历, 有时候如果我希望能够查看任务的划分区域 nr_access 等值, 当前这不能直接通过 dbgfs 接口查看, 所以添加一个接口 "region_stat" 来显示. | v1 ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-mm/patch/20211012054948.90381-1-xhao@linux.alibaba.com/) |
+| 2021/10/13 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon: Adjust the size of kbuf array to avoid overflow](https://patchwork.kernel.org/project/linux-mm/patch/20211013114854.15705-1-xhao@linux.alibaba.com) | NA | v1 ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-mm/patch/20211013114854.15705-1-xhao@linux.alibaba.com) |
+| 2021/10/16 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon/core: Optimize kdamod.%d thread creation code](https://patchwork.kernel.org/project/linux-mm/patch/20211016165914.96049-1-xhao@linux.alibaba.com) | 当 ctx->adaptive_targets 列表为空, 无需创建并调用kdamond. 只有当 ctx->adaptive_targets 列表不为空, 且 ctx->kdamond 指针为 NULL 时, 才调用__damon_start函数. | v1 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211016165616.95849-1-xhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211016165914.96049-1-xhao@linux.alibaba.com) |
+| 2021/10/21 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon/dbgfs: Optimize target_ids interface write operation](https://patchwork.kernel.org/project/linux-mm/patch/bc341f48b5558f6816dcef22eca4f4a590efdc67.1634834628.git.xhao@linux.alibaba.com) | NA | v2 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211021085611.81211-1-xhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/bc341f48b5558f6816dcef22eca4f4a590efdc67.1634834628.git.xhao@linux.alibaba.com) |
+| 2021/10/27 | Changbin Du <changbin.du@gmail.com> | [mm/damon: simplify stop mechanism](https://patchwork.kernel.org/project/linux-mm/patch/20211027130517.4404-1-changbin.du@gmail.com) | NA | v2 ☐ | [PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211027130517.4404-1-changbin.du@gmail.com) |
+| 2022/02/15 | SeongJae Park <sj@kernel.org> | [Allow DAMON user code independent of monitoring primitives](https://patchwork.kernel.org/project/linux-mm/cover/20220215184603.1479-1-sj@kernel.org/) | 614655 | v1 ☐☑ | [PatchWork v1,0/8](https://lore.kernel.org/r/20220215184603.1479-1-sj@kernel.org) |
+| 2022/02/16 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon: Add NUMA access statistics function support](https://patchwork.kernel.org/project/linux-mm/cover/cover.1645024354.git.xhao@linux.alibaba.com/) | 614856 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/cover.1645024354.git.xhao@linux.alibaba.com) |
+| 2022/02/17 | SeongJae Park <sj@kernel.org> | [Introduce DAMON sysfs interface](https://patchwork.kernel.org/project/linux-mm/cover/20220217161938.8874-1-sj@kernel.org/) | 615483 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20220217161938.8874-1-sj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE, v1,00/12](https://patchwork.kernel.org/project/linux-mm/cover/20220223152051.22936-1-sj@kernel.org) |
+| 2022/03/15 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon: Add CMA minotor support](https://patchwork.kernel.org/project/linux-mm/cover/cover.1647378112.git.xhao@linux.alibaba.com/) | 为 DAMON 增加 CMA 内存监控功能. 在某些内存紧张的情况下, 通过监控 CMA 内存释放更多内存将是一个不错的选择. | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/cover.1647378112.git.xhao@linux.alibaba.com) |
+| 2021/01/07 | SeongJae Park <sjpark@amazon.com> | [tools/perf: Integrate DAMON in perf](https://lore.kernel.org/all/20210107120729.22328-1-sjpark@amazon.com) | perf 支持 DAMON 监控. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20210107120729.22328-1-sjpark@amazon.com) |
+| 2022/04/18 | Yuanchu Xie <yuanchu@google.com> | [[RESEND] selftests/damon: add damon to selftests root Makefile](https://patchwork.kernel.org/project/linux-mm/patch/20220418202017.3583638-1-yuanchu@google.com/) | 633136 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220418202017.3583638-1-yuanchu@google.com) |
+| 2021/12/10 | SeongJae Park <sj@kernel.org> | [mm/damon/schemes: Extend stats for better online analysis and tuning](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=dbcb9b9f954f71fb46be34af624c9edaaa171414) | 20211210150016.35349-1-sj@kernel.org | v1 ☑✓ 5.17-rc1 | [LORE v1,0/6](https://lore.kernel.org/all/20211210150016.35349-1-sj@kernel.org) |
+| 2022/01/14 | Baolin Wang <baolin.wang@linux.alibaba.com> | [mm/damon: add access checking for hugetlb pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49f4203aae06ba9d67b500c90339b262b0a52637) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/6afcbd1fda5f9c7c24f320d26a98188c727ceec3.1639623751.git.baolin.wang@linux.alibaba.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49f4203aae06ba9d67b500c90339b262b0a52637) |
+| 2022/04/29 | SeongJae Park <sj@kernel.org> | [mm/damon: Support online tuning](https://patchwork.kernel.org/project/linux-mm/cover/20220429160606.127307-1-sj@kernel.org/) | 637059 | v1 ☐☑ | [LORE v1,0/14](https://lore.kernel.org/r/20220429160606.127307-1-sj@kernel.org) |
+| 2022/05/07 | Gautam Menghani <gautammenghani201@gmail.com> | [Add documentation for Enum value 'NR_DAMON_OPS' in](https://patchwork.kernel.org/project/linux-mm/patch/20220507165620.110706-1-gautammenghani201@gmail.com/) | 639422 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220507165620.110706-1-gautammenghani201@gmail.com) |
+
+
+### 13.6.3 DAMOS(DAMON Operation Schemes)
+-------
+
+#### 13.6.3.1 DAMON Operation Schemes
+-------
+
+DAMON 使用各种试探法来确定哪些内存页处于活动使用状态, 并尽可能地利用这些信息来影响内存管理.
+
+内存管理开发人员最希望的莫过于能够知道在不久的将来需要哪些内存页. 然后, 内核可以确保这些页面驻留在 RAM 中. 不幸的是, 当前的硬件无法提供该信息, 因此内存管理代码必须进行猜测. 通常, 最好的猜测是, 最近使用过的页面可能很快就会再次使用, 而那些已经一段时间未被触及的页面可能不需要.
+
+LRU 列表是决定哪些页面保留在 RAM 中以及哪些页面被回收的机制的关键部分. 不过, 尽管它们的名字, 这些列表充其量只是对最近使用最少的页面的粗略近似. 最好将描述给出为"最近至少注意到要使用". 如果有更好的机制来了解哪些页面真正被大量使用, 那么应该有可能利用这些信息来改进当前的 LRU 列表.
+
+DAMON("Data Access MONitor") 就提供了这种机制, 通过一些聪明的算法, DAMON 试图更清楚地了解实际内存使用情况, 同时限制自己的 CPU 使用率. DAMON 的设计效率足以在生产系统上使用, 同时又足够准确, 可以改进内存管理决策.
+
+5.16内核增加了基于数据访问监控的操作方案 DAMOS ("DAMON operation schemes"), 它增加了一种基于规则的机制, 允许将定义的 madvise() 操作应用于在指定时间内具有特定访问频率的内存区域. 只要满足特定标准, 就可以采取行动. 比如, 可以将 DAMOS 配置为将过去 N 秒内未访问的区域通过 `madvise` 配置 MADV_COLD/MADV_PAGEOUT 等不同的策略, 此外还有其他各种 `madvise` 选项以及 stat 选项可用.
+
+DAMOS 借助 debugfs 定制自己的监控处理方案. 例如, 配置 `echo "4096 8192 0 5 10 20 2" > schemes` 意味着如果大小为 [4KiB,  8KiB] 的内存区域显示 [0, 5] 中每个聚合间隔的访问数, 则应用 madvise MADV_PAGEOUT 操作,  它们都在 [`Documentation/admin-guide/mm/damon/usage.rst`](https://www.kernel.org/doc/html/latest/admin-guide/mm/damon/usage.html#schemes) 中有详细描述.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/10/01 | SeongJae Park <sjpark@amazon.com> | [Implement Data Access Monitoring-based Memory Operation Schemes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=68536f8e01e571f553f78fa058ba543de3834452) | 实现了 DAMON 的基于数据访问监视的操作方案 (DAMOS).<br>DAMON 可以用作支持数据访问的内存管理优化的原语. 因此, 希望进行此类优化的用户应该运行 DAMON, 读取监视结果, 分析并优化内存管理方案.<br>然而, 在许多其他情况下, 用户只是希望系统对具有特定时间的特定访问频率的特定大小的内存区域应用内存管理操作. 例如, "page out a memory region than 100mib only rare visits more than 2 minutes", 或者 "Do not use THP For a memory region than 2mib rarely visits more than 1 seconds". 为了使工作更容易且不冗余, 这个补丁集实现了 DAMON 的一个新特性, 称为基于数据访问监视的操作方案 (DAMOS). 使用该特性, 用户可以以简单的方式描述常规方案, 并要求 DAMON 自行执行这些方案.<br>DAMOS 对于内存管理优化是准确和有用的.<br>1. THP 的一个实验性的基于 DAMON 的操作方案 'ethp' 减少了 76.15% 的 THP 内存开销, 同时保留了 51.25% 的 THP 加速.<br>2. 另一个实验性的基于 damon 的 "主动回收" 实现 "prcl", 减少了 93.38% 的  residential sets 和 23.63% 的内存占用, 而在最好的情况下只产生 1.22% 的运行时开销 (parsec3/freqmine). | v1 ☑ 5.16-rc1 | [2020/12/16 PatchWork RFC,v15.1,0/8](https://patchwork.kernel.org/project/linux-mm/cover/20201216084404.23183-1-sjpark@amazon.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/01 PatchWork 0/7](https://patchwork.kernel.org/project/linux-mm/cover/20211001125604.29660-1-sj@kernel.org) |
+| 2021/12/21 | Changbin Du <changbin.du@gmail.com> | [Add a new scheme to support demotion on tiered memory system](https://patchwork.kernel.org/project/linux-mm/cover/cover.1640077468.git.baolin.wang@linux.alibaba.com) | 现在, 在具有不同内存类型的分级内存系统上, shrink_page_list() 中的回收路径已经支持将页面降级以减慢内存节点的速度, 而不是丢弃页面. 然而, 此时快速内存节点的内存水印已经紧张, 这将增加页面降级期间的内存分配延迟. 因此, 从用户空间主动降格冷页面的新方法将更有帮助. 我们可以依靠用户空间中的 DAMON 来帮助监控快速内存节点上的冷内存, 并主动降级冷页面来降低内存节点的速度, 以保持快速内存节点处于健康状态. 这个补丁集引入了一个名为 DAMOS_DEMOTE 的新模式来支持这个特性. | v2 ☐ | [LORE 0/2](https://lore.kernel.org/all/cover.1640077468.git.baolin.wang@linux.alibaba.com) |
+
+
+#### 13.6.3.2 DAMON-based Reclamation
+------
+
+* Proactive Reclamation on top of DAMON/DAMOS
+
+v5.16 基于 DAMOS 的 pageout scheme(DAMOS_PAGEOUT), 实现了主动回收 [Introduce DAMON-based Proactive Reclamation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bec976b691437d056a92964cb7af07ee1a54221a) 机制, 通过 DAMON_RECLAIM 开启, 可以查询查找特定时间内没有被访问的内存区域(冷页), 主动将其回收或者 PAGE_OUT. 参见 phoronix 报道 [DAMON-Based Memory Reclamation Merged For Linux 5.16](https://www.phoronix.com/news/DAMON-Reclamation-Linux-5.16) 以及 LWN 报道 [Using DAMON for proactive reclaim](https://lwn.net/Articles/863753). 内核文档 [DAMON-based Reclamation](https://www.kernel.org/doc/html/latest/admin-guide/mm/damon/reclaim.html).
+
+v6.0 内核包含朝这个方向迈出的另一步, 使 DAMON 能够主动对内核最近最少使用(LRU) 列表上的页面进行重新排序. 参见 LWN 报道 [LRU-list manipulation with DAMON](https://lwn.net/Articles/905370) 以及内核文档 [DAMON-based LRU-lists Sorting](https://www.kernel.org/doc/html/latest/admin-guide/mm/damon/lru_sort.html).
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/10/19 | SeongJae Park <sjpark@amazon.com> | [Introduce DAMON-based Proactive Reclamation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bec976b691437d056a92964cb7af07ee1a54221a) | 该补丁集基于 DAMOS 改进了用于生产质量的通用数据访问模式内存管理的引擎, 并在其之上实现了主动回收. | v4 ☑ [5.16-rc1](https://kernelnewbies.org/Linux_5.16#DAMON-based_proactive_memory_reclamation.2C_operation_schemes_and_physical_memory_monitoring) | [PatchWork RFC,00/13](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,00/14](https://patchwork.kernel.org/project/linux-mm/patch/20210608115254.11930-15-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v3,00/15](https://patchwork.kernel.org/project/linux-mm/cover/20210720131309.22073-1-sj38.park@gmail.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4 00/15](https://lore.kernel.org/all/20211019150731.16699-1-sj@kernel.org) |
+| 2022/02/04 | Jonghyeon Kim <tome01@ajou.ac.kr> | [mm/damon: Rebase DAMON_RECALIM watermarks for NUMA nodes](https://patchwork.kernel.org/project/linux-mm/patch/20220204064059.6244-1-tome01@ajou.ac.kr/) | 611199 | v1 ☐☑ | [PatchWork v1,0/1](https://lore.kernel.org/r/20220204064059.6244-1-tome01@ajou.ac.kr) |
+| 2022/02/18 | Jonghyeon Kim <tome01@ajou.ac.kr> | [Rebase DAMON_RECALIM for NUMA system](https://lore.kernel.org/all/20220218102611.31895-1-tome01@ajou.ac.kr) | 615730 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20220218102611.31895-1-tome01@ajou.ac.kr) |
+| 2022/06/13 | SeongJae Park <sj@kernel.org> | [Extend DAMOS for Proactive LRU-lists Sorting](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=6acfcd0d75244178a4a101fe0da888fa3bff29fb) | [LRU-list manipulation with DAMON](https://lwn.net/Articles/905370) | v1 ☑✓ 6.0-rc1 | [2022/05/13 LORE RFC,0/3](https://lore.kernel.org/damon/20220513150000.25797-1-sj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2022/06/13 LORE v1,0/8](https://lore.kernel.org/all/20220613192301.8817-1-sj@kernel.org) |
+
 
 
 # 14 杂项

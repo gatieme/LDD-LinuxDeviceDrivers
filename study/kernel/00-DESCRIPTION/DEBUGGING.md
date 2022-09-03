@@ -592,6 +592,8 @@ Mold 是目前 Unix 链接器的现代替代品, 已经达到了 1.0 版本. 由
 
 2022 年 6 月 Mold 1.3 继续对 LTO 进行了优化. 参见 phoronix 报道 [Mold 1.3 High Speed Linker Released With LTO Improvements](https://www.phoronix.com/scan.php?page=news_item&px=Mold-1.3-Released).
 
+Mesa CI 开始使用 Mold 作为其 x86_64 和 AArch64 上的默认链接器, 从而提高其 CI 的工作效率, 最终也可能帮助他们解决以前不断膨胀的云 CI 成本. [Mesa CI Begins Making Use Of Mold Linker For "Substantial" Performance Improvement](https://www.phoronix.com/news/Mesa-CI-Begins-Mold)
+
 
 ## 13.9 Compiler Optimization
 -------

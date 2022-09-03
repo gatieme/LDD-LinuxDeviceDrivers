@@ -61,7 +61,13 @@ blogexcerpt: FZF 是目前最快的模糊搜索工具. 使用golang编写. 结�
 | 2021/10/09 | "Pratik R. Sampat" <psampat@linux.ibm.com> | [kernel: Introduce CPU Namespace](https://www.phoronix.com/scan.php?page=news_item&px=Linux-CPU-Namespace) | CPU namespace | RFC ☐ | [LWN RFC, 0/5]](https://lwn.net/Articles/872507) |
 | 2022/1/7 |  Josh Don | [cgroup: add cpu.stat_percpu](https://lkml.org/lkml/2022/1/7/833) | CPU namespace | RFC ☐ | [LORE 1/2]](https://lkml.org/lkml/2022/1/7/833) |
 
+# 2 DEBUG
+-------
 
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/02/27 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: recursive memory.low protection](https://lore.kernel.org/all/20200227195606.46212-1-hannes@cmpxchg.org) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20200227195606.46212-1-hannes@cmpxchg.org) |
+| 2022/08/26 | Lu Jialin <lujialin4@huawei.com> | [Introduce cgroup.top interface](https://lore.kernel.org/all/20220@huawei.com) | Cgroup 用于组织和管理资源可用的流程. 目前, 没有方便的工具来为每个子 CGroup 收集 Reuserce 使用信息, 这使得很难检测资源中断和调试资源问题. 为了克服这个问题, 我们提出了 cgroup. 顶部界面. 就像 top 命令一样, 用户能够轻松地收集资源使用信息, 允许用户检测和响应子 cgroup 中的资源中断. | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20220826011503.103894-1-lujialin4@huawei.com) |
 
 <br>
 

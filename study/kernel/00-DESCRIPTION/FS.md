@@ -78,6 +78,10 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 
 
+[Readfile System Call Revised For Efficiently Reading Small Files](https://www.phoronix.com/news/Linux-Readfile-Syscall-2022)
+
+[Crash recovery for user-space block drivers](https://lwn.net/Articles/906097)
+
 
 
 

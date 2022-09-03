@@ -943,6 +943,20 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 | EPIC (Explicity parallel instruction computing) 显示并行指令集计算 | NA |  Intel 的 IA-64 |
 | EDGE | 显式数据图执行 (Explicit Data Graph Execution) 的指令集体系结构, 也被称为 EDGE 架构. | [微软处理器架构是新瓶装酒 历史早已证明是死路一条](http://www.360doc.com/content/18/0623/10/22587800_764605025.shtml), [与高通联手打造全新处理器架构, 微软计算芯片界的至尊魔戒终浮现](https://zhuanlan.zhihu.com/p/38340253) | Microsoft 的 E2 |
 
+
+## 6.11 bad CPUs
+-------
+
+
+[In-Field Scan](https://www.phoronix.com/search/In-Field%20Scan)
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/03/01 | Jithu Joseph <jithu.joseph@intel.com> | [Introduce In Field Scan driver](https://lore.kernel.org/all/20220301195457.21152-1-jithu.joseph@intel.com) | [Intel "In-Field Scan" Coming With Sapphire Rapids As New Silicon Failure Testing Feature](https://www.phoronix.com/news/Intel-In-Field-Scan) | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/20220301195457.21152-1-jithu.joseph@intel.com) |
+| 2022/08/05 | Rik van Riel <riel@surriel.com> | [x86,mm: print likely CPU at segfault time](https://lore.kernel.org/all/20220805101644.2e674553@imladris.surriel.com) | [Linux 6.1 Will Make It A Bit Easier To Help Spot Faulty CPUs](https://www.phoronix.com/news/Linux-6.1-Seg-Fault-Report-CPU). | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220805101644.2e674553@imladris.surriel.com) |
+
+
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.
