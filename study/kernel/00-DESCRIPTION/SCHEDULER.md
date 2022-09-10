@@ -4315,6 +4315,10 @@ v5.0 EAS 合入主线之后, 引入了 EM, 各平台或者设备通过 [em_dev_r
 ### 7.2.6 IPA(Thermal 管控)
 -------
 
+
+#### 7.2.6.1 Step-wise governor
+-------
+
 #### 7.2.6.1 Thermal Support
 -------
 

@@ -17,6 +17,7 @@
 | OnePlus | [OnePlus Open Source Software](https://github.com/OnePlusOSS) | [oneplus](https://www.oneplus.com/cn)
 | HONOR | [HONOR-OpenSource](https://www.hihonor.com/global/opensource/detail.html) | [hihonor](https://www.hihonor.com/global/opensource) |
 | XiaoMi | [Xiaomi_Kernel_OpenSource](https://github.com/MiCode/Xiaomi_Kernel_OpenSource), [mitwo-dev](https://github.com/mitwo-dev)| [micode](https://www.micode.net) |
+| RealMe | [realme-kernel-opensource](https://github.com/realme-kernel-opensource) | NA |
 | 魅族 | [meizuosc](https://github.com/meizuosc), [lvchaqiu](https://github.com/lvchaqiu)|  [魅族内核团队](https://kernel.meizu.com) |
 | 三星 | [opensource.samsung.com](https://opensource.samsung.com/uploadSearch?searchValue=kernel) | [BogList](https://opensource.samsung.com/community/blogList) |
 | OPPO | [oppo-source](https://github.com/oppo-source) | NA |

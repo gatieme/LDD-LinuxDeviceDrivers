@@ -3292,6 +3292,9 @@ v12 版本已经没有什么特性变更, 仅仅是一些 bugfix, 参见 phoroni
 
 [MGLRU Patches Picked Up By Andrew Morton's "mm-unstable" Branch Ahead Of Linux 6.1](https://www.phoronix.com/news/MGLRU-MM-Branch)
 
+[MGLRU Linux Performance Looking Very Good For OpenWrt Router Use](https://www.phoronix.com/news/MGLRU-Performance-OpenWRT)
+
+
 *   实现
 
 传统的 LRU 页面回收仅仅通过 ACTIVE/INACTIVE 划分页面的冷热和老化程度, 这是一锤子买卖, 粒度非常粗, 对页面也机器不友好, 一个页面要么热页, 可以被宣判延刑, 要么是冷页, 可以立即被回收. 而 MGLRU 将页面的冷热程度做了更细粒度的划分.
@@ -5377,6 +5380,8 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 
 * per-VMA locks
 
+[Concurrent page-fault handling with per-VMA locks](https://lwn.net/Articles/906852)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/08/29 | Suren Baghdasaryan <surenb@google.com> | [per-VMA locks proposal](https://lore.kernel.org/all/20220829212531.3184856-1-surenb@google.com) | TODO | v1 ☐☑✓ | [LORE v1,0/28](https://lore.kernel.org/all/20220829212531.3184856-1-surenb@google.com) |
@@ -6646,11 +6651,11 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 
 DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域调整**, 允许用户将跟踪开销限制在有界范围内, 而与目标工作负载的大小和复杂性无关, 同时保留结果的质量.
 
-| 机制 | 描述 |
-|:---:|:----:|
-| Access Frequency Monitor<br>访问频率监控 | 1. 采样间隔, DAMON 在每个采样间隔内统计每个页面访问的次数;<br>2. 聚合间隔, DAMON 在每个聚合间隔后, 调用自定义的聚合函数读取聚合的结果. |
-| Region Based Sampling<br>基于区域的采样 | 基于区域的采样允许用户在监控质量和开销之间做出自己的权衡, 并限制监控开销的上限.<br>将具有相同访问频率的连续页面块分组到一个 region, 这样只需要从每个 region 内随机选取一个页面, 检查该页面的访问情况.<br>通过设置 regions 的个数, 可以控制 DAMON 的开销, 用户可以设置最小和最大的 region 数量. |
-| Adaptive Regions Adjustment<br>自适应的区域调整 | 自适应区域调整机制使 DAMON 在保持用户配置的权衡的同时, 最大限度地提高精度, 减少开销.<br>为了保持 region 内的页面具有相似的访问频率, DAMON 会动态地合并该和切割 region. 每次聚合间隔, DAMON 比较相邻 region 的访问频率, 如果频率相差较小, 则进行合并, 减少的 region 数量可以减少开销. 如果总 region 数不超过用户配置的最大 region, 则为了提高精度, 可以对 region 进行拆分. |
+| 机制 | 设计初衷 | 描述 |
+|:---:|:-------:|:----:|
+| Access Frequency Monitor<br>访问频率监控 | DAMON 通过采样检测出给定的持续时间内哪些页面被频繁访问. 通过设置 sampling interval(damon_ctx.sample_interval) 和 aggregation interval(damon_ctx.aggr_interval) 来控制访问频率的分辨率.<br>1. 采样间隔, DAMON 在每个采样间隔内统计每个页面访问的次数;<br>2. 聚合间隔, DAMON 在每个聚合间隔后, 调用自定义的聚合函数读取聚合的结果. | 详细地说, DAMON 检查每个 sampling interval 对每个页面的访问并汇总结果. 换句话说, 计算对每个页面的访问次数. 在每个 aggregation interval 过去之后, DAMON 调用用户先前注册的回调函数, 以便用户可以读取聚合结果, 然后清除结果. 这种机制的监视开销将随目标工作负载的大小增加而任意增加.  |
+| Region Based Sampling<br>基于区域的采样 | 基于区域的采样允许用户在监控质量和开销之间做出自己的权衡, 并限制监控开销的上限. 为了避免无限制地增加开销, DAMON 将假定具有相同访问频率的多个相邻页面分组到一个区域中. 只有在这个前提下 (一个区域内的页面具有相同的访问频率), 只需要检查该区域里的一个页面即可. 因此, 在每个 sampling interval 中, DAMON 只需要在每个区域随机抽取一个页面并清除其访问位即可. 再经过一个 sampling interval 之后, DAMON 读取页面的访问位, 如果同时设置了该位, 则增加该区域的访问频率. 因此, 通过设置区域的数量, 可以控制监控开销. DAMON 允许用户设置区域的最小和最大数量来进行权衡. 但是, 如果不能保证这个假设, 这个方案就不能保证输出的质量. | 将具有相同访问频率的连续页面块分组到一个 region, 这样只需要从每个 region 内随机选取一个页面, 检查该页面的访问情况.<br>通过设置 regions 的个数, 可以控制 DAMON 的开销, 用户可以设置最小和最大的 region 数量(minimum number of regions，and maximum number of regions). |
+| Adaptive Regions Adjustment<br>自适应的区域调整 | 自适应区域调整机制使 DAMON 在保持用户配置的权衡的同时, 最大限度地提高精度, 减少开销. 即使初始监控目标区域构造良好, 以满足假设 (相同区域中的页面具有相似的访问频率), 数据访问模式也可以动态更改. 这将导致低监测质量. 为了尽可能地保持这个假设, DAMON 根据每个区域的访问频率自适应地进行合并和分割. 每个 aggregation interval, 比较相邻区域的访问频率, 当频率差较小时进行合并. 然后, 在报告并清除每个区域的聚合访问频率之后, 如果区域总数不超过分割后用户指定的最大区域数, 则将每个区域分割为两到三个区域. 通过这种方式, DAMON 提供了最佳的质量和最小的开销, 同时为用户设置了相应的限制. | 为了保持 region 内的页面具有相似的访问频率, DAMON 会动态地合并该和切割 region. 每次聚合间隔, DAMON 比较相邻 region 的访问频率, 如果频率相差较小, 则进行合并, 减少的 region 数量可以减少开销. 如果总 region 数不超过用户配置的最大 region, 则为了提高精度, 可以对 region 进行拆分. |
 | Dynamic Target Space Update Handling | 监视目标地址范围可以动态的变化. 例如, 虚拟内存可以动态映射和取消映射. 物理内存可能被热插拔. 由于在某些情况下更改可能非常频繁, 因此 DAMON 会检查动态内存映射更改, 并仅针对每个用户指定的时间间隔(regions update interval)将其应用于抽象的目标区域. |
 
 
@@ -6661,9 +6666,18 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 
 主页 : [damonitor](https://github.com/damonitor)
 
+使用这个框架, 可以更好的优化内核中关于内存回收和 THP(Transparent Huge Pages)等核心的内存管理机制, 从而实现更好的内存管理. 伴有很高开销的实验性内存管理优化工作可以再尝试一次. 与此同时, 在用户空间, 具有特殊工作负载的用户将能够编写个性化的工具或应用程序, 以便对其系统进行更深入的理解和特定的优化. 参见 [Monitoring Data Accesses » Optimization Guide](https://damonitor.github.io/doc/html/latest-damon/admin-guide/mm/damon/guide.html).
+
+
+参见内核文档 [Linux Memory Management Documentation » DAMON: Data Access MONitor](https://www.kernel.org/doc/html/latest/mm/damon/index.html)
+
+
+
 
 ### 13.6.2 DAMON Data Access MONitor
 -------
+
+内核文档 [Linux Memory Management Documentation » DAMON: Data Access MONitor » Design](https://www.kernel.org/doc/html/latest/mm/damon/design.html).
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -6678,7 +6692,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 | 2021/10/16 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon/core: Optimize kdamod.%d thread creation code](https://patchwork.kernel.org/project/linux-mm/patch/20211016165914.96049-1-xhao@linux.alibaba.com) | 当 ctx->adaptive_targets 列表为空, 无需创建并调用kdamond. 只有当 ctx->adaptive_targets 列表不为空, 且 ctx->kdamond 指针为 NULL 时, 才调用__damon_start函数. | v1 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211016165616.95849-1-xhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211016165914.96049-1-xhao@linux.alibaba.com) |
 | 2021/10/21 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon/dbgfs: Optimize target_ids interface write operation](https://patchwork.kernel.org/project/linux-mm/patch/bc341f48b5558f6816dcef22eca4f4a590efdc67.1634834628.git.xhao@linux.alibaba.com) | NA | v2 ☐ | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211021085611.81211-1-xhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/bc341f48b5558f6816dcef22eca4f4a590efdc67.1634834628.git.xhao@linux.alibaba.com) |
 | 2021/10/27 | Changbin Du <changbin.du@gmail.com> | [mm/damon: simplify stop mechanism](https://patchwork.kernel.org/project/linux-mm/patch/20211027130517.4404-1-changbin.du@gmail.com) | NA | v2 ☐ | [PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211027130517.4404-1-changbin.du@gmail.com) |
-| 2022/02/15 | SeongJae Park <sj@kernel.org> | [Allow DAMON user code independent of monitoring primitives](https://patchwork.kernel.org/project/linux-mm/cover/20220215184603.1479-1-sj@kernel.org/) | 614655 | v1 ☐☑ | [PatchWork v1,0/8](https://lore.kernel.org/r/20220215184603.1479-1-sj@kernel.org) |
+| 2022/02/15 | SeongJae Park <sj@kernel.org> | [Allow DAMON user code independent of monitoring primitives](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=851040566a008f7248cb754d5bb9a3e34f2effe5) | 614655 | v1 ☑ 5.18-rc1 | [LORE v1,0/8](https://lore.kernel.org/all/20220215184603.1479-1-sj@kernel.org) |
 | 2022/02/16 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon: Add NUMA access statistics function support](https://patchwork.kernel.org/project/linux-mm/cover/cover.1645024354.git.xhao@linux.alibaba.com/) | 614856 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/cover.1645024354.git.xhao@linux.alibaba.com) |
 | 2022/02/17 | SeongJae Park <sj@kernel.org> | [Introduce DAMON sysfs interface](https://patchwork.kernel.org/project/linux-mm/cover/20220217161938.8874-1-sj@kernel.org/) | 615483 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20220217161938.8874-1-sj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE, v1,00/12](https://patchwork.kernel.org/project/linux-mm/cover/20220223152051.22936-1-sj@kernel.org) |
 | 2022/03/15 | Xin Hao <xhao@linux.alibaba.com> | [mm/damon: Add CMA minotor support](https://patchwork.kernel.org/project/linux-mm/cover/cover.1647378112.git.xhao@linux.alibaba.com/) | 为 DAMON 增加 CMA 内存监控功能. 在某些内存紧张的情况下, 通过监控 CMA 内存释放更多内存将是一个不错的选择. | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/cover.1647378112.git.xhao@linux.alibaba.com) |
