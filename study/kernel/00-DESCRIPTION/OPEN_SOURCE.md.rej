@@ -1,0 +1,16 @@
+diff a/study/kernel/00-DESCRIPTION/OPEN_SOURCE.md b/study/kernel/00-DESCRIPTION/OPEN_SOURCE.md	(rejected hunks)
+@@ -3,12 +3,13 @@
+ 
+ [Android Kernel Features](https://elinux.org/Android_Kernel_Features)
+ 
+-| 公司 | github | MAIN|
++|  公司  |    github  |  MAIN  |
+ |:-----:|:----------:|:-------:|
+ | GOOGLE | [googlesource](https://android.googlesource.com/kernel/common) | NA |
+ | QCOM | [source.codeaurora](https://source.codeaurora.org/quic/la/kernel) | [codeaurora](https://www.codeaurora.org) |
+ | HUAWEI | [consumer-opensource](https://consumer.huawei.com/en/opensource/detail/?siteCode=worldwide&productCode=Smartphones&fileType=openSourceSoftware&pageSize=10&curPage=1) | [opensource](https://consumer.huawei.com/en/opensource) |
+ | XiaoMi | [Xiaomi_Kernel_OpenSource](https://github.com/MiCode/Xiaomi_Kernel_OpenSource), [mitwo-dev](https://github.com/mitwo-dev)| [micode](https://www.micode.net) |
++| RealMe | [realme-kernel-opensource](https://github.com/realme-kernel-opensource) | NA |
+ | 魅族 | [meizuosc](https://github.com/meizuosc), [lvchaqiu](https://github.com/lvchaqiu)|  [魅族内核团队](https://kernel.meizu.com) |
+ | 三星 | [opensource.samsung.com](https://opensource.samsung.com/uploadSearch?searchValue=kernel) | [BogList](https://opensource.samsung.com/community/blogList) |
+ | OPPO | [oppo-source](https://github.com/oppo-source) | NA |

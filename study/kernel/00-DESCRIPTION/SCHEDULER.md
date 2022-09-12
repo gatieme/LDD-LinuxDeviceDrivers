@@ -5349,7 +5349,14 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 -------
 
 
-[Plugsched](https://gitee.com/anolis/plugsched) 是 OpenAnolos Linux 内核调度器子系统热升级的 SDK, 它可以实现在不重启系统、应用的情况下动态替换调度器子系统, 毫秒级 downtime. Plugsched 可以对生产环境中的内核调度特性动态地进行增、删、改, 以满足不同场景或应用的需求, 且支持回滚. 参见 [龙蜥开源 Plugsched: 首次实现 Linux kernel 调度器热升级 | 龙蜥技术](https://openanolis.cn/blog/detail/532955762604705772).
+[Plugsched](https://gitee.com/anolis/plugsched) 是 OpenAnolos Linux 内核调度器子系统热升级的 SDK, 它可以实现在不重启系统、应用的情况下动态替换调度器子系统, 毫秒级 downtime. Plugsched 可以对生产环境中的内核调度特性动态地进行增、删、改, 以满足不同场景或应用的需求, 且支持回滚. 参见
+
+[龙蜥开源 Plugsched: 首次实现 Linux kernel 调度器热升级 | 龙蜥技术](https://openanolis.cn/blog/detail/532955762604705772).
+
+[Plugsched —— Linux 内核调度器热升级](https://openanolis.cn/sig/Cloud-Kernel/doc/614810558709245780)
+
+B 站 Plugsched 介绍视频 [纯干货解读：Plugsched，首次实现 Linux kernel 调度器热升级|龙蜥大讲堂18期](https://www.bilibili.com/video/BV1cW4y1y76c).
+
 
 基于 Plugsched 实现的调度器热升级, 不修改现有内核代码, 就能获得较好的可修改能力, 天然支持线上的老内核版本. 如果提前在内核调度器代码的关键数据结构中加入 Reserve 字段, 可以额外获得修改数据结构的能力, 进一步提升可修改能力.
 

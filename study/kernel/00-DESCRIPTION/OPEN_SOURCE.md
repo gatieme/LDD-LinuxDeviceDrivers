@@ -39,14 +39,23 @@
 | microsoft | [微软的 linux 内部版本 CBL-Mariner](https://github.com/microsoft/CBL-Mariner-Linux-Kernel)<br>*-*-*-*-*-*-*-* <br>[WSL2-Linux-Kernel](https://github.com/microsoft/WSL2-Linux-Kernel)<br>*-*-*-*-*-*-*-* <br>[azure-linux-kernel](https://github.com/microsoft/azure-linux-kernel) | NA |
 
 
-# 3 野的不能再野的野分支
+
+# 3 发行版
+-------
+
+| 发行版 | open source | build |
+|:-----:|:----------:|:-------:|
+| MANJARO | | [packages/core/linux](https://gitlab.manjaro.org/packages/core?filter=linux) |
+
+
+# 4 野的不能再野的野分支
 -------
 
 [Linux 内核为什么没有第三方的版本或分支？](https://www.zhihu.com/question/36367269/answer/144200260)
 
 在 Linux 发展过程中, 存在诸多场景以及诸多特性和优化无法合入主线, 其中一些特性在特定场景往往表现极为出色, 当然也存在一些开发者出于兴趣, 自行进行了维护, 因此 Linux 衍生出了诸多(野)分支.
 
-## 3.1 那些没有进主线的演进特性
+## 4.1 那些没有进主线的演进特性
 -------
 
 | 分支 | 描述 | 内核 |
@@ -65,7 +74,7 @@
 
 
 
-## 3.2 微内核
+## 4.2 微内核
 -------
 
 
@@ -75,7 +84,7 @@
 | [darwin-xnu](https://github.com/apple/darwin-xnu) | 苹果的微内核 | [opensource](https://opensource.apple.com/source/xnu), [cbowser/xnu](https://fergofrog.com/code/cbowser/xnu) |
 
 
-# 4 Linux Version
+# 5 Linux Version
 -------
 
 [LWN 上各版本归档](https://lwn.net/Kernel/Index)
@@ -90,7 +99,7 @@
 | 5.19 | NA | NA | NA |
 |  6.0 | NA | NA | [Linux 6.0 Supporting New Intel/AMD Hardware, Performance Improvements & Much More](https://www.phoronix.com/review/linux-60-features), [6.0-rc1](https://www.phoronix.com/news/Linux-6.0-rc1-Released) |
 
-# 5 业界会议
+# 6 业界会议
 -------
 
 
@@ -114,14 +123,14 @@
 | [USENIX](https://www.usenix.org/conferences/all) | NA |
 
 
-## 5.1 LPC
+## 6.1 LPC
 -------
 
 | 日期 | 录屏 |
 |:---:|:----:|
 | 2021/09 | [Watch Live (Free)](https://www.linuxplumbersconf.org/event/11/page/107-watch-live-free) |
 
-## 5.2 ASPLOS
+## 6.2 ASPLOS
 -------
 
 
@@ -129,12 +138,12 @@
 |:---:|:----:|
 | 2021/04/12 ~ 2021/04/23 | [ASPLOS 2021](https://asplos-conference.org/2021/index.html) | [ASPLOS 2021 论文选读](https://zhuanlan.zhihu.com/p/366849275)
 
-## 5.3 SOSP
+## 6.3 SOSP
 -------
 
 [SOSP](https://sosp.org)
 
-## 5.4 USENIX's OSDI
+## 6.4 USENIX's OSDI
 -------
 
 OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementation, 但随着时代的发展, 它早已不局限在操作系统领域.
@@ -145,17 +154,17 @@ OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementatio
 | 2021/04/12 ~ 2021/04/23 | [ASPLOS 2021](https://asplos-conference.org/2021/index.html) | [OSDI2021 论文选读](https://zhuanlan.zhihu.com/p/393380577) |
 
 
-## 5.5 LSFMM
+## 6.5 LSFMM
 -------
 
 | 日期 | 链接 |
 |:---:|:----:|
 | 2022/05/02 ~ 2022/05/04 | [LSFMM-2022](https://lwn.net/Articles/893733) |
 
-# 6 统计信息
+# 7 统计信息
 -------
 
-## 6.1 版本
+## 7.1 版本
 -------
 
 | 网站 | 描述 |
@@ -163,7 +172,7 @@ OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementatio
 | [LWN](https://lwn.net/Kernel/Index/#Releases) | LWN 每个版本都会在合并窗口发布 Merge Window, 在版本发布之后还会发布 [development statistics](https://lwn.net/Articles/867540) 信息 |
 
 
-## 6.2 测试
+## 7.2 测试
 -------
 
 
