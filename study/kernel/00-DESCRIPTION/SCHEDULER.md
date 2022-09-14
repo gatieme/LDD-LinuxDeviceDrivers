@@ -5266,6 +5266,10 @@ ANDROID 8 实现了 BINDER 对实时优先级传递的支持. 但是经过测试
 ### 11.2.1.2 ghOSt
 -------
 
+谷歌的 Ghost 作为从用户空间和或eBPF程序控制 Linux 内核调度程序的一种手段. Ghost 提供了一个广泛的 API, 因此开发人员可以从用户空间或 eBPF 更改内核的调度程序行为, 并根据系统首选项微调调度行为.
+
+[Google's Ghost Look Very Appealing For Kernel Scheduling From User-Space & eBPF Programs](https://www.phoronix.com/news/Google-Ghost-Linux-Scheduling)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/09/08 | Peter Oskolkov <posk@google.com>/<posk@posk.io> | [google ghOSt](https://github.com/google/ghost-kernel) | ghOSt 是在 Linux 内核上实现的用户态调度策略的通用代理. ghOSt 框架提供了一个丰富的 API, 该 API 从用户空间接收进程的调度决策, 并将其作为事务执行. 程序员可以使用任何语言或工具来开发策略, 这些策略可以在不重新启动机器的情况下升级. ghOSt 支持一系列调度目标的策略, 从 µs 级延迟到吞吐量, 再到能源效率, 等等, 并且调度操作的开销较低. 许多策略只是几百行代码. 总之, ghOSt 提供了一个性能框架, 用于将线程调度策略委托给用户空间进程, 从而实现策略优化、无中断升级和故障隔离. | [github kernel](https://github.com/google/ghost-kernel)<br>*-*-*-*-*-*-*-* <br>[github userspace](https://github.com/google/ghost-userspace) |
@@ -5341,6 +5345,7 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 
 这与谷歌的 ghOSt 非常类似, 但是 ghOSt 比 BPF 的方式要激进很多, ghOSt 的目标是将调度代码转移到用户空间. 它们的核心动机似乎有些相似:使调度器更改更容易开发、验证和部署. 尽管他们的方法不同, 他们也使用 BPF 来加速一些热点路径. 但是作者认为使用 BPF 的方式也可以达到他们的目的. 参见 [eBPF in CPU Scheduler](https://linuxplumbersconf.org/event/11/contributions/954/attachments/776/1463/eBPF%20in%20CPU%20Scheduler.pdf)
 
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/09/15 | Roman Gushchin <guro@fb.com> | [Scheduler BPF](https://www.phoronix.com/scan.php?page=news_item&px=Linux-BPF-Scheduler) | NA | RFC ☐ | [PatchWork rfc,0/6](https://patchwork.kernel.org/project/netdevbpf/cover/20210916162451.709260-1-guro@fb.com)<br>*-*-*-*-*-*-*-* <br>[LPC 2021](https://linuxplumbersconf.org/event/11/contributions/954)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2021/9/16/1049), [LWN](https://lwn.net/Articles/869433), [LWN](https://lwn.net/Articles/873244) |
@@ -5355,10 +5360,23 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 
 [Plugsched —— Linux 内核调度器热升级](https://openanolis.cn/sig/Cloud-Kernel/doc/614810558709245780)
 
-B 站 Plugsched 介绍视频 [纯干货解读：Plugsched，首次实现 Linux kernel 调度器热升级|龙蜥大讲堂18期](https://www.bilibili.com/video/BV1cW4y1y76c).
+B 站 Plugsched 介绍视频 [纯干货解读：Plugsched, 首次实现 Linux kernel 调度器热升级|龙蜥大讲堂18期](https://www.bilibili.com/video/BV1cW4y1y76c).
 
 
 基于 Plugsched 实现的调度器热升级, 不修改现有内核代码, 就能获得较好的可修改能力, 天然支持线上的老内核版本. 如果提前在内核调度器代码的关键数据结构中加入 Reserve 字段, 可以额外获得修改数据结构的能力, 进一步提升可修改能力.
+
+
+### 11.2.4 User-Space Hinting For Tasks
+-------
+
+[AMD Aims To Squeeze More EPYC Performance Out Of Linux With User-Space Hinting For Tasks](https://www.phoronix.com/news/AMD-User-Space-Hiting-Linux)
+
+[AMD Posts "P-State EPP" Driver As New Attempt To Improve Performance-Per-Watt On Linux](https://www.phoronix.com/news/AMD-P-State-EPP-Linux)
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/09/10 | K Prateek Nayak <kprateek.nayak@amd.com> | [sched: Userspace Hinting for Task Placement](https://lore.kernel.org/all/20220910105326.1797-1-kprateek.nayak@amd.com) | TODO | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20220910105326.1797-1-kprateek.nayak@amd.com) |
+
 
 ## 11.3 协程(Coroutine)
 -------

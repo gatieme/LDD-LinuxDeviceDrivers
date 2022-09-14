@@ -175,6 +175,14 @@ RRZE-HPC 的 [likwid(Like I knew what I am doing):Performance monitoring and ben
 -------
 
 
+## 2.10 DEBUGINFO
+-------
+
+RedHat 一直领导着调试信息方面的生态系统工作, 自 Fedora 35 以来, 它一直默认使用 [debuginfod](https://sourceware.org/elfutils/Debuginfod.html) 来辅助工作, debuginfod 通过 HTTP API 提供调试信息服务, 无需在本地使用所有 debuginfo package, 只需向远程服务器查询所需的 debuginfo 信息即可. 既节省了磁盘空间, 使用起来又相当方便.
+
+Arch Linux 在 2022 年 5 月份开始了也提供了他们的 [debuginfod 调试信息服务器](https://wiki.archlinux.org/title/Debuginfod). 参见 [wiki.archlinux--Debugging/Getting traces](https://wiki.archlinux.org/title/Debugging/Getting_traces)
+
+接着 Ubuntu 22.10 也开始集成 debuginfod, 参见 phoronix 报道 [](https://www.phoronix.com/news/Ubuntu-22.10-Debuginfod)
 
 # 3 安全
 -------

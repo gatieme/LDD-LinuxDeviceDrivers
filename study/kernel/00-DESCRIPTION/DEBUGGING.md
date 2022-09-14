@@ -173,7 +173,7 @@ Load Averages 是一项历史悠久的指标, 在 1973 年 8 月的 RFC 546 中�
 | 2018/08/28 | Johannes Weiner <hannes@cmpxchg.org> | [psi: pressure stall information for CPU, memory, and IO v4](https://lwn.net/Articles/759781) | 引入 PSI 评估系统 CPU, MEMORY, IO 等资源的压力. | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Core_.28various.29) | [LWN](https://lwn.net/Articles/544652), [](https://lkml.org/lkml/2013/2/10/140), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=70ddf637eebe47e61fb2be08a59315581b6d2f38) |
 | 2022/02/19 | Suren Baghdasaryan <surenb@google.com> | [[1/1] mm: count time in drain_all_pages during direct reclaimas memory pressure](https://patchwork.kernel.org/project/linux-mm/patch/20220219174940.2570901-1-surenb@google.com/) |615990 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220219174940.2570901-1-surenb@google.com) |
 
-## 6 PSI
+## 6.4 PSI
 -------
 
 [知乎-兰新宇--Linux 的资源控制监测 - PSI [上]](https://zhuanlan.zhihu.com/p/523716850)
@@ -266,8 +266,6 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 
 [Printbuf rebuffed for now](https://lwn.net/Articles/892611)
 
-[Linux 5.19's Printk To Offload Messages To Per-Console KThreads](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.19-Printk)
-
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -275,8 +273,17 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2020/07/21 | John Ogness <john.ogness@linutronix.de> | [printk: ringbuffer: support dataless records](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d397820f36ffe4701343b6ee12687d60db0ed8db) | 20200721132528.9661-1-john.ogness@linutronix.de | v2 ☑ 5.10-rc1 | [LORE](https://lore.kernel.org/all/20200721132528.9661-1-john.ogness@linutronix.de) |
 | 2020/09/14 | John Ogness <john.ogness@linutronix.de> | [printk: reimplement LOG_CONT handling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f5f022e53b874f978dda23847173cbf2589b07f5) | 20200914123354.832-6-john.ogness@linutronix.de | v5 ☑ 5.10-rc1 | [LORE v5,0/6](https://lore.kernel.org/all/20200914123354.832-1-john.ogness@linutronix.de) |
 | 2020/09/19 | John Ogness <john.ogness@linutronix.de> | [printk: move dictionaries to meta data](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f5f022e53b874f978dda23847173cbf2589b07f5) | 20200918223421.21621-1-john.ogness@linutronix.de | v2 ☑ 5.10-rc1 | [LORE v2,0/3](https://lore.kernel.org/all/20200918223421.21621-1-john.ogness@linutronix.de) |
-| 2022/02/07 | John Ogness <john.ogness@linutronix.de> | [implement threaded console printing](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) | 参见 phoronix 报道 [Linux Gets Patches For Threaded Console Printing](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Threaded-Console-Print) 和 [Patches Updated For Linux To Enjoy Consoles Running At Full-Speed](https://www.phoronix.com/scan.php?page=news_item&px=Printk-v3-Consoles-Full-Speed) | v1 ☐ | [LORE v1,0/13](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) |
 | 2022/04/27 | Guilherme G. Piccoli <gpiccoli@igalia.com> | [The panic notifiers refactor](https://lore.kernel.org/all/20220427224924.592546-1-gpiccoli@igalia.com) | 20220427224924.592546-1-gpiccoli@igalia.com | v1 ☐☑✓ | [LORE v1,0/30](https://lore.kernel.org/all/20220427224924.592546-1-gpiccoli@igalia.com) |
+
+
+[Linux 5.19's Printk To Offload Messages To Per-Console KThreads](https://www.phoronix.com/news/Linux-Threaded-Console-Print)
+
+[Linux Sees A New Attempt At Threaded Console Printing](https://www.phoronix.com/news/New-Linux-printk-Threaded-Work).
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/02/07 | John Ogness <john.ogness@linutronix.de> | [implement threaded console printing](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) | 参见 phoronix 报道 [Linux Gets Patches For Threaded Console Printing](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Threaded-Console-Print) 和 [Patches Updated For Linux To Enjoy Consoles Running At Full-Speed](https://www.phoronix.com/scan.php?page=news_item&px=Printk-v3-Consoles-Full-Speed) | v1 ☐ | [LORE v1,0/13](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) |
+| 2022/09/11 | Thomas Gleixner <tglx@linutronix.de> | [printk: A new approach - WIP](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |  | v1 ☐☑✓ | [LORE v1,0/29](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |
 
 
 # 10 KEXEC
@@ -819,7 +826,6 @@ LWN 上也对此进行了[汇总报道](https://lwn.net/Kernel/Index/#Android-Ge
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/06/16 | Daniel Bristot de Oliveira <bristot@kernel.org> | [The Runtime Verification (RV) interface](https://lore.kernel.org/all/cover.1655368610.git.bristot@kernel.org) | 运行时验证 Linux 内核的行为. 运行时验证(RV) 是一种轻量级 (但严格) 的方法, 它补充了经典的穷举验证技术 (如模型检查和定理证明), 并为复杂系统提供了一种更实用的方法. RV 不依赖于系统的细粒度模型 (例如, 重新实现指令级别), 而是通过分析系统实际执行的轨迹, 并将其与系统行为的形式化规范进行比较来工作. RV 使用确定性自动机是一种成熟的方法. | v4 ☐☑✓ | [LORE v4,0/20](https://lore.kernel.org/all/cover.1655368610.git.bristot@kernel.org) |
-
 
 
 

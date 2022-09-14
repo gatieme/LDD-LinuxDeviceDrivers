@@ -441,6 +441,16 @@ raw_tracepoint 相比 tracepoint
 [OpenAnolis/eBPF技术探索 SIG/Eunomia项目介绍](https://openanolis.cn/sig/ebpfresearch/doc/640013458629853191)
 
 
+## 8.5 ubpf
+--------
+
+[0](https://github.com/iovisor/ubpf)
+
+[1](https://github.com/rlane/ubpf)
+
+[2](https://github.com/p-quic/ubpf)
+
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

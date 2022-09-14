@@ -3290,10 +3290,9 @@ v12 版本已经没有什么特性变更, 仅仅是一些 bugfix, 参见 phoroni
 
 接着 MGLRU 错过了 6.0 的 MergeWindow, 但是有望 6.1 合入主线 [MGLRU & Maple Tree Miss Out On Linux 6.0 But Will Aim For Linux 6.1](https://www.phoronix.com/news/MGLRU-Maple-Tree-Miss-6.0). 在 8 月份发布的 v14 版本, 已基于 Andrew Morton 分支的最新 mm-unnstable 代码进行了 rebase, 并使用 Linux 6.0-rc1 进行了测试, 从而为 v6.1 的合入做好准备, 参见 [MGLRU v14 Released For Improving Linux Low-Memory Performance](https://www.phoronix.com/news/MGLRU-v14-Released).
 
-[MGLRU Patches Picked Up By Andrew Morton's "mm-unstable" Branch Ahead Of Linux 6.1](https://www.phoronix.com/news/MGLRU-MM-Branch)
+社区开发者们对 MGLRU 的合入保持了极大的热情和关注, 参见 [MGLRU Patches Picked Up By Andrew Morton's "mm-unstable" Branch Ahead Of Linux 6.1](https://www.phoronix.com/news/MGLRU-MM-Branch) 和 [MGLRU Linux Performance Looking Very Good For OpenWrt Router Use](https://www.phoronix.com/news/MGLRU-Performance-OpenWRT)
 
-[MGLRU Linux Performance Looking Very Good For OpenWrt Router Use](https://www.phoronix.com/news/MGLRU-Performance-OpenWRT)
-
+MGLRU 的开发者在 LRC-2022 上演示了 MGLRU, phoronix 对此进行了跟踪报道, 参见 [MGLRU Looks Like One Of The Best Linux Kernel Innovations Of The Year](https://www.phoronix.com/news/MGLRU-LPC-2022).
 
 *   实现
 
