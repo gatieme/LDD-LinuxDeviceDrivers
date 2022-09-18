@@ -85,7 +85,7 @@ GCC 的支持 eBPF 经过了 3 个阶段.
 
 1.  首先在 toolchain 里添加 BPF 的最基本的支持, 将 BPF target 添加到 GNU toolchain, 包括 binutils 支持 BPF, 以及让 GCC 能支持一个新的 bpf-unknown-none 的 target.
 
-2.  确保生成的程序能够被内核里的 BPF verifier 验证通过，从而允许加载到内核中.
+2.  确保生成的程序能够被内核里的 BPF verifier 验证通过, 从而允许加载到内核中.
 
 3.  最后一个阶段是为 BPF 开发者提供额外工具. 除了编译器和汇编器(compiler and assembler)之外, 还需要调试器和模拟器(debuggers and simulators). 例如 BPF 的 simulator, 用来在 user space 运行, 可以通过 GDB 来调试 BPF program. BPF 就像是某种类型的嵌入式平台一样, 需要针对这种平台创建各种工具才能让普通开发者正常进行开发.
 
@@ -145,7 +145,7 @@ v3.15 对 BPF 进行了升级扩展, 参见 [BPF updates](https://git.kernel.org
 
 eBPF 已经是一个独立的模块了, 因此后来 3.18 直接将 eBPF 从 NET 子系统中分离出来. 参见 [bpf: split eBPF out of NET](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f89b7755f517cdbb755d7543eef986ee9d54e654).
 
-[BPF 数据传递的桥梁 ——BPF Map（一）](https://blog.csdn.net/alex_yangchuansheng/article/details/108332511)
+[BPF 数据传递的桥梁 ——BPF Map(一)](https://blog.csdn.net/alex_yangchuansheng/article/details/108332511)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -425,6 +425,26 @@ raw_tracepoint 相比 tracepoint
 ## 8.3 coolbpf(surtrace & pyLCC)
 -------
 
+[龙蜥社区开源 coolbpf, BPF 程序开发效率提升百倍 | 龙蜥技术](https://openanolis.cn/blog/detail/601601711630939267) coolbpf 项目, 以 CO-RE(Compile Once-Run Everywhere)为基础实现, 保留了资源占用低、可移植性强等优点, 还融合了 BCC 动态编译的特性, 适合在生产环境批量部署所开发的应用.
+
+coolbpf 开创了一个新的思路, 利用远程编译的思想, 把用户的BPF程序推送到远端的服务器并返回给用户.o或.so, 提供高级语言如 `Python/Rust/Go/C` 等进行加载, 然后在全量内核版本安全运行. 用户只需专注自己的功能开发, 不用关心底层库(如 LLVM、python 等)安装、环境搭建, 给广大 BPF 爱好者提供一种新的探索和实践.
+
+coolbpf 本质上是一个 eBPF 开发平台, 通过 pylcc、rlcc、golcc 和 clcc 等实现了高级语言的支持, 同时支持远程编译.
+
+| feature | 描述 |
+|:-------:|:----:|
+| clcc  | 基于 C 的 LCC |
+| plcc  | 基于 Python 的 LCC |
+| rlcc  | 基于 Rust 的 LCC   |
+| golcc | 基于 Rust 的 LCC   |
+| glcc(generic LCC | 高版本特性移植到低版本, (g 代表 generic) 是通过将高版本的 BPF 特性移植到低版本, 通过 kernel module 的方式在低版本上运行. 驱动源代码位于 [`lcc/glcc`](https://gitee.com/anolis/coolbpf/tree/master/lcc/glcc) |
+
+glcc 则实现了 eBPF 驱动和 libbpf 的支持, 允许 eBPF 程序无需修改即可在低版本内核上运行.
+
+1.  通过 eBPF 驱动将 BPF SYSCALL 转换为 IOCTL 系统调用, 为低版本内核提供 eBPF 的能力;
+
+2.  通过 libbpf 则屏蔽了不同内核版本的差异.
+
 [微信公众号-Linux 内核之旅--内核 trace 三板斧 - surtrace-cmd](https://mp.weixin.qq.com/s/XanaxrLDwkqTqcfq9B2eOw)
 
 [龙蜥开源内核追踪利器 Surftrace：协议包解析效率提升 10 倍！ | 龙蜥技术](https://mp.weixin.qq.com/s/o3Q-spZmBbs4Gbhv-3U91g)
@@ -432,6 +452,8 @@ raw_tracepoint 相比 tracepoint
 [iofsstat：帮你轻松定位 IO 突高, 前因后果一目了然 | 龙蜥技术](https://developer.aliyun.com/article/867067)
 
 [libbpf 编译平台 LCC——eBPF从入门到享受 | 龙蜥大讲堂第 20 期](https://www.bilibili.com/video/BV1Ar4y1G7R8)
+
+[eBPF在低版本内核如何跑起来？| 龙蜥大讲堂第46期](https://www.bilibili.com/video/BV1Se411u7zD)
 
 ## 8.4 eunomia-bpf
 -------
@@ -450,6 +472,12 @@ raw_tracepoint 相比 tracepoint
 
 [2](https://github.com/p-quic/ubpf)
 
+## 8.6 BCC
+-------
+
+[An introduction to the BPF Compiler Collection](https://lwn.net/Articles/742082)
+
+[bcc/ebpf 安装及示例（2019）](http://arthurchiao.art/blog/bcc-ebpf-tutorial-zh)
 
 <br>
 
