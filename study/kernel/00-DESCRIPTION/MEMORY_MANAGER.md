@@ -5334,21 +5334,17 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 ### 8.2.5 MMAP locking
 -------
 
-2013 年, [LSFMM: Problems with mmap_sem](https://lwn.net/Articles/548098)
-
-2015 年, [Topics of interest from the MM summit](https://events.static.linuxfound.org/sites/events/files/slides/mm.pdf)
-
-2017 年, [Another attempt at speculative page-fault handling](https://lwn.net/Articles/730531)
-
-2018 年, [Zone-lock and mmap_sem scalability](https://lwn.net/Articles/753269), [The LRU lock and mmap_sem](https://lwn.net/Articles/753058)
-
-2019 年, [How to get rid of mmap_sem](https://lwn.net/Articles/787629)
-
-2021 年, [Introducing maple trees](https://lwn.net/Articles/845507)
-
-2021 年, [[LSF/MM TOPIC] mmap locking topics](https://www.spinics.net/lists/linux-mm/msg258803.html)
-
-2022 年 [The ongoing search for mmap_lock scalability](https://lwn.net/Articles/893906)
+| 时间 | 讨论 |
+|:----:|:----:|
+| 2013 年 | [LSFMM: Problems with mmap_sem](https://lwn.net/Articles/548098) |
+| 2014 年 | [LWN: Memory management locking](https://lwn.net/Articles/591978) |
+| 2015 年 | [Topics of interest from the MM summit](https://events.static.linuxfound.org/sites/events/files/slides/mm.pdf) |
+| 2017 年 | [Another attempt at speculative page-fault handling](https://lwn.net/Articles/730531) |
+| 2018 年 | [Zone-lock and mmap_sem scalability](https://lwn.net/Articles/753269), [The LRU lock and mmap_sem](https://lwn.net/Articles/753058) |
+| 2019 年 | [How to get rid of mmap_sem](https://lwn.net/Articles/787629) |
+| 2021 年 | [Introducing maple trees](https://lwn.net/Articles/845507) |
+| 2021 年 | [LSF/MM TOPIC] mmap locking topics](https://www.spinics.net/lists/linux-mm/msg258803.html) |
+| 2022 年 | [The ongoing search for mmap_lock scalability](https://lwn.net/Articles/893906)<br>LPC-2022 [Scalability solutions for the mmap_lock - Maple Tree and per-VMA locks](https://lpc.events/event/16/contributions/1271) |
 
 
 *   mmap_sem Scalability
@@ -5380,6 +5376,7 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 * per-VMA locks
 
 [Concurrent page-fault handling with per-VMA locks](https://lwn.net/Articles/906852)
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

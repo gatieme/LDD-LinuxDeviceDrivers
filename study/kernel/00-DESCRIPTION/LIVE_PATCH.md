@@ -127,12 +127,11 @@ https://git.kernel.org/pub/scm/linux/kernel/git/jirislaby/kgraft.git/
 ## 1.5 Kgraft + Kpatch 的混合体 Livepatch
 -------
 
-
-
 SUSE 和 Red Hat 都尝试将自家的解决方案推向 Linux Mainline, 社区经过激烈的讨论, 最终融合了两家方案的创意形成 livepatch 方案, 合入 v4.0, 参见 [Live Kernel Patching Update](https://www.redhat.com/zh/blog/live-kernel-patching-update?source=author&term=34761).
 
 随后在并在2016年10月, Canonical 宣布他们正基于 livepatch 推出自己的的商业内核更新服务 Canonical Livepatch服务.
 
+2022 LPC-2022 上, Mate/Facebook 也宣布他们转向内核实时补丁 [Kernel Live Patching at Scale](https://lpc.events/event/16/contributions/1199). phoronix 随后也进行了报道 [Linux Kernel Live Patching Working Fairly Well For Millions Of Meta Servers](https://www.phoronix.com/news/Meta-Linux-Kernel-Live-Patching).
 
 ## 1.6 总结
 -------
