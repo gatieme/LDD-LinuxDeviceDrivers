@@ -125,6 +125,9 @@ https://lwn.net/Articles/422487/
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2009/08/05 | Arjan van de Ven <arjan@infradead.org> | [Implement crashkernel=auto](https://lore.kernel.org/patchwork/cover/166256) | 实现 crashkernel=auto . | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/166256) |
+| 2022/08/28 | Baoquan He <bhe@redhat.com> | [arm64, kdump: enforce to take 4G as the crashkernel low memory end](https://patchwork.kernel.org/project/linux-mm/cover/20220828005545.94389-1-bhe@redhat.com/) | 671768 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20220828005545.94389-1-bhe@redhat.com) |
+
+[crash extension modules](https://crash-utility.github.io/extensions.html)
 
 
 # 5 REFCOUNT
@@ -166,14 +169,13 @@ Load Averages 是一项历史悠久的指标, 在 1973 年 8 月的 RFC 546 中�
 ## 6.3 memory vmpressure
 -------
 
-
-
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/08/28 | Johannes Weiner <hannes@cmpxchg.org> | [psi: pressure stall information for CPU, memory, and IO v4](https://lwn.net/Articles/759781) | 引入 PSI 评估系统 CPU, MEMORY, IO 等资源的压力. | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Core_.28various.29) | [LWN](https://lwn.net/Articles/544652), [](https://lkml.org/lkml/2013/2/10/140), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=70ddf637eebe47e61fb2be08a59315581b6d2f38) |
 | 2022/02/19 | Suren Baghdasaryan <surenb@google.com> | [[1/1] mm: count time in drain_all_pages during direct reclaimas memory pressure](https://patchwork.kernel.org/project/linux-mm/patch/20220219174940.2570901-1-surenb@google.com/) |615990 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220219174940.2570901-1-surenb@google.com) |
+| 2022/09/10 | Christoph Hellwig <hch@lst.de> | [improve pagecache PSI annotations](https://lore.kernel.org/all/20220910065058.3303831-1-hch@lst.de) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220910065058.3303831-1-hch@lst.de)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/all/20220915094200.139713-1-hch@lst.de) |
 
-## 6.4 PSI
+## 6.4 PSI Core
 -------
 
 [知乎-兰新宇--Linux 的资源控制监测 - PSI [上]](https://zhuanlan.zhihu.com/p/523716850)
@@ -204,6 +206,8 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2020/03/31 | Yafang Shao <laoar.shao@gmail.com> | [psi: enhance psi with the help of ebpf](https://lwn.net/Articles/1218304) | 引入 psi_memstall_type 标记 MEMSTALL 的类别, 并在 tracepoint 输出, 从而可以被 ebpf 使用来增强工具. | v4 ☑ [4.20-rc1](https://kernelnewbies.org/Linux_4.20#Core_.28various.29) | [Patchwork](https://lore.kernel.org/patchwork/patch/1218304) |
 | 2022/07/21 | Chengming Zhou <zhouchengming@bytedance.com> | [sched/psi: some optimization and extension](https://lore.kernel.org/all/20220721040439.2651-1-zhouchengming@bytedance.com) | 优化 PSI 的性能, 同时增加对 IRQ/SOFTIRQ 的负载压力跟踪. | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20220721040439.2651-1-zhouchengming@bytedance.com) |
 | 2022/08/01 | CGEL <cgel.zte@gmail.com> | [[RFC,1/2] psi: introduce memory.pressure.stat](https://patchwork.kernel.org/project/linux-mm/patch/20220801004205.1593100-1-ran.xiaokai@zte.com.cn/) | 664363 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20220801004205.1593100-1-ran.xiaokai@zte.com.cn) |
+| 2022/09/10 | Christoph Hellwig <hch@lst.de> | [[1/5] mm: add PSI accounting around ->read_folio and ->readahead calls](https://patchwork.kernel.org/project/linux-mm/patch/20220910065058.3303831-2-hch@lst.de/) | 675899 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20220910065058.3303831-2-hch@lst.de) |
+| 2022/09/15 | Christoph Hellwig <hch@lst.de> | [improve pagecache PSI annotations v2](https://lore.kernel.org/all/20220915094200.139713-1-hch@lst.de) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220915094200.139713-1-hch@lst.de) |
 
 
 # 7 DYNAMIC_DEBUG

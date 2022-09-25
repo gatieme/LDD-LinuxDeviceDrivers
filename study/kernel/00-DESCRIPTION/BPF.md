@@ -479,6 +479,21 @@ glcc 则实现了 eBPF 驱动和 libbpf 的支持, 允许 eBPF 程序无需修�
 
 [bcc/ebpf 安装及示例（2019）](http://arthurchiao.art/blog/bcc-ebpf-tutorial-zh)
 
+
+# 9 WASM(WebAssembly)
+-------
+
+[WebAssembly 中文网|Wasm 中文文档](https://www.wasm.com.cn)
+
+## 9.1 Wasmtime
+-------
+
+2019 年, 英特尔、Mozilla 和红帽就启动了字节码联盟, 作为一项旨在促进"无处不在"运行 WebAssembly, 并将 WASM 的范围扩展到 Web 浏览器之外的倡议. 开发三年后(2022 年), WebAssembly 运行时 Wasmtime 1.0 发布了. 参见 phoronix 报道 [Wasmtime 1.0 Released - Bytecode Alliance Declares It Production Ready](https://www.phoronix.com/news/Wasmtime-1.0-Released).
+
+
+Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标准. Wasmtime还支持与 C/C++, Python, .NET, Go 和其他编程语言的集成, 同时在 Windows / Linux / macOS 平台上运行等等. 
+
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

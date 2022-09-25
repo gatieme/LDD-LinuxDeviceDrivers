@@ -696,6 +696,16 @@ Chang 的 patch set 采用了与之前不同的方法: 允许 cgroup 将一些�
 | 2021/06/21 | JHuaixin Chang | [sched/fair: Burstable CFS bandwidth controller](https://lore.kernel.org/patchwork/cover/1396878) | 突发任务的带宽控制优化, 通过临时之前剩余累计的配额, 使得突发进程在当前周期的配额突然用尽之后, 还可以临时使用之前累计的配额使用, 从而降低突发任务的时延. | v6 ☑ 5.14-rc1 | [ 2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1354613)<br>*-*-*-*-*-*-*-*<br>[2021/01/20 v2](https://lore.kernel.org/patchwork/cover/1368037)<br>*-*-*-*-*-*-*-*<br>[2021/01/21 v3](https://lore.kernel.org/patchwork/cover/1368746)<br>*-*-*-*-*-*-*-*<br>[2021-02-02 v4](https://lore.kernel.org/patchwork/cover/1396878)<br>*-*-*-*-*-*-*-*<br>[2021/05/20 v5](https://lore.kernel.org/patchwork/cover/1433660)<br>*-*-*-*-*-*-*-*<br>[2021/06/21 v6](https://lore.kernel.org/patchwork/cover/1449268)<br>*-*-*-*-*-*-*-*<br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f4183717b370ad28dd0c0d74760142b20e6e7931) |
 | 2021/08/30 | Huaixin Chang <changhuaixin@linux.alibaba.com> | [Add statistics and ducument for cfs bandwidth burst](https://lore.kernel.org/patchwork/cover/1396878) | 为 Burstable CFS bandwidth 添加统计信息和文档. | v1 ☑ 5.16-rc1 | [2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1396878)<br>*-*-*-*-*-*-*-*<br>[2021/08/30 LORE v2 0/2](https://lore.kernel.org/all/20210830032215.16302-1-changhuaixin@linux.alibaba.com) |
 | 2021/11/29 | Honglei Wang <wanghonglei@didichuxing.com> | [sched/fair: prevent cpu burst too many periods](https://lore.kernel.org/patchwork/cover/1396878) | commit f4183717b370 ("sched/fair: Introduce the burstable CFS controller") 引入了一个问题, 任务在持久性期间可能获得比配额更多的 cpu. 例如, 一个任务组的配额为每周期 100ms, 可以获得 100ms 突发, 其平均利用率约为每周期 105ms. 一旦这个组获得了一个空闲时间段, 它就有机会在公共带宽配置中获得超过其配额的 10 个或更多时间段的计算能力(例如, 100 毫秒作为时间段). 这意味着任务获得了可以 "偷走" 完成日常工作的能力, 因为所有任务都可以安排出去或睡觉, 以帮助团队获得空闲时间. cpu burst 的本来目的是帮助处理突发性工作负载. 但是, 如果一个任务组在没有突发性工作负载的情况下, 能够在持续时间内获得超过其配额的计算能力, 那么它违背了初衷. 此修补程序将突发限制为一个时段, 以便在很长时间内不会突破配额限制. 有了这个, 我们可以给任务组更多的 cpu 突发能力来处理真正的突发性工作负载,  而不必担心被恶意 "窃取". | v1 ☑ 5.16-rc1 | [LKML](https://lkml.org/lkml/2021/11/29/663) |
+| 2022/05/18 | Fam Zheng <fam.zheng@bytedance.com> | [sched: Enable root level cgroup bandwidth control](https://lore.kernel.org/all/20220518100841.1497391-1-fam.zheng@bytedance.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220518100841.1497391-1-fam.zheng@bytedance.com) |
+
+
+### 2.1.4 leaf_cfs_rq
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/05/26 | Chengming Zhou <zhouchengming@bytedance.com> | [sched/fair: optimize and simplify rq](https://lore.kernel.org/all/20220526103929.14976-1-zhouchengming@bytedance.com) | TODO | v3 ☐☑✓ | [LORE v3,0/2](https://lore.kernel.org/all/20220526103929.14976-1-zhouchengming@bytedance.com) |
+
 
 
 ## 2.2 实时进程的组调度支持(RT Group Scheduling)
@@ -1206,6 +1216,7 @@ enqueue_task()
 | 2018/05/30 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [Skip numa distance for offline nodes](https://lore.kernel.org/patchwork/patch/1433871) | NA | v1 ☐ | [LORE 0/3](https://lore.kernel.org/lkml/20210520154427.1041031-1-srikar@linux.vnet.ibm.com) |
 | 2019/5/13 | Len Brown <len.brown@intel.com> | [v6 multi-die/package topology support](https://lore.kernel.org/patchwork/patch/1433871) | 支持 DIE 拓扑层级. | v6 ☑ 5.3-rc1 | [LKML 0/19](https://lkml.org/lkml/2019/5/13/768) |
 | 2020/03/11 | Valentin Schneider <valentin.schneider@arm.com> | [sched: Instrument sched domain flags](https://lore.kernel.org/patchwork/cover/1224722) | 基于上一组补丁, 重构了 SD_FLAGS 的定义 | v4 ☑ 5.10-rc1 | [PatchWork v5,00/17](https://lore.kernel.org/patchwork/cover/1224722)<br>*-*-*-*-*-*-*-* <br>[LORE v6,00/17](https://lore.kernel.org/all/20200817113003.20802-1-valentin.schneider@arm.com) |
+| 2022/07/04 | Sudeep Holla <sudeep.holla@arm.com> | [arch_topology: Updates to add socket support and fix cluster ids](https://lore.kernel.org/all/20220704101605.1318280-1-sudeep.holla@arm.com) | [Impact of recent CPU topology changes on Android's phantom domains](https://lpc.events/event/16/contributions/1342) | v6 ☐☑✓ | [LORE v6,0/21](https://lore.kernel.org/all/20220704101605.1318280-1-sudeep.holla@arm.com) |
 
 
 ### 4.1.2 3-hops 问题
@@ -3265,6 +3276,8 @@ v3.0 版本 [sched: Reduce runqueue lock contention -v6](https://git.kernel.org/
 | 2013/08/09 | Oleg Nesterov <oleg@redhat.com> | [sched: fix the theoretical signal_wake_up() vs schedule() race](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e0acd0a68ec7dbf6b7a81a87a867ebd7ac9b76c4) | 20130812170257.GA32358@redhat.com | v1 ☑✓ 3.11-rc6 | [LORE v1](https://lore.kernel.org/lkml/20130812170257.GA32358@redhat.com) |
 | 2015/08/03 | tip-bot for Peter Zijlstra <tipbot@zytor.com> | [sched: Introduce the 'trace_sched_waking' tracepoint](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fbd705a0c6184580d0e2fbcbd47a37b6e5822511) | NA | v1 ☑✓ 4.3-rc1 | [LORE](https://lore.kernel.org/all/tip-fbd705a0c6184580d0e2fbcbd47a37b6e5822511@git.kernel.org/) |
 | 2020/05/24 | Mel Gorman | [Optimise try_to_wake_up() when wakee is descheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2ebb17717550607bcd85fb8cf7d24ac870e9d762) | 唤醒时如果 wakee 进程正在睡眠或者调度(释放 CPU), 优化在 on_cpu 的自旋等待时间 | v1 ☑ 5.8-rc1 | [LORE 0/2](https://lore.kernel.org/lkml/20200524202956.27665-1-mgorman@techsingularity.net) |
+| 2022/08/24 | Peng Wang <rocking@linux.alibaba.com> | [sched/fair: select waker's cpu for wakee on sync wakeup](https://lore.kernel.org/all/1508aa17d1a169077c8d8d8c22d2bd529101af0e.1661313074.git.rocking@linux.alibaba.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/1508aa17d1a169077c8d8d8c22d2bd529101af0e.1661313074.git.rocking@linux.alibaba.com) |
+| 2022/09/16 | Chen Yu <yu.c.chen@intel.com> | [sched/fair: Choose the CPU where short task is running during wake up](https://lore.kernel.org/all/20220915165407.1776363-1-yu.c.chen@intel.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220915165407.1776363-1-yu.c.chen@intel.com) |
 
 
 ### 4.7.1.1 TTWU 中的内存屏障
@@ -4294,6 +4307,9 @@ Misfit Task 对调度器**负载均衡**做了如下改造, 参见 [commit cad68
 ### 7.2.5 Energy Model
 -------
 
+#### 7.2.5.1 Energy Model
+-------
+
 EAS 依赖于 EM(Energy Model) 提供的能效模型等信息来计算能效最优的调度行为.
 
 v5.0 EAS 合入主线之前, 内核通过 init_sched_energy_costs() 解析 DTB 中 sched-energy-costs, freq-energy-model, busy-cost-data 等节点和字段来构建 CPU 的能效表.
@@ -4311,6 +4327,22 @@ v5.0 EAS 合入主线之后, 引入了 EM, 各平台或者设备通过 [em_dev_r
 | 2018/02/23 | Sudeep Holla <sudeep.holla@arm.com> | [firmware: ARM System Control and Management Interface(SCMI) support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=02f208c5c60549039445402505dea284e15f0f4f) | 注册了 SCMI 的能效模型. | v6 ☑✓ 4.17-rc1 | [LORE v6,0/20](https://lore.kernel.org/all/1519403030-21189-1-git-send-email-sudeep.holla@arm.com) |
 | 2019/02/04 | Quentin Perret <quentin.perret@arm.com> | [Register an Energy Model for Arm reference platforms](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1058d1efbc84e3b48d2130f46a149cea178b28a1) | TODO | v4 ☑✓ 5.1-rc1 | [LORE v4,0/5](https://lore.kernel.org/all/20190204110952.16025-1-quentin.perret@arm.com) |
 | 2021/08/12 | Viresh Kumar <viresh.kumar@linaro.org> | [Add callback to register with energy model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=37f188318ea3f1da75b32df3b1a19f45d9840652) | TODO | v3 ☑✓ 5.15-rc1 | [LORE v3,0/9](https://lore.kernel.org/all/cover.1628742634.git.viresh.kumar@linaro.org) |
+
+
+#### 7.2.5.2 Dynamic Energy Model to handle leakage power
+-------
+
+LPC-2022 [Dynamic Energy Model to handle leakage power](https://lpc.events/event/16/contributions/1341)
+
+能量模型(EM) 框架描述 CPU 功率模型, 用于任务调度决策或热控制. 它是在启动期间以受支持的方式之一设置的, 并且在正常运行期间不会修改. 测试发现: 首先芯片的功耗也受其温度的影响,首先同样的 CPU 核即使同一个频点, 在不同温度下, 其功耗也存在差异, 因此不同温度下, CPU 核的能效曲线不同(温度越高, 功耗越高, 能效越差). 其次不同芯片(微架构/工艺)对温度的敏感度也不同, 因此不同温度下, 不同 CPU 核(大核/小核)的能效曲线变化也存在差异.
+
+为了更好地解决诸如此类问题, ARM 提出希望允许在运行时修改EM. EM 运行时修改将引入新功能:
+
+1.	允许提供(启动后)每个 OPP 的总功率值, 不限于任何公式或 DTS 数据.
+
+2.	为芯片不同的工艺和集成方式, 允许提供适合的 SoC 的功率值.
+
+3.	允许在运行时根据 SoC 的当前温度修改功率值, 因为与小核和中核相比, 大核的能效对温度更敏感.
 
 
 ### 7.2.6 IPA(Thermal 管控)
@@ -4985,7 +5017,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2017/05/12 | Rohit Jain <rohit.k.jain@oracle.com> | [Interrupt Aware Scheduler](https://lkml.org/lkml/2017/5/12/512) | NA | v1 ☐ | [LORE 0/5](https://lore.kernel.org/lkml/1494612267-29465-1-git-send-email-rohit.k.jain@oracle.com) |
 | 2021/09/20 | Libo Chen <libo.chen@oracle.com> | [Overeager pulling from wake_wide() in interrupt heavy workloads](https://lkml.org/lkml/2017/5/12/512) | 当前 wake_affine() 机制并不感知 ISR 唤醒的场景, 在这种场景下, 在中断上下文发起唤醒 wakee 进程的请求, 其实的 waker 并不是真正的 waker, 而是因为唤醒发生时中断正好打断了这个 waker 进程. wake_affine() 机制仍旧比较 waker/wakee 进程的 wakee_flips 到导致错误的唤醒. 作者讲了一个 IST 唤醒的场景, 导致 CPU 唤醒到中断所在的 NUMA NODE, 但是系统中其他 NODE 却是空闲的. | v1 ☐ | [Slide](https://linuxplumbersconf.org/event/11/contributions/1044/attachments/801/1508/lpc21_wakeup_pulling_libochen.pdf) |
-| 2022/08/22 | John Stultz <jstultz@google.com> | [Softirq -rt Optimizations](https://lore.kernel.org/all/20220822190501.2171100-1-jstultz@google.com) | TODO | v2 ☐☑✓ | [LORE v2,0/2](https://lore.kernel.org/all/20220822190501.2171100-1-jstultz@google.com) |
+| 2022/08/22 | John Stultz <jstultz@google.com> | [Softirq -rt Optimizations](https://lore.kernel.org/all/20220822190501.2171100-1-jstultz@google.com) | TODO | v2 ☐☑✓ | [LORE v2,0/2](https://lore.kernel.org/all/20220822190501.2171100-1-jstultz@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/2](https://lore.kernel.org/all/20220822190501.2171100-1-jstultz@google.com) |
 | 2020/12/04 | Thomas Gleixner <tglx@linutronix.de> | [softirq: Make it RT aware](https://lore.kernel.org/all/20201204170151.960336698@linutronix.de) | TODO | v2 ☐☑✓ | [LORE v2,0/9](https://lore.kernel.org/all/20201204170151.960336698@linutronix.de) |
 
 
@@ -5015,6 +5047,8 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 2020/05/18 | [The many faces of Latency nice](https://lwn.net/Articles/820659) | [LWN: Latency nice 的方方面面](https://blog.csdn.net/Linux_Everything/article/details/106435501) |
 | 2022/03/17 | [Improved response times with latency nice](https://lwn.net/Articles/887842) | [LWN: 采用 latency nice 改善响应时间](https://blog.csdn.net/Linux_Everything/article/details/123887454) |
 | 2022/04/05 | NA | 国内对这组补丁的分析 [latency-nice 优先级补丁源码分析](https://blog.csdn.net/qq_23662505/article/details/123977540) |
+| 2022/09/13 | LPC-2022 上关于 latency nice 的演讲: [Latency hints for CFS task](https://lpc.events/event/16/contributions/1273) | NA |
+
 
 2020 年, Parth Shah 提出了 latency nice 的概念. 旨在对应用的延迟进行感知和标记, 降低延迟敏感应用程序的调度延迟, 使其更快地获得 CPU 时间. latency_nice 值与现有 nice 值相对应, 介于 -20 和 19 之间. 数字越低, 优先级越高.
 
@@ -5049,7 +5083,7 @@ enqueue_task_fair()
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2020/02/28 | Parth Shah <parth@linux.ibm.com> | [Introduce per-task latency_nice for scheduler hints](https://lore.kernel.org/all/20200228090755.22829-1-parth@linux.ibm.com) | 20200228090755.22829-1-parth@linux.ibm.com | v5 ☐☑✓ | [LORE v4,0/4](https://lore.kernel.org/lkml/20200224085918.16955-1-parth@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/4](https://lore.kernel.org/all/20200228090755.22829-1-parth@linux.ibm.com) |
 | 2020/05/07 | Parth Shah <parth@linux.ibm.com> | [IDLE gating in presence of latency-sensitive tasks](https://lore.kernel.org/all/20200507133723.18325-1-parth@linux.ibm.com) | 20200507133723.18325-1-parth@linux.ibm.com | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20200507133723.18325-1-parth@linux.ibm.com) |
-| 2022/09/09 | Vincent Guittot <vincent.guittot@linaro.org> | [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) | 参见 [Improved response times with latency nice](https://lwn.net/Articles/887842). | v1 ☐☑✓ | [2022/03/11 LORE v1,0/6](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[2022/05/12 LORE v2,0/7](https://lore.kernel.org/all/20220512163534.2572-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[2022/09/09 LORE v3,0/8](https://lore.kernel.org/all/20220909130309.25458-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/8](https://lore.kernel.org/all/20220916080305.29574-1-vincent.guittot@linaro.org) |
+| 2022/09/16 | Vincent Guittot <vincent.guittot@linaro.org> | [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) | 参见 [Improved response times with latency nice](https://lwn.net/Articles/887842). | v1 ☐☑✓ | [2022/03/11 LORE v1,0/6](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[2022/05/12 LORE v2,0/7](https://lore.kernel.org/all/20220512163534.2572-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[2022/09/09 LORE v3,0/8](https://lore.kernel.org/all/20220909130309.25458-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[2022/09/16 LORE v4,0/8](https://lore.kernel.org/all/20220916080305.29574-1-vincent.guittot@linaro.org) |
 
 ### 8.9.2 Xen CPU Scheduling
 -------
@@ -5177,10 +5211,55 @@ CONFIG_HUAWEI_SCHED_VIP 被标记为 vip_prio, 为 VIP 线程提供了近似于�
 ### 10.1.2 进程退出
 -------
 
+#### 10.1.2.1 进程退出时的处理
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/11/18 | Sebastian Andrzej Siewior <bigeasy@linutronix.de> | [kernel/fork: Move thread stack free otu of the scheduler path](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) | [sched: Delay task stack freeing on RT](https://lore.kernel.org/all/20210928122411.593486363@linutronix.de) 的完善方案. 在 finish_task_switch() 完成后任务可能会死亡并退出, 这时候虽然快速回收任务堆栈有利于繁重的工作负载, 但这是内核实时性延迟的源头. 因此, 延迟启用 RT 的内核上的堆栈清理. | v1 ☐ | [PatchWork 0/8](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) |
+| 2021/11/18 | Sebastian Andrzej Siewior <bigeasy@linutronix.de> | [kernel/fork: Move thread stack free out of the scheduler path](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) | [sched: Delay task stack freeing on RT](https://lore.kernel.org/all/20210928122411.593486363@linutronix.de) 的完善方案. 在 finish_task_switch() 完成后任务可能会死亡并退出, 这时候虽然快速回收任务堆栈有利于繁重的工作负载, 但这是内核实时性延迟的源头. 因此, 延迟启用 RT 的内核上的堆栈清理. | v1 ☐ | [PatchWork 0/8](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) |
 | 2021/11/18 | Linus Torvalds <torvalds@linux-foundation.org> | [task: Making tasks on the runqueue rcu protected](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) | [sched: Delay task stack freeing on RT](https://lore.kernel.org/all/20210928122411.593486363@linutronix.de) 的完善方案. 在 finish_task_switch() 完成后任务可能会死亡并退出, 这时候虽然快速回收任务堆栈有利于繁重的工作负载, 但这是内核实时性延迟的源头. 因此, 延迟启用 RT 的内核上的堆栈清理. | v1 ☐ | [PatchWork 0/8](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) |
+
+#### 10.1.2.2 reaper 进程
+-------
+
+linux 下, reaper 线程用于释放已经执行结束的线程所占用的资源. 通常这个工作由父进程通过 wait() 或者 waitpid() 完成. 在 linux 中, 父进程死亡后, 需要由其他 reaper 进程来完成这项工作. 粗略地说:
+
+1. 如果父亲还有其他活着的线索, 这条线索就是 reaper.
+
+2. 否则, 如果有一个父亲的祖先(中间没有 pidns 级别变化), 同时它有 PR_SET_CHILD_SUBREAPER 设置, 这个祖先将是一个 reaper.
+
+3. 否则, 父亲的祖先将成为孩子们的 reaper. 
+
+
+
+### 10.1.3 进程冻结与恢复
+-------
+
+CRIU 是一个在 Linux 用户空间 (userspace) 上实现了 checkpoint/restore 功能的软件工具. 
+
+Checkpoint/Restore In Userspace 或者 CRIU 是一个软件工具, 通过使用这个工具, 你可以冻结或者部分冻结一个应用程序的执行, 并将其执行状态保存到磁盘中一系列文件中. 你可以使用这些文件来恢复继续运行这个应用程序, 从之前被冻结的点上开始执行. 与其他软件不同的是 CRIU 最大的特点是在用户空间中执行.
+
+
+对于 CRIU 来说, 社区传统的 reaper 管理方式存在较多问题. 当 CRIU 开始转储进程时, 它不知道进程及其资源的创建顺序. 进程可以拥有以下资源:
+
+a. 只能在克隆进程时继承;
+
+b. 只能由特定进程创建;
+
+c. 在多个进程之间共享(例如进程会话).
+
+对于这样的资源, CRIU 恢复需要重新创建这样的进程创建顺序, 同时创建所需的进程树拓扑并允许继承所有资源.
+
+当进程重养育涉及到子-子-收割者时, 可以在进程树中大量混合进程, 这样就不容易明显地恢复一切正确. 
+
+所以我们引入 CABD(最近的在世后代) 来帮助 CRIU 克服这个问题:
+
+我们希望将流程放到另一个树中——CABA树. 这棵树不会以任何方式影响重新养育或进程创建, 只是向 CRIU 提供了一个新信息, 以便我们可以了解重新养育的子进程是从哪里被重新养育的. 尽管原来的父进程已经死亡, 可能也是父进程的父进程, 但我们仍然可以获得关于仍然活着的进程的信息, 它最初是进程序列(已经死亡的进程)的父进程, 它通向我们—— CABA.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/09/08 | Pavel Tikhomirov <ptikhomirov@virtuozzo.com> | [Add CABA tree to task_struct](https://patchwork.kernel.org/project/linux-mm/patch/20220908220944.822942-1-ptikhomirov@virtuozzo.com) | 675404 | v4 ☐☑ | [LORE v4,0/2](https://lore.kernel.org/all/20220908220944.822942-1-ptikhomirov@virtuozzo.com) |
+
 
 ## 10.3 IPC
 -------
@@ -5394,7 +5473,7 @@ B 站 Plugsched 介绍视频 [纯干货解读：Plugsched, 首次实现 Linux ke
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/09/08 | Waiman Long <longman@redhat.com> | [sched: Persistent user requested affinity](https://lore.kernel.org/all/20220908194121.858462-1-longman@redhat.com) | COMMIT b90ca8badbd1 ("sched: Introduce task_struct::user_cpus_ptr to track requested affinity") 引入了 user_cpus_ptr (狭义地)来保持 CPU 的亲和性不受非对称 CPU 设置的影响.<br>该补丁集扩展了 user_cpus_ptr, 通过 sched_setaffinity() API 存储用户请求的 CPU 亲和性. 有了这些可用的信息, 它将使 cpuset 和 set_cpus_allowed_ptr() 的其他调用者(如 HOTPLUG)能够在当前 cpuset 的 CPUs 约束内保持 CPU 的亲和性尽可能接近用户想要的. 否则, CPU 层次结构的更改或热插拔事件可能会将受影响 CPU 集中的任务的 cpumask 重置为默认的 cpuset cpus 值, 即使这些任务具有用户之前显式设置的 CPU 亲和性.<br>这还意味着, 成功调用 sched_setaffinity() 之后, user_cpus_ptr 将继续分配, 直到任务退出, 除非在一些罕见的情况下. | v8 ☐☑✓ | [LORE v8,0/7](https://lore.kernel.org/all/20220908194121.858462-1-longman@redhat.com) |
+| 2022/09/08 | Waiman Long <longman@redhat.com> | [sched: Persistent user requested affinity](https://lore.kernel.org/all/20220908194121.858462-1-longman@redhat.com) | COMMIT b90ca8badbd1 ("sched: Introduce task_struct::user_cpus_ptr to track requested affinity") 引入了 user_cpus_ptr (狭义地)来保持 CPU 的亲和性不受非对称 CPU 设置的影响.<br>该补丁集扩展了 user_cpus_ptr, 通过 sched_setaffinity() API 存储用户请求的 CPU 亲和性. 有了这些可用的信息, 它将使 cpuset 和 set_cpus_allowed_ptr() 的其他调用者(如 HOTPLUG)能够在当前 cpuset 的 CPUs 约束内保持 CPU 的亲和性尽可能接近用户想要的. 否则, CPU 层次结构的更改或热插拔事件可能会将受影响 CPU 集中的任务的 cpumask 重置为默认的 cpuset cpus 值, 即使这些任务具有用户之前显式设置的 CPU 亲和性.<br>这还意味着, 成功调用 sched_setaffinity() 之后, user_cpus_ptr 将继续分配, 直到任务退出, 除非在一些罕见的情况下. | v8 ☐☑✓ | [LORE v8,0/7](https://lore.kernel.org/all/20220908194121.858462-1-longman@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v9,0/7](https://lore.kernel.org/all/20220916183217.1172225-1-longman@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v10,0/5](https://lore.kernel.org/all/20220922180041.1768141-1-longman@redhat.com) |
 
 
 ## 11.5 其他

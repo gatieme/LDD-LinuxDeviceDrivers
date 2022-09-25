@@ -182,6 +182,17 @@ Anbox 使用 Linux 命名空间 (user, pid, uts, net, mount, ipc) 在容器中�
 
 [Android apps on Linux with Waydroid](https://lwn.net/Articles/901459)
 
+
+
+# 8 MEMORY
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/08/23 | Yosry Ahmed <yosryahmed@google.com> | [KVM: mm: count KVM mmu usage in memory stats](https://patchwork.kernel.org/project/linux-mm/cover/20220823004639.2387269-1-yosryahmed@google.com/) | 669960 | v7 ☐☑ | [LORE v7,0/4](https://lore.kernel.org/r/20220823004639.2387269-1-yosryahmed@google.com) |
+| 2022/09/15 | Chao Peng <chao.p.peng@linux.intel.com> | [KVM: mm: fd-based approach for supporting KVM](https://patchwork.kernel.org/project/linux-mm/cover/20220915142913.2213336-1-chao.p.peng@linux.intel.com/) | 677360 | v8 ☐☑ | [LORE v8,0/8](https://lore.kernel.org/r/20220915142913.2213336-1-chao.p.peng@linux.intel.com) |
+
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.
