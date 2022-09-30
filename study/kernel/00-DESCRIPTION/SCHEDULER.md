@@ -2478,7 +2478,7 @@ Peter 将 sched/numa 的整体思路上也做了不断的调整和改动, 也开
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2021/10/27 | Gang Li <ligang.bdlg@bytedance.com> | [sched/numa: add per-process numa_balancing](https://lkml.org/lkml/2021/10/27/517) | 这个补丁在 prctl 中添加了一个新的 api PR_NUMA_BALANCING 来控制当个进程参与和禁止 numa_balancing. 在执行 numa_balancing 时, 大量的页面错误会导致性能损失. 因此, 那些关心最坏情况下性能的进程需要禁用 numa_balancing. 相反, 另一些则允许暂时的性能损失以换取更高的平均性能, 因此启用 numa 平衡对它们来说更好. 但是当前 numa balancing 只能由 `/proc/sys/kernel/numa_balancing` 全局控制. 因此这个特性希望禁用/启用每个进程的 numa_balancing. 在 mm_struct 下添加 numa_balancing. 然后在 task_tick_numa 中使用来控制. mm ->numa_balancing 仅在全局 numa_balancing 启用时有效. 当全局 numa_balancing 被禁用时, mm->numa_blancing 不会改变, 当你想要获得进程 numa_balancing 状态时, 你总是会得到 0, 并且当你使用 prctl set 它时, 内核将返回 err. | v1 ☐ | [LKML](https://lkml.org/lkml/2021/10/27/517)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/1](https://lore.kernel.org/r/20220224075227.27127-1-ligang.bdlg@bytedance.com) |
+| 2021/10/27 | Gang Li <ligang.bdlg@bytedance.com> | [sched/numa: add per-process numa_balancing](https://lkml.org/lkml/2021/10/27/517) | 这个补丁在 prctl 中添加了一个新的 api PR_NUMA_BALANCING 来控制当个进程参与和禁止 numa_balancing. 在执行 numa_balancing 时, 大量的页面错误会导致性能损失. 因此, 那些关心最坏情况下性能的进程需要禁用 numa_balancing. 相反, 另一些则允许暂时的性能损失以换取更高的平均性能, 因此启用 numa 平衡对它们来说更好. 但是当前 numa balancing 只能由 `/proc/sys/kernel/numa_balancing` 全局控制. 因此这个特性希望禁用/启用每个进程的 numa_balancing. 在 mm_struct 下添加 numa_balancing. 然后在 task_tick_numa 中使用来控制. mm ->numa_balancing 仅在全局 numa_balancing 启用时有效. 当全局 numa_balancing 被禁用时, mm->numa_blancing 不会改变, 当你想要获得进程 numa_balancing 状态时, 你总是会得到 0, 并且当你使用 prctl set 它时, 内核将返回 err. | v1 ☐ | [LKML](https://lkml.org/lkml/2021/10/27/517)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/1](https://lore.kernel.org/r/20220224075227.27127-1-ligang.bdlg@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2022/09/29 LORE v4](https://lore.kernel.org/all/20220929064359.46932-1-ligang.bdlg@bytedance.com) |
 | 2014/05/14 | Rik van Riel <riel@redhat.com> | [sched/numa: Allow task switch if load imbalance improves](https://linuxplumbersconf.org/event/4/contributions/480) | 目前 NUMA 平衡代码只允许在 NUMA 节点上的负载处于平衡状态时在 NUMA 节点之间移动任务. 当负载开始不平衡时, 它就崩溃了. 因此这个补丁引入 load_too_imbalanced() 来判定, 如果不平衡较小, 或者新的不平衡小于原来的不平衡, 则允许在 NUMA 节点之间移动任务. | v1 ☑ 3.16-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e63da03639cc9e6e83b62e7ef8ffdbb92421416a) |
 | 2018/09/21 | Srikar Dronamraju <srikar@linux.vnet.ibm.com> | [sched/numa: Avoid task migration for small NUMA improvement](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6fd98e775f24fd41520928d345f5db3ff52bb35d) | 如果 NUMAC 层次的任务迁移带来的改进非常小(小于 SMALLIMP), 那么应该尽量避免任务迁移. 否则可能会带来 pingpong(进程来回迁移颠簸), 甚至 cache-miss 引起的性能下降. | v1 ☑ 4.19-rc7 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6fd98e775f24fd41520928d345f5db3ff52bb35d) |
 
@@ -4390,7 +4390,8 @@ LPC-2022 [Dynamic Energy Model to handle leakage power](https://lpc.events/event
 不管是服务器领域, 还是终端以及嵌入式 rtos 等场景, 性能与功耗都是一个永恒的话题. 因此我们经常把它们合在一起称为"性能, 功耗与热". 而这些都离不开调度器的参与. 调度器通过之前提到的两个核心功能: 选核和选进程, 提升系统的性能和吞吐量, 再或者在满足性能的前提下通过功耗感知的调度来降低功耗. 之前我们提到的手段都是围绕着调度核心功能的. 通过选核让更多的 CPU 能够处于 IDLE 状态是可以降低功耗的, EAS 的实现已经与 CPUIDLE 紧密结合. 但是别忘了, 我们还有 DVFS, 通过调压调频也可以降低功耗. 因此 EAS 也提供了一些手段能够让调度器感知 CPUFREQ 框架.
 
 
-1.  传统 CPU 调频策略
+### 7.3.1 传统 CPU 调频策略
+-------
 
 CPUFREQ 调频框架主要分为 3 块: CPUFreq 驱动和 CPUFreq 核心模块、CPUFreq Governor.
 
@@ -4400,7 +4401,8 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 
 但是对于 CPU 的负载, 没有谁比调度器还清楚的了. 所以 cpufreq governor 完全没必要自己去做负载采样, 应该从内核调度器那里获取. 因此在 EAS 设计的早期, 基于调度器的 cpufreq governor 就是这样引出来的.
 
-2.  调度器驱动的调频
+### 7.3.2 调度器驱动的调频
+-------
 
 当时内核社区中, 逐渐实现了两个成形的方案.
 
@@ -4419,19 +4421,31 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 | 2016/03/13 | Michael Turquette <mturquette@baylibre.com> | [schedutil enhancements](https://lore.kernel.org/all/1457932932-28444-1-git-send-email-mturquette+renesas@baylibre.com) | 1457932932-28444-1-git-send-email-mturquette+renesas@baylibre.com | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/1457932932-28444-1-git-send-email-mturquette+renesas@baylibre.com) |
 
 
-3.  schedutil 后续优化
-
+### 7.3.3 schedutil 后续优化
+-------
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----------:|:---:|
 | 2021/08/12 | Viresh Kumar <viresh.kumar@linaro.org> | [Add callback to register with energy model](https://lore.kernel.org/patchwork/cover/1424708) | 当前许多 cpufreq 驱动程序向每个策略的注册了能耗模型, 并通过相同的操作 dev_pm_opp_of_register_em() 来完成. 但是随着  thermal-cooling 的完善, 可以在 cpufreq 层次通过新的回调 register_em 来完成这个工作. | v3 ☐ | [PatchWork V3,0/9](https://patchwork.kernel.org/project/linux-arm-kernel/cover/cover.1628742634.git.viresh.kumar@linaro.org) |
 | 2021/09/08| Viresh Kumar <viresh.kumar@linaro.org> | [Inefficient OPPs](https://patchwork.kernel.org/project/linux-pm/cover/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) | schedutil 中增加了对低能效(inefficient) OPP 的感知, 引入 CPUFREQ_RELATION_E 标记来使得 CPUFREQ 只使用和引用有效的频点.<br>Arm 的 Power 团队在为谷歌的 Pixel4 开发一个实验性内核, 以评估和改进现实生活中 Android 设备上的主线性能和能耗. 发现 SD855 SoC 有几个效率低下的 OPP. 这些 OPP 尽管频率较低, 但功耗却较高, 任务这种频率下工作, 性能不光下降了, 功耗也很高. 通过将它们从 EAS 能效模型中移除, 使得最高效的 CPU 在任务分配上更有吸引力, 有助于减少中、大型 CPU 的运行时间, 同时提高了集群的空闲时间. 由于集群之间存在巨大的能源成本差异, 因此增加空闲时间对该平台来说至关重要. | v7 ☑ 5.16-rc1 | [PatchWork v7,0/9](https://patchwork.kernel.org/project/linux-pm/cover/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) |
 
-4.  各个厂商基于 schedutil 的进一步优化和改进
+### 7.3.4 各个厂商基于 schedutil 的进一步优化和改进
+-------
 
 华为针对 schedutil 进行优化, 通过 CONFIG_CPU_FREQ_GOV_SCHEDUTIL_OPT, 提供了一套与 interactive 兼容的参数和机制, 实现了用户态对 schedutil 决策的干预和优化. 参见 [mate40, cpufreq_schedutil](https://github.com/gatieme/MobileModels/blob/huawei/noh-mate40/kernel/sched/cpufreq_schedutil.c)
 
 高通在自己基于 AOSP 的 GKI 中, 提供了一个 schedutil 类似的调频 GOVERNOR [CPUFREQ_WALT](https://source.codeaurora.cn/quic/la/kernel/msm-5.10/tree/kernel/sched/walt/cpufreq_walt.c?h=kernel.lnx.5.10.r1-rel), 与 WALT 地深度绑定和优化. 并通过 waltgov_tunables 提供了近似于 interactive 的少量参数, 允许用户态干预. 只是这里实现的 target_load 是通过 target_load_thresh 和 target_load_shift 映射得到的, 参见 [walt_map_util_freq()](https://source.codeaurora.cn/quic/la/kernel/msm-5.10/tree/kernel/sched/walt/cpufreq_walt.c?h=kernel.lnx.5.10.r1-rel#n204). 因此用户对于 target_load 的设置相比较原来 interactive 直接设置 target_loads 参数的方式更弱一些.
+
+### 7.3.5 其他 governor
+-------
+
+[Google's CPUFreq "Interactive" Governor Looks To Go Mainline](https://www.phoronix.com/news/CPUFreq-Interactive-Governor)
+
+
+| 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----------:|:---:|
+| 2015/10/27 | Bálint Czobor <czoborbalint@gmail.com> | [cpufreq: interactive: New 'interactive' governor](https://lore.kernel.org/all/1445967059-6897-1-git-send-email-czoborbalint@gmail.com) | TODO | v1 ☐☑✓ | [LORE v1,0/70](https://lore.kernel.org/all/1445967059-6897-1-git-send-email-czoborbalint@gmail.com) |
+
 
 ## 7.4 Frequency Invariance Engine
 -------
@@ -5044,6 +5058,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 
 | 日期 | LWN | 翻译 |
 |:---:|:----:|:---:|
+| 2019/09/09 | LPC-2019 上关于 latency nice 的演讲: [Task latency-nice](https://lpc.events/event/4/contributions/482) | NA |
 | 2020/05/18 | [The many faces of Latency nice](https://lwn.net/Articles/820659) | [LWN: Latency nice 的方方面面](https://blog.csdn.net/Linux_Everything/article/details/106435501) |
 | 2022/03/17 | [Improved response times with latency nice](https://lwn.net/Articles/887842) | [LWN: 采用 latency nice 改善响应时间](https://blog.csdn.net/Linux_Everything/article/details/123887454) |
 | 2022/04/05 | NA | 国内对这组补丁的分析 [latency-nice 优先级补丁源码分析](https://blog.csdn.net/qq_23662505/article/details/123977540) |
@@ -5083,7 +5098,7 @@ enqueue_task_fair()
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2020/02/28 | Parth Shah <parth@linux.ibm.com> | [Introduce per-task latency_nice for scheduler hints](https://lore.kernel.org/all/20200228090755.22829-1-parth@linux.ibm.com) | 20200228090755.22829-1-parth@linux.ibm.com | v5 ☐☑✓ | [LORE v4,0/4](https://lore.kernel.org/lkml/20200224085918.16955-1-parth@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/4](https://lore.kernel.org/all/20200228090755.22829-1-parth@linux.ibm.com) |
 | 2020/05/07 | Parth Shah <parth@linux.ibm.com> | [IDLE gating in presence of latency-sensitive tasks](https://lore.kernel.org/all/20200507133723.18325-1-parth@linux.ibm.com) | 20200507133723.18325-1-parth@linux.ibm.com | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20200507133723.18325-1-parth@linux.ibm.com) |
-| 2022/09/16 | Vincent Guittot <vincent.guittot@linaro.org> | [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) | 参见 [Improved response times with latency nice](https://lwn.net/Articles/887842). | v1 ☐☑✓ | [2022/03/11 LORE v1,0/6](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[2022/05/12 LORE v2,0/7](https://lore.kernel.org/all/20220512163534.2572-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[2022/09/09 LORE v3,0/8](https://lore.kernel.org/all/20220909130309.25458-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[2022/09/16 LORE v4,0/8](https://lore.kernel.org/all/20220916080305.29574-1-vincent.guittot@linaro.org) |
+| 2022/09/16 | Vincent Guittot <vincent.guittot@linaro.org> | [Add latency_nice priority](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org) | 参见 [Improved response times with latency nice](https://lwn.net/Articles/887842). | v1 ☐☑✓ | [2022/03/11 LORE v1,0/6](https://lore.kernel.org/all/20220311161406.23497-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[2022/05/12 LORE v2,0/7](https://lore.kernel.org/all/20220512163534.2572-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[2022/09/09 LORE v3,0/8](https://lore.kernel.org/all/20220909130309.25458-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[2022/09/16 LORE v4,0/8](https://lore.kernel.org/all/20220916080305.29574-1-vincent.guittot@linaro.org)<br>*-*-*-*-*-*-*-* <br>[2022/09/25 LORE v5,0/8](https://lore.kernel.org/all/20220925143908.10846-1-vincent.guittot@linaro.org) |
 
 ### 8.9.2 Xen CPU Scheduling
 -------
@@ -5179,6 +5194,14 @@ CONFIG_HUAWEI_SCHED_VIP 被标记为 vip_prio, 为 VIP 线程提供了近似于�
 | 2021/04/07 | Rafael J. Wysocki <rjw@rjwysocki.net> | [cpuidle: Take possible negative "sleep length" values into account](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=060e3535adf5c961b01421b9fdaddab8dd43ba85) | 1867445.PYKUYFuaPT@kreacher | v1 ☐☑✓ 5.13-rc1 | [LORE v1,0/5](https://lkml.org/lkml/2021/3/29/1834) |
 | 2020/05/11 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [Alternate history mechanism for the TEO governor](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) | 20200511141055.43029-2-psampat@linux.ibm.com | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20200511141055.43029-1-psampat@linux.ibm.com) |
 
+
+## 9.3 CPU-Idle latency
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/9/2 | Pratik Rajesh Sampat | [Selftest for cpuidle latency measurement](https://lkml.org/lkml/2020/9/2/356) | 678872 | v1 ☐☑ | [LORE v1,0/1](https://lkml.org/lkml/2020/9/2/356) |
+| 2021/04/12 | Pratik Rajesh Sampat <psampat@linux.ibm.com> | [CPU-Idle latency selftest framework](https://lore.kernel.org/all/20210412074309.38484-1-psampat@linux.ibm.com) | TODO | v4 ☐☑✓ | [LORE RFC,0/2](https://lore.kernel.org/all/20210315114827.46036-1-psampat@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/2](https://lore.kernel.org/all/20210401114504.13466-1-psampat@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/2](https://lore.kernel.org/all/20210404083354.23060-1-psampat@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/2](https://lore.kernel.org/all/20210412074309.38484-1-psampat@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/2](https://lore.kernel.org/all/20210430082804.38018-1-psampat@linux.ibm.com) |
 
 
 # 10 进程管理

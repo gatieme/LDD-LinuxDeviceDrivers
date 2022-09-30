@@ -3314,6 +3314,9 @@ v12 版本已经没有什么特性变更, 仅仅是一些 bugfix, 参见 phoroni
 
 MGLRU 的开发者在 LPC-2022 上演示了 MGLRU [Multi-Gen LRU: Current Status & Next Steps](https://lpc.events/event/16/contributions/1269), phoronix 对此进行了跟踪报道, 参见 [MGLRU Looks Like One Of The Best Linux Kernel Innovations Of The Year](https://www.phoronix.com/news/MGLRU-LPC-2022).
 
+之前 MGLRU 一直在 Andrew Morton 的 mm-unstable 分支, 2022 年 9 月中旬被 pick 到了 mm-stable, 为 v6.1 的 合入做准备. 参见 phoronix 报道 [MGLRU Patches Merged To "mm-stable" Ahead Of Linux 6.1 - New Benchmarks Look Good](https://www.phoronix.com/news/MGLRU-Reaches-mm-stable).
+
+
 *   实现
 
 传统的 LRU 页面回收仅仅通过 ACTIVE/INACTIVE 划分页面的冷热和老化程度, 这是一锤子买卖, 粒度非常粗, 对页面也机器不友好, 一个页面要么热页, 可以被宣判延刑, 要么是冷页, 可以立即被回收. 而 MGLRU 将页面的冷热程度做了更细粒度的划分.
@@ -4910,6 +4913,7 @@ David Rientjes 率先提出了这种想法 [Hugepage collapse in process context
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/03/11 | maobibo <maobibo@loongson.cn> | [mm/khugepaged: sched to numa node when collapse huge page](https://patchwork.kernel.org/project/linux-mm/patch/20220311090119.2412738-1-maobibo@loongson.cn/) | 622550 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220311090119.2412738-1-maobibo@loongson.cn)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20220315040549.4122396-1-maobibo@loongson.cn) |
 | 2022/05/27 | Jiaqi Yan <jiaqiyan@google.com> | [Memory poison recovery in khugepaged collapsing](https://patchwork.kernel.org/project/linux-mm/cover/20220527190731.322722-1-jiaqiyan@google.com/) | 645671 | v4 ☐☑ | [LORE v4,0/2](https://lore.kernel.org/r/20220527190731.322722-1-jiaqiyan@google.com) |
+| 2022/09/07 | Zach O'Keefe <zokeefe@google.com> | [mm: add file/shmem support to MADV_COLLAPSE](https://lore.kernel.org/all/20220907144521.3115321-1-zokeefe@google.com) | TODO | v3 ☐☑✓ | [2022/08/12 LORE 0/9](https://lore.kernel.org/linux-mm/20220812012843.3948330-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[2022/08/26 LORE v2,0/9](https://lore.kernel.org/linux-mm/20220826220329.1495407-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[2022/09/07 LORE v3,0/10](https://lore.kernel.org/all/20220907144521.3115321-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[2022/09/22 LORE v4,00/10](https://lore.kernel.org/all/20220922224046.1143204-1-zokeefe@google.com) |
 
 
 ### 7.2.5 THP splitting/reclaim/migration
@@ -5362,8 +5366,20 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 
 
 
-### 8.2.5 MMAP locking
+### 8.2.5 MMAP Locking Scalability
 -------
+
+当用户空间通过 malloc()/mmap() 等使用内存时, 只是分配了虚拟内存, 即只在进程地址空间中建立了VMA, 并没有分配物理内存, 因此自然也没有建立虚拟内存与物理内存的关联. 当进程首次访问时会触发缺页异常处理.
+
+当进程发生缺页异常时, 由于需要对进程空间 VMA 进行操作, 开始缺页前会先持进程的 mmap_sem 锁, 缺页完成后释放 mmap_sem.
+
+进程缺页处理时需要持有 mmap_sem 的 reader 锁. mmap_sem 锁是进程为了保护自身虚拟地址空间不受多线程并发访问影响而设计的. 而频繁发生缺页时, mmap_sem 锁的竞争将会非常激烈.
+
+由于 map_sem 锁的存在, 多线程程序访问内存方面的并发能力严重受到该锁的竞争激烈程度的制约. 要改善这个问题, 毫无疑问是需要减少 mmap_sem 锁的竞争.
+
+
+
+
 
 | 时间 | 讨论 |
 |:----:|:----:|
@@ -5372,41 +5388,71 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 | 2015 年 | [Topics of interest from the MM summit](https://events.static.linuxfound.org/sites/events/files/slides/mm.pdf) |
 | 2017 年 | [Another attempt at speculative page-fault handling](https://lwn.net/Articles/730531) |
 | 2018 年 | [Zone-lock and mmap_sem scalability](https://lwn.net/Articles/753269), [The LRU lock and mmap_sem](https://lwn.net/Articles/753058) |
+| 2019 年 | [Splitting the mmap_sem](https://lore.kernel.org/all/20191203222147.GV20752@bombadil.infradead.org) |
 | 2019 年 | [How to get rid of mmap_sem](https://lwn.net/Articles/787629) |
 | 2021 年 | [Introducing maple trees](https://lwn.net/Articles/845507) |
 | 2021 年 | [LSF/MM TOPIC] mmap locking topics](https://www.spinics.net/lists/linux-mm/msg258803.html) |
 | 2022 年 | [The ongoing search for mmap_lock scalability](https://lwn.net/Articles/893906)<br>LPC-2022 [Scalability solutions for the mmap_lock - Maple Tree and per-VMA locks](https://lpc.events/event/16/contributions/1271) |
 
+#### 8.2.5.1 SPF(Speculative page faults)
+-------
 
-*   mmap_sem Scalability
+[投机性缺页异常(SPF)原理分析](https://zhuanlan.zhihu.com/p/567855662)
 
+[投机性缺页异常处理](https://developer.aliyun.com/article/767293)
+
+[spf_test](https://github.com/surenbaghdasaryan/spf_test/blob/main/spf_test.c)
+
+为了解决这个问题, 内核研发人员 Peter Zijlstra 提出了 投机性缺页SPF(Speculative page-fault handling) 优化来实现对进程 VMA 的无锁读访问, 并在 v4.17(2009 年)开发窗口期间发出了第一版的补丁集. 它的基本思路是通过避免在缺页异常处理中使用 mmapsem, 无锁遍历 VMA, 从而提高内存访问的性能.
+
+投机性缺页就像一场赌博, 它在赌访问 VMA 时 VMA 没有被修改, 如果 VMA 没有被修改, 它就赌赢了, 这个过程确实不需要持锁; 如果VMA被修改了, 它就赌输了, SPF 做的工作就没有任何意义, 还是需要继续传统的缺页处理. 当然, 如果系统整体情况大部分时候 SPF 赌赢了, 它其实就赚了.
+
+但是我们不得不说, 设计和使用 mmap_sem 就是为了解决一些不好解决的同步问题, 如果想要无锁化, 那这些问题就得想其他的办法去解决.
+
+| 问题 1 | SPF 优化策略 | SPF 实现 |
+|:------:|:----------:|:--------:|
+| 无锁处理 PageFault 的区间越大, SPF 赌输的概率越大 | 缩小临界区的大小 | 尽可能把与 VMA 状态无关的工作都先做掉, 然后在直接改变进程地址空间之前再检查一下 VMA 是否发生了改变. 举例来说, 当我们从磁盘读数据到内存的时候, 我们可以先分配一个内存页, 将数据读取出来, 这些阶段都是不需要 mmap_sem 的, 而当我们把这个页加入到进程地址空间的时候我们需要一个一致的 VMA, 所以这个时候是需要拿 mmap_sem 的 |
+| 写冲突. 无锁处理 PageFault 期间, 对应的 VMA 描述中的区域可能发生改变. | 通过 seqlock 保护 VMA 修改 | 在 VMA 中增加顺序锁 seqlock, 所有修改 VMA 的地方都会增加 sequence count计数, 在缺页时工作前先获取一次 sequence count, 然后不持 mmap_sem 锁情况下进行缺页处理, 处理完成后, 需要再获取一次 sequence count, 检查有计数有没有发生改变, 如果发生了改变, 说明 VMA 在这个期间被修改过了, 如果没有发生改变, 说明 VMA 在这个期间没有被修改过. |
+| 释放冲突. 无锁处理 PageFault 期间, 对应的 VMA 可能被释放. | 最早 Peter 的版本建议通过 [SRCU(RCU的一种可睡眠的变体)来串行化 VMA](https://lore.kernel.org/lkml/20100104182813.479668508@chello.nl/) 的更新. 这可以保证在处理缺页异常的时候, VMA 结构是存在的. Laurent 接手后 v10 期间发现它引起了性能的下降. v11 基于 SRCU 保护 VMA 释放的灵感通过 [mm_rb_lock 来实现](https://lore.kernel.org/linux-mm/1526555193-7242-19-git-send-email-ldufour@linux.vnet.ibm.com). mm_rb_lock 锁机引入了 vma_get() 和 vma_put() 使得得在访问 RB Tree 时使用不持有 mmap_sem. v12 又改成 [sequence lock](https://lore.kernel.org/lkml/20190416134522.17540-20-ldufour@linux.ibm.com). 不过后来 Michel Lespinasse 接手的版本使用了 [rcu safe vma freeing](https://lore.kernel.org/all/20220128131006.67712-12-michel@lespinasse.org). |
+| TLB失效. 很多行为, 例如 unmapping 一个内存区域, 都会导致 TLB 的失效. 失效 TLB 的过程是发送处理期间中断(IPI)来告诉每个 CPU 失效它自己的 TLB. unmap的调用路径可能会在锁住特定的页表项期间进行 TLB 失效操作. 此时, Speculative-fault-handling 可能在关中断的情况下尝试获取页表锁, 如果这种尝试的页表项被锁在 unmap 的路径上, 处理器会在关中断的情况下自旋, 因此永远收不到 TLB 失效的IPI, 这将导致死锁. | 优先尝试SPF无锁访问 | 在 speculative 路径使用 trylock 操作获取锁, 如果获取锁失败, 则立即 fall back 到传统 page fault 处理流程上. |
+
+| 时间线 | 对应版本 | 描述 |
+|:-----:|:-------:|:---:|
+| 2009 | NA | speculative page fault 相关的 patch 由 Hiroyuki Kamezawa 在 2009 年发布 |
+| 2010 | NA | 接下来 Peter Zijlstra 组织了内核社区的讨论并开发了他自己的实现, 他使用了 RCU 来完成无锁读 VMA. 不过 Peter 的实现也有一些问题, 所以没能被合并进主干. |
+| 2014 | NA | 由于很多之前导致他的 patch 不能工作的问题都已经解决了, 所以 Peter Zijlstra 重启了这个想法. 然而, 讨论再次无疾而终. |
+| 2019 | NA | Dufourt 在最新内核移植了 PeterZ 的 patch, 同时也添加了自己的一些 patch, 然后重新发送到了邮件列表. 不过 Dufour 提到, 他的 patch 集里仍然存在 TLB 失效的问题. |
+| 2022 | v5.12~v5.17 | Michel 继续了这项工作 |
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2009/12/18 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [speculative page fault](https://lore.kernel.org/all/20091218093849.8ba69ad9.kamezawa.hiroyu@jp.fujitsu.com) | TODO | v1 ☐☑✓ | [LORE v1,0/11](https://lore.kernel.org/all/20091218093849.8ba69ad9.kamezawa.hiroyu@jp.fujitsu.com) |
+| 2009/12/24 | KAMEZAWA Hiroyuki <kamezawa.hiroyu@jp.fujitsu.com> | [asynchronous page fault](https://lkml.org/lkml/2009/12/24/153) | TODO | v1 ☐☑✓ | [LORE v1,0/11](https://lkml.org/lkml/2009/12/24/153) |
+| 2010/01/04 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [Speculative pagefault -v3](https://lore.kernel.org/lkml/20100104182429.833180340@chello.nl) | SPF | RFC v3 ☐  | [PatchWork](https://lore.kernel.org/lkml/20100104182429.833180340@chello.nl) |
+| 2019/04/16 | Laurent Dufour <ldufour@linux.vnet.ibm.com> | [Speculative page faults](http://lore.kernel.org/patchwork/patch/1062659) | SPF | v12 ☐  | [LORE v11,00/26](https://lore.kernel.org/linux-mm/1526555193-7242-1-git-send-email-ldufour@linux.vnet.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v12,00/31](https://lore.kernel.org/lkml/20190416134522.17540-1-ldufour@linux.ibm.com) |
+| 2022/01/28 | Michel Lespinasse <michel@lespinasse.org> | [Speculative page faults (anon vmas only)](http://lore.kernel.org/patchwork/patch/1420569) | SPF | v11 ☐  | [LORE 00/29](https://lore.kernel.org/lkml/20210430195232.30491-1-michel@lespinasse.org)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,00/37](https://lore.kernel.org/patchwork/patch/1408784)<br>*-*-*-*-*-*-*-* <br>[PatchWork v1](https://lore.kernel.org/patchwork/patch/1420569)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,00/35](https://patchwork.kernel.org/project/linux-mm/cover/20220128131006.67712-1-michel@lespinasse.org) |
+
+
+#### 8.2.5.2 mmap_sem Scalability
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/03/21 | Yang Shi <yang.shi@linux.alibaba.com> | [Drop mmap_sem during unmapping large map](https://lore.kernel.org/all/1521581486-99134-1-git-send-email-yang.shi@linux.alibaba.com) | 1521581486-99134-1-git-send-email-yang.shi@linux.alibaba.com | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/1521581486-99134-1-git-send-email-yang.shi@linux.alibaba.com) |
 
 
-*   SPF(Speculative page faults)
 
-[投机性缺页异常(SPF)原理分析](https://zhuanlan.zhihu.com/p/567855662)
-
-[spf_test](https://github.com/surenbaghdasaryan/spf_test/blob/main/spf_test.c)
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2010/01/04 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [Speculative pagefault -v3](http://lore.kernel.org/patchwork/patch/183997) | SPF | RFC v3 ☐  | [PatchWork](https://lore.kernel.org/patchwork/patch/183997) |
-| 2019/04/16 | Laurent Dufour <ldufour@linux.vnet.ibm.com> | [Speculative page faults](http://lore.kernel.org/patchwork/patch/1062659) | SPF | v12 ☐  | [PatchWork v12,00/31](https://lore.kernel.org/patchwork/patch/1062659) |
-| 2022/01/28 | Michel Lespinasse <michel@lespinasse.org> | [Speculative page faults (anon vmas only)](http://lore.kernel.org/patchwork/patch/1420569) | SPF | v11 ☐  | [PatchWork RFC,00/37](https://lore.kernel.org/patchwork/patch/1408784)<br>*-*-*-*-*-*-*-* <br>[PatchWork v1](https://lore.kernel.org/patchwork/patch/1420569)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,00/35](https://patchwork.kernel.org/project/linux-mm/cover/20220128131006.67712-1-michel@lespinasse.org) |
-
-* Fine grained MM locking
-
+#### 8.2.5.3 Fine grained MM locking
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2013/01/31 | Michel Lespinasse <walken@google.com> | [Mapping range lock](https://lore.kernel.org/patchwork/patch/356467) | 文件映射的 mapping lock | RFC ☐  | [PatchWork RFC](https://lore.kernel.org/patchwork/patch/356467) |
 | 2020/02/24 | Michel Lespinasse <walken@google.com> | [Fine grained MM locking](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com) | 细粒度 MM MMAP lock | RFC ☐  | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20200224203057.162467-1-walken@google.com), [fine_grained_mm.pdf](https://linuxplumbersconf.org/event/4/contributions/556/attachments/304/509/fine_grained_mm.pdf) |
 
-* per-VMA locks
+#### 8.2.5.4 per-VMA locks
+-------
 
 [Concurrent page-fault handling with per-VMA locks](https://lwn.net/Articles/906852)
 
@@ -5416,8 +5462,8 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 | 2022/08/29 | Suren Baghdasaryan <surenb@google.com> | [per-VMA locks proposal](https://lore.kernel.org/all/20220829212531.3184856-1-surenb@google.com) | TODO | v1 ☐☑✓ | [2022/08/29 LORE v1,0/28](https://lore.kernel.org/all/20220829212531.3184856-1-surenb@google.com)<br>*-*-*-*-*-*-*-* <br>[2022/09/01 LORE v1,0/28](https://lore.kernel.org/r/20220901173516.702122-1-surenb@google.com) |
 
 
-* Maple Tree
-
+#### 8.2.5.5 Maple Tree
+-------
 
 [Maple Tree "RFC" Patches Sent Out As New Data Structure To Help With Linux Performance](https://www.phoronix.com/scan.php?page=news_item&px=Maple-Tree-Linux-RFC)
 
