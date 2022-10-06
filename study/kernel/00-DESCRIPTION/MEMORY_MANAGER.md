@@ -336,7 +336,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/08/29 | Sidhartha Kumar <sidhartha.kumar@oracle.com> | [begin converting hugetlb code to folios](https://patchwork.kernel.org/project/linux-mm/cover/20220829230014.384722-1-sidhartha.kumar@oracle.com/) | 672211 | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20220829230014.384722-1-sidhartha.kumar@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/6](https://lore.kernel.org/r/20220906165445.146913-1-sidhartha.kumar@oracle.com) |
+| 2022/08/29 | Sidhartha Kumar <sidhartha.kumar@oracle.com> | [begin converting hugetlb code to folios](https://patchwork.kernel.org/project/linux-mm/cover/20220829230014.384722-1-sidhartha.kumar@oracle.com/) | 672211 | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20220829230014.384722-1-sidhartha.kumar@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/6](https://lore.kernel.org/r/20220906165445.146913-1-sidhartha.kumar@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/5](https://lore.kernel.org/r/20220922154207.1575343-1-sidhartha.kumar@oracle.com) |
 
 
 

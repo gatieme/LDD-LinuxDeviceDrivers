@@ -134,6 +134,7 @@ v5.7 引入了拆分锁检测的支持, 这依赖于 x86_64 intel CPU 遇到拆�
 ### 1.4.1 Intel hybrid CPUs
 -------
 
+WikiChip 上关于 AlderLake 的介绍 [Alder Lake - Microarchitectures - Intel](https://en.wikichip.org/wiki/intel/microarchitectures/alder_lake).
 
 phoronix 上所有与 [Alder Lake 相关的报道](https://www.phoronix.com/scan.php?page=search&q=Alder%20Lake).
 
@@ -155,7 +156,26 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 | 2022/04/15 | Zhang Rui <rui.zhang@intel.com> | [intel_idle: add AlderLake support](https://lore.kernel.org/all/20220415093951.2677170-1-rui.zhang@intel.com) | 参见 [phoronix 报道](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Idle-Alder-Lake) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220415093951.2677170-1-rui.zhang@intel.com) |
 
 
-#### 1.4.1.2 Thread Director
+#### 1.4.1.2 ITMT SMT migration Improvement
+-------
+
+Intel 在 LPC-2022 演示 [Bringing Energy-Aware Scheduling to x86](https://lpc.events/event/16/contributions/1275) 时, 对 ITMT 的改进一并进行了阐述. LWN 也对此进行了讲解 [Hybrid scheduling gets more complicated](https://lwn.net/Articles/909611).
+
+自 v4.10 开始, 英特尔的 ITMT 技术支持 ASYM_PACKING, 使得调度程序更喜欢 P-core 而不是 E-cores. 这产生了在可能的情况下将进程放在更快更强劲的 P-core 上的效果. 但是 Alder Lake 等混合架构的 CPU, P-core 支持 SMT, E-core 不支持 SMT. 这样 CPU 的选择顺序应该倾向于 P-core(ST) > E-core > p-core(HT/SMT), 即调度器应该先尝试 P-core, 其次是 E-core, 最后才是 P-core/E-core 的 SMT 兄弟 CPU, 但是调度器并没有意识到这点, 它也会在 P-core 不满足要求时, 优先加载了 P-core 同级的 SMT 兄弟 CPU, 而不是尝试 E-cores. 从而导致整体性能的下降. 这已于 v5.16 [commit 4006a72bdd93 ("sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4006a72bdd93b1ffedc2bd8646dee18c822a2c26) 修复. 其解决方案是:
+
+1. [commit 183b8ec38f1e ("x86/sched: Decrease further the priorities of SMT siblings")"](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=183b8ec38f1ec6c1f8419375303bf1d09a2b8369) 修改了 ITMT 下 sched_core_priority 中 smt_prio 的计算方式, HT 的优先级永远比 ST 的 core 要低, 从而保证 P-core 的 HT 优先级比 E-core 要低. 这样负载平衡器将选择高优先级的 P-core (Intel Core) 而不是中优先级的 E-core (Intel Atom), 最后才将负载溢出到低优先级的 SMT 同级 CPU.
+
+2. [commit 4006a72bdd93 ("sched/fair: Consider SMT in ASYM_PACKING load balance")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4006a72bdd93b1ffedc2bd8646dee18c822a2c26) 当决定在 ASYM_PACKING 中提取任务时, 不仅需要检查 dst CPU 的空闲状态, 还需要检查其同级 SMT CPU 的空闲状态. 如果 dst CPU 处于空闲状态, 但其同级 SMT CPU 处于繁忙状态, 则如果将任务从没有 SMT 中等优先级 CPU(比如 AderLake 的 E-core)中 PULL 过来, 性能必然会受到影响. 实现 [asym_smt_can_pull_tasks()](https://elixir.bootlin.com/linux/v5.16/source/kernel/sched/fair.c#L8492) 以检查候选最忙组中 dst CPU 和 CPU 的同级 SMT 的状态.
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/09/10 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4006a72bdd93b1ffedc2bd8646dee18c822a2c26) | 参见 [Fixing a corner case in asymmetric CPU packing](https://lwn.net/Articles/880367), 在使用非对称封装(ASM_PACKING)时, 可能存在具有三个优先级的 CPU 拓扑, 其中只有物理核心的子集支持 SMT. 这种架构下 ASM_PACKING 和 SMT 以及 load_balance 都存在冲突.<br>这种拓扑的一个实例是 Intel Alder Lake. 在 Alder Lake 上, 应该通过首先选择 Core(酷睿) cpu, 然后选择 Atoms, 最后再选择 Core 的 SMT 兄弟 cpu 来分散工作. 然而, 当前负载均衡器的行为与使用 ASYM_PACKING 时描述的不一致. 负载平衡器将选择高优先级的 CPU (Intel Core) 而不是中优先级的 CPU (Intel Atom), 然后将负载溢出到低优先级的 SMT 同级 CPU. 这使得中等优先级的 Atoms cpu 空闲, 而低优先级的 cpu sibling 繁忙.<br>1. 首先改善了 SMT 中 sibling cpu 优先级的计算方式, 它将比单个 core 优先级更低.<br>2. 当决定目标 CPU 是否可以从最繁忙的 CPU 提取任务时, 还检查执行负载平衡的 CPU 和最繁忙的候选组的 SMT 同级 CPU 的空闲状态. | v5 ☑ 5.16-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1408312)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1413015)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3 0/6](https://lore.kernel.org/patchwork/cover/1428441)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,0/6](https://lore.kernel.org/patchwork/cover/1474500)<br>*-*-*-*-*-*-*-* <br>[LKML v5,0/6](https://lkml.org/lkml/2021/9/10/913), [LORE v5,0/6](https://lore.kernel.org/all/20210911011819.12184-1-ricardo.neri-calderon@linux.intel.com) |
+| 2022/08/25 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Avoid unnecessary migrations within SMT domains](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com) | TODO | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com) |
+
+
+#### 1.4.1.3 Intel Thread Director (ITD)
 -------
 
 [Thread Director](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/2) 其实是一个软硬协同优化的范畴.
@@ -166,11 +186,13 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 
 随后 Intel 发布了 Linux 上 Thread-Driector 的支持补丁. [Intel Posts Big Linux Patch Set For "Classes of Tasks" On Hybrid CPUs, Thread Director](https://www.phoronix.com/news/Intel-Linux-Classes-Of-Tasks-TD). 并随后在 LPC-2022 做了主题为 [Bringing Energy-Aware Scheduling to x86](https://lpc.events/event/16/contributions/1275) 的演示. phoronix 随即进行了报道 [Intel Working On Energy Aware Scheduling For x86 Hybrid CPUs](https://www.phoronix.com/news/Intel-x86-EAS-To-Come).
 
+随后 LWN 对此进行了讨论 [Hybrid scheduling gets more complicated](https://lwn.net/Articles/909611).
+
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/09/10 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4006a72bdd93b1ffedc2bd8646dee18c822a2c26) | 参见 [Fixing a corner case in asymmetric CPU packing](https://lwn.net/Articles/880367), 在使用非对称封装(ASM_PACKING)时, 可能存在具有三个优先级的 CPU 拓扑, 其中只有物理核心的子集支持 SMT. 这种架构下 ASM_PACKING 和 SMT 以及 load_balance 都存在冲突.<br>这种拓扑的一个实例是 Intel Alder Lake. 在 Alder Lake 上, 应该通过首先选择 Core(酷睿) cpu, 然后选择 Atoms, 最后再选择 Core 的 SMT 兄弟 cpu 来分散工作. 然而, 当前负载均衡器的行为与使用 ASYM_PACKING 时描述的不一致. 负载平衡器将选择高优先级的 CPU (Intel Core) 而不是中优先级的 CPU (Intel Atom), 然后将负载溢出到低优先级的 SMT 同级 CPU. 这使得中等优先级的 Atoms cpu 空闲, 而低优先级的 cpu sibling 繁忙.<br>1. 首先改善了 SMT 中 sibling cpu 优先级的计算方式, 它将比单个 core 优先级更低.<br>2. 当决定目标 CPU 是否可以从最繁忙的 CPU 提取任务时, 还检查执行负载平衡的 CPU 和最繁忙的候选组的 SMT 同级 CPU 的空闲状态. | v5 ☑ 5.16-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1408312)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1413015)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3 0/6](https://lore.kernel.org/patchwork/cover/1428441)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,0/6](https://lore.kernel.org/patchwork/cover/1474500)<br>*-*-*-*-*-*-*-* <br>[LKML v5,0/6](https://lkml.org/lkml/2021/9/10/913), [LORE v5,0/6](https://lore.kernel.org/all/20210911011819.12184-1-ricardo.neri-calderon@linux.intel.com) |
 | 2021/11/06 | Ricardo Neri <ricardo.neri-calderon-AT-linux.intel.com> | [Thermal: Introduce the Hardware Feedback Interface for thermal and performance management](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bd30cdfd9bd73b68e4977ce7c5540aa7b14c25cd) | 支持 Intel HFI.<br>英特尔硬件反馈接口(HFI) 提供系统中每个 CPU 的性能(performance)和能效(Energy efficiency)的信息. 它使用一个在硬件和操作系统之间共享的表. 该表的内容可能由于系统运行条件的变化(如达到热极限)或外部因素的作用(如热设计功率的变化)而更新.<br>HFI 提供的信息被指定为相对于系统中其他 cpu 的数字、单元较少的能力. 这些功能的范围为 [0-255], 其中更高的数字表示更高的功能. 如果 CPU 的性能效率或能量能力效率为 0, 硬件建议分别出于性能、能量效率或热原因, 不要在该 CPU 上调度任何任务.<br>内核或用户空间可以使用来自 HFI 的信息来修改任务放置或调整功率限制. 当前这个补丁集中于用户空间. 热通知框架(thermal notification framework)被扩展以支持 CPU capacity 的更新. | v1 ☑ 5.18-rc1 | [2021/11/06 LWN](https://lwn.net/Articles/875296)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/lkml/20211220151438.1196-1-ricardo.neri-calderon@linux.intel.com), [phoronix v2](https://www.phoronix.com/scan.php?page=news_item&px=Intel-HFI-Linux-v2-2021)<br>*-*-*-*-*-*-*-* <br>[PatchWork v5,0/7](https://patchwork.kernel.org/project/linux-pm/cover/20220127193454.12814-1-ricardo.neri-calderon@linux.intel.com), [phoronix v5](https://www.phoronix.com/scan.php?page=news_item&px=Intel-HFI-For-Linux-5.18) |
-| 2022/08/25 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Avoid unnecessary migrations within SMT domains](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com) | TODO | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com) |
 | 2022/09/09 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched: Introduce classes of tasks for load balance](https://lore.kernel.org/all/20220909231205.14009-1-ricardo.neri-calderon@linux.intel.com) | 实现 Thread-Director, 根据应用程序的类型 classes 实现选核和负载均衡. | v1 ☐☑✓ | [LORE v1,0/23](https://lore.kernel.org/all/20220909231205.14009-1-ricardo.neri-calderon@linux.intel.com) |
 
 
@@ -957,7 +979,15 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/03/01 | Jithu Joseph <jithu.joseph@intel.com> | [Introduce In Field Scan driver](https://lore.kernel.org/all/20220301195457.21152-1-jithu.joseph@intel.com) | [Intel "In-Field Scan" Coming With Sapphire Rapids As New Silicon Failure Testing Feature](https://www.phoronix.com/news/Intel-In-Field-Scan) | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/20220301195457.21152-1-jithu.joseph@intel.com) |
-| 2022/08/05 | Rik van Riel <riel@surriel.com> | [x86,mm: print likely CPU at segfault time](https://lore.kernel.org/all/20220805101644.2e674553@imladris.surriel.com) | [Linux 6.1 Will Make It A Bit Easier To Help Spot Faulty CPUs](https://www.phoronix.com/news/Linux-6.1-Seg-Fault-Report-CPU). | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220805101644.2e674553@imladris.surriel.com) |
+
+
+[Linux 6.1 Will Make It A Bit Easier To Help Spot Faulty CPUs](https://www.phoronix.com/news/Linux-6.1-Seg-Fault-Report-CPU) 
+
+[Linux 6.1 Will Try To Print The CPU Core Where A Seg Fault Occurs](https://www.phoronix.com/news/Linux-6.1-Seg-Fault-Print-CPU)
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/08/05 | Rik van Riel <riel@surriel.com> | [x86,mm: print likely CPU at segfault time](https://lore.kernel.org/all/20220805101644.2e674553@imladris.surriel.com) | 内核将尝试打印发生 SEG 错误的 CPU 核, 通过在发生 SEG 故障的地方打印 CPU 核, 这些信息可能有助于发现故障 CPU 而成为现实. | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220805101644.2e674553@imladris.surriel.com) |
 
 
 

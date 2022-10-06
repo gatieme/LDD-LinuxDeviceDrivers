@@ -284,6 +284,8 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 
 [Linux Sees A New Attempt At Threaded Console Printing](https://www.phoronix.com/news/New-Linux-printk-Threaded-Work).
 
+[A discussion on printk()](https://lwn.net/Articles/909980)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/02/07 | John Ogness <john.ogness@linutronix.de> | [implement threaded console printing](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) | 参见 phoronix 报道 [Linux Gets Patches For Threaded Console Printing](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Threaded-Console-Print) 和 [Patches Updated For Linux To Enjoy Consoles Running At Full-Speed](https://www.phoronix.com/scan.php?page=news_item&px=Printk-v3-Consoles-Full-Speed) | v1 ☐ | [LORE v1,0/13](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) |
