@@ -5198,6 +5198,15 @@ CONFIG_HUAWEI_SCHED_VIP 被标记为 vip_prio, 为 VIP 线程提供了近似于�
 ## 9.3 CPU-Idle latency
 -------
 
+LPC-2019 上的演讲 [C-state latency measurement infrastructure](https://lpc.events/event/4/contributions/495)
+
+Intel 的 [Wult/Wake Up Latency Tracer](https://github.com/intel/wult) 一个在 Linux 中测量 C 状态延迟的工具的项目集. 它提供了 [wult](https://intel.github.io/wult) 和 [Ndl](https://intel.github.io/wult/pages/ndl.html)
+
+| 工具 | 描述 | MAN |
+|:---:|:----:|:---:|
+| wult | 测量 Linux 中的 CPU C-state 退出延迟. | [wult-man.rst](https://github.com/intel/wult/blob/master/docs/wult-man.rst) |
+| ndl | 测量当 CPU 处于 C-state 时, PCIe 网卡观察到的内存访问延迟. | [ndl-man.rst](https://github.com/intel/wult/blob/master/docs/ndl-man.rst) |
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/9/2 | Pratik Rajesh Sampat | [Selftest for cpuidle latency measurement](https://lkml.org/lkml/2020/9/2/356) | 678872 | v1 ☐☑ | [LORE v1,0/1](https://lkml.org/lkml/2020/9/2/356) |
