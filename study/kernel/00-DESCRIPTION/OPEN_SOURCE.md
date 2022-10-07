@@ -12,6 +12,8 @@
 | 公司 | github | MAIN |
 |:---:|:------:|:----:|
 | GOOGLE | [googlesource](https://android.googlesource.com/kernel/common) | NA |
+| ARM | NA |旧地址 [linux-arm.org](http://www.linux-arm.org/git?p=linux-vs), 切换到 gitlab 服务 [gitlab.arm.com](https://gitlab.arm.com/linux-arm/linux-vs) |
+| LINARO | [Linaro](https://github.com/Linaro), [lkft-Linux Kernel Functional Testing](https://lkft.linaro.org) | [patchwork](https://patches.linaro.org), [cgit](https://git.linaro.org/people), [GitLab, Linaro](https://gitlab.com/Linaro/lkft/users/vincent.guittot/linux) |
 | QCOM | [source.codeaurora](https://source.codeaurora.org/quic/la/kernel), [codelinaro](https://git.codelinaro.org/clo/la/kernel) | Code Aurora 是 Linux 基金会的一个协作项目, 为 QCOM 等 SoC 提供和维护 Linux 内核和 Android 等.<br>自 2022 年 4 月 1 日起, 高通创新中心公司已将其开源版本移至 [CodeLinaro](https://www.codeaurora.org)  |
 | HUAWEI | [consumer-opensource](https://consumer.huawei.com/en/opensource/detail/?siteCode=worldwide&productCode=Smartphones&fileType=openSourceSoftware&pageSize=10&curPage=1) | [opensource](https://consumer.huawei.com/en/opensource) |
 | OnePlus | [OnePlus Open Source Software](https://github.com/OnePlusOSS) | [oneplus](https://www.oneplus.com/cn)
