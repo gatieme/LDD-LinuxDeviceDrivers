@@ -140,7 +140,7 @@ spinlock 的值出现变化时, 所有试图获取这个 spinlock 的 CPU 都需
 | 2018/06/26 | Will Deacon <will.deacon@arm.com> | [Hook up qspinlock for arm64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=5d168964aece0b4a41269839c613683c5d7e0fb2) | ARM64 架构 qspinlocks 的实现. | v1 ☑ 4.19-rc1 | [LORE 0/3](https://lore.kernel.org/linux-arm-kernel/1530010812-17161-1-git-send-email-will.deacon@arm.com) |
 
 
-### 1.4.3
+### 1.4.3 RISC-V
 -------
 
 
@@ -272,9 +272,6 @@ percpu rw 信号量是一种新的读写信号量设计, 针对读取锁定进�
 # 4 membarrier
 -------
 
-
-
-
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2017/10/19 | Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com> | [membarrier: Provide register expedited private command](https://lore.kernel.org/patchwork/cover/843003) | 引入 MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED. | v6 ☑ 4.14-rc6 | [PatchWork v5](https://lore.kernel.org/patchwork/cover/835747)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6](https://lore.kernel.org/patchwork/cover/398912) |
@@ -387,6 +384,7 @@ Lockdep 跟踪锁的获取顺序, 以检测死锁, 以及 IRQ 和 IRQ 启用/禁
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/05/04 | Byungchul Park <byungchul.park@lge.com> | [DEPT(Dependency Tracker)](https://lore.kernel.org/all/1651652269-15342-1-git-send-email-byungchul.park@lge.com) | 一种死锁检测工具, 通过跟踪等待/事件而不是锁的获取顺序来检测死锁的可能性, 试图覆盖所有锁(spinlock, mutex, rwlock, seqlock, rwsem)以及同步机制(包括 wait_for_completion, PG_locked,  PG_writeback, swait/wakeup 等). | v6 ☐☑✓ | [RFC 00/14](https://lore.kernel.org/lkml/1643078204-12663-1-git-send-email-byungchul.park@lge.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/21](https://lore.kernel.org/all/1651652269-15342-1-git-send-email-byungchul.park@lge.com) |
+| 2022/09/15 | 刘顺 | [OSPP 2022: Add lite-lockdep as a lightweight lock validator](https://gitee.com/openeuler/kernel/issues/I5R8DS) | openEuler 开源之夏轻量级死锁检测特性. 参考了 [Low-overhead deadlock prediction](https://dl.acm.org/doi/10.1145/3377811.3380367), [PDF](https://web.cs.ucla.edu/~palsberg/paper/icse20.pdf) | ☐☑✓ | [gitee, PR](https://gitee.com/openeuler/kernel/pulls/112) |
 
 # 11 优先级翻转
 -------
