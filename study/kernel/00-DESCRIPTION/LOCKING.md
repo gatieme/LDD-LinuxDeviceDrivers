@@ -388,8 +388,41 @@ Lockdep 跟踪锁的获取顺序, 以检测死锁, 以及 IRQ 和 IRQ 启用/禁
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/05/04 | Byungchul Park <byungchul.park@lge.com> | [DEPT(Dependency Tracker)](https://lore.kernel.org/all/1651652269-15342-1-git-send-email-byungchul.park@lge.com) | 一种死锁检测工具, 通过跟踪等待/事件而不是锁的获取顺序来检测死锁的可能性, 试图覆盖所有锁(spinlock, mutex, rwlock, seqlock, rwsem)以及同步机制(包括 wait_for_completion, PG_locked,  PG_writeback, swait/wakeup 等). | v6 ☐☑✓ | [RFC 00/14](https://lore.kernel.org/lkml/1643078204-12663-1-git-send-email-byungchul.park@lge.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/21](https://lore.kernel.org/all/1651652269-15342-1-git-send-email-byungchul.park@lge.com) |
 
+# 11 优先级翻转
+-------
 
-# 11 深入理解并行编程
+
+## 11.1 优先级继承
+-------
+
+### 11.1.1 rt_mutex
+-------
+
+### 11.1.2 代理执行(proxy execution)
+-------
+
+代理执行(proxy execution) 被视为一种"更好"的优先级继承机制, 持有锁的小任务可以使用(继承)在同一互斥体上阻止的其他关键任务的调度上下文(属性)来运行它(避免优先级反转). 使用代理执行时, 被阻塞的关键任务不会像在常规的那样从运行队列中删除. 并且如果它是队列中优先级最高的任务, 则可以选择由调度程序以通常的方式运行. 于是, 当发生优先级反转的情况时, 持锁的任务将继承被阻塞的关键任务的上下文信息. 被阻塞的任务也会迁移到持有锁的任务的运行队列中, 从而将其利用率信息带过来, 这将导致 CPU 频率增加, 从而可以更好地帮助持锁任务尽快完成工作并释放锁.
+
+代理执行(proxy execution) 并不是一个很新颖的概念, 它早就存在于学术界和邮件列表的讨论中.
+
+早在 2010 年 [20th Euromicro Conference on Real-Time Systems (ECRTS2010)](http://www.artist-embedded.org/artist/Overview,1909.html), Peter Zijlstra 与 Thomas Gleixner 等进行 preemption rt 专题演讲, 讨论到优先级继承(priority inheritance) 时, 就提到了代理执行(proxy execution), 当时在 Doug Niehaus 的堪萨斯大学实时项目中就已经存在代理执行, 但不幸的是, 它缺乏 SMP 支持, 因此并没有得到广泛的推广, 但是这项技术得到了 Thomas 的赞誉. 参见当时 LWN 的报道 [Realtime Linux: academia v. reality](https://lwn.net/Articles/397422).
+
+Peter Zijlstra 在 [RT-Summit 2017](https://wiki.linuxfoundation.org/realtime/events/rt-summit2017/schedule) 时进行了主题为 [Proxy Execution (initial topic: "Migrate disable: What's wrong with that?")](https://wiki.linuxfoundation.org/realtime/events/rt-summit2017/proxy-execution) 的专题讨论, 详细介绍了 Proxy Execution 的思想. 其 Slides 参见 [proxy-execution_peter-zijlstra.pdf](https://wiki.linuxfoundation.org/_media/realtime/events/rt-summit2017/proxy-execution_peter-zijlstra.pdf).
+
+但是彼时代理执行(proxy execution) 还停留在学术界和邮件列表以及会议的讨论中, 并没有真正在内核中被实现. 直到 2018 年 RedHat 的开发者 Juri Lelli 首次在内核实现了代理执行(Proxy execution)这一概念 [Towards implementing proxy execution, RFD/RFC, 0/8](https://lore.kernel.org/all/20181009092434.26221-1-juri.lelli@redhat.com), 即使只对 SCHED_DELINE 生效, 但是也是一次大胆的尝试. 对于 SCHED_DEADLINE 调度策略, 这转化为互斥体所有者在"内部"捐赠者(互斥服务员)带宽运行的可能性, 从而解决了一个长期存在的策略问题: 优先级提升的任务目前允许在运行时强制之外运行, 因为它们只继承了捐赠者的截止日期. 随后 Juri 在 LPC-2018 上进行了演示 [SCHED_DEADLINE desiderata and slightly crazy ideas](https://lpc.events/event/2/contributions/62). 随后 LWN 也进行了报道 [Proxy execution](https://lwn.net/Articles/793502). 由于存在诸多悬而未决的问题, 这个实现最终停留在了 RFC v2, 最后一版本的代码参见 [jlelli, github, deadline/proxy-rfc-v2-debug](https://github.com/jlelli/linux/commits/experimental/deadline/proxy-rfc-v2-debug).
+
+随后 2020 年 5 月的 Power Management and Scheduling in the Linux Kernel summit (OSPM) 上, 来自 ARM 的开发者 Valentin Schneider 进一步在 ANDROID big.LITTLE 平台上对代理执行(proxy execution)进行了探索. 在开发 uclamp 的过程中, 他发现了 Utilization Inversion 这种与 Priority Inversion 极其相似的场景. 通过将代理执行与 uclamp 结合起来, 持有锁的小(或者不那么重要的)任务可以继承被阻塞的关键任务的同等的供给等资源, 以便它可以快速运行并释放锁, 从而防止优先级翻转. 参见 LWN 报道 [Utilization inversion and proxy execution](https://lwn.net/Articles/820575). 随后 Valentin 又在 LPC-2020 上演示了其代理执行(proxy execution) 的最新进展, 并基于 Juri 的实现, 发布了 RFC v3, 并扩展到了 CFS 和 RT 线程, 但是扩展性不足, 对 CONFIG_FAIR_GROUP_SCHED 的支持也欠佳. 参见 [Looking forward on proxy execution](https://lpc.events/event/7/contributions/758).
+
+接着 2022 年来自 Google 的 Connor O'Brien 继续对代理执行(proxy execution) 进行了探索.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/10/09 | Juri Lelli <juri.lelli@redhat.com> | [Towards implementing proxy execution](https://lore.kernel.org/all/20181009092434.26221-1-juri.lelli@redhat.com) | TODO | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20181009092434.26221-1-juri.lelli@redhat.com) |
+| 2020/12/18 | ValenƟn Schneider <valentin.schneider@arm.com> | [Looking forward on proxy execution](https://lpc.events/event/7/contributions/758) | TODO | v1 ☐☑✓ | [GitLab, linux-arm RFC v3,00/08](https://gitlab.arm.com/linux-arm/linux-vs/-/tree/mainline/sched/proxy-rfc-v3/) |
+| 2022/10/03 | Connor O'Brien <connoro@google.com> | [Reviving the Proxy Execution Series](https://lore.kernel.org/all/20221003214501.2050087-1-connoro@google.com) | TODO | v1 ☐☑✓ | [LORE v1,0/11](https://lore.kernel.org/all/20221003214501.2050087-1-connoro@google.com) |
+
+
+# 12 深入理解并行编程
 -------
 
 Paul McKenney's parallel programming book, [LWN](https://lwn.net/Articles/421425), [PerfBook](https://mirrors.edge.kernel.org/pub/linux/kernel/people/paulmck/perfbook/perfbook.html), [cgit, perfbook](https://git.kernel.org/pub/scm/linux/kernel/git/paulmck/perfbook.git/)
