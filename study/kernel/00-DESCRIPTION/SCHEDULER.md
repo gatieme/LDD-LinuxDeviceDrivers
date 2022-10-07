@@ -326,6 +326,7 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 | 2022/02/17 | Abel Wu <wuyun.abel@bytedance.com> | [introduce sched-idle balancing](https://lore.kernel.org/all/20220217154403.6497-1-wuyun.abel@bytedance.com) | 当前负载平衡主要基于 cpu capacity 和 task util, 这在整体吞吐量的 POV 中是有意义的. 虽然如果存在 sched 闲置或闲置 RQ, 则可以通过减少过载 CFS RQ 的数量来完成一些改进. 当 CFS RQ 上有多个可伸缩的非闲置任务时(因为 schedidle CPU 被视为闲置 CPU), CFS RQ 被认为是过载的. 空闲任务计入 rq->cfs.idle_h_nr_running.<br>过载的 CFS RQ 可能会导致两种任务类型的性能问题:<br>1. 对于诸如 SCHED_NORMAL 之类的延迟关键任务, RQ 中的等待时间将增加并导致更高的 PCT99 延迟, 并且如果存在 SCHED_DILE, 批处理任务 SCHED_BATCH 可能无法充分利用 CPU 容量, 因此吞吐量较差.<br>所以简而言之, sched-idle balancing 的目标是让非闲置任务充分利用 CPU 资源.<br>为此, 我们主要做两件事:<br>1. 为 sched-idle 的 CPU 拉取 non-idle 的任务来运行, 或者将 overload CPU 上的任务拉取到 idle 的 CPU 上.<br>2. 防止在 RQ 中 PULL 出最后一个非闲置任务. 此外 overloaded CPUs 的掩码会周期性更新, 空闲路径在 LLC 域上. 这个 cpumask 还将在 SIS 中用作过滤器, 改善空闲的 CPU 搜索. | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20220217154403.6497-1-wuyun.abel@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/2](https://lore.kernel.org/lkml/20220409135104.3733193-1-wuyun.abel@bytedance.com) |
 | 2022/08/09 | zhangsong <zhangsong34@huawei.com> | [sched/fair: Introduce priority load balance to reduce interference from IDLE tasks](https://lore.kernel.org/all/20220809132945.3710583-1-zhangsong34@huawei.com) | 对于 NORMAL 和 IDLE 任务的共存, 当 CFS 触发负载均衡时, 将 NORMAL(Latency Sensitive) 任务从繁忙的 src CPU 迁移到 dst CPU, 最后迁移 IDLE 任务是合理的. 这对于减少 SCHED_IDLE 任务的干扰非常重要.<br>但是当前的 cfs_tasks 链表同时包含了 NORMAL 任务和 SCHED_IDLE 等任务, 且没有按照优先级进行排序, 因此无法保证能及时从 busiest 的等待队列中拉出一定数量的正常任务而不是空闲任务<br>因此需要将 cfs_tasks 分成两个不同的列表, 并确保非空闲列表中的任务能够首先迁移. 该补丁引入 cfs_idle_tasks 链表维护 SCHED_IDLE 的任务, 原来的 cfs_tasks 只维护 SCHED_NORMAL 的任务. 负载均衡时优先迁移 SCHED_NORMAL 的任务.<br>测试发现: 少量的 NORMAL 任务与大量的 IDLE 任务搭配, 通过该补丁, NORMAL 任务延迟较当前降低约 5~10%. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220809132945.3710583-1-zhangsong34@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/lkml/20220810015636.3865248-1-zhangsong34@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3](https://lore.kernel.org/lkml/20220810092546.3901325-1-zhangsong34@huawei.com) |
 | 2022/08/25 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: fixes in presence of lot of sched_idle tasks](https://lore.kernel.org/all/20220825122726.20819-1-vincent.guittot@linaro.org) | TODO | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20220825122726.20819-1-vincent.guittot@linaro.org) |
+| 2022/10/03 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: limit sched slice duration](https://lore.kernel.org/all/20221003122111.611-1-vincent.guittot@linaro.org) | TODO | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221003122111.611-1-vincent.guittot@linaro.org) |
 
 
 #### 1.1.5.4 cgroup SCHED_IDLE support
@@ -579,6 +580,7 @@ coscheduling 协同调度是为了解决云服务场景, 为不同用户提供�
 | 2021/11/23 | Christian Brauner | [core scheduling: add PR_SCHED_CORE_SHARE](https://lkml.org/lkml/2021/11/23/474) | NA | v10 ☑ 5.14-rc1 | [2021/10/08 LKML v1](https://lkml.org/lkml/2021/11/23/474) |
 | 2021/12/16 | Joel Fernandes <joel@joelfernandes.org> | [High latency with core scheduling](https://lore.kernel.org/all/Ybvcu5RIwV+Vko09@google.com) | Ybvcu5RIwV+Vko09@google.com | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/Ybvcu5RIwV+Vko09@google.com) |
 | 2022/06/28 | Cruz Zhao <CruzZhao@linux.alibaba.com> | [sched/core: Optimize load balance of core scheduling](https://lore.kernel.org/all/1656403045-100840-1-git-send-email-CruzZhao@linux.alibaba.com) | 相同 cookie 的任务被认为是相互信任的, 可以在 SMT 上的两个兄弟 CPU 上运行, 它们可以在选择下一个任务时配对, 并且可以避免强制闲置. 为了实现这个目标, 必须统计运行队列中有多少带有此 cookie 的任务. 当进行此统计时, 作者也发现一个错误, 当我们更新一个未写入 cookie 的任务的 cookie 时, 任务不会进入 core 的 rbtree, 所以作者同时也修复了这个错误. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/1656403045-100840-1-git-send-email-CruzZhao@linux.alibaba.com) |
+| 2022/09/29 | Cruz Zhao <CruzZhao@linux.alibaba.com> | [sched/core: Optimize the process of picking the max prio task for the core](https://lore.kernel.org/all/1664435913-57227-1-git-send-email-CruzZhao@linux.alibaba.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/1664435913-57227-1-git-send-email-CruzZhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[LORE](https://lore.kernel.org/all/1664767168-30029-1-git-send-email-CruzZhao@linux.alibaba.com) |
 
 
 
@@ -4056,7 +4058,7 @@ ARM EAS 支持的主页: [Energy Aware Scheduling (EAS)](https://developer.arm.c
 
 即使在较小的系统上, 新规则在许多情况下也能有效地阻止任务移动. 在运行相对较多的小任务的情况下尤其如此, 这种情况经常出现在 Android 设备上, 其中能效是一个真正的问题. 如果它不再能够移动任务以节省能源, 则 find_energy_efficient_cpu() 完成的所有工作都将被浪费, 并且设备的运行效率低于其他方式.
 
-### 7.2.3.3 energy margin removal
+#### 7.2.3.3 energy margin removal
 -------
 
 
@@ -4078,6 +4080,14 @@ Donnefort 称: 边距删除使内核能够充分利用能量模型, 任务更有
 | 2021/05/04 | Pierre Gondois <Pierre.Gondois@arm.com> | [sched/fair: find_energy_efficient_cpu() enhancements](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=619e090c8e409e09bd3e8edcd5a73d83f689890c) | 防止 find_energy_efficient_cpu() 出现下溢. | v3 ☑✓ 5.14-rc1 | [LORE v3,0/2](https://lore.kernel.org/all/20210504090743.9688-1-Pierre.Gondois@arm.com) |
 | 2021/12/20 | Vincent Donnefort <vincent.donnefort@arm.com> | [Fix stuck overutilized](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) | NA | v1 ☐ | [LORE 0/3](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) |
 | 2022/06/21 | Vincent Donnefort <vdonnefort@google.com> | [feec() energy margin removal](https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/log/?id=b812fc9768e0048582c8e18d7b66559c1758dde1) | feec() 将迁移任务以节省能源, 前提是它至少节省了系统消耗的总能源的 6%. 这种保守的方法对于终端来说是一个问题, 在这个系统中, 许多小任务会在总体上产生巨大的负载: 很少有任务可以迁移到较小的 CPU, 这会浪费大量的能量. 与其试图确定另一个裕度, 不如尝试删除它. | v11 ☐☑✓ | [LORE v11,0/7](https://lore.kernel.org/all/20220621090414.433602-1-vdonnefort@google.com) |
+
+#### 7.2.3.4 feec improvement
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/10/06 | Pierre Gondois <pierre.gondois@arm.com> | [sched/fair: feec() improvement](https://lore.kernel.org/all/20221006081052.3862167-1-pierre.gondois@arm.com) | TODO | v2 ☐☑✓ | [LORE v2,0/1](https://lore.kernel.org/all/20221006081052.3862167-1-pierre.gondois@arm.com) |
+
 
 #### 7.2.3.x EAS timeline
 -------

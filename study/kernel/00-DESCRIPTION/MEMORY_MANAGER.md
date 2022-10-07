@@ -643,7 +643,7 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/02/05 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [Linear Address Masking enabling](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com) | [线性地址屏蔽(LAM)](https://software.intel.com/content/dam/develop/external/us/en/documents-tps/architecture-instruction-set-extensions-programming-reference.pdf) 修改应用于 64 位线性地址的检查, 允许软件将未翻译的地址位用于元数据. 手册参见 [ISE, Chapter 14](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com). 代码参见 [kas/linux.git](https://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git/log/?h=lam). | RFC ☐ | [PatchWork RFC,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/8](https://lore.kernel.org/r/20220610143527.22974-1-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/11](https://lore.kernel.org/r/20220815041803.17954-1-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/11](https://lore.kernel.org/r/20220830010104.1282-1-kirill.shutemov@linux.intel.com) |
+| 2021/02/05 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [Linear Address Masking enabling](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com) | [线性地址屏蔽(LAM)](https://software.intel.com/content/dam/develop/external/us/en/documents-tps/architecture-instruction-set-extensions-programming-reference.pdf) 修改应用于 64 位线性地址的检查, 允许软件将未翻译的地址位用于元数据. 手册参见 [ISE, Chapter 14](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com). 代码参见 [kas/linux.git](https://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git/log/?h=lam). | RFC ☐ | [PatchWork RFC,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/8](https://lore.kernel.org/r/20220610143527.22974-1-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/11](https://lore.kernel.org/r/20220815041803.17954-1-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2022/08/30 LORE v1,0/11](https://lore.kernel.org/r/20220830010104.1282-1-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2022/09/30 LORE v1,0/14](https://lore.kernel.org/r/20220930144758.30232-1-kirill.shutemov@linux.intel.com) |
 
 
 ## 1.9 page attributes
@@ -3882,7 +3882,7 @@ v2.5 的时候引入了 shrink 机制, 并提供了 API 统一了各个模块的
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/08/05 | alexlzhu@fb.com <alexlzhu@fb.com> | [mm: add thp_utilization metrics to /proc/thp_utilization](https://lore.kernel.org/all/20220805184016.2926168-1-alexlzhu@fb.com) | 由于性能的提高或降低取决于特定应用程序如何使用物理内存, THP 在历史上一直是针对每个应用程序启用的. 当 THP 被大量利用时, 由于 TLB 缓存失败的减少, 应用程序性能会得到改善. 长期以来, 人们一直怀疑启用 THP 时的性能下降是由于大量未充分利用的匿名 THP 造成的. 以前, 没有办法跟踪到底有多少 THP 被实际使用. 通过这个补丁, 帮助开发者了解 THP 的使用情况, 以便在分页方面做出更智能的决策. 这个更改引入了一个工具, 该工具扫描匿名 THP 的所有物理内存, 并根据使用率将它们分组到桶中. 它还包括一个位于 `/sys/kernel/debug/thp_utilization` 下的接口. THP 的利用率定义为 THP 中非零页面的百分比. 工作线程将扫描所有物理内存, 并获得所有匿名 THP 的利用率. 它将通过定期扫描所有物理内存来收集这些信息, 寻找匿名 THP, 根据利用率将它们分组到桶中, 并通过 `/sys/kernel/debug/thp_utilization` 下的 debugfs 报告利用率信息. | v3 ☐☑✓ | [LORE v2](https://lore.kernel.org/lkml/20220809014950.3616464-1-alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3](https://lore.kernel.org/all/20220805184016.2926168-1-alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/1](https://lore.kernel.org/r/20220818000112.2722201-1-alexlzhu@fb.com) |
-| 2022/08/25 | alexlzhu@fb.com <alexlzhu@fb.com> | [THP Shrinker](https://lore.kernel.org/all/cover.1661461643.git.alexlzhu@fb.com) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/cover.1661461643.git.alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/3](https://lore.kernel.org/r/cover.1661461643.git.alexlzhu@fb.com) |
+| 2022/08/25 | alexlzhu@fb.com <alexlzhu@fb.com> | [THP Shrinker](https://lore.kernel.org/all/cover.1661461643.git.alexlzhu@fb.com) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/cover.1661461643.git.alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/3](https://lore.kernel.org/r/cover.1661461643.git.alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/3](https://lore.kernel.org/r/cover.1664347167.git.alexlzhu@fb.com) |
 
 
 ## 4.4 主动的页面回收(Proactive Reclaim)
@@ -5309,15 +5309,36 @@ sys_fork
 执行 fork 完毕后, 原先父进程中可写的区域在父子进程中都被设置了 CoW, 即 pte 中可写的属性被清除. 那么下次对此地址进行写操作时(不管是父进程还是子进程), 都会触发 PageFault. 然后新分配一个页面出来公其使用, 同时原来 pte 的可写属性也会被重新设置.
 
 
-### 8.2.2.1 匿名页的写时拷贝
+
+#### 8.2.2.1 匿名页的写时拷贝
 -------
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/09/27 | David Hildenbrand <david@redhat.com> | [selftests/vm: test COW handling of anonymous memory](https://patchwork.kernel.org/project/linux-mm/cover/20220927110120.106906-1-david@redhat.com/) | 680969 | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20220927110120.106906-1-david@redhat.com) |
 
-### 8.2.2.2 文件页的写时拷贝
+#### 8.2.2.2 文件页的写时拷贝
 -------
 
+#### 8.2.2.3 页表的写时拷贝
+-------
 
-### 8.2.2.3 写时拷贝的问题
+[Introduce Copy-On-Write to Page Table](https://patchwork.kernel.org/project/linux-mm/cover/20220927162957.270460-1-shiyn.lin@gmail.com) 这组补丁集为 PTE 级页表引入了写入时拷贝(COW).
+
+在用户需要程序副本才能在隔离环境中运行的情况下, COW PTE 提高了性能. 基于反馈的模糊器 (例如, AFL) 和微服务框架是两个主要的例子. 例如, COW PTE 在 fuzzer(AFL) 上运行 SQLite 时, 吞吐量增加了 9.3 倍.
+
+由于 COW PTE 只在特定场景下能获得性能提升, 因此作者添加了一个新的 sysctl vm.cow_pte, 带有输入进程 ID(PID), 允许用户为特定进程启用 cow pte.
+
+1. 为了处理具有共享 PTE 表的每个进程的页表状态, 该补丁引入了 COW PTE 表所有权的概念. 这个实现使用 PMD 索引的地址来跟踪 PTE 表的所有权. 这有助于维护 COW PTE 表的状态, 例如 RSS 和 pgtable_bytes. 一些 PTE 表 (例如, 驻留在表中的固定页面) 仍然需要立即复制, 以与当前的 COW 逻辑保持一致. 结果, 一个标志 COW_PTE_OWNER_EXCLUSIVE 被添加到表的所有者指针上, 它指示一个 PTE 表是否是独占的(即, 一次只有一个任务拥有它). 每次在 fork 期间复制 PTE 表时, 将检查所有者指针(以及独占标志), 以确定 PTE 表是否可以跨进程共享.
+
+2. 使用一个引用计数来跟踪共享页表的生命周期. 使用 COW PTE 调用 fork 将增加引用计数. refcount=1 表示页表目前没有与其他进程共享, 但可能会被共享. 并且, 当有人写入共享 PTE 表时, 会导致写入故障中断 COW PTE, 如果共享 PTE 表的 refcount 为 1, 触发该故障的进程将重用共享 PTE 表. 否则, 进程将减少引用计数, 将信息复制到一个新的 PTE 表, 或取消引用所有信息, 并更改所有者(如果他们拥有共享 PTE 表).
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/09/27 | Chih-En Lin <shiyn.lin@gmail.com> | [Introduce Copy-On-Write to Page Table](https://patchwork.kernel.org/project/linux-mm/cover/20220927162957.270460-1-shiyn.lin@gmail.com/) | 目前, 写入时复制仅用于映射内存; 在分叉期间, 子进程仍然需要从父进程复制整个页表. 当父进程分配了一个大页表时, 父进程可能需要花费大量时间和内存来复制页表. 这组补丁集为 PTE 级页表引入了写入时拷贝(COW). | v2 ☐☑ | [LORE v2,0/9](https://lore.kernel.org/r/20220927162957.270460-1-shiyn.lin@gmail.com) |
+
+
+#### 8.2.2.X 写时拷贝的问题
 -------
 
 
