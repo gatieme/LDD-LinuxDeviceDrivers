@@ -125,12 +125,27 @@
 | [USENIX](https://www.usenix.org/conferences/all) | NA |
 
 
-## 6.1 LPC
+## 6.1 Linux Plumbers Conference (LPC)
 -------
 
-| 日期 | 录屏 |
-|:---:|:----:|
-| 2021/09 | [Watch Live (Free)](https://www.linuxplumbersconf.org/event/11/page/107-watch-live-free) |
+| 日期 | 会议 |  回放 |
+|:---:|:----:|:----:|
+| 2008    | [LPC-2008](https://blog.linuxplumbersconf.org/2008) | NA |
+| 2009    | [LPC-2009](https://blog.linuxplumbersconf.org/2009/schedule/index.html) | NA |
+| 2010    | [LPC-2010](http://wiki.linuxplumbersconf.org/2010:topics) | NA |
+| 2011    | [LPC-2011](http://wiki.linuxplumbersconf.org/2011:topics) | NA |
+| 2012    | [LPC-2012](http://wiki.linuxplumbersconf.org/2012:topics) | NA |
+| 2013    | [LPC-2013](http://wiki.linuxplumbersconf.org/2013:topics) | NA |
+| 2014    | [LPC-2014](http://wiki.linuxplumbersconf.org/2014:topics) | NA |
+| 2015    | [LPC-2015](http://blog.linuxplumbersconf.org/2015/ocw/events/LPC2015/proposals.html) | [LPC-2015](http://wiki.linuxplumbersconf.org/2015:topics) |
+| 2016    | [LPC-2016](http://blog.linuxplumbersconf.org/2016/ocw/events/LPC2016/proposals.html) | [topics](http://wiki.linuxplumbersconf.org/2016:topics) |
+| 2017/09 | [LPC-2017](http://blog.linuxplumbersconf.org/2017/ocw/events/LPC2017/proposals.html) | NA |
+| 2018/11 | [LPC-2018](https://lpc.events/2018)     | [YouTube channel](http://blog.linuxplumbersconf.org/2018)			|
+| 2019/09 | [LPC-2019](https://lpc.events/event/4)  | [List of all talks/topics](https://lpc.events/event/4/contributions)      |
+| 2020/09 | [LPC-2020](https://lpc.events/event/7)  | [Watch Live (Free)](https://lpc.events/event/7/page/100-watch-live-free)  |
+| 2021/09 | [LPC-2021](https://lpc.events/event/11) | [Watch Live (Free)](https://lpc.events/event/11/page/107-watch-live-free) |
+| 2022/09 | [LPC-2022](https://lpc.events/event/16) | [Watch Live (Free)](https://lpc.events/event/16/page/173-watch-live-free) |
+
 
 ## 6.2 ASPLOS
 -------

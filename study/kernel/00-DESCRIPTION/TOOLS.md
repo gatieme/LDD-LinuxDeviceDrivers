@@ -201,10 +201,13 @@ Arch Linux 在 2022 年 5 月份开始了也提供了他们的 [debuginfod 调�
 
 
 
+# 4 运维工具
+-------
 
 
-
-
+| 工具 | 主页 | 描述 |
+|:---:|:---:|:----:|
+| [kmon](https://github.com/orhun/kmon) | | NA | 用于管理 Linux 内核模块和监视内核活动的终端工具, 使用 Rust 编写. |
 
 
 

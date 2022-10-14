@@ -3840,11 +3840,11 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 ### 5.6.1 [EuroSys '22, OS scheduling with nest](https://dl.acm.org/doi/10.1145/3492321.3519585)
 -------
 
+论文参照 [EuroSys '22, OS scheduling with nest](https://dl.acm.org/doi/10.1145/3492321.3519585), 并在 LPC-2022 上做了主题演讲 [OS Scheduling with Nest: Keeping Tasks Close Together on Warm Cores](https://lpc.events/event/16/contributions/1198)
+
 为了最好地支持高度并行的应用程序, 使系统的吞吐量最高, CFS 调度器总是倾向于在任务创建和唤醒时将任务尽可能均衡的分散到系统的各个 CPU 上. 然而, 这可能总是事与愿违的. 据观察, 在服务器环境中, 这种策略会导致任务不必要地放置在运行频率较低的长时间空闲的核心上, 而这些 IDLE 的 CPU 往往需要较长的时间才能唤醒, 从而降低了业务的性能, 而导致任务不必要地分布在各个 SCOKET 上, 也导致这些 SOCKET 不能进入低功耗模式, 从而导致功耗增加. 论文 [EuroSys '22, OS scheduling with nest: keeping tasks close together on warm cores, Julia Lawall](https://hal.inria.fr/hal-03612592/document?msclkid=ef0482efd02911ecac42ed2b3d62baa7) 中, 在 Linux 内核中实现了 Nest 调度器, 提出利用 CPU 核复用的原理, 通过构造一个多级 CPU 的集合, 使用这些集合的 priority 进行任务调度, 从而获得更高的频率和使用更少的 SOCKET. 对于高度并行的应用程序, 其性能和能耗与 CFS 不相上下, 但对于使用比核心更少任务的应用程序, Nest 调度器的的性能为原生 10% ~ 2 倍, 并且可以降低能耗.
 
-
 为进程维护了一个多级(从 WARM 到 COLD)的 CPU 集合, 用来在选核时作为参考, 类似于多级 CPU Cache 一样.
-
 
 | CPU 集合 | 描述 |
 |:--------:|:---:|
@@ -4353,6 +4353,10 @@ LPC-2022 [Dynamic Energy Model to handle leakage power](https://lpc.events/event
 2.	为芯片不同的工艺和集成方式, 允许提供适合的 SoC 的功率值.
 
 3.	允许在运行时根据 SoC 的当前温度修改功率值, 因为与小核和中核相比, 大核的能效对温度更敏感.
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/11 | Viresh Kumar <viresh.kumar@linaro.org> | [cpufreq: Auto-register with energy model](https://lore.kernel.org/all/cover.1628682874.git.viresh.kumar@linaro.org) | TODO | v2 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/cover.1628579170.git.viresh.kumar@linaro.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/9](https://lore.kernel.org/all/cover.1628682874.git.viresh.kumar@linaro.org) |
 
 
 ### 7.2.6 IPA(Thermal 管控)
@@ -5590,7 +5594,7 @@ ARM & Linaro 的内核团队针对 Android/linux 等做了大量的调度的优�
 | 2021/01/06 | Vincent Guittot | [sched: Remove per rq load array](https://lore.kernel.org/patchwork/cover/1079333) | 自 LB_BIAS 被禁用之后, 调度器只使用 rq->cpu_load[0] 作为cpu负载值, 因此 cpu_load 这个数组的其他之其实没意义了, 直接去掉了. 注意这对 load_balance 的调优是有一定影响的, 之前 sched_domain 中可以通过 sysctl 接口修改比较负载使用的 index, 这些 index 对应的 cpu_load 数组的下标. 干掉了这个数组, 那么这些 sysctl 也就没必要了 | v2 ☑ 5.10-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1079333) |
 | 2021/04/12 | Peter Zijlstra | [sched: Clean up SCHED_DEBUG](https://lore.kernel.org/patchwork/cover/1402660) | 目前内核有 sysctl, procfs 和 debugfs SCHED_DEBUG 接口, 比较混乱.<br>1. 将 CONFIG_LATENCYTOP 以及 sched_schedstats 和 NUMA balance 的 sysctl 开关都不再依赖于 CONFIG_SCHED_DEBUG<br>2. 将 [所有接口信息都转移到 debugfs 中](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d27e9ae2f244805bbdc730d85fba28685d2471e5).<br>3. 添加 ALT_PERIOD 和 BASE_SLICE feature. 考虑 cgroup 的情况, 添加了 ALT_PERIOD 计算__sched_period 实际实际的 h_nr_running, 添加 BASE_SLICE 保证进程的 sched_slice 至少达到 sysctl_sched_min_granularity]https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0c2de3f054a59f15e01804b75a04355c48de628c) | v2 ☑ 5.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1402660), [LKML](https://lkml.org/lkml/2021/3/26/395), [LORE](https://lore.kernel.org/all/20210412101421.609526370@infradead.org) |
 
-## 12.4 benchmark
+## 12.4 tools & benchmark
 -------
 
 [A survey of scheduler benchmarks](https://lwn.net/Articles/725238)
@@ -5638,6 +5642,27 @@ ECRTS 2020(32nd Euromicro Conference on Real-Time Systems) 上 Daniel 等人发�
 -------
 
 [Nefelim4ag/Ananicy](https://github.com/Nefelim4ag/Ananicy) 用于管理进程的 IO 和 CPU 优先级, 它主要用于桌面使用. 它的 github 允许开发人员贡献主流应用程序规则集.
+
+
+### 12.4.3 调度行为模拟
+-------
+
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2019/07/10 | [Scheduler behavioral testing](https://lwn.net/Articles/793381) | [LWN: OSPM会议讨论如何测试scheduler行为](https://blog.csdn.net/Linux_Everything/article/details/97207472) |
+
+| 工具 | 描述 | 主页 |
+|:---:|:---:|:----:|
+| rt_app | rt-app 模拟典型的系统用例, 并跟踪其运行时的信息. | [GitHub](https://github.com/scheduler-tools/rt-app) | NA |
+| Yogini | [LPC-2022/Exercising the Linux scheduler with Yogini](https://lpc.events/event/16/contributions/1203) | NA |
+
+| 工具 | 描述 |
+|:---:|:----:|
+| [LISA](https://github.com/arm-software/lisa)   | Linux Integrated Systems Analysis |
+| [TRAPpy](https://github.com/arm-software/trappy) | Trace Analysis and Plotting in Python |
+| [BART](https://github.com/arm-software/bart)   | Behavioural Analysis and Regression Toolkit |
+
+
 
 **引用: **
 

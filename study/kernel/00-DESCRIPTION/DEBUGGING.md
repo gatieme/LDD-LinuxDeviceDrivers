@@ -75,6 +75,10 @@ blogexcerpt: FZF 是目前最快的模糊搜索工具. 使用golang编写. 结�
 # 2 unikernel
 -------
 
+Unikernel 是一种专门的操作系统, 其中应用程序直接与内核链接, 并以管理模式运行. 这允许开发人员对内核实现特定于应用程序的优化, 应用程序可以直接调用这些优化(无需经过系统调用路径). 应用程序可以控制调度和资源管理, 并直接访问硬件. 应用程序和内核可以联合优化, 例如通过 LTO、PGO 等. 所有这些优化和其他优化都为应用程序提供了比通用操作系统更大的性能优势.
+
+[An overview of approaches-PROJECTS/Open source work on unikernels](http://unikernel.org/projects)
+
 
 *   KML(Kernel Mode Linux : Execute user processes in kernel mode)
 
@@ -82,6 +86,7 @@ blogexcerpt: FZF 是目前最快的模糊搜索工具. 使用golang编写. 结�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/04/16 | Toshiyuki Maeda | [Kernel Mode Linux : Execute user processes in kernel mode](http://web.yl.is.s.u-tokyo.ac.jp/~tosh/kml) | 内核直接执行用户态程序. | v1 ☐ [4.0](http://web.yl.is.s.u-tokyo.ac.jp/~tosh/kml/kml/for4.x) | [Patch](https://github.com/sonicyang/KML) |
 | 2018/11/23 | Hsuan-Chi Kuo <hckuo2@illinois.edu> | [Lupine: Linux in Unikernel Clothes](https://github.com/hckuo/Lupine-Linux) | 通过内核配置和(KML)间接清除系统调用的影响, 从而使得 Linux 的性能达到持平甚至优于 unikernel 的性能. | ☐ | [Github](https://github.com/hckuo/Lupine-Linux), [159_kuo_slides.pdf](https://www.eurosys2020.org/wp-content/uploads/2020/04/slides/159_kuo_slides.pdf) |
+| 2022/10/03 | Ali Raza <aliraza@bu.edu> | [Unikernel Linux (UKL)](https://lore.kernel.org/all/20221003222133.20948-1-aliraza@bu.edu) | 参见 [Experimental Patches Adapt Linux For A Unikernel Design](https://www.phoronix.com/news/Linux-Unikernel-RFC). | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/20221003222133.20948-1-aliraza@bu.edu), [Github](https://github.com/unikernelLinux/ukl) |
 
 
 # 3 RONX

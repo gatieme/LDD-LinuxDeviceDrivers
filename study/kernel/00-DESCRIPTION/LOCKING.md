@@ -279,7 +279,7 @@ percpu rw 信号量是一种新的读写信号量设计, 针对读取锁定进�
 | 2018/01/29 | Raghavendra K T <raghavendra.kt@linux.vnet.ibm.com> | [membarrier: Provide core serializing command](https://lore.kernel.org/patchwork/cover/843003) | 引入 MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED. | v6 ☑ 4.16-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/cover/835747)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6](https://lore.kernel.org/patchwork/cover/398912) |
 
 
-# 5 RCU()
+# 5 RCU
 -------
 
 [What is RCU, Fundamentally?](https://lwn.net/Articles/262464)
@@ -291,6 +291,8 @@ percpu rw 信号量是一种新的读写信号量设计, 针对读取锁定进�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/06/01 | "Joel Fernandes (Google)" <joel@joelfernandes.org> | [Harden list_for_each_entry_rcu() and family](https://lore.kernel.org/patchwork/cover/1082845) | 本系列增加了一个新的内部函数rcu_read_lock_any_held(), 该函数在调用这些宏时检查reader节是否处于活动状态. 如果不存在reader section, 那么list_for_each_entry_rcu()的可选第四个参数可以是一个被计算的lockdep表达式(类似于rcu_dereference_check()的工作方式). . | RFC ☑ 5.4-rc1 | [PatchWork RFC,0/6](https://lore.kernel.org/patchwork/cover/1082845) |
+
+Google 的 Joel Fernandes 等发现 RCU 并没有很好的节能, 在 Android 和 ChromeOS 系统的功耗方面, RCU 占据了比较大的比重. 他们在 LPC-2022 上演示了他们在延迟 RCU 处理等降低 RCU 功耗和底噪的工作. 参见 [Make RCU do less (& later) !](https://lpc.events/event/16/contributions/1204).
 
 
 
@@ -339,13 +341,26 @@ Lockdep 跟踪锁的获取顺序, 以检测死锁, 以及 IRQ 和 IRQ 启用/禁
 
 参见 [[PATCH RFC v6 00/21] DEPT(Dependency Tracker)](https://lore.kernel.org/lkml/1651652269-15342-1-git-send-email-byungchul.park@lge.com), 分析了 Lockdep 的问题以及引入 Dependency Tracker 的背景和设计思路.
 
-但是 Lockdep 依旧有太多问题
+但是 Lockdep 依旧有太多问题:
+
+
+1. 错误消息有时令人困惑且难以理解, 这不仅使读取死锁方案难以理解, 而且还使内部错误难以调试.
+
+2. 一旦报告了一个问题, 所有锁定功能都将关闭. 尽管这是合理的, 因为一旦检测到锁定问题, 整个系统就会受到锁定错误的影响, 并且在修复错误之前继续运行
+系统是毫无意义的. 然而, 当开发人员遇到其他子系统中发生的一些锁定问题时, 这让他们感到沮丧, 在修复现有问题之前, 他们无法测试代码是否存在锁定问题.
+
+3. 检测需要一些时间来运行, 并且会创建比生产环境更多的同步点. lockdep 使用内部锁来保护锁定问题检测的数据结构, 这并不奇怪. 但是, 此锁定会
+创建同步点, 并可能使某些问题难以检测(因为问题可能仅针对特定的偶数序列发生, 并且额外的同步点可能会阻止此类序列的发生)
+
+针对此问题冯博群 Boqun Feng (Microsoft) 在 LPC-2022 上演示了 [Modularization for Lockdep](https://lpc.events/event/16/contributions/1210). 它提出将 LOCKDEP 进行模块化设计, 解耦为前端 - 后端的模式: 前端跟踪每个任务/上下文的当前持有的锁, 并向后端报告锁定对象, 后端维护锁依赖关系图并根据前端报告的内容检测锁定问题.
+
+此外:
 
 1.  对于与实际锁无关的等待和事件, 比如时间等待等机制, 如果无法完成, 最终也会导致死锁. 但是 Lockdep 只能通过分析锁的获取顺序来完成思索检测, 对于与实际锁无关的等待和事件, 无法识别和处理, 只能通过过模拟锁来完成.
 
 2.  更糟糕的是, Lockdep 存在太多假阳性检测, 这可能阻止了本身更有价值的进一步检测.
 
-3.  此外, 通过跟踪获取顺序, 它不能正确地处理读锁和交叉事件, 例如 wait_for_completion ()/complete () 用于死锁检测. Lockdep 不再是实现这一目的的好工具.
+3.  此外, 通过跟踪获取顺序, 它不能正确地处理读锁和交叉事件, 例如 wait_for_completion()/complete() 用于死锁检测. Lockdep 不再是实现这一目的的好工具.
 
 
 ## 10.2 Crossrelease Feature
