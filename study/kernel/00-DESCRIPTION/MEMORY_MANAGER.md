@@ -3890,7 +3890,7 @@ v2.5 的时候引入了 shrink 机制, 并提供了 API 统一了各个模块的
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/08/05 | alexlzhu@fb.com <alexlzhu@fb.com> | [mm: add thp_utilization metrics to /proc/thp_utilization](https://lore.kernel.org/all/20220805184016.2926168-1-alexlzhu@fb.com) | 由于性能的提高或降低取决于特定应用程序如何使用物理内存, THP 在历史上一直是针对每个应用程序启用的. 当 THP 被大量利用时, 由于 TLB 缓存失败的减少, 应用程序性能会得到改善. 长期以来, 人们一直怀疑启用 THP 时的性能下降是由于大量未充分利用的匿名 THP 造成的. 以前, 没有办法跟踪到底有多少 THP 被实际使用. 通过这个补丁, 帮助开发者了解 THP 的使用情况, 以便在分页方面做出更智能的决策. 这个更改引入了一个工具, 该工具扫描匿名 THP 的所有物理内存, 并根据使用率将它们分组到桶中. 它还包括一个位于 `/sys/kernel/debug/thp_utilization` 下的接口. THP 的利用率定义为 THP 中非零页面的百分比. 工作线程将扫描所有物理内存, 并获得所有匿名 THP 的利用率. 它将通过定期扫描所有物理内存来收集这些信息, 寻找匿名 THP, 根据利用率将它们分组到桶中, 并通过 `/sys/kernel/debug/thp_utilization` 下的 debugfs 报告利用率信息. | v3 ☐☑✓ | [LORE v2](https://lore.kernel.org/lkml/20220809014950.3616464-1-alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3](https://lore.kernel.org/all/20220805184016.2926168-1-alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/1](https://lore.kernel.org/r/20220818000112.2722201-1-alexlzhu@fb.com) |
-| 2022/08/25 | alexlzhu@fb.com <alexlzhu@fb.com> | [THP Shrinker](https://lore.kernel.org/all/cover.1661461643.git.alexlzhu@fb.com) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/cover.1661461643.git.alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/3](https://lore.kernel.org/r/cover.1661461643.git.alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/3](https://lore.kernel.org/r/cover.1664347167.git.alexlzhu@fb.com) |
+| 2022/10/12 | alexlzhu@fb.com <alexlzhu@fb.com> | [THP Shrinker](https://lore.kernel.org/all/cover.1661461643.git.alexlzhu@fb.com) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/cover.1661461643.git.alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/3](https://lore.kernel.org/r/cover.1661461643.git.alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/3](https://lore.kernel.org/r/cover.1664347167.git.alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/r/cover.1665600372.git.alexlzhu@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/3](https://lore.kernel.org/r/cover.1665614216.git.alexlzhu@fb.com) |
 
 
 ## 4.4 主动的页面回收(Proactive Reclaim)
@@ -4691,7 +4691,7 @@ Google 的工程师 Mina Almasry 提出了一种新的思路, 通过 [mremap 的
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/08/18 | Song Liu <song@kernel.org> | [vmalloc_exec for modules and BPF programs](https://lore.kernel.org/all/20220818224218.2399791-1-song@kernel.org) | 这个补丁集允许内核动态分配的代码段 (比如模块、bpf 程序、各种 trampoline 等) 共享巨大的页面. 这个想法源自于 [Peter Zijlstra 在讨论 mm/vmalloc: introduce vmalloc_exec which allocates RO+X memory](https://lore.kernel.org/bpf/Ys6cWUMHO8XwyYgr@hirez.programming.kicks-ass.net) 中的建议. 最终目标是仅在 2MB 页面中承载内核文本(当前仅针对对于 x86_64). | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20220818224218.2399791-1-song@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/all/20221007234315.2877365-1-song@kernel.org) |
+| 2022/10/07 | Song Liu <song@kernel.org> | [vmalloc_exec for modules and BPF programs](https://lore.kernel.org/all/20220818224218.2399791-1-song@kernel.org) | 这个补丁集允许内核动态分配的代码段 (比如模块、bpf 程序、各种 trampoline 等) 共享巨大的页面. 这个想法源自于 [Peter Zijlstra 在讨论 mm/vmalloc: introduce vmalloc_exec which allocates RO+X memory](https://lore.kernel.org/bpf/Ys6cWUMHO8XwyYgr@hirez.programming.kicks-ass.net) 中的建议. 最终目标是仅在 2MB 页面中承载内核文本(当前仅针对对于 x86_64). | v1 ☐☑✓ | [2022/08/18 LORE v1,0/5](https://lore.kernel.org/all/20220818224218.2399791-1-song@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2022/10/07 LORE v2,0/4](https://lore.kernel.org/all/20221007234315.2877365-1-song@kernel.org) |
 | 2022/05/19 | Song Liu <song@kernel.org> | [module: introduce module_alloc_huge](https://lore.kernel.org/all/20220520031548.338934-5-song@kernel.org) | TODO | v3 ☐☑✓ | [LORE v3,4/8](https://lore.kernel.org/all/20220520031548.338934-5-song@kernel.org) |
 
 
@@ -5511,6 +5511,7 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/08/22 | Liam Howlett <liam.howlett@oracle.com> | [Introducing the Maple Tree](https://lore.kernel.org/patchwork/patch/1477973) | Maple Tree 是一种基于 RCU 安全范围的 B树, 旨在高效使用现代处理器缓存. 在内核中有许多地方, 基于范围的非重叠树是有益的, 尤其是具有简单接口的树. Maple Tree 的第一个用户是 vm_area_struct, 当前替换了三个结构: 增强 rbtree、vma 缓存和 mm_struct 中的 vma linked 链表. 长期目标是减少或消除 mmap_sem 争用. | v9 ☐ | [2021/08/17 PatchWork v2,00/61](https://patchwork.kernel.org/project/linux-mm/cover/20210817154651.1570984-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/05 PatchWork v3](https://patchwork.kernel.org/project/linux-mm/cover/20211005012959.1110504-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/01 PatchWork v4,00/66](https://patchwork.kernel.org/project/linux-mm/cover/20211201142918.921493-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/02/02 PatchWork v5,00/70](https://patchwork.kernel.org/project/linux-mm/cover/20220202024137.2516438-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/04/04 LORE v7,00/70](https://lore.kernel.org/r/20220404143501.2016403-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/04/26 LORE v8,0/70](https://lore.kernel.org/r/20220426150616.3937571-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v9,0/69](https://lore.kernel.org/r/20220504010716.661115-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/06/21 LORE v10,0/69](https://lore.kernel.org/all/20220621204632.3370049-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/07/17 LORE v11,0/69](https://lore.kernel.org/r/20220717024615.2106835-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/08/22 ORE v13,0/70](https://lore.kernel.org/r/20220822150128.1562046-1-Liam.Howlett@oracle.com) |
 | 2022/05/04 | Liam Howlett <Liam.Howlett@Oracle.com> | [Prepare for maple tree](https://patchwork.kernel.org/project/linux-mm/cover/20220504002554.654642-1-Liam.Howlett@oracle.com/) | 638130 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220504002554.654642-1-Liam.Howlett@oracle.com) |
+| 2022/10/11 | Liam Howlett <Liam.Howlett@Oracle.com> | [mm/mmap: Preallocate maple nodes for brk vma expansion](https://patchwork.kernel.org/project/linux-mm/patch/20221011160624.1253454-1-Liam.Howlett@oracle.com/) | 684552 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221011160624.1253454-1-Liam.Howlett@oracle.com) |
 
 
 ## 8.3 反向映射 RMAP(Reverse Mapping)
@@ -6307,6 +6308,8 @@ Intel 的吴峰光 [PMEM NUMA node and hotness accounting/migration](https://lor
 | 2022/06/06 | Aneesh Kumar K V <aneesh.kumar@linux.ibm.com> | [mm/demotion: Add sysfs ABI documentation](https://patchwork.kernel.org/project/linux-mm/patch/87r1428k9n.fsf@linux.ibm.com/) | 647508 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/87r1428k9n.fsf@linux.ibm.com) |
 | 2022/06/07 | Johannes Weiner <hannes@cmpxchg.org> | [mm: mempolicy: N:M interleave policy for tiered memory nodes](https://patchwork.kernel.org/project/linux-mm/patch/20220607171949.85796-1-hannes@cmpxchg.org/) | 648110 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220607171949.85796-1-hannes@cmpxchg.org) |
 | 2022/06/14 | Tim Chen <tim.c.chen@linux.intel.com> | [Cgroup accounting of memory tier usage](https://patchwork.kernel.org/project/linux-mm/cover/cover.1655242024.git.tim.c.chen@linux.intel.com/) | 650358 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/cover.1655242024.git.tim.c.chen@linux.intel.com) |
+| 2022/08/29 | Aneesh Kumar K V <aneesh.kumar@linux.ibm.com> | [[v2] mm/demotion: Expose memory tier details via sysfs](https://patchwork.kernel.org/project/linux-mm/patch/20220829060745.287468-1-aneesh.kumar@linux.ibm.com/) | 671886 | v2 ☐☑ | [LORE v2,0/1](https://lore.kernel.org/r/20220829060745.287468-1-aneesh.kumar@linux.ibm.com) |
+
 
 
 ## 12.2 远端内存
@@ -6444,13 +6447,14 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 > 2. 然后, 再扫描一遍灰名单, 即已经被确认有引用的对象, 找出这些对象可能引用的别的所有对象, 也加入灰名单中.
 > 3. 最后剩下的, 在白名单中的, 就是被 KMEMLEAK 认为是泄漏了的对象.
 
-
-
 由于内存的引用情况各异, 存在很多特殊情况, 可能存在误报或漏报的情况, 所以 KMEMLEAK 还提供了一些接口, 方便使用者告知 KMEMLEAK 某些对象不是泄露, 某些对象不用检查,等等.
 
-
-
 这个工具当然也存在着显著的影响系统性能的问题, 所以也只是作为调试使用.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/09/20 | zhaoyang.huang <zhaoyang.huang@unisoc.com> | [[RFC] mm: track bad page via kmemleak](https://patchwork.kernel.org/project/linux-mm/patch/1663679468-16757-1-git-send-email-zhaoyang.huang@unisoc.com/) | 678650 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/1663679468-16757-1-git-send-email-zhaoyang.huang@unisoc.com)[LORE v2,0/1](https://lore.kernel.org/r/1663730246-11968-1-git-send-email-zhaoyang.huang@unisoc.com) |
+
 
 ### 13.3.4 KASAN - 内核地址净化器
 -------
@@ -6476,6 +6480,7 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 | 2020/08/04 | Andrey Konovalov <andreyknvl@google.com> | [kasan: support stack instrumentation for tag-based mode](https://lore.kernel.org/patchwork/patch/1284062) | NA | v11 ☑ 5.9-rc1 | [PatchWork v2,0/5](https://lore.kernel.org/patchwork/patch/1284062), [Clang](https://clang.llvm.org/docs/HardwareAssistedAddressSanitizerDesign.html) |
 | 2022/03/23 | andrey.konovalov@linux.dev <andrey.konovalov@linux.dev> | [kasan, arm64, scs, stacktrace: collect stack traces from Shadow Call Stack](https://patchwork.kernel.org/project/linux-mm/cover/cover.1648049113.git.andreyknvl@google.com) | 目前, 当保存 alloc 和 free 堆栈跟踪时, kasan 总是使用正常的堆栈跟踪收集例程, 它依赖于 unwind. 通过复制帧从阴影调用堆栈收集堆栈跟踪, 每当它被启用. 这减少了 30% 的启动时间, 所有的 KASAN 模式时, 影子呼叫堆栈被启用. 堆栈栈位通过新的 stack_trace_save_shadow () 接口从 Shadow Call Stack 中收集. | v2 ☐☑ | [LORE v2,0/4](https://lore.kernel.org/r/cover.1648049113.git.andreyknvl@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/3](https://lore.kernel.org/r/cover.1649877511.git.andreyknvl@google.com) |
 | 2022/09/10 | Peter Collingbourne <pcc@google.com> | [kasan: also display registers for reports from HW exceptions](https://patchwork.kernel.org/project/linux-mm/patch/20220910052426.943376-1-pcc@google.com/) | 675886 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220910052426.943376-1-pcc@google.com) |
+| 2022/10/11 | Josh Poimboeuf <jpoimboe@kernel.org> | [kasan: disable stackleak plugin in report code](https://patchwork.kernel.org/project/linux-mm/patch/20221011190548.blixlqj6dripitaf@treble/) | 684584 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221011190548.blixlqj6dripitaf@treble) |
 
 
 #### 13.3.4.2 Software tag-based KASAN

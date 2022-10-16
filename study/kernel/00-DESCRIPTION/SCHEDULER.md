@@ -89,6 +89,11 @@ Scheduler Microconference Accepted into Linux Plumbers Conference
 | [2018](https://www.linuxplumbersconf.org/2018) | [Power Management and Energy-awareness Microconference 2018](https://blog.linuxplumbersconf.org/2018/power-management-mc)<br>[timeline](https://www.linuxplumbersconf.org/event/2/timetable/?view=lpc) | NA | [Notes from the LPC scheduler microconference](https://lwn.net/Articles/734039) |
 | [2017](https://blog.linuxplumbersconf.org/2017) | [Scheduler Workloads Microconference 2017](http://wiki.linuxplumbersconf.org/2017:scheduler_workloads) | | [Notes from the LPC scheduler microconference](https://lwn.net/Articles/734039)
 
+### 0.3.2 讲义课程
+-------
+
+[CPU Scheduling](https://www.scs.stanford.edu/07au-cs140/notes/l5.pdf)
+
 
 ## 0.4 社区几个调度的大神
 -------
@@ -454,22 +459,13 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 | 2012/06/17 | Chen <hi3766691@gmail.com> | [[ANNOUNCE]RIFS-ES Scheduling V1 release.](https://lore.kernel.org/all/CANQmPXip+fKaSYsKaY5TF3Rax=XFFgyh=+BY61snVsgpReL7RA@mail.gmail.com) | NA | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/CANQmPXip+fKaSYsKaY5TF3Rax=XFFgyh=+BY61snVsgpReL7RA@mail.gmail.com) |
 | 2012/06/17 | Roman Zippel <zippel@linux-m68k.org> | [[ANNOUNCE/RFC] Really Fair Scheduler](https://lore.kernel.org/all/Pine.LNX.4.64.0708310139280.1817@scrub.home) | NA | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/Pine.LNX.4.64.0708310139280.1817@scrub.home) |
 
+此外业界比较有名的私有内核补丁集, 包括了: CachyOS, xanmod 以及 linux-tkg 等.
 
-ARCHLINUX 的开发者 [hamadmarri](https://github.com/hamadmarri) 为 linux 开发和移植了很多调度器, 并开源在了其 github.
-
-| 调度器 | 描述 |
-|:-----:|:----:|
-| [CacULE CPU Scheduler](https://github.com/hamadmarri/cacule-cpu-scheduler) | 是基于交互性评分机制的 CFS 补丁集. 交互性分数的灵感来自FreeBSD 的 ULE 调度器, 可以增强系统响应能力/延迟. |
-| [Task Type(TT) CPU Scheduler](https://github.com/hamadmarri/TT-CPU-Scheduler) | 根据任务的行为检测并识别任务类型, 并根据其类型控制调度. 基于任务类型的好处是允许调度程序进行更多控制, 并选择接下来在 CPU 中运行的最佳任务. 当前有5种类型: 实时(REALTIME), 交互(INTERACTIVE), 无类型(NO_TYPE), 计算密集型(CPU_BOUND), 批处理(BATCH). |
-| [Baby-CPU-Scheduler](https://github.com/hamadmarri/Baby-CPU-Scheduler) | 一个非常基本, 轻量级但性能非常高的调度程序. 可以将其用作 Linux 上的基本调度程序进行学习 |
-
-ARCHLINUX 的开发者 ptr1337, 同样移植了 [CacULE Scheduler](https://github.com/ptr1337/linux-cacule), [CachyOS/linux-cachyos](https://github.com/CachyOS/linux-cachyos).
-
-[libhunt](https://www.libhunt.com/compare-linux-cacule-vs-linux-cachyos) 提供了两个 GITHUB 仓库的对比信息.
+首先是 CachyOS 集成了诸多内核领域特别是调度器的优化补丁. 其中 ARCHLINUX 的开发者 [hamadmarri](https://github.com/hamadmarri) 为 linux/archlinux/CachyOS 开发和移植了很多调度器, 并开源在了其 github. ARCHLINUX 的开发者 ptr1337, 同样移植了 [CacULE Scheduler](https://github.com/ptr1337/linux-cacule), [CachyOS/linux-cachyos](https://github.com/CachyOS/linux-cachyos). [libhunt](https://www.libhunt.com/compare-linux-cacule-vs-linux-cachyos) 提供了两个 GITHUB 仓库的对比信息.
 
 此外还有 [xanmod](https://github.com/xanmod/linux) 补丁集.
 
-[linux-tkg](https://github.com/Frogging-Family/linux-tkg) 是一个高度可定制的内核构建系统, 提供一系列补丁和调整, 旨在提高桌面和游戏性能. 它由Etienne Juvigny维护. 在其他补丁中, 它提供了各种CPU调度程序: CFS, Project C PDS, Project C BMQ, MuQSS和CacULE.
+同样 [linux-tkg](https://github.com/Frogging-Family/linux-tkg) 是一个高度可定制的内核构建系统, 提供一系列补丁和调整, 旨在提高桌面和游戏性能. 它由Etienne Juvigny维护. 在其他补丁中, 它提供了各种CPU调度程序: CFS, Project C PDS, Project C BMQ, MuQSS 和 CacULE.
 
 参考 [ARCHLINUX Kernel WIKI](https://wiki.archlinux.org/title/kernel).
 
@@ -3740,7 +3736,7 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 | 2020/12/08 | Mel Gorman | [Scan for an idle sibling in a single pass](https://lore.kernel.org/all/20210125085909.4600-1-mgorman@techsingularity.net) |  将上面一组补丁 [Reduce time complexity of select_idle_sibling](https://lore.kernel.org/patchwork/cover/1348877), 基于上面 Peter 的补丁的思路进行了重构, 减少 select_idle_XXX 的开销. 降低最坏情况下 select_idle_sibling 扫描运行队列的开销: 在选核时, 需要调用 select_idle_core() 和 select_idle_cpu() 分层扫描 SMT 和 core 等层次, 这两个层次覆盖的 CPU 有重复的, 优化扫描算法, 避免重复扫描 CPU, 降低开销. <br>1. 优化了 IDLE_CPU 扫描深度的计算方法<br>2. 减少了 CPU 的遍历次数, 重构了 sched_idle_XXX 函数<br>3. 将空闲的核心扫描调节机制转换为 SIS_PROP, 删除了 SIS_PROP_CPU. | v4 ☑ 5.12-rc1 | [LORE v4,0/4 Merged](https://lore.kernel.org/all/20210125085909.4600-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/4](https://lore.kernel.org/lkml/20210127135203.19633-1-mgorman@techsingularity.net) |
 | 2021/03/26 | Rik van Riel | [sched/fair: bring back select_idle_smt, but differently](https://lore.kernel.org/patchwork/patch/1402916) | Mel Gorman 上面的补丁在 9fe1f127b913("sched/fair: Merge select_idle_core/cpu()") 中做了一些出色的工作, 从而提高了内核查找空闲 CPU 的效率, 可以有效地降低任务等待运行的时间. 但是较多的均衡和迁移, 减少的局部性和相应的 L2 缓存丢失的增加会带来一些负面的效应. 这个补丁重新将 `select_idle_smt` 引入回来, 并做了优化, 修复了性能回归, 在搜索所有其他 CPU 之前, 检查 prev 的兄弟 CPU 是否空闲. | v2 ☑ v5.12-rc7 | [PatchWork](https://lore.kernel.org/patchwork/patch/1402916), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c722f35b513f807629603bbf24640b1a48be21b5) |
 | 2021/07/26 | Mel Gorman <mgorman@techsingularity.net> | [Modify and/or delete SIS_PROP](https://lore.kernel.org/patchwork/cover/1467090) | NA | RFC | [PatchWork RFC,0/9](https://lore.kernel.org/patchwork/cover/1467090) |
-| 2021/08/04 | Mel Gorman <mgorman@techsingularity.net> | [Reduce SIS scanning](https://lore.kernel.org/patchwork/cover/1472054) | 将 [Modify and/or delete SIS_PROP](https://lore.kernel.org/patchwork/cover/1467090) 拆开进行提交. | RFC ☐ | [PatchWork 0/2](https://lore.kernel.org/patchwork/cover/1472054) |
+| 2021/08/04 | Mel Gorman <mgorman@techsingularity.net> | [Reduce SIS scanning](https://lore.kernel.org/patchwork/cover/1472054) | 将 [Modify and/or delete SIS_PROP](https://lore.kernel.org/patchwork/cover/1467090) 拆开进行提交. | RFC ☐ | [PatchWork 0/2](https://lore.kernel.org/lkml/20210804115857.6253-1-mgorman@techsingularity.net) |
 
 
 *   SIS_PROP to search idle CPU based on sum of util_avg
@@ -4450,6 +4446,8 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 
 高通在自己基于 AOSP 的 GKI 中, 提供了一个 schedutil 类似的调频 GOVERNOR [CPUFREQ_WALT](https://source.codeaurora.cn/quic/la/kernel/msm-5.10/tree/kernel/sched/walt/cpufreq_walt.c?h=kernel.lnx.5.10.r1-rel), 与 WALT 地深度绑定和优化. 并通过 waltgov_tunables 提供了近似于 interactive 的少量参数, 允许用户态干预. 只是这里实现的 target_load 是通过 target_load_thresh 和 target_load_shift 映射得到的, 参见 [walt_map_util_freq()](https://source.codeaurora.cn/quic/la/kernel/msm-5.10/tree/kernel/sched/walt/cpufreq_walt.c?h=kernel.lnx.5.10.r1-rel#n204). 因此用户对于 target_load 的设置相比较原来 interactive 直接设置 target_loads 参数的方式更弱一些.
 
+小米在邮件列表发布了 [Provide USF for the portable equipment.](https://lore.kernel.org/all/cover.1596612536.git.yangdongdong@xiaomi.com) 在启用cpufreq上的调整，并按计划调整用户敏感系数。它特别适用于在屏幕上显示更多电源保护和快速响应要求的移动设备。
+
 ### 7.3.5 其他 governor
 -------
 
@@ -4485,7 +4483,7 @@ v4.4 [Compute capacity invariant load/utilization tracking](https://git.kernel.o
 |:----:|:----:|:---:|:------:|:---:|
 | 2012/8/23 | [consolidation of CPU capacity and usage](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=dfbca41f347997e57048a53755611c8e2d792924) | CPU 调频会导致 CPU capacity 的变化, 在支持 DVFS 的系统还用最大 capacity 计算负载是不合理的, 因此 PELT 需要感知 capacity 的变化, 即 FIE(Frequency Invariance Engine). [使得 sched entity usage tracking(即 running_avg_sum 与 running_avg 等) 感知 DVFS](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0c1dc6b27dac883ee78392189c8e20e764d79bfa). 通过借助 scale_freq = arch_scale_freq_capacity(NULL, cpu) 来实现. | v10 ☑ 4.1 | [LORE v10,00/11](https://lore.kernel.org/all/1425052454-25797-1-git-send-email-vincent.guittot@linaro.org), [LKML](https://lkml.org/lkml/2015/2/27/309) |
 | 2015/8/14 | [Compute capacity invariant load/utilization tracking](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=98d8fd8126676f7ba6e133e65b2ca4b17989d32c) | PELT 支持 Capacity Invariant Engine. PELT 只感知频率的变化是不够的, 同架构但是不同微架构(比如 big.LITTLE 的小核和大核虽然都使用 ARM 架构, 但是是性能异构的)的 CPU 即使处于相同频点下, 所能提供的计算能力 capacity 也是不同的. 因此 PELT 也需要感知对不同微架构 CPU capacity 的差异. 通过借助 scale_cpu = arch_scale_cpu_capacity(NULL, cpu) 来实现. | v1 ☑4.4 | [LWN](https://lwn.net/Articles/531853), [LORE 0/6](https://lore.kernel.org/patchwork/cover/590249), [LKML](https://lkml.org/lkml/2015/8/14/296) |
-| 2019/01/16 | [sched/fair: update scale invariance of PELT](https://lore.kernel.org/patchwork/cover/1034952) | v9 ☑  5.1-rc1 | [v3](https://lore.kernel.org/patchwork/patch/784059)<br>*-*-*-*-*-*-*-*<br> [v9](https://lore.kernel.org/patchwork/cover/1034952) |
+| 2019/01/16 | [sched/fair: update scale invariance of PELT](https://lore.kernel.org/patchwork/cover/1034952) | v9 ☑  5.1-rc1 | [v3](https://lore.kernel.org/patchwork/patch/784059)<br>*-*-*-*-*-*-*-*<br>[v9](https://lore.kernel.org/patchwork/cover/1034952) |
 
 
 ### 7.4.2 ARM64 FIE
@@ -5371,11 +5369,11 @@ ANDROID 8 实现了 BINDER 对实时优先级传递的支持. 但是经过测试
 
 
 
-## 11.2 用户态调度框架
+## 11.2 调度热升级 & 用户态调度框架
 -------
 
 
-### 11.2.1 Google Fibers 用户空间调度框架
+### 11.2.1 用户空间调度框架
 -------
 
 "Google Fibers" 是一个用户空间调度框架, 在谷歌广泛使用并成功地用于改善进程内工作负载隔离和响应延迟. 我们正在开发这个框架, UMCG(用户管理并发组)内核补丁是这个框架的基础.
@@ -5401,10 +5399,21 @@ ANDROID 8 实现了 BINDER 对实时优先级传递的支持. 但是经过测试
 | 2021/09/08 | Peter Oskolkov <posk@google.com>/<posk@posk.io> | [google ghOSt](https://github.com/google/ghost-kernel) | ghOSt 是在 Linux 内核上实现的用户态调度策略的通用代理. ghOSt 框架提供了一个丰富的 API, 该 API 从用户空间接收进程的调度决策, 并将其作为事务执行. 程序员可以使用任何语言或工具来开发策略, 这些策略可以在不重新启动机器的情况下升级. ghOSt 支持一系列调度目标的策略, 从 µs 级延迟到吞吐量, 再到能源效率, 等等, 并且调度操作的开销较低. 许多策略只是几百行代码. 总之, ghOSt 提供了一个性能框架, 用于将线程调度策略委托给用户空间进程, 从而实现策略优化、无中断升级和故障隔离. | [github kernel](https://github.com/google/ghost-kernel)<br>*-*-*-*-*-*-*-* <br>[github userspace](https://github.com/google/ghost-userspace) |
 
 
-### 11.2.1.3 UMCG
+### 11.2.1.3 Upcalls
 -------
 
-2021 年, Google 宣布开源他们的 Fibers 用户空间调度框架的计划, 并向 Linux Kernel 社区发送了 UMCG 的内核补丁集合. [LWN: UMCG(User-managed concurrency groups)](https://lwn.net/Articles/879398) 用户并发进程组是一组用户态调度框架, 它提供了一个 M:N 线程子系统和工具集合 ToolKit, 允许开发人员实现进程内用户空间调度程序. 其思想来源于 1992 年的论文 [Scheduler activations: effective kernel support for the user-level management of parallelism](https://dl.acm.org/doi/abs/10.1145/146941.146944). 参见 [Google Continues Work On User-Managed Concurrency Groups For Linux](https://www.phoronix.com/scan.php?page=news_item&px=Google-UMCG-Linux-v0.7).
+
+2021 年, Google 宣布开源他们的 Fibers 用户空间调度框架的计划, 并向 Linux Kernel 社区发送了 UMCG 的内核补丁集合. [LWN: UMCG(User-managed concurrency groups)](https://lwn.net/Articles/879398) 用户并发进程组是一组用户态调度框架, 它提供了一个 M:N 线程子系统和工具集合 ToolKit, 允许开发人员实现进程内用户空间调度程序.
+
+* SA(Scheduler activations)
+
+UMCG 的思想来源于 1992 年讲述 SA 的论文 [Scheduler activations: effective kernel support for the user-level management of parallelism](https://dl.acm.org/doi/abs/10.1145/146941.146944). 参见 [Google Continues Work On User-Managed Concurrency Groups For Linux](https://www.phoronix.com/scan.php?page=news_item&px=Google-UMCG-Linux-v0.7).
+
+* UMT(User-Monitored Threads)
+
+2019 年 IEEE 26th International Conference on High Performance Computing, Data, and Analytics (HiPC) 大会上一篇题为 [A Linux Kernel Scheduler Extension for Multi-core Systems](https://ieeexplore.ieee.org/abstract/document/8990587) 的论文, 介绍了用户监控线程 [User-Monitored Threads (UMT)](https://deepai.org/publication/a-linux-kernel-scheduler-extension-for-multi-core-systems) 的模型, 该模型旨在基于 eventfd 简化管道监控阻塞和取消阻塞线程事件. 在 Linux v5.1 上实现了该内核扩展. 通过 UMT 监听线程阻塞和唤醒等事件, 从而跟踪绑定到每个系统核心的就绪工作线程的数量. 例如, 当内核因执行 I/O 操作时所有绑定的工作线程被阻止而变得空闲时, 运行时会在其上调度其他工作线程. 绑定到同一内核的多个工作线程可能会导致超额订阅期, 但是当检测到处于就绪状态的多个线程绑定到内核时, 运行时会强制工作线程自行放弃其内核, 从而将影响降至最低.
+
+* UMCG(User-managed concurrency groups)
 
 UMCG 要求多线程应用程序将自己划分为"服务线程 Server"和"工作线程 Worker", 其中系统上的每个 CPU 可能有一个服务线程 Server. 服务线程 Server 做出调度决策, 而工作人员根据这些决策运行并完成实际工作. UMCG 的优势在于, 调度可以快速发生, 并且内核的开销很小.
 
@@ -5426,7 +5435,7 @@ Google 的 Peter Oskolkov 发布了[最早的 RFC v0.1 补丁](https://lore.kern
 | 2022/01/20 | Paul Gortmaker <paul.gortmaker@windriver.com> | [sched: User Managed Concurrency Groups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=abedf8e2419fb873d919dd74de2e84b510259339) | Peter Zijlstra 对 UMCG 的重新实现. | v9 ☑ 4.6-rc1 | [PatchWork RFC,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211214204445.665580974@infradead.org)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20220120155517.066795336@infradead.org) |
 
 
-### 11.2.2 Scheduler BPF
+### 11.2.2 基于 eBPF 的可编程调度框架
 -------
 
 
@@ -5450,7 +5459,8 @@ CFS 调度器为用户和开发人员提供了非常多的调试接口和参数�
 BPF 钩子(它已经成功地用于各种内核子系统)为外部代码(安全地)更改一些内核决策提供了一种方法, BPF 工具使这变得非常容易, 部署 BPF 脚本的开发者已经非常习惯于为新的内核版本更新它们.
 
 
-*   Facebook 的尝试
+#### 11.2.2.1 Facebook 的尝试
+-------
 
 [当 BPF 邂逅 CPU 调度器](https://www.ebpf.top/post/cfs_scheduler_bpf)
 
@@ -5459,7 +5469,13 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 
 作者提供了一个用户空间部分的示例 [github/rgushchin/atc](https://github.com/rgushchin/atc), 它加载了一些简单的钩子. 它非常简单, 只是为了简化使用所提供的内核补丁.
 
-*   Google 的 ghOSt
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/09/15 | Roman Gushchin <guro@fb.com> | [Scheduler BPF](https://www.phoronix.com/scan.php?page=news_item&px=Linux-BPF-Scheduler) | NA | RFC ☐ | [PatchWork rfc,0/6](https://patchwork.kernel.org/project/netdevbpf/cover/20210916162451.709260-1-guro@fb.com)<br>*-*-*-*-*-*-*-* <br>[LPC 2021](https://linuxplumbersconf.org/event/11/contributions/954)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2021/9/16/1049), [LWN](https://lwn.net/Articles/869433), [LWN](https://lwn.net/Articles/873244) |
+
+#### 11.2.2.2 Google 的 ghOSt
+-------
 
 于此同时, google 团队的 Hao Luo 和 Barret Rhoden 等也在 eBPF 在  CPU Scheduler 领域的应用进行了探索, 并在 LPC-2021 上做了分享. 当前的工作集中在几个方向:
 
@@ -5472,13 +5488,42 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 这与谷歌的 ghOSt 非常类似, 但是 ghOSt 比 BPF 的方式要激进很多, ghOSt 的目标是将调度代码转移到用户空间. 它们的核心动机似乎有些相似:使调度器更改更容易开发、验证和部署. 尽管他们的方法不同, 他们也使用 BPF 来加速一些热点路径. 但是作者认为使用 BPF 的方式也可以达到他们的目的. 参见 [eBPF in CPU Scheduler](https://linuxplumbersconf.org/event/11/contributions/954/attachments/776/1463/eBPF%20in%20CPU%20Scheduler.pdf)
 
 
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/09/15 | Roman Gushchin <guro@fb.com> | [Scheduler BPF](https://www.phoronix.com/scan.php?page=news_item&px=Linux-BPF-Scheduler) | NA | RFC ☐ | [PatchWork rfc,0/6](https://patchwork.kernel.org/project/netdevbpf/cover/20210916162451.709260-1-guro@fb.com)<br>*-*-*-*-*-*-*-* <br>[LPC 2021](https://linuxplumbersconf.org/event/11/contributions/954)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2021/9/16/1049), [LWN](https://lwn.net/Articles/869433), [LWN](https://lwn.net/Articles/873244) |
 
-### 11.2.3 PlugSched
+### 11.2.3 Pluggable Scheduler Framework
 -------
 
+#### 11.2.3.1 Pluggable CPU Scheduler Framework
+-------
+
+
+William Lee Irwin III 最早提出了调度器模块化框架, 支持启动时配置 CPU 调度器.
+
+
+随后 CK(Con Kolivas) 在 2004 年 基于这个想法实现了 Pluggable CPU Scheduler Framework. 其最终版本停留在 [plugsched-6.5.1](https://sourceforge.net/projects/cpuse/files/PlugSched/v-6.5), 支持 Linux v2.6.22.
+
+[pluggable I/O schedulers, pluggable CPU schedulers](https://lwn.net/Articles/242894)
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/09/10 | K Prateek Nayak <kprateek.nayak@amd.com> | [Pluggable cpu scheduler framework](https://lore.kernel.org/all/4183A602.7090403@kolivas.org) | TODO | v1 ☐☑✓ | [LORE v1,00/28](https://lore.kernel.org/all/4183A602.7090403@kolivas.org) |
+
+
+#### 11.2.3.2 Runtime CPU scheduler customization framework
+-------
+
+接着在 2009 年, IEEE Student Conference on Research and Development (SCOReD) 上发表的一篇 [Runtime CPU scheduler customization framework for a flexible mobile operating system](https://ieeexplore.ieee.org/document/5443304) 介绍了基于 Linux 内核的运行时 CPU 调度程序自定义(RCSC) 框架, 该框架考虑了不同的应用程序要求, RCSC 框架允许开发人员自定义 CPU 调度程序以使用特定的调度策略运行, 并在运行时从用户空间评估新开发的调度策略. 因此, 可以手动或自动调整移动操作系统, 以适应特定应用程序的要求. 可同步参考作者 2010 年的毕业论文 [Runtime pluggable CPU scheduler for linux operating system](http://myto.upm.edu.my/find/Record/my-upm-ir.40934/Description#tabnav).
+
+
+### 11.2.4 调度器热升级
+-------
+
+#### 11.2.4.1 Patching of scheduler functions
+-------
+
+LPC-2016 的议题 [Patching of scheduler functions](http://blog.linuxplumbersconf.org/2016/ocw/proposals/3567.html) 讲述了当前对调度路径下进行热补丁存在的问题, 并给出了一个解决方案.
+
+#### 11.2.4.2 PlugSched
+-------
 
 [Plugsched](https://gitee.com/anolis/plugsched) 是 OpenAnolos Linux 内核调度器子系统热升级的 SDK, 它可以实现在不重启系统、应用的情况下动态替换调度器子系统, 毫秒级 downtime. Plugsched 可以对生产环境中的内核调度特性动态地进行增、删、改, 以满足不同场景或应用的需求, 且支持回滚. 参见
 
@@ -5492,7 +5537,37 @@ B 站 Plugsched 介绍视频 [纯干货解读：Plugsched, 首次实现 Linux ke
 基于 Plugsched 实现的调度器热升级, 不修改现有内核代码, 就能获得较好的可修改能力, 天然支持线上的老内核版本. 如果提前在内核调度器代码的关键数据结构中加入 Reserve 字段, 可以额外获得修改数据结构的能力, 进一步提升可修改能力.
 
 
-### 11.2.4 User-Space Hinting For Tasks
+### 11.2.5 Task Hinting
+-------
+
+#### 11.2.5.1 Automatic Task Type(TT)
+-------
+
+
+识别进程时计算密集型还是访存密集型等一直时调度器领域研究的一个重点, 学术界以及工业界都有不少的探索和实践. ARCHLINUX 的开发者 [hamadmarri](https://github.com/hamadmarri) 为 linux 开发和移植了很多调度器, 并开源在了其 github, 其中更多的思路就是自动识别进程的类型, 以供调度器更好地进行调度. 参见 [CSDN-小众调度器](https://blog.csdn.net/qq_23662505/article/details/126253590).
+
+| 调度器 | 描述 |
+|:-----:|:----:|
+| [CacULE CPU Scheduler](https://github.com/hamadmarri/cacule-cpu-scheduler) | 是基于交互性评分机制(CacULE Interactivity Score)的 CFS 补丁集. 交互性分数的灵感来自FreeBSD 的 ULE 调度器, 可以增强系统响应能力/延迟. ARCHLINUX 的开发者 ptr1337, 同样移植了 [CacULE Scheduler](https://github.com/ptr1337/linux-cacule), [CachyOS/linux-cachyos](https://github.com/CachyOS/linux-cachyos).使用 calc_interactivity(), calc_cache_score(), calc_starve_score() 分别计算任务的交互性评分(Interactivity Score), 缓存亲和性评分(Cache Score)以及饥饿评分(Starve Score), 然后将 CFS 的选取下一个任务机制 pick_next_task_fair 更改为 ULE 的评分机制, 以便选取要运行的下一个任务. |
+| [Task Type(TT) CPU Scheduler](https://github.com/hamadmarri/TT-CPU-Scheduler) | 根据任务的行为检测并识别任务类型, 并根据其类型控制调度. 基于任务类型的好处是允许调度程序进行更多控制, 并选择接下来在 CPU 中运行的最佳任务. 当前有5种类型: 实时(REALTIME), 交互(INTERACTIVE), 无类型(NO_TYPE), 计算密集型(CPU_BOUND), 批处理(BATCH). 调度器通过 detect_type() 周期性地探测应用的 task_type. |
+| [Baby-CPU-Scheduler](https://github.com/hamadmarri/Baby-CPU-Scheduler) | 一个非常基本, 轻量级但性能非常高的调度器 Basic Scheduler (BS). 可以将其用作 Linux 上的基本调度程序进行学习 |
+
+#### 11.2.5.2 User Sensitive Factors for Scheduler
+-------
+
+小米于 2020 年提供了 USF(用户敏感反馈因子) 辅助 cpufreq 的工作, 同时支持高级 scheduler sysfs 参数的动态调整, 以便在手机上根据用户使用场景动态地调整 utils. 因为便携式设备用户更关心功耗和 UI 响应.
+
+"screen off" 状态表示没有用户的请求, 但是内核仍然希望在调制解调器、网络或电源键事件发生时及时通知用户. USF 提供 sysfs 接口 sched_usf_non_ux_r, 根据高级场景减少用户空间任务中的 utils.
+
+"screen on" 状态下, 则通常需要更多的 cpufreq 需求, 即 CPU 上任务的抢占计数会超过用户期望的完成时间, 这通常与 UI 强相关. 比如调整 sysctl_sched_latency 与 sysctl_sched_min_granularity 的比值, 这种情况下提供了 sysfs 接口 "sched_usf_up_l0_r" 和 "sched_usf_down_r", 用于根据识别的高级场景调整 utils, 以便及时调整 cpufreq.
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/08/05 | Dongdong Yang <contribute.kernel@gmail.com> | [Provide USF for the portable equipment.](https://lore.kernel.org/all/cover.1596612536.git.yangdongdong@xiaomi.com) | TODO | v2 ☐☑✓ | [LORE v1](https://lore.kernel.org/all/1596116273-2290-1-git-send-email-contribute.kernel@gmail.com)<br>*-*-*-*-*-*-*-*<br>[LORE v2](https://lore.kernel.org/all/cover.1596196060.git.yangdongdong@xiaomi.com)<br>*-*-*-*-*-*-*-*<br>[LORE v3](https://lore.kernel.org/all/cover.1596464894.git.yangdongdong@xiaomi.com)<br>*-*-*-*-*-*-*-*<br>[LORE v4](https://lore.kernel.org/all/cover.1596526941.git.yangdongdong@xiaomi.com)<br>*-*-*-*-*-*-*-*<br>[LORE v5](https://lore.kernel.org/all/cover.1596612536.git.yangdongdong@xiaomi.com) |
+
+
+
+#### 11.2.5.2 User-Space Hinting For Tasks
 -------
 
 [AMD Aims To Squeeze More EPYC Performance Out Of Linux With User-Space Hinting For Tasks](https://www.phoronix.com/news/AMD-User-Space-Hiting-Linux)
@@ -5610,6 +5685,7 @@ ARM & Linaro 的内核团队针对 Android/linux 等做了大量的调度的优�
 | [Schbench](https://git.kernel.org/pub/scm/linux/kernel/git/mason/schbench.git) | 提供了调度器详细唤醒延迟分布统计数据的基准测试程序, hackbench 在分析延迟时, 只提供了均值, 而异常值(高延迟值)可能被汇总统计(如算术平均值)隐藏, 但是查看尽可能多的延迟样本非常重要. 特别地, 关注 P99(99分位点) 延迟而不是平均延迟是非常有意义的, 只有当开始查看延迟图中的长尾时, 才会发现很多问题. 因此作者认为这是一个真正的微观基准. | 调度器唤醒延迟的详细分布(百分位图) |
 | [adrestia](https://github.com/mfleming/adrestia) | 更简单的调度器唤醒延迟微基准测试, hackbench 等进行 pipe 测试往往都经过了 futex 路径. 因此 [Matt Fleming](https://www.codeblueprint.co.uk) 在 2016 年编写了此 benchmark, 以便通过在唤醒路径中覆盖测试到不同的路径. 同时提供了第 95 百分位唤醒延迟值. | 第 95 百分位唤醒延迟值 |
 | [unixbench/context1]() | NA | NA |
+| [os-scheduler-responsiveness-test](https://github.com/hamadmarri/os-scheduler-responsiveness-test) | os 调度程序响应能力测试. 这是一个 Python/Go 脚本, 用于测试操作系统调度程序的响应性或交互性. 交互式线程的睡眠时间多于运行时间(即用户单击). 该脚本测量与 3 个不同任务的交互性(对 10000 个数组进行排序, 读取文件并打印到控制台, 读取文件并将其写入另一个文件). 在每个过程中, 它休眠在 1s-3s 之间的随机时间. 同时, 你可以运行素数计算的 CPU 密集型程序, 这对于在繁重的任务运行期间测试交互性很有用. |
 
 ### 12.4.2 调度器延迟分析
 -------
@@ -5644,7 +5720,7 @@ ECRTS 2020(32nd Euromicro Conference on Real-Time Systems) 上 Daniel 等人发�
 [Nefelim4ag/Ananicy](https://github.com/Nefelim4ag/Ananicy) 用于管理进程的 IO 和 CPU 优先级, 它主要用于桌面使用. 它的 github 允许开发人员贡献主流应用程序规则集.
 
 
-### 12.4.3 调度行为模拟
+### 12.4.4 调度行为模拟
 -------
 
 | 日期 | LWN | 翻译 |
