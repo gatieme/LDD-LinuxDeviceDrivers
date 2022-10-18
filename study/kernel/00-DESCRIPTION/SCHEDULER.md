@@ -3738,18 +3738,53 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 | 2021/07/26 | Mel Gorman <mgorman@techsingularity.net> | [Modify and/or delete SIS_PROP](https://lore.kernel.org/patchwork/cover/1467090) | NA | RFC | [PatchWork RFC,0/9](https://lore.kernel.org/patchwork/cover/1467090) |
 | 2021/08/04 | Mel Gorman <mgorman@techsingularity.net> | [Reduce SIS scanning](https://lore.kernel.org/patchwork/cover/1472054) | 将 [Modify and/or delete SIS_PROP](https://lore.kernel.org/patchwork/cover/1467090) 拆开进行提交. | RFC ☐ | [PatchWork 0/2](https://lore.kernel.org/lkml/20210804115857.6253-1-mgorman@techsingularity.net) |
 
+### 5.3.4 SIS_UTIL
+-------
 
 *   SIS_PROP to search idle CPU based on sum of util_avg
 
-当前 select_idle_cpu() 使用 Per CPU 的平均空闲时间来估计 LLC 域总的空闲时间, 并计算需要扫描的 CPU 数量. 这可能是不一致的, 因为 CPU 的空闲时间不一定与域的空闲时间相关. 因此, 当系统非常繁忙时, 负载可能会被低估, 从而导致过度搜索.
+当前 select_idle_cpu() 使用 Per CPU 的平均空闲时间 rq->avg_idle 来估计其所在 LLC 域总的空闲时间, 并计算需要扫描的 CPU 数量. 这可能是不一致的, 因为 CPU 的空闲时间不一定与域的空闲时间相关. 因此, 当系统非常繁忙时, 负载可能会被低估, 从而导致过度搜索.
 
 当 LLC 域相对繁忙时, 在 LLC 域中搜索空闲的 CPU 是非常耗时的. 更糟糕的是, 如果 domain 域内所有 CPU 都过载, 那么在迭代整个 LLC 域之后, 它可能仍然无法找到空闲的 CPU. 通过测试发现 netperf 的 99th 分位延迟 与 select_idle_cpu() 所花费的时间相当. 也就是说, 当系统过载时, 搜索空闲 CPU 可能成为瓶颈. Intel 的 Chen Yu 借助 Mel Gorman 的调度调测补丁 [sched/fair: Track efficiency of select_idle_sibling](https://lore.kernel.org/lkml/20210726102247.21437-2-mgorman@techsingularity.net) 测试了 select_idle_sibling() 的效率, 然后通过 bpftrace 显示的 histogram 很直观的反映了这个现象.
 
 因此 Chen Yu 建议 [sched: Stop searching for idle cpu if the LLC domain is overloaded](https://lore.kernel.org/all/20220207034013.599214-1-yu.c.chen@intel.com). 通过判断如果 sd_llc_shared 域已经 overloaded, 则跳过 select_idle_cpu() 不再在 LLC 域内扫描空闲 CPU.
 
+*  sum_util 到 nr_scan 的映射(抛物线顶点坐标方程)
+
+
 随后[在 Peter 的建议](https://lore.kernel.org/lkml/20220207135253.GF23216@worktop.programming.kicks-ass.net)下, Chen Yu 在 V2 实现了一种 [util_avg 到扫描 CPU 数量 nr_idle_scan 的线性映射 f(x)](https://lore.kernel.org/all/20220310005228.11737-1-yu.c.chen@intel.com). 算法改进为了一种[基于 util_avg 来处理 SIS_PROP 的方法](https://lore.kernel.org/all/20220207034013.599214-1-yu.c.chen@intel.com), 其主要思想是用基于域的度量来代替平均 CPU 空闲时间. 选择平均 CPU 利用率 (util_avg) 作为候选者.
 
 通常, 要扫描的 CPU 数量应该与该域中 util_avg 的总和成反比. 也就是说, util_avg 越低, select_idle_cpu() 应该扫描更多空闲 CPU, 反之亦然. 选择 util_avg 的好处是, 它是累计历史活动的度量, 似乎比瞬时度量 (如 rq->nr_running) 更准确. 此外, 还可以从周期性负载平衡中借用 util_avg, 这可以减轻 select_idle_cpu() 的开销.
+
+这个二次函数是一个 util 占比到 nr_scan 的映射, 且包含顶点 [0, llc_weight] 和与 x 轴交点 [100 / pct * 100, 0], 满足这个条件的二次函数, 很容易联想到抛物线.
+
+当 pct = 117 时, 与 x 轴交点为 [85, 0], 其中 117 * 85 ≈ 10000.
+
+那么根据顶点坐标公式: y = a(x-h)^2+k, 代入可得: y  = 112 - \frac{112}{85^{2}} \times x^{2} = 112 - \frac{112 \times pct^{2}}{10000^{2}}} \times x^{2}
+
+即 y 	= llc\_weight - \frac{llc\_weight \times pct^{2}}{10000^{2}} \times x^{2}
+	= (1 - \frac{pct^{2}}{10000^{2}} \times x^{2}) \times llc\_weight
+
+其中 x 为 sum_util 与 CPU 容量的比值, y 为 LLC 域中待扫描  CPU 的数量.
+
+且已知 x% = \frac{sum\_util}{llc\_weight \times SCHED\_CAPACITY\_SCALE}
+最终带入可得:
+
+y = (1 - \frac{pct^{2}}{10000^{2}} \times x^{2}) \times llc\_weight
+=(1 - \frac{pct^{2}}{10000^{2}} \times (\frac{util}{llc\_weight \times 1024} \times 100)^{2}) \times llc\_weight
+=(1 - \frac{pct^{2}\times (\frac{util}{llc\_weight})^{2}}{10000 \times 1024^{2}} ) \times llc\_weight
+=\frac{(1024 - \frac{pct^{2}\times (\frac{util}{llc\_weight})^{2}}{10000 \times 1024} )}{1024} \times llc\_weight
+
+对于一个 LLC 域有 112 个 CPU 的平台来说, 其 nr_scan 趋势如下所示
+
+| sum_util%  |  0  |  5  |  15 |  25 | 35 | 45 | 55 | 65 | 75  | 85  | 86 |
+|:----------:|:---:|:---:|:---:|:---:|:--:|:--:|:--:|:--:|:---:|:---:|:--:|
+|   scan_nr  | 112 | 111 | 108 | 102 | 93 | 81 | 65 | 47 |  25 |  1  |  0 |
+
+对于一个 LLC 域有 16 个 CPU 的平台来说, 其 nr_scan 趋势如下所示
+| sum_util%  |  0  |  5  |  15 |  25 | 35 | 45 | 55 | 65 | 75  | 85  | 86 |
+|:----------:|:---:|:---:|:---:|:---:|:--:|:--:|:--:|:--:|:---:|:---:|:--:|
+| scan_nr    | 16  |  15 |  15 |  14 | 13 | 11 |  9 |  6 |  3  |  0  | 0  |
 
 这个补丁与 v5.20 合入主线, 参见 phoronix 报道 [Intel Brews Linux Change For More Efficient Idle CPU Searching Under Heavy System Load](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.20-SIS_UTIL-Sched-Core).
 
@@ -3757,9 +3792,9 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:----:|:---:|:----------:|:---:|
-| 2022/06/12 | Chen Yu <yu.c.chen@intel.com> | [sched/fair: Introduce SIS_UTIL to search idle CPU based on sum of util_avg](https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/commit/?h=sched/core&id=70fb5ccf2ebb09a0c8ebba775041567812d45f86) |  | v2 ☐☑✓ | [LORE v1](https://lore.kernel.org/all/20220207034013.599214-1-yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/all/20220310005228.11737-1-yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3](https://lore.kernel.org/lkml/20220428182442.659294-1-yu.c.chen@intel.com))<br>*-*-*-*-*-*-*-* <br>[LORE v4](https://lore.kernel.org/all/20220612163428.849378-1-yu.c.chen@intel.com) |
+| 2022/06/12 | Chen Yu <yu.c.chen@intel.com> | [sched/fair: Introduce SIS_UTIL to search idle CPU based on sum of util_avg](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit?id=70fb5ccf2ebb09a0c8ebba775041567812d45f86) |  | v2 ☑✓ 6.0-rc1 | [LORE v1](https://lore.kernel.org/all/20220207034013.599214-1-yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/all/20220310005228.11737-1-yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3](https://lore.kernel.org/lkml/20220428182442.659294-1-yu.c.chen@intel.com))<br>*-*-*-*-*-*-*-* <br>[LORE v4](https://lore.kernel.org/all/20220612163428.849378-1-yu.c.chen@intel.com) |
 | 2022/06/19 | Abel Wu <wuyun.abel@bytedance.com> | [sched/fair: improve scan efficiency of SIS](https://lore.kernel.org/all/20220619120451.95251-1-wuyun.abel@bytedance.com) | 引入 SIS 过滤器, 以帮助在扫描深度有限时提高扫描效率. 过滤器仅包含未占用的 CPU, 并在 SMT 级负载平衡期间更新. 预计系统过载越多, 扫描的 CPU 就越少. [introduce sched-idle balancing](https://lore.kernel.org/all/20220217154403.6497-1-wuyun.abel@bytedance.com) 的其中一个补丁, v3 之后单独发到社区 [v3 sched/fair: filter out overloaded cpus in SIS](https://lore.kernel.org/all/20220505122331.42696-1-wuyun.abel@bytedance.com). v4 之后扩展成一个补丁集. | v4 ☐☑✓ | [2022/05/05, LORE v3](https://lore.kernel.org/all/20220505122331.42696-1-wuyun.abel@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2022/06/19, LORE v4,0/7](https://lore.kernel.org/all/20220619120451.95251-1-wuyun.abel@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2022/09/05, LORE v5,0/5](https://lore.kernel.org/all/20220909055304.25171-1-wuyun.abel@bytedance.com) |
-| 2022/07/12 | Abel Wu <wuyun.abel@bytedance.com> | [sched/fair: Minor SIS optimizations](https://lore.kernel.org/all/20220712082036.5130-1-wuyun.abel@bytedance.com) | TODO | v1 ☐☑✓ | [2022/08/20 LORE v1,0/5](https://lore.kernel.org/all/20220712082036.5130-1-wuyun.abel@bytedance.com)<br>*-*-*-*-*-*-*-*<br>[2022/09/01 LORE v2,1/5](https://lore.kernel.org/all/20220901131107.71785-1-wuyun.abel@bytedance.com)<br>*-*-*-*-*-*-*-*<br>[2022/09/01 LORE v2,1/5](https://lore.kernel.org/all/20220901131107.71785-1-wuyun.abel@bytedance.com)<br>*-*-*-*-*-*-*-*<br>[2022/09/07 LORE v4,0/5](https://lore.kernel.org/all/20220907112000.1854-1-wuyun.abel@bytedance.com) |
+| 2022/07/12 | Abel Wu <wuyun.abel@bytedance.com> | [sched/fair: Minor SIS optimizations](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=96c1c0cfe493a7ed549169a6f044bbb83e490fb5) | TODO | v1 ☑✓ 6.1 | [2022/08/20 LORE v1,0/5](https://lore.kernel.org/all/20220712082036.5130-1-wuyun.abel@bytedance.com)<br>*-*-*-*-*-*-*-*<br>[2022/09/01 LORE v2,1/5](https://lore.kernel.org/all/20220901131107.71785-1-wuyun.abel@bytedance.com)<br>*-*-*-*-*-*-*-*<br>[2022/09/01 LORE v2,1/5](https://lore.kernel.org/all/20220901131107.71785-1-wuyun.abel@bytedance.com)<br>*-*-*-*-*-*-*-*<br>[2022/09/07 LORE v4,0/5](https://lore.kernel.org/all/20220907112000.1854-1-wuyun.abel@bytedance.com) |
 
 
 ### 5.3.5 SIS avg_idle

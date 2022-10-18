@@ -637,6 +637,14 @@ Mesa CI 开始使用 Mold 作为其 x86_64 和 AArch64 上的默认链接器, �
 | 2022/06/28 | Nick Desaulniers <ndesaulniers@google.com> | [kbuild: drop support for CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a6036a41bffba3d5007e377483b425d470ad8042) | 移除 CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE_O3. | v1 ☑✓ 6.0-rc1 | [LORE](https://lore.kernel.org/all/20220628210407.3343118-1-ndesaulniers@google.com) |
 
 
+Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM For Their C/C++ Compilers](https://www.phoronix.com/news/Intel-LLVM-Adoption-C-CPP) 和 [Intel C/C++ compilers complete adoption of LLVM](https://www.intel.com/content/www/us/en/developer/articles/technical/adoption-of-llvm-complete-icx.html).
+
+由于 ICC 编译 linux 缺乏维护, 随后内核有人提议删除 ICC 编译器编译内核的支持.
+
+| 2022/10/17 | Masahiro Yamada <masahiroy@kernel.org> | [Remove Intel compiler support](https://lore.kernel.org/all/20221016182349.49308-1-masahiroy@kernel.org) | TODO | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221016182349.49308-1-masahiroy@kernel.org) |
+
+
+
 # 14 FTRACE
 -------
 
