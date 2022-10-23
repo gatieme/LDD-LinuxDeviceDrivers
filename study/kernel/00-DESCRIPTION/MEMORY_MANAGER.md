@@ -4709,10 +4709,8 @@ Google 的工程师 Mina Almasry 提出了一种新的思路, 通过 [mremap 的
 ### 7.1.10 HugeTLB vmemmap
 -------
 
-#### 7.1.10.1 优化 struct page 的内存占用
+#### 7.1.10.1 DMEMFS
 --------
-
-*   DMEMFS
 
 
 针对 kernel 中元数据对内存资源占用过高的问题, 腾讯云设计了全新的文件系统 Dmemfs(Direct Memory File System), 可以直接管理部分系统预留的虚拟机内存服务, 提高系统的资源利用率降低平台成本. 这个方案不仅提高了系统的资源利用率, 能够降低平台成本并最终让利于用户, 同时也给系统开销降低提供了一种新的思路.
@@ -4723,6 +4721,8 @@ Google 的工程师 Mina Almasry 提出了一种新的思路, 通过 [mremap 的
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/12/07 | Yulei Zhang <yulei.kernel@gmail.com>/<yuleixzhang@tencent.com> | [Enhance memory utilization with DMEMFS](https://lwn.net/ml/linux-kernel/cover.1607332046.git.yuleixzhang@tencent.com) | DMEMFS 目的非常明确, 减少云场景下 struct page 结构体本身的内存消耗. 效果也是非常明显, 320G 可以省出 5G 的内存. | RFC, v2 ☐ | [2020/10/8 LKML 00/35](https://lkml.org/lkml/2020/10/8/139)<br>*-*-*-*-*-*-*-* <br>[2020/12/07 PatchWork RFC,V2,00/37](https://patchwork.kernel.org/project/linux-mm/cover/cover.1607332046.git.yuleixzhang@tencent.com) |
 
+#### 7.1.10.2 HVO(HugeTLB Vmemmap Ooptimize)
+--------
 
 
 *   Free some vmemmap pages of HugeTLB page
@@ -5920,6 +5920,20 @@ zone->lru_锁是一个竞争激烈的锁, 因此 2012 年左右 Konstantin Khleb
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2022/06/23 | Yosry Ahmed <yosryahmed@google.com> | [mm: vmpressure: don't count userspace-induced reclaim as memory pressure](https://patchwork.kernel.org/project/linux-mm/patch/20220623000530.1194226-1-yosryahmed@google.com/) | 652966 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220623000530.1194226-1-yosryahmed@google.com) |
+
+
+## 9.9 Dying MEMCG
+-------
+
+第17届中国Linux内核开发者大会(CLK-2022) ["内存管理与异构计算" 分论坛](https://live.csdn.net/v/247710)的第一个议题 "Iprovement of Dying Memory Cgroup" 来自 ByteDance 的开发者宋牧春就对 Dying MEMCG 问题进行了深入的讨论.
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/06/23 | Roman Gushchin <guro@fb.com> | [The new cgroup slab memory controller](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fbc1ac9d09d70859eee24131d667e01e3986e368) | 引入了 obj_cgroup, 接管了 slab memory 的 charge/uncharge 操作. | v7 ☑✓ 5.9-rc1 | [LORE v7,0/19](https://lore.kernel.org/all/20200623174037.3951353-1-guro@fb.com) |
+| 2021/03/20 | Muchun Song <songmuchun@bytedance.com> | [Use obj_cgroup APIs to charge kmem pages](hhttps://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bd290e1e75d8a8b2d87031b63db56) | TODO | v5 ☑✓ 5.13-rc1 | [LORE v5,0/7](https://lore.kernel.org/all/20210319163821.20704-1-songmuchun@bytedance.com) |
+| 2022/04/21 | Waiman Long <longman@redhat.com> | [mm/memcg: Free percpu stats memory of dying memcg's](https://lore.kernel.org/all/20220421145845.1044652-1-longman@redhat.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220421145845.1044652-1-longman@redhat.com) |
+| 2022/06/21 | Muchun Song <songmuchun@bytedance.com> | [Use obj_cgroup APIs to charge the LRU pages](https://lore.kernel.org/all/20220621125658.64935-1-songmuchun@bytedance.com) | TODO | v6 ☐☑✓ | [LORE v6,0/11](https://lore.kernel.org/all/20220621125658.64935-1-songmuchun@bytedance.com) |
+
 
 
 # 10 内存热插拔支持
