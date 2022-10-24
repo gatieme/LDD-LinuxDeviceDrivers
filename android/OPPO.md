@@ -1,6 +1,6 @@
 ---
 
-title: ANDROID 系统
+title: OPPO ANDROID 优化
 date: 2021-02-15 00:32
 author: gatieme
 tags:
@@ -32,7 +32,7 @@ blogexcerpt: ANDROID
 
 <br>
 
-2   **ANDROID 系统**
+2   **OPPO**
 =====================
 
 
