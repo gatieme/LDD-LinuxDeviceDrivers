@@ -127,27 +127,62 @@ $rq_nr_load = 1000 \times ux_nr + 100 \times top_nr + 10 \times fg_nr + bg_nr$
 # 2 MM
 -------
 
+| 编号 | 特性 | CONFIG | 描述 | 链接 |
+|:---:|:----:|:------:|:----:|:---:|
+| 1 | Multi Freearea | CONFIG_PHYSICAL_ANTI_FRAGMENTATION | 物理内存反碎片机制. | [mm/multi_freearea.c](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/tree/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/multi_freearea) |
+| 2 | VM Anti Fragment | NA | 虚拟内存反碎片化机制. | [mm/vm_anti_fragment.c](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/tree/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/vm_anti_fragment) |
+| 3 | Multi Kswapd | NA | 多线程 KSWAPD. 加速内存回收. | [vendor/oplus/kernel/oplus_performance/multi_kswapd](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/tree/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/multi_kswapd)
+| 4 | Health Info | CONFIG_OPLUS_MEM_MONITOR | NA | [mm/healthinfo](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/tree/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/healthinfo) |
+| 5 | MemoryLeak Detect |
 
 ## 2.1 Anti Fragmentation
 -------
 
-### 2.1.1 multi_freearea CONFIG_PHYSICAL_ANTI_FRAGMENTATION
+第 17 届中国 Linux 内核开发者大会(CLK-2022) ["内存管理与异构计算" 分论坛](https://live.csdn.net/v/247710)的第三个议题 "[手机平台] Linux 内存反碎片化" 来自 OPPO 的开发者李培锋春就对 OPPO ColorOS 上内存反碎片化机制做了深入的讲解.
+
+### 2.1.1 MF(Multi Freearea) 物理内存反碎片化机制
+-------
+
+ColorOS 提供了 [MF(Multi Freearea)](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/tree/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/multi_freearea) 提供了物理内存反碎片化的能力.
+
+
+
+### 2.1.2 CSVM(Centralize Small Virtual Mem) 虚拟内存反碎片化机制
+-------
+
+ColorOS 提供了 [vm_anti_fragment](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/tree/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/vm_anti_fragment) 提供了物理内存反碎片化的能力.
+
+
+
+## 2.2 Multi Kswapd
 -------
 
 
-```cpp
-#if defined(OPLUS_FEATURE_MULTI_FREEAREA)
-obj-$(CONFIG_PHYSICAL_ANTI_FRAGMENTATION) += multi_freearea.o
-#endif
-```
-
-
-# 3 ANDROID
+## 2.3 Memleak Detect
 -------
 
 
+### 2.3.1 DUMP_TASKS_MEM
+-------
+
+[task_mem](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/tree/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/memleak_detect/task_mem) 提供了 Dump Task Mem 的能力.
+
+[ion_track](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/blob/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/memleak_detect/ion_track) 提供了 dump_ion_info 的能力.
+
+[malloc_track](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/tree/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/memleak_detect/malloc_track)
 
 
+
+
+
+# 3 帧感知
+-------
+
+
+| 编号 | 特性 | CONFIG | 描述 | 链接 |
+|:---:|:----:|:------:|:----:|:---:|
+| 1 | Input Boost | [PLUS_FEATURE_INPUT_BOOST](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/blob/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/input_boost/Kconfig) | NA | [vendor/oplus/kernel/oplus_performance/input_boost](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/tree/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/input_boost) |
+| 2 | Identify Task Itself(IM)) | [OPLUS_FEATURE_IM](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/blob/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/im/Kconfig) | 通过 task->im_flag 标记 ANDROID 下的关键线程类型. 在许多情况下, 我们需要识别关键任务, 虽然可以通过字符串比较(比较进程的 COMM 是否是我们关心的任务), 但在一些性能敏感的上下文中, 如调度器路径下, 这样做不是一个好的选择. 这个 IM 工具可以让我们只通过一个比较来检查任务. | [vendor/oplus/kernel/oplus_performance/im](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/blob/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/im/im.h) |
 
 
 
