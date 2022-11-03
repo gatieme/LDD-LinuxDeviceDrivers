@@ -1,0 +1,18 @@
+digraph rebalance_domains {
+
+	// 周期性负载均衡器 run_rebalance_domains
+	scheduler_tick -> trigger_load_balance -> {raise_softirq_SCHED_SOFTIRQ, nohz_balancer_kick};
+	raise_softirq_SCHED_SOFTIRQ -> run_rebalance_domains [style=dashed];
+	run_rebalance_domains -> {nohz_idle_balance, update_blocked_averages, rebalance_domains};
+
+	rebalance_domains -> for_each_domain_LB -> {update_newidle_cost, get_sd_balance_interval, load_balance, update_next_balance};
+
+	// caller
+	raise_softirq_SCHED_SOFTIRQ [label="raise_softirq(SCHED_SOFTIRQ)"; style=filled; fillcolor=lightyellow; shape=oval];
+
+	// function
+	rebalance_domains [label="rebalance_domains"; style=filled; fillcolor=palegreen; shape=oval];
+
+	// callee
+	load_balance [label="load_balance"; style=filled; fillcolor=orange; shape=oval];
+}

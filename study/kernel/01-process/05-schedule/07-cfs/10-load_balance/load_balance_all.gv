@@ -1,0 +1,56 @@
+digraph T {
+
+	// 周期性负载均衡器 run_rebalance_domains
+	scheduler_tick -> trigger_load_balance -> {raise_softirq_SCHED_SOFTIRQ, nohz_balancer_kick};
+	raise_softirq_SCHED_SOFTIRQ -> run_rebalance_domains [style=dashed];
+	run_rebalance_domains -> {nohz_idle_balance, update_blocked_averages, rebalance_domains};
+
+	rebalance_domains -> for_each_domain_LB -> {update_newidle_cost, get_sd_balance_interval, load_balance, update_next_balance};
+
+	// NOHZ 负载均衡器 nohz_idle_balance
+	nohz_idle_balance -> {clear_nohz_idle_balance, _nohz_idle_balance};
+	_nohz_idle_balance -> for_each_nohz_idle_cpus_mask -> {has_NOHZ_STATS_KICK, has_NOHZ_BALANCE_KICK};
+	has_NOHZ_STATS_KICK -> update_nohz_stats -> update_blocked_averages;
+	has_NOHZ_BALANCE_KICK -> rebalance_domains;
+
+	// IDLE 负载均衡器
+	__schedule -> pick_next_task -> __pick_next_task -> pick_next_task_fair -> newidle_balance;
+	pick_next_task -> put_prev_task_balance
+	put_prev_task_balance -> for_class_range_prev_to_idle -> balance -> balance_fair -> newidle_balance;
+	__pick_next_task -> {pick_next_task_fair, pick_next_task_idle, put_prev_task_balance, class_pick_next_task};
+	newidle_balance -> {update_misfit_status, update_next_balance, update_blocked_averages, for_each_domain_ILB} -> nohz_newidle_balance;
+
+	for_each_domain_ILB -> {update_next_balance, load_balance, update_newidle_cost};
+	nohz_newidle_balance -> set_NOHZ_NEWILB_KICK
+
+	// 负载均衡核心逻辑
+	load_balance:s -> {should_we_balance, find_busiest_group, find_busiest_queue, detach_tasks, attach_tasks, need_active_balance, stop_one_cpu_nowait};
+	should_we_balance -> {group_balance_mask, group_balance_cpu};
+	find_busiest_group -> {init_sd_lb_stats, update_sd_lb_stats, sched_energy_enabled, compare_local_busiest_group_type, calculate_imbalance};
+	find_busiest_queue -> for_each_sched_group_span -> {fbq_classify_rq, switch_env_migration_type_FBQ};
+	detach_tasks -> {can_migrate_task, switch_env_migration_type_DT, detach_task};
+	attach_tasks -> {attach_task};
+	need_active_balance -> stop_one_cpu_nowait -> active_load_balance_cpu_stop [style=dashed];
+	active_load_balance_cpu_stop -> {detach_one_task, attach_one_task};
+
+
+	// update_blocked_averages
+	update_blocked_averages -> {update_blocked_load_tick, __update_blocked_others, __update_blocked_fair, update_blocked_load_status, cpufreq_update_util};
+	__update_blocked_others -> {arch_scale_thermal_pressure, update_rt_rq_load_avg, update_dl_rq_load_avg, update_thermal_load_avg, update_irq_load_avg, others_have_blocked};
+	__update_blocked_fair -> {update_cfs_rq_load_avg, cfs_rq_has_blocked};
+
+
+	clear_nohz_idle_balance [label="this_rq->nohz_idle_balance = 0"; style=filled; shape=oval];
+	raise_softirq_SCHED_SOFTIRQ [label="raise_softirq(SCHED_SOFTIRQ)"; style=filled; shape=oval];
+
+	rebalance_domains [label="rebalance_domains"; style=filled; fillcolor=palegreen; shape=oval];
+	newidle_balance [label="newidle_balance"; style=filled; fillcolor=palegreen; shape=oval];
+	nohz_idle_balance [label="nohz_idle_balance"; style=filled; fillcolor=palegreen; shape=oval];
+
+	load_balance [label="load_balance"; style=filled; fillcolor=palegreen; shape=oval];
+	find_busiest_group [label="find_busiest_group"; style=filled; fillcolor=lightyellow; shape=oval];
+	find_busiest_queue [label="find_busiest_queue"; style=filled; fillcolor=lightyellow; shape=oval];
+	active_load_balance_cpu_stop [label="active_load_balance_cpu_stop"; style=filled; fillcolor=lightyellow; shape=oval];
+	can_migrate_task [label="can_migrate_task"; style=filled; fillcolor=lightyellow; shape=oval];
+
+}
