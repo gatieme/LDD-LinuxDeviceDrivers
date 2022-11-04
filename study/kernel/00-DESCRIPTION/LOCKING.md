@@ -292,8 +292,11 @@ percpu rw 信号量是一种新的读写信号量设计, 针对读取锁定进�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/06/01 | "Joel Fernandes (Google)" <joel@joelfernandes.org> | [Harden list_for_each_entry_rcu() and family](https://lore.kernel.org/patchwork/cover/1082845) | 本系列增加了一个新的内部函数rcu_read_lock_any_held(), 该函数在调用这些宏时检查reader节是否处于活动状态. 如果不存在reader section, 那么list_for_each_entry_rcu()的可选第四个参数可以是一个被计算的lockdep表达式(类似于rcu_dereference_check()的工作方式). . | RFC ☑ 5.4-rc1 | [PatchWork RFC,0/6](https://lore.kernel.org/patchwork/cover/1082845) |
 
-Google 的 Joel Fernandes 等发现 RCU 并没有很好的节能, 在 Android 和 ChromeOS 系统的功耗方面, RCU 占据了比较大的比重. 他们在 LPC-2022 上演示了他们在延迟 RCU 处理等降低 RCU 功耗和底噪的工作. 参见 [Make RCU do less (& later) !](https://lpc.events/event/16/contributions/1204).
+Google 的 Joel Fernandes 等发现 RCU 并没有很好的节能, 在 Android 和 ChromeOS 系统的功耗方面, RCU 占据了比较大的比重. 他们在 LPC-2022 上演示了他们在延迟 RCU 处理等降低 RCU 功耗和底噪的工作. 参见 [Make RCU do less (& later) !](https://lpc.events/event/16/contributions/1204). 随后 2022 年 10 月份左右, 补丁[推送到 v6.2 版本](https://lore.kernel.org/rcu/20221019225138.GA2499943@paulmck-ThinkPad-P17-Gen-1/).
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/10/19 | Paul E. McKenney <paulmck@kernel.org> | [Lazy call_rcu() updates for v6.2](https://lore.kernel.org/all/20221019225138.GA2499943@paulmck-ThinkPad-P17-Gen-1) | TODO | v6 ☐☑✓ | [LORE v6,0/14](https://lore.kernel.org/all/20221019225138.GA2499943@paulmck-ThinkPad-P17-Gen-1) |
 
 
 # 6 FUTEX

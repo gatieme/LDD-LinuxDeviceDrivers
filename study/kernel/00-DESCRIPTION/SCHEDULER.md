@@ -3704,7 +3704,7 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:----:|:---:|:----------:|:---:|
 | 2016/05/06 | Peter Zijlstra | [sched: select_idle_siblings rewrite](https://lore.kernel.org/lkml/20160509104807.284575300@infradead.org) | 通过这组补丁, 将 select_idle_siblings 中对 sched_domain 上 CPU 的单次扫描替换为 3 个显式的扫描.<br>1. select_idle_core 在 LLC 域内搜索一个空闲的 CORE<br>2. select_idle_cpu 在 LLC 域内搜索一个空闲的 CPU.<br>3. select_idle_smt 在目标 CORE 中搜索一个空闲的 CPU.<br>select_idle_cpu 中需要遍历 sched_domain 中所有 CPU 查找 idle CPU. 这是一个非常耗时的过程, 因此维护了 sd->avg_scan_cost 类似于查找 idle CPU 的平均耗时. 如果当前 CPU 的 aavg_idle / 512) < avg_cost, 则直接跳过这个流程. | RFC ☑ 4.9-rc1 | [LORE 0/7](https://lore.kernel.org/patchwork/cover/677017), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/commit/?id=10e2f1acd0106c05229f94c70a344ce3a2c8008b) |
-| 2018/05/30 | Peter Zijlstra <peterz@infradead.org> | [select_idle_sibling rework](https://lore.kernel.org/all/20180530142236.667774973@infradead.org) | 优化 select_idle_XXX 的性能 | RFC ☐☑✓ | [LORE v1,0/11](https://lore.kernel.org/all/20180530142236.667774973@infradead.org) |
+| 2018/05/30 | Peter Zijlstra <peterz@infradead.org> | [select_idle_sibling rework](https://lore.kernel.org/all/20180530142236.667774973@infradead.org) | 优化 select_idle_XXX 的性能. 核心扫描是在有空闲核心的情况下进行的, 它有一个最坏的情况, 我们总是扫描整个 LLC, 以确定在门控之前已经没有空闲核心了. CPU 扫描与剩余的平均空闲时间成正比. 由于 CPU 扫描可能实际上看不到我们自己的兄弟线程 (如果它们在 CPU 空间中很远的地方被枚举), 检查是否有空闲的兄弟线程. Rohit Jain 建议在一个比例搜索 `__select_idle_core()` 中完成所有这三件事. 它使用新的 SMT 拓扑位来执行 core/SMT 迭代. 并且依赖于 select_idle_cpu() 对 nr 的更改. 最总效果就是迭代 @nr 个 CPU, 并选择在任务关联掩码中繁忙线程数量最少的内核中的第一个空闲线程. | RFC ☐☑✓ | [LORE v1,0/11](https://lore.kernel.org/all/20180530142236.667774973@infradead.org) |
 | 2019/7/1 | Subhra Mazumdar | [Improve scheduler scalability for fast path](https://lore.kernel.org/patchwork/cover/1094549) | select_idle_cpu 每次遍历 LLC 域查找空闲 CPU 的代价非常高, 因此通过限制搜索边界来减少搜索时间, 进一步通过保留 PER_CPU 的 next_cpu 变量来跟踪上次搜索边界, 来缓解此次优化引入的线程局部化问题  | v3 ☐ | [LWN](https://lwn.net/Articles/757379/), [PatchWork](https://lore.kernel.org/patchwork/cover/1094549/), [lkml](https://lkml.org/lkml/2019/7/1/450), [Blog](https://blogs.oracle.com/linux/linux-scheduler-scalabilty-like-a-boss) |
 | 2018/01/30 | Mel Gorman | [Reduce migrations and unnecessary spreading of load to multiple CPUs](https://lore.kernel.org/patchwork/cover/878789) | 通过优化选核逻辑, 减少不必要的迁移 | | |
 | 2019/1/21 | Srikar Dronamraju | [sched/fair: Optimize select_idle_core](https://lore.kernel.org/patchwork/patch/1163807) | | | |
@@ -5288,7 +5288,15 @@ Intel 的 [Wult/Wake Up Latency Tracer](https://github.com/intel/wult) 一个在
 ## 10.1 进程创建
 -------
 
-### 10.1.1 shared page tables
+### 10.1.1 进程创建 FORK
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/10/31 | Zhang Qiao <zhangqiao22@huawei.com> | [sched: sched_fork() optimizations](https://lore.kernel.org/all/20221031125113.72980-1-zhangqiao22@huawei.com) | sched_fork() 使用当前 CPU 初始化新任务的 vruntime, 但新任务可能不在这个 CPU 上运行. 所以这个补丁集将解决这个问题. | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20221031125113.72980-1-zhangqiao22@huawei.com) |
+
+
+### 10.1.2 shared page tables
 -------
 
 对 shared page tables 的研究由来已久, Dave McCracken提出了一种共享页面表的方法[Implement shared page tables](https://lore.kernel.org/patchwork/cover/42673), 可以参见 [Shared Page Tables Redux](https://www.kernel.org/doc/ols/2006/ols2006v2-pages-125-130.pdf). 但从未进入内核.
@@ -5308,10 +5316,10 @@ Intel 的 [Wult/Wake Up Latency Tracer](https://github.com/intel/wult) 一个在
 | 2022/01/18 | Khalid Aziz <khalid.aziz@oracle.com> | [Add support for shared PTEs across processes](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com) | 内核中的页表会消耗一些内存, 只要要维护的映射数量足够小, 那么页表所消耗的空间是可以接受的. 当进程之间共享的内存页很少时, 要维护的页表条目(PTE)的数量主要受到系统中内存页的数量的限制. 但是随着共享页面的数量和共享页面的次数的增加, 页表所消耗的内存数量开始变得非常大.<br>比如在一些实际业务中, 通常会看到非常多的进程共享内存页面. 在 x86_64 上, 每个页面页面在每个进程空间都需要占用一个只有 8Byte 大小的 PTE, 共享此页面的进程数目越多, 占用的内存会非常的大. 如果这些 PTE 可以共享, 那么节省的内存数量将非常可观.<br>这组补丁在内核中实现一种机制, 允许用户空间进程选择共享 PTE. 一个进程可以通过 通过 mshare() 和 mshare_unlink() syscall 来创建一个 mshare 区域(mshare'd region), 这个区域可以被其他进程使用共享 PTE 映射相同的页面. 其他进程可以通过 mashare() 使用共享 PTE 将共享页面映射到它们的地址空间. 然后还可以通过 mshare_unlink() syscall 来结束对共享页面的访问. 当最后一个访问 mshare'd region 的进程调用 mshare_unlink() 时, mshare'd region 就会被销毁, 所使用的内存也会被释放. | RFC ☐ | [LKML RFC,0/6](https://patchwork.kernel.org/project/linux-mm/cover/cover.1642526745.git.khalid.aziz@oracle.com) |
 
 
-### 10.1.2 进程退出
+### 10.1.3 进程退出
 -------
 
-#### 10.1.2.1 进程退出时的处理
+#### 10.1.3.1 进程退出时的处理
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -5319,7 +5327,7 @@ Intel 的 [Wult/Wake Up Latency Tracer](https://github.com/intel/wult) 一个在
 | 2021/11/18 | Sebastian Andrzej Siewior <bigeasy@linutronix.de> | [kernel/fork: Move thread stack free out of the scheduler path](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) | [sched: Delay task stack freeing on RT](https://lore.kernel.org/all/20210928122411.593486363@linutronix.de) 的完善方案. 在 finish_task_switch() 完成后任务可能会死亡并退出, 这时候虽然快速回收任务堆栈有利于繁重的工作负载, 但这是内核实时性延迟的源头. 因此, 延迟启用 RT 的内核上的堆栈清理. | v1 ☐ | [PatchWork 0/8](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) |
 | 2021/11/18 | Linus Torvalds <torvalds@linux-foundation.org> | [task: Making tasks on the runqueue rcu protected](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) | [sched: Delay task stack freeing on RT](https://lore.kernel.org/all/20210928122411.593486363@linutronix.de) 的完善方案. 在 finish_task_switch() 完成后任务可能会死亡并退出, 这时候虽然快速回收任务堆栈有利于繁重的工作负载, 但这是内核实时性延迟的源头. 因此, 延迟启用 RT 的内核上的堆栈清理. | v1 ☐ | [PatchWork 0/8](https://lore.kernel.org/all/20211118143452.136421-1-bigeasy@linutronix.de) |
 
-#### 10.1.2.2 reaper 进程
+#### 10.1.3.2 reaper 进程
 -------
 
 linux 下, reaper 线程用于释放已经执行结束的线程所占用的资源. 通常这个工作由父进程通过 wait() 或者 waitpid() 完成. 在 linux 中, 父进程死亡后, 需要由其他 reaper 进程来完成这项工作. 粗略地说:
@@ -5332,7 +5340,7 @@ linux 下, reaper 线程用于释放已经执行结束的线程所占用的资�
 
 
 
-### 10.1.3 进程冻结与恢复
+### 10.1.4 进程冻结与恢复
 -------
 
 CRIU 是一个在 Linux 用户空间 (userspace) 上实现了 checkpoint/restore 功能的软件工具. 
@@ -5797,6 +5805,15 @@ ECRTS 2020(32nd Euromicro Conference on Real-Time Systems) 上 Daniel 等人发�
 | [BART](https://github.com/arm-software/bart)   | Behavioural Analysis and Regression Toolkit |
 
 
+### 12.4.5 调度可视化
+-------
+
+
+| 编号 | 工具 | 描述 | 链接 |
+|:---:|:----:|:---:|:---:|
+| 1 | SchedViz | [Understanding Scheduling Behavior with SchedViz](https://opensource.googleblog.com/2019/10/understanding-scheduling-behavior-with.html) | [google/schedviz, github](https://github.com/google/schedviz) |
+| 2 | systrace | NA | NA |
+| 3 | perfetto | NA | NA |
 
 **引用: **
 

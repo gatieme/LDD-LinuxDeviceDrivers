@@ -53,7 +53,29 @@ blogexcerpt: ANDROID
 
 
 
+# AOSP-5.15
+-------
 
+PELT multiplier
+
+
+| Bug NO | COMMIT | 描述 | 参考链接
+|:------:|:------:|:---:|
+| Bug: 177593580 | 889f8be857d8 ANDROID: sched: Introducing PELT multiplier<br>1b458bb3d144 ANDROID: sched: add vendor hook to PELT multiplier |  PELT multiplier 允许 PELT 使用不同的衰减速率. |
+|
+
+```cpp
+Bug: 238985916
+70a112b621e7 ANDROID: ABI: Update symbols to unisoc whitelist for the scheduler 5st
+```
+
+7cf9646c245f ANDROID: sched: Add vendor hooks for cpu affinity.
+a18836162846 ANDROID: cgroup: Add vendor hook for cpuset.
+869954e72dac ANDROID: vendor_hooks: Export the tracepoints sched_stat_sleep and sched_waking to let module probe them
+455e0a85357d ANDROID: sched: Add vendor hooks to compute new cpu freq.
+
+
+39722f310fbd BACKPORT: PM: runtime: Fix supplier device management during consumer probe
 
 
 

@@ -159,17 +159,26 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/10/02 | Catalin Marinas <catalin.marinas@arm.com> | [x86: Add initial support to discover Intel hybrid CPUs](https://lore.kernel.org/lkml/20201002201931.2826-1-ricardo.neri-calderon@linux.intel.com) | 支持混合微架构的 CPU(Alder Lake CPU) | v3 ☐ | [Patchwork 0/3](https://lore.kernel.org/lkml/20201002201931.2826-1-ricardo.neri-calderon@linux.intel.com) |
-| 2021/05/12  | Rafael J. Wysocki <rafael.j.wysocki@intel.com> | [cpufreq: intel_pstate: hybrid: CPU-specific scaling factors](https://www.phoronix.com/scan.php?page=news_item&px=P-State-Preps-For-Hybrid) | Hybrid CPU 的 P-state 增强 | v1 ☑ 5.14-rc1 | [Patchwork 0/3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eb3693f0521e020dd8617c7fa3ddf5c9f0d8dea0) |
 | 2021/02/08  | Kan Liang <kan.liang@linux.intel.com> | [Add Alder Lake support for perf](https://lkml.org/lkml/2021/2/8/1142) | perf 支持 Hybrid CPU.  | v1 ☑ 5.14-rc1 | [LKML 00/49](https://lkml.org/lkml/2021/2/8/1142) |
 | 2021/04/05  | Kan Liang <kan.liang@linux.intel.com> | [Add Alder Lake support for perf (kernel)](https://lkml.org/lkml/2021/4/5/775) | perf 支持 Hybrid CPU(内核态). | v1 ☑ 5.13-rc1 | [LKML V5 00/25](https://lkml.org/lkml/2021/4/5/775), [LKML V3 00/25](https://lkml.org/lkml/2021/3/26/964) |
 | 2021/04/23  | Kan Liang <kan.liang@linux.intel.com> | [perf tool: AlderLake hybrid support series 1](https://lkml.org/lkml/2021/4/23/52) | perf 支持 Hybrid CPU(内核态). | v1 ☑ 5.13-rc1 | [LKML v5 00/26](https://lkml.org/lkml/2021/4/23/52) |
 | 2021/05/27  | Kan Liang <kan.liang@linux.intel.com> | [perf: Support perf-mem/perf-c2c for AlderLake](https://lkml.org/lkml/2021/4/5/775) | perf 支持 Hybrid CPU(内核态). | v2 ☑ 5.14-rc1 | [LKML v1 0/8](https://lkml.org/lkml/2021/4/5/775), [LKML v2 0/8](https://lkml.org/lkml/2021/5/27/191) |
+
+
+#### 1.4.1.2 P-State(HWP)
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/05/12  | Rafael J. Wysocki <rafael.j.wysocki@intel.com> | [cpufreq: intel_pstate: hybrid: CPU-specific scaling factors](https://www.phoronix.com/scan.php?page=news_item&px=P-State-Preps-For-Hybrid) | Hybrid CPU 的 P-state 增强 | v1 ☑ 5.14-rc1 | [Patchwork 0/3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=eb3693f0521e020dd8617c7fa3ddf5c9f0d8dea0) |
 | 2021/11/19 | Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com> | [cpufreq: intel_pstate: ITMT support for overclocked system](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Patch-ITMT-OC-ADL) | Intel ITMT (Intel Turbo Boost Max Technology) 感知混合架构, Alder Lake CPU 上 P-Core/E-core 优先级应该有不同的值(P-core 0x40, P-core HT sibling 0x10, E-core 0x26). | v1 ☑ 5.16-rc3 | [Patchwork](https://patchwork.kernel.org/project/linux-pm/patch/20211119051801.1432724-1-srinivas.pandruvada@linux.intel.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=03c83982a0278207709143ba78c5a470179febee) |
 | 2021/12/16 | Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com> | [cpufreq: intel_pstate: Update EPP for AlderLake mobile](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-P-State-ADL-Mobile) | 修正 AlderLake 的 EPP. | v1 ☑ 5.17-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b6e6f8beec98ba7541213c506fe908517fdc52b8) |
 | 2022/04/15 | Zhang Rui <rui.zhang@intel.com> | [intel_idle: add AlderLake support](https://lore.kernel.org/all/20220415093951.2677170-1-rui.zhang@intel.com) | 参见 [phoronix 报道](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Idle-Alder-Lake) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220415093951.2677170-1-rui.zhang@intel.com) |
+| 2022/10/24 | Rafael J. Wysocki <rjw@rjwysocki.net> | [cpufreq: intel_pstate: Make HWP calibration work on all hybrid platforms](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f5c8cf2a4992dd929fa0c2f25c09ee69b8dcbce1) | 修复硬件 P-State(HWP) 校准程序在 Intel 混合 CPU 平台的一些问题.<br>1. 以前进行这项工作的尝试是基于使用 CPPC, 但事实证明, CPPC 信息对于此目的来说不够可靠, 唯一的方法是对 P 核和 E 核使用硬编码的比例因子(幸运的是, 这与非混合情况下相同). 幸运的是, 迄今为止, P-core 的相同缩放因子适用于所有混合平台. 这个补丁集的第一个补丁通过避免在一个 CPU 上读取的 MSR 值将用于另一个 CPU 的性能扩展的情况, 确保所有 CPU 都将使用来自 MSR 的正确信息. 第二个补丁完善了 hybrid_get_cpu_scaling() 的实现, 用已知的缩放因子作为 cpu->pstate.scaling. | v1 ☑✓ 6.1-rc3 | [LORE v1,0/2](https://lore.kernel.org/all/2258064.ElGaqSPkdT@kreacher) |
 
 
-#### 1.4.1.2 ITMT SMT migration Improvement
+
+#### 1.4.1.3 ITMT SMT migration Improvement
 -------
 
 Intel 在 LPC-2022 演示 [Bringing Energy-Aware Scheduling to x86](https://lpc.events/event/16/contributions/1275) 时, 对 ITMT 的改进一并进行了阐述. LWN 也对此进行了讲解 [Hybrid scheduling gets more complicated](https://lwn.net/Articles/909611).
