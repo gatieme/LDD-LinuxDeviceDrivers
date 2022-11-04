@@ -5930,9 +5930,9 @@ zone->lru_锁是一个竞争激烈的锁, 因此 2012 年左右 Konstantin Khleb
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/06/23 | Roman Gushchin <guro@fb.com> | [The new cgroup slab memory controller](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fbc1ac9d09d70859eee24131d667e01e3986e368) | 引入了 obj_cgroup, 接管了 slab memory 的 charge/uncharge 操作. | v7 ☑✓ 5.9-rc1 | [LORE v7,0/19](https://lore.kernel.org/all/20200623174037.3951353-1-guro@fb.com) |
-| 2021/03/20 | Muchun Song <songmuchun@bytedance.com> | [Use obj_cgroup APIs to charge kmem pages](hhttps://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bd290e1e75d8a8b2d87031b63db56) | TODO | v5 ☑✓ 5.13-rc1 | [LORE v5,0/7](https://lore.kernel.org/all/20210319163821.20704-1-songmuchun@bytedance.com) |
+| 2021/03/20 | Muchun Song <songmuchun@bytedance.com> | [Use obj_cgroup APIs to charge kmem pages](hhttps://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bd290e1e75d8a8b2d87031b63db56) | 使用 obj_cgroup 接管 kmem 的 charge/uncharge 操作. | v5 ☑✓ 5.13-rc1 | [LORE v5,0/7](https://lore.kernel.org/all/20210319163821.20704-1-songmuchun@bytedance.com) |
 | 2022/04/21 | Waiman Long <longman@redhat.com> | [mm/memcg: Free percpu stats memory of dying memcg's](https://lore.kernel.org/all/20220421145845.1044652-1-longman@redhat.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220421145845.1044652-1-longman@redhat.com) |
-| 2022/06/21 | Muchun Song <songmuchun@bytedance.com> | [Use obj_cgroup APIs to charge the LRU pages](https://lore.kernel.org/all/20220621125658.64935-1-songmuchun@bytedance.com) | TODO | v6 ☐☑✓ | [LORE v6,0/11](https://lore.kernel.org/all/20220621125658.64935-1-songmuchun@bytedance.com) |
+| 2022/06/21 | Muchun Song <songmuchun@bytedance.com> | [Use obj_cgroup APIs to charge the LRU pages](https://lore.kernel.org/all/20220621125658.64935-1-songmuchun@bytedance.com) | 使用 obj_cgroup 接管 LRU 页面的 charge/uncharge. | v6 ☐☑✓ | [LORE v6,0/11](https://lore.kernel.org/all/20220621125658.64935-1-songmuchun@bytedance.com) |
 
 
 
