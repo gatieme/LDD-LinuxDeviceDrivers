@@ -4185,6 +4185,10 @@ EAS 特性是通过 STATIC_KEY sched_energy_present 控制的.
 
 v4.9 [sched: Clean-ups and asymmetric cpu capacity support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=3273163c6775c4c21823985304c2364b08ca6ea2) 为增加了系统对 AMP 架构的支持. 这是一次最基础的尝试. 引入了 SD_ASYM_CPUCAPACITY 标记那些具有不同 capacity 的 sched_domain, 并且完成了 WAKEUP 路径的 capacityt aware. 允许 SD_ASYM_CPUCAPACITY 域内做 SD_BALANCE_WAKE, 并且 wake_affine 时引入了 wake_cap() 检查是否满足其 capacity. 但是这个实现是非常基础的, SD_ASYM_CPUCAPACITY 标记需要在 (Android 的) DTB 中显式设置.
 
+*   DTS 支持 capacity capacity-dmips-mhz 设置 @4.10.
+
+随后 v4.10 ARM64 支持 [DTS 解析 capacity-dmips-mhz 字段](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=be8f185d8af4dbd450023a42a48c6faa8cbcdfe6), 支持 big.LITTLE 大小核架构配置 CPU Capcity, 添加 [cpu_capacity](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=be8f185d8af4dbd450023a42a48c6faa8cbcdfe6) sysfs 接口, 用于显示 CPU Capacity.
+
 *   set SD_ASYM_CPUCAPACITY automatically & STATIC_KEY sched_asym_cpucapacity @4.20
 
 v4.20 [sched/topology: Set SD_ASYM_CPUCAPACITY flag automatically](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e1799a80a4f5a463f252b7325da8bb66dfd55471) 实现了系统启动后自动识别当前系统是否是 AMP 架构(具有相同架构, 但是 CPU 具有不同 capacity 或者微架构), 并在合适的 sched_domain 域内设置 SD_ASYM_CPUCAPACITY.
@@ -4223,6 +4227,8 @@ sched_init_domains()
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2016/07/25 | Morten Rasmussen <morten.rasmussen@arm.com> | [sched/core: Introduce SD_ASYM_CPUCAPACITY sched_domain topology flag](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1f6e6c7cb9bcd58abb5ee11243e0eefe6b36fc8e) | [sched: Clean-ups and asymmetric cpu capacity support/PART 1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=3273163c6775c4c21823985304c2364b08ca6ea2) 是调度器 Capacity Awareness 的第一次尝试. 当前补丁新增了 SD_ASYM_CPUCAPACITY 用来标记那些 AMP 架构下 CPU 具有不同 capacity 的 sched_domain. | v3 ☑✓ 4.9-rc1 | [LORE v3,0/13](https://lore.kernel.org/all/1469453670-2660-1-git-send-email-morten.rasmussen@arm.com), [关注 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1f6e6c7cb9bcd58abb5ee11243e0eefe6b36fc8e) |
+| 2016/10/17 | Juri Lelli <juri.lelli@arm.com> | [CPUs capacity information for heterogeneous systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=be8f185d8af4dbd450023a42a48c6faa8cbcdfe6) | ARM64 支持 [DTS 解析 capacity-dmips-mhz 字段](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=be8f185d8af4dbd450023a42a48c6faa8cbcdfe6), 支持 big.LITTLE 大小核架构配置 CPU Capcity, 添加 [cpu_capacity](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=be8f185d8af4dbd450023a42a48c6faa8cbcdfe6) sysfs 接口, 用于显示 CPU Capacity. | v7 ☑✓ 4.10-rc1 | [LORE v7,0/9](https://lore.kernel.org/all/20161017154650.18779-1-juri.lelli@arm.com) |
+| 2017/04/20 | Juri Lelli <juri.lelli@arm.com> | [Fix issues and factorize arm/arm64 capacity information code](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4ca4f26a9c66103ca158689b7554f07f4968a32c) | ARM 和 ARM64 topology.c 大量与解析容量信息相关的代码存在冗余. 将这些代码抽离出来形成一个架构无关通用的模块 `drivers/base/arch_topology.c`. | v4 ☑✓ 4.13-rc1 | [LORE v4,0/8](https://lore.kernel.org/all/20170420144316.15632-1-juri.lelli@arm.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2ef7a2953c81ee6b341e3ffb33570adc894cf4a5). |
 | 2018/07/20 | Morten Rasmussen <morten.rasmussen@arm.com> | [sched/topology: Set SD_ASYM_CPUCAPACITY flag automatically](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e1799a80a4f5a463f252b7325da8bb66dfd55471) | 1532093554-30504-1-git-send-email-morten.rasmussen@arm.com | v1 ☑✓ 4.20-rc1 | [LORE v1,0/4](https://lore.kernel.org/all/1532093554-30504-1-git-send-email-morten.rasmussen@arm.com) |
 | 2019/10/23 | Valentin Schneider <valentin.schneider@arm.com> | [sched/topology: Asymmetric topologies fixes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e284df705cf1eeedb5ec3a66ed82d17a64659150) | 允许 sched_asym_cpucapacity 被 disable.<br>[sched_asym_cpucapacity 默认是关闭](https://elixir.bootlin.com/linux/v5.16/source/kernel/sched/topology.c#L651)的, 但是启动过程中 [build_sched_domains()](https://elixir.bootlin.com/linux/v5.16/source/kernel/sched/topology.c#L2271) 如果识别当前系统是大小核异构(比如 ARM big.LITTLE 等)的系统, 就会[标记 has_asym](https://elixir.bootlin.com/linux/v5.16/source/kernel/sched/topology.c#L2220), 然后把 STATIC_KEY sched_asym_cpucapacity 开启, 但一旦打开, 它将永远保持启用状态. 这意味着, 如果我们从一个非对称系统开始, 热插拔出足够多的 CPU, 最终得到一个 SMP 系统, sched_asym_cpucapacity 依旧将保持开启状态, 这显然是错误的. 应该检测到这一点, 并关闭不匹配迁移和容量感知唤醒等功能. 这个补丁就完成了这个功能. | v4 ☑✓ 5.4-rc6 | [LORE v4,0/2](https://lore.kernel.org/all/20191023153745.19515-1-valentin.schneider@arm.com) |
 | 2021/06/03 | Valentin Schneider | [Rework CPU capacity asymmetry detection](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=adf3c31e18b765ea24eba7b0c1efc076b8ee3d55) | 当前版本 asym_cpu_capacity_level 存在几个问题.<br>1. 只能支持到最低的拓扑级别, 对全局的拓扑域不可见.<br>2. 不支持 NUMA 级别的异构, 因为初始化 NUMA 级别的 sd_numa_mask 中不包含其他 NODE, 最终 sched_domain_span 是在构建调度域的时候进行的更新的.<br>这对于大多数现有的不对称设计很实用, 但是却不支持普适的性能异构架构.这可能不是最好的方法, 在一些领域可能看不到任何不对称. 这对于不合适的迁移和能量感知的安置可能会有问题. 因此, 对于受影响的平台, 它可能导致对唤醒和 CPU 选择路径的自定义更改.<br>这组补丁修改了执行非对称检测的方式, 允许将非对称拓扑级别固定在最低的拓扑级别上, 在最低的拓扑级别上, 给定调度域中的所有 CPU 都可以看到整个 CPU 容量范围. asym_cpu_capacity_level 还将跟踪那些观察到任何非对称范围的级别, 以使用 SD_ASYM_CPUCAPACITY 标志表示相应的调度域, 并为这些域启用不匹配迁移. 为了区分局部和全范围 CPU 容量不对称的调度域, 引入了新的调度域标志: SD_ASYM_CPUCAPACITY_FULL. | v7 ☑ 5.14-rc1  | [LORE v1](https://lore.kernel.org/lkml/1618578085-29584-1-git-send-email-beata.michalska@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7](https://lore.kernel.org/all/20210603140627.8409-1-beata.michalska@arm.com) |
@@ -4361,10 +4367,7 @@ Misfit Task 对调度器**负载均衡**做了如下改造, 参见 [commit cad68
 | 2019/01/10 | Quentin Perret <quentin.perret@arm.com> | [Documentation: Explain EAS and EM](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=81a930d3a64a00c5adb2aab28dd1c904045adf57) | EAS 的文档, 参见 [sched: Energy cost model for energy-aware scheduling, RFC,v5,00/46](https://lkml.org/lkml/2015/7/7/754) | v1 ☑✓ 5.1-rc1 | [LORE v1,0/2](https://lore.kernel.org/all/20190110110546.8101-1-quentin.perret@arm.com) |
 | 2020/05/27 | john mathew <john.mathew@unikie.com> | [Add scheduler overview documentation](https://lore.kernel.org/all/20200527081505.1783-1-John.Mathew@unikie.com) | 调度器的文档更新. | v6 ☐☑✓ | [LORE v5,0/3](https://lore.kernel.org/all/20200514092637.15684-1-John.Mathew@unikie.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/3](https://lore.kernel.org/all/20200527081505.1783-1-John.Mathew@unikie.com) |
 
-### 7.2.5 Energy Model
--------
-
-#### 7.2.5.1 Energy Model
+### 7.2.5 Energy Model Management Framework
 -------
 
 EAS 依赖于 EM(Energy Model) 提供的能效模型等信息来计算能效最优的调度行为.
@@ -4373,20 +4376,128 @@ v5.0 EAS 合入主线之前, 内核通过 init_sched_energy_costs() 解析 DTB �
 
 v5.0 EAS 合入主线之后, 引入了 EM, 各平台或者设备通过 [em_dev_register_perf_domain()](https://elixir.bootlin.com/linux/v5.10/A/ident/em_dev_register_perf_domain) 注册能效模型.
 
-| 能效模型 | 描述 | 流程 |
-|:------:|:----:|:----:|
-| OF dtb 方式的能效模型 | 当前使用 DTB 的设备和平台都使用了此种方式注册能效模型, 参见 [Add callback to register with energy model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=37f188318ea3f1da75b32df3b1a19f45d9840652). | drivers/opp/of.c, dev_pm_opp_of_register_em |
-| SCMI 的能效模型 | NA | drivers/cpufreq/scmi-cpufreq.c |
-| NA | NA | drivers/cpufreq/mediatek-cpufreq-hw.c |
+EAS 允许 Device Tree(cpufreq-dt), Firmware(arm_scmi) 以及其他设备通过 em_dev_register_perf_domain() 向 Energy Model Framework 注册能效表.
+
+| 设备 | 设备驱动类型 | 能效模型 | 描述 | 源代码 | 注册接口 |
+|:---:|:----------:|:-------:|:---:|:-----:|:-----:|
+| Device Tree | cpufreq-dt | OF dtb 方式的能效模型 | 使用 DTB 的设备和平台都使用了此种方式注册能效模型, 参见 [Add callback to register with energy model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=37f188318ea3f1da75b32df3b1a19f45d9840652). | drivers/opp/of.c, dev_pm_opp_of_register_em() |
+| Firmware | arm_scmi | SCMI 的能效模型 | NA | drivers/cpufreq/scmi-cpufreq.c | NA |
+| Other | misc driver | 各类能效核热感知的 DEVFREQ 设备驱动, 比如 GPU, DDR 等. | 其他设备通过 em_dev_register_perf_domain() 向 Energy Model Framework 注册能效表 | em_dev_register_perf_domain() | NA | NA |
+
+#### 7.2.5.1 ANDROID 早期的 Energy Model
+-------
+
+
+早期 ANDROID 通过 DTS 描述能效表模型, 并在启动时完成并构建能效表, 如下所示.
+
+```cpp
+# android-4.9-q-release
+8b35ef456fb4 ANDROID: sched: Compute cpu capacity available at current frequency
+1f998b359379 ANDROID: sched: Support for extracting EAS energy costs from DT
+4f569991b1d9 ANDROID: arm64, topology: Updates to use DT bindings for EAS costing data
+
+# android-4.14-stable
+04b6162839f5 ANDROID: arm64: Support for extracting EAS energy costs from DT
+1973fddfbe29 ANDROID: arm: Add Energy Model to dtb for TC2
+0582a4c38431 ANDROID: hisilicon: Add energy model data to hisilicon 6220 dtb
+4b3cf70ef55f ANDROID: arm64: Add Energy Model to dtb for Juno-r0 and Juno-r2
+0b7f0b93863c ANDROID: Documentation: DT bindings for energy model cost data required by EAS
+4b319b9f25fd ANDROID: arm64, dts: add hikey cpu capacity-dmips-mhz information
+
+# android-4.19-stable
+99f3cc6e0581 ANDROID: drivers: Introduce a legacy Energy Model loading driver
+a0912a31bdae ANDROID: cpufreq: scmi: Register an Energy Model
+b085f79aeecc UPSTREAM: firmware: arm_scmi: add a getter for power of performance states
+354f0b0c8da9 ANDROID: cpufreq: arm_big_little: Register an Energy Model
+61dcd890536c ANDROID: cpufreq: scpi: Register an Energy Model
+d326aa36e63a ANDROID: PM / OPP: cpufreq-dt: Move power estimation function
+23977789b537 FROMLIST: cpufreq: dt: Register an Energy Model
+```
+
+#### 7.2.5.2 EAS 的能效模型框架 (Energy Model Framework) 统一管理回合感知所有设备的能效
+-------
+
+Energy Model 指示了根据不同电压频率下设备所能提供的性能(capacity) 和消耗的功耗(energy). EAS 调度器根据这些信息做出能效感知的调度决策.
+
+*    DTS 解析 CPU 能效数据 @ v4.5
+
+v4.5 实现 [Dynamic power model from device tree](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2f7e8a175db72bdaf377235962fd85796edb3fbc) 时扩展了 CPU DTS 节点, 引入了 dynamic-power-coefficient 字段用来表示动态功率系数(即电容系数), 从而有效地估计功耗.
+
+随后 v4.10 在 [DTS 引入 capacity-dmips-mhz 字段](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=be8f185d8af4dbd450023a42a48c6faa8cbcdfe6), 支持 big.LITTLE 大小核架构配置 CPU Capcity, 添加 [cpu_capacity](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=be8f185d8af4dbd450023a42a48c6faa8cbcdfe6) sysfs 接口, 用于显示 CPU Capacity.
+
+
+*    Energy Model Management framework @ v5.0
+
+v5.0 [EAS(Energy Aware Scheduling)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=732cd75b8c920d3727e69957b14faa7c2d7c3b75) 合入主线的时候, 使用 Energy Model 来辅助调度器进行能效感知的决策. 其中 [commit 27871f7a8a34 ("PM: Introduce an Energy Model management framework")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=27871f7a8a341ef5c636a337856369acf8013e4e) 实现了 Energy Model Management Framework.
+
+
+*    CPUFREQ 驱动注册 Energy Model @ v5.1
+
+接着 v5.1 [Register an Energy Model for Arm reference platforms](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a9a744dd5b82843a9c99d9f97794fb51bc2ed8dd) 允许 CPUFREQ 驱动通过 dev_pm_opp_of_register_em() 向 Energy Model Framework 注册能效模型. 与 智能功率分配器 (IPA) 热调节器框架类似, 这同样依赖于 DTS 的 `dynamic-power-coefficient` 字段进行功耗的估计. 之前 IPA 已经在热框架中实现了该估计方法. 参见 devfreq_cooling_get_requested_power(), 它同时计算了动态功耗 dyn_power 和静态功耗 get_static_power();
+
+这是内核支持能效模型框架 (Energy Model Framework) 的第一步, 在 PM_OPP 中引入一个辅助函数 dev_pm_opp_of_register_em(), CPUFreq 驱动程序可以使用该函数注册到 EM 框架中. 这将重复在 IPA 中进行的功率估计, 直到可以使用 EM 框架将其迁移到. 一旦 EM 框架至少支持 IPA 当前支持的所有平台, IPA 也将借助 Energy Model Framework 来进行功耗的估计和热管控.
+
+> 后来在 v5.15 时, [Add callback to register with energy model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=37f188318ea3f1da75b32df3b1a19f45d9840652) dev_pm_opp_of_register_em() 使用了新的回调函数 register_em()/cpufreq_register_em_with_opp() 进行了包装. 使得直接在 CPUFREQ 框架层完成 Energy Model 的注册.
+
+参见 [commit a4f342b9607d ("PM / OPP: Introduce a power estimation helper")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a4f342b9607d8c2034d3135cbbb11b4028be3678). 能效模型框架 (Energy Model Framework) 提供了一个 API `dev_pm_opp_of_register_em()`, 让 CPUFREQ 等驱动程序注册 CPU 的功耗信息. 驱动程序将提供一种回调方法 `_get_cpu_power()`, 用于估计 CPU 在每个 Capacity 性能级别上的功耗. 当然, 具体硬件设备可以按照自己的实际情况来实现这个回调. 对于 CPU 来说, 最传统的实现就是 Pdyn = dynamic-power-coefficient * V^2 * f.
+
+*    其他设备支持 Energy Model @ v5.9
+
+接着 v5.9 [Add support for devices in the Energy Model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0e0ffa855d1590e54ec0033404a49e2e57e294fe) 允许其他设备(比如 GPU 等)向 Energy Model Framework 注册能效模型.
+
+*    Thermal DEVFREQ Cooling 使用 Energy Model @ v5.11
+
+至此基本的设备都已经完成了对 Energy Model 的支持, 是时候把 IPA 也切换到 Energy Model Framework 来了. v5.11 [Thermal devfreq cooling improvements with Energy Model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=23e9d781413ab6dd2b743d61439423c575347fc4) 完成了这项工作. [移除了 Thermal devfreq cooling 中旧的功耗计算模型](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=615510fe13bd2434610193f1acab53027d5146d6), 去掉了静态功耗和动态功耗, 切换到 Energy Model 后, Thermal DEVFREQ Cooling 将更易于使用.
+
+*    ACPI/CPPC 系统支持 Energy Model @ v5.19
+
+Energy Model Framework 统一了系统中所有能效的感知模块和设备, 但是当前它只支持 DTS 进行初始化, 对于 ACPI/CPPC 的系统支持并不友好, 因此 v5.19 [Enable EAS for CPPC/ACPI based systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=740fcdc2c20ecf855b36b919d7fa1b872b5a7eae) 进行了完善, 并在 ACPI/CPPC 的系统上支持了 EAS.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:-----:|:---:|:----:|:---:|:---------:|:----:|
-| 2018/02/23 | Sudeep Holla <sudeep.holla@arm.com> | [firmware: ARM System Control and Management Interface(SCMI) support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=02f208c5c60549039445402505dea284e15f0f4f) | 注册了 SCMI 的能效模型. | v6 ☑✓ 4.17-rc1 | [LORE v6,0/20](https://lore.kernel.org/all/1519403030-21189-1-git-send-email-sudeep.holla@arm.com) |
-| 2019/02/04 | Quentin Perret <quentin.perret@arm.com> | [Register an Energy Model for Arm reference platforms](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1058d1efbc84e3b48d2130f46a149cea178b28a1) | TODO | v4 ☑✓ 5.1-rc1 | [LORE v4,0/5](https://lore.kernel.org/all/20190204110952.16025-1-quentin.perret@arm.com) |
-| 2021/08/12 | Viresh Kumar <viresh.kumar@linaro.org> | [Add callback to register with energy model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=37f188318ea3f1da75b32df3b1a19f45d9840652) | TODO | v3 ☑✓ 5.15-rc1 | [LORE v3,0/9](https://lore.kernel.org/all/cover.1628742634.git.viresh.kumar@linaro.org) |
+| 2018/02/23 | Sudeep Holla <sudeep.holla@arm.com> | [firmware: ARM System Control and Management Interface(SCMI) support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=02f208c5c60549039445402505dea284e15f0f4f) | 内核支持 SCMI, 实现 scmi-cpufreq 驱动.<br>ARM 系统控制和管理接口 (SCMI) 比现有的任何接口都更加灵活和易于扩展, 许多供应商参与了[ARM System Control and Management Interface Platform Design Document](https://developer.arm.com/documentation/den0056/a) 规范的制定. SCMI 通过微控制器来抽象各种电源或其他系统管理任务. | v6 ☑✓ 4.17-rc1 | [LORE v6,0/20](https://lore.kernel.org/all/1519403030-21189-1-git-send-email-sudeep.holla@arm.com) |
+| 2019/02/04 | Quentin Perret <quentin.perret@arm.com> | [Register an Energy Model for Arm reference platforms](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a9a744dd5b82843a9c99d9f97794fb51bc2ed8dd) | 各个 CPUFREQ 驱动通过 dev_pm_opp_of_register_em() 向 Energy Model Framework 注册能效表. | v4 ☑✓ 5.1-rc1 | [LORE v4,0/5](https://lore.kernel.org/all/20190204110952.16025-1-quentin.perret@arm.com) |
+| 2020/05/27 | Lukasz Luba <lukasz.luba@arm.com> | [Add support for devices in the Energy Model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0e0ffa855d1590e54ec0033404a49e2e57e294fe) | 该补丁集引入了对能源模型 (EM) 框架中设备的支持. 它将统一热力子系统的功率模型. 这将使添加对愿意使用更高级功能 (如智能电源分配) 的新设备的支持变得更简单. 通过这种框架, 驱动程序开发人员添加具有简单能量模型的其他设备驱动, 比如 GPU 等. 热框架中更复杂的能量模型也是可能的. | v8 ☑✓ 5.9-rc1 | [LORE v3,0/4](https://lore.kernel.org/all/20200221194731.13814-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/4](https://lore.kernel.org/all/20200309134117.2331-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/5](https://lore.kernel.org/all/20200318114548.19916-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,00/10](https://lore.kernel.org/all/20200410084210.24932-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,00/15](https://lore.kernel.org/all/20200511111912.3001-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,0/8](https://lore.kernel.org/all/20200527095854.21714-1-lukasz.luba@arm.com), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a4f342b9607d8c2034d3135cbbb11b4028be3678) |
+| 2020/12/10 | Lukasz Luba <lukasz.luba@arm.com> | [Thermal devfreq cooling improvements with Energy Model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=23e9d781413ab6dd2b743d61439423c575347fc4) | 这个补丁集进一步将 Energy Model 添加到所有设备. 是 v5.9-rc1 合并的 [Add support for devices in the Energy Model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0e0ffa855d1590e54ec0033404a49e2e57e294fe) 补丁集的后续. 它的目的是使热的 DEVFREQ Cooling Device 使用 Energy Model 代替自己私有的功耗表和结构(private power table and structures). 简化了能效模型, [移除了 Thermal devfreq cooling 中旧的功耗计算模型](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=615510fe13bd2434610193f1acab53027d5146d6), 去掉了静态功耗和动态功耗. 其中 [commit 84e0d87c9944 ("thermal: devfreq_cooling: add new registration functions with Energy Model")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=84e0d87c9944eb36ae6037af5cb6905f67c074c5) 提供了一个新的注册接口 devfreq_cooling_em_register() 有助于在一次调用中注册 devfreq cooling 和 EM. | v4 ☑✓ 5.11-rc1 | [LORE 0/5](https://lore.kernel.org/all/20200921122007.29610-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/5](https://lore.kernel.org/all/20201118120358.17150-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/5](https://lore.kernel.org/all/20201209103016.10442-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/5](https://lore.kernel.org/all/20201210143014.24685-1-lukasz.luba@arm.com) |
+| 2021/08/12 | Viresh Kumar <viresh.kumar@linaro.org> | [Add callback to register with energy model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=37f188318ea3f1da75b32df3b1a19f45d9840652) | 许多 cpufreq 驱动程序注册每个策略的能源模型, 并做完全相同的事情. 因此完全可以在 cpufreq_driver 中提供一个新的回调函数 register_em(), 以及一个通用实现 cpufreq_register_em_with_opp(). 在框架层 cpufreq_online() 时直接调用 register_em() 完成能效模型的注册, 而不需要每个驱动都在自己的代码中显式调用. | v3 ☑✓ 5.15-rc1 | [LORE v3,0/9](https://lore.kernel.org/all/cover.1628742634.git.viresh.kumar@linaro.org), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c17495b01b72b53bd290f442d39b060e015c7aea) |
+| 2022/03/17 | Pierre Gondois <Pierre.Gondois@arm.com> | [Enable EAS for CPPC/ACPI based systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=740fcdc2c20ecf855b36b919d7fa1b872b5a7eae) | 当前的 CPU 能量模型 (EM) 要求了解 CPU 性能状态及其功耗. 但是当前 ACPI/CPPC 的系统并不支持能效模型的初始化. 因此这个补丁提供了支持.<br> 在 ACPI 中, 可以通过以下特定于臂的字段描述 CPU 的功率效率:<br>ACPI 6.4, s5.2.12.14 "GIC CPU Interface (GICC) Structure","Processor Power Efficiency Class field":<br>1. 描述关联处理器的相对电源效率. 较低的效率等级比较高的效率等级更有效(例如, 效率等级 0 应被视为比效率等级 1 更有效).<br>2. 添加 efficiency_class 字段以描述 CPU 的相对功率效率. 依赖此字段的 CPU 将具有人为创建的性能状态(功率和频率值). 这种 EM 将被称为 artificial EM, 被 CPPC 驱动使用. | v1 ☑✓ 5.19-rc1 | [LORE v1,0/3](https://lore.kernel.org/all/20220317133419.3901736-1-Pierre.Gondois@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/all/20220407081620.1662192-1-pierre.gondois@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/2](https://lore.kernel.org/all/20220425123819.137735-1-pierre.gondois@arm.com) |
 
 
-#### 7.2.5.2 Dynamic Energy Model to handle leakage power
+#### 7.2.5.3 Energy Model Management Framework 的改进与优化
+-------
+
+通过感知系统中关键设备的能效信息, 内核中的性能的几个关键子系统(比如调度器和热)都可以获益. 然而, 这些信息可以以不同的格式来自不同的来源(例如DT或固件), 因此在没有标准 API 的情况下很难利用它. 为了解决这个问题, 引入一个集中的能效模型管理框架, 该框架将驱动程序提供的功率值聚集到系统中每个性能域的表中. power cost tables 可以通过平台无关的 API 提供给任何对能效感兴趣的的模块(比如, 调度器和热).
+
+v5.0 [EAS(Energy Aware Scheduling)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=732cd75b8c920d3727e69957b14faa7c2d7c3b75) 合入主线的时候, 使用 Energy Model 来辅助调度器进行能效感知的决策. 其中 [commit 27871f7a8a34 ("PM: Introduce an Energy Model management framework")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=27871f7a8a341ef5c636a337856369acf8013e4e) 实现了 Energy Model Management Framework.
+
+| 角度 | 描述 |
+|:---:|:----:|
+| 从驱动程序等能效模型的提供者看来 | 驱动程序 (通常但不限于 CPUFreq 驱动程序) 可以使用 em_register_perf_domain() 等 API 在 EM 框架中注册能效数据. 调用驱动程序必须提供带有标准化签名的回调函数 struct em_data_callback, EM 框架将使用该回调函数构建性能域 perf_domain 的 power cost tables. 这种设计为调用驱动程序提供很大的灵活性, 这些驱动程序不需要从任何位置读取信息, 也不用使用任何技术来计算能耗. 而且, 驱动程序在 EM 框架中注册的 capacity 状态不需要与目标的真实性能状态相匹配. 这对于操作系统不知道性能状态的目标尤其重要. |
+| 在调度程序等能效模型的使用者的角度看来 | EM 框架提供 API 来访问 CPU 的 power cost tables(em_cpu_get()), 以及估计性能域的 CPU 消耗的能量(em_pd_energy()). 然后, 诸如任务调度器之类的可以使用这些 API 访问包含 CPU 能效模型的共享数据结构. |
+
+
+| API | [v5.0 支持 EAS](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=27871f7a8a341ef5c636a337856369acf8013e4e) | [能效模型支持各类设备](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0e0ffa855d1590e54ec0033404a49e2e57e294fe) |
+|:---:|:----:|:----:|
+| 注册能效表 | em_register_perf_domain() | [em_dev_register_perf_domain()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d0351cc3b0f57214d157e4d589564730af2aedae) |
+| 解注册能效表 | em_register_perf_domain() | [em_dev_unregister_perf_domain()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1bc138c622959979eb547be2d3bbc6442a5c80b0) |
+| 估计功耗 | em_pd_energy() | [em_cpu_energy()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f0b5694791ce70dba16758c3b838d5ddc7731b02) |
+| 获取设备的 performance domain | NA | [em_pd_get()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1bc138c622959979eb547be2d3bbc6442a5c80b0) |
+| 获取 CPU 的 performance domain | em_cpu_get() | NA |
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:---:|:----:|:---:|:---------:|:----:|
+| 2018/12/03 | Quentin Perret <quentin.perret@arm.com> | [PM: Introduce an Energy Model management framework](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=27871f7a8a341ef5c636a337856369acf8013e4e) | [Energy Aware Scheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=732cd75b8c920d3727e69957b14faa7c2d7c3b75) 能效感知的调度器 EAS 的其中一个补丁, 实现了 Energy Model Management Framework. | v10 ☑ 5.0-rc1 | [LORE v10,00/15](https://lore.kernel.org/lkml/20181203095628.11858-1-quentin.perret@arm.com) |
+| 2020/05/27 | Lukasz Luba <lukasz.luba@arm.com> | [PM / EM: update callback structure and add device pointer](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d0351cc3b0f57214d157e4d589564730af2aedae) | [Add support for devices in the Energy Model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0e0ffa855d1590e54ec0033404a49e2e57e294fe) 能效模型支持各类其他设备时的其中几个补丁. 由于不再只是支持 CPU, 因此各类 API 中添加了对 struct device 的支持. | v8 ☑✓ 5.9-rc1 | [LORE v8,0/8](https://lore.kernel.org/all/20200527095854.21714-1-lukasz.luba@arm.com), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d0351cc3b0f57214d157e4d589564730af2aedae) |
+| 2020/11/03 | Lukasz Luba <lukasz.luba@arm.com> | [Clarify abstract scale usage for power values in Energy Model, EAS and IPA](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b56a352c0d3ca4640c3c6364e592be360ac0d6d4) | 能效模型开始使用一个统一抽象的 scale 值来表示功耗的值.<br>不同的平台和设备之间计算功耗可能使用不同的 scale. 内核子系统可能需要检查所有能量模型 (EM) 设备是否使用相同的规模. 解决该问题并将每个设备的信息存储在 EM 中.<br>通过 em_dev_register_perf_domain() 最后一个参数"milliwatts"(毫瓦) 设置为功耗单位的标记, EAS、IPA 和 DTPM(新的混合 PowerCap 框架) 等核心子系统将使用新的标志来捕获设备注册时是否使用了不同功率等级. 任何使用 EM 的内核 子系统可能会依赖这个标志来检查所有的 EM 设备是否使用相同的刻度. 如果有不同的刻度, 这些子系统可能决定: 返回警告 / 错误, 停止工作或崩溃 (panic). | v4 ☑✓ 5.11-rc1 | [LORE 1/2](https://lore.kernel.org/linux-doc/20200929121610.16060-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3]https://lore.kernel.org/all/20201002114426.31277-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/all/20201019140601.3047-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/4](https://lore.kernel.org/all/20201103090600.29053-1-lukasz.luba@arm.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c250d50fe2ce627ca9805d9c8ac11cbbf922a4a6) |
+| 2021/06/25 | Lukasz Luba <lukasz.luba@arm.com> | [Improve EAS energy estimation and increase precision](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7fcc17d0cb12938d2b3507973a6f93fc9ed2c7a1) | 增加能耗的计算精度, 防止因为四舍五入等造成的误差. | v1 ☑✓ 5.15-rc1 | [LORE v1,0/3](https://lore.kernel.org/all/20210625152603.25960-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/all/20210720094153.31097-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3](https://lore.kernel.org/all/20210803102744.23654-1-lukasz.luba@arm.com) |
+| 2021/09/08 | Vincent Donnefort <vincent.donnefort@arm.com> | [Inefficient OPPs](https://lore.kernel.org/all/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) | TODO | v7 ☑✓ 5.16-rc1 | [LORE v7,0/9](https://lore.kernel.org/all/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/7](https://lore.kernel.org/all/1630405453-275784-1-git-send-email-vincent.donnefort@arm.com) |
+| 2022/03/16 | Lukasz Luba <lukasz.luba@arm.com> | [Introduce support for artificial Energy Model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=985a67709a66c456414182ed179544786e00321e) | TODO |v1 ☑✓ 5.19-rc1 | [LORE v1,0/8](https://lore.kernel.org/all/20220316235211.29370-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE RESEND,0/8](https://lore.kernel.org/all/20220321095729.20655-1-lukasz.luba@arm.com) |
+| 2022/07/07 | Lukasz Luba <lukasz.luba@arm.com> | [Energy Model power in micro-Watts and SCMI v3.1 alignment](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f3ac888fc5fbdeeec1e084327de06a2765542d56) | TODO | v3 ☑✓ 6.0-rc1 | [LORE 0/4](https://lore.kernel.org/all/20220622145802.13032-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/all/20220707071555.10085-1-lukasz.luba@arm.com) |
+
+
+
+
+#### 7.2.5.4 Dynamic Energy Model to handle leakage power
 -------
 
 LPC-2022 [Dynamic Energy Model to handle leakage power](https://lpc.events/event/16/contributions/1341)
@@ -4435,6 +4546,24 @@ LPC-2022 [Dynamic Energy Model to handle leakage power](https://lpc.events/event
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/02/21 | Thara Gopinath <thara.gopinath@linaro.org> | [Introduce Thermal Pressure](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=05289b90c2e40ae80f5c70431cd0be4cc8a6038d) | TODO | v10 ☑✓ 5.7-rc1 | [LORE v10,0/9](https://lore.kernel.org/all/20200222005213.3873-1-thara.gopinath@linaro.org) |
+
+#### 7.2.6.4 Thermal Management
+-------
+
+v4.5 实现 [Dynamic power model from device tree](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2f7e8a175db72bdaf377235962fd85796edb3fbc) 时扩展了 CPU DTS 节点, 引入了 dynamic-power-coefficient 字段用来表示动态功率系数(即电容系数), 从而有效地估计功耗.
+
+
+一般来说, PM_OPP 是知道 CPU 可以运行的电压和频率. 当可以将 CPU 的动态功耗估计为:
+
+$Pdyn = C \times V^2 \times f = dynamic-power-coefficient \times V^2 \times f$
+
+其中 C 为其电容系数, 值为 dynamic-power-coefficient, V 和 f 分别为 OPP 的电压和频率.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2015/11/17 | Punit Agrawal <punit.agrawal@arm.com> | [Platform support for thermal management on Junoe](https://lore.kernel.org/all/1447761983-12415-1-git-send-email-punit.agrawal@arm.com) | 该系列增加了对 ARM Juno 开发平台上热管理的支持. 添加了最基础的公共设施, 以支持注册与电源分配器热调控器一起工作的 CPU cooling device. | v5 ☐☑✓ | [LORE 0/9](https://lore.kernel.org/all/1437573763-6525-1-git-send-email-punit.agrawal@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/10](https://lore.kernel.org/all/1438615378-14241-1-git-send-email-punit.agrawal@arm.com) |
+| 2015/11/17 | Punit Agrawal <punit.agrawal@arm.com> | [Dynamic power model from device tree](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2f7e8a175db72bdaf377235962fd85796edb3fbc) | 该补丁集为 CPU 构建单系数动态功率模型提供了支持. CPU 冷却设备使用该模型来提供功耗的估计, 并将分配的功率转换为性能上限.<br>[补丁 1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3be3f8f36e7349006f19c8c8f0d686e98462a993) 扩展了 CPU DTS 节点, 增加可选的 dynamic-power-coefficient 字段用来提供动态功率系数, 该系数可用于为 CPU 创建动态功率模型. 当系统受到热管控时, 该模型用于限制设备的功耗(使用 power_allocator 调控器).<br>补丁 2-3 扩展了 cpufreq-dt 和 arm_big_little CPUFREQ 驱动程序, 在提供动态系数的情况下注册 CPU cooling device. | v5 ☑✓ 4.5-rc1 | [LORE 0/9](https://lore.kernel.org/all/1437573763-6525-1-git-send-email-punit.agrawal@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/10](https://lore.kernel.org/all/1438615378-14241-1-git-send-email-punit.agrawal@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/3](https://lore.kernel.org/all/1447090163-13700-1-git-send-email-punit.agrawal@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/3](https://lore.kernel.org/all/1447702225-13323-1-git-send-email-punit.agrawal@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/3](https://lore.kernel.org/all/1447761983-12415-1-git-send-email-punit.agrawal@arm.com) |
+
 
 
 
