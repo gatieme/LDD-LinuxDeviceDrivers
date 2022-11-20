@@ -498,9 +498,8 @@ BOLT 是一个二进制优化和布局工具, 它是一个 Facebook 孵化器项
 
 facebook 在 LPC-2021 公布了其[最新基于 BOLT 优化 Linux 内核的进展](https://www.phoronix.com/scan.php?page=news_item&px=Facebook-BOLTing-The-Kernel), 这项工作与允许 Linux 内核的配置文件引导优化(PGO)的挑战类似, 与现有的 BOLT 专注于仅优化 ELF 应用程序可执行性相比, BOLT'ing 的 Linux 内核在正确分析/采样内核和相关优化工作负载、内核的大规模代码基数、模块与内核代码等方面面临着类似的复杂障碍. 从公布的信息上看效果不错, 在 PGO + LTO 编译器优化的基础之上仍然带来了两位数的提升(double digit speedups"). 这些提速是通过优化可执行工具的代码布局来实现更高效的硬件页面使用和指令缓存. 参见 [slides](https://linuxplumbersconf.org/event/11/contributions/974/attachments/923/1793/Optimizing%20Linux%20Kernel%20with%20BOLT.pdf).
 
-[BOLT Close To Merging Into LLVM For Optimizing Performance Of Binaries](https://www.phoronix.com/scan.php?page=news_item&px=BOLT-Inches-To-LLVM)
+BOLT 之前代码在 [github 开源](https://github.com/facebookincubator/BOLT), 随后在 2022 合并到[主线 LLVM](https://github.com/llvm/llvm-project/tree/main/bolt), 参见 [BOLT Close To Merging Into LLVM For Optimizing Performance Of Binaries](https://www.phoronix.com/scan.php?page=news_item&px=BOLT-Inches-To-LLVM). 并默认情况下在 Linux x86_64 和 AArch64 测试版本中被打开, [LLVM's BOLT Flipped On By Default For Linux x86/AArch64 Test Releases](https://www.phoronix.com/news/LLVM-BOLT-Default-Test-Releases).
 
-BOLT 代码在 [github 开源](https://github.com/facebookincubator/BOLT).
 
 ## 13.3 Shrinking the kernel
 -------
@@ -814,7 +813,10 @@ LWN 上也对此进行了[汇总报道](https://lwn.net/Kernel/Index/#Android-Ge
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/03/21 | Rasmus Villemoes <linux@rasmusvillemoes.dk> | [background initramfs unpacking, and CONFIG_MODPROBE_PATH](https://lore.kernel.org/patchwork/patch/1394812) | 启动阶段异步解压 initramfs. 可以加速系统启动. | v1 ☑ [5.13-rc1](https://kernelnewbies.org/Linux_5.13) | [Patchwork](https://lore.kernel.org/patchwork/patch/1394812) |
 | 2021/11/21 | David Woodhouse <dwmw2@infradead.org> | [Parallel CPU bringup for x86_64](https://lkml.org/lkml/2021/12/9/664) | 随着核数的增多, 内核的启动速度越来越慢. 这组补丁能够并行启动辅助 (x86_64) CPU 内核. | v1 ☐ | [LWN ](https://lwn.net/Articles/878161), [LKML](https://lkml.org/lkml/2021/12/9/664), [LORE 00/11](https://lkml.kernel.org/lkml/20211209150938.3518-1-dwmw2@infradead.org),  [Phoronix 报道 v1](https://www.phoronix.com/scan.php?page=news_item&px=Linux-x86_64-Parallel-CPU-Boot)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/9](https://lore.kernel.org/lkml/20211215145633.5238-1-dwmw2@infradead.org), [Phoronix 报道 v3](https://www.phoronix.com/scan.php?page=news_item&px=Parallel-CPU-Bringup-AMD-Snag) |
+| 2022/11/02 | Stuart Hayes <stuart.w.hayes@gmail.com> | [cpufreq: acpi: Defer setting boost MSRs](https://lore.kernel.org/all/20221102195957.82871-1-stuart.w.hayes@gmail.com) | [Deferred Enabling Of ACPI CPUFreq Boost Support Can Help Boot Times For Large Servers](https://www.phoronix.com/news/CPUFreq-Defer-Boost-MSRs) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221102195957.82871-1-stuart.w.hayes@gmail.com) |
+
 
 # 18 LIB
 -------

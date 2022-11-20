@@ -192,6 +192,14 @@ Anbox 使用 Linux 命名空间 (user, pid, uts, net, mount, ipc) 在容器中�
 | 2022/08/23 | Yosry Ahmed <yosryahmed@google.com> | [KVM: mm: count KVM mmu usage in memory stats](https://patchwork.kernel.org/project/linux-mm/cover/20220823004639.2387269-1-yosryahmed@google.com/) | 669960 | v7 ☐☑ | [LORE v7,0/4](https://lore.kernel.org/r/20220823004639.2387269-1-yosryahmed@google.com) |
 | 2022/09/15 | Chao Peng <chao.p.peng@linux.intel.com> | [KVM: mm: fd-based approach for supporting KVM](https://patchwork.kernel.org/project/linux-mm/cover/20220915142913.2213336-1-chao.p.peng@linux.intel.com/) | 677360 | v8 ☐☑ | [LORE v8,0/8](https://lore.kernel.org/r/20220915142913.2213336-1-chao.p.peng@linux.intel.com) |
 
+# 9 Migrate
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/07/07 | Peter Xu <peterx@redhat.com> | [migration: Postcopy Preemption](https://lore.kernel.org/all/20220707185342.26794-1-peterx@redhat.com) | TODO | v9 ☐☑✓ | [LORE v7,00/14](https://lore.kernel.org/all/20220524221151.18225-1-peterx@redhat.com)<br>*-*-*-*-*-*-*-*<br>[LORE v8,00/15](https://lore.kernel.org/all/20220622204920.79061-1-peterx@redhat.com)<br>*-*-*-*-*-*-*-*<br>[LORE v9,00/14](https://lore.kernel.org/all/20220707185342.26794-1-peterx@redhat.com) |
+
+
 
 <br>
 

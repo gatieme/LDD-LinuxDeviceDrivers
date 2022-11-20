@@ -134,6 +134,14 @@ git log --oneline -- samples/bpf/bpf_load.c samples/bpf/bpf_load.h
 -------
 
 
+## 2.5 JIT
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2011/04/03 | Eric Dumazet <eric.dumazet@gmail.com> | [net: filter: Just In Time compiler](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0a14842f5a3c0e88a1e59fac5c3025db39721f74) | TODO | v2 ☐☑✓ 3.5-rc1 | [LORE](https://lore.kernel.org/all/1301838968.2837.200.camel@edumazet-laptop) |
+| 2011/04/03 | Eric Dumazet <eric.dumazet@gmail.com> | [net: filter: Just In Time compiler for sparc](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2809a2087cc44b55e4377d7b9be3f7f5d2569091) | TODO | v2 ☐☑✓ 3.5-rc1 | [LORE](https://lore.kernel.org/all/1301838968.2837.200.camel@edumazet-laptop) |
+| 2014/07/08 | Zi Shen Lim <zlim.lnx@gmail.com> | [arm64: eBPF JIT compiler](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e54bcde3d69d40023ae77727213d14f920eb264a) | TODO | v1 ☑✓ 3.18-rc1 | [LORE](https://lore.kernel.org/all/1404803213-10653-1-git-send-email-zlim.lnx@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/all/1495754003-21099-1-git-send-email-illusionist.neo@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE 00/14](https://lore.kernel.org/all/1405708100-13604-1-git-send-email-zlim.lnx@gmail.com) |
 
 # 3 BPF Core
 -------
@@ -471,6 +479,10 @@ glcc 则实现了 eBPF 驱动和 libbpf 的支持, 允许 eBPF 程序无需修�
 [1](https://github.com/rlane/ubpf)
 
 [2](https://github.com/p-quic/ubpf)
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/06/17 | Zhang Chen <chen.zhang@intel.com> | [Introduce QEMU userspace ebpf support](https://lore.kernel.org/all/20220617073630.535914-1-chen.zhang@intel.com) | TODO | v1 ☐☑✓ | [LORE v1,0/12](https://lore.kernel.org/all/20220617073630.535914-1-chen.zhang@intel.com) |
 
 ## 8.6 BCC
 -------
