@@ -535,13 +535,17 @@ linux 调度器定义了多个调度类, 不同调度类的调度优先级不同
 ### 1.5.4 SMT
 -------
 
+#### 1.5.4.1 SMT aware
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2011/12/15 | Peter Zijlstra <peterz@infradead.org> | [sched: Avoid SMT siblings in select_idle_sibling() if possible](https://lore.kernel.org/patchwork/cover/274702) | 如果有共享缓存的空闲核心, 避免 select_idle_sibling() 选择兄弟线程. | v1 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/cover/274702) |
 | 2020/10/23 | Josh Don <joshdon@google.com> | [sched: better handling for busy polling loops](https://lore.kernel.org/all/20201023032944.399861-1-joshdon@google.com) | 20201023032944.399861-1-joshdon@google.com | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20201023032944.399861-1-joshdon@google.com) |
 | 2021/11/16 | Peng Wang <rocking@linux.alibaba.com> | [Add busy loop polling for idle SMT](https://lore.kernel.org/all/cover.1637062971.git.rocking@linux.alibaba.com) | SMT 级别的忙轮询等待. 当启用硬件 SMT 时, 在一个 CPU 的空闲和忙碌状态之间切换将导致同一核心上的同级 CPU 的性能波动. 在一个 SMT CPU 上需要稳定的性能时, 无论同一核心上的同级 CPU 是否空闲, 都需要一致的反馈, 而不期望有噪音. 原始 cpu_idle_force_poll 使用 cpu_relax() 等待被 IPI 唤醒, 而此 smt_idle_force_poll 使用忙循环来提供一致的 SMT 管道干扰. 可以使用 cgroup 的 cpu.smt_idle_poll 为特定任务配置启用忙循环轮询. | v1 ☐ | [PatchWork v1](https://lore.kernel.org/all/cover.1637062971.git.rocking@linux.alibaba.com) |
 
-
+#### 1.5.4.2 SMT scheduling/core scheduling vs coscheduling
+-------
 
 core_scheduling 与 coscheduling
 
@@ -579,6 +583,43 @@ coscheduling 协同调度是为了解决云服务场景, 为不同用户提供�
 | 2022/06/28 | Cruz Zhao <CruzZhao@linux.alibaba.com> | [sched/core: Optimize load balance of core scheduling](https://lore.kernel.org/all/1656403045-100840-1-git-send-email-CruzZhao@linux.alibaba.com) | 相同 cookie 的任务被认为是相互信任的, 可以在 SMT 上的两个兄弟 CPU 上运行, 它们可以在选择下一个任务时配对, 并且可以避免强制闲置. 为了实现这个目标, 必须统计运行队列中有多少带有此 cookie 的任务. 当进行此统计时, 作者也发现一个错误, 当我们更新一个未写入 cookie 的任务的 cookie 时, 任务不会进入 core 的 rbtree, 所以作者同时也修复了这个错误. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/1656403045-100840-1-git-send-email-CruzZhao@linux.alibaba.com) |
 | 2022/09/29 | Cruz Zhao <CruzZhao@linux.alibaba.com> | [sched/core: Optimize the process of picking the max prio task for the core](https://lore.kernel.org/all/1664435913-57227-1-git-send-email-CruzZhao@linux.alibaba.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/1664435913-57227-1-git-send-email-CruzZhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[LORE](https://lore.kernel.org/all/1664767168-30029-1-git-send-email-CruzZhao@linux.alibaba.com) |
 
+#### 1.5.4.3 SMT 驱离(SMT expeller)技术
+-------
+
+| 资料 | 描述 |
+|:---:|:----:|
+| [openEuler 资源利用率提升之道 04: CPU 抢占和 SMT 隔离控制](https://blog.csdn.net/openEuler_/article/details/127021735) | 本文详细介绍并分享关于提升 CPU 资源隔离的混部技术细节: ① CPU 抢占, ② SMT 隔离控制. |
+
+在某些线上业务场景中, 使用超线程情况下的 QPS 比未使用超线程时下降明显, 并且相应 RT 也增加了不少. 根本原因跟超线程的物理性质有关, 超线程技术在一个物理核上模拟两个逻辑核, 两个逻辑核具有各自独立的寄存器 (eax、ebx、ecx、msr 等等) 和 APIC, 但会共享使用物理核的执行资源, 包括执行引擎、L1/L2 缓存、TLB 和系统总线等等. 这就意味着, 如果一对 HT 的一个核上跑了在线任务, 与此同时它对应的 HT 核上跑了一个离线任务, 那么它们之间是会发生竞争的, 这就是我们需要解决的问题.
+
+为了尽可能减轻这种竞争的影响, 我们想要让一个核上的在线任务执行的时候, 它对应的 HT 上不再运行离线任务; 或者当一个核上有离线任务运行的时候, 在线任务调度到了其对应的 HT 上时, 离线任务会被驱赶走. 听起来离线混得很惨对不对？但是这就是我们保证 HT 资源不被争抢的机制.
+
+SMT expeller 特性是基于 Group Identity 框架进一步实现了超线程 (HT) 隔离调度, 保障高优先级业务不会受到来自 HT 的低优先级任务干扰. 通过 Group Identity 框架进一步实现的超线程调度隔离,
+可以很好保障高优先级业务不会受到来自对应 HT 上的低优先级任务的干扰.
+
+
+openEuler-22.03 提供了内核驱离的特性, 通过 CONFIG_QOS_SCHED_SMT_EXPELLER 控制.
+
+```cpp
+8090ab77223b sched: Add tracepoint for qos smt expeller
+42f42feeaae6 sched: Add statistics for qos smt expeller
+fd5207be48fa sched: Implement the function of qos smt expeller
+4e57e412b84a sched: Introduce qos smt expeller for co-location
+```
+
+OpenAnolis 通过 Group Identity 提供了 SMT Expeller 的能力.
+
+```cpp
+96025a924590 ck: sched: enable group identity
+f0f2e04c7120 ck: sched: fix the performence regression caused by update_rq_on_expel()
+90a0ac11f9ce ck: sched: Introduce sched_feat ID_LAST_HIGHCLASS_STAY
+8915a69b71ea ck: sched: fix the bug that nr_high_running underflow
+4901599bcf78 ck: sched: rescue the expellee on migration
+a789992b7674 ck: sched: introduce 'idle seeker' and ID_IDLE_AVG
+4f4324674078 ck: sched: introduce group identity 'idle saver'
+9372f9beab42 ck: sched: introduce group identity 'smt expeller'
+b37e67a6c648 ck: sched: introduce per-cgroup identity
+```
 
 
 # 2 组调度支持(Group Scheduling)
@@ -5354,6 +5395,15 @@ Xen 的 CPU 调度算法主要有 3 种: BVT(borrowed virtual time)调度算法�
 
 ### 8.9.3 混部场景(在离线)
 -------
+
+
+| 资料 | 描述 |
+|:---:|:----:|
+| [阿里大规模业务混部下的全链路资源隔离技术演进](https://developer.aliyun.com/article/807824) | 作为混部实践推出系列的开篇, 介绍资源隔离技术在混部中的重要性、其落地挑战及我们的应对思路. |
+| [腾讯云原生 - 混部之殇 - 论云原生资源隔离技术之 CPU 隔离(一)](https://www.cnblogs.com/tencent-cloud-native/p/14754230.html) | TencentOS Server 的混部方案. |
+| [B 站云原生混部技术实践](https://blog.csdn.net/weixin_45583158/article/details/126736881) | 哔哩哔哩资深开发工程师许龙讲解分享 B 站云平台的混部实践. |
+| [资源隔离技术之 CPU 隔离](https://www.bilibili.com/read/cv19377726) | B 站系统部操作系统 (SYS-OS) 团队对龙蜥社区开源内核的 Group Identity(以下简称 GI) 特性的调研. |
+| [Group Identity 功能说明](https://help.aliyun.com/document_detail/338407.html) | Alibaba Cloud Linux 2 从内核版本 kernel-4.19.91-24.al7 开始支持 Group Identity 功能, 您可以通过该功能为每一个 CPU cgroup 设置不同的身份标识, 以区分不同 CPU cgroup 中进程任务的优先级. |
 
 #### 8.9.3.1 在离线混部基本思路
 -------

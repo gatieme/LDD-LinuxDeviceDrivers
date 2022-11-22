@@ -296,7 +296,7 @@ Google 的 Joel Fernandes 等发现 RCU 并没有很好的节能, 在 Android �
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/10/19 | Paul E. McKenney <paulmck@kernel.org> | [Lazy call_rcu() updates for v6.2](https://lore.kernel.org/all/20221019225138.GA2499943@paulmck-ThinkPad-P17-Gen-1) | TODO | v6 ☐☑✓ | [LORE v6,0/14](https://lore.kernel.org/all/20221019225138.GA2499943@paulmck-ThinkPad-P17-Gen-1) |
+| 2022/10/19 | Paul E. McKenney <paulmck@kernel.org> | [Lazy call_rcu() updates for v6.2](https://lore.kernel.org/all/20221019225138.GA2499943@paulmck-ThinkPad-P17-Gen-1) | TODO | v6 ☐☑✓ | [LORE v6,00/14](https://lore.kernel.org/all/20221019225138.GA2499943@paulmck-ThinkPad-P17-Gen-1)<br>*-*-*-*-*-*-*-* <br>[LORE 00/16](https://lore.kernel.org/all/20221122010408.GA3799268@paulmck-ThinkPad-P17-Gen-1) |
 
 
 # 6 FUTEX

@@ -1014,6 +1014,22 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 | 2022/08/05 | Rik van Riel <riel@surriel.com> | [x86,mm: print likely CPU at segfault time](https://lore.kernel.org/all/20220805101644.2e674553@imladris.surriel.com) | 内核将尝试打印发生 SEG 错误的 CPU 核, 通过在发生 SEG 故障的地方打印 CPU 核, 这些信息可能有助于发现故障 CPU 而成为现实. | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220805101644.2e674553@imladris.surriel.com) |
 
 
+## 6.12 P-State
+-------
+
+[phoronix-P-State EPP Linux & Open-Source News](https://www.phoronix.com/search/P-State%20EPP)
+
+[How To Use The New AMD P-State Driver With Linux 5.17](https://www.phoronix.com/news/AMD-P-State-How-To)
+[AMD Making It Easier To Switch To Their New P-State CPU Frequency Scaling Driver](https://www.phoronix.com/news/AMD-Easier-P-State-Usage)
+[AMD P-State EPP Driver Updated For More Power/Performance Control On Linux](https://www.phoronix.com/news/AMD-P-State-EPP-v4)
+[New Patches Allow More Easily Managing The AMD P-State Linux Driver](https://www.phoronix.com/news/AMD-P-State-Built-In-Options)
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/11/11 | Perry Yuan <Perry.Yuan@amd.com> | [Implement AMD Pstate EPP Driver](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=38fec059bb69793f38cfa7a671d4bdbfe2a647aa) | TODO | v4 ☐☑✓ 5.17-rc1 | [LORE v4,0/9](https://lore.kernel.org/all/20221110175847.3098728-1-Perry.Yuan@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,00/14](https://lore.kernel.org/lkml/20211224010508.110159-1-ray.huang@amd.com) |
+| 2022/03/25 | Mario Limonciello <mario.limonciello@amd.com> | [Improve usability for amd-pstate](https://lore.kernel.org/all/20220325054228.5247-1-mario.limonciello@amd.com) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20220325054228.5247-1-mario.limonciello@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/linux-pm/20220414164801.1051-1-mario.limonciello@amd.com) |
+
+
 
 <br>
 
