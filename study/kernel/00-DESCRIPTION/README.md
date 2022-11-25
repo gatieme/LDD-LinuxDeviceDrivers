@@ -112,10 +112,8 @@ Linux 内核特性演进史
 
 
 *   [深入理解Linux内存管理-之-目录导航_OSKernelLAB-CSDN博客](https://kernel.blog.csdn.net/article/details/52384965)
-​
 
 *   [Linux进程管理与调度-之-目录导航_OSKernelLAB-CSDN博客](https://kernel.blog.csdn.net/article/details/51456569)
-​
 
 ### 1.2.3 根基(本章的重点内容)
 -------

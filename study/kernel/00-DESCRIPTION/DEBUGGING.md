@@ -357,16 +357,30 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 ## 11.3 TOPDOWN
 -------
 
+[Support standalone metrics and metric groups for perf](https://lore.kernel.org/all/20170831194036.30146-1-andi@firstfloor.org)
+
+
+### 11.3.1 stat topdown
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2016/05/24 | Andi Kleen <andi@firstfloor.org> | [perf stat: Basic support for TopDown in perf stat](https://lore.kernel.org/all/1464119559-17203-1-git-send-email-andi@firstfloor.org) | perf stat 支持 topdown 分析. | v1 ☑ 4.8-rc1 | [PatchWork 1/4](https://lore.kernel.org/all/1464119559-17203-1-git-send-email-andi@firstfloor.org) |
 | 2021/02/02 | Kan Liang <kan.liang@linux.intel.com> | [perf stat: Support L2 Topdown events](https://lore.kernel.org/lkml/1612296553-21962-9-git-send-email-kan.liang@linux.intel.com) | perf stat 支持 Level 2 级别 topdown 分析. [perf core PMU support for Sapphire Rapids (User tools)](https://lore.kernel.org/lkml/1612296553-21962-1-git-send-email-kan.liang@linux.intel.com) 系列中的其中一个补丁. | v1 ☑ 5.12-rc1 | [PatchWork 1/4](https://lore.kernel.org/lkml/1612296553-21962-9-git-send-email-kan.liang@linux.intel.com) |
+
+
+### 11.3.2 metricsgroup topdown
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2017/08/31 | Andi Kleen <andi@firstfloor.org> | [Support standalone metrics and metric groups for perf](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b90f1333ef08d2a497ae239798868b046f4e3a97) | 向 perf-stat 添加对 JSON 文件中指定的独立度量 metrics 的支持. 度量 metrics 使用多个事件来计算更高级别结果 (例如 IPC, TOPDOWN 等) 的公式. 对于更复杂的度量(比如 pipeline, TOPDOWN), 需要具有特定于微架构的配置, 因此将度量 metrics 与 JSON 事件列表联系起来是有意义的. 以前的度量始终与事件关联, 并随该事件自动启用. 但现在改变它, 可以有独立的指标. 它们与事件处于相同的 JSON 数据结构中, 但没有事件名称, 只有度量名称. 同时允许在度量组中组织度量, 这允许一次选择几个相关度量的快捷方式. | v3 ☑✓ 4.15-rc1 | [LORE v3,0/11](https://lore.kernel.org/all/20170831194036.30146-2-andi@firstfloor.org) |
 | 2017/08/31 | Andi Kleen <andi@firstfloor.org> | [perf arm64 metricgroup support](https://lore.kernel.org/all/20170831194036.30146-1-andi@firstfloor.org) | 为 perf stat 添加[对 JSON 文件中指定的独立指标](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b18f3e365019de1a5b26a851e123f0aedcce881f) 的通用支持. 这些指标是一个公式, 它使用多个事件来计算更高级别的结果(例如 IPC, TOPDOWN 分析等). 添加一个新的 `-M /--metrics` 选项来添加指定的度量或度量组. 并增加了对 Intel X86 平台的支持. 通过这些 JSON 文件定义的事件组合度量, 可以很好的支持 TOPDOWN 分析. | v3 ☑ 4.15-rc1 | [PatchWork v3,00/11](https://lore.kernel.org/all/20170831194036.30146-1-andi@firstfloor.org) |
-| 2020/09/11 | Kan Liang <kan.liang@linux.intel.com> | [TopDown metrics support for Ice Lake (perf tool)](https://lore.kernel.org/lkml/20200911144808.27603-1-kan.liang@linux.intel.com) | 为 perf metrics 分析增加对 Ice Lake 的支持. 将原本 group 重命名为 topdown. | v3 ☑ 5.10-rc1 | [PatchWork v3,0/4](https://lore.kernel.org/lkml/20200911144808.27603-1-kan.liang@linux.intel.com) |
+| 2020/09/11 | Kan Liang <kan.liang@linux.intel.com> | [TopDown metrics support for Ice Lake (perf tool)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=328781df86fa8f9299219c74ffae876bd625c6d1) | 为 perf metrics 分析增加对 Ice Lake 的支持. 将原本 group 重命名为 topdown. | v3 ☑ 5.10-rc1 | [PatchWork v3,0/4](https://lore.kernel.org/lkml/20200911144808.27603-1-kan.liang@linux.intel.com) |
 | 2021/04/07 | John Garry <john.garry@huawei.com> | [perf arm64 metricgroup support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0cc177cfc95d565e1a458136a592b0bd6d487db0) | perf 支持 HiSilicon hip08 平台的 topdown metric. 支持到 Level 3. 自此鲲鹏 920 的 ARM64 服务器上, 可以使用:<br>`sudo perf stat -M TopDownL1 sleeep 1`<br>来进行 TopDown 分析了. | v1 ☑ 5.13-rc1 | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1614784938-27080-1-git-send-email-john.garry@huawei.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1616668398-144648-1-git-send-email-john.garry@huawei.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1617791570-165223-1-git-send-email-john.garry@huawei.com) |
 | 2022/05/28 | zhengjun <zhengjun.xing@linux.intel.com> | [perf vendor events intel: Add metrics for Sapphirerapids](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1bcca2b1bd67f3c0e5c3a88ed16c6389f01a5b31) | TODO | v2 ☑✓ 5.19-rc1 | [LORE v2,0/2](https://lore.kernel.org/all/20220528095933.1784141-1-zhengjun.xing@linux.intel.com) |
 | 2022/08/25 | zhengjun.xing@linux.intel.com <zhengjun.xing@linux.intel.com> | [perf stat: Capitalize topdown metricsnel.org/all/20220825015458.3252239-1-zhengjun.xing@linux.intel.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/9-1-zhengjun.xing@linux.intel.com) |
-| 2022/10/21 | Shang XiaoJing <shangxiaojing@huawei.com> | [perf vendor events arm64: Fix incorrect metrics and improve readability](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e9229d5b6254a75291536f582652c599957344d2) | TODO | v2 ☑✓ 6.1-rc3 | [LORE v2,0/3](https://lore.kernel.org/all/20221021105035.10000-1-shangxiaojing@huawei.com) |
+| 2022/10/21 | Shang XiaoJing <shangxiaojing@huawei.com> | [perf vendor events arm64: Fix incorrect Hisi hip08 L3 metrics](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e9229d5b6254a75291536f582652c599957344d2) | TODO | v2 ☑✓ 6.1-rc3 | [LORE v2,0/3](https://lore.kernel.org/all/20221021105035.10000-1-shangxiaojing@huawei.com) |
 
 
 ## 11.3 Userspace counter access

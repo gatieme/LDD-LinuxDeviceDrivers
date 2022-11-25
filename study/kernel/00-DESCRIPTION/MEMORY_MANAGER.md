@@ -641,6 +641,8 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 
 [Intel Revs Its Linear Address Masking Patches For Linux](https://www.phoronix.com/scan.php?page=news_item&px=Intel-LAM-Linux-v5)
 
+[Intel Linear Address Masking "LAM" Ready For Linux 6.2](https://www.phoronix.com/news/Intel-LAM-Linux-6.2)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/02/05 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [Linear Address Masking enabling](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com) | [线性地址屏蔽(LAM)](https://software.intel.com/content/dam/develop/external/us/en/documents-tps/architecture-instruction-set-extensions-programming-reference.pdf) 修改应用于 64 位线性地址的检查, 允许软件将未翻译的地址位用于元数据. 手册参见 [ISE, Chapter 14](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com). 代码参见 [kas/linux.git](https://git.kernel.org/pub/scm/linux/kernel/git/kas/linux.git/log/?h=lam). | RFC ☐ | [PatchWork RFC,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20210205151631.43511-1-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/8](https://lore.kernel.org/r/20220610143527.22974-1-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/11](https://lore.kernel.org/r/20220815041803.17954-1-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2022/08/30 LORE v1,0/11](https://lore.kernel.org/r/20220830010104.1282-1-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2022/09/30 LORE v1,0/14](https://lore.kernel.org/r/20220930144758.30232-1-kirill.shutemov@linux.intel.com) |

@@ -4190,6 +4190,66 @@ Donnefort 称: 边距删除使内核能够充分利用能量模型, 任务更有
 | 2021/12/20 | Vincent Donnefort <vincent.donnefort@arm.com> | [Fix stuck overutilized](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) | NA | v1 ☐ | [LORE 0/3](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) |
 | 2022/10/06 | Pierre Gondois <pierre.gondois@arm.com> | [sched/fair: feec() improvement](https://lore.kernel.org/all/20221006081052.3862167-1-pierre.gondois@arm.com) | TODO | v2 ☐☑✓ | [LORE v2,0/1](https://lore.kernel.org/all/20221006081052.3862167-1-pierre.gondois@arm.com) |
 
+#### 7.2.3.5 sched-domain overutilized
+-------
+
+EAS 按照能效进行选核等操作也是有一定开销的, 因此调度器 更倾向于在系统负载不高仍有余力时使用 EAS 按照能效进行调度, 而当系统负载已经很高时, 不再使用 EAS, 而是回退到原生 SMP NICE 的情况. 这就需要一种标记系统是否过载的方法.
+
+[commit 2802bf3cd936 ("sched/fair: Add over-utilization/tipping point indicator")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2802bf3cd936fe2c8033a696d375a4d9d3974de4) 引入了 root-domain 的 overutilized, 当一个 CPU 的利用率(util_avg) 超过一定阈值(默认为 80%) 的时, 就认为当前 CPU 过载了, 同时也会认为整个系统也是过载的.
+
+
+1. 当系统没有过载时, 通过 EAS 根据任务的实际利用率(util_avg)来进行任务的 SELECT TASK RQ, 在获得能效更高的任务分配的同时, 又不至于剥夺任何任务的执行机会. 此时将跳过 CFS 原生基于 load_avg 的 SMP NICE 的负载均衡器.
+
+2. 当系统过载时时, 则禁用 EAS, 使能 CFS Load Balancing, 根据附加了任务权重信息的 load_avg 来进行负载均衡, 将任务分布到尽可能多的 CPU 上, 以保持 SMP NICE.
+
+EAS 原生的 overutilized 机制非常保守, 一旦发现某个 CPU 出现了 cpu_overutilized(), 则会直接反映到 root_domain 上, 即任务整个系统都是过载的, 从而禁用 EAS, 并使能 CFS Load Balancing. 这样本来一些 CPU 或者 sched_domain 本身能从能效感知策略中获益的, 现在无法再获得任何收益.
+
+因此不少厂商都会基于主线的策略进行优化. Linaro 为 ANDROID/AOSP 贡献了 [ANDROID: sched: Per-Sched-domain over utilization](https://git.codelinaro.org/clo/la/kernel/msm-4.14/-/commit/0dca2fc973a98de742d6df894135f04cacabb6b5) 机制, 将原来保守的 root_domain->overutilized 引入到 SD_SHARE_PKG_RESOURCES 级别. 从而一个 CPU 过载时不再会直接影响整个系统(root_domain), 而是只影响单个 sched_domain.
+
+1.      当 CPU 过载时, CPU 所在调度域将被标记为过载.
+
+2.      当异构系统 CPU 上存在 misfit 的任务时, 父调度域级别的负载平衡就显的很有意义, 则标记所有 SD_ASYM_CPUCAPACITY 的层级为过载的, 已确保在异构层级上选到 fits_capacity() 的 CPU.
+
+3.      注意标记同构层级的调度域过载是没有意义的, 因为 misfit 的情况下, 同构的调度域内 CPU capacity 相同. 当某个调度域整体负载偏高, 此时可能需要 Load Balancing 有效地对任务进行负载均衡, 则标记其父调度域过载.
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/05/04 | Thara Gopinath <thara.gopinath@linaro.org> | [ANDROID: sched: Per-Sched-domain over utilization](https://github.com/aosp-mirror/kernel_common/commit/addef37808728c719d8c095a75bcf81befdacdaf) | per sched-domain 级别的 utilization. | v3 ☐☑✓ | [LORE](https://github.com/aosp-mirror/kernel_common/commit/addef37808728c719d8c095a75bcf81befdacdaf) |
+
+
+#### 7.2.3.6 latency sensitive
+-------
+
+AOSP 4.14 中 prefer_idle 的配置.
+
+```cpp
+70a86fb70704 sched/fair: fix prefer_idle behaviour // QCOM MSM-4.14 自研补丁
+e709f59a8cd2 ANDROID: restrict store of prefer_idle as boolean
+dc6f7513623f ANDROID: sched/fair: return idle CPU immediately for prefer_idle
+5f574ff1c8c7 ANDROID: sched/fair: add idle state filter to prefer_idle case
+19c03afff299 ANDROID: sched/fair: remove order from CPU selection
+03429a533a2d ANDROID:sched/fair: prefer energy efficient CPUs for !prefer_idle tasks
+f240e4440655 ANDROID: Add find_best_target to minimise energy calculation overhead
+c0ff131c88f6 ANDROID: sched: fair: Bypass energy-aware wakeup for prefer-idle tasks
+159c14f03977 ANDROID: sched: fair/tune: Add schedtune with cgroups interface
+```
+
+
+AOSP 4.19 中
+
+```cpp
+f609a2239f83 ANDROID: sched/core: Move SchedTune task API into UtilClamp wrappers
+d0eb1f35140e ANDROID: sched/fair: Make the EAS wake-up prefer-idle aware
+c06013206c84 ANDROID: sched/fair: Bypass energy computation for prefer_idle tasks
+c27c56105dca ANDROID: Add find_best_target to minimise energy calculation overhead
+68dbff9ce92a ANDROID: sched: fair/tune: Add schedtune with cgroups interface
+```
+
+5.0 之后, EAS 合入主线, AOSP 5.4 及其之后的版本引入 commit 760b82c9b88d ("ANDROID: sched/fair: Bias EAS placement for latency") 为 EAS 增加 latency 感知的能力. 1232/5000
+在 find_energy_efficient_cpu() 中添加一个延迟敏感 latency sensitive 的 case, 模仿 [android-4.19 以及之前版本 prefer-idle 所做的事情()](https://android.googlesource.com/kernel/common.git/+/c27c56105dcaaae54ecc39ef33fbfac87a1486fc).
+
+
 
 #### 7.2.3.x EAS timeline
 -------
