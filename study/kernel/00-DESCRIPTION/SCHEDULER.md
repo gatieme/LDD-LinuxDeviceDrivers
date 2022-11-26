@@ -583,6 +583,7 @@ coscheduling 协同调度是为了解决云服务场景, 为不同用户提供�
 | 2022/06/28 | Cruz Zhao <CruzZhao@linux.alibaba.com> | [sched/core: Optimize load balance of core scheduling](https://lore.kernel.org/all/1656403045-100840-1-git-send-email-CruzZhao@linux.alibaba.com) | 相同 cookie 的任务被认为是相互信任的, 可以在 SMT 上的两个兄弟 CPU 上运行, 它们可以在选择下一个任务时配对, 并且可以避免强制闲置. 为了实现这个目标, 必须统计运行队列中有多少带有此 cookie 的任务. 当进行此统计时, 作者也发现一个错误, 当我们更新一个未写入 cookie 的任务的 cookie 时, 任务不会进入 core 的 rbtree, 所以作者同时也修复了这个错误. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/1656403045-100840-1-git-send-email-CruzZhao@linux.alibaba.com) |
 | 2022/09/29 | Cruz Zhao <CruzZhao@linux.alibaba.com> | [sched/core: Optimize the process of picking the max prio task for the core](https://lore.kernel.org/all/1664435913-57227-1-git-send-email-CruzZhao@linux.alibaba.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/1664435913-57227-1-git-send-email-CruzZhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[LORE](https://lore.kernel.org/all/1664767168-30029-1-git-send-email-CruzZhao@linux.alibaba.com) |
 
+
 #### 1.5.4.3 SMT 驱离(SMT expeller)技术
 -------
 
@@ -4141,14 +4142,70 @@ ARM EAS 支持的主页: [Energy Aware Scheduling (EAS)](https://developer.arm.c
 | 2018/12/03 | Quentin Perret <quentin.perret@arm.com> | [Energy Aware Scheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=732cd75b8c920d3727e69957b14faa7c2d7c3b75) | 能效感知的调度器 EAS | v10 ☑ 5.0-rc1 | [LORE v10,00/15](https://lore.kernel.org/lkml/20181203095628.11858-1-quentin.perret@arm.com) |
 
 
-#### 7.2.3.1 Select an energy-efficient CPU on task wake-up
+#### 7.2.3.1 Energy-aware wake-up task placement
 -------
 
-2018 年, Quentin Perret 等开发的 EAS 终于在 v5.0 版本合入主线.
+
+AOSP 4.4 版本, 唤醒路径使用 select_energy_cpu_brute()/find_best_target()/energy_diff().
+
+
+AOSP 4.9 版本, EAS 唤醒路径使用 select_energy_cpu_brute()/find_best_target()/select_energy_cpu_idx(). 其主要变更是对 4.4 原来的 energy_diff() 进行了优化重构.
+
+struct energy_env 用于缓存 energy_diff() 计算中涉及的多个不同函数所需的值.
+
+1. 其中一些函数需要附加的参数, 这些参数可以很容易地嵌入 energy_env 本身. energy_diff 的当前实现对两种不同的 energy_env 结构的使用进行硬编码, 以估计和比较与 "前" 和 "后" CPU 相关的功耗.
+
+2. 此外它通过多次遍历 SDs/SGs 数据结构来进行能量估计.
+
+通过更好地使用 struct energy_env 来支持对多个候选调度进行更高效和并发的评估, 可以实现更好的设计. 为此, AOSP linux-4.9 [commit cf28cf03a33e ("sched/fair: re-factor energy_diff to use a single (extensible) energy_env")](https://github.com/aosp-mirror/kernel_common/commit/cf28cf03a33ee33180628aa93fc85a940240f893) 提供了 energy_diff() 实现的完整重构实现 select_energy_cpu_idx():
+
+1. struct energy_env 中使用 cpu[EAS_CPU_CNT] 来评估所有候选 CPU 的能效信息, 可以记录 `EAS_CPU_PRV`, `EAS_CPU_NXT` 以及 `EAS_CPU_BKP` 的能效数据.
+
+2. 通过 `compute_energy(struct energy_env *eenv)`, 即可计算从 `EAS_CPU_PRV` 向 `EAS_CPU_NXT` 迁移 util_delta 对整体的功耗影响. 整个过程只需要一个 struct energy_env 的参数, 且只遍历一次 SDs/SGs, 效率较高.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2015/05/09 | Morten Rasmussen <morten.rasmussen@arm.com> | [ANDROID: sched/fair: Energy-aware wake-up task placement](https://github.com/aosp-mirror/kernel_common/commit/4017a8e35c58520e2f2f1360561c1833b1611fad) | 当系统没有被过载时, 通过 energy_aware_wake_cpu() 把唤醒任务放在最节能的 CPU 上 | v1 ☐☑✓ | [COMMIT](https://github.com/aosp-mirror/kernel_common/commit/4017a8e35c58520e2f2f1360561c1833b1611fad) |
+| 2016/03/30 | Morten Rasmussen <morten.rasmussen@arm.com> | [ANDROID: sched/fair: Energy-aware wake-up task placement](https://github.com/aosp-mirror/kernel_common/commit/9e31218f23c05048e18cfc0cbe94020d2e3d3abd) | 移除了 energy_aware_wake_cpu(), 转而使用 EAS 新版的 select_energy_cpu_brute(). | v1 ☐☑✓ | [COMMIT1](ttps://github.com/aosp-mirror/kernel_common/commit/0df28983b8ef2e2a6e524933949fd9ad8a8799cf), [COMMIT2](https://github.com/aosp-mirror/kernel_common/commit/9e31218f23c05048e18cfc0cbe94020d2e3d3abd) |
+| 2016/07/14 | Srinath Sridharan <srinathsr@google.com> | [ANDROID: sched: EAS: take cstate into account when selecting idle core](https://github.com/aosp-mirror/kernel_common/commit/bf47bdd1807b2abdcbe989336bdc1da5c2389f29) | 引入一个新的 sysctl_sched_cstate_aware, 启用此选项后. CFS 中的 select_idle_siling() 将被修改为选择同级组中空闲状态索引最低的空闲 CPU, 由于空闲状态索引随着睡眠深度的增加而增加. 唤醒延迟也会增加. 通过这种方式, 尝试在需要空闲 CPU 时最小化唤醒延迟. | v1 ☐☑✓ | [COMMIT](https://github.com/aosp-mirror/kernel_common/commit/bf47bdd1807b2abdcbe989336bdc1da5c2389f29) |
+| 2016/07/29 | Juri Lelli <juri.lelli@arm.com> | [ANDROID: sched/fair: add tunable to force selection at cpu granularity](https://github.com/aosp-mirror/kernel_common/commit/1931b93dba7f6bb270df5962787275171664833b) | 引入 find_best_target() 选择剩余容量最多的 CPU 以及 backup_cpu, 同时感知了 sysctl_sched_cstate_aware, 并为 EAS 提供同步唤醒支持, 通过 sysctl_sched_sync_hint_enable 开启. | v1 ☐☑✓ | [COMMIT](https://github.com/aosp-mirror/kernel_common/commit/1931b93dba7f6bb270df5962787275171664833b) |
+| 2017/07/05 | atrick Bellasi <patrick.bellasi@arm.com> | [sched/fair: re-factor energy_diff to use a single (extensible) energy_env](https://github.com/aosp-mirror/kernel_common/commit/cf28cf03a33ee33180628aa93fc85a940240f893) | 引入 select_energy_cpu_idx() 替代 energy_diff(). | v1 ☐☑✓ | [COMMIT1](ttps://github.com/aosp-mirror/kernel_common/commit/0df28983b8ef2e2a6e524933949fd9ad8a8799cf), [COMMIT2](https://github.com/aosp-mirror/kernel_common/commit/cf28cf03a33ee33180628aa93fc85a940240f893) |
+
+AOSP 4.14 版本, 唤醒路径使用 find_energy_efficient_cpu()/find_best_target()/select_energy_cpu_idx().
+
+相比较 4.9 版本, 主要是重构了 select_energy_cpu_brute() 的逻辑, 为 find_energy_efficient_cpu(), 使其更适合唤醒慢路径. 这样将更容易被推送到主线.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2016/03/30 | Morten Rasmussen <morten.rasmussen@arm.com> | [ANDROID: sched/fair: Energy-aware wake-up task placement](https://github.com/aosp-mirror/kernel_common/commit/3308a3b6c01aecbbece0907333d7c85730e8f1ec) | 当系统没有被过载时, 通过 select_energy_cpu_brute() 把唤醒任务放在最节能的 CPU 上. 以前的尝试通过在咨询能量模型之前将任务利用率匹配到 CPU 容量来减少搜索空间, 因为这是一个昂贵的操作. 搜索启发式的工作不是很好, 没有任何更好的替代方案, 这个补丁采取蛮力路线, 并尝试所有潜在的目标. 这种方法开销较大, 因此扩展性不足, 但对于许多嵌入式应用程序来说, 它可能已经足够了, 同时还在继续研究可以最小化必要计算的启发式方法. | v1 ☐☑✓ | [COMMIT](https://github.com/aosp-mirror/kernel_common/commit/3308a3b6c01aecbbece0907333d7c85730e8f1ec) |
+| 2016/03/30 | Morten Rasmussen <morten.rasmussen@arm.com> | [ANDROID: refactor select_task_rq_fair et al to be cleaner](https://github.com/aosp-mirror/kernel_common/commit/83717be34de070b165e4a7683a71be924ecf0679) | 重构能效感知的唤醒 select_energy_cpu_brute() 为 find_energy_efficient_cpu(), 使其更适合唤醒慢路径. 这样将更容易被推送到主线. | v1 ☐☑✓ | [COMMIT](https://github.com/aosp-mirror/kernel_common/commit/83717be34de070b165e4a7683a71be924ecf0679) |
+| 2016/03/30 | Morten Rasmussen <morten.rasmussen@arm.com> | [ANDROID: Add find_best_target to minimise energy calculation overhead](https://github.com/aosp-mirror/kernel_common/commit/f240e44406558b17ff7765f252b0bcdcbc15126f) | 引入 find_best_target(). 如果开启 sched_feat(FIND_BEST_TARGET), 则使用 find_best_target() 来筛选候选 CPU 集合, 否则依旧使用选择剩余容量最大的 CPU 作为候选集合(随后 4.19 将此流程拆解为 select_max_spare_cap_cpus()/select_cpu_candidates()). | v1 ☐☑✓ | [COMMIT](https://github.com/aosp-mirror/kernel_common/commit/f240e44406558b17ff7765f252b0bcdcbc15126f) |
+| 2017/12/19 | atrick Bellasi <patrick.bellasi@arm.com> | [ANDROID: sched/fair: re-factor energy_diff to use a single (extensible) energy_env](https://github.com/aosp-mirror/kernel_common/commit/60664914185bef21e3abb0a804777171bd488477) | 引入 select_energy_cpu_idx() 替代 energy_diff(). | v1 ☐☑✓ | [COMMIT1](ttps://github.com/aosp-mirror/kernel_common/commit/0df28983b8ef2e2a6e524933949fd9ad8a8799cf), [COMMIT2](https://github.com/aosp-mirror/kernel_common/commit/60664914185bef21e3abb0a804777171bd488477) |
+
+
+AOSP 4.19 的版本, EAS 主流程 find_energy_efficient_cpu()/find_best_target()/select_max_spare_cap_cpus()/select_cpu_candidates().
+
+相比较 4.14 的版本, 将 find_energy_efficient_cpu() 拆解为两个主流程:
+
+1. 首先 select_cpu_candidates() 在每个频域中寻找具有最大备用容量的 CPU, 将候选 cpumask 记录在 candidates.
+
+2. 然后通过 compute_energy() 估计 candidates 中每个候选 CPU 对系统功耗的影响, 并于 prev CPU 比较. 从而选择全局能效最优的 CPU.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2016/03/30 | Morten Rasmussen <morten.rasmussen@arm.com> | [ANDROID: sched/fair: Energy-aware wake-up task placement](https://github.com/aosp-mirror/kernel_common/commit/54655c9f85a92530929a49caccfa9ba51aabb638) | 如果能量模型 (EM) 可用, 并且系统没有过度利用, 则唤醒任务时使用能量感知的 find_energy_efficient_cpu() 为任务能效最有的 CPU. 这是通过估计将任务放置在每个性能域中具有最高剩余容量的 CPU 上对系统级功耗的影响来实现的. 该策略将任务分散在性能域中, 并避免过于激进的任务打包. 如果相对于 prev_CPU 节省了足够多的能量, 则选择最佳的 CPU 能量. | v1 ☐☑✓ | [COMMIT](https://github.com/aosp-mirror/kernel_common/commit/54655c9f85a92530929a49caccfa9ba51aabb638) |
+| 2016/03/30 | Morten Rasmussen <morten.rasmussen@arm.com> | [ANDROID: sched/fair: Factor out CPU selection from find_energy_efficient_cpu](https://github.com/aosp-mirror/kernel_common/commit/9378697a9fb8443bd6406f7430bfee9321472270) | find_energy_efficient_cpu() 由两个步骤组成, 为了更容易实现其他 CPU 选择策略, 将两部分拆解开来: 首先 select_max_spare_cap_cpus() 在每个频域中寻找具有最大备用容量的 CPU, 将候选 cpumask 记录在 candidates, 然后通过 compute_energy() 估计 candidates 中每个候选 CPU 对系统功耗的影响, 并于 prev CPU 比较. 从而选择全局能效最优的 CPU. | v1 ☐☑✓ | [COMMIT](https://github.com/aosp-mirror/kernel_common/commit/9378697a9fb8443bd6406f7430bfee9321472270) |
+| 2016/03/30 | Morten Rasmussen <morten.rasmussen@arm.com> | [ANDROID: Add find_best_target to minimise energy calculation overhead](https://github.com/aosp-mirror/kernel_common/commit/c27c56105dcaaae54ecc39ef33fbfac87a1486fc) | 引入 find_best_target(). 如果开启 sched_feat(FIND_BEST_TARGET), 则使用 find_best_target() 来筛选 candidates, 否则依旧使用旧的 select_max_spare_cap_cpus(). | v1 ☐☑✓ | [COMMIT](https://github.com/aosp-mirror/kernel_common/commit/c27c56105dcaaae54ecc39ef33fbfac87a1486fc) |
+| 2016/03/30 | Morten Rasmussen <morten.rasmussen@arm.com> | [ANDROID: sched/fair: Make the EAS wake-up prefer-idle awared](https://github.com/aosp-mirror/kernel_common/commit/d0eb1f35140ee4159b2f9b6968b87f7b70a6e5d0) |  select_max_spare_cap_cpus() 也增加 prefer-idle 的能力, 同时将其重命名为 select_cpu_candidates(). | v1 ☐☑✓ | [COMMIT](https://github.com/aosp-mirror/kernel_common/commit/d0eb1f35140ee4159b2f9b6968b87f7b70a6e5d0) |
+
+
+随后 2018 年, Quentin Perret 等开发的 EAS 终于在 v5.0 版本合入主线.
 
 [commit 732cd75b8c92 ("sched/fair: Select an energy-efficient CPU on task wake-up")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=732cd75b8c920d3727e69957b14faa7c2d7c3b75) 在调度器中添加了一个 find_energy_efficient_cpu() 的函数(简称 feec()); 它的工作是为给定的任务找到最佳位置(从能耗的角度来看). 其核心逻辑是找到每个 perf_domain 性能域 中最不繁忙的 CPU, 并估计将任务放在该 CPU 上所产生的能源成本(或节省). 最不繁忙的 CPU 最有可能保持低功耗状态, 因此它为一些额外工作提供了逻辑目标.
 
 由于, 将任务从一个 CPU 移动到另一个 CPU 是有代价的. 该任务可能会留下部分或全部内存缓存, 这会减慢其速度. 这会影响性能, 也不利于能源使用, 因此应尽可能避免使用. 为了防止 CPU 之间频繁地进程迁移, find_energy_efficient_cpu() 只有在结果是[至少节省了任务先前 CPU 所用能量的 6% 时](https://elixir.bootlin.com/linux/v5.0/source/kernel/sched/fair.c#L6576)才会迁移任务.
+
 
 
 #### 7.2.3.2 Speed-up energy-aware wake-ups
@@ -4190,35 +4247,7 @@ Donnefort 称: 边距删除使内核能够充分利用能量模型, 任务更有
 | 2021/12/20 | Vincent Donnefort <vincent.donnefort@arm.com> | [Fix stuck overutilized](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) | NA | v1 ☐ | [LORE 0/3](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) |
 | 2022/10/06 | Pierre Gondois <pierre.gondois@arm.com> | [sched/fair: feec() improvement](https://lore.kernel.org/all/20221006081052.3862167-1-pierre.gondois@arm.com) | TODO | v2 ☐☑✓ | [LORE v2,0/1](https://lore.kernel.org/all/20221006081052.3862167-1-pierre.gondois@arm.com) |
 
-#### 7.2.3.5 sched-domain overutilized
--------
-
-EAS 按照能效进行选核等操作也是有一定开销的, 因此调度器 更倾向于在系统负载不高仍有余力时使用 EAS 按照能效进行调度, 而当系统负载已经很高时, 不再使用 EAS, 而是回退到原生 SMP NICE 的情况. 这就需要一种标记系统是否过载的方法.
-
-[commit 2802bf3cd936 ("sched/fair: Add over-utilization/tipping point indicator")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2802bf3cd936fe2c8033a696d375a4d9d3974de4) 引入了 root-domain 的 overutilized, 当一个 CPU 的利用率(util_avg) 超过一定阈值(默认为 80%) 的时, 就认为当前 CPU 过载了, 同时也会认为整个系统也是过载的.
-
-
-1. 当系统没有过载时, 通过 EAS 根据任务的实际利用率(util_avg)来进行任务的 SELECT TASK RQ, 在获得能效更高的任务分配的同时, 又不至于剥夺任何任务的执行机会. 此时将跳过 CFS 原生基于 load_avg 的 SMP NICE 的负载均衡器.
-
-2. 当系统过载时时, 则禁用 EAS, 使能 CFS Load Balancing, 根据附加了任务权重信息的 load_avg 来进行负载均衡, 将任务分布到尽可能多的 CPU 上, 以保持 SMP NICE.
-
-EAS 原生的 overutilized 机制非常保守, 一旦发现某个 CPU 出现了 cpu_overutilized(), 则会直接反映到 root_domain 上, 即任务整个系统都是过载的, 从而禁用 EAS, 并使能 CFS Load Balancing. 这样本来一些 CPU 或者 sched_domain 本身能从能效感知策略中获益的, 现在无法再获得任何收益.
-
-因此不少厂商都会基于主线的策略进行优化. Linaro 为 ANDROID/AOSP 贡献了 [ANDROID: sched: Per-Sched-domain over utilization](https://git.codelinaro.org/clo/la/kernel/msm-4.14/-/commit/0dca2fc973a98de742d6df894135f04cacabb6b5) 机制, 将原来保守的 root_domain->overutilized 引入到 SD_SHARE_PKG_RESOURCES 级别. 从而一个 CPU 过载时不再会直接影响整个系统(root_domain), 而是只影响单个 sched_domain.
-
-1.      当 CPU 过载时, CPU 所在调度域将被标记为过载.
-
-2.      当异构系统 CPU 上存在 misfit 的任务时, 父调度域级别的负载平衡就显的很有意义, 则标记所有 SD_ASYM_CPUCAPACITY 的层级为过载的, 已确保在异构层级上选到 fits_capacity() 的 CPU.
-
-3.      注意标记同构层级的调度域过载是没有意义的, 因为 misfit 的情况下, 同构的调度域内 CPU capacity 相同. 当某个调度域整体负载偏高, 此时可能需要 Load Balancing 有效地对任务进行负载均衡, 则标记其父调度域过载.
-
-
-| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/05/04 | Thara Gopinath <thara.gopinath@linaro.org> | [ANDROID: sched: Per-Sched-domain over utilization](https://github.com/aosp-mirror/kernel_common/commit/addef37808728c719d8c095a75bcf81befdacdaf) | per sched-domain 级别的 utilization. | v3 ☐☑✓ | [LORE](https://github.com/aosp-mirror/kernel_common/commit/addef37808728c719d8c095a75bcf81befdacdaf) |
-
-
-#### 7.2.3.6 latency sensitive
+#### 7.2.3.5 latency sensitive
 -------
 
 AOSP 4.14 中 prefer_idle 的配置.
@@ -4249,6 +4278,60 @@ c27c56105dca ANDROID: Add find_best_target to minimise energy calculation overhe
 5.0 之后, EAS 合入主线, AOSP 5.4 及其之后的版本引入 commit 760b82c9b88d ("ANDROID: sched/fair: Bias EAS placement for latency") 为 EAS 增加 latency 感知的能力. 1232/5000
 在 find_energy_efficient_cpu() 中添加一个延迟敏感 latency sensitive 的 case, 模仿 [android-4.19 以及之前版本 prefer-idle 所做的事情()](https://android.googlesource.com/kernel/common.git/+/c27c56105dcaaae54ecc39ef33fbfac87a1486fc).
 
+
+#### 7.2.3.6 energy-aware load-balancing decisions
+-------
+
+*	sched domain overutilized
+
+EAS 按照能效进行选核等操作也是有一定开销的, 因此调度器 更倾向于在系统负载不高仍有余力时使用 EAS 按照能效进行调度, 而当系统负载已经很高时, 不再使用 EAS, 而是回退到原生 SMP NICE 的情况. 这就需要一种标记系统是否过载的方法.
+
+[commit 2802bf3cd936 ("sched/fair: Add over-utilization/tipping point indicator")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2802bf3cd936fe2c8033a696d375a4d9d3974de4) 引入了 root-domain 的 overutilized, 当一个 CPU 的利用率(util_avg) 超过一定阈值(默认为 80%) 的时, 就认为当前 CPU 过载了, 同时也会认为整个系统也是过载的.
+
+
+1. 当系统没有过载时, 通过 EAS 根据任务的实际利用率(util_avg)来进行任务的 SELECT TASK RQ, 在获得能效更高的任务分配的同时, 又不至于剥夺任何任务的执行机会. 此时将跳过 CFS 原生基于 load_avg 的 SMP NICE 的负载均衡器.
+
+2. 当系统过载时时, 则禁用 EAS, 使能 CFS Load Balancing, 根据附加了任务权重信息的 load_avg 来进行负载均衡, 将任务分布到尽可能多的 CPU 上, 以保持 SMP NICE.
+
+EAS 原生的 overutilized 机制非常保守, 一旦发现某个 CPU 出现了 cpu_overutilized(), 则会直接反映到 root_domain 上, 即任务整个系统都是过载的, 从而禁用 EAS, 并使能 CFS Load Balancing. 这样本来一些 CPU 或者 sched_domain 本身能从能效感知策略中获益的, 现在无法再获得任何收益.
+
+因此不少厂商都会基于主线的策略进行优化. Linaro 为 ANDROID/AOSP 贡献了 [ANDROID: sched: Per-Sched-domain over utilization](https://git.codelinaro.org/clo/la/kernel/msm-4.14/-/commit/0dca2fc973a98de742d6df894135f04cacabb6b5) 机制, 将原来保守的 root_domain->overutilized 引入到 SD_SHARE_PKG_RESOURCES 级别. 从而一个 CPU 过载时不再会直接影响整个系统(root_domain), 而是只影响单个 sched_domain.
+
+1.      当 CPU 过载时, CPU 所在调度域将被标记为过载.
+
+2.      当异构系统 CPU 上存在 misfit 的任务时, 父调度域级别的负载平衡就显的很有意义, 则标记所有 SD_ASYM_CPUCAPACITY 的层级为过载的, 已确保在异构层级上选到 fits_capacity() 的 CPU.
+
+3.      注意标记同构层级的调度域过载是没有意义的, 因为 misfit 的情况下, 同构的调度域内 CPU capacity 相同. 当某个调度域整体负载偏高, 此时可能需要 Load Balancing 有效地对任务进行负载均衡, 则标记其父调度域过载.
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/05/04 | Thara Gopinath <thara.gopinath@linaro.org> | [ANDROID: sched: Per-Sched-domain over utilization](https://github.com/aosp-mirror/kernel_common/commit/addef37808728c719d8c095a75bcf81befdacdaf) | per sched-domain 级别的 utilization. | v3 ☐☑✓ | [LORE](https://github.com/aosp-mirror/kernel_common/commit/addef37808728c719d8c095a75bcf81befdacdaf) |
+
+
+*	sched group energy
+
+AOSP 4.14
+
+```cpp
+5886acba9b69 ANDROID: sched: Disable energy-unfriendly nohz kicks
+e50db003de51 ANDROID: sched: Consider a not over-utilized energy-aware system as balanced
+58f9f0c7360e ANDROID: sched: Add over-utilization/tipping point indicator
+15d78f226e68 ANDROID: sched/fair: Add energy_diff dead-zone margin
+a35c8cc0fdee ANDROID: sched: Determine the current sched_group idle-state
+19de2fa75371 ANDROID: sched: Estimate energy impact of scheduling decisions
+e3126a01a1b5 ANDROID: sched: Extend sched_group_energy to test load-balancing decisions
+fe23e185492d ANDROID: trace: sched: add sched blocked tracepoint which dumps out context of sleep.
+3ae1b07001d6 ANDROID: sched: Calculate energy consumption of sched_group
+29231563c6c9 ANDROID: sched: Relocated cpu_util() and change return type
+00bbe7d605a9 ANDROID: sched: EAS & 'single cpu per cluster'/cpu hotplug interoperability
+c6879df01187 ANDROID: sched: Make energy awareness a sched feature
+c42f9795e6a0 ANDROID: sched/fair: Avoid unnecessary balancing of asymmetric capacity groups
+5494e2edf59c ANDROID: sched: Consider misfit tasks when load-balancing
+a47662b5d1b8 ANDROID: sched: Add group_misfit_task load-balance type
+b523403113a5 ANDROID: sched: Enable idle balance to pull single task towards cpu with higher capacity
+ac3ecee61d29 ANDROID: sched: Prevent unnecessary active balance of single task in sched group
+```
 
 
 #### 7.2.3.x EAS timeline
