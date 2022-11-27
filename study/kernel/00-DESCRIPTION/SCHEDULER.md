@@ -213,7 +213,7 @@ Con Kolivas 的完全公平的想法启发了原 O(1) 调度器作者 Ingo Molna
 
 CFS 的算法和实现都相当简单, 众多的测试表明其性能也非常优越. 并得到更多的开发者支持, 所以它最终替代了 RSDL 在 2.6.23 进入内核, 一直使用到现在.
 
-[Linux 的公平调度（CFS）原理 - kummer 话你知](https://www.jianshu.com/p/673c9e4817a8)
+[Linux 的公平调度(CFS)原理 - kummer 话你知](https://www.jianshu.com/p/673c9e4817a8)
 
 [CFS scheduler, -v16](https://lore.kernel.org/lkml/20070608195840.GA14928@elte.hu)
 
@@ -230,7 +230,7 @@ CFS 的算法和实现都相当简单, 众多的测试表明其性能也非常�
 #### 1.1.3.2 load_weight
 -------
 
-[Linux CFS 调度器之负荷权重 load_weight--Linux 进程的管理与调度 (二十五）](https://blog.csdn.net/gatieme/article/details/52067665)
+[Linux CFS 调度器之负荷权重 load_weight--Linux 进程的管理与调度 (二十五)](https://blog.csdn.net/gatieme/article/details/52067665)
 
 
 不少同学发现, `{sched_}prio_to_weight` 的值并不是严格的 1.25 倍. 这是因为 CPU 在计算的过程中会损失精度, 为了使得 prio_to_weight * prio_to_wmult 与 2^32 的值会存在较大的偏差. 为了使得偏差尽可能的小, 因此 [commit 254753dc321e ("sched: make the multiplication table more accurate")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=254753dc321ea2b753ca9bc58ac329557a20efac) 对 prio_to_weight 和 prio_to_wmult 的值做了一定的调整. 社区邮件列表中后期曾有人咨询过这个问题, 参见讨论 [Question about sched_prio_to_weight values](https://lkml.org/lkml/2019/10/7/1117). 提问的同学在了解了问题之后, 制作了一个脚本来模拟调整的思路和过程.
@@ -4686,7 +4686,21 @@ LPC-2022 [Dynamic Energy Model to handle leakage power](https://lpc.events/event
 #### 7.2.5.5 em_cpu_energy
 -------
 
-为了预测性能状态, 将性能域中利用率最高的 CPU 的利用率映射到请求的频率, 如 schedutil。还考虑到实际频率可能设置得更低（由于热封顶）。因此, 在计算有效频率之前, 将最大利用率限制为允许的 CPU 容量。
+为了预测性能状态, 将性能域中利用率最高的 CPU 的利用率映射到请求的频率, 比如 schedutil.
+
+
+EAS 合入的时候, 使用 map_util_freq() 将 util 按照 schedutil 的调频策略换算到待调的 freq, 这被同时用来 schedutil 的 get_next_freq() 以及 Energy Model 的 em_pd_energy()( 曾经的 em_cpu_energy()).
+
+[commit 938e5e4b0d15 ("sched/cpufreq: Prepare schedutil for Energy Aware Scheduling")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=938e5e4b0d1502a93e787985cb95b136b40717b7) schedutil 中 get_next_freq() 通过 map_util_freq() 将 util 转换到待调的 freq.
+
+[commit 27871f7a8a34 ("PM: Introduce an Energy Model management framework")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=27871f7a8a341ef5c636a337856369acf8013e4e) 将 map_util_freq() 同时用来 em_pd_energy() 中 [根据 util 转换的待调频率估计功耗](https://elixir.bootlin.com/linux/v5.0/source/include/linux/energy_model.h#L94).
+
+但是此时并没有温控等因素, 并没有考虑到实际频率可能比设置的要低. 因此, v5.14 [commit ("sched/cpufreq: Consider reduced CPU capacity in energy calculation")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8f1b971b4750e83e8fbd2f91a9efd4a38ad0ae51) 在 em_cpu_energy() 引入参数 allowed_cpu_cap 指示限频后允许的 CPU 最大 Capacity , 在计算有效频率之前, [将 max_util 限定在 allowed_cpu_cap 以内](https://elixir.bootlin.com/linux/v5.14/source/include/linux/energy_model.h#L127). 同时引入了 [map_util_perf()](https://elixir.bootlin.com/linux/v5.14/source/kernel/sched/cpufreq_schedutil.c#L153) 和 [map_util_freq()](https://elixir.bootlin.com/linux/v5.14/source/kernel/sched/cpufreq_schedutil.c#L154) 辅助工作. 其中 [map_util_perf()](https://elixir.bootlin.com/linux/v5.14/source/include/linux/sched/cpufreq.h#L34) 将 util 放缩 1.25 倍, 而 [map_util_freq()](https://elixir.bootlin.com/linux/v5.14/source/include/linux/sched/cpufreq.h#L29) 则仅仅将 util 直接 scale 到 freq 上.
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/06/14 | Lukasz Luba <lukasz.luba@arm.com> | [Add allowed CPU capacity knowledge to EAS](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8f1b971b4750e83e8fbd2f91a9efd4a38ad0ae51) | TODO | v4 ☐☑✓ 5.14-rc1 | [LORE v4,0/3](https://lore.kernel.org/all/20210614185815.15136-1-lukasz.luba@arm.com) |
+
 
 ### 7.2.6 IPA(Thermal 管控)
 -------
@@ -4804,7 +4818,7 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 
 高通在自己基于 AOSP 的 GKI 中, 提供了一个 schedutil 类似的调频 GOVERNOR [CPUFREQ_WALT](https://source.codeaurora.cn/quic/la/kernel/msm-5.10/tree/kernel/sched/walt/cpufreq_walt.c?h=kernel.lnx.5.10.r1-rel), 与 WALT 地深度绑定和优化. 并通过 waltgov_tunables 提供了近似于 interactive 的少量参数, 允许用户态干预. 只是这里实现的 target_load 是通过 target_load_thresh 和 target_load_shift 映射得到的, 参见 [walt_map_util_freq()](https://source.codeaurora.cn/quic/la/kernel/msm-5.10/tree/kernel/sched/walt/cpufreq_walt.c?h=kernel.lnx.5.10.r1-rel#n204). 因此用户对于 target_load 的设置相比较原来 interactive 直接设置 target_loads 参数的方式更弱一些.
 
-小米在邮件列表发布了 [Provide USF for the portable equipment.](https://lore.kernel.org/all/cover.1596612536.git.yangdongdong@xiaomi.com) 在启用 cpufreq 上的调整, 并按计划调整用户敏感系数。它特别适用于在屏幕上显示更多电源保护和快速响应要求的移动设备。
+小米在邮件列表发布了 [Provide USF for the portable equipment.](https://lore.kernel.org/all/cover.1596612536.git.yangdongdong@xiaomi.com) 在启用 cpufreq 上的调整, 并按计划调整用户敏感系数. 它特别适用于在屏幕上显示更多电源保护和快速响应要求的移动设备.
 
 ### 7.3.5 其他 governor
 -------
