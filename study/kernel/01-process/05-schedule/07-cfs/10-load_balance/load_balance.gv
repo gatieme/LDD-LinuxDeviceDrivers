@@ -10,14 +10,42 @@ digraph load_balance {
 	newidle_balance -> load_balance;
 
 	// 负载均衡核心逻辑
-	load_balance:s -> {should_we_balance, find_busiest_group, find_busiest_queue, detach_tasks, attach_tasks, need_active_balance, stop_one_cpu_nowait};
-	should_we_balance -> {group_balance_mask, group_balance_cpu};
-	find_busiest_group -> {init_sd_lb_stats, update_sd_lb_stats, sched_energy_enabled, compare_local_busiest_group_type, calculate_imbalance};
-	find_busiest_queue -> for_each_sched_group_span -> {fbq_classify_rq, switch_env_migration_type_FBQ};
-	detach_tasks -> {can_migrate_task, switch_env_migration_type_DT, detach_task};
-	attach_tasks -> {attach_task};
-	need_active_balance -> stop_one_cpu_nowait -> active_load_balance_cpu_stop [style=dashed];
-	active_load_balance_cpu_stop -> {detach_one_task, attach_one_task};
+	subgraph cluster_0 {
+		label = "执行 Load Balance";
+		color = blue;
+
+		load_balance:s -> {should_we_balance, find_busiest_group, find_busiest_queue, detach_tasks, attach_tasks, need_active_balance, stop_one_cpu_nowait};
+
+		subgraph cluster_1 {
+			label = "寻找 dst CPU";
+			color = red;
+
+			should_we_balance -> {group_balance_mask, group_balance_cpu};
+		};
+
+		subgraph cluster_2 {
+			label = "寻找 src CPU";
+			color = red;
+
+			find_busiest_group -> {init_sd_lb_stats, update_sd_lb_stats, sched_energy_enabled, compare_local_busiest_group_type, calculate_imbalance};
+			find_busiest_queue -> for_each_sched_group_span -> {fbq_classify_rq, switch_env_migration_type_FBQ};
+		};
+
+		subgraph cluster_3 {
+			label = "Normal Migration";
+			color = red;
+
+			detach_tasks -> {can_migrate_task, switch_env_migration_type_DT, detach_task};
+			attach_tasks -> {attach_task};
+		};
+		subgraph cluster_4 {
+			label = "Active Migration";
+			color = red;
+
+			need_active_balance -> stop_one_cpu_nowait -> active_load_balance_cpu_stop [style=dashed];
+			active_load_balance_cpu_stop -> {detach_one_task, attach_one_task};
+		};
+	};
 
 	rebalance_domains [label="rebalance_domains"; style=filled; fillcolor=palegreen; shape=oval];
 	newidle_balance [label="newidle_balance"; style=filled; fillcolor=palegreen; shape=oval];

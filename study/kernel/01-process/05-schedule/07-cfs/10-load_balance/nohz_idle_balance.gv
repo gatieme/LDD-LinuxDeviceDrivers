@@ -1,30 +1,42 @@
 digraph nohz_idle_balance {
 	// 周期性负载均衡器 run_rebalance_domains
 	//run_rebalance_domains -> {nohz_idle_balance, update_blocked_averages, rebalance_domains};
-	scheduler_tick -> trigger_load_balance -> {raise_softirq_SCHED_SOFTIRQ, nohz_balancer_kick};
-	run_rebalance_domains -> nohz_idle_balance [label="has NOHZ_BALANCE_KICK"];
-	run_rebalance_domains -> {/* nohz_idle_balance, */update_blocked_averages, rebalance_domains};
+	run_rebalance_domains -> {/* nohz_idle_balance, */update_blocked_averages, rebalance_domains} [style=dashed];
 
-	// KICK
-	nohz_balancer_kick -> {set_NOHZ_STATS_KICK, set_NOHZ_BALANCE_KICK, set_NOHZ_NEXT_KICK} -> kick_ilb -> find_new_ilb -> KICK_CPU_BY_IPI -> nohz_csd_func -> raise_softirq_SCHED_SOFTIRQ;
+	subgraph cluster_1 {
+		label = "触发 NOHZ Load Balance";
+		color=red;
 
-	// NOHZ 负载均衡器 nohz_idle_balance
-	nohz_idle_balance -> {clear_nohz_idle_balance, _nohz_idle_balance};
-	/*
-	_nohz_idle_balance -> for_each_nohz_idle_cpus_mask -> {has_NOHZ_STATS_KICK, has_NOHZ_BALANCE_KICK};
-	has_NOHZ_STATS_KICK -> update_nohz_stats -> update_blocked_averages;
-	has_NOHZ_BALANCE_KICK -> rebalance_domains;
-	*/
-	_nohz_idle_balance -> for_each_nohz_idle_cpus_mask;
-	for_each_nohz_idle_cpus_mask -> update_nohz_stats -> update_blocked_averages [label="has NOHZ_STATS_KICK"];
-	for_each_nohz_idle_cpus_mask -> rebalance_domains [label="has NOHZ_BALANCE_KICK"];
+		// KICK
+		scheduler_tick -> trigger_load_balance -> nohz_balancer_kick;
+		trigger_load_balance -> raise_softirq_SCHED_SOFTIRQ [style=dashed];
+		nohz_balancer_kick -> {set_NOHZ_STATS_KICK, set_NOHZ_BALANCE_KICK, set_NOHZ_NEXT_KICK} -> kick_ilb -> find_new_ilb -> KICK_CPU_BY_IPI -> nohz_csd_func -> raise_softirq_SCHED_SOFTIRQ;
+	};
+
+	subgraph cluster_2 {
+		label = "执行 NOHZ Load Balance";
+		color=blue;
+
+		raise_softirq_SCHED_SOFTIRQ -> run_rebalance_domains [style=dashed];
+
+		// NOHZ 负载均衡器 nohz_idle_balance
+		run_rebalance_domains -> nohz_idle_balance [label="has NOHZ_BALANCE_KICK"];
+		nohz_idle_balance -> {clear_nohz_idle_balance, _nohz_idle_balance};
+		/*
+		_nohz_idle_balance -> for_each_nohz_idle_cpus_mask -> {has_NOHZ_STATS_KICK, has_NOHZ_BALANCE_KICK};
+		has_NOHZ_STATS_KICK -> update_nohz_stats -> update_blocked_averages;
+		has_NOHZ_BALANCE_KICK -> rebalance_domains;
+		*/
+		_nohz_idle_balance -> for_each_nohz_idle_cpus_mask;
+		for_each_nohz_idle_cpus_mask -> update_nohz_stats -> update_blocked_averages [label="has NOHZ_STATS_KICK"];
+		for_each_nohz_idle_cpus_mask -> rebalance_domains [label="has NOHZ_BALANCE_KICK"];
+	};
 
 	// IDLE 负载均衡器
 	newidle_balance -> nohz_newidle_balance;
-
 	nohz_newidle_balance -> set_NOHZ_NEWILB_KICK
 
-	raise_softirq_SCHED_SOFTIRQ -> run_rebalance_domains [style=dashed];
+
 	raise_softirq_SCHED_SOFTIRQ [label="raise_softirq(SCHED_SOFTIRQ)"; style=filled; shape=oval]
 	clear_nohz_idle_balance [label="this_rq->nohz_idle_balance = 0"; style=filled; shape=oval];
 

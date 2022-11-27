@@ -1,0 +1,47 @@
+digraph load_balance {
+	subgraph cluster_0 {
+		label = "触发选核(被动负载均衡)";
+		color = red;
+
+		wake_up_new_task -> select_task_rq [label="WF_TTWU"];
+		sched_exec -> select_task_rq [label="WF_EXEC"];
+		try_to_wake_up -> select_task_rq [label="WF_TTWU"];
+		select_task_rq -> select_task_rq_fair [style=dashed];
+	};
+
+	select_task_rq_fair -> find_energy_efficient_cpu [label="WF_TTWU && sched_energy_enabled"];
+	select_task_rq_fair -> select_idle_sibling [label="want_affine && SD_WAKE_AFFINE && WF_TTWU"];
+	select_task_rq_fair -> find_idlest_cpu;
+
+	subgraph cluster_1 {
+		label = "唤醒路径的能效感知";
+		color = blue;
+
+		find_energy_efficient_cpu -> compute_energy;
+	};
+
+	subgraph cluster_2 {
+		label = "慢速路径";
+		color = blue;
+
+		find_idlest_cpu -> {find_idlest_group, find_idlest_group_cpu};
+	};
+
+	subgraph cluster_3 {
+		label = "唤醒快速路径";
+		color = blue;
+
+		select_idle_sibling -> {select_idle_capacity, select_idle_smt, select_idle_cpu};
+	};
+
+	wake_up_new_task [label="wake_up_new_task"; style=filled; fillcolor=lightyellow; shape=oval];
+	sched_exec [label="sched_exec"; style=filled; fillcolor=lightyellow; shape=oval];
+	try_to_wake_up [label="try_to_wake_up"; style=filled; fillcolor=lightyellow; shape=oval];
+
+
+	select_task_rq_fair [label="select_task_rq_fair"; style=filled; fillcolor=palegreen; shape=oval];
+
+	find_energy_efficient_cpu [label="find_energy_efficient_cpu"; style=filled; fillcolor=lightyellow; shape=oval];
+	select_idle_sibling [label="select_idle_sibling"; style=filled; fillcolor=lightyellow; shape=oval];
+	find_idlest_cpu [label="find_idlest_cpu"; style=filled; fillcolor=lightyellow; shape=oval];
+}

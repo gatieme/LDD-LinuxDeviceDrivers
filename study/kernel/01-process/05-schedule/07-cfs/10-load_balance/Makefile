@@ -1,21 +1,9 @@
-ROOT=../../../
-PLATFORM=$(shell $(ROOT)/systype.sh)
-include $(ROOT)/Make.defines.$(PLATFORM)
-
-target=memorylayout
-
-
+target=load_balance.svg newidle_balance.svg nohz_idle_balance.svg tick_load_balance.svg passive_load_balance.svg
 
 all:$(target)
 
-
-memorylayout : memorylayout.o
-	$(CC) $^ -o $@ $(LDFLAGS)
-	echo "C程序的内存布局..."
-
-%.o : %.c
-	$(CC) -c $^ -o $@  $(CFLAGS) $(DEFINES)
+%.svg : %.gv
+	dot -Tsvg $^ -o $@
 
 clean :
-	rm -rf *.o
 	rm -rf $(target)

@@ -1,17 +1,28 @@
 digraph newidle_balance {
 	// IDLE 负载均衡器
-	__schedule -> pick_next_task;// -> {__pick_next_task, put_prev_task_balance};
-	pick_next_task -> __pick_next_task [label="!sched_core_enabled(rq)"];
-	pick_next_task -> put_prev_task_balance [label="sched_core_enabled"];
+	subgraph cluster_1 {
+		label = "触发 New Idle Load Balance";
+		color=red;
 
-	__pick_next_task -> {pick_next_task_fair, pick_next_task_idle, put_prev_task_balance, class_pick_next_task};
-	class_pick_next_task -> pick_next_task_fair [style=dashed];
-	put_prev_task_balance -> for_class_range_prev_to_idle -> class_balance -> balance_fair -> newidle_balance;
-	pick_next_task_fair -> newidle_balance
-	newidle_balance -> {update_misfit_status, update_next_balance, update_blocked_averages, for_each_domain_ILB} -> nohz_newidle_balance;
+		__schedule -> pick_next_task;// -> {__pick_next_task, put_prev_task_balance};
+		pick_next_task -> __pick_next_task [label="!sched_core_enabled(rq)"];
+		pick_next_task -> put_prev_task_balance [label="sched_core_enabled"];
 
-	for_each_domain_ILB -> {update_next_balance, load_balance, update_newidle_cost};
-	nohz_newidle_balance -> set_NOHZ_NEWILB_KICK
+		__pick_next_task -> {pick_next_task_fair, pick_next_task_idle, put_prev_task_balance, class_pick_next_task};
+		class_pick_next_task -> pick_next_task_fair [style=dashed];
+		put_prev_task_balance -> for_class_range_prev_to_idle -> class_balance -> balance_fair -> newidle_balance;
+		pick_next_task_fair -> newidle_balance;
+	};
+
+	subgraph cluster_2 {
+		label = "执行 New Idle Load Balance";
+		color=blue;
+
+		newidle_balance -> {update_misfit_status, update_next_balance, update_blocked_averages, for_each_domain_ILB} -> nohz_newidle_balance;
+
+		for_each_domain_ILB -> {update_next_balance, load_balance, update_newidle_cost};
+		nohz_newidle_balance -> set_NOHZ_NEWILB_KICK
+	};
 
 	// caller
 	pick_next_task_fair [label="pick_next_task_fair"; style=filled; fillcolor=lightyellow; shape=oval];
