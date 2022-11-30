@@ -3327,6 +3327,8 @@ MGLRU 的开发者在 LPC-2022 上演示了 MGLRU [Multi-Gen LRU: Current Status
 最终 Linux v6.1 合并了 MGLRU 和 Maple Tree, 参见 [MM updates for 6.1-rc1](https://lore.kernel.org/lkml/20221008132113.919b9b894426297de78ac00f@linux-foundation.org) 以及 phoronix 报道 [MGLRU & Maple Tree Submitted For Linux 6.1](https://www.phoronix.com/news/MGLRU-Maple-Tree-Linux-6.1-PR), [MGLRU Merged For Linux 6.1](https://www.phoronix.com/news/MGLRU-In-Linux-6.1).
 
 
+[OpenWrt / MIPS benchmark with MGLRU](https://lore.kernel.org/all/20220831041731.3836322-1-yuzhao@google.com).
+
 *   实现
 
 传统的 LRU 页面回收仅仅通过 ACTIVE/INACTIVE 划分页面的冷热和老化程度, 这是一锤子买卖, 粒度非常粗, 对页面也机器不友好, 一个页面要么热页, 可以被宣判延刑, 要么是冷页, 可以立即被回收. 而 MGLRU 将页面的冷热程度做了更细粒度的划分.
@@ -3335,7 +3337,7 @@ MGLRU 的开发者在 LPC-2022 上演示了 MGLRU [Multi-Gen LRU: Current Status
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/04/07 | Yu Zhao <yuzhao@google.com> | [Multigenerational LRU Framework(https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8be976a0937a18118424dd2505925081d9192fd5) | Multi-Gen LRU Framework, 将 LRU 的列表划分为多代老化. 通过 CONFIG_LRU_GEN 来控制. | v15 ☑ v6.1 | [Patchwork v1,00/14](https://lore.kernel.org/patchwork/patch/1394674)<br>*-*-*-*-*-*-*-*<br>[PatchWork v2,00/16](https://lore.kernel.org/patchwork/patch/1412560)<br>*-*-*-*-*-*-*-*<br>[2021/05/20 PatchWork v3,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20210520065355.2736558-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/08/18 PatchWork v4,00/11](https://patchwork.kernel.org/project/linux-mm/cover/20210818063107.2696454-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2021/11/11 PatchWork v5,00/10](https://patchwork.kernel.org/project/linux-mm/cover/20211111041510.402534-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/01/04 PatchWork v6,0/9](https://patchwork.kernel.org/project/linux-mm/cover/20220104202227.2903605-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/02/08 PatchWork v7,0/12](https://lore.kernel.org/all/20220208081902.3550911-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/03/08 LORE v8,0/14](https://lore.kernel.org/all/20220308234723.3834941-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/03/09 LORE v9,0/14](https://lore.kernel.org/all/20220309021230.721028-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[2022/04/07 LORE,v10,00/14](https://lore.kernel.org/lkml/20220407031525.2368067-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v11,00/14](https://lore.kernel.org/lkml/20220518014632.922072-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v12,00/14](https://lore.kernel.org/lkml/20220614071650.206064-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v13,00/14](https://lore.kernel.org/lkml/20220706220022.968789-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v14,00/14](https://lore.kernel.org/lkml/20220815071332.627393-1-yuzhao@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v15,0/14](https://lore.kernel.org/r/20220918080010.2920238-1-yuzhao@google.com) |
-| 2022/09/11 | Yuanchu Xie <yuanchu@google.com> | [mm: multi-gen LRU: per-process heatmaps](https://patchwork.kernel.org/project/linux-mm/cover/20220911083418.2818369-1-yuanchu@google.com/) | 675988 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20220911083418.2818369-1-yuanchu@google.com) |
+| 2022/09/11 | Yuanchu Xie <yuanchu@google.com> | [mm: multi-gen LRU: per-process heatmaps](https://patchwork.kernel.org/project/linux-mm/cover/20220911083418.2818369-1-yuanchu@google.com/) | MGLRU debugfs 接口(`/sys/kernel/debug/lru_gen`) 提供了一个统计属于每一代的页面数量的直方图, 提供了一些内存冷量数据, 但我们实际上不知道内存实际在哪里, 通过 BPF 程序连接到 MGLRU 页表访问位获取, 以收集有关相对 HOT 和 COLD、NUMA 节点以及页是否为 anon/file 等的信息. 使用 BPF 程序收集和聚合页面访问信息允许用户空间代理自定义收集什么以及如何聚合. 它可以关注特定的兴趣区域, 并计算移动平均访问频率, 或者找到从未访问过的分配, 这些分配可以一起消除. 目前, MGLRU 依赖于关于页面被分配到哪一代的启发式方法, 例如, 通过页面表访问的页面总是被分配给最年轻的一代. 公开页面访问数据可以允许未来的工作自定义页面生成分配(使用更多 BPF). | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/all/20220911083418.2818369-1-yuanchu@google.com) |
 | 2022/09/18 | Yu Zhao <yuzhao@google.com> | [[v14-fix,01/11] mm: multi-gen LRU: update admin guide](https://patchwork.kernel.org/project/linux-mm/patch/20220918204755.3135720-1-yuzhao@google.com/) | 677981 | v1 ☐☑ | [LORE v1,0/11](https://lore.kernel.org/r/20220918204755.3135720-1-yuzhao@google.com) |
 | 2022/09/20 | zhaoyang.huang <zhaoyang.huang@unisoc.com> | [[RFC] mm: track bad page via kmemleak](https://patchwork.kernel.org/project/linux-mm/patch/1663679468-16757-1-git-send-email-zhaoyang.huang@unisoc.com/) | 678650 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/1663679468-16757-1-git-send-email-zhaoyang.huang@unisoc.com) |
 
@@ -3898,18 +3900,23 @@ v2.5 的时候引入了 shrink 机制, 并提供了 API 统一了各个模块的
 ## 4.4 主动的页面回收(Proactive Reclaim)
 -------
 
+### 4.4.X WSS(Working Set Size Estimation)
+-------
+
+[系统软件工程师必备技能-进程内存的working set size(WSS)测量](https://blog.csdn.net/juS3Ve/article/details/85333717)
+
 
 1.  冷热页区分:  为了能识别那些可以回收的页面, 必须对那些不常用的页面有效地进行跟踪, 即 idle page tracking.
 
 2.  进程内存的 working set size(WSS) 估计: 为了在回收了内存之后还能满足业务的需求, 保障业务性能不下降, 需要能预测出业务运行所需要的实际最小内存. brendangregg 大神对此也有描述, [Working Set Size Estimation](https://www.brendangregg.com/wss.html), 并设计了 wss 工具 [Working Set Size (WSS) Tools for Linux](https://github.com/brendangregg/wss).
 
-Meta(原 Facebook) 开发了 [Senpai](https://github.com/facebookincubator/senpai)
+3.  Meta(原 Facebook) 开发了 [Senpai](https://github.com/facebookincubator/senpai)
+
+4. 2022 International Conference on Service Science (ICSS) 的论文 [eBPF-based Working Set Size Estimation in Memory Management](https://ieeexplore.ieee.org/abstract/document/9860164) 提出了一种基于 eBPF 程序来估计 WSS 的方法.
+
 
 ### 4.4.1 Idle and stale page tracking
 -------
-
-
-[系统软件工程师必备技能-进程内存的working set size(WSS)测量](https://blog.csdn.net/juS3Ve/article/details/85333717)
 
 [Idle and stale page tracking](https://lwn.net/Articles/461461)
 

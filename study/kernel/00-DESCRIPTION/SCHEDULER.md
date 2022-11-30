@@ -4630,7 +4630,99 @@ Energy Model Framework 统一了系统中所有能效的感知模块和设备, �
 | 2022/03/17 | Pierre Gondois <Pierre.Gondois@arm.com> | [Enable EAS for CPPC/ACPI based systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=740fcdc2c20ecf855b36b919d7fa1b872b5a7eae) | 当前的 CPU 能量模型 (EM) 要求了解 CPU 性能状态及其功耗. 但是当前 ACPI/CPPC 的系统并不支持能效模型的初始化. 因此这个补丁提供了支持.<br> 在 ACPI 中, 可以通过以下特定于臂的字段描述 CPU 的功率效率:<br>ACPI 6.4, s5.2.12.14 "GIC CPU Interface (GICC) Structure","Processor Power Efficiency Class field":<br>1. 描述关联处理器的相对电源效率. 较低的效率等级比较高的效率等级更有效(例如, 效率等级 0 应被视为比效率等级 1 更有效).<br>2. 添加 efficiency_class 字段以描述 CPU 的相对功率效率. 依赖此字段的 CPU 将具有人为创建的性能状态(功率和频率值). 这种 EM 将被称为 artificial EM, 被 CPPC 驱动使用. | v1 ☑✓ 5.19-rc1 | [LORE v1,0/3](https://lore.kernel.org/all/20220317133419.3901736-1-Pierre.Gondois@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/all/20220407081620.1662192-1-pierre.gondois@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/2](https://lore.kernel.org/all/20220425123819.137735-1-pierre.gondois@arm.com) |
 
 
-#### 7.2.5.3 Energy Model Management Framework 的改进与优化
+#### 7.2.5.3 如何准确的估计功耗 Energy Estimation
+-------
+
+##### 7.2.5.3.1 Energy Model 的能效数据
+-------
+
+
+DTB 中通过 OPP 字段标记 CPU 的电压及频率信息, 参见 [Documentation/devicetree/bindings/opp](https://www.kernel.org/doc/Documentation/devicetree/bindings/opp). 通过 CPUS 记录 CPU 的拓扑以及 capacity, 电容系数等信息, 参见 [Documentation/devicetree/bindings/arm/cpu-capacity](https://www.kernel.org/doc/Documentation/devicetree/bindings/arm/cpu-capacity.txt), 以及 [Documentation/devicetree/bindings/arm/cpus](https://www.kernel.org/doc/Documentation/devicetree/bindings/arm/cpus.yaml).
+
+
+| DTB 结构 | DTB 字段 | 描述 |
+|:-------:|:--------:|:---:|
+| cpu-map | clutser, core, thread | 标记 CPU 的 topology 信息. |
+|---------|----------|-----|
+| cpus | capacity-dmips-mhz | 标记 CPU 的 capacity. |
+| cpus | dynamic-power-coefficient | 标记 CPU 的电容系数. |
+|---------|----------|-----|
+| opp_table | opp-hz | CPU 频点 |
+| opp_table | opp-microvolt | CPU 对应频点下, 所需要的电压 |
+
+v4.5 实现 [Dynamic power model from device tree](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2f7e8a175db72bdaf377235962fd85796edb3fbc) 时扩展了 CPU DTS 节点, 引入了 dynamic-power-coefficient 字段用来表示动态功率系数(即电容系数), 从而有效地估计功耗.
+
+随后 v4.10 在 [DTS 引入 capacity-dmips-mhz 字段](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=be8f185d8af4dbd450023a42a48c6faa8cbcdfe6), 支持 big.LITTLE 大小核架构配置 CPU Capcity, 添加 [cpu_capacity](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=be8f185d8af4dbd450023a42a48c6faa8cbcdfe6) sysfs 接口, 用于显示 CPU Capacity.
+
+一般来说, PM_OPP 是知道 CPU 可以运行的电压和频率. 当可以将 CPU 的动态功耗估计为:
+
+$Pdyn = C \times V^2 \times f = dynamic-power-coefficient \times V^2 \times f$
+
+其中 C 为其电容系数, 值为 dynamic-power-coefficient, V 和 f 分别为 OPP 的电压和频率.
+
+最早 [Register an Energy Model for Arm reference platforms](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a9a744dd5b82843a9c99d9f97794fb51bc2ed8dd) 为 ARM 架构注册 Energy Model 的时候, [PM / OPP: Introduce a power estimation helper](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a4f342b9607d8c2034d3135cbbb11b4028be3678) 就引入了 `_get_cpu_power()`(随后被改名为 `_get_power()`) 作为 DTB 方式注册的 Energy Model 的 active_power() callback.
+
+em_create_perf_table() 的过程中, 调用 cb->active_power() callback, 计算设备对应的能耗. 对于通过 DTB 注册的 CPU Energy Model 来说, 就是根据电容系数 dynamic-power-coefficient, 每个 frequency 及其对应的电压数据, 推算出其功耗 power.
+
+
+##### 7.2.5.3.2 EAS 如何计算(估计)当前 CPU 的能耗
+-------
+
+EAS 的 Energy Model 为了快速的计算功耗, 缓存了[每个 performance state 的 cost](https://elixir.bootlin.com/linux/v5.0/source/kernel/power/energy_model.c#L96).
+
+$cost_{frequency} = power \times \frac{max\_frequency}{frequency}$
+
+已知当前 CPU 的能效数据:
+
+最大频点 $max\_frequency$, 以及每个频点 frequency 下对应的功耗数据 power;
+
+以及当前 CPU 在 $max\_frequency$ 下所能提供的最大 capacity 为 $scale\_cpu$
+
+则, 在对应频点 frequency 下, 当前 CPU 所能提供的 capacity 为:
+
+$capacity = scale\_cpu \times \frac{frequency}{max\_frequency}$
+
+在对应频点 frequency 下, 假设 CPU utilization 为 cpu\_util, 则当前 CPU 的功耗为:
+
+$$
+energy
+= \frac{power \times cpu\_util}{capacity}
+= \frac{power \times max\_frequency}{freq} \times \frac{cpu\_util}{scale\_cpu}
+= cost_{frequency} \times \frac{cpu\_util}{scale\_cpu}
+$$
+
+
+em_cpu_energy() 正式通过这种计算方式估计指定 CPU (scale_cpu 一定) 在特定 CPU utilization 和频率下的功耗.
+
+随后 v5.19 [Introduce support for artificial Energy Model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=985a67709a66c456414182ed179544786e00321e) 允许 Energy Model 通过 [EM_PERF_DOMAIN_ARTIFICIAL 手动指定设备的 cost](https://elixir.bootlin.com/linux/v5.19/source/kernel/power/energy_model.c#L384), em_create_perf_table() 过程中[可以使用 get_cost() 来获取](https://elixir.bootlin.com/linux/v5.19/source/kernel/power/energy_model.c#L164) 对应的 cost.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:---:|:----:|:---:|:---------:|:----:|
+| 2022/03/16 | Lukasz Luba <lukasz.luba@arm.com> | [Introduce support for artificial Energy Model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=985a67709a66c456414182ed179544786e00321e) | 对于无法计算实际功耗的平台和设备, 允许通过 [EM_PERF_DOMAIN_ARTIFICIAL 手动指定设备的 cost](https://elixir.bootlin.com/linux/v5.19/source/kernel/power/energy_model.c#L384), em_create_perf_table() 过程中[可以使用 get_cost() 来获取](https://elixir.bootlin.com/linux/v5.19/source/kernel/power/energy_model.c#L164) 对应的 cost. |v1 ☑✓ 5.19-rc1 | [LORE v1,0/8](https://lore.kernel.org/all/20220316235211.29370-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE RESEND,0/8](https://lore.kernel.org/all/20220321095729.20655-1-lukasz.luba@arm.com) |
+
+
+##### 7.2.5.3.3 Energy Model 与 CPUFreq Governor 的协同预测
+-------
+
+根据前面 em_cpu_energy() 中计算 CPU 的功耗的算法, 可知, 对于指定 CPU, 其 $scale\_cpu$ 是一定的(不考虑限频的影响), 还需要给出出 CPU utilization 以及对应的频点 frequency 信息.
+
+EAS 通过 feec 为进程选择能效最优的 CPU, 就需要不断地预测将进程放到不同 CPU 后系统能耗的变化, 为了估计进程迁移带来的 CPU utilization 变化所造成的功耗影响, 就需要同步了解 CPU utilization 变化对 frequency 的影响. 简言之就是: 将性能域中利用率的最高 CPU 的 utilization 映射到请求的 frequency, 比如 schedutil.
+
+EAS 合入的时候, 使用 map_util_freq() 将 util 按照 schedutil 的调频策略换算到待调的 freq, 这被同时用来 schedutil 的 get_next_freq() 以及 Energy Model 的 em_pd_energy()( 曾经的 em_cpu_energy()).
+
+[commit 938e5e4b0d15 ("sched/cpufreq: Prepare schedutil for Energy Aware Scheduling")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=938e5e4b0d1502a93e787985cb95b136b40717b7) schedutil 中 get_next_freq() 通过 map_util_freq() 将 util 转换到待调的 freq.
+
+[commit 27871f7a8a34 ("PM: Introduce an Energy Model management framework")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=27871f7a8a341ef5c636a337856369acf8013e4e) 将 map_util_freq() 同时用来 em_pd_energy() 中 [根据 util 转换的待调频率估计功耗](https://elixir.bootlin.com/linux/v5.0/source/include/linux/energy_model.h#L94).
+
+但是此时并没有温控等因素, 并没有考虑到实际频率可能比设置的要低. 因此, v5.14 [commit ("sched/cpufreq: Consider reduced CPU capacity in energy calculation")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8f1b971b4750e83e8fbd2f91a9efd4a38ad0ae51) 在 em_cpu_energy() 引入参数 allowed_cpu_cap 指示限频后允许的 CPU 最大 Capacity , 在计算有效频率之前, [将 max_util 限定在 allowed_cpu_cap 以内](https://elixir.bootlin.com/linux/v5.14/source/include/linux/energy_model.h#L127). 同时引入了 [map_util_perf()](https://elixir.bootlin.com/linux/v5.14/source/kernel/sched/cpufreq_schedutil.c#L153) 和 [map_util_freq()](https://elixir.bootlin.com/linux/v5.14/source/kernel/sched/cpufreq_schedutil.c#L154) 辅助工作. 其中 [map_util_perf()](https://elixir.bootlin.com/linux/v5.14/source/include/linux/sched/cpufreq.h#L34) 将 util 放缩 1.25 倍, 而 [map_util_freq()](https://elixir.bootlin.com/linux/v5.14/source/include/linux/sched/cpufreq.h#L29) 则仅仅将 util 直接 scale 到 freq 上.
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/06/14 | Lukasz Luba <lukasz.luba@arm.com> | [Add allowed CPU capacity knowledge to EAS](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8f1b971b4750e83e8fbd2f91a9efd4a38ad0ae51) | TODO | v4 ☐☑✓ 5.14-rc1 | [LORE v4,0/3](https://lore.kernel.org/all/20210614185815.15136-1-lukasz.luba@arm.com) |
+
+
+#### 7.2.5.4 Energy Model Management Framework 的改进与优化
 -------
 
 通过感知系统中关键设备的能效信息, 内核中的性能的几个关键子系统 (比如调度器和热) 都可以获益. 然而, 这些信息可以以不同的格式来自不同的来源(例如 DT 或固件), 因此在没有标准 API 的情况下很难利用它. 为了解决这个问题, 引入一个集中的能效模型管理框架, 该框架将驱动程序提供的功率值聚集到系统中每个性能域的表中. power cost tables 可以通过平台无关的 API 提供给任何对能效感兴趣的的模块(比如, 调度器和热).
@@ -4651,15 +4743,49 @@ v5.0 [EAS(Energy Aware Scheduling)](https://git.kernel.org/pub/scm/linux/kernel/
 | 获取设备的 performance domain | NA | [em_pd_get()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1bc138c622959979eb547be2d3bbc6442a5c80b0) |
 | 获取 CPU 的 performance domain | em_cpu_get() | NA |
 
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:-----:|:---:|:----:|:---:|:---------:|:----:|
 | 2018/12/03 | Quentin Perret <quentin.perret@arm.com> | [PM: Introduce an Energy Model management framework](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=27871f7a8a341ef5c636a337856369acf8013e4e) | [Energy Aware Scheduling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=732cd75b8c920d3727e69957b14faa7c2d7c3b75) 能效感知的调度器 EAS 的其中一个补丁, 实现了 Energy Model Management Framework. | v10 ☑ 5.0-rc1 | [LORE v10,00/15](https://lore.kernel.org/lkml/20181203095628.11858-1-quentin.perret@arm.com) |
 | 2020/05/27 | Lukasz Luba <lukasz.luba@arm.com> | [PM / EM: update callback structure and add device pointer](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d0351cc3b0f57214d157e4d589564730af2aedae) | [Add support for devices in the Energy Model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0e0ffa855d1590e54ec0033404a49e2e57e294fe) 能效模型支持各类其他设备时的其中几个补丁. 由于不再只是支持 CPU, 因此各类 API 中添加了对 struct device 的支持. | v8 ☑✓ 5.9-rc1 | [LORE v8,0/8](https://lore.kernel.org/all/20200527095854.21714-1-lukasz.luba@arm.com), [关注 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d0351cc3b0f57214d157e4d589564730af2aedae) |
 | 2020/11/03 | Lukasz Luba <lukasz.luba@arm.com> | [Clarify abstract scale usage for power values in Energy Model, EAS and IPA](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b56a352c0d3ca4640c3c6364e592be360ac0d6d4) | 能效模型开始使用一个统一抽象的 scale 值来表示功耗的值.<br> 不同的平台和设备之间计算功耗可能使用不同的 scale. 内核子系统可能需要检查所有能量模型 (EM) 设备是否使用相同的规模. 解决该问题并将每个设备的信息存储在 EM 中.<br> 通过 em_dev_register_perf_domain() 最后一个参数"milliwatts"(毫瓦) 设置为功耗单位的标记, EAS、IPA 和 DTPM(新的混合 PowerCap 框架) 等核心子系统将使用新的标志来捕获设备注册时是否使用了不同功率等级. 任何使用 EM 的内核 子系统可能会依赖这个标志来检查所有的 EM 设备是否使用相同的刻度. 如果有不同的刻度, 这些子系统可能决定: 返回警告 / 错误, 停止工作或崩溃 (panic). | v4 ☑✓ 5.11-rc1 | [LORE 1/2](https://lore.kernel.org/linux-doc/20200929121610.16060-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3]https://lore.kernel.org/all/20201002114426.31277-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/all/20201019140601.3047-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/4](https://lore.kernel.org/all/20201103090600.29053-1-lukasz.luba@arm.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c250d50fe2ce627ca9805d9c8ac11cbbf922a4a6) |
 | 2021/06/25 | Lukasz Luba <lukasz.luba@arm.com> | [Improve EAS energy estimation and increase precision](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7fcc17d0cb12938d2b3507973a6f93fc9ed2c7a1) | 增加能耗的计算精度, 防止因为四舍五入等造成的误差. | v1 ☑✓ 5.15-rc1 | [LORE v1,0/3](https://lore.kernel.org/all/20210625152603.25960-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/all/20210720094153.31097-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3](https://lore.kernel.org/all/20210803102744.23654-1-lukasz.luba@arm.com) |
-| 2021/09/08 | Vincent Donnefort <vincent.donnefort@arm.com> | [Inefficient OPPs](https://lore.kernel.org/all/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) | TODO | v7 ☑✓ 5.16-rc1 | [LORE v7,0/9](https://lore.kernel.org/all/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/7](https://lore.kernel.org/all/1630405453-275784-1-git-send-email-vincent.donnefort@arm.com) |
-| 2022/03/16 | Lukasz Luba <lukasz.luba@arm.com> | [Introduce support for artificial Energy Model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=985a67709a66c456414182ed179544786e00321e) | TODO |v1 ☑✓ 5.19-rc1 | [LORE v1,0/8](https://lore.kernel.org/all/20220316235211.29370-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE RESEND,0/8](https://lore.kernel.org/all/20220321095729.20655-1-lukasz.luba@arm.com) |
 | 2022/07/07 | Lukasz Luba <lukasz.luba@arm.com> | [Energy Model power in micro-Watts and SCMI v3.1 alignment](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f3ac888fc5fbdeeec1e084327de06a2765542d56) | TODO | v3 ☑✓ 6.0-rc1 | [LORE 0/4](https://lore.kernel.org/all/20220622145802.13032-1-lukasz.luba@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/all/20220707071555.10085-1-lukasz.luba@arm.com) |
+
+
+#### 7.2.5.5 Inefficient OPPs
+-------
+
+
+通常的硬件平台, 能效(性能功耗比)往往随着频率的增长而降低. 但这在实践中并不总是正确的, 总会出现一些拐点, 因此在 EAS 最早实现 Energy Model 的时候, 如果较高的 OPP 比较低的 OPP 更省电, 则选择[直接警告用户](https://elixir.bootlin.com/linux/v5.0/source/kernel/power/energy_model.c#L88).
+
+但是从 CPU Energy 的估计公式, 可以看出来, $freq / power$ 的拐点本质可以从 cost 的拐点体现出来. v5.16 实现了 [Inefficient OPPs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e458716a92b57f854deb89bb40aa3554c2b6205e) 通过将这些拐点识别出来, 标记为 EM_PERF_STATE_INEFFICIENT. 如果一个低频点的 cost 比一个高频点的 cost 还要大, 则认为它是 Inefficient 的. 那么调频时我们应该跳过这些频点.
+
+```cpp
+static struct em_perf_domain *em_create_pd(cpumask_t *span, int nr_states,
+						struct em_data_callback *cb)
+{
+	// ......
+        /*
+         * The hertz/watts efficiency ratio should decrease as the
+         * frequency grows on sane platforms. But this isn't always
+         * true in practice so warn the user if a higher OPP is more
+         * power efficient than a lower one.
+         */
+        opp_eff = freq / power;
+        if (opp_eff >= prev_opp_eff)
+                pr_warn("pd%d: hertz/watts ratio non-monotonically decreasing: em_cap_state %d >= em_cap_state%d\n",
+                        cpu, i, i - 1);
+        prev_opp_eff = opp_eff;
+}
+```
+
+
+[](https://elixir.bootlin.com/linux/v5.0/source/kernel/power/energy_model.c#L88)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:---:|:----:|:---:|:---------:|:----:|
+| 2021/09/08 | Vincent Donnefort <vincent.donnefort@arm.com> | [Inefficient OPPs](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e458716a92b57f854deb89bb40aa3554c2b6205e) | TODO | v7 ☑✓ 5.16-rc1 | [LORE v7,0/9](https://lore.kernel.org/all/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/7](https://lore.kernel.org/all/1630405453-275784-1-git-send-email-vincent.donnefort@arm.com) |
 
 
 #### 7.2.5.4 Dynamic Energy Model to handle leakage power
@@ -4683,23 +4809,13 @@ LPC-2022 [Dynamic Energy Model to handle leakage power](https://lpc.events/event
  energy model](https://lore.kernel.org/all/cover.1628682874.git.viresh.kumar@linaro.org) | TODO | v2 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/cover.1628579170.git.viresh.kumar@linaro.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/9](https://lore.kernel.org/all/cover.1628682874.git.viresh.kumar@linaro.org) |
 
 
-#### 7.2.5.5 em_cpu_energy
+
+
+#### 7.2.5.6 Energy Model Debugfs
 -------
 
-为了预测性能状态, 将性能域中利用率最高的 CPU 的利用率映射到请求的频率, 比如 schedutil.
+Energy Model Framework 提供了 sysfs 接口 `/sys/kernel/debug/energy_model` 帮助用户查阅 CPU 的能效表信息.
 
-
-EAS 合入的时候, 使用 map_util_freq() 将 util 按照 schedutil 的调频策略换算到待调的 freq, 这被同时用来 schedutil 的 get_next_freq() 以及 Energy Model 的 em_pd_energy()( 曾经的 em_cpu_energy()).
-
-[commit 938e5e4b0d15 ("sched/cpufreq: Prepare schedutil for Energy Aware Scheduling")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=938e5e4b0d1502a93e787985cb95b136b40717b7) schedutil 中 get_next_freq() 通过 map_util_freq() 将 util 转换到待调的 freq.
-
-[commit 27871f7a8a34 ("PM: Introduce an Energy Model management framework")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=27871f7a8a341ef5c636a337856369acf8013e4e) 将 map_util_freq() 同时用来 em_pd_energy() 中 [根据 util 转换的待调频率估计功耗](https://elixir.bootlin.com/linux/v5.0/source/include/linux/energy_model.h#L94).
-
-但是此时并没有温控等因素, 并没有考虑到实际频率可能比设置的要低. 因此, v5.14 [commit ("sched/cpufreq: Consider reduced CPU capacity in energy calculation")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8f1b971b4750e83e8fbd2f91a9efd4a38ad0ae51) 在 em_cpu_energy() 引入参数 allowed_cpu_cap 指示限频后允许的 CPU 最大 Capacity , 在计算有效频率之前, [将 max_util 限定在 allowed_cpu_cap 以内](https://elixir.bootlin.com/linux/v5.14/source/include/linux/energy_model.h#L127). 同时引入了 [map_util_perf()](https://elixir.bootlin.com/linux/v5.14/source/kernel/sched/cpufreq_schedutil.c#L153) 和 [map_util_freq()](https://elixir.bootlin.com/linux/v5.14/source/kernel/sched/cpufreq_schedutil.c#L154) 辅助工作. 其中 [map_util_perf()](https://elixir.bootlin.com/linux/v5.14/source/include/linux/sched/cpufreq.h#L34) 将 util 放缩 1.25 倍, 而 [map_util_freq()](https://elixir.bootlin.com/linux/v5.14/source/include/linux/sched/cpufreq.h#L29) 则仅仅将 util 直接 scale 到 freq 上.
-
-| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/06/14 | Lukasz Luba <lukasz.luba@arm.com> | [Add allowed CPU capacity knowledge to EAS](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8f1b971b4750e83e8fbd2f91a9efd4a38ad0ae51) | TODO | v4 ☐☑✓ 5.14-rc1 | [LORE v4,0/3](https://lore.kernel.org/all/20210614185815.15136-1-lukasz.luba@arm.com) |
 
 
 ### 7.2.6 IPA(Thermal 管控)
