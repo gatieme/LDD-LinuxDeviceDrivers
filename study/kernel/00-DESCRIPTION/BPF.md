@@ -390,6 +390,13 @@ raw_tracepoint 相比 tracepoint
 [Toward signed BPF programs](https://lwn.net/Articles/853489)
 
 
+# 4 子系统支持
+-------
+
+[Innovative HID-BPF Expected To Land In Linux 6.2](https://www.phoronix.com/news/Linux-6.2-HID-BPF-Expected)
+
+[](https://www.phoronix.com/news/Linux-eBPF-For-HID)
+
 # 5 网络场景
 -------
 

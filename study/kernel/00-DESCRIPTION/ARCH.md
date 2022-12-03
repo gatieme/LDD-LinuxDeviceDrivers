@@ -65,6 +65,12 @@ blogexcerpt: 虚拟化 & KVM 子系统
 ### 1.1.1 split lock detect
 -------
 
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2021/02/08 | [Detecting and handling split locks](https://lwn.net/Articles/790464) | [LWN：检测Intel CPU的split locks以及阻止攻击](https://blog.csdn.net/Linux_Everything/article/details/93270786) |
+| 2019/12/06 | [Developers split over split-lock detection](https://lwn.net/Articles/806466) | [LWN：开发者争论split-lock检测机制！](https://blog.csdn.net/Linux_Everything/article/details/103640683) |
+
+
 [字节跳动技术团队的博客--深入剖析 split locks, i++ 可能导致的灾难](https://blog.csdn.net/ByteDanceTech/article/details/124701175)
 
 拆分锁是指原子指令对跨越多个高速缓存行的数据进行操作. 由于原子性质, 在两条高速缓存行上工作时需要全局总线锁, 这反过来又会对整体系统性能造成很大的性能影响.
@@ -181,20 +187,40 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 #### 1.4.1.3 ITMT SMT migration Improvement
 -------
 
-Intel 在 LPC-2022 演示 [Bringing Energy-Aware Scheduling to x86](https://lpc.events/event/16/contributions/1275) 时, 对 ITMT 的改进一并进行了阐述. LWN 也对此进行了讲解 [Hybrid scheduling gets more complicated](https://lwn.net/Articles/909611).
+ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如, 支持 Intel ITMT 3.0 和混合处理器的英特尔处理器) 以及物理核心的 SMT 兄弟(例如, Power7). 这项机制对于后者来说工作地不错, 但是对于前者的支持, 不慎友好, 特别是在混合了高性能的 P-core 以及高能效的 E-core 的混合处理器(比如 Alder Lake)上, 这引发了 CPU 之间不必要甚至是错误的迁移.
 
-自 v4.10 开始, 英特尔的 ITMT 技术支持 ASYM_PACKING, 使得调度程序更喜欢 P-core 而不是 E-cores. 这产生了在可能的情况下将进程放在更快更强劲的 P-core 上的效果. 但是 Alder Lake 等混合架构的 CPU, P-core 支持 SMT, E-core 不支持 SMT. 这样 CPU 的选择顺序应该倾向于 P-core(ST) > E-core > p-core(HT/SMT), 即调度器应该先尝试 P-core, 其次是 E-core, 最后才是 P-core/E-core 的 SMT 兄弟 CPU, 但是调度器并没有意识到这点, 它也会在 P-core 不满足要求时, 优先加载了 P-core 同级的 SMT 兄弟 CPU, 而不是尝试 E-cores. 从而导致整体性能的下降. 这已于 v5.16 [commit 4006a72bdd93 ("sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4006a72bdd93b1ffedc2bd8646dee18c822a2c26) 修复. 其解决方案是:
+自 v4.10 开始, 支持 ITMT 的 Intel 处理器使用 ASYM_PACKING 将更高的优先级分配给可以 Boost 的 CPU. 它通过将较低的优先级分配给编号较高的 SMT 兄弟节点, 以确保它们最后使用.
+
+* 错误的优先级标记, 导致错误的迁移.
+
+首先发现 ITMT 标记 HT/SMT CPU 优先级的算法存在问题, 它使得调度程序更喜欢 P-core 而不是 E-cores. 调度器的本意是在可能的情况下将进程放在更快更强劲的 P-core 上的效果. 但是事实情况是: 如果 CPU 的一个或多个 SMT 兄弟 CPU 都很繁忙, 那么 CPU 的吞吐量就会降低. 因此, 完全空闲的低优先级 CPU 比拥有繁忙 SMT 兄弟节点的高优先级 CPU 更受欢迎. 对于 Alder Lake 等混合架构的 CPU, P-core 支持 SMT, E-core 不支持 SMT. 这样 CPU 的选择顺序应该倾向于 P-core(ST) > E-core > p-core(HT/SMT), 即调度器应该先尝试 P-core, 其次是 E-core, 最后才是 P-core/E-core 的 SMT 兄弟 CPU, 但是调度器并没有意识到这点, 它也会在 P-core 不满足要求时, 优先加载了 P-core 同级的 SMT 兄弟 CPU, 而不是尝试 E-cores. 从而导致整体性能的下降.
+
+因此 v5.16 [commit 4006a72bdd93 ("sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4006a72bdd93b1ffedc2bd8646dee18c822a2c26) 修复. 其解决方案是修正 SMT 兄弟 CPU 的优先级分配, 使得 P-core(SMT) 比 E-core 的优先级更低.
 
 1. [commit 183b8ec38f1e ("x86/sched: Decrease further the priorities of SMT siblings")"](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=183b8ec38f1ec6c1f8419375303bf1d09a2b8369) 修改了 ITMT 下 sched_core_priority 中 smt_prio 的计算方式, HT 的优先级永远比 ST 的 core 要低, 从而保证 P-core 的 HT 优先级比 E-core 要低. 这样负载平衡器将选择高优先级的 P-core (Intel Core) 而不是中优先级的 E-core (Intel Atom), 最后才将负载溢出到低优先级的 SMT 同级 CPU.
 
 2. [commit 4006a72bdd93 ("sched/fair: Consider SMT in ASYM_PACKING load balance")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4006a72bdd93b1ffedc2bd8646dee18c822a2c26) 当决定在 ASYM_PACKING 中提取任务时, 不仅需要检查 dst CPU 的空闲状态, 还需要检查其同级 SMT CPU 的空闲状态. 如果 dst CPU 处于空闲状态, 但其同级 SMT CPU 处于繁忙状态, 则如果将任务从没有 SMT 中等优先级 CPU(比如 AderLake 的 E-core)中 PULL 过来, 性能必然会受到影响. 实现 [asym_smt_can_pull_tasks()](https://elixir.bootlin.com/linux/v5.16/source/kernel/sched/fair.c#L8492) 以检查候选最忙组中 dst CPU 和 CPU 的同级 SMT 的状态.
 
+2. 不感知 SMT 兄弟 CPU 的状态, 导致不必要的迁移.
 
+但是测试发现, v5.16 优先级的修复, 只是一定程度缓解了问题, 修正了 HT 和 SMT CPU 的次序, 优先 P-core(HT) -=> E-core(HT, 不支持 SMT) -=> P-core(SMT). 但是 E-core 和 P-core(SMT) 在判断是否进行迁移时, 并不感知 SMT CORE 上其他兄弟 CPU 实际的工作状态. 系统中依旧存在异常的进程迁移.
+
+现在 ASYM_PACKING 的实现, x86 初始化 ITMT 时通过 [sched_set_itmt_core_prio()](https://elixir.bootlin.com/linux/v6.0/source/arch/x86/kernel/itmt.c#L189) 为编号较高的 SMT 兄弟节点分配较低的优先级 [arch_asym_cpu_priority()](https://elixir.bootlin.com/linux/v6.0/source/arch/x86/kernel/itmt.c#L199). 但是实际上, CPU Core 的任何 SMT 兄弟之间没有区别.
+
+因此其实为每个 SMT 兄弟分配不同的优先级是非常不合理的. 相反, 应该调整 ASYM_PACKING 的负载均衡逻辑, 标记出 SMT 兄弟的状态, 如果有多个繁忙兄弟的 SMT CPU, 则[低优先级 CPU 的 E-core 将积极地从高优先级的 P-core 中提取任务](https://lore.kernel.org/lkml/20220825225529.26465-4-ricardo.neri-calderon@linux.intel.com). 随后 Ricardo Neri 向社区发送了修复方案 [sched/fair: Avoid unnecessary migrations within SMT domains v1,0/4](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com).
+
+在 Peter 的建议下, [v2, 0/4](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com) 采用了开始跟踪 SMT CPU 的状态, 通过调整 sym_pack 负载均衡逻辑, arch_asym_cpu_priority() 中[通过 sched_smt_siblings_idle() 考虑 CPU 的 SMT 兄弟节点的空闲状态](https://lore.kernel.org/lkml/20221122203532.15013-8-ricardo.neri-calderon@linux.intel.com). 参见 phoronix 报道 [Intel Posts Reworked Linux Patches To Improve Hybrid CPU + HT/SMT Kernel Behavior](https://www.phoronix.com/news/Intel-SMT-Hybrid-Avoid-Migrate).
+
+不再对 SMT 的兄弟 CPU [标记不同的优先级](https://lore.kernel.org/lkml/20221122203532.15013-8-ricardo.neri-calderon@linux.intel.com), 也不再通过 ASYM_PACKING 指导 SMT 之间的负载均衡, 这可以避免多余的迁移.
+
+通过 [find_busiest_group()](https://lore.kernel.org/lkml/20221122203532.15013-2-ricardo.neri-calderon@linux.intel.com) 让低优先级的核检查所有 SMT 兄弟节点以找到最繁忙的队列. 这对于支持 Intel Thread Director 的 IPC Classes 也是必需的, 因为目标 CPU 将需要检查在相同优先级 CPU 上运行的任务.
+
+当然这组补丁集不会影响原来 Power7 SMT8 的 ASYM_PACKING 逻辑. 对于没有实现 sched_ferences_asym() 的 新 check_smt 参数的架构, 功能不会改变.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/09/10 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4006a72bdd93b1ffedc2bd8646dee18c822a2c26) | 参见 [Fixing a corner case in asymmetric CPU packing](https://lwn.net/Articles/880367), 在使用非对称封装(ASM_PACKING)时, 可能存在具有三个优先级的 CPU 拓扑, 其中只有物理核心的子集支持 SMT. 这种架构下 ASM_PACKING 和 SMT 以及 load_balance 都存在冲突.<br>这种拓扑的一个实例是 Intel Alder Lake. 在 Alder Lake 上, 应该通过首先选择 Core(酷睿) cpu, 然后选择 Atoms, 最后再选择 Core 的 SMT 兄弟 cpu 来分散工作. 然而, 当前负载均衡器的行为与使用 ASYM_PACKING 时描述的不一致. 负载平衡器将选择高优先级的 CPU (Intel Core) 而不是中优先级的 CPU (Intel Atom), 然后将负载溢出到低优先级的 SMT 同级 CPU. 这使得中等优先级的 Atoms cpu 空闲, 而低优先级的 cpu sibling 繁忙.<br>1. 首先改善了 SMT 中 sibling cpu 优先级的计算方式, 它将比单个 core 优先级更低.<br>2. 当决定目标 CPU 是否可以从最繁忙的 CPU 提取任务时, 还检查执行负载平衡的 CPU 和最繁忙的候选组的 SMT 同级 CPU 的空闲状态. | v5 ☑ 5.16-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1408312)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1413015)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3 0/6](https://lore.kernel.org/patchwork/cover/1428441)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,0/6](https://lore.kernel.org/patchwork/cover/1474500)<br>*-*-*-*-*-*-*-* <br>[LKML v5,0/6](https://lkml.org/lkml/2021/9/10/913), [LORE v5,0/6](https://lore.kernel.org/all/20210911011819.12184-1-ricardo.neri-calderon@linux.intel.com) |
-| 2022/08/25 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Avoid unnecessary migrations within SMT domains](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com) | TODO | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/lkml/20221122203532.15013-1-ricardo.neri-calderon@linux.intel.com) |
+| 2022/08/25 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Avoid unnecessary migrations within SMT domains](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com) | TODO | v1 ☐☑✓ | [2022/08/25 LORE v1,0/4](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2022/11/22 LORE v2,0/7](https://lore.kernel.org/lkml/20221122203532.15013-1-ricardo.neri-calderon@linux.intel.com) |
 
 
 #### 1.4.1.3 Intel Thread Director (ITD)
@@ -206,11 +232,9 @@ Intel 在 LPC-2022 演示 [Bringing Energy-Aware Scheduling to x86](https://lpc.
 
 首先 v5.18, Intel 先完成了对 HFI 硬件的支持. [Intel Hardware Feedback Interface "HFI" Driver Submitted For Linux 5.18](https://www.phoronix.com/news/Intel-HFI-Thermal-Linux-5.18).
 
-随后 Intel 发布了 Linux 上 Thread-Driector 的支持补丁. [Intel Posts Big Linux Patch Set For "Classes of Tasks" On Hybrid CPUs, Thread Director](https://www.phoronix.com/news/Intel-Linux-Classes-Of-Tasks-TD). 并随后在 LPC-2022 做了主题为 [Bringing Energy-Aware Scheduling to x86](https://lpc.events/event/16/contributions/1275) 的演示. phoronix 随即进行了报道 [Intel Working On Energy Aware Scheduling For x86 Hybrid CPUs](https://www.phoronix.com/news/Intel-x86-EAS-To-Come).
+随后 Intel 发布了 Linux 上 Thread-Driector 的支持补丁. [Intel Posts Big Linux Patch Set For "Classes of Tasks" On Hybrid CPUs, Thread Director](https://www.phoronix.com/news/Intel-Linux-Classes-Of-Tasks-TD). 并随后在 LPC-2022 做了主题为 [Bringing Energy-Aware Scheduling to x86](https://lpc.events/event/16/contributions/1275) 的演示. phoronix 随即进行了报道 [Intel Working On Energy Aware Scheduling For x86 Hybrid CPUs](https://www.phoronix.com/news/Intel-x86-EAS-To-Come). 随后 LWN 对此进行了讨论 [Hybrid scheduling gets more complicated](https://lwn.net/Articles/909611).
 
-随后 LWN 对此进行了讨论 [Hybrid scheduling gets more complicated](https://lwn.net/Articles/909611).
-
-
+随后发布了 v2, 参见 phoronix 报道 [Intel Advances Linux "IPC Classes" Design To Improve Load Balancing For Hybrid CPUs](https://www.phoronix.com/news/Intel-IPC-Classes-Post-RFC).
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -1023,6 +1047,7 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 [AMD Making It Easier To Switch To Their New P-State CPU Frequency Scaling Driver](https://www.phoronix.com/news/AMD-Easier-P-State-Usage)
 [AMD P-State EPP Driver Updated For More Power/Performance Control On Linux](https://www.phoronix.com/news/AMD-P-State-EPP-v4)
 [New Patches Allow More Easily Managing The AMD P-State Linux Driver](https://www.phoronix.com/news/AMD-P-State-Built-In-Options)
+[Linux 6.1-rc7 Makes It Easier To Manage The AMD P-State Driver](https://www.phoronix.com/news/Linux-6.1-rc7-Easier-AMD-Pstate)
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|

@@ -3340,6 +3340,7 @@ MGLRU 的开发者在 LPC-2022 上演示了 MGLRU [Multi-Gen LRU: Current Status
 | 2022/09/11 | Yuanchu Xie <yuanchu@google.com> | [mm: multi-gen LRU: per-process heatmaps](https://patchwork.kernel.org/project/linux-mm/cover/20220911083418.2818369-1-yuanchu@google.com/) | MGLRU debugfs 接口(`/sys/kernel/debug/lru_gen`) 提供了一个统计属于每一代的页面数量的直方图, 提供了一些内存冷量数据, 但我们实际上不知道内存实际在哪里, 通过 BPF 程序连接到 MGLRU 页表访问位获取, 以收集有关相对 HOT 和 COLD、NUMA 节点以及页是否为 anon/file 等的信息. 使用 BPF 程序收集和聚合页面访问信息允许用户空间代理自定义收集什么以及如何聚合. 它可以关注特定的兴趣区域, 并计算移动平均访问频率, 或者找到从未访问过的分配, 这些分配可以一起消除. 目前, MGLRU 依赖于关于页面被分配到哪一代的启发式方法, 例如, 通过页面表访问的页面总是被分配给最年轻的一代. 公开页面访问数据可以允许未来的工作自定义页面生成分配(使用更多 BPF). | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/all/20220911083418.2818369-1-yuanchu@google.com) |
 | 2022/09/18 | Yu Zhao <yuzhao@google.com> | [[v14-fix,01/11] mm: multi-gen LRU: update admin guide](https://patchwork.kernel.org/project/linux-mm/patch/20220918204755.3135720-1-yuzhao@google.com/) | 677981 | v1 ☐☑ | [LORE v1,0/11](https://lore.kernel.org/r/20220918204755.3135720-1-yuzhao@google.com) |
 | 2022/09/20 | zhaoyang.huang <zhaoyang.huang@unisoc.com> | [[RFC] mm: track bad page via kmemleak](https://patchwork.kernel.org/project/linux-mm/patch/1663679468-16757-1-git-send-email-zhaoyang.huang@unisoc.com/) | 678650 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/1663679468-16757-1-git-send-email-zhaoyang.huang@unisoc.com) |
+| 2022/12/01 | Yu Zhao <yuzhao@google.com> | [mm: multi-gen LRU: memcg LRU](https://lore.kernel.org/all/20221201223923.873696-1-yuzhao@google.com) | TODO | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20221201223923.873696-1-yuzhao@google.com) |
 
 
 
@@ -3890,6 +3891,11 @@ v2.5 的时候引入了 shrink 机制, 并提供了 API 统一了各个模块的
 -------
 
 [Facebook Developing THP Shrinker To Avoid Linux Memory Waste](https://www.phoronix.com/news/Linux-THP-Shrinker)
+
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2022/09/08 | [The transparent huge page shrinker](https://lwn.net/Articles/906511) | [LWN：针对透明巨页的shrinker！](https://blog.csdn.net/Linux_Everything/article/details/127020244) |
+
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
