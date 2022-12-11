@@ -1,0 +1,38 @@
+flowchart TB
+
+        subgraph SelectRQ [触发选核--被动负载均衡]
+        direction TB
+                FORK[__do_fork] --> wake_up_new_task(wake_up_new_task)
+                wake_up_new_task --WF_TTWU--> select_task_rq{select_task_rq}
+
+                WAKEUP[wakeup_process] --> try_to_wake_up(try_to_wake_up)
+                try_to_wake_up --WF_TTWU--> select_task_rq{select_task_rq}
+
+
+                EXEC[do_exec] --> sched_exec(sched_exec)
+                sched_exec --WF_EXEC--> select_task_rq{select_task_rq}
+
+                select_task_rq --> select_task_rq_fair(select_task_rq_fair)
+        end
+
+        select_task_rq_fair --WF_TTWU && sched_energy_enabled--> find_energy_efficient_cpu;
+        select_task_rq_fair --want_affine && SD_WAKE_AFFINE && WF_TTWU--> select_idle_sibling;
+        select_task_rq_fair --> find_idlest_cpu;
+
+        subgraph FEEC [唤醒路径的能效感知]
+        direction TB
+                find_energy_efficient_cpu --> compute_energy;
+        end
+
+        subgraph FIC [慢速路径]
+        direction TB
+                find_idlest_cpu --> find_idlest_group;
+                find_idlest_cpu --> find_idlest_group_cpu;
+        end
+
+        subgraph SIS [唤醒快速路径]
+        direction TB
+                select_idle_sibling --> select_idle_capacity
+                select_idle_sibling --> select_idle_smt
+                select_idle_sibling --> select_idle_cpu;
+        end
