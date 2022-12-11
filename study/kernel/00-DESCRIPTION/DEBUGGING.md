@@ -663,6 +663,18 @@ Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM F
 | 2022/10/17 | Masahiro Yamada <masahiroy@kernel.org> | [Remove Intel compiler support](https://lore.kernel.org/all/20221016182349.49308-1-masahiroy@kernel.org) | TODO | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221016182349.49308-1-masahiroy@kernel.org) |
 
 
+## 13.10 编译选项
+-------
+
+
+### 13.10.1 -funsigned-char
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/10/19 | Jason A. Donenfeld <Jason@zx2c4.com> | [kbuild: treat char as always unsigned](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc753c06dd02a3517c9b498e3846ebfc94ac3ee) | [Linux 6.2 Looks To Enable "-funsigned-char" To Better Deal With Buggy Code](https://www.phoronix.com/news/Linux-6.2-funsigned-char) | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221019203034.3795710-1-Jason@zx2c4.com) |
+
+
 
 # 14 FTRACE
 -------

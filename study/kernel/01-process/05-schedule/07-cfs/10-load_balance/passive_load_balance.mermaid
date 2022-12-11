@@ -1,0 +1,13 @@
+graph TB
+        FORK[__do_fork] --> wake_up_new_task(wake_up_new_task)
+        wake_up_new_task --> select_task_rq{select_task_rq}
+
+        WAKEUP[wakeup_process] --> try_to_wake_up(try_to_wake_up)
+        try_to_wake_up --> select_task_rq{select_task_rq}
+
+
+        EXEC[do_exec] --> sched_exec(sched_exec)
+        sched_exec --> select_task_rq{select_task_rq}
+
+        select_task_rq -> select_task_rq_fair(select_task_rq_fair)
+
