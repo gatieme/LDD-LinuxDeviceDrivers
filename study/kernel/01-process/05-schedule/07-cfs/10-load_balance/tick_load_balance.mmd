@@ -1,0 +1,33 @@
+flowchart TB
+	%% 周期性负载均衡器 run_rebalance_domains
+	subgraph TriggerPeriodicLoadBalance [触发 Periodic Load Balance]
+	direction TB
+		scheduler_tick --> trigger_load_balance --> raise_softirq_SCHED_SOFTIRQ("raise_softirq(SCHED_SOFTIRQ)") -...-> run_rebalance_domains;
+		trigger_load_balance --> nohz_balancer_kick
+		run_rebalance_domains --> RunRebalanceDomains("run_rebalance_domains");
+
+		subgraph RunRebalanceDomains [run_rebalance_domains]
+		direction TB
+			nohz_idle_balance;
+			update_blocked_averages;
+			rebalance_domains
+
+			style rebalance_domains fill:#f9f,stroke:#333,stroke-width:4px
+
+		end
+	end
+
+	subgraph DoPeriodicLoadBalance [执行 Periodic Load Balance]
+	direction TB
+		rebalance_domains --> for_each_domain_LB(自底向上遍历所有的调度域) --> DoLoadBalance;
+
+		subgraph DoLoadBalance
+		direction TB
+			update_newidle_cost;
+			get_sd_balance_interval;
+			load_balance;
+			update_next_balance;
+
+			style load_balance fill:#f9f,stroke:#333,stroke-width:4px
+		end
+	end

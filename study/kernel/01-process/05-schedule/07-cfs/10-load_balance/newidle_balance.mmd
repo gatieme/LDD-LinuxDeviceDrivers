@@ -1,0 +1,40 @@
+flowchart TB
+	%% IDLE 负载均衡器
+	subgraph TriggerILB [触发 New Idle Load Balance]
+	direction TB
+		__schedule --> pick_next_task;
+
+		pick_next_task --! sched_core_enabled--> __pick_next_task;
+		pick_next_task --sched_core_enabled--> put_prev_task_balance;
+
+		__pick_next_task --> pick_next_task_fair;
+		__pick_next_task --> pick_next_task_idle;
+		__pick_next_task --> put_prev_task_balance;
+		__pick_next_task --> class_pick_next_task("class->pick_next_task");
+
+		class_pick_next_task -...-> pick_next_task_fair
+		put_prev_task_balance --> for_class_range_prev_to_idle --> class_balance("class->balance") --> balance_fair --> newidle_balance;
+		pick_next_task_fair --> newidle_balance;
+
+ 		style pick_next_task_fair fill:#bbf,stroke:#f66,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
+ 		style balance_fair fill:#bbf,stroke:#f66,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
+
+end
+
+	subgraph DoILB [执行 New Idle Load Balance]
+	direction TB
+		newidle_balance --> update_misfit_status --> nohz_newidle_balance;
+		newidle_balance --> update_next_balance--> nohz_newidle_balance;
+		newidle_balance --> update_blocked_averages --> nohz_newidle_balance;
+		newidle_balance --> for_each_domain_ILB --> nohz_newidle_balance;
+
+		for_each_domain_ILB --> update_next_balance;
+		for_each_domain_ILB --> load_balance;
+		for_each_domain_ILB --> update_newidle_cost;
+
+		nohz_newidle_balance --> set_NOHZ_NEWILB_KICK
+
+		style newidle_balance fill:#f9f,stroke:#333,stroke-width:4px
+		style load_balance fill:#bbf,stroke:#f66,stroke-width:2px,color:#fff,stroke-dasharray: 5 5
+
+	end

@@ -1,0 +1,56 @@
+flowchart TB
+	subgraph DoLoadBalance [触发负载均衡]
+	direction TB
+		%% 周期性负载均衡器 run_rebalance_domains
+		rebalance_domains --> load_balance;
+
+		%% IDLE 负载均衡器
+		newidle_balance --> load_balance;
+	end
+
+	%% 负载均衡核心逻辑
+	subgraph LoadBalance [负载均衡核心逻辑]
+	direction TB
+		load_balance --> should_we_balance;
+		load_balance --> find_busiest_group;
+		load_balance --> find_busiest_queue;
+		load_balance --> detach_tasks;
+		load_balance --> attach_tasks;
+		load_balance --> need_active_balance;
+		load_balance --> stop_one_cpu_nowait;
+
+		subgraph ShowWeBalance [寻找 dst CPU];
+		direction TB
+			should_we_balance --> group_balance_mask;
+			should_we_balance --> group_balance_cpu;
+		end
+
+		subgraph FindBusiestQueue [寻找 src CPU]
+		direction TB
+			find_busiest_group --> init_sd_lb_stats;
+			find_busiest_group --> update_sd_lb_stats;
+			find_busiest_group --> sched_energy_enabled;
+			find_busiest_group --> compare_local_busiest_group_type;
+			find_busiest_group --> calculate_imbalance;
+			find_busiest_queue --> for_each_sched_group_span;
+
+			for_each_sched_group_span --> fbq_classify_rq;
+			for_each_sched_group_span --> switch_env_migration_type_FBQ;
+		end
+
+		subgraph NormalMigrate [Normal Migration]
+		direction TB
+			detach_tasks --> can_migrate_task;
+			detach_tasks --> switch_env_migration_type_DT
+			detach_tasks --> detach_task;
+
+			attach_tasks --> attach_task;
+		end
+
+		subgraph ActiveMigration [Active Migration]
+		direction TB
+			need_active_balance --> stop_one_cpu_nowait --> active_load_balance_cpu_stop;
+			active_load_balance_cpu_stop --> detach_one_task;
+			active_load_balance_cpu_stop --> attach_one_task;
+		end
+	end
