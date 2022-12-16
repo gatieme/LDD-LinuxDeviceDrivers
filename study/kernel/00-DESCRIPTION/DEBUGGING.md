@@ -881,6 +881,8 @@ LWN 上也对此进行了[汇总报道](https://lwn.net/Kernel/Index/#Android-Ge
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/06/16 | Daniel Bristot de Oliveira <bristot@kernel.org> | [The Runtime Verification (RV) interface](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e88043c0ac16f19960048372dcffc6df7c05c5b8) | 运行时验证 Linux 内核的行为. 运行时验证(RV) 是一种轻量级 (但严格) 的方法, 它补充了经典的穷举验证技术 (如模型检查和定理证明), 并为复杂系统提供了一种更实用的方法. RV 不依赖于系统的细粒度模型 (例如, 重新实现指令级别), 而是通过分析系统实际执行的轨迹, 并将其与系统行为的形式化规范进行比较来工作. RV 使用确定性自动机是一种成熟的方法. | v4 ☐☑✓ 6.0-rc1 | [LORE v4,0/20](https://lore.kernel.org/all/cover.1655368610.git.bristot@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v9,00/16](https://lore.kernel.org/all/cover.1659052063.git.bristot@kernel.org) |
+| 2022/11/11 | Daniel Bristot de Oliveira <bristot@kernel.org> | [verification/rv: Add rv tool](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=afc70ccb962861e068e04c6089827493f5160a0a) | (用户空间)运行时验证工具 rv. 该工具旨在成为内核 rv 监视器的接口, 以及用户空间控制监视器. 该工具接收命令作为第一个参数<br>1. list 列出所有可用的监视器<br>2. mon 运行给定的监视器<br>每个监视器都是工具内的一个独立软件, 可以有自己的参数. | v2 ☐☑✓ 6.2-rc1 | [LORE v2,0/3](https://lore.kernel.org/all/cover.1668180100.git.bristot@kernel.org) |
+
 
 # 21 RUST 支持
 -------

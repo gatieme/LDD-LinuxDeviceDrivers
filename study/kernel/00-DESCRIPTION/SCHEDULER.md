@@ -5062,7 +5062,8 @@ schedtune 与 uclamp 都是由 ARM 公司的 Patrick Bellasi 主导开发.
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:------:|:---:|
-| 2016/02/23 | Steve Muckle 等 | [freezer,sched: Rewrite core freezer logic](https://lore.kernel.org/patchwork/cover/1444882) | 重写冻结的核心逻辑, 从而使得 WRT 解冻的表现更加合理. 通过将 PF_FROZEN 替换为 TASK_FROZEN (一种特殊的块状态), 可以确保冻结的任务保持冻结状态, 直到明确解冻, 并且不会像目前可能的那样过早随机唤醒. | v2 | [2021/06/01 RFC](https://lore.kernel.org/patchwork/cover/1439538)<br>*-*-*-*-*-*-*-* <br>[2021/06/01 RFC](https://lore.kernel.org/patchwork/cover/1444882) |
+| 2021/06/24 | Peter Zijlstra <peterz@infradead.org> | [freezer,sched: Rewrite core freezer logic](https://lore.kernel.org/all/YMMijNqaLDbS3sIv@hirez.programming.kicks-ass.net) | 重写冻结的核心逻辑, 从而使得 WRT 解冻的表现更加合理. 通过将 PF_FROZEN 替换为 TASK_FROZEN (一种特殊的块状态), 可以确保冻结的任务保持冻结状态, 直到明确解冻, 并且不会像目前可能的那样过早随机唤醒. | v1 ☐☑✓ | [2021/06/01 LORE RFC](https://lore.kernel.org/all/YLXt+%2FWr5%2FKWymPC@hirez.programming.kicks-ass.net)<br>*-*-*-*-*-*-*-* <br>[2021/06/11 LORE v1](https://lore.kernel.org/all/YMMijNqaLDbS3sIv@hirez.programming.kicks-ass.net)<br>*-*-*-*-*-*-*-* <br>[2021/06/24 LORE v2,0/4](https://lore.kernel.org/all/20210624092156.332208049@infradead.org) |
+| 2022/05/05 | Peter Zijlstra <peterz@infradead.org> | [ptrace-vs-PREEMPT_RT and freezer rewrite](https://lore.kernel.org/all/20220421150248.667412396@infradead.org) | TODO | v4 ☐☑✓ | [LORE v2,0/5](https://lore.kernel.org/all/20220421150248.667412396@infradead.org)<br>*-*-*-*-*-*-*-* <br>[2022/08/22 LORE v3,0/6](https://lore.kernel.org/all/20220822111816.760285417@infradead.org)<br>*-*-*-*-*-*-*-* <br>[2022/10/08 LORE v3,0/6](https://lore.kernel.org/all/20211009100754.690769957@infradead.org) |
 
 ## 7.7 异构
 -------

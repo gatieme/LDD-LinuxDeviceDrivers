@@ -497,6 +497,15 @@ MADV_PAGEOUT 在某种程度上类似于 MADV_DONTNEED, 它提示内核当前不
 | 2021/10/19 | Suren Baghdasaryan <surenb@google.com> | [mm: rearrange madvise code to allow for reuse](https://patchwork.kernel.org/project/linux-mm/patch/20211019215511.3771969-1-surenb@google.com) | 重构 madvise 系统调用, 以允许影响 vma 的 prctl 系统调用重用其中的一部分. 将遍历虚拟地址范围内 vma 的代码移动到以函数指针为参数的函数中. 目前唯一的调用者是 sys_madvise, 它使用它在每个 vma 上调用 madvise_vma_behavior. | v11 ☐ | [PatchWork v11,1/3](https://patchwork.kernel.org/project/linux-mm/cover/20190714233401.36909-1-minchan@kernel.org) |
 
 
+### 1.6.5 MADV_NOMOVABLE
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/10/17 | Baolin Wang <baolin.wang@linux.alibaba.com> | [[RFC] mm: Introduce new MADV_NOMOVABLE behavior](https://patchwork.kernel.org/project/linux-mm/patch/bc27af32b0418ed1138a1c3a41e46f54559025a5.1665991453.git.baolin.wang@linux.alibaba.com/) | 在创建虚拟机时, 我们将使用 memfd_create() 获取文件描述符, 该文件描述符可用于使用 mmap() 创建共享内存映射, 同时 mmap() 将设置 MAP_POPULATE 标志, 为虚拟机分配物理页面. 当为 Guest OS 分配物理页面时, 当超过一半的区域可用内存位于 CMA 区域时, Host 可以回退为 Guest OS 分配一些 CMA 页面. 在 Guest OS 中, 当应用程序想要使用 DMA 进行一些数据事务时, QEMU 将调用 VFIO_IOMMU_MAP_DMA ioctl 来执行长期 pin 并为 DMA 页面创建 IOMMU 映射. 然而, 当调用 VFIO_IOMMU_MAP_DMA ioctl 来固定物理页面时, 我们发现有时无法长期固定. 经过一些调查后, 我们发现用于进行 DMA 映射的页面可能包含一些 CMA 页面, 这些 CMA 页面可能会导致长期 pin 失败, 因为无法迁移 CMA 页面. 迁移失败的原因可能是临时引用计数或内存分配失败. 因此, 这将导致 VFIO_IOMMU_MAP_DMA ioctl 返回错误, 导致应用程序无法启动. 为了解决此问题, 此修补程序引入了一种新的 madvise 行为, 名为 MADV_NOVABLE, 以避免在用户希望进行长期 pin 时分配 CMA 页面和可移动页面, 这可以消除可移动或 CMA 页面迁移可能出现的故障. | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/bc27af32b0418ed1138a1c3a41e46f54559025a5.1665991453.git.baolin.wang@linux.alibaba.com) |
+
+
+
 ## 1.7 page table pages
 -------
 
@@ -1938,6 +1947,7 @@ vmalloc_to_page 则提供了通过 vmalloc 地址查找到对应 page 的操作.
 | 2022/01/27 | Christophe Leroy <christophe.leroy@csgroup.eu> | [Allocate module text and data separately](https://patchwork.kernel.org/project/linux-mm/cover/cover.1643282353.git.christophe.leroy@csgroup.eu/) | 本系列允许架构将 module 的数据放在 vmalloc 区域而不是模块区域. 在 powerpc book3s/32 的机器上, 了设置数据非可执行性, 这是必需的, 因为不可能以页面为基础设置可执行性, 这是每256 mb的段执行一次. 模块区有 exec 权, vmalloc 区则没有. 没有这个更改模块, 即使开启了 CONFIG_STRICT_MODULES_RWX, 模块数据仍然是可执行的. 这在其他 powerpc/32 上也很有用, 可以最大限度地增加代码接近内核的机会,  从而避免使用 PLT 和 trampoline 等. | v2 ☐☑ | [PatchWork v2,0/5](https://lore.kernel.org/r/cover.1643282353.git.christophe.leroy@csgroup.eu)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/6](https://lore.kernel.org/r/cover.1643475473.git.christophe.leroy@csgroup.eu) |
 | 2022/03/08 | Paolo Bonzini <pbonzini@redhat.com> | [mm: vmalloc: introduce array allocation functions](https://patchwork.kernel.org/project/linux-mm/cover/20220308105918.615575-1-pbonzini@redhat.com/) | 实现了四个数组分配函数来替换 vmalloc(array_size()) 和 vzalloc (array_size()), Linux  中当前有几十个这样的函数.  函数负责乘法和溢出检查, 特别混乱, 作者这样实现后这样代码更清晰, 并使开发人员更容易避免溢出错误. | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20220308105918.615575-1-pbonzini@redhat.com) |
 | 2022/08/29 | Feng Tang <feng.tang@intel.com> | [mm/slub: some debug enhancements for kmalloc objects](https://patchwork.kernel.org/project/linux-mm/cover/20220829075618.69069-1-feng.tang@intel.com/) | 671907 | v4 ☐☑ | [LORE v4,0/4](https://lore.kernel.org/r/20220829075618.69069-1-feng.tang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/4](https://lore.kernel.org/r/20220913065423.520159-1-feng.tang@intel.com) |
+| 2022/10/17 | Uladzislau Rezki <urezki@gmail.com> | [Add basic trace events for vmap/vmalloc](https://patchwork.kernel.org/project/linux-mm/cover/20221017160233.16582-1-urezki@gmail.com/) | 为 vmap/vmalalloc 代码添加了一些基本的跟踪事件. 由于目前我们缺少任何代码, 因此如果报告或发生问题, 有时很难开始调试 vmap 代码. | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20221017160233.16582-1-urezki@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/r/20221018181053.434508-1-urezki@gmail.com) |
 
 
 ### 2.4.2 连续内存分配器(下)
@@ -3849,7 +3859,7 @@ __alloc_pages_direct_reclaim()
 | 2010/11/09 | Glauber Costa <glommer@openvz.org> | [vmscan: per-node deferred work](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1d3d4437eae1bb2963faab427f65f90663c64aa1) | 实现 per node 的内存回收. | v1 ☑ 3.19-rc1 | [LORE](https://lore.kernel.org/lkml/20101109123246.GA11477@amd), [LORE v9,00/17](https://lore.kernel.org/all/153112469064.4097.2581798353485457328.stgit@localhost.localdomain), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1d3d4437eae1bb2963faab427f65f90663c64aa1) |
 | 2010/11/09 | Nick Piggin <npiggin@kernel.dk> | [mm: vmscan implement per-zone shrinkers](https://lore.kernel.org/all/153063036670.1818.16010062622751502.stgit@localhost.localdomain/) | 实现 per zone 的内存回收. | v1 ☑ 3.19-rc1 | [LORE](https://lore.kernel.org/lkml/20101109123246.GA11477@amd), [LORE v9,00/17](https://lore.kernel.org/all/153112469064.4097.2581798353485457328.stgit@localhost.localdomain), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6b4f7799c6a5703ac6b8c0649f4c22f00fa07513) |
 | 2012/11/28 | Dave Chinner <david@fromorbit.com> | [Numa aware LRU lists and shrinkers](https://lore.kernel.org/all/1354058086-27937-1-git-send-email-david@fromorbit.com) | 实现 SHRINKER_NUMA_AWARE | v1 ☐☑✓ | [LORE v1,0/19](https://lore.kernel.org/all/1354058086-27937-1-git-send-email-david@fromorbit.com) |
-| 2022/04/22 | Roman Gushchin <roman.gushchin@linux.dev> | [mm: introduce shrinker debugfs interface](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bbf535fd6f06b94b9d07ed6f09397a936d4a58d8) | 内核中有 50 多个不同的 shrinker, 在内存压力下, 内核会按照它们在系统中创建/注册的顺序对它们施加一些压力. 其中一些只能包含很少的对象, 一些可以相当大. 有些可以有效地回收内存, 有些则不然. 但是当前却没有有效的方法对单个 shrinker 进行计数和扫描, 并对其进行分析. 现有的唯一调试机制是 do_shrink_slab() 中的两个 TRACEPOINT: mm_shrink_slab_start 和 mm_shrink_slab_end. 不过, 它们并没有涵盖所有内容: 报告 0 个对象的 shrinker永远不会出现, 也不支持支持支持 MEMCG 的 shrinker.  shrinker 通过其扫描功能进行识别, 但这并不总是足够的. 为了为内存 shrinker 提供更好的可见性和调试选项, 这个补丁集引入了 `/sys/kernel/shrinker` 接口, 在某种程度上类似于 `/sys/kernel/slab`. 为系统中注册的每个 shrinker 创建一个目录, 该目录包含两个文件结点 "count" 和 "scan" , 允许触发 count_objects() 和 scan_objects() 回调. 对于 MEMCG-Aware 和 NUMA-Aware 的 shrinker, 还额外提供了 count_memcg、scan_memcg、count_node、scan_node、count_memcg_node 和 scan_memcg_node. 它们允许获取每个 MEMCG 和每个 NUMA NODE 的对象计数, 并仅收缩特定的 MEMCG 或者 NUMA NODE. 为了使调试更加愉快, 补丁集还为所有 shrinker 命名, 以便 sysfs 条目可以有更多有意义的名称. | v2 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20220416002756.4087977-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/5](https://lore.kernel.org/all/20220422015853.748291-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/r/20220422202644.799732-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/r/20220509183820.573666-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/6](https://lore.kernel.org/r/20220601032227.4076670-1-roman.gushchin@linux.dev) |
+| 2022/04/22 | Roman Gushchin <roman.gushchin@linux.dev> | [mm: introduce shrinker debugfs interface](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bbf535fd6f06b94b9d07ed6f09397a936d4a58d8) | 内核中有 50 多个不同的 shrinker, 在内存压力下, 内核会按照它们在系统中创建/注册的顺序对它们施加一些压力. 其中一些只能包含很少的对象, 一些可以相当大. 有些可以有效地回收内存, 有些则不然. 但是当前却没有有效的方法对单个 shrinker 进行计数和扫描, 并对其进行分析. 现有的唯一调试机制是 do_shrink_slab() 中的两个 TRACEPOINT: mm_shrink_slab_start 和 mm_shrink_slab_end. 不过, 它们并没有涵盖所有内容: 报告 0 个对象的 shrinker永远不会出现, 也不支持支持支持 MEMCG 的 shrinker.  shrinker 通过其扫描功能进行识别, 但这并不总是足够的. 为了为内存 shrinker 提供更好的可见性和调试选项, 这个补丁集引入了 `/sys/kernel/shrinker` 接口, 在某种程度上类似于 `/sys/kernel/slab`. 为系统中注册的每个 shrinker 创建一个目录, 该目录包含两个文件结点 "count" 和 "scan" , 允许触发 count_objects() 和 scan_objects() 回调. 对于 MEMCG-Aware 和 NUMA-Aware 的 shrinker, 还额外提供了 count_memcg、scan_memcg、count_node、scan_node、count_memcg_node 和 scan_memcg_node. 它们允许获取每个 MEMCG 和每个 NUMA NODE 的对象计数, 并仅收缩特定的 MEMCG 或者 NUMA NODE. 为了使调试更加愉快, 补丁集还为所有 shrinker 命名, 以便 sysfs 条目可以有更多有意义的名称. | v5 ☑ 6.0-rc1 | [LORE v1,0/5](https://lore.kernel.org/r/20220416002756.4087977-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/5](https://lore.kernel.org/all/20220422015853.748291-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/r/20220422202644.799732-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/r/20220509183820.573666-1-roman.gushchin@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/6](https://lore.kernel.org/r/20220601032227.4076670-1-roman.gushchin@linux.dev) |
 | 2022/04/21 | Kent Overstreet <kent.overstreet@gmail.com> | [Printbufs & shrinker OOM reporting](https://patchwork.kernel.org/project/linux-mm/cover/20220419203202.2670193-1-kent.overstreet@gmail.com) | 633514 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/all/20220419203202.2670193-1-kent.overstreet@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/4](https://lore.kernel.org/all/20220421234837.3629927-1-kent.overstreet@gmail.com) |
 
 
@@ -4976,6 +4986,7 @@ David Rientjes 率先提出了这种想法 [Hugepage collapse in process context
 | 2022/03/11 | maobibo <maobibo@loongson.cn> | [mm/khugepaged: sched to numa node when collapse huge page](https://patchwork.kernel.org/project/linux-mm/patch/20220311090119.2412738-1-maobibo@loongson.cn/) | 622550 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220311090119.2412738-1-maobibo@loongson.cn)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20220315040549.4122396-1-maobibo@loongson.cn) |
 | 2022/05/27 | Jiaqi Yan <jiaqiyan@google.com> | [Memory poison recovery in khugepaged collapsing](https://patchwork.kernel.org/project/linux-mm/cover/20220527190731.322722-1-jiaqiyan@google.com/) | 645671 | v4 ☐☑ | [LORE v4,0/2](https://lore.kernel.org/r/20220527190731.322722-1-jiaqiyan@google.com) |
 | 2022/09/07 | Zach O'Keefe <zokeefe@google.com> | [mm: add file/shmem support to MADV_COLLAPSE](https://lore.kernel.org/all/20220907144521.3115321-1-zokeefe@google.com) | TODO | v3 ☐☑✓ | [2022/08/12 LORE 0/9](https://lore.kernel.org/linux-mm/20220812012843.3948330-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[2022/08/26 LORE v2,0/9](https://lore.kernel.org/linux-mm/20220826220329.1495407-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[2022/09/07 LORE v3,0/10](https://lore.kernel.org/all/20220907144521.3115321-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[2022/09/22 LORE v4,00/10](https://lore.kernel.org/all/20220922224046.1143204-1-zokeefe@google.com) |
+| 2022/10/17 | Zach O'Keefe <zokeefe@google.com> | [Add MADV_COLLAPSE documentation](https://patchwork.kernel.org/project/linux-mm/cover/20221017175523.2048887-1-zokeefe@google.com/) | 685929 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20221017175523.2048887-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20221018235051.152548-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/r/20221021223300.3675201-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/1](https://lore.kernel.org/r/20221031225500.3994542-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/1](https://lore.kernel.org/r/20221101150323.89743-1-zokeefe@google.com) |
 
 
 ### 7.2.5 THP splitting/reclaim/migration
@@ -6513,6 +6524,7 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/09/20 | zhaoyang.huang <zhaoyang.huang@unisoc.com> | [[RFC] mm: track bad page via kmemleak](https://patchwork.kernel.org/project/linux-mm/patch/1663679468-16757-1-git-send-email-zhaoyang.huang@unisoc.com/) | 678650 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/1663679468-16757-1-git-send-email-zhaoyang.huang@unisoc.com)[LORE v2,0/1](https://lore.kernel.org/r/1663730246-11968-1-git-send-email-zhaoyang.huang@unisoc.com) |
+| 2022/10/27 | zhaoyang.huang <zhaoyang.huang@unisoc.com> | [[Resend,PATCHv2] mm: use stack_depot for recording kmemleak's backtrace](https://patchwork.kernel.org/project/linux-mm/patch/1666864224-27541-1-git-send-email-zhaoyang.huang@unisoc.com/) | 689350 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/1666864224-27541-1-git-send-email-zhaoyang.huang@unisoc.com) |
 
 
 ### 13.3.4 KASAN - 内核地址净化器
@@ -6540,6 +6552,7 @@ SLAB 作为一个相对独立的子模块, 一直有自己完善的调试支持,
 | 2022/03/23 | andrey.konovalov@linux.dev <andrey.konovalov@linux.dev> | [kasan, arm64, scs, stacktrace: collect stack traces from Shadow Call Stack](https://patchwork.kernel.org/project/linux-mm/cover/cover.1648049113.git.andreyknvl@google.com) | 目前, 当保存 alloc 和 free 堆栈跟踪时, kasan 总是使用正常的堆栈跟踪收集例程, 它依赖于 unwind. 通过复制帧从阴影调用堆栈收集堆栈跟踪, 每当它被启用. 这减少了 30% 的启动时间, 所有的 KASAN 模式时, 影子呼叫堆栈被启用. 堆栈栈位通过新的 stack_trace_save_shadow () 接口从 Shadow Call Stack 中收集. | v2 ☐☑ | [LORE v2,0/4](https://lore.kernel.org/r/cover.1648049113.git.andreyknvl@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/3](https://lore.kernel.org/r/cover.1649877511.git.andreyknvl@google.com) |
 | 2022/09/10 | Peter Collingbourne <pcc@google.com> | [kasan: also display registers for reports from HW exceptions](https://patchwork.kernel.org/project/linux-mm/patch/20220910052426.943376-1-pcc@google.com/) | 675886 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220910052426.943376-1-pcc@google.com) |
 | 2022/10/11 | Josh Poimboeuf <jpoimboe@kernel.org> | [kasan: disable stackleak plugin in report code](https://patchwork.kernel.org/project/linux-mm/patch/20221011190548.blixlqj6dripitaf@treble/) | 684584 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221011190548.blixlqj6dripitaf@treble) |
+| 2022/10/19 | David Gow <davidgow@google.com> | [kasan: Enable KUnit integration whenever CONFIG_KUNIT is enabled](https://patchwork.kernel.org/project/linux-mm/patch/20221019085747.3810920-1-davidgow@google.com/) | 686607 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221019085747.3810920-1-davidgow@google.com) |
 
 
 #### 13.3.4.2 Software tag-based KASAN
@@ -7039,6 +7052,31 @@ CSDN 宣传博客 [内存不超过5M, datop 在识别冷热内存及跨 numa 访
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:---:|:---:|:----:|:---------:|:----:|
 | 2022/06/30 | Naoya Horiguchi <naoya.horiguchi@linux.dev> | [mm, hwpoison: enable 1GB hugepage support (v3)](https://patchwork.kernel.org/project/linux-mm/cover/20220630022755.3362349-1-naoya.horiguchi@linux.dev/) | 655232 | v3 ☐☑ | [LORE v3,0/9](https://lore.kernel.org/r/20220630022755.3362349-1-naoya.horiguchi@linux.dev)[LORE v4,0/9](https://lore.kernel.org/r/20220704013312.2415700-1-naoya.horiguchi@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/8](https://lore.kernel.org/r/20220714042420.1847125-1-naoya.horiguchi@linux.dev) |
+
+
+
+### 14.2.2 hwpoison recovery
+-------
+
+
+OS 判断如果是在用户态触发这个硬件内存错误时, 处理方式是杀进程. 如果是在内核态触发这个硬件错误时, 处理方式是 kernel panic. 在内核态触发硬件内存错误的处理方式是无差别的 kernel panic, 我们可以分析是否存在场景可以无需 panic, 从而进一步提升系统可靠性, 比如由硬件内存错误引起的后果不是 fatal 的(仅仅影响相关的用户态进程, 那么我们通过杀掉这个用户态进程并且隔离出错的内存页面就可以), 那么我们就无需 kernel panic.
+
+根据这个思路, 初步识别到如下场景下在触发硬件错误时的后果不是 fatal 的, 仅仅是影响了某个进程:
+
+1. uaccess 用户态访问, 如 `copy_{from, to}_user`, `{get, put}_user`.
+
+2. cow 写时复制.
+
+3. dump_user_range().
+
+以上的这些场景 openEuler 称之为 machine check safe 场景. 并实现 [CONFIG_ARM64_UCE_KERNEL_RECOVERY](https://gitee.com/openeuler/kernel/commit/dcd1c6a940ae973d3bd2c99fa77cf590f2e58ad8) 机制, 用于在这些场景下不用进行 PANIC, 而是只是杀掉应用线程, 并将对应的物理内存隔离处理.
+
+同样 Intel 也提出了自己的解决方案, 如果内核由于写入时复制错误而正在复制页面, 并遇到无法纠正的错误, 那么 Linux 将崩溃, 因为它没有针对内核消耗毒物的情况的恢复代码. 建立测试用例很容易. 只需在 fork 时将一个错误注入私有页面 , 并让子进程写入该页面. 作者在 [ras-tools](git://git.kernel.org/pub/scm/linux/kernel/git/aegl/ras-tools.git) 中提供了一个测试用例, 只需启用 ACPI 错误注入并运行.<br>./einj_mem-uc-f<br> 添加一个新的 copy_user_highbage_mc() 函数, 该函数在可用的架构 (当前为 x86 和 powerpc) 上使用 copy_mc_to_kernel() . 当在页面复制过程中检测到错误时, 将 VM_FAULT_HWPOISON 返回给 wp_page_copy() 的调用方, 并在在调用堆栈中向上传播. x86 和 powerpc 的故障处理程序中都有代码, 通过向应用程序发送 SIGBUS 来处理这些代码. 从而避免系统崩溃, 并向触发写入时复制操作的进程发出信号. 它不会对仍在共享页中的内存错误采取任何操作. 要处理此问题, 需要调用 memory_failure() . 但这不能通过 wp_page_copy() 完成, 因为它包含 mmap_lock(). 在 Intel/x86 上, 由于内存控制器提供了内存中 h/w 中毒的额外通知, 因此通常会自动处理此松散端, 处理程序将调用 memory_failure(). 这不是 100% 的解决方案. 如果存在多个错误, 并非所有错误都可以以这种方式记录.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:---:|:---:|:----:|:---------:|:----:|
+| 2022/10/21 | Luck, Tony <tony.luck@intel.com> | [Copy-on-write poison recovery](https://patchwork.kernel.org/project/linux-mm/cover/20221021200120.175753-1-tony.luck@intel.com/) | 687657 | v3 ☐☑ | [LORE RFC](https://lore.kernel.org/all/20221017234203.103666-1-tony.luck@intel.com)<br>*-*-*-*-*-*-*-* <br>[]()<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/2](https://lore.kernel.org/r/20221021200120.175753-1-tony.luck@intel.com) |
+| 2021/03/18 | liubo <liubo254@huawei.com> | [arm64: ras: copy_from_user scenario support uce kernel recovery](https://gitee.com/openeuler/kernel/issues/I5GB28) | machine check safe 特性支持. | v1 ☐ 5.10 | [COMMIT](https://gitee.com/openeuler/kernel/commit/dcd1c6a940ae973d3bd2c99fa77cf590f2e58ad8) |
 
 
 ## 14.3 Cross Memory Attach - 进程间快速消息传递
