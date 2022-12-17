@@ -415,6 +415,20 @@ SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安�
 | 2021/11/10 | Brijesh Singh <brijesh.singh@amd.com> | [Add AMD Secure Nested Paging (SEV-SNP) Guest Support](https://patchwork.kernel.org/project/linux-mm/cover/20211110220731.2396491-1-brijesh.singh@amd.com) | Guest 支持 AMD SEV SNP.  | v7 ☐ | [Patchwork v7,00/45](https://patchwork.kernel.org/project/linux-mm/cover/20211110220731.2396491-1-brijesh.singh@amd.com) |
 
 
+## 1.9 Software Defined Silicon
+-------
+
+
+[Intel On Demand Driver Ready To Activate Your Licensed CPU Features With Linux 6.2](https://www.phoronix.com/news/Intel-On-Demand-Linux-6.2)
+
+[Intel Details The Accelerators & Security Features For On Demand / Software Defined Silicon](https://www.phoronix.com/news/Intel-On-Demand-Details)
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/02/11 | David E. Box <david.e.box@linux.intel.com> | [Intel Software Defined Silicon](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2546c60004309ede8e2d1d5341e0decd90e057bf) | TODO | v7 ☐☑✓ | [LORE v7,0/3](https://lore.kernel.org/all/20220212013252.1293396-1-david.e.box@linux.intel.com) |
+| 2022/02/24 | David E. Box <david.e.box@linux.intel.com> | [tools arch x86: Add Intel SDSi provisiong tool](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f6d92cfc79e830d9976c69e80f97d80bae7c9c6c) | TODO | v9 ☐☑✓ | [LORE v9,0/2](https://lore.kernel.org/all/20220225012457.1661574-1-david.e.box@linux.intel.com) |
+| 2022/11/18 | David E. Box <david.e.box@linux.intel.com> | [Extend Intel On Demand (SDSi) support](https://lore.kernel.org/all/20221119002343.1281885-1-david.e.box@linux.intel.com) | TODO | v2 ☐☑✓ | [LORE v2,0/9](https://lore.kernel.org/all/20221119002343.1281885-1-david.e.box@linux.intel.com) |
+
 
 
 # 2 ARM64
