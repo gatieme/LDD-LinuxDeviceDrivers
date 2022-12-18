@@ -4090,6 +4090,8 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/07/30 | Tiberiu A Georgescu <tiberiu.georgescu@nutanix.com> | [pagemap: swap location for shared pages](https://lore.kernel.org/patchwork/patch/1470271) | NA | v2 ☐ v5.14-rc4 | [PatchWork RFC,0/4](https://lore.kernel.org/patchwork/patch/1470271) |
 | 2021/08/17 | Peter Xu <peterx@redhat.com> | [mm: Enable PM_SWAP for shmem with PTE_MARKER](https://lore.kernel.org/patchwork/patch/1473423) | 这个补丁集在 shmem 上启用 pagemap 的 PM_SWAP. IOW 用户空间将能够检测 shmem 页面是否被换出, 就像匿名页面一样.<br>可以使用  CONFIG_PTE_MARKER_PAGEOUT 来启用该特性. 当启用时, 它会在 shmem 页面上带来 0.8% 的换入性能开销, 所以作者还没有将它设置为默认值. 然而, 以作者的看法, 0.8% 仍然在一个可接受的范围内, 我们甚至可以使它最终默认. | v2 ☐ v5.14-rc4 | [PatchWork RFC,0/4](https://lore.kernel.org/patchwork/patch/1473423) |
+| 2022/10/23 | Kairui Song <ryncsn@gmail.com> | [swap: add a limit for readahead page-cluster value](https://patchwork.kernel.org/project/linux-mm/patch/20221023162533.81561-1-ryncsn@gmail.com/) | 687949 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221023162533.81561-1-ryncsn@gmail.com) |
+
 
 ## 5.4 swap IO
 -------
@@ -5251,6 +5253,14 @@ khugepaged 处理流程
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/09/21 | Rongwei Wang <rongwei.wang@linux.alibaba.com> | [[RFC] mm/khugepaged: Improve awareness for exiting processes](https://patchwork.kernel.org/project/linux-mm/patch/20220921032759.41473-1-rongwei.wang@linux.alibaba.com/) | 678876 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220921032759.41473-1-rongwei.wang@linux.alibaba.com) |
 
+#### 7.2.9.3 khugepaged 的其他优化
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/10/24 | Gautam Menghani <gautammenghani201@gmail.com> | [mm/khugepaged: add tracepoint to collapse_file()](https://patchwork.kernel.org/project/linux-mm/patch/20221024150922.129814-1-gautammenghani201@gmail.com/) | 688257 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221024150922.129814-1-gautammenghani201@gmail.com) |
+| 2022/10/25 | Nathan Chancellor <nathan@kernel.org> | [mm/khugepaged: Initialize index and nr in collapse_file()](https://patchwork.kernel.org/project/linux-mm/patch/20221025173407.3423241-1-nathan@kernel.org/) | 688749 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221025173407.3423241-1-nathan@kernel.org) |
+| 2022/10/26 | Johannes Weiner <hannes@cmpxchg.org> | [[v2] mm: vmscan: split khugepaged stats from direct reclaim stats](https://patchwork.kernel.org/project/linux-mm/patch/20221026180133.377671-1-hannes@cmpxchg.org/) | 689123 | v2 ☐☑ | [LORE v2,0/1](https://lore.kernel.org/r/20221026180133.377671-1-hannes@cmpxchg.org) |
 
 
 ## 7.3 复合页 Compound Page
@@ -6210,6 +6220,9 @@ FRONTSWAP 对应的一个后端叫 ZRAM. 前身为 compcache, 它早在 2.6.33(2
 
 ZRAM 是一个在内存中的块设备(块设备相对于字符设备而言, 信息存放于固定大小的块中, 支持随机访问, 磁盘就是典型的块设备, 更多将在块层子系统中讲), 因此, 内核可以复用已有的 swap 设备设施, 把这个块设备格式化为 swap 设备. 因此, 被交换出去的页面, 将通过 FRONTSWAP 前端进入到 ZRAM 这个伪 swap 设备中, 并被压缩存放! 当然, 这个ZRAM 空间有限, 因此, 页面可能不被 ZRAM 接受. 如果这种情形发生, 内核就回退到用真正的磁盘交换设备.
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2022/09/30 | Brian Geffon <bgeffon@google.com> | [zram: Always expose rw_page](https://patchwork.kernel.org/project/linux-mm/patch/20220930195215.2360317-1-bgeffon@google.com/) | 682376 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220930195215.2360317-1-bgeffon@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20221003144832.2906610-1-bgeffon@google.com) |
 
 
 ### 11.2.3 后端之 ZSWAP
@@ -6244,6 +6257,15 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2013/09/11 | Krzysztof Kozlowski <k.kozlowski@samsung.com> | [mm: migrate zbud pages](https://lore.kernel.org/all/1378889944-23192-1-git-send-email-k.kozlowski@samsung.com) | 1378889944-23192-1-git-send-email-k.kozlowski@samsung.com | v2 ☐☑✓ | [LORE v2,0/5](https://lore.kernel.org/all/1378889944-23192-1-git-send-email-k.kozlowski@samsung.com) |
 | 2015/09/22 | Vitaly Wool <vitalywool@gmail.com> | [zbud: allow up to PAGE_SIZE allocations](https://lore.kernel.org/all/20150922141733.d7d97f59f207d0655c3b881d@gmail.com) | 20150922141733.d7d97f59f207d0655c3b881d@gmail.com | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20150922141733.d7d97f59f207d0655c3b881d@gmail.com) |
+
+### 11.2.3.4 ZSMALLOC
+-------
+
+| 时间   | 作者  | 特性 | 描述  |  是否合入主线  | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2022/10/24 | Sergey Senozhatsky <senozhatsky@chromium.org> | [zsmalloc/zram: configurable zspage size](https://patchwork.kernel.org/project/linux-mm/cover/20221024161213.3221725-1-senozhatsky@chromium.org) | 688281 | v1 ☐☑ | [LORE v1,0/6](https://lore.kernel.org/r/20221024161213.3221725-1-senozhatsky@chromium.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/9](https://lore.kernel.org/r/20221026112933.4122957-1-senozhatsky@chromium.org)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/9](https://lore.kernel.org/r/20221027042651.234524-1-senozhatsky@chromium.org) |
+| 2022/10/27 | Nhat Pham <nphamcs@gmail.com> | [[v2,5/5] zsmalloc: Implement writeback mechanism for zsmalloc](https://patchwork.kernel.org/project/linux-mm/patch/20221027182736.513530-1-nphamcs@gmail.com/) | 689539 | v2 ☐☑ | [LORE v2,0/5](https://lore.kernel.org/r/20221027182736.513530-1-nphamcs@gmail.com) |
+| 2022/10/26 | Nhat Pham <nphamcs@gmail.com> | [Implement writeback for zsmalloc](https://patchwork.kernel.org/project/linux-mm/cover/20221026200613.1031261-1-nphamcs@gmail.com/) | 689169 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20221026200613.1031261-1-nphamcs@gmail.com) |
 
 
 
