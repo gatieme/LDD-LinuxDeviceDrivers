@@ -9,7 +9,7 @@ tags:
 categories:
         - 技术积累
 thumbnail:
-blogexcerpt: 虚拟化 & KVM 子系统
+blogexcerpt: 学术界信息汇总
 
 ---
 
@@ -55,8 +55,18 @@ blogexcerpt: 虚拟化 & KVM 子系统
 # 1 IEEE
 -------
 
-
-
+| 组织 | 描述 |
+|:---:|:---:|
+| [Technical Committee on Microprocessors and Microcomputers (TCMM)](https://hotchips.org/archives) | NA |
+| [Technical Committee on Computer Architecture (TCCA)](http://ieeetcca.org) | NA |
+| [Technical Community on Cloud Computing (TCCLD)](https://tc.computer.org/tccld) | NA |
+| [Technical Committee on Real-Time Systems (TCRTS)](https://cmte.ieee.org/tcrts) | NA |
+| [Technical Committee on the Internet (TCI)](https://tc.computer.org/tci) | NA |
+| [Technical Committee on Distributed Processing (TCDP)](https://tc.computer.org/tcdp) | NA |
+| [Technical Committee on Scalable Computing (TCSC)](http://www.ieee-tcsc.org) | NA |
+| [Technical Committee on Dependable Computing and Fault Tolerance (TCFT)](https://www.dependability.org) | NA |
+| [Technical Committee on Parallel Processing (TCPP)](https://tc.computer.org/tcpp) | NA |
+| [Technical Committee on Learning Technology (TCLT)](https://tc.computer.org/tclt) | NA |
 
 <br>
 
