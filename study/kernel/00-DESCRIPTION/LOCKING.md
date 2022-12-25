@@ -148,6 +148,14 @@ spinlock 的值出现变化时, 所有试图获取这个 spinlock 的 CPU 都需
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/06/21 | guoren@kernel.org <guoren@kernel.org> | [riscv: Add qspinlock support](https://lore.kernel.org/all/20220621144920.2945595-1-guoren@kernel.org) | TODO | v6 ☐☑✓ | [LORE v5](https://lore.kernel.org/lkml/20220620155404.1968739-1-guoren@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/2](https://lore.kernel.org/all/20220621144920.2945595-1-guoren@kernel.org) |
 
+### 1.4.4 powerpc
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/11/26 | Nicholas Piggin <npiggin@gmail.com> | [powerpc: alternate queued spinlock implementation](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0b2199841a7952d01a717b465df028b40b2cf3e9) | TODO | v3 ☐☑✓ 6.1-rc2 | [LORE v3,0/17](https://lore.kernel.org/all/20221126095932.1234527-1-npiggin@gmail.com) |
+
+
 
 ## 1.5 PV_SPINLOCK
 -------

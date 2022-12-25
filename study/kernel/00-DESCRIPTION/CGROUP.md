@@ -69,6 +69,14 @@ blogexcerpt: FZF 是目前最快的模糊搜索工具. 使用golang编写. 结�
 | 2020/02/27 | Johannes Weiner <hannes@cmpxchg.org> | [mm: memcontrol: recursive memory.low protection](https://lore.kernel.org/all/20200227195606.46212-1-hannes@cmpxchg.org) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20200227195606.46212-1-hannes@cmpxchg.org) |
 | 2022/08/26 | Lu Jialin <lujialin4@huawei.com> | [Introduce cgroup.top interface](https://lore.kernel.org/all/20220@huawei.com) | Cgroup 用于组织和管理资源可用的流程. 目前, 没有方便的工具来为每个子 CGroup 收集 Reuserce 使用信息, 这使得很难检测资源中断和调试资源问题. 为了克服这个问题, 我们提出了 cgroup. 顶部界面. 就像 top 命令一样, 用户能够轻松地收集资源使用信息, 允许用户检测和响应子 cgroup 中的资源中断. | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20220826011503.103894-1-lujialin4@huawei.com) |
 
+# 3 DRM
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/11/11 | Tvrtko Ursulin <tvrtko.ursulin@linux.intel.com> | [DRM scheduling cgroup controller](https://lore.kernel.org/all/20221111104435.3152347-1-tvrtko.ursulin@linux.intel.com) | TODO | v2 ☐☑✓ | [LORE v2,0/13](https://lore.kernel.org/all/20221111104435.3152347-1-tvrtko.ursulin@linux.intel.com) |
+
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

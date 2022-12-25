@@ -891,6 +891,10 @@ LWN 上也对此进行了[汇总报道](https://lwn.net/Kernel/Index/#Android-Ge
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/09/27 | Miguel Ojeda <ojeda@kernel.org> | [Rust support](https://lore.kernel.org/all/20220927131518.30000-1-ojeda@kernel.org) | TODO| v10 ☐☑✓ | [LORE 00/13](https://lore.kernel.org/all/20210414184604.23473-1-ojeda@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v10,0/27](https://lore.kernel.org/all/20220927131518.30000-1-ojeda@kernel.org) |
 
+# 22 kallsyms
+-------
+
+[Linux 6.2 Speeds Up A Function By 715x - kallsyms_lookup_name()](https://www.phoronix.com/news/Linux-6.2-Modules)
 
 
 

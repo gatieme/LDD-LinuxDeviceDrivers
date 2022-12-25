@@ -168,13 +168,15 @@ jeremy 很早就写了一个 pv ticketlock, 原理大概就是 vcpu 在拿锁了
 ## 6.2 TDX and guest memory
 -------
 
+[Intel TDX Guest Attestation Support Merged For Linux 6.2](https://www.phoronix.com/news/Intel-TDX-Guest-In-Linux-6.2)
+
 如果 TDX 开启, Host 内核不得允许对 TD 专用内存进行任何写入. 这一要求与 KVM 设计相冲突: KVM 希望 Guest 内存映射到 Host 的用户空间 (例如 QEMU). 这时如果 TDX 主机访问受 TDX 保护的客户内存, 可能会发生 Machine Check, 从而进一步导致运行中的 Host 系统 PANIC, 这对于多租户配置来说是非常糟糕的. 主机访问包括来自 KVM 用户空间 (如 QEMU) 的访问.
 
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/10/26 | Huang, Kai <kai.huang@intel.com> | [TDX host kernel support](https://patchwork.kernel.org/project/linux-mm/cover/cover.1666824663.git.kai.huang@intel.com/) | 689199 | v6 ☐☑ | [LORE v6,0/21](https://lore.kernel.org/r/cover.1666824663.git.kai.huang@intel.com) |
+| 2022/10/26 | Huang, Kai <kai.huang@intel.com> | [TDX host kernel support](https://patchwork.kernel.org/project/linux-mm/cover/cover.1666824663.git.kai.huang@intel.com/) | 689199 | v6 ☐☑ | [LORE v6,0/21](https://lore.kernel.org/r/cover.1666824663.git.kai.huang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/20](https://lore.kernel.org/r/cover.1668988357.git.kai.huang@intel.com) |
 | 2021/04/16 | Kirill A. Shutemov <kirill.shutemov@linux.intel.com> | [TDX and guest memory unmapping](https://lore.kernel.org/all/20210416154106.23721-1-kirill.shutemov@linux.intel.com) | 作者有意不考虑 TDX, 并尝试找到一种通用的方法来从主机用户空间取消 KVM 客户内存的映射. 借助页表中 PG_hwpoison 的页和 SWP_HWPOISON 的交换项:<br>1. 如果应用程序接触到 SWP_HWPOISON 映射的页面, 它将得到 SIGBUS.<br>2. 当我们将页面设置为 TD-private 时, 我们可以将页面标记为有毒的, 并用 SWP_HWPOISON 替换映射该页的所有 pte. | v1 ☐☑✓ | [LORE v1,0/13](https://lore.kernel.org/all/20210416154106.23721-1-kirill.shutemov@linux.intel.com) |
 | 2021/08/23 | Sean Christopherson <seanjc@google.com> | [KVM: mm: fd-based approach for supporting KVM guest private memory](https://lore.kernel.org/all/20210824005248.200037-1-seanjc@google.com) | 这是 Kirill 的 RFC 的延续, 通过在 `struct page` 级别跟踪客户内存来支持 TDX 客户私有内存. 这个提案是由 Andy Lutomirksi 对通过 `struct page` 进行跟踪的担忧引发的几次离线讨论的结果. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20210824005248.200037-1-seanjc@google.com) |
 | 2022/10/25 | Chao Peng <chao.p.peng@linux.intel.com> | [KVM: mm: fd-based approach for supporting KVM](https://patchwork.kernel.org/project/linux-mm/cover/20221025151344.3784230-1-chao.p.peng@linux.intel.com/) | 用于机密计算场景 (如 [Intel TDX](https://www.intel.com/content/www/us/en/developer/articles/technical/intel-trust-domain-extensions.html)) 的 KVM 客户私有内存. 本系列通过引入新的 mm 和 KVM 接口来解决 KVM 用户空间导致的崩溃问题, 因此 KVM 用户空间仍然可以通过基于 fd 的方法管理来宾内存, 但它永远不能访问来宾内存内容. | v9 ☐☑ | [LORE v9,0/8](https://lore.kernel.org/r/20221025151344.3784230-1-chao.p.peng@linux.intel.com) |

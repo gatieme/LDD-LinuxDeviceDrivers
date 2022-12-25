@@ -513,6 +513,12 @@ glcc 则实现了 eBPF 驱动和 libbpf 的支持, 允许 eBPF 程序无需修�
 Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标准. Wasmtime还支持与 C/C++, Python, .NET, Go 和其他编程语言的集成, 同时在 Windows / Linux / macOS 平台上运行等等. 
 
 
+
+# 10 云原生
+-------
+
+[Microsoft and Isovalent partner to bring next generation eBPF dataplane for cloud-native applications in Azure](https://azure.microsoft.com/zh-cn/blog/microsoft-and-isovalent-partner-to-bring-next-generation-ebpf-dataplane-for-cloudnative-applications-in-azure)
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.
