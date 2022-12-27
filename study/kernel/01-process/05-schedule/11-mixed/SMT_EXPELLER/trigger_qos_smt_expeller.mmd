@@ -1,0 +1,28 @@
+flowchart TB
+	pick_next_task_fair --PICK 到 TASK 后尝试 SMT 驱离--> QosSmtQxpelTask
+	pick_next_task_fair --当前 CPU 即将 IDLE 尝试更新驱离状态--> QosSmtQxpelIdle
+
+	%% 如果 THIS CPU PICK 到了一个 TASK p, 则依据其是 ONLINE/OFFLINE 任务, 决定是否进行驱离.
+	%% 驱离通过给其 Siblings CPU 发送 RESCHED IPI 发送重调度来完成.
+	subgraph QosSmtQxpelTask [触发 SMT 驱逐]
+	direction TB
+		qos_smt_expel_task("qos_smt_expel(this_cpu, p)") --> QoSSmtUpdateStatus;
+		subgraph QoSSmtUpdateStatus[检查是否需要进行 SMT 驱逐]
+		direction TB
+			qos_smt_update_status["qos_smt_update_status(p)"] --> is_task_online{{"task_group(p)->qos_level >= QOS_LEVEL_ONLINE"}};
+			is_task_online --yes--> QOS_LEVEL_ONLINE["__this_cpu_write(qos_smt_status, QOS_LEVEL_ONLINE)"] --> QoSSmtSendIPI;
+			is_task_online --no--> QOS_LEVEL_OFFLINE2["__this_cpu_write(qos_smt_status, QOS_LEVEL_OFFLINE)"];
+		end
+
+		subgraph QoSSmtSendIPI[通知所有 siblings CPU 进行驱逐]
+		direction TB
+			qos_smt_send_ipi["qos_smt_send_ipi(this_cpu)"] --> for_each_siblings_cpu1("for_each_cpu(cpu, cpu_smt_mask(this_cpu))") --"per_cpu(qos_smt_status, cpu) != QOS_LEVEL_ONLINE && rq->cfs.h_nr_running != 0"--> smp_send_reschedule_task("smp_send_reschedule(cpu)");
+		end
+	end
+
+	%% 如果 THIS CPU 没有 PICK 到任务, 则依据其是 ONLINE/OFFLINE 任务, 决定是否进行驱离.
+	%% 驱离通过给其 Siblings CPU 发送 RESCHED IPI 发送重调度来完成.
+	subgraph QosSmtQxpelIdle [触发 SMT 驱逐]
+	direction TB
+		qos_smt_expel_idle("qos_smt_expel(this_cpu, NULL)") --> QOS_LEVEL_OFFLINE3["__this_cpu_write(qos_smt_status, QOS_LEVEL_OFFLINE)"] --> smp_send_reschedule_idle("smp_send_reschedule(cpu)");
+	end
