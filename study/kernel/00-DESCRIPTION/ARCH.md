@@ -128,11 +128,11 @@ v5.7 引入了拆分锁检测的支持, 这依赖于 x86_64 intel CPU 遇到拆�
 ### 1.2.2 Flexible Return and Event Delivery (FRED)
 -------
 
-[Intel Preps The Linux Kernel For LKGS - Part Of FRED](https://www.phoronix.com/news/Intel-LKGS-Linux-Patches)
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/10/06 | Xin Li <xin3.li@intel.com> | [Enable LKGS instruction](https://lore.kernel.org/all/20221006154041.13001-1-xin3.li@intel.com) | TODO | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20221006154041.13001-1-xin3.li@intel.com) |
+| 2022/10/06 | Xin Li <xin3.li@intel.com> | [Enable LKGS instruction](https://lore.kernel.org/all/20221006154041.13001-1-xin3.li@intel.com) | [Intel Preps The Linux Kernel For LKGS - Part Of FRED](https://www.phoronix.com/news/Intel-LKGS-Linux-Patches) | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20221006154041.13001-1-xin3.li@intel.com) |
+| 2022/12/19 | Xin Li <xin3.li@intel.com> | [x86: enable FRED for x86-64](https://lore.kernel.org/all/20221220063658.19271-1-xin3.li@intel.com) | [Intel Sends Out Initial Linux Kernel Patches For FRED](https://www.phoronix.com/news/Intel-FRED-Linux-Patches) | v1 ☐☑✓ | [LORE v1,0/32](https://lore.kernel.org/all/20221220063658.19271-1-xin3.li@intel.com) |
 
 
 

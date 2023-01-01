@@ -535,6 +535,20 @@ linux 调度器定义了多个调度类, 不同调度类的调度优先级不同
 ### 1.5.4 SMT
 -------
 
+| 资料 | 描述 |
+|:---:|:----:|
+| [同时多线程](https://zh.alegsaonline.com/art/90586) | 一句话介绍 交错式多线程 (IMT), 同步多线程 (SMT), 芯片级多处理 (CMP 或多核处理器) |
+| [超能课堂 (104)-- 超线程 / SMT 多线程技术有什么用？](https://www.expreview.com/56674.html) | 简单介绍了 SMT 的工作原理 |
+| [说一说超线程 / 同步多线程（HT/SMT）技术那些事儿](https://zhuanlan.zhihu.com/p/352676442) | SMT 一些疑惑解答 |
+| [被误解的 CPU 利用率、超线程、动态调频 —— CPU 性能之迷 Part 1](https://zhuanlan.zhihu.com/p/534119705) | 介绍了 ITMT 3.0 以及 SMT 技术 |
+| [曲速未来 揭露：新的 PortSmash 超线程 CPU Vuln 可以窃取解密密钥](https://zhuanlan.zhihu.com/p/48625343) | PortSmash 漏洞 (CVE-2018-5407), 该漏洞使用定时攻击来窃取来自同一 CPU 核心中运行 SMT / 超线程的其他进程的信息 |
+| [超线程技术究竟好不好？](https://www.zhihu.com/question/290385913) | NA |
+| [超威半导体（AMD）的超线程技术和英特尔（Intel）的超线程技术有差别吗？](https://www.zhihu.com/question/350083255) | NA |
+| [CPU的超线程技术提升IPC吗?](https://www.zhihu.com/question/404826890), [关于SMT的性能收益](https://zhuanlan.zhihu.com/p/164603076) | NA |
+| [超线程的两个线程资源是动态分配的还是固定一半一半的？](https://www.zhihu.com/question/59721493) | NA |
+| [英特尔超线程技术](https://baike.baidu.com/item/英特尔超线程技术/10233952) | NA |
+| [为什么cinebench r15和r20在CPU满载渲染时超线程可以显著提高跑分？](https://www.zhihu.com/question/319200765/answer/646240231) | 介绍了 TOPDOWN 以及 Intel Vtune 工具 |
+
 #### 1.5.4.1 SMT aware
 -------
 
@@ -1934,7 +1948,7 @@ update_blocked_averages() 在多个场景都被发现成为非常严重的性能
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/06/02 | Valentin Schneider <valentin.schneider@arm.com> | [sched/fair: Active balancer RT/DL preemption fix](https://lore.kernel.org/patchwork/patch/1115663) | NA | v2 ☐ | [PatchWork v1](https://lore.kernel.org/patchwork/patch/1115663) |
 | 2021/06/02 | Yafang Shao <laoar.shao@gmail.com> | [sched, fair: try to prevent migration thread from preempting non-cfs task](https://lore.kernel.org/patchwork/patch/1440172) | 规避问题 [a race between active_load_balance and sched_switch](https://lkml.org/lkml/2021/6/14/204) | v1 ☐ | [PatchWork v1 old](https://lore.kernel.org/patchwork/patch/1440172), [PatchWork v1](https://lore.kernel.org/patchwork/patch/1446860) |
-| 2021/06/02 | Yafang Shao <laoar.shao@gmail.com> | [sched: Introduce cfs_migration](https://lore.kernel.org/all/20211104145713.4419-1-laoar.shao@gmail.com) | 实现了 per-cpu 的 FIFO 进程 cfs_migration 替代原来的 migration stopper 进程, 在 CFS active load balance 迁移当前进程时使用, 这样如果当前进程已经切换到 RT 进程就不会进行抢占. 从而解决该问题. | RFC ☐ | [LORE 0/4](https://lore.kernel.org/all/20211104145713.4419-1-laoar.shao@gmail.com) |
+| 2021/11/04 | Yafang Shao <laoar.shao@gmail.com> | [sched: Introduce cfs_migration](https://lore.kernel.org/all/20211104145713.4419-1-laoar.shao@gmail.com) | 实现了 per-cpu 的 FIFO 进程 cfs_migration 替代原来的 migration stopper 进程, 在 CFS active load balance 迁移当前进程时使用, 这样如果当前进程已经切换到 RT 进程就不会进行抢占. 从而解决该问题. | RFC ☐ | [LORE 0/4](https://lore.kernel.org/all/20211104145713.4419-1-laoar.shao@gmail.com) |
 
 
 
@@ -5443,6 +5457,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/07/17 | Thomas Gleixner <tglx@linutronix.de> | [Kconfig: Introduce CONFIG_PREEMPT_RT](https://lore.kernel.org/all/alpine.DEB.2.21.1907172200190.1778@nanos.tec.linutronix.de) | 在抢占菜单中添加一个新条目 PREEMPT_RT, 以支持内核的实时支持. 该选项仅在体系结构支持时启用. 它选择抢占, 因为 RT 特性依赖于它. 为了实现将现有的 PREEMPT 选项重命名为 `PREEMPT_LL`, 该选项也会选择 PREEMPT. 没有功能上的改变. | v2 ☐☑✓ | [LORE v2,0/1](https://lore.kernel.org/all/alpine.DEB.2.21.1907172200190.1778@nanos.tec.linutronix.de) |
 | 2019/7/15 | Thomas Gleixner <tglx@linutronix.de> | [locking, sched: The PREEMPT-RT locking infrastructure](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=026659b9774e4c586baeb457557fcfc4e0ad144b) | PREEMPT_RT 的基础支持, 完成了锁语义的转换. 在支持 PREEMPT-RT 的内核中, 以下锁被基于 RT Mutex 的变体替换: mutex, ww_mutex, rw_semaphore, spinlock, rwlock. 但是 semaphores 没有被修改, 因为它并不严格提供 owner 的语义. raw_spinlocks 也没有被修改, 因为它被用在保护调度器、定时器和硬件访问中的低级别操作中. | v1 ☑ 5.3-rc1 | [LORE v5,00/72](https://lore.kernel.org/all/20210815203225.710392609@linutronix.de)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2019/7/15/1386) |
+| 2022/12/19 | Krzysztof Kozlowski <krzysztof.kozlowski@linaro.org> | [PM: Fixes for Realtime systems](https://lore.kernel.org/all/20221219151503.385816-1-krzysztof.kozlowski@linaro.org) | TODO | v2 ☐☑✓ | [LORE v2,0/5](https://lore.kernel.org/all/20221219151503.385816-1-krzysztof.kozlowski@linaro.org) |
 
 
 ### 8.7.1  Migrate disable support && kmap_local

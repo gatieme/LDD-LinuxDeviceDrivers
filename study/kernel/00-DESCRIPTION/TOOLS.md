@@ -124,6 +124,8 @@ Intel 发布的 ControlFlag 用机器学习来发现代码中的错误, 支持 C
 | 2021/01/10 | Joe Perches <joe@perches.com> | [Documentation: Replace lkml.org links with lore](https://patchwork.kernel.org/project/linux-omap/patch/77cdb7f32cfb087955bfc3600b86c40bed5d4104.camel@perches.com/#23968747) | 补丁将内核中 lkml 的链接转换为 lore.kernel.org 的链接. 补丁描述中提供了一个脚本来完整这个工作. | v1 ☑ 5.12-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=05a5f51ca566674e6a6ee9cef0af1b00bf100d67) |
 | 2020/02/06 | Joe Perches <joe@perches.com> | [B4 Better tools for kernel developers](https://lwn.net/Articles/811528) | 补丁将内核中 lkml 的链接转换为 lore.kernel.org 的链接. 补丁描述中提供了一个脚本来完整这个工作. | v1 ☑ 5.12-rc1 | [GIT](https://git.kernel.org/pub/scm/utils/b4/b4.git), [elinux](https://elinux.org/images/9/93/Kernel_email_tools_elce_2020.pdf) |
 
+[Sending a kernel patch with b4 (part 1)](https://people.kernel.org/monsieuricon/sending-a-kernel-patch-with-b4-part-1), Konstantin Ryabitsev 的博客展示如何使用 B4 提交内核补丁, 无需(直接)使用电子邮件.
+
 patchwork 提供了 [API](https://patchwork.kernel.org/api/projects) 可以获取到各个 patchwork 子项目的 ID 等信息.
 [xuliker/kde](https://github.com/xuliker/kde) 接着 patchwork 的 API, 提供了一个获取制定日期各个 patchwork 项目上邮件的脚本 [get_mm_patch_series_today.sh](https://github.com/xuliker/kde/blob/master/kernel_mailing_list/mm_community/get_mm_patch_series_today.sh)
 

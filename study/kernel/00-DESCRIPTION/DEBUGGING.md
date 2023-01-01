@@ -381,6 +381,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2022/05/28 | zhengjun <zhengjun.xing@linux.intel.com> | [perf vendor events intel: Add metrics for Sapphirerapids](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1bcca2b1bd67f3c0e5c3a88ed16c6389f01a5b31) | TODO | v2 ☑✓ 5.19-rc1 | [LORE v2,0/2](https://lore.kernel.org/all/20220528095933.1784141-1-zhengjun.xing@linux.intel.com) |
 | 2022/08/25 | zhengjun.xing@linux.intel.com <zhengjun.xing@linux.intel.com> | [perf stat: Capitalize topdown metricsnel.org/all/20220825015458.3252239-1-zhengjun.xing@linux.intel.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/9-1-zhengjun.xing@linux.intel.com) |
 | 2022/10/21 | Shang XiaoJing <shangxiaojing@huawei.com> | [perf vendor events arm64: Fix incorrect Hisi hip08 L3 metrics](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e9229d5b6254a75291536f582652c599957344d2) | TODO | v2 ☑✓ 6.1-rc3 | [LORE v2,0/3](https://lore.kernel.org/all/20221021105035.10000-1-shangxiaojing@huawei.com) |
+| 2022/12/14 | Sandipan Das <sandipan.das@amd.com> | [perf vendor events amd: Add Zen 4 events and metrics](https://lore.kernel.org/all/20221214082652.419965-1-sandipan.das@amd.com) | [Linux 6.2 Adds AMD Zen 4 Pipeline Utilization Data To Help Find Performance Bottlenecks](https://www.phoronix.com/news/LInux-6.2-AMD-Zen-4-Events) | v2 ☐☑✓ 6.2-rc1 | [LORE v2,0/4](https://lore.kernel.org/all/20221214082652.419965-1-sandipan.das@amd.com) |
 
 
 ## 11.3 Userspace counter access
@@ -846,6 +847,8 @@ LWN 上也对此进行了[汇总报道](https://lwn.net/Kernel/Index/#Android-Ge
 | 2021/03/21 | Rasmus Villemoes <linux@rasmusvillemoes.dk> | [background initramfs unpacking, and CONFIG_MODPROBE_PATH](https://lore.kernel.org/patchwork/patch/1394812) | 启动阶段异步解压 initramfs. 可以加速系统启动. | v1 ☑ [5.13-rc1](https://kernelnewbies.org/Linux_5.13) | [Patchwork](https://lore.kernel.org/patchwork/patch/1394812) |
 | 2021/11/21 | David Woodhouse <dwmw2@infradead.org> | [Parallel CPU bringup for x86_64](https://lkml.org/lkml/2021/12/9/664) | 随着核数的增多, 内核的启动速度越来越慢. 这组补丁能够并行启动辅助 (x86_64) CPU 内核. | v1 ☐ | [LWN ](https://lwn.net/Articles/878161), [LKML](https://lkml.org/lkml/2021/12/9/664), [LORE 00/11](https://lkml.kernel.org/lkml/20211209150938.3518-1-dwmw2@infradead.org),  [Phoronix 报道 v1](https://www.phoronix.com/scan.php?page=news_item&px=Linux-x86_64-Parallel-CPU-Boot)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/9](https://lore.kernel.org/lkml/20211215145633.5238-1-dwmw2@infradead.org), [Phoronix 报道 v3](https://www.phoronix.com/scan.php?page=news_item&px=Parallel-CPU-Bringup-AMD-Snag) |
 | 2022/11/02 | Stuart Hayes <stuart.w.hayes@gmail.com> | [cpufreq: acpi: Defer setting boost MSRs](https://lore.kernel.org/all/20221102195957.82871-1-stuart.w.hayes@gmail.com) | [Deferred Enabling Of ACPI CPUFreq Boost Support Can Help Boot Times For Large Servers](https://www.phoronix.com/news/CPUFreq-Defer-Boost-MSRs) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221102195957.82871-1-stuart.w.hayes@gmail.com) |
+
+Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 [Fedora 38 Wants To Make Sure Shutdowns & Reboots Are Faster](https://www.phoronix.com/news/Fedora-38-Faster-Reboots) 以及 [Fedora wiki--Changes/Shorter Shutdown Timer](https://fedoraproject.org/wiki/Changes/Shorter_Shutdown_Timer).
 
 
 # 18 LIB

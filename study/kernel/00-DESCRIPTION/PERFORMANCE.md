@@ -102,6 +102,7 @@ https://www.phoronix.com/scan.php?page=news_item&px=UDP-IPV6-5P-Optimization
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/03 | Peter Oskolkov <posk@google.com> | [thread_info: use helpers to snapshot thread flags](https://lwn.net/Articles/722293) | 参见报道 [Linux 5.17 To Continue With I/O Optimizations, 5~6% Improvement Pending For NVMe](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Will-Continue-IO) | v1 ☐ | [PatchWork v4,00/10](https://lore.kernel.org/patchwork/cover/1471548) |
+| 2022/12/18 | Eric Van Hensbergen <evanhensbergen@icloud.com> | [Performance fixes for 9p filesystem](https://lore.kernel.org/all/20221218232217.1713283-1-evanhensbergen@icloud.com) | [New Patches Aim To Boost Linux 9p Performance By ~10x](https://www.phoronix.com/news/Linux-9p-10x-Performance) | v2 ☐☑✓ | [LORE v2,0/10](https://lore.kernel.org/all/20221218232217.1713283-1-evanhensbergen@icloud.com) |
 
 
 # 5 ARCH
