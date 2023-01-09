@@ -101,7 +101,7 @@
 | 5.19 | NA | NA | NA |
 |  6.0 | NA | NA | [Linux 6.0 Supporting New Intel/AMD Hardware, Performance Improvements & Much More](https://www.phoronix.com/review/linux-60-features), [6.0-rc1](https://www.phoronix.com/news/Linux-6.0-rc1-Released) |
 |  6.1 | NA | NA | [Linux 6.1 Features Include Initial Rust Code, MGLRU, New AMD CPU Features, More Security](https://www.phoronix.com/review/linux-61-features), [The Most Interesting New Features For Linux 6.1](https://www.phoronix.com/news/Linux-6.1-Features) |
-|  6.2 | NA | NA | [The Many New Features On The Horizon For Linux 6.2](https://www.phoronix.com/news/Linux-6.2-Early-Features)<br>*-*-*-*-*-*-*-* <br>[Linux 6.2-rc1 Brings Stable Intel Arc Graphics, Call Depth Tracking & Many More Features](https://www.phoronix.com/news/Linux-6.2-rc1-Released) |
+|  6.2 | NA | NA | [The Many New Features On The Horizon For Linux 6.2](https://www.phoronix.com/news/Linux-6.2-Early-Features)<br>*-*-*-*-*-*-*-* <br>[Linux 6.2-rc1 Brings Stable Intel Arc Graphics, Call Depth Tracking & Many More Features](https://www.phoronix.com/news/Linux-6.2-rc1-Released)<br>*-*-*-*-*-*-*-* <br>[Linux 6.2 Features: Stable Intel Arc Graphics. RTX 30 Support, Intel On Demand + IFS Ready](https://www.phoronix.com/review/linux-62-features) |
 
 # 6 业界会议
 -------

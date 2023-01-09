@@ -677,6 +677,14 @@ Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM F
 
 
 
+## 13.11 Reduce Memory Usage
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/12/27 | Thomas Weißschuh <linux@weissschuh.net> | [reduce maximum memory usage](https://lore.kernel.org/all/20221216-objtool-memory-v2-0-17968f85a464@weissschuh.net) | 使用 objtool 处理 vmlinux.o 是内核构建中最占用内存的步骤. 通过减少最大内存使用量, 我们可以减少整个内核构建的最大内存使用.<br>因此, 在内核构建过程中, 内存不足的机器上的内存压力得到了缓解, 而且构建速度更快, 因为需要的交换更少. 参见 phoronix 报道 [New Patches Aim To Reduce Memory Use While Compiling The Linux Kernel](https://www.phoronix.com/news/Linux-Kernel-Build-Less-RAM). | v2 ☐☑✓ | [LORE v2,0/8](https://lore.kernel.org/all/20221216-objtool-memory-v2-0-17968f85a464@weissschuh.net) |
+
+
 # 14 FTRACE
 -------
 

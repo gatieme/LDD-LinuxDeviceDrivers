@@ -266,7 +266,7 @@ Linux 一开始是在一台i386上的机器开发的, i386 的硬件页表是2�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/09/21 | Huang Ying <ying.huang@intel.com> | [migrate_pages(): batch TLB flushing](https://lore.kernel.org/all/20220921060616.73086-1-ying.huang@intel.com) | 当前, migrate_pages()逐个迁移页面, 对每一页进行解除映射, 刷新 TLB, 然后恢复映射. 如果将多个页面传递给 migrate_pages(), 则有机会批量刷新和复制 TLB. TLB 冲洗 IPI 的总数可以大大减少. 并可以使用一些硬件加速器, 如 DSA 来加速页面复制. 因此, 在这个补丁中, 我们重构了 migrate_pages()实现, 并实现了 TLB 刷新批处理. 在此基础上, 可以实现硬件加速页面复制. | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20220921060616.73086-1-ying.huang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/8](https://lore.kernel.org/r/20221227002859.27740-1-ying.huang@intel.com) |
+| 2022/09/21 | Huang Ying <ying.huang@intel.com> | [migrate_pages(): batch TLB flushing](https://lore.kernel.org/all/20220921060616.73086-1-ying.huang@intel.com) | 当前, migrate_pages()逐个迁移页面, 对每一页进行解除映射, 刷新 TLB, 然后恢复映射. 如果将多个页面传递给 migrate_pages(), 则有机会批量刷新和复制 TLB. TLB 冲洗 IPI 的总数可以大大减少. 并可以使用一些硬件加速器, 如 DSA 来加速页面复制. 因此, 在这个补丁中, 我们重构了 migrate_pages()实现, 并实现了 TLB 刷新批处理. 在此基础上, 可以实现硬件加速页面复制. 参见 phoronix 报道 [Intel Prepares Linux Batch TLB Flushing For Page Migration As A Big Performance Win](https://www.phoronix.com/news/Linux-Migrate-Pages-Batch-Flush). | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20220921060616.73086-1-ying.huang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/8](https://lore.kernel.org/r/20221227002859.27740-1-ying.huang@intel.com) |
 | 2022/10/28 | Yicong Yang <yangyicong@huawei.com> | [arm64: support batched/deferred tlb shootdown during page reclamation](https://patchwork.kernel.org/project/linux-mm/cover/20221028081255.19157-1-yangyicong@huawei.com/) | 虽然 ARM64 有硬件进行 tlb shootdown, 但是使用 tlbi 进行硬件广播的开销也不小. 一个最简单的微基准测试显示, 即使在只有 8 核的骁龙 888 上, 即使只分页一个进程映射的页面, ptep_clear_flush() 的开销(perf top) 也达到了 5.36%. 当页面由多个进程映射或 HW 有更多 CPU 时, 由于 tlb shootdown 糟糕的可伸缩性, 成本应该会变得更高, 同样的基准测试在 100 核左右的 ARM64 服务器上可以导致 16.99% 的 CPU 消耗. 这个补丁集利用现有的 BATCHED_UNMAP_TLB_FLUSH. 只在第一阶段 arch_tlbbatch_add_mm() 中发送 tlbi 指令. 在骁龙 888 上的测试表明, 补丁集消除了 ptep_clear_flush() 的开销. 在骁龙 888 上, 即使是单个进程映射的一个页面, 微基准测试也要快 5%. 有了这个支持, 我们可以对内存回收和[迁移](https://lore.kernel.org/lkml/20220921060616.73086-1-ying.huang@intel.com)做更多的优化. | v5 ☐☑ | [LORE 0/4](https://lore.kernel.org/lkml/20220707125242.425242-1-21cnbao@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/2](https://lore.kernel.org/r/20221028081255.19157-1-yangyicong@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/2](https://lore.kernel.org/r/20221115031425.44640-1-yangyicong@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/2](https://lore.kernel.org/r/20221117082648.47526-1-yangyicong@huawei.com) |
 
 
@@ -4800,13 +4800,12 @@ Google 的工程师 Mina Almasry 提出了一种新的思路, 通过 [mremap 的
 
 HugeTLB 高粒度映射 (HugeTLB High-Granularity Mapping, HGM)(早期也叫 HugeTLB Double Mapping) 的概念. 从广义上讲, 本系列将教 HugeTLB 如何以不同粒度映射 HugeTLB 页面, 更重要的是, 如何部分映射 HugeTLB 页面. 高粒度映射不会分解大页面本身; 它只影响它们的映射方式.
 
-
 对于复制后的热迁移, 使用 userfaultfd, 一直以来必须安装一个完整的大页面, 才能允许客户访问该页面. 这是因为, 现在, 要么整个大页要么被映射, 要么没有映射. 所以 Guest 要么可以访问整个页面, 要么一个都不能访问. 这使得 1G HugeTLB 支持的虚拟机复制后热迁移完全不可行的.
 
 因此能够将 HugeTLB 内存按照 PAGE_SIZE pte 进行映射, 在复制后热迁移和内存故障处理中具有重要意义.
 
 
-通过使用 HugeTLB 高粒度映射, 我们可以映射一个大页中的 PAGE_SIZE 大小的页面, 从而允许客户机只访问 PAGE_SIZE 块, 并在访问其他页面块时触发 Page Fault. 这使用户空间可以灵活地将 PAGE_SIZE 内存块安装到一个巨大的页面中, 使得迁移 1G 支持的虚拟机完全可行, 并且极大地减少了 2M 支持的虚拟机在复制后的 vCPU 暂停时间.
+通过使用 HugeTLB 高粒度映射, 我们可以映射一个大页中的 PAGE_SIZE 大小的页面, 从而允许客户机只访问 PAGE_SIZE 块, 并在访问其他页面块时触发 Page Fault. 这使用户空间可以灵活地将 PAGE_SIZE 内存块安装到一个巨大的页面中, 使得迁移 1G 支持的虚拟机完全可行, 并且极大地减少了 2M 支持的虚拟机在复制后的 vCPU 暂停时间. 参见 phoronix 报道 [Google Moves Forward With HugeTLB HGM For The Linux Kernel](https://www.phoronix.com/news/Linux-HugeTLB-HGM).
 
 1. 在通过网络完全复制一个巨大的页面后, 我们将希望将映射分解为正常情况下的样子 (例如, 一个 PUD 对应一个 1G 页面). 我们没有让内核自动完成这一工作, 而是让用户空间来告诉我们折叠一个范围 (通过 [MADV_COLLAPSE](https://lore.kernel.org/linux-mm/20220604004004.954674-10-zokeefe@google.com)).
 
@@ -4817,7 +4816,8 @@ HugeTLB 高粒度映射 (HugeTLB High-Granularity Mapping, HGM)(早期也叫 Hug
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
-| 2022/10/21 | James Houghton <jthoughton@google.com> | [hugetlb: introduce HugeTLB high-granularity mapping](https://patchwork.kernel.org/project/linux-mm/cover/20221021163703.3218176-1-jthoughton@google.com/) | 687585 | v2 ☐☑ | [LORE RFC,00/26](https://lore.kernel.org/linux-mm/20220624173656.2033256-1-jthoughton@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/47](https://lore.kernel.org/r/20221021163703.3218176-1-jthoughton@google.com) |
+| 2022/10/21 | James Houghton <jthoughton@google.com> | [hugetlb: introduce HugeTLB high-granularity mapping](https://patchwork.kernel.org/project/linux-mm/cover/20221021163703.3218176-1-jthoughton@google.com/) | 687585 | v2 ☐☑ | [LORE RFC,00/26](https://lore.kernel.org/linux-mm/20220624173656.2033256-1-jthoughton@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/47](https://lore.kernel.org/r/20221021163703.3218176-1-jthoughton@google.com)<br>*-*-*-*-*-*-*-* <br>[2023/01/05 LORE v2,rebase](https://lore.kernel.org/lkml/20230105101844.1893104-1-jthoughton@google.com)
+ |
 
 
 ### 7.1.x More HugeTLB Patchset
@@ -6928,8 +6928,7 @@ DAMON 利用两个核心机制 : **基于区域的采样**和**自适应区域�
 
 参见内核文档 [Linux Memory Management Documentation » DAMON: Data Access MONitor](https://www.kernel.org/doc/html/latest/mm/damon/index.html)
 
-
-
+SeongJae Park 发布了 DAMON 2022 年度总结 [Looking back DAMON development in 2022](https://lore.kernel.org/lkml/20221229171209.162356-1-sj@kernel.org), 参见 phoronix 报道 [Amazon Reflects On The Great Year For DAMON In The Linux Kernel](https://www.phoronix.com/news/DAMON-Linux-2022)
 
 ### 13.6.2 DAMON Data Access MONitor
 -------

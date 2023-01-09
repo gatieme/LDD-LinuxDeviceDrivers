@@ -103,14 +103,13 @@ https://lkml.org/lkml/2021/3/16/546
 
 khugepage_code 将选择命中率最高的节点作为首选节点, 并尝试在多个节点具有相同命中率记录的情况下进行一些平衡. 基本上它在概念上是这样的:
 
-* 如果目标节点 <= last_target_node, 则从 last_target_node + 1 迭代到 MAX_NUMNODES(默认配置为 1024)* 如果 max_value == node_load[nid], 则 target_node = nid
-但也存在一种极端情况, 特别是对于 MADV_COLLAPSE, 不存在的结点可以作为首选结点返回.
+* 如果目标节点 <= last_target_node, 则从 last_target_node + 1 迭代到 MAX_NUMNODES(默认配置为 1024)
 
-假设系统有 2 个节点, target_node 为 0,last_target_node 为 1, 如果命中 MADV_COLLAPSE 路径, max_value 可能为 0, 那么它可能为 target_node 返回 2, 但实际上它不存在 (离线), 因此触发警告.
+* 如果 max_value == node_load[nid], 则 target_node = nid
 
-节点均衡是由 commit 9f1b868a13ac("mm: thp:
+* 但也存在一种极端情况, 特别是对于 MADV_COLLAPSE, 不存在的结点可以作为首选结点返回. 假设系统有 2 个节点, target_node 为 0,last_target_node 为 1, 如果命中 MADV_COLLAPSE 路径, max_value 可能为 0, 那么它可能为 target_node 返回 2, 但实际上它不存在 (离线), 因此触发警告.
 
-Khugepaged: 添加查找目标节点的策略") 以满足 "numactl—interleave=all". 但交叉只是一种暗示, 并没有什么硬性要求.
+节点均衡是由 commit 9f1b868a13ac("mm: thp: khugepaged: add policy for finding target node") 以满足 "numactl—interleave=all". 但交叉只是一种暗示, 并没有什么硬性要求.
 
 因此, 使用 nodemask 来记录具有相同命中记录的节点, 巨大的页面分配可能会回退到这些节点. 并删除__GFP_THISNODE, 因为它不允许回退. 如果 nodemask 为空 (没有设置节点), 这意味着只有一个节点的历史记录最多, nodemask 方法实际上类似于 `__GFP_THISNODE`.
 
@@ -202,4 +201,7 @@ https://www.latexlive.com
 
 
 
+MGLRU 合入后, 引起了不少场景的性能劣化, 参见 phoronix 报道 [An MGLRU Performance Regression Fix Is On The Way Plus Another Optimization](https://www.phoronix.com/news/MGLRU-SVT-Performance-Fix).
 
+
+[Linux 6.2 Features: Stable Intel Arc Graphics. RTX 30 Support, Intel On Demand + IFS Ready](https://www.phoronix.com/review/linux-62-features)
