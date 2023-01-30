@@ -128,6 +128,7 @@ v5.7 引入了拆分锁检测的支持, 这依赖于 x86_64 intel CPU 遇到拆�
 ### 1.2.2 Flexible Return and Event Delivery (FRED)
 -------
 
+[Linux 6.3 To Support Making Use Of Intel's New LKGS Instruction (Part Of FRED)](https://www.phoronix.com/news/Intel-LKGS-Linux-6.3)
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
@@ -1069,6 +1070,7 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 | 2021/12/24 | Huang Rui <ray.huang@amd.com> | [cpufreq: Introduce a new AMD CPU frequency control mechanism](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=38fec059bb69793f38cfa7a671d4bdbfe2a647aa) | TODO |v7 ☐☑✓ | [LORE v7,0/14](https://lore.kernel.org/all/20211224010508.110159-1-ray.huang@amd.com) |
 | 2022/11/11 | Perry Yuan <Perry.Yuan@amd.com> | [Implement AMD Pstate EPP Driver](tps://lore.kernel.org/lkml/20221219064042.661122-1-perry.yuan@amd.com) | [AMD P-State EPP Patches Spun An 8th Time For Helping Out Linux Performance & Efficiency](https://www.phoronix.com/news/AMD-P-State-EPP-v8) | v4 ☐☑✓ 5.17-rc1 | [LORE v4,0/9](https://lore.kernel.org/all/20221110175847.3098728-1-Perry.Yuan@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,00/13](https://lore.kernel.org/lkml/20221219064042.661122-1-perry.yuan@amd.com) |
 | 2022/03/25 | Mario Limonciello <mario.limonciello@amd.com> | [Improve usability for amd-pstate](https://lore.kernel.org/all/20220325054228.5247-1-mario.limonciello@amd.com) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20220325054228.5247-1-mario.limonciello@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/linux-pm/20220414164801.1051-1-mario.limonciello@amd.com) |
+| 2023/01/13 | Wyes Karny <wyes.karny@amd.com> | [amd_pstate: Add guided autonomous mode support](https://lore.kernel.org/all/20230113052141.2874296-1-wyes.karny@amd.com) | [AMD Updates P-State "Guided Autonomous Mode" Support For Linux](https://www.phoronix.com/news/AMD-Guided-Auto-Mode-v2) | v2 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20230113052141.2874296-1-wyes.karny@amd.com) |
 
 
 

@@ -1,0 +1,22 @@
+flowchart TB
+	__schedule --> pick_next_task["next = pick_next_task(rq, prev, &rf)"]
+	__schedule --> NotifySmtExpeller["notify_smt_expeller(rq, next)"]
+
+
+	subgraph NotifySmtExpeller ["保持 SMT 驱逐状态"]
+	direction TB
+		notify_smt_expeller --> DoNotifySmtExpeller;
+
+		subgraph DoNotifySmtExpeller ["保持 SMT 驱逐状态"]
+		direction TB
+			__notify_smt_expeller --> for_each_sibling_cpu["for_each_cpu(cpu, cpu_smt_mask(this_cpu)"] --> smp_send_reschedule["smp_send_reschedule(cpu)"];
+		end
+	end
+
+	scheduler_ipi --> handle_smt_expeller;
+	handle_smt_expeller -->  __update_rq_on_expel;
+	handle_smt_expeller -->  ExpelResched;
+	subgraph ExpelResched ["保持 SMT 驱逐状态"]
+	direction TB
+		handle_smt_expeller --> expel_resched --> set_tsk_need_resched;
+	end

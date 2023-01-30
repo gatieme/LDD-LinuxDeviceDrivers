@@ -204,4 +204,124 @@ https://www.latexlive.com
 MGLRU 合入后, 引起了不少场景的性能劣化, 参见 phoronix 报道 [An MGLRU Performance Regression Fix Is On The Way Plus Another Optimization](https://www.phoronix.com/news/MGLRU-SVT-Performance-Fix).
 
 
-[Linux 6.2 Features: Stable Intel Arc Graphics. RTX 30 Support, Intel On Demand + IFS Ready](https://www.phoronix.com/review/linux-62-features)
+
+
+
+
+| 2020/02/27 | Valentin Schneider <valentin.schneider@arm.com> | [sched, arm64: enable CONFIG_SCHED_SMT for arm64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=6f693dd5be08237b337f557c510d99addb9eb9ec) | TODO | v2 ☑✓ 5.7-rc1 | [LORE v2,0/2](https://lore.kernel.org/all/20200227191433.31994-1-valentin.schneider@arm.com) |
+| 2022/12/02 | Brian Foster <bfoster@redhat.com> | [proc: improve root readdir latency with many threads](https://lore.kernel.org/all/20221202171620.509140-1-bfoster@redhat.com) | TODO | v3 ☐☑✓ | [LORE v3,0/5](https://lore.kernel.org/all/20221202171620.509140-1-bfoster@redhat.com) |
+
+| 2023/01/09 | Yian Chen <yian.chen@intel.com> | [Enable LASS (Linear Address space Separation)](https://lore.kernel.org/all/20230110055204.3227669-1-yian.chen@intel.com) | 参见 LWN 报道 [Support for Intel's LASS](https://lwn.net/Articles/919683) 和 phoronix 报道 [Intel Posts Linux Patches For Linear Address Space Separation (LASS)](https://www.phoronix.com/news/Linear-Address-Space-Separation) | v1 ☐☑✓ | [LORE v1,0/7](https://lore.kernel.org/all/20230110055204.3227669-1-yian.chen@intel.com) |
+
+
+
+[[LSF/MM/BFP TOPIC] Storage: Copy Offload](https://lkml.kernel.org/linux-block/f0e19ae4-b37a-e9a3-2be7-a5afb334a5c3@nvidia.com)
+[LSFMM: Copy offload](https://lwn.net/Articles/548347)
+[Storage: Xcopy Offload](https://blog.csdn.net/flyingnosky/article/details/123533554)
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2014/05/28 | Martin K. Petersen <martin.petersen@oracle.com> | [Copy offload](https://lore.kernel.org/all/1401335565-29865-1-git-send-email-martin.petersen@oracle.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/1401335565-29865-1-git-send-email-martin.petersen@oracle.com) |
+| 2022/11/23 | Nitesh Shetty <nj.shetty@samsung.com> | [Implement copy offload support](https://lore.kernel.org/all/20221123055827.26996-1-nj.shetty@samsung.com) | TODO | v5 ☐☑✓ | [LORE v5,0/10](https://lore.kernel.org/all/20221123055827.26996-1-nj.shetty@samsung.com) |
+
+
+
+
+[调度器 34—RT 负载均衡](https://www.cnblogs.com/hellokitty2/p/15974333.html)
+[实时调度负载均衡](https://github.com/freelancer-leon/notes/blob/master/kernel/sched/sched_rt_load_balance.md)
+
+
+[Latencies, schedulers, interrupts oh my! The epic story of a Linux Kernel upgrade](https://www.nutanix.dev/2021/12/09/latencies-schedulers-interrupts-oh-my-the-epic-story-of-a-linux-kernel-upgrade)
+
+[RISC-V Hibernation Support / Suspend-To-Disk Nears The Linux Kernel](https://www.phoronix.com/news/RISC-V-Hibernation-Linux)
+[Intel Preparing New Linux"PerfMon"Performance Monitoring Support For IOMMU](https://www.phoronix.com/news/Intel-IOMMU-VT-d-4.0-PerfMon)
+
+[ARM64 手动搭建 kdump 环境](https://blog.csdn.net/m0_37797953/article/details/107491356)
+[crash 命令 —— list](https://www.cnblogs.com/pengdonglin137/p/16046328.html)
+[CRASH 安装和调试](https://www.cnblogs.com/Linux-tech/p/14110330.html)
+[fujitsu/crash-trace](https://github.com/fujitsu/crash-trace)
+[How to display or retrieve ftrace data from the kernel crash dump?](https://access.redhat.com/solutions/239433)
+
+
+
+
+
+
+
+
+
+5.7-rc1 [psi: Optimize switching tasks inside shared cgroups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=36b238d5717279163859fb6ba0f4360abcafab83)
+
+5.13-rc1 [psi: Optimize task switch inside shared cgroups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4117cebf1a9fcbf35b9aabf0e37b6c5eea296798)
+
+5.13-rc1 [psi: Fix psi state corruption when schedule() races with cgroup move](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d583d360a620e6229422b3455d0be082b8255f5e)
+| 2023/01/13 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: unlink misfit task from cpu overutilized](https://lore.kernel.org/all/20230113134056.257691-1-vincent.guittot@linaro.org) | TODO | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230113134056.257691-1-vincent.guittot@linaro.org) |
+
+通过考虑 uclamp_min, task misfit 和 cpu overutilization 之间的 1:1 关系不再成立, 因为一个 util_avg 较小的任务可能由于 uclamp_min 的约束而不适合大容量的 cpu.
+
+在 util_fits_cpu() 中添加一个新状态, 以反映任务适合 CPU 的情况, 除了 uclamp_min 提示 (这是一种性能要求).
+
+使用 - 1 表示 CPU 不适合只是因为 uclamp_min, 因此我们可以使用这个新值采取额外的操作, 以选择不符合 uclamp_min 提示的最佳 CPU.
+
+
+| 2023/01/12 | Daniel Bristot de Oliveira <bristot@kernel.org> | [sched/idle: Make idle poll dynamic per-cpu](https://lore.kernel.org/all/20230112162426.217522-1-bristot@kernel.org) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230112162426.217522-1-bristot@kernel.org) |
+
+
+
+| 2023/01/12 | Daniel Bristot de Oliveira <bristot@kernel.org> | [sched/idle: Make idle poll dynamic per-cpu](https://lore.kernel.org/all/20230112162426.217522-1-bristot@kernel.org) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230112162426.217522-1-bristot@kernel.org) |
+
+
+
+
+[鲲鹏 gcc mcmodel 选项详解](https://bbs.huaweicloud.com/blogs/272527)
+[GCC for openEuler -mcmodel 选项详解](https://cdn.modb.pro/db/524836)
+
+
+[对于几个锁的对比总结 Part1](https://blog.csdn.net/He11o_Liu/article/details/81077867)
+[论文分享：Smartlocks: Lock Acquisition Scheduling for Self-Aware Synchronization](https://blog.csdn.net/He11o_Liu/article/details/81077695)
+[论文分享 SANL：可扩展 NUMA-Aware 锁](https://blog.csdn.net/He11o_Liu/article/details/79255951)
+[论文分享：Unlocking Energy](https://blog.csdn.net/He11o_Liu/article/details/81077777)
+[论文分享：Non-scalable locks are dangerous](https://blog.csdn.net/He11o_Liu/article/details/80386839)
+[转载 ---- 从 CPU cache 一致性的角度看 Linux spinlock 的不可伸缩性 (non-scalable)](https://blog.csdn.net/zhangshuaiisme/article/details/88147697)
+[Scalable lock-free dynamic memory allocation 简要观感](https://blog.csdn.net/jollyjumper/article/details/53948391)
+[从 CPU cache 一致性的角度看 Linux spinlock 的不可伸缩性 (non-scalable)](https://blog.csdn.net/dog250/article/details/80589442)
+[[Paper 翻译]Scalable Lock-Free Dynamic Memory Allocation](https://blog.csdn.net/weixin_30457065/article/details/95622521)
+[PV qspinlock 原理](https://blog.csdn.net/bemind1/article/details/118224344)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+| 2023/01/26 | Waiman Long <longman@redhat.com> | [sched: Store restrict_cpus_allowed_ptr() call state](https://lore.kernel.org/all/20230127015527.466367-1-longman@redhat.com) | TODO | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230127015527.466367-1-longman@redhat.com) |
+| 2023/01/20 | Wander Lairson Costa <wander@redhat.com> | [Fix put_task_struct() calls under PREEMPT_RT](https://lore.kernel.org/all/20230120150246.20797-1-wander@redhat.com) | TODO | v2 ☐☑✓ | [LORE v2,0/4](https://lore.kernel.org/all/20230120150246.20797-1-wander@redhat.com) |
+
+
+
+
+| 2023/01/13 | Nathan Huckleberry <nhuck@google.com> | [workqueue: Add WQ_SCHED_FIFO](https://lore.kernel.org/all/20230113210703.62107-1-nhuck@google.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230113210703.62107-1-nhuck@google.com) |
+| 2018/11/11 | Paul E. McKenney <paulmck@linux.ibm.com> | [Automate initrd generation for v4.21/v5.0](https://lore.kernel.org/all/20181111200127.GA9511@linux.ibm.com) | 内核中引入 nolibc, 参见 LWN 报道 [Nolibc: a minimal C-library replacement shipped with the kernel](https://lwn.net/Articles/920158) | v5 ☐☑✓ | [LORE v5,0/8](https://lore.kernel.org/all/20181111200127.GA9511@linux.ibm.com) |
+
+
+
+
+[McKenney: What Does It Mean To Be An RCU Implementation?](https://lwn.net/Articles/921351)
+
+[GFP flags and the end of GFP_ATOMIC](https://lwn.net/Articles/920891)
+
+[Linux Kernel Podcast](https://kernelpodcast.org)
+
+[Reconsidering BPF ABI stability](https://lwn.net/Articles/921088)
+
+| 2023/01/13 | Mel Gorman <mgorman@techsingularity.net> | [Discard `__GFP_ATOMIC`](https://lore.kernel.org/all/20230113111217.14134-1-mgorman@techsingularity.net) | TODO | v3 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20230109151631.24923-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/all/20230113111217.14134-1-mgorman@techsingularity.net) |
+
+[Linux Developers Evaluating New "DOITM" Security Mitigation For Latest Intel CPUs](https://www.phoronix.com/review/intel-doitm-linux)

@@ -145,6 +145,9 @@ $rq_nr_load = 1000 \times ux_nr + 100 \times top_nr + 10 \times fg_nr + bg_nr$
 
 ColorOS 提供了 [MF(Multi Freearea)](https://github.com/oppo-source/android_kernel_modules_and_devicetree_oppo_sm8250/tree/oppo/sm8250_s_12.1/vendor/oplus/kernel/oplus_performance/multi_freearea) 提供了物理内存反碎片化的能力.
 
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/04/14 | lipeifeng@oppo.com <lipeifeng@oppo.com> | [mm: support multi_freearea to the reduction of external fragmentation](https://lore.kernel.org/all/20210414023803.937-1-lipeifeng@oppo.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20210414023803.937-1-lipeifeng@oppo.com) |
 
 
 ### 2.1.2 CSVM(Centralize Small Virtual Mem) 虚拟内存反碎片化机制

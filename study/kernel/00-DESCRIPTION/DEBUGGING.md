@@ -243,8 +243,11 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 ## 8.2 getrandom vDSO
 -------
 
+[Implementing virtual system calls](https://lwn.net/Articles/615809)
+
 [Linux Proposal Adding getrandom() To The vDSO For Better Performance](https://www.phoronix.com/news/Linux-getrandom-vDSO)
 
+[A vDSO implementation of getrandom()](https://lwn.net/Articles/919008)
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
@@ -897,6 +900,8 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 
 # 21 RUST 支持
 -------
+
+[Arm Helping With AArch64 Rust Linux Kernel Enablement](https://www.phoronix.com/news/AArch64-Rust-Linux-Kernel)
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|

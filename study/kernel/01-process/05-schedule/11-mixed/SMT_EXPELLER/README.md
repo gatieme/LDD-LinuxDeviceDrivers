@@ -51,8 +51,25 @@ blogexcerpt: 虚拟化 & KVM 子系统
 # 2 openEuler CONFIG_QOS_SCHED_SMT_EXPELLER
 -------
 
+openEuler-22.03 提供了内核驱离的特性, 通过 CONFIG_QOS_SCHED_SMT_EXPELLER 控制.
+
+```cpp
+8090ab77223b sched: Add tracepoint for qos smt expeller
+42f42feeaae6 sched: Add statistics for qos smt expeller
+fd5207be48fa sched: Implement the function of qos smt expeller
+4e57e412b84a sched: Introduce qos smt expeller for co-location
+```
+
 [openEuler QOS_SCHED_SMT_EXPELLER 主体流程框架](./qos_smt_expeller.mmd)
 
+
+# 3 OpenAnolis Group Identity 'Smt Expeller'
+-------
+
+
+| 日期 | 介绍 | 国际化 |
+|:---:|:----:|:---:|
+| 2021/02/08 | [Group Identity功能说明](https://www.alibabacloud.com/help/zh/elastic-compute-service/latest/group-identity-feature) | [Group identity feature](https://www.alibabacloud.com/help/en/elastic-compute-service/latest/group-identity-feature) |
 
 
 

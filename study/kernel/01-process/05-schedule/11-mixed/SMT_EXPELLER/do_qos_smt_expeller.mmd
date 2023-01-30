@@ -41,8 +41,10 @@ flowchart TB
 		subgraph QoSSmtCheckNeedResched [执行驱逐]
 		direction TB
 			_qos_smt_check_need_resched --> for_each_siblings_cpu2;
+			%% 场景一: 当前核执行在线任务, 兄弟核执行离线任务, 需要进行驱逐.
 			%% 如果 THIS CPU 的 Siblings CPU 是 QOS_LEVEL_ONLINE, 但是 THIS CPU 正在执行的是 OFFLINE 任务, 需要进行驱逐, THIS CPU 触发 RESCHED, pick_next_task_fair 会选择 NULL.
 			for_each_siblings_cpu2 --Siblings CPU 上执行在线任务--> this_cpu_must_be_expeller("per_cpu(qos_smt_status, cpu) == QOS_LEVEL_ONLINE && task_group(current)->qos_level < QOS_LEVEL_ONLINE");
+			%% 场景二：当前核之前执行了驱逐，而兄弟 CPU 上从在线任务切换到离线任务，且当前无在线任务等待运行。
 			%% 如果 THIS CPU 的 Siblings CPU 是 QOS_LEVEL_OFFLINE, 且是 IDLE 状态, 而 THIS CPU 上只有离线任务, 没有在线任务, 同样需要触发 RESCHED, pick_next_task_fair 尝试选择一个 ONLINE 任务出来.
 			for_each_siblings_cpu2 --Siblings CPU 上执行离线任务--> this_cpu_can_run_IDLE("per_cpu(qos_smt_status, cpu) == QOS_LEVEL_OFFLINE && rq->curr == rq->idle && sched_idle_cpu(this_cpu)");
 		end
