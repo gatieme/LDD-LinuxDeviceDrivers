@@ -181,6 +181,12 @@ OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementatio
 |:---:|:----:|
 | 2022/05/02 ~ 2022/05/04 | [LSFMM-2022](https://lwn.net/Articles/893733) |
 
+
+## 6.6 [KernelPodCast](https://kernelpodcast.org)
+-------
+
+[S2E1 – 2023/01/21](https://kernelpodcast.org/2023/01/21/s2e1-2023-01-21)
+
 # 7 统计信息
 -------
 

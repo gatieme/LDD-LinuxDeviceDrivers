@@ -498,6 +498,14 @@ glcc 则实现了 eBPF 驱动和 libbpf 的支持, 允许 eBPF 程序无需修�
 
 [bcc/ebpf 安装及示例（2019）](http://arthurchiao.art/blog/bcc-ebpf-tutorial-zh)
 
+## 8.7 continuous profiling
+-------
+
+| 博客 | 描述 |
+|:---:|:----:|
+| [Introduction to Parca - Part 1](https://www.polarsignals.com/blog/posts/2023/01/19/introduction-to-parca-agent) | Parca 是一个基于 eBPF 在线采样工具. |
+| [grafana/phlare](https://github.com/grafana/phlare) |
+
 
 # 9 WASM(WebAssembly)
 -------
@@ -518,6 +526,35 @@ Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标�
 -------
 
 [Microsoft and Isovalent partner to bring next generation eBPF dataplane for cloud-native applications in Azure](https://azure.microsoft.com/zh-cn/blog/microsoft-and-isovalent-partner-to-bring-next-generation-ebpf-dataplane-for-cloudnative-applications-in-azure)
+
+
+
+# X 学习参考
+-------
+
+## X.1 业界工具
+-------
+
+| 工具 | 描述 |
+|:---:|:----:|
+| [nyrahul/ebpf-guidee](https://github.com/nyrahul/ebpf-guide) | eBPF 常见问题, 样例以及工具汇总 |
+| [](https://github.com/apache/skywalking-rover) | |
+
+## X.2 业界博客
+-------
+
+| 博客 | 描述 |
+|:---:|:----:|
+| [Introduction to Parca - Part 1](https://www.polarsignals.com/blog/posts/2023/01/19/introduction-to-parca-agent) | Parca 是一个基于 eBPF 在线采样工具. |
+| [DWARF-based Stack Walking Using eBPF](https://www.polarsignals.com/blog/posts/2022/11/29/profiling-without-frame-pointers) | NA |
+
+## X.2 eBPF 月报
+-------
+
+
+[ebpf 月报 - 2023 年 1 月](https://segmentfault.com/a/1190000043355631)
+
+
 
 <br>
 

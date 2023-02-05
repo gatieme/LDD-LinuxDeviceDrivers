@@ -1,3 +1,7 @@
+git push gatieme :refs/tags/master
+git tag -d master
+
+
 https://lore.kernel.org/patchwork/cover/347617
 https://lore.kernel.org/patchwork/cover/381217
 https://lore.kernel.org/patchwork/patch/1454884
@@ -32,7 +36,6 @@ https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13305
 
 
 | 2022/09/26 | Zhongkun He <hezhongkun.hzk@bytedance.com> | [[RFC] proc: Add a new isolated /proc/pid/mempolicy type.](https://patchwork.kernel.org/project/linux-mm/patch/20220926091033.340-1-hezhongkun.hzk@bytedance.com/) | 680392 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220926091033.340-1-hezhongkun.hzk@bytedance.com) |
-| 2022/09/26 | David Hildenbrand <david@redhat.com> | [mm/autonuma: replace savedwrite infrastructure](https://patchwork.kernel.org/project/linux-mm/cover/20220926152618.194810-1-david@redhat.com) | 680555 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20220926152618.194810-1-david@redhat.com) |
 
 | 2022/09/29 | Shradha Gupta <shradhagupta@linux.microsoft.com> | [Configurable order free page reporting in hyper-v](https://patchwork.kernel.org/project/linux-mm/cover/1664447081-14744-1-git-send-email-shradhagupta@linux.microsoft.com/) | 681863 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/1664447081-14744-1-git-send-email-shradhagupta@linux.microsoft.com) |
 | 2022/10/04 | Yosry Ahmed <yosryahmed@google.com> | [mm/vmscan: check references from all memcgs for swapbacked memory](https://patchwork.kernel.org/project/linux-mm/patch/20221004233446.787056-1-yosryahmed@google.com/) | 683116 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221004233446.787056-1-yosryahmed@google.com) |
@@ -85,7 +88,7 @@ https://lkml.org/lkml/2021/3/16/546
 | 2022/10/26 | Joey Gouly <joey.gouly@arm.com> | [mm: In-kernel support for memory-deny-write-execute (MDWE)](https://patchwork.kernel.org/project/linux-mm/cover/20221026150457.36957-1-joey.gouly@arm.com/) | 689074 | v1 ☐☑ | [LORE RFC,0/4](https://lore.kernel.org/linux-arm-kernel/20220413134946.2732468-1-catalin.marinas@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/2](https://lore.kernel.org/r/20221026150457.36957-1-joey.gouly@arm.com) |
 
 
-| 2022/11/02 | David Hildenbrand <david@redhat.com> | [mm/autonuma: replace savedwrite infrastructure](https://patchwork.kernel.org/project/linux-mm/cover/20221102191209.289237-1-david@redhat.com/) | 参见 LPC-2022 [Copy On Write, Get User Pages, and Mysterious Counters](https://lpc.events/event/16/contributions/1267/) | v1 ☐☑ | [LORE v1,0/6](https://lore.kernel.org/r/20221102191209.289237-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/r/20221108174652.198904-1-david@redhat.com) |
+| 2022/11/02 | David Hildenbrand <david@redhat.com> | [mm/autonuma: replace savedwrite infrastructure](https://patchwork.kernel.org/project/linux-mm/cover/20221102191209.289237-1-david@redhat.com/) | 参见 LPC-2022 [Copy On Write, Get User Pages, and Mysterious Counters](https://lpc.events/event/16/contributions/1267/) | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20220926152618.194810-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/6](https://lore.kernel.org/r/20221102191209.289237-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/r/20221108174652.198904-1-david@redhat.com) |
 
 
 
@@ -155,7 +158,7 @@ khugepage_code 将选择命中率最高的节点作为首选节点, 并尝试在
 | 2022/12/09 | Nhat Pham <nphamcs@gmail.com> | [[v3,2/4] workingset: refactor LRU refault to expose refault recency check](https://patchwork.kernel.org/project/linux-mm/patch/20221209172922.3143160-1-nphamcs@gmail.com/) | 703468 | v3 ☐☑ | [LORE v3,0/4](https://lore.kernel.org/r/20221209172922.3143160-1-nphamcs@gmail.com) |
 | 2022/12/12 | Yafang Shao <laoar.shao@gmail.com> | [mm, bpf: Add BPF into /proc/meminfo](https://patchwork.kernel.org/project/linux-mm/cover/20221212003711.24977-1-laoar.shao@gmail.com/) | 703689 | v1 ☐☑ | [LORE v1,0/9](https://lore.kernel.org/r/20221212003711.24977-1-laoar.shao@gmail.com) |
 | 2022/12/12 | David Hildenbrand <david@redhat.com> | [[mm-stable] mm/gup_test: free memory allocated via kvcalloc() using kvfree()](https://patchwork.kernel.org/project/linux-mm/patch/20221212182018.264900-1-david@redhat.com/) | 703907 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221212182018.264900-1-david@redhat.com) |
-| 2022/12/12 | Jason A. Donenfeld <Jason@zx2c4.com> | [[RFC,v12,1/6] mm: add VM_DROPPABLE for designating always lazily freeable mappings](https://patchwork.kernel.org/project/linux-mm/patch/20221212185347.1286824-2-Jason@zx2c4.com/) | 703918 | v12 ☐☑ | [LORE v12,0/6](https://lore.kernel.org/r/20221212185347.1286824-2-Jason@zx2c4.com) |
+| 2022/12/12 | Jason A. Donenfeld <Jason@zx2c4.com> | [mm: add VM_DROPPABLE for designating always lazily freeable mappings](https://patchwork.kernel.org/project/linux-mm/patch/20221212185347.1286824-2-Jason@zx2c4.com/) | 703918 | v12 ☐☑ | [LORE v12,0/6](https://lore.kernel.org/r/20221212185347.1286824-2-Jason@zx2c4.com)[LORE v14,0/7](https://lore.kernel.org/r/20230101162910.710293-3-Jason@zx2c4.com) |
 | 2022/12/12 | Mike Kravetz <mike.kravetz@oracle.com> | [[1/2] hugetlb: really allocate vma lock for all sharable vmas](https://patchwork.kernel.org/project/linux-mm/patch/20221212235042.178355-1-mike.kravetz@oracle.com/) | 703972 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20221212235042.178355-1-mike.kravetz@oracle.com) |
 | 2022/12/13 | Kefeng Wang <wangkefeng.wang@huawei.com> | [[-next,v3] mm: hwposion: support recovery from ksm_might_need_to_copy()](https://patchwork.kernel.org/project/linux-mm/patch/20221213030557.143432-1-wangkefeng.wang@huawei.com/) | 703997 | v3 ☐☑ | [LORE v3,0/1](https://lore.kernel.org/r/20221213030557.143432-1-wangkefeng.wang@huawei.com) |
 | 2022/12/13 | Michal Hocko <mhocko@suse.com> | [memcg reclaim demotion wrt. isolation](https://patchwork.kernel.org/project/linux-mm/patch/Y5idFucjKVbjatqc@dhcp22.suse.cz/) | 704194 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/Y5idFucjKVbjatqc@dhcp22.suse.cz) |
@@ -170,7 +173,6 @@ khugepage_code 将选择命中率最高的节点作为首选节点, 并尝试在
 | 2022/12/20 | Uladzislau Rezki <urezki@gmail.com> | [[1/2] mm: vmalloc: Avoid a double lookup of freed VA in a tree](https://patchwork.kernel.org/project/linux-mm/patch/20221220182704.181657-1-urezki@gmail.com/) | 706007 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20221220182704.181657-1-urezki@gmail.com) |
 | 2022/12/20 | Roman Gushchin <roman.gushchin@linux.dev> | [mm: kmem: optimize obj_cgroup pointer retrieval](https://patchwork.kernel.org/project/linux-mm/cover/20221220182745.1903540-1-roman.gushchin@linux.dev/) | 706008 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20221220182745.1903540-1-roman.gushchin@linux.dev) |
 | 2022/12/20 | Roman Gushchin <roman.gushchin@linux.dev> | [[RFC] ipc/mqueue: introduce msg cache](https://patchwork.kernel.org/project/linux-mm/patch/20221220184813.1908318-1-roman.gushchin@linux.dev/) | 706018 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221220184813.1908318-1-roman.gushchin@linux.dev) |
-| 2022/12/21 | Jason A. Donenfeld <Jason@zx2c4.com> | [[v13,2/7] mm: add VM_DROPPABLE for designating always lazily freeable mappings](https://patchwork.kernel.org/project/linux-mm/patch/20221221142327.126451-3-Jason@zx2c4.com/) | 706247 | v13 ☐☑ | [LORE v13,0/7](https://lore.kernel.org/r/20221221142327.126451-3-Jason@zx2c4.com) |
 | 2022/12/21 | Marcelo Tosatti <mtosatti@redhat.com> | [Ensure quiet_vmstat() is called when returning to userpace and when idle tick is stopped](https://patchwork.kernel.org/project/linux-mm/cover/20221221165801.362118576@redhat.com/) | 706283 | v11 ☐☑ | [LORE v11,0/6](https://lore.kernel.org/r/20221221165801.362118576@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v12,0/6](https://lore.kernel.org/r/20221227121137.102497574@redhat.com) |
 | 2022/12/21 | Uladzislau Rezki <urezki@gmail.com> | [[v2,1/3] mm: vmalloc: Avoid of calling `__find_vmap_area()` twise in __vunmap()](https://patchwork.kernel.org/project/linux-mm/patch/20221221174454.1085130-1-urezki@gmail.com/) | 706294 | v2 ☐☑ | [LORE v2,0/3](https://lore.kernel.org/r/20221221174454.1085130-1-urezki@gmail.com) |
 | 2022/12/22 | Yuanchu Xie <yuanchu@google.com> | [[1/2] mm: add vma_has_locality()](https://patchwork.kernel.org/project/linux-mm/patch/20221222061341.381903-1-yuanchu@google.com/) | 706396 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20221222061341.381903-1-yuanchu@google.com) |
@@ -279,10 +281,10 @@ MGLRU 合入后, 引起了不少场景的性能劣化, 参见 phoronix 报道 [A
 
 
 [对于几个锁的对比总结 Part1](https://blog.csdn.net/He11o_Liu/article/details/81077867)
-[论文分享：Smartlocks: Lock Acquisition Scheduling for Self-Aware Synchronization](https://blog.csdn.net/He11o_Liu/article/details/81077695)
-[论文分享 SANL：可扩展 NUMA-Aware 锁](https://blog.csdn.net/He11o_Liu/article/details/79255951)
-[论文分享：Unlocking Energy](https://blog.csdn.net/He11o_Liu/article/details/81077777)
-[论文分享：Non-scalable locks are dangerous](https://blog.csdn.net/He11o_Liu/article/details/80386839)
+[论文分享: Smartlocks: Lock Acquisition Scheduling for Self-Aware Synchronization](https://blog.csdn.net/He11o_Liu/article/details/81077695)
+[论文分享 SANL: 可扩展 NUMA-Aware 锁](https://blog.csdn.net/He11o_Liu/article/details/79255951)
+[论文分享: Unlocking Energy](https://blog.csdn.net/He11o_Liu/article/details/81077777)
+[论文分享: Non-scalable locks are dangerous](https://blog.csdn.net/He11o_Liu/article/details/80386839)
 [转载 ---- 从 CPU cache 一致性的角度看 Linux spinlock 的不可伸缩性 (non-scalable)](https://blog.csdn.net/zhangshuaiisme/article/details/88147697)
 [Scalable lock-free dynamic memory allocation 简要观感](https://blog.csdn.net/jollyjumper/article/details/53948391)
 [从 CPU cache 一致性的角度看 Linux spinlock 的不可伸缩性 (non-scalable)](https://blog.csdn.net/dog250/article/details/80589442)
@@ -310,6 +312,8 @@ MGLRU 合入后, 引起了不少场景的性能劣化, 参见 phoronix 报道 [A
 
 | 2023/01/13 | Nathan Huckleberry <nhuck@google.com> | [workqueue: Add WQ_SCHED_FIFO](https://lore.kernel.org/all/20230113210703.62107-1-nhuck@google.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230113210703.62107-1-nhuck@google.com) |
 | 2018/11/11 | Paul E. McKenney <paulmck@linux.ibm.com> | [Automate initrd generation for v4.21/v5.0](https://lore.kernel.org/all/20181111200127.GA9511@linux.ibm.com) | 内核中引入 nolibc, 参见 LWN 报道 [Nolibc: a minimal C-library replacement shipped with the kernel](https://lwn.net/Articles/920158) | v5 ☐☑✓ | [LORE v5,0/8](https://lore.kernel.org/all/20181111200127.GA9511@linux.ibm.com) |
+| 2023/01/30 | Fan Wu <wufan@linux.microsoft.com> | [Integrity Policy Enforcement LSM (IPE)](https://lore.kernel.org/all/1675119451-23180-1-git-send-email-wufan@linux.microsoft.com) | TODO | v9 ☐☑✓ | [LORE v9,0/16](https://lore.kernel.org/all/1675119451-23180-1-git-send-email-wufan@linux.microsoft.com) |
+| 2022/12/30 | Dmitrii Bundin <dmitrii.bundin.a@gmail.com> | [scripts/gdb: add mm introspection utils](https://patchwork.kernel.org/project/linux-mm/patch/20221230163512.23736-1-dmitrii.bundin.a@gmail.com) | 707744 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221230163512.23736-1-dmitrii.bundin.a@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20221231171258.7907-1-dmitrii.bundin.a@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/1](https://lore.kernel.org/r/20230101172312.21452-1-dmitrii.bundin.a@gmail.com) |
 
 
 
@@ -324,4 +328,4 @@ MGLRU 合入后, 引起了不少场景的性能劣化, 参见 phoronix 报道 [A
 
 | 2023/01/13 | Mel Gorman <mgorman@techsingularity.net> | [Discard `__GFP_ATOMIC`](https://lore.kernel.org/all/20230113111217.14134-1-mgorman@techsingularity.net) | TODO | v3 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20230109151631.24923-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/all/20230113111217.14134-1-mgorman@techsingularity.net) |
 
-[Linux Developers Evaluating New "DOITM" Security Mitigation For Latest Intel CPUs](https://www.phoronix.com/review/intel-doitm-linux)
+[Linux Developers Evaluating New"DOITM"Security Mitigation For Latest Intel CPUs](https://www.phoronix.com/review/intel-doitm-linux)
