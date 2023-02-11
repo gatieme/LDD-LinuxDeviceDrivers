@@ -329,3 +329,15 @@ MGLRU 合入后, 引起了不少场景的性能劣化, 参见 phoronix 报道 [A
 | 2023/01/13 | Mel Gorman <mgorman@techsingularity.net> | [Discard `__GFP_ATOMIC`](https://lore.kernel.org/all/20230113111217.14134-1-mgorman@techsingularity.net) | TODO | v3 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20230109151631.24923-1-mgorman@techsingularity.net)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/all/20230113111217.14134-1-mgorman@techsingularity.net) |
 
 [Linux Developers Evaluating New"DOITM"Security Mitigation For Latest Intel CPUs](https://www.phoronix.com/review/intel-doitm-linux)
+
+
+| 2023/01/31 | Xi Wang <xii@google.com> | [sched: Consider capacity for certain load balancing decisions](https://lore.kernel.org/all/20230201012032.2874481-1-xii@google.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230201012032.2874481-1-xii@google.com) |
+
+
+
+在 CORE 之间平衡负载时, 目标 CPU 的所有 SMT 同级 (如果有的话) 必须处于空闲状态. 否则, 拉新任务会降低繁忙 SMT 同级的吞吐量. 系统的总吞吐量保持不变.
+当在 SMT 核心内平衡负载时, 则遵循硬件指示的优先级.
+
+
+
+目前, 无法在构建时禁用 CPU 漏洞缓解措施. 需要通过内核参数禁用缓解, 例如 "mitigations=off".  此补丁创建了一种在编译期间禁用缓解的简单方法(CONFIG_DEFAULT_CPU_MITIGATIONS_OFF), 因此, 不安全的内核用户在启动不安全内核时不需要处理内核参数.

@@ -15,24 +15,24 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 <br>
 
-本作品采用<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议</a>进行许可, 转载请注明出处, 谢谢合作
+本作品采用 <a rel="license"href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名 - 非商业性使用 - 相同方式共享 4.0 国际许可协议</a> 进行许可, 转载请注明出处, 谢谢合作
 
-<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a>
+<a rel="license"href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt=" 知识共享许可协议 "style="border-width:0"src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png"/></a>
 
 因本人技术水平和知识面有限, 内容如有纰漏或者需要修正的地方, 欢迎大家指正, 鄙人在此谢谢啦
 
-**转载请务必注明出处, 谢谢, 不胜感激**
+** 转载请务必注明出处, 谢谢, 不胜感激 **
 
 <br>
 
 | 日期 | 作者 | GitHub| CSDN | BLOG |
 | ------- |:-------:|:-------:|:-------:|:-------:|
-| 2021-02-15 | [成坚-gatieme](https://kernel.blog.csdn.net) | [`AderXCoding/system/tools/fzf`](https://github.com/gatieme/AderXCoding/tree/master/system/tools/fzf) | [使用模糊搜索神器 FZF 来提升办公体验](https://blog.csdn.net/gatieme/article/details/113828826) | [Using FZF to Improve Productivit](https://oskernellab.com/2021/02/15/2021/0215-0001-Using_FZF_to_Improve_Productivity)|
+| 2021-02-15 | [成坚 - gatieme](https://kernel.blog.csdn.net) | [`AderXCoding/system/tools/fzf`](https://github.com/gatieme/AderXCoding/tree/master/system/tools/fzf) | [使用模糊搜索神器 FZF 来提升办公体验](https://blog.csdn.net/gatieme/article/details/113828826) | [Using FZF to Improve Productivit](https://oskernellab.com/2021/02/15/2021/0215-0001-Using_FZF_to_Improve_Productivity)|
 
 
 <br>
 
-2   **架构子系统**
+2   ** 架构子系统 **
 =====================
 
 
@@ -67,11 +67,11 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 | 日期 | LWN | 翻译 |
 |:---:|:----:|:---:|
-| 2021/02/08 | [Detecting and handling split locks](https://lwn.net/Articles/790464) | [LWN：检测Intel CPU的split locks以及阻止攻击](https://blog.csdn.net/Linux_Everything/article/details/93270786) |
-| 2019/12/06 | [Developers split over split-lock detection](https://lwn.net/Articles/806466) | [LWN：开发者争论split-lock检测机制！](https://blog.csdn.net/Linux_Everything/article/details/103640683) |
+| 2021/02/08 | [Detecting and handling split locks](https://lwn.net/Articles/790464) | [LWN：检测 Intel CPU 的 split locks 以及阻止攻击](https://blog.csdn.net/Linux_Everything/article/details/93270786) |
+| 2019/12/06 | [Developers split over split-lock detection](https://lwn.net/Articles/806466) | [LWN：开发者争论 split-lock 检测机制！](https://blog.csdn.net/Linux_Everything/article/details/103640683) |
 
 
-[字节跳动技术团队的博客--深入剖析 split locks, i++ 可能导致的灾难](https://blog.csdn.net/ByteDanceTech/article/details/124701175)
+[字节跳动技术团队的博客 -- 深入剖析 split locks, i++ 可能导致的灾难](https://blog.csdn.net/ByteDanceTech/article/details/124701175)
 
 拆分锁是指原子指令对跨越多个高速缓存行的数据进行操作. 由于原子性质, 在两条高速缓存行上工作时需要全局总线锁, 这反过来又会对整体系统性能造成很大的性能影响.
 
@@ -85,9 +85,9 @@ v5.7 引入了拆分锁检测的支持, 这依赖于 x86_64 intel CPU 遇到拆�
 
 在拆分锁检测代码合并后, 英特尔工程师将重点转向 Linux 的总线锁检测. 同样, 由于性能损失和可能的拒绝服务影响, 这很重要. 总线锁可能会破坏其他 CPU 内核的性能, 并且比缓存行内发生的原子操作慢得多. 与拆分锁检测一样, 总线锁检测依赖于 CPU 能够在用户指令获取总线锁时通知内核的硬件特性 X86_FEATURE_BUS_LOCK_DETECT, 参见 [commit ebb1064e7c2e ("x86/cpufeatures: Enumerate #DB for bus lock detection](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ebb1064e7c2e90b56e4d40ab154ef9796060a1c3). 给定的 CPU 是否支持总线锁定检测将可以通过 `/proc/cpuinfo` 中 bus_lock_detect 标志.
 
-目前主流的缓解措施都是杀死有问题的进程, 但在某些情况下, 需要识别并限制有问题的应用程序. 因此 v5.14 [x86/bus_lock: Set rate limit for bus lock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d28397eaf4c27947a1ffc720d42e8b3a33ae1e2a) 为总线锁添加系统范围的速率限制. 当系统检测到总线锁速度高于 N/秒 (其中 N 可以由内核启动参数设置范围 (1...1000)), 就会让任何触发总线锁任务强制睡眠至少 20 ms, 直到整个系统总线锁率低于阈值.
+目前主流的缓解措施都是杀死有问题的进程, 但在某些情况下, 需要识别并限制有问题的应用程序. 因此 v5.14 [x86/bus_lock: Set rate limit for bus lock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d28397eaf4c27947a1ffc720d42e8b3a33ae1e2a) 为总线锁添加系统范围的速率限制. 当系统检测到总线锁速度高于 N / 秒 (其中 N 可以由内核启动参数设置范围 (1...1000)), 就会让任何触发总线锁任务强制睡眠至少 20 ms, 直到整个系统总线锁率低于阈值.
 
-随后 Intel 工程师 Tony Luck 提出来更激进的方案, 试图减慢违规应用程序的速度, 以便开发人员有望解决这个问题. 通过强制用户空间对拆分锁进行顺序访问. 在解决问题的同时, 也确保了在这些条件下整体系统性能更好. 参见 [Linux 5.19 To "Make Life Miserable" In Slowing Down Bad Behaving Split-Lock Apps](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.19-Split-Lock).
+随后 Intel 工程师 Tony Luck 提出来更激进的方案, 试图减慢违规应用程序的速度, 以便开发人员有望解决这个问题. 通过强制用户空间对拆分锁进行顺序访问. 在解决问题的同时, 也确保了在这些条件下整体系统性能更好. 参见 [Linux 5.19 To"Make Life Miserable"In Slowing Down Bad Behaving Split-Lock Apps](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.19-Split-Lock).
 
 | 配置 | 描述 |
 |:---:|:----:|
@@ -102,14 +102,14 @@ v5.7 引入了拆分锁检测的支持, 这依赖于 x86_64 intel CPU 遇到拆�
 | 2020/11/06 | Chenyi Qiang <chenyi.qiang@intel.com> | [Add bus lock VM exit support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c32b1b896d2ab30ac30bc39194bac47a09f7f497) | 虚拟化支持 bus lock 检测. | v5 ☑✓ 5.12-rc1 | [LORE v5,0/4](https://lore.kernel.org/all/20201106090315.18606-1-chenyi.qiang@intel.com) |
 | 2021/03/22 | Fenghua Yu <fenghua.yu@intel.com> | [x86/bus_lock: Enable bus lock detection](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ebca17707e38f2050b188d837bd4646b29a1b0c2) | 拆分锁检测支持 Bus Lock. 参见 [Intel's Bus Lock Detection Might Be Ready For The Mainline Linux Kernel](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Bus-Lock-Detection-2021) | v6 ☑✓ 5.13-rc1 | [LORE v6,0/3](https://lore.kernel.org/all/20210322135325.682257-1-fenghua.yu@intel.com) |
 | 2021/04/19 | Fenghua Yu <fenghua.yuintel.com> | [x86/bus_lock: Set rate limit for bus lock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d28397eaf4c27947a1ffc720d42e8b3a33ae1e2a) | 通过限制总线锁的速率而不是杀死进程来缓解拆分锁带来的问题. | v1 ☑✓ 5.14-rc1 | [Patchwork 0/4](https://lore.kernel.org/all/20210419214958.4035512-1-fenghua.yu@intel.com) |
-| 2022/03/10 | Tony Luck <tony.luck@intel.com> | [Make life miserable for split lockers](https://lore.kernel.org/all/20220310204854.31752-1-tony.luck@intel.com) | 通过强制用户空间对拆分锁进行顺序访问. 在解决问题的同时, 也确保了在这些条件下整体系统性能更好. 参见 [Linux 5.19 To "Make Life Miserable" In Slowing Down Bad Behaving Split-Lock Apps](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.19-Split-Lock). | v2 ☐☑✓ | [LORE v2,0/2](https://lore.kernel.org/all/20220310204854.31752-1-tony.luck@intel.com) |
-| 2022/10/24 | Guilherme G. Piccoli <gpiccoli@igalia.com> | [x86/split_lock: Add sysctl to control the misery mode](https://lore.kernel.org/all/20221024200254.635256-1-gpiccoli@igalia.com) | Splitlock Detector 机制通过人为限制触发了 Splitlock 锁的软件的性能, 从而保证整机的吞吐量和性能. 然后推动触发了对应软件整改和优化自己的代码, 但是一些专用软件特别是闭源软件改起来相对麻烦, 比如 Linux 上 window 游戏等. 这引发了这些 window 游戏性能的大幅度下降, 参见 [Linux Adding New Control Since Its Splitlock Detector Is Wrecking Some Steam Play Games](https://www.phoronix.com/news/Linux-Splitlock-Hurts-Gaming). 现在为 Linux 6.2 添加了一个新的 sysctl 可调参数 "split_lock_reduce", 以便轻松禁用"痛苦模式" 行为. 当将 split_lock_reduce 设置为 0 时, 只会在内核锁中出现警告, 而不会带来循序存取损失. 默认情况下, 故意的性能降低模式仍然处于活动状态, 但是我们可能会看到 SteamOS 之类的操作系统自动关闭 split_lock_reduce 可调参数. 也有可能我们会看到这个自动调整喜欢野性的游戏模式. 由于它是一个 sysctl 选项, 现在在运行时管理起来比在启动时不得不为内核使用劈开锁检测选项更容易, 但是内核开发人员到目前为止还想保持默认的 “糟糕性能” 模式, 以激励用户空间软件围绕减少劈开锁进行改进. | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221024200254.635256-1-gpiccoli@igalia.com) |
+| 2022/03/10 | Tony Luck <tony.luck@intel.com> | [Make life miserable for split lockers](https://lore.kernel.org/all/20220310204854.31752-1-tony.luck@intel.com) | 通过强制用户空间对拆分锁进行顺序访问. 在解决问题的同时, 也确保了在这些条件下整体系统性能更好. 参见 [Linux 5.19 To"Make Life Miserable"In Slowing Down Bad Behaving Split-Lock Apps](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.19-Split-Lock). | v2 ☐☑✓ | [LORE v2,0/2](https://lore.kernel.org/all/20220310204854.31752-1-tony.luck@intel.com) |
+| 2022/10/24 | Guilherme G. Piccoli <gpiccoli@igalia.com> | [x86/split_lock: Add sysctl to control the misery mode](https://lore.kernel.org/all/20221024200254.635256-1-gpiccoli@igalia.com) | Splitlock Detector 机制通过人为限制触发了 Splitlock 锁的软件的性能, 从而保证整机的吞吐量和性能. 然后推动触发了对应软件整改和优化自己的代码, 但是一些专用软件特别是闭源软件改起来相对麻烦, 比如 Linux 上 window 游戏等. 这引发了这些 window 游戏性能的大幅度下降, 参见 [Linux Adding New Control Since Its Splitlock Detector Is Wrecking Some Steam Play Games](https://www.phoronix.com/news/Linux-Splitlock-Hurts-Gaming). 现在为 Linux 6.2 添加了一个新的 sysctl 可调参数 "split_lock_reduce", 以便轻松禁用 "痛苦模式" 行为. 当将 split_lock_reduce 设置为 0 时, 只会在内核锁中出现警告, 而不会带来循序存取损失. 默认情况下, 故意的性能降低模式仍然处于活动状态, 但是我们可能会看到 SteamOS 之类的操作系统自动关闭 split_lock_reduce 可调参数. 也有可能我们会看到这个自动调整喜欢野性的游戏模式. 由于它是一个 sysctl 选项, 现在在运行时管理起来比在启动时不得不为内核使用劈开锁检测选项更容易, 但是内核开发人员到目前为止还想保持默认的 “糟糕性能” 模式, 以激励用户空间软件围绕减少劈开锁进行改进. | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221024200254.635256-1-gpiccoli@igalia.com) |
 
 
 ### 1.1.2 Sub-Page Write Protection
 -------
 
-| 2020/01/19 | Yu-cheng Yu <yu-cheng.yu@intel.com> | [Enable Sub-Page Write Protection Support](https://lwn.net/Articles/810033) | 基于 EPT 的子页写保护(SPP) 允许虚拟机监视器(VMM)以子页(128字节)粒度为客户物理内存指定写权限. 当 SPP 工作时, 硬件强制对受保护的 4KB 页面中的子页面进行写访问检查. 该特性的目标是为内存保护和虚拟机内省等使用提供细粒度的内存保护. 当"子页面写保护"(第23位)在 Secondary VM-Execution Controls 中为1时, SPP 被启用. 该特性支持子页权限表(SPPT), 子页权限向量存储在SPPT的叶条目中. 根页面是通过VMCS中的子页面权限表指针(SPPTP)引用的.<br>要为 guest 内存启用 SPP, guest 页面应该首先映射到一个 4KB 的 EPT 条目, 然后设置相应条目的 SPP 的 61bit. 当硬件遍历 EPT 时, 它使用 gpa 遍历 SPPT 以查找 SPPT 叶子条目中的子页面权限向量. 如果设置了对应位, 则允许写子页, 否则产生 SPP 触发的 EPT 冲突. | v30 ☐ | [Patchwork v30,00/32](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) |
+| 2020/01/19 | Yu-cheng Yu <yu-cheng.yu@intel.com> | [Enable Sub-Page Write Protection Support](https://lwn.net/Articles/810033) | 基于 EPT 的子页写保护 (SPP) 允许虚拟机监视器(VMM) 以子页 (128 字节) 粒度为客户物理内存指定写权限. 当 SPP 工作时, 硬件强制对受保护的 4KB 页面中的子页面进行写访问检查. 该特性的目标是为内存保护和虚拟机内省等使用提供细粒度的内存保护. 当 "子页面写保护"(第 23 位)在 Secondary VM-Execution Controls 中为 1 时, SPP 被启用. 该特性支持子页权限表 (SPPT), 子页权限向量存储在 SPPT 的叶条目中. 根页面是通过 VMCS 中的子页面权限表指针(SPPTP) 引用的.<br> 要为 guest 内存启用 SPP, guest 页面应该首先映射到一个 4KB 的 EPT 条目, 然后设置相应条目的 SPP 的 61bit. 当硬件遍历 EPT 时, 它使用 gpa 遍历 SPPT 以查找 SPPT 叶子条目中的子页面权限向量. 如果设置了对应位, 则允许写子页, 否则产生 SPP 触发的 EPT 冲突. | v30 ☐ | [Patchwork v30,00/32](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) |
 
 
 ## 1.2 指令加速
@@ -120,10 +120,10 @@ v5.7 引入了拆分锁检测的支持, 这依赖于 x86_64 intel CPU 遇到拆�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/07/30 | "Chang S. Bae" <chang.seok.bae@intel.com> | [x86: Support Intel Advanced Matrix Extensions](https://lore.kernel.org/lkml/20210730145957.7927-1-chang.seok.bae@intel.com) | 支持即将发布的英特尔[高级矩阵扩展(AMX)](https://software.intel.com/content/dam/develop/external/us/en/documents-tps/architecture-instruction-set-extensions-programming-reference.pdf), [AMX](https://software.intel.com/content/www/us/en/develop/documentation/cpp-compiler-developer-guide-and-reference/top/compiler-reference/intrinsics/intrinsics-for-intel-advanced-matrix-extensions-intel-amx-instructions.html) 由可配置的 TMM"TILE" 寄存器和操作它们的新 CPU 指令组成. TMUL (Tile matrix MULtiply)是第一个利用新寄存器的运算符, 我们预计将来会有更多的指令. | v9 ☐ | [Patchwork v9,00/26](https://lore.kernel.org/lkml/20210730145957.7927-1-chang.seok.bae@intel.com) |
+| 2021/07/30 | "Chang S. Bae" <chang.seok.bae@intel.com> | [x86: Support Intel Advanced Matrix Extensions](https://lore.kernel.org/lkml/20210730145957.7927-1-chang.seok.bae@intel.com) | 支持即将发布的英特尔 [高级矩阵扩展(AMX)](https://software.intel.com/content/dam/develop/external/us/en/documents-tps/architecture-instruction-set-extensions-programming-reference.pdf), [AMX](https://software.intel.com/content/www/us/en/develop/documentation/cpp-compiler-developer-guide-and-reference/top/compiler-reference/intrinsics/intrinsics-for-intel-advanced-matrix-extensions-intel-amx-instructions.html) 由可配置的 TMM"TILE" 寄存器和操作它们的新 CPU 指令组成. TMUL (Tile matrix MULtiply) 是第一个利用新寄存器的运算符, 我们预计将来会有更多的指令. | v9 ☐ | [Patchwork v9,00/26](https://lore.kernel.org/lkml/20210730145957.7927-1-chang.seok.bae@intel.com) |
 | 2021/07/20 | Tianjia Zhang <tianjia.zhang@linux.alibaba.com> | [Introduce x86 assembler accelerated implementation for SM4 algorithm](https://lwn.net/Articles/863574/) | 该补丁集提取了公有 SM4 算法作为一个单独的库, 同时对 arm64 中 SM4 的加速实现进行了调整, 以适应该 SM4 库. 然后在 x86_64 上的进行了实现. 该优化支持 SM4、ECB、CBC、CFB 和 CTR 四种模式. 由于 CBC 和 CFB 不支持多块并行加密, 优化效果不明显. 主要算法实现来自 libgcrypt 和 Markku-Juhani O. Saarinen 的 [SM4 AES-NI 工作](https://github.com/mjosaarinen/sm4ni). | v1 ☐ | [LWN 0/2](https://lwn.net/Articles/863574/) |
 | 2021/08/12 | Tianjia Zhang <tianjia.zhang@linux.alibaba.com> | [support test GCM/CCM mode for SM4](https://lore.kernel.org/lkml/20210812131748.81620-1-tianjia.zhang@linux.alibaba.com) | NA | v1 ☐ | [Patchwork 0/3](https://lore.kernel.org/lkml/20210812131748.81620-1-tianjia.zhang@linux.alibaba.com), [LKML](https://lkml.org/lkml/2021/8/13/161) |
-| 2021/08/18 | Tianjia Zhang <tianjia.zhang@linux.alibaba.com> | [add AES-NI/AVX2/x86_64 implementation](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) | 这个补丁集导出了 SM4 AESNI/AVX 算法实现的一些常用函数, 并用这些函数实现 AESNI/AVX2 的加速.<br>主要算法实现来自 libgcrypt 和 [Markku Juhani 的 SM4 AES-NI 工作](https://github.com/mjosaarinen/sm4ni). | v1 ☐ | [Patchwork 0/2](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) |
+| 2021/08/18 | Tianjia Zhang <tianjia.zhang@linux.alibaba.com> | [add AES-NI/AVX2/x86_64 implementation](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) | 这个补丁集导出了 SM4 AESNI/AVX 算法实现的一些常用函数, 并用这些函数实现 AESNI/AVX2 的加速.<br> 主要算法实现来自 libgcrypt 和 [Markku Juhani 的 SM4 AES-NI 工作](https://github.com/mjosaarinen/sm4ni). | v1 ☐ | [Patchwork 0/2](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) |
 
 ### 1.2.2 Flexible Return and Event Delivery (FRED)
 -------
@@ -143,7 +143,7 @@ v5.7 引入了拆分锁检测的支持, 这依赖于 x86_64 intel CPU 遇到拆�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/04/19 | Fenghua Yu <fenghua.yu@intel.com> | [x86/bus_lock: Set rate limit for bus lock](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Bus-Lock-Detection-2021) | 当原子指令跨越多个 cache line, 并且需要确保原子性所需的总线锁时, 就会发生拆分锁. 这些拆分锁至少比单个 cacheline 内的原子操作多需要 1000 个 cycles. 在锁定总线期间, 其他 CPU 或 BUS 代理要求控制 BUS 的请求被阻止, 阻止其他 CPU 的 BUS 访问, 加上配置总线锁定协议的开销不仅会降低一个 CPU 的性能, 还会降低整体系统性能. 除了拆分锁的性能影响之外, 利用该行为还可能导致无特权的拒绝服务漏洞. 现代英特尔 CPU 可以在处理拆分锁时生成对齐检查异常, 使用此技术这组补丁为内核实现了拆分锁检测(split_lock_detect), 以警告或杀死违规应用. 默认行为是警告有问题的用户空间应用程序, 而如果配置了 `split_lock_detect=fatal` 内核参数将杀死使用 SIGBUS 的应用程序. 参考 [phoronix1](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.7-Split-Lock-Detection), [phoronix2](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Split-Locks-Detection), [phoronix3](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Bus-Lock-Detection-2021) | v1 ☐ | [Patchwork 0/4](https://lore.kernel.org/all/20210419214958.4035512-1-fenghua.yu@intel.com) |
-| 2021/09/13 | Sohil Mehta <sohil.mehta@intel.com> | [x86 User Interrupts support](https://lwn.net/Articles/871113) | 用户中断(Uintr)是一种硬件技术, 可以将中断直接传递到用户空间.<br>如今, 几乎所有跨越特权边界的通信都是通过内核进行的. 这些包括信号、管道、远程过程调用和基于硬件中断的通知. 用户中断通过避免通过内核的转换, 为这些常见操作的更高效(低延迟和低CPU利用率)版本提供了基础. 在用户中断硬件体系结构中, 接收者总是期望是用户空间任务. 但是, 用户中断可以由另一个用户空间任务、内核或外部源(如设备)发送. 除了接收用户中断的一般基础结构之外, 这组补丁还介绍了另一个用户任务的中断(用户 IPI). 用户 IPI 的第一个实现将在代号为 Sapphire Rapids 的英特尔处理器中实现. 有关硬件架构的详细信息, 请参阅[英特尔架构指令集扩展的第11章](https://software.intel.com/content/www/us/en/develop/download/intel-architecture-instruction-set-extensions-programming-reference.html). | v1 ☐ | [LWN RFC,00/13](https://lwn.net/ml/linux-kernel/20210913200132.3396598-1-sohil.mehta@intel.com)<br>*-*-*-*-*-*-*-* <br>[LWN](https://lwn.net/Articles/869140)<br>*-*-*-*-*-*-*-* <br>[Patchwork RFC,00/13](https://lore.kernel.org/lkml/20210913200132.3396598-1-sohil.mehta@intel.com) |
+| 2021/09/13 | Sohil Mehta <sohil.mehta@intel.com> | [x86 User Interrupts support](https://lwn.net/Articles/871113) | 用户中断 (Uintr) 是一种硬件技术, 可以将中断直接传递到用户空间.<br> 如今, 几乎所有跨越特权边界的通信都是通过内核进行的. 这些包括信号、管道、远程过程调用和基于硬件中断的通知. 用户中断通过避免通过内核的转换, 为这些常见操作的更高效 (低延迟和低 CPU 利用率) 版本提供了基础. 在用户中断硬件体系结构中, 接收者总是期望是用户空间任务. 但是, 用户中断可以由另一个用户空间任务、内核或外部源 (如设备) 发送. 除了接收用户中断的一般基础结构之外, 这组补丁还介绍了另一个用户任务的中断(用户 IPI). 用户 IPI 的第一个实现将在代号为 Sapphire Rapids 的英特尔处理器中实现. 有关硬件架构的详细信息, 请参阅[英特尔架构指令集扩展的第 11 章](https://software.intel.com/content/www/us/en/develop/download/intel-architecture-instruction-set-extensions-programming-reference.html). | v1 ☐ | [LWN RFC,00/13](https://lwn.net/ml/linux-kernel/20210913200132.3396598-1-sohil.mehta@intel.com)<br>*-*-*-*-*-*-*-* <br>[LWN](https://lwn.net/Articles/869140)<br>*-*-*-*-*-*-*-* <br>[Patchwork RFC,00/13](https://lore.kernel.org/lkml/20210913200132.3396598-1-sohil.mehta@intel.com) |
 | 2021/10/04 | Tvrtko Ursulin <tvrtko.ursulin@linux.intel.com> | [CPU + GPU synchronised priority scheduling](https://www.phoronix.com/scan.php?page=news_item&px=Intel-CPU-GPU-Prio-Nice-Sched) | Intel 在 CPU 和 GPU 协同调度领域进行了探索与尝试. | v1 ☐ | [Patchwork RFC,0/6](https://lists.freedesktop.org/archives/intel-gfx/2021-September/279200.html), [LWN](https://lwn.net/Articles/871467), [LKML](https://lkml.org/lkml/2021/9/30/852)<br>*-*-*-*-*-*-*-* <br>[LKML v2,0/8](https://lkml.org/lkml/2021/10/4/1004), [LWN news](https://lwn.net/Articles/873334) |
 
 
@@ -162,7 +162,7 @@ phoronix 上所有与 [Alder Lake 相关的报道](https://www.phoronix.com/scan
 #### 1.4.1.1 架构支持
 -------
 
-Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的异构(或者混合架构)处理器架构 [Alder Lake](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures), 与 ARM 的 big.LITTLE 以及 DynamIQ 架构类似, 它包含了基于 Golden Cove 微架构的性能核(P-core/Performance cores)以及基于新的 Gracemont 架构的能效核(E-core/Efficiency cores). P-core 优先用于需要低延迟的单线程任务, 而 E-core 在功率有限或多线程情景方面更好.
+Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的异构 (或者混合架构) 处理器架构 [Alder Lake](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures), 与 ARM 的 big.LITTLE 以及 DynamIQ 架构类似, 它包含了基于 Golden Cove 微架构的性能核 (P-core/Performance cores) 以及基于新的 Gracemont 架构的能效核(E-core/Efficiency cores). P-core 优先用于需要低延迟的单线程任务, 而 E-core 在功率有限或多线程情景方面更好.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -189,7 +189,7 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 #### 1.4.1.3 ITMT SMT migration Improvement
 -------
 
-ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如, 支持 Intel ITMT 3.0 和混合处理器的英特尔处理器) 以及物理核心的 SMT 兄弟(例如, Power7). 这项机制对于后者来说工作地不错, 但是对于前者的支持, 不慎友好, 特别是在混合了高性能的 P-core 以及高能效的 E-core 的混合处理器(比如 Alder Lake)上, 这引发了 CPU 之间不必要甚至是错误的迁移.
+ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如, 支持 Intel ITMT 3.0 和混合处理器的英特尔处理器) 以及物理核心的 SMT 兄弟 (例如, Power7). 这项机制对于后者来说工作地不错, 但是对于前者的支持, 不慎友好, 特别是在混合了高性能的 P-core 以及高能效的 E-core 的混合处理器(比如 Alder Lake) 上, 这引发了 CPU 之间不必要甚至是错误的迁移.
 
 自 v4.10 开始, 支持 ITMT 的 Intel 处理器使用 ASYM_PACKING 将更高的优先级分配给可以 Boost 的 CPU. 它通过将较低的优先级分配给编号较高的 SMT 兄弟节点, 以确保它们最后使用.
 
@@ -221,8 +221,8 @@ ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/09/10 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4006a72bdd93b1ffedc2bd8646dee18c822a2c26) | 参见 [Fixing a corner case in asymmetric CPU packing](https://lwn.net/Articles/880367), 在使用非对称封装(ASM_PACKING)时, 可能存在具有三个优先级的 CPU 拓扑, 其中只有物理核心的子集支持 SMT. 这种架构下 ASM_PACKING 和 SMT 以及 load_balance 都存在冲突.<br>这种拓扑的一个实例是 Intel Alder Lake. 在 Alder Lake 上, 应该通过首先选择 Core(酷睿) cpu, 然后选择 Atoms, 最后再选择 Core 的 SMT 兄弟 cpu 来分散工作. 然而, 当前负载均衡器的行为与使用 ASYM_PACKING 时描述的不一致. 负载平衡器将选择高优先级的 CPU (Intel Core) 而不是中优先级的 CPU (Intel Atom), 然后将负载溢出到低优先级的 SMT 同级 CPU. 这使得中等优先级的 Atoms cpu 空闲, 而低优先级的 cpu sibling 繁忙.<br>1. 首先改善了 SMT 中 sibling cpu 优先级的计算方式, 它将比单个 core 优先级更低.<br>2. 当决定目标 CPU 是否可以从最繁忙的 CPU 提取任务时, 还检查执行负载平衡的 CPU 和最繁忙的候选组的 SMT 同级 CPU 的空闲状态. | v5 ☑ 5.16-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1408312)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1413015)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3 0/6](https://lore.kernel.org/patchwork/cover/1428441)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,0/6](https://lore.kernel.org/patchwork/cover/1474500)<br>*-*-*-*-*-*-*-* <br>[LKML v5,0/6](https://lkml.org/lkml/2021/9/10/913), [LORE v5,0/6](https://lore.kernel.org/all/20210911011819.12184-1-ricardo.neri-calderon@linux.intel.com) |
-| 2022/08/25 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Avoid unnecessary migrations within SMT domains](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com) | TODO | v1 ☐☑✓ | [2022/08/25 LORE v1,0/4](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2022/11/22 LORE v2,0/7](https://lore.kernel.org/lkml/20221122203532.15013-1-ricardo.neri-calderon@linux.intel.com) |
+| 2021/09/10 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4006a72bdd93b1ffedc2bd8646dee18c822a2c26) | 参见 [Fixing a corner case in asymmetric CPU packing](https://lwn.net/Articles/880367), 在使用非对称封装 (ASM_PACKING) 时, 可能存在具有三个优先级的 CPU 拓扑, 其中只有物理核心的子集支持 SMT. 这种架构下 ASM_PACKING 和 SMT 以及 load_balance 都存在冲突.<br> 这种拓扑的一个实例是 Intel Alder Lake. 在 Alder Lake 上, 应该通过首先选择 Core(酷睿) cpu, 然后选择 Atoms, 最后再选择 Core 的 SMT 兄弟 cpu 来分散工作. 然而, 当前负载均衡器的行为与使用 ASYM_PACKING 时描述的不一致. 负载平衡器将选择高优先级的 CPU (Intel Core) 而不是中优先级的 CPU (Intel Atom), 然后将负载溢出到低优先级的 SMT 同级 CPU. 这使得中等优先级的 Atoms cpu 空闲, 而低优先级的 cpu sibling 繁忙.<br>1. 首先改善了 SMT 中 sibling cpu 优先级的计算方式, 它将比单个 core 优先级更低.<br>2. 当决定目标 CPU 是否可以从最繁忙的 CPU 提取任务时, 还检查执行负载平衡的 CPU 和最繁忙的候选组的 SMT 同级 CPU 的空闲状态. | v5 ☑ 5.16-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1408312)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1413015)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3 0/6](https://lore.kernel.org/patchwork/cover/1428441)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,0/6](https://lore.kernel.org/patchwork/cover/1474500)<br>*-*-*-*-*-*-*-* <br>[LKML v5,0/6](https://lkml.org/lkml/2021/9/10/913), [LORE v5,0/6](https://lore.kernel.org/all/20210911011819.12184-1-ricardo.neri-calderon@linux.intel.com) |
+| 2022/08/25 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Avoid unnecessary migrations within SMT domains](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com) | TODO | v1 ☐☑✓ | [2022/08/25 LORE v1,0/4](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2022/11/22 LORE v2,0/7](https://lore.kernel.org/lkml/20221122203532.15013-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2023/02/07 LORE v3,0/10](https://lore.kernel.org/all/20230207045838.11243-1-ricardo.neri-calderon@linux.intel.com) |
 
 
 #### 1.4.1.3 Intel Thread Director (ITD)
@@ -230,18 +230,18 @@ ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如
 
 [Thread Director](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/2) 其实是一个软硬协同优化的范畴.
 
-早在 2018 年, 苹果就发布过自家 AMP 硬件上的软硬协同优化的调度器, 中文专利号 [CN108984282A 具有闭环性能控制器的 AMP 体系结构的调度器/Scheduler for AMP architecture with closed loop performance controller](https://www.patentguru.com/cn/CN108984282A).
+早在 2018 年, 苹果就发布过自家 AMP 硬件上的软硬协同优化的调度器, 中文专利号 [CN108984282A 具有闭环性能控制器的 AMP 体系结构的调度器 / Scheduler for AMP architecture with closed loop performance controller](https://www.patentguru.com/cn/CN108984282A).
 
-首先 v5.18, Intel 先完成了对 HFI 硬件的支持. [Intel Hardware Feedback Interface "HFI" Driver Submitted For Linux 5.18](https://www.phoronix.com/news/Intel-HFI-Thermal-Linux-5.18).
+首先 v5.18, Intel 先完成了对 HFI 硬件的支持. [Intel Hardware Feedback Interface"HFI"Driver Submitted For Linux 5.18](https://www.phoronix.com/news/Intel-HFI-Thermal-Linux-5.18).
 
-随后 Intel 发布了 Linux 上 Thread-Driector 的支持补丁. [Intel Posts Big Linux Patch Set For "Classes of Tasks" On Hybrid CPUs, Thread Director](https://www.phoronix.com/news/Intel-Linux-Classes-Of-Tasks-TD). 并随后在 LPC-2022 做了主题为 [Bringing Energy-Aware Scheduling to x86](https://lpc.events/event/16/contributions/1275) 的演示. phoronix 随即进行了报道 [Intel Working On Energy Aware Scheduling For x86 Hybrid CPUs](https://www.phoronix.com/news/Intel-x86-EAS-To-Come). 随后 LWN 对此进行了讨论 [Hybrid scheduling gets more complicated](https://lwn.net/Articles/909611).
+随后 Intel 发布了 Linux 上 Thread-Driector 的支持补丁. [Intel Posts Big Linux Patch Set For"Classes of Tasks"On Hybrid CPUs, Thread Director](https://www.phoronix.com/news/Intel-Linux-Classes-Of-Tasks-TD). 并随后在 LPC-2022 做了主题为 [Bringing Energy-Aware Scheduling to x86](https://lpc.events/event/16/contributions/1275) 的演示. phoronix 随即进行了报道 [Intel Working On Energy Aware Scheduling For x86 Hybrid CPUs](https://www.phoronix.com/news/Intel-x86-EAS-To-Come). 随后 LWN 对此进行了讨论 [Hybrid scheduling gets more complicated](https://lwn.net/Articles/909611).
 
-随后发布了 v2, 参见 phoronix 报道 [Intel Advances Linux "IPC Classes" Design To Improve Load Balancing For Hybrid CPUs](https://www.phoronix.com/news/Intel-IPC-Classes-Post-RFC).
+随后发布了 v2, 参见 phoronix 报道 [Intel Advances Linux"IPC Classes"Design To Improve Load Balancing For Hybrid CPUs](https://www.phoronix.com/news/Intel-IPC-Classes-Post-RFC).
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/11/06 | Ricardo Neri <ricardo.neri-calderon-AT-linux.intel.com> | [Thermal: Introduce the Hardware Feedback Interface for thermal and performance management](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bd30cdfd9bd73b68e4977ce7c5540aa7b14c25cd) | 支持 Intel HFI.<br>英特尔硬件反馈接口(HFI) 提供系统中每个 CPU 的性能(performance)和能效(Energy efficiency)的信息. 它使用一个在硬件和操作系统之间共享的表. 该表的内容可能由于系统运行条件的变化(如达到热极限)或外部因素的作用(如热设计功率的变化)而更新.<br>HFI 提供的信息被指定为相对于系统中其他 cpu 的数字、单元较少的能力. 这些功能的范围为 [0-255], 其中更高的数字表示更高的功能. 如果 CPU 的性能效率或能量能力效率为 0, 硬件建议分别出于性能、能量效率或热原因, 不要在该 CPU 上调度任何任务.<br>内核或用户空间可以使用来自 HFI 的信息来修改任务放置或调整功率限制. 当前这个补丁集中于用户空间. 热通知框架(thermal notification framework)被扩展以支持 CPU capacity 的更新. | v1 ☑ 5.18-rc1 | [2021/11/06 LWN](https://lwn.net/Articles/875296)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/lkml/20211220151438.1196-1-ricardo.neri-calderon@linux.intel.com), [phoronix v2](https://www.phoronix.com/scan.php?page=news_item&px=Intel-HFI-Linux-v2-2021)<br>*-*-*-*-*-*-*-* <br>[PatchWork v5,0/7](https://patchwork.kernel.org/project/linux-pm/cover/20220127193454.12814-1-ricardo.neri-calderon@linux.intel.com), [phoronix v5](https://www.phoronix.com/scan.php?page=news_item&px=Intel-HFI-For-Linux-5.18) |
-| 2022/09/09 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched: Introduce classes of tasks for load balance](https://lore.kernel.org/all/20220909231205.14009-1-ricardo.neri-calderon@linux.intel.com) | 实现 Thread-Director, 根据应用程序的类型 classes 实现选核和负载均衡. | v1 ☐☑✓ | [LORE v1,00/23](https://lore.kernel.org/all/20220909231205.14009-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/22](https://lore.kernel.org/all/20221128132100.30253-1-ricardo.neri-calderon@linux.intel.com) |
+| 2021/11/06 | Ricardo Neri <ricardo.neri-calderon-AT-linux.intel.com> | [Thermal: Introduce the Hardware Feedback Interface for thermal and performance management](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bd30cdfd9bd73b68e4977ce7c5540aa7b14c25cd) | 支持 Intel HFI.<br> 英特尔硬件反馈接口 (HFI) 提供系统中每个 CPU 的性能(performance) 和能效 (Energy efficiency) 的信息. 它使用一个在硬件和操作系统之间共享的表. 该表的内容可能由于系统运行条件的变化 (如达到热极限) 或外部因素的作用 (如热设计功率的变化) 而更新.<br>HFI 提供的信息被指定为相对于系统中其他 cpu 的数字、单元较少的能力. 这些功能的范围为 [0-255], 其中更高的数字表示更高的功能. 如果 CPU 的性能效率或能量能力效率为 0, 硬件建议分别出于性能、能量效率或热原因, 不要在该 CPU 上调度任何任务.<br> 内核或用户空间可以使用来自 HFI 的信息来修改任务放置或调整功率限制. 当前这个补丁集中于用户空间. 热通知框架 (thermal notification framework) 被扩展以支持 CPU capacity 的更新. | v1 ☑ 5.18-rc1 | [2021/11/06 LWN](https://lwn.net/Articles/875296)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/lkml/20211220151438.1196-1-ricardo.neri-calderon@linux.intel.com), [phoronix v2](https://www.phoronix.com/scan.php?page=news_item&px=Intel-HFI-Linux-v2-2021)<br>*-*-*-*-*-*-*-* <br>[PatchWork v5,0/7](https://patchwork.kernel.org/project/linux-pm/cover/20220127193454.12814-1-ricardo.neri-calderon@linux.intel.com), [phoronix v5](https://www.phoronix.com/scan.php?page=news_item&px=Intel-HFI-For-Linux-5.18) |
+| 2022/09/09 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched: Introduce classes of tasks for load balance](https://lore.kernel.org/all/20220909231205.14009-1-ricardo.neri-calderon@linux.intel.com) | 实现 Thread-Director, 根据应用程序的类型 classes 实现选核和负载均衡. | v1 ☐☑✓ | [LORE v1,00/23](https://lore.kernel.org/all/20220909231205.14009-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/22](https://lore.kernel.org/all/20221128132100.30253-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/24](https://lore.kernel.org/all/20230207051105.11575-1-ricardo.neri-calderon@linux.intel.com) |
 
 
 
@@ -280,9 +280,9 @@ Intel Alder Lake CPU 支持 AVX 512
 
 [Intel Alder Lake Question (Scheduler)](https://lkml.org/lkml/2021/11/5/79)
 
-[Intel Core i9 12900K "Alder Lake" AVX-512 On Linux](https://www.phoronix.com/scan.php?page=article&item=alder-lake-avx512&num=1)
+[Intel Core i9 12900K"Alder Lake"AVX-512 On Linux](https://www.phoronix.com/scan.php?page=article&item=alder-lake-avx512&num=1)
 
-[Intel Core i7 1280P "Alder Lake P" Linux Laptop Performance](https://www.phoronix.com/scan.php?page=article&item=intel-corei7-1280p)
+[Intel Core i7 1280P"Alder Lake P"Linux Laptop Performance](https://www.phoronix.com/scan.php?page=article&item=intel-corei7-1280p)
 
 [An Important Note On The Alder Lake Mobile Power/Performance With Linux 5.19](https://www.phoronix.com/scan.php?page=article&item=linux-519-alderlakep) 针对 AdlerLake 笔记本测试了 v5.18 和 v5.19 电源管理等带来的能效差异.
 
@@ -298,7 +298,7 @@ Intel Alder Lake CPU 支持 AVX 512
 ### 1.4.2 AMD's version of big.LITTLE
 -------
 
-AMD 关于大小核的专利 [US20210173715A1: METHOD OF TASK TRANSITION BETWEEN HETEROGENOUS PROCESSORS](https://www.freepatentsonline.com/y2021/0173715.html), 最初于 2019 年 12 月提交, 2021 年被公布. 根据该专利, CPU 将依靠 CPU 利用率等指标来确定何时适合将工作负载从一种类型的 CPU 转移到另一种类型. 建议的指标包括 CPU 以最大速度工作的时间量、CPU 使用最大内存的时间量、一段时间内的平均利用率以及工作负载从一个 CPU 转移的更一般类别另一个基于与任务执行相关的未指定指标等. 当 CPU 确定工作负载应从 CPU A 转移到 CPU B 时, 当前执行工作的内核(在本例中为 CPU A)将进入空闲或停止状态. CPU A 的架构状态保存到内存并由 CPU B 加载, 然后继续该过程. 通过这种 Save/Restore 的方式可以实现软件无感的快速迁移, 并且支持的迁移是双向的, 小核可以将任务迁移到大核, 反之亦然.
+AMD 关于大小核的专利 [US20210173715A1: METHOD OF TASK TRANSITION BETWEEN HETEROGENOUS PROCESSORS](https://www.freepatentsonline.com/y2021/0173715.html), 最初于 2019 年 12 月提交, 2021 年被公布. 根据该专利, CPU 将依靠 CPU 利用率等指标来确定何时适合将工作负载从一种类型的 CPU 转移到另一种类型. 建议的指标包括 CPU 以最大速度工作的时间量、CPU 使用最大内存的时间量、一段时间内的平均利用率以及工作负载从一个 CPU 转移的更一般类别另一个基于与任务执行相关的未指定指标等. 当 CPU 确定工作负载应从 CPU A 转移到 CPU B 时, 当前执行工作的内核 (在本例中为 CPU A) 将进入空闲或停止状态. CPU A 的架构状态保存到内存并由 CPU B 加载, 然后继续该过程. 通过这种 Save/Restore 的方式可以实现软件无感的快速迁移, 并且支持的迁移是双向的, 小核可以将任务迁移到大核, 反之亦然.
 
 参见相关报道:
 
@@ -320,7 +320,7 @@ AMD 关于大小核的专利 [US20210173715A1: METHOD OF TASK TRANSITION BETWEEN
 #### 1.4.4 理论研究
 -------
 
-2012 年 Intel 发布了一篇关于大小核的论文 [Scheduling Heterogeneous Multi-Cores through Performance Impact Estimation (PIE)](http://www.jaleels.org/ajaleel/publications/isca2012-PIE.pdf). 论文中小核使用了 In-Order 的微架构, 大核则使用了 Out-Order 的微架构, 传统的想法都是计算密集型(compute-intensive)的进程跑到大核上, 访存密集型(memory-intensive)的进程跑到小核上去. 但是论文中提出了不一样的想法. 因为内存访问的密集程序并不是一个能反应进程的负载对 CPU 需求的好指标.
+2012 年 Intel 发布了一篇关于大小核的论文 [Scheduling Heterogeneous Multi-Cores through Performance Impact Estimation (PIE)](http://www.jaleels.org/ajaleel/publications/isca2012-PIE.pdf). 论文中小核使用了 In-Order 的微架构, 大核则使用了 Out-Order 的微架构, 传统的想法都是计算密集型 (compute-intensive) 的进程跑到大核上, 访存密集型 (memory-intensive) 的进程跑到小核上去. 但是论文中提出了不一样的想法. 因为内存访问的密集程序并不是一个能反应进程的负载对 CPU 需求的好指标.
 
 1.  如果应用的指令流拥有较高水平的 ILP, 那么它在 In-Order 的小核上, 也能获得很好的性能.
 
@@ -328,7 +328,7 @@ AMD 关于大小核的专利 [US20210173715A1: METHOD OF TASK TRANSITION BETWEEN
 
 因此在大小核上应该分析和利用进程的 ILP/MLP 等特征, 这样才能获得更好的性能.
 
-这应该是 Intel 关于大小核混合架构(single-ISA heterogeneous multi-cores)最早的研究, 此后 Intel 发表了陆续发表了关于大小核混合架构的多项研究.
+这应该是 Intel 关于大小核混合架构 (single-ISA heterogeneous multi-cores) 最早的研究, 此后 Intel 发表了陆续发表了关于大小核混合架构的多项研究.
 
 
 
@@ -343,19 +343,19 @@ AMD 关于大小核的专利 [US20210173715A1: METHOD OF TASK TRANSITION BETWEEN
 ## 1.6 安全相关
 -------
 
-### 1.6.1 SGX(Intel Software Guard eXtensions ,英特尔软件保护扩展)
+### 1.6.1 SGX(Intel Software Guard eXtensions , 英特尔软件保护扩展)
 -------
 
 
-2013 年, Intel 推出 SGX(software guard extensions) 指令集扩展, 能创造出一个可信执行环境来保护代码和数据, 即使 root 权限也无法访问. 这样应用程序可以使用它来隔离代码和数据的特定可信区域, 防止底层OS被 compromise 以后对自己的攻击,
+2013 年, Intel 推出 SGX(software guard extensions) 指令集扩展, 能创造出一个可信执行环境来保护代码和数据, 即使 root 权限也无法访问. 这样应用程序可以使用它来隔离代码和数据的特定可信区域, 防止底层 OS 被 compromise 以后对自己的攻击,
 同时在软件的管理上也可以不用信任云供应商. 比较符合当前要解决的云计算安全问题, 比如给安全敏感服务存放密钥等.
 
 SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安全状态, 提供用户空间的可信执行环境, 通过一组新的指令集扩展与访问控制机制, 实现不同程序间的隔离运行, 保障用户关键代码和数据的机密性与完整性不受恶意软件的破坏.
 
-不同于其他安全技术, SGX 可信计算(trusted computing base, 简称TCB) 仅包括硬件, 避免了基于软件的 TCB 自身存在软件安全漏洞与威胁的缺陷, 极大地提升了系统安全保障; 此外, SGX可保障运行时的可信执行环境, 恶意代码无法访问与篡改其他程序运行时的保护内容, 进一步增强了系统的安全性; 基于指令集的扩展与独立的认证方式, 使得应用程序可以灵活调用这一安全功能并进行验证.作为系统安全领域的重大研究进展, Intel SGX是基于CPU的新一代硬件安全机制, 其健壮、可信、灵活的安全功能与硬件扩展的性能保证, 使得这项技术具有广阔的应用空间与发展前景.目前, 学术界和工业界已经对SGX技术展开了广泛的研究, Intel也在其最新的第六代CPU中加入了对SGX的支持.
+不同于其他安全技术, SGX 可信计算(trusted computing base, 简称 TCB) 仅包括硬件, 避免了基于软件的 TCB 自身存在软件安全漏洞与威胁的缺陷, 极大地提升了系统安全保障; 此外, SGX 可保障运行时的可信执行环境, 恶意代码无法访问与篡改其他程序运行时的保护内容, 进一步增强了系统的安全性; 基于指令集的扩展与独立的认证方式, 使得应用程序可以灵活调用这一安全功能并进行验证. 作为系统安全领域的重大研究进展, Intel SGX 是基于 CPU 的新一代硬件安全机制, 其健壮、可信、灵活的安全功能与硬件扩展的性能保证, 使得这项技术具有广阔的应用空间与发展前景. 目前, 学术界和工业界已经对 SGX 技术展开了广泛的研究, Intel 也在其最新的第六代 CPU 中加入了对 SGX 的支持.
 
 
-[SGX技术的分析和研究](http://www.jos.org.cn/html/2018/9/5594.htm)
+[SGX 技术的分析和研究](http://www.jos.org.cn/html/2018/9/5594.htm)
 
 
 | 版本 | 特性 | PatchSet |
@@ -394,8 +394,8 @@ SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/08/30 | Yu-cheng Yu <yu-cheng.yu@intel.com> | [Control-flow Enforcement: Shadow Stack](https://patchwork.kernel.org/project/linux-mm/cover/20210830181528.1569-1-yu-cheng.yu@intel.com) | 控制流执行(CET) 是英特尔处理器的一个新特性, 它可以阻止面向返回/跳转的编程攻击. 详情见 ["Intel 64 and IA-32架构软件开发人员手册"](https://software.intel.com/content/www/us/en/develop/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4.html). CET 可以保护应用程序和内核. 这是 CET 的第一部分, 本系列仅支持应用程序级保护, 并进一步分为阴影堆栈和间接分支跟踪. | v30 ☐ | [Patchwork v30,00/32](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) |
-| 2021/08/30 | Yu-cheng Yu <yu-cheng.yu@intel.com> | [Control-flow Enforcement: Indirect Branch Tracking](https://patchwork.kernel.org/project/linux-mm/cover/20210830182221.3535-1-yu-cheng.yu@intel.com) | 控制流执行(CET) 是英特尔处理器的一个新特性, 它可以阻止面向返回/跳转的编程攻击. 详情见 ["Intel 64 and IA-32架构软件开发人员手册"](https://software.intel.com/content/www/us/en/develop/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4.html). 这是 CET 的第二部分, 支持间接分支跟踪(IBT). 它是建立在阴影堆栈系列之上的. | v1 ☐ | [Patchwork v30,00/10](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) |
+| 2021/08/30 | Yu-cheng Yu <yu-cheng.yu@intel.com> | [Control-flow Enforcement: Shadow Stack](https://patchwork.kernel.org/project/linux-mm/cover/20210830181528.1569-1-yu-cheng.yu@intel.com) | 控制流执行(CET) 是英特尔处理器的一个新特性, 它可以阻止面向返回 / 跳转的编程攻击. 详情见 ["Intel 64 and IA-32 架构软件开发人员手册"](https://software.intel.com/content/www/us/en/develop/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4.html). CET 可以保护应用程序和内核. 这是 CET 的第一部分, 本系列仅支持应用程序级保护, 并进一步分为阴影堆栈和间接分支跟踪. | v30 ☐ | [Patchwork v30,00/32](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) |
+| 2021/08/30 | Yu-cheng Yu <yu-cheng.yu@intel.com> | [Control-flow Enforcement: Indirect Branch Tracking](https://patchwork.kernel.org/project/linux-mm/cover/20210830182221.3535-1-yu-cheng.yu@intel.com) | 控制流执行(CET) 是英特尔处理器的一个新特性, 它可以阻止面向返回 / 跳转的编程攻击. 详情见 ["Intel 64 and IA-32 架构软件开发人员手册"](https://software.intel.com/content/www/us/en/develop/download/intel-64-and-ia-32-architectures-sdm-combined-volumes-1-2a-2b-2c-2d-3a-3b-3c-3d-and-4.html). 这是 CET 的第二部分, 支持间接分支跟踪(IBT). 它是建立在阴影堆栈系列之上的. | v1 ☐ | [Patchwork v30,00/10](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) |
 | 2021/11/22 | Peter Zijlstra <peterz@infradead.org> | [x86: Kernel IBT beginnings](https://lore.kernel.org/lkml/20211122170301.764232470@infradead.org) | IBT 的基础支持, 功能不完整, 但是够精简, 引入 CONFIG_X86_IBT 控制, 添加了 X86_IBT build 选项, 为编译器启用了 "-fcf-protection=branch" 支持, 并支持 objtool, 用于为可能的间接分支目标添加 ENDBR 指令以及内核入口点添加了 ENDBR 结束分支指令. | v11 ☐ | [Patchwork v11,0/7](https://lore.kernel.org/lkml/20211122170301.764232470@infradead.org) |
 
 ## 1.7 PPIN
@@ -405,7 +405,7 @@ SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2020/03/21 | Wei Huang <wei.huang2@amd.com> | [x86/mce/amd: Add PPIN support for AMD MCE](https://lore.kernel.org/all/20200321193800.3666964-1-wei.huang2@amd.com) | 20200321193800.3666964-1-wei.huang2@amd.com | v3 ☑✓ | [LORE v3,0/1](https://lore.kernel.org/all/20200321193800.3666964-1-wei.huang2@amd.com) |
-| 2022/01/31 | Tony Luck <tony.luck@intel.com> | [PPIN (Protected Processor Inventory Number) updates](https://lore.kernel.org/all/20220131230111.2004669-1-tony.luck@intel.com) | 受保护处理器库存编号(Protected Processor Inventory Number, PPIN), 有时也称为 "受保护处理器标识号(Protected Processor Identification Number)是处理器在制造时设置的一个编号, 用于唯一地标识给定的处理器. 可以通过 PPIN 追溯芯片生产的车间和生产以及运行环境, 这有助于帮助缺陷诊断. Intel 之前提交了 Linux 补丁, 用于在服务器管理员遇到 MCE 错误时显示 PPIN, 以帮助跟踪问题发生在哪个物理 CPU 上, 但是只有在出现错误时才会打印. 这组补丁使得服务器管理员可以更容易地访问 PPIN. (直接从 `sys/devices/system/cpu/cpu*/topology/ppin` 即可读取). 参见 phoronix 报道 [Convenient Intel PPIN Reporting To Come With Linux 5.18](https://www.phoronix.com/scan.php?page=news_item&px=Intel-PPIN-Linux-5.18) | v3 ☑✓ v5.18-rc1 | [LORE v3,0/5](https://lore.kernel.org/all/20220131230111.2004669-1-tony.luck@intel.com) |
+| 2022/01/31 | Tony Luck <tony.luck@intel.com> | [PPIN (Protected Processor Inventory Number) updates](https://lore.kernel.org/all/20220131230111.2004669-1-tony.luck@intel.com) | 受保护处理器库存编号 (Protected Processor Inventory Number, PPIN), 有时也称为 "受保护处理器标识号(Protected Processor Identification Number) 是处理器在制造时设置的一个编号, 用于唯一地标识给定的处理器. 可以通过 PPIN 追溯芯片生产的车间和生产以及运行环境, 这有助于帮助缺陷诊断. Intel 之前提交了 Linux 补丁, 用于在服务器管理员遇到 MCE 错误时显示 PPIN, 以帮助跟踪问题发生在哪个物理 CPU 上, 但是只有在出现错误时才会打印. 这组补丁使得服务器管理员可以更容易地访问 PPIN. (直接从 `sys/devices/system/cpu/cpu*/topology/ppin` 即可读取). 参见 phoronix 报道 [Convenient Intel PPIN Reporting To Come With Linux 5.18](https://www.phoronix.com/scan.php?page=news_item&px=Intel-PPIN-Linux-5.18) | v3 ☑✓ v5.18-rc1 | [LORE v3,0/5](https://lore.kernel.org/all/20220131230111.2004669-1-tony.luck@intel.com) |
 
 
 
@@ -453,11 +453,11 @@ ARM64 架构文档地址下载 [cpu-architecture](https://developer.arm.com/arch
 
 [Armv8/armv9 架构入门指南(中文)](http://hehezhou.cn/arm_doc)
 
-[arm8/armv9寄存器速查](http://hehezhou.cn/arm)
+[arm8/armv9 寄存器速查](http://hehezhou.cn/arm)
 
-[arm8/armv9指令集](http://hehezhou.cn/isa)
+[arm8/armv9 指令集](http://hehezhou.cn/isa)
 
-[代码在线阅读(含有Linux Kernel5.14、TF-A2.5、optee3.16、ffa-spmc等)](http://hehezhou.cn:8080/optee316)
+[代码在线阅读(含有 Linux Kernel5.14、TF-A2.5、optee3.16、ffa-spmc 等)](http://hehezhou.cn:8080/optee316)
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -469,12 +469,12 @@ ARM64 架构文档地址下载 [cpu-architecture](https://developer.arm.com/arch
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/08/18 | Tianjia Zhang <tianjia.zhang@linux.alibaba.com> | [arm64: Enable OPTPROBE for arm64](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) | 这个补丁集导出了 SM4 AESNI/AVX 算法实现的一些常用函数, 并用这些函数实现 AESNI/AVX2 的加速.<br>主要算法实现来自 libgcrypt 和 [Markku Juhani 的 SM4 AES-NI 工作](https://github.com/mjosaarinen/sm4ni). | v4 ☐ | [Patchwork v4,0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210818073336.59678-1-liuqi115@huawei.com) |
+| 2021/08/18 | Tianjia Zhang <tianjia.zhang@linux.alibaba.com> | [arm64: Enable OPTPROBE for arm64](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) | 这个补丁集导出了 SM4 AESNI/AVX 算法实现的一些常用函数, 并用这些函数实现 AESNI/AVX2 的加速.<br> 主要算法实现来自 libgcrypt 和 [Markku Juhani 的 SM4 AES-NI 工作](https://github.com/mjosaarinen/sm4ni). | v4 ☐ | [Patchwork v4,0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210818073336.59678-1-liuqi115@huawei.com) |
 
 ## 2.2 TLB
 -------
 
-[郭健： 进程切换分析之——TLB处理](https://blog.csdn.net/21cnbao/article/details/110675822)
+[郭健： 进程切换分析之——TLB 处理](https://blog.csdn.net/21cnbao/article/details/110675822)
 
 ### 2.2.1 TLB range
 -------
@@ -525,15 +525,15 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 [stackoverflow: What is tlb shootdown ?](https://stackoverflow.com/questions/3748384/what-is-tlb-shootdown)
 
-[深入理解 Linux 内核--jemalloc 引起的 TLB shootdown 及优化](https://blog.csdn.net/weixin_46837673/article/details/105379768)
+[深入理解 Linux 内核 --jemalloc 引起的 TLB shootdown 及优化](https://blog.csdn.net/weixin_46837673/article/details/105379768)
 
-在多核系统中, 进程可以调度到任何一个 CPU 上执行, 从而导致 task 处处留情. 如果 CPU 支持 PCID 并且在进程切换的时候不 flush tlb, 那么系统中各个 CPU 中的 tlb entry 则保留各种 task 的 tlb entry, 当在某个 CPU 上, 一个进程被销毁, 或者修改了自己的页表(修改了VA PA映射关系)的时候, 我们必须将该 task 的相关 tlb entry 从系统中清除出去. 这时候, 不仅仅需要 flush 本 CPU 上对应的 TLB entry, 还需要 shootdown 其他 CPU 上的和该 task 相关的 tlb 残余.
+在多核系统中, 进程可以调度到任何一个 CPU 上执行, 从而导致 task 处处留情. 如果 CPU 支持 PCID 并且在进程切换的时候不 flush tlb, 那么系统中各个 CPU 中的 tlb entry 则保留各种 task 的 tlb entry, 当在某个 CPU 上, 一个进程被销毁, 或者修改了自己的页表 (修改了 VA PA 映射关系) 的时候, 我们必须将该 task 的相关 tlb entry 从系统中清除出去. 这时候, 不仅仅需要 flush 本 CPU 上对应的 TLB entry, 还需要 shootdown 其他 CPU 上的和该 task 相关的 tlb 残余.
 
 通知其他 CPU shootdown 到指定 task 的 TLB entry 有两种方式: 广播 和 IPI.
 
 1.  广播的方式, 当进程销毁或者页表修改时, 则本地 CPU 通过广播的方式将请求发送出去. 各个 CPU 接受到请求之后, 如果 TLB 中包含了对应的 TLB entry, 则 flush, 否则则抛弃此请求. 这种方式主要由硬件参与完成, 在 shootdown 请求比较少的时候, 硬件处理及时且迅速, 开销也小.
 
-2.  IPI 的方式, 需要先由软件(内核)识别到哪些 CPU 中包含了这些需要 flush 的 TLB entry, 然后由本地 CPU 通过 IPI 请求的方式, 通知对应的 CPU 进行 shootdown 操作. 这种方式由硬件软件交互完成, 在 CPU 核数比较多, 且shootdown 请求比较多的时候, 可能造成 TLB entry shootdown 广播风暴, 硬件(NM)处理不过来, 造成性能下降. 此时对于单个 task 的 TLB entry 来说, 残留的 CPU 往往是明确且有限的, 通过 IPI 的方式, 给硬件压力反而会小很多, 这时采用 IPI 的方式性能反而会好.
+2.  IPI 的方式, 需要先由软件 (内核) 识别到哪些 CPU 中包含了这些需要 flush 的 TLB entry, 然后由本地 CPU 通过 IPI 请求的方式, 通知对应的 CPU 进行 shootdown 操作. 这种方式由硬件软件交互完成, 在 CPU 核数比较多, 且 shootdown 请求比较多的时候, 可能造成 TLB entry shootdown 广播风暴, 硬件 (NM) 处理不过来, 造成性能下降. 此时对于单个 task 的 TLB entry 来说, 残留的 CPU 往往是明确且有限的, 通过 IPI 的方式, 给硬件压力反而会小很多, 这时采用 IPI 的方式性能反而会好.
 
 
 
@@ -545,7 +545,7 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | 2019/06/17 |  Takao Indoh <indou.takao@jp.fujitsu.com> | [arm64: Introduce boot parameter to disable TLB flush instruction within the same inner shareable domain](hhttps://lists.cs.columbia.edu/pipermail/kvmarm/2020-November/043071.html) | 富士通的开发人员发现 ARM64 TLB.IS 广播在 HPC 上造成了严重的性能下降, 因此新增一个 disable_tlbflush_is 参数来禁用 TLB.IS 广播, 使用原始的 TLB IPI 方式. | RFC v1 ☐ | [Patchwork 0/2](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20190617143255.10462-1-indou.takao@jp.fujitsu.com), [LORE](https://lore.kernel.org/linux-arm-kernel/20190617143255.10462-1-indou.takao@jp.fujitsu.com) |
 | 2016/10/24 | Marc Zyngier <marc.zyngier@arm.com> | [arm/arm64: KVM: Perform local TLB invalidation when multiplexing vcpus on a single CPU](https://patchwork.kernel.org/project/kvm/patch/1477323088-18768-1-git-send-email-marc.zyngier@arm.com) | KVM 当 guest 在运行的时候, 避免 tlbi 广播. | RFC v1 ☐ | [Patchwork RTC](https://lore.kernel.org/linux-arm-kernel/1603331829-33879-1-git-send-email-zhangshaokun@hisilicon.com) |
 | 2020/02/23 | Andrea Arcangeli <aarcange@redhat.com> | [arm64: tlb: skip tlbi broadcast v2](https://lore.kernel.org/all/20200223192520.20808-1-aarcange@redhat.com) |20200223192520.20808-1-aarcange@redhat.com | v1 ☐ | [LORE](https://lore.kernel.org/all/20200223192520.20808-1-aarcange@redhat.com) |
-| 2022/09/13 | Joe Damato <jdamato@fastly.com> | [mm: Track per-task tlb events](https://lore.kernel.org/all/1663120270-2673-1-git-send-email-jdamato@fastly.com) | 通过检查 `/proc/interrupts`, 可以在每个 CPU 的基础上测量 TLB shootdown 事件. 如果 CONFIG_DEBUG_TLBFLUSH 被启用, 关于 TLB 事件的进一步信息可以从 `/proc/vmstat` 中获取, 但是这些信息是系统范围的. 这些信息是有用的, 但是在一个有许多任务的繁忙系统上, 很难消除 TLB shootdown 事件的来源的模糊性. 这组补丁跟踪每个任务的这些信息可以使开发人员修复或调整用户空间分配器, 以减少 IPI 的数量并提高应用程序性能. 为 task_struct 和 signal_struct 添加了两个新字段, 以帮助跟踪 TLB 事件:<br>1. ngtlbflush: 生成 TLB flush 的数量.<br>2. nrtlbflush: 收到 TLB flush 的数量.<br>这些统计数据被导出到 `/proc/[pid]/stat` 中, 与类似的指标 (如 min_flt 和 maj_flt) 一起进行分析. | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/1663120270-2673-1-git-send-email-jdamato@fastly.com) |
+| 2022/09/13 | Joe Damato <jdamato@fastly.com> | [mm: Track per-task tlb events](https://lore.kernel.org/all/1663120270-2673-1-git-send-email-jdamato@fastly.com) | 通过检查 `/proc/interrupts`, 可以在每个 CPU 的基础上测量 TLB shootdown 事件. 如果 CONFIG_DEBUG_TLBFLUSH 被启用, 关于 TLB 事件的进一步信息可以从 `/proc/vmstat` 中获取, 但是这些信息是系统范围的. 这些信息是有用的, 但是在一个有许多任务的繁忙系统上, 很难消除 TLB shootdown 事件的来源的模糊性. 这组补丁跟踪每个任务的这些信息可以使开发人员修复或调整用户空间分配器, 以减少 IPI 的数量并提高应用程序性能. 为 task_struct 和 signal_struct 添加了两个新字段, 以帮助跟踪 TLB 事件:<br>1. ngtlbflush: 生成 TLB flush 的数量.<br>2. nrtlbflush: 收到 TLB flush 的数量.<br> 这些统计数据被导出到 `/proc/[pid]/stat` 中, 与类似的指标 (如 min_flt 和 maj_flt) 一起进行分析. | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/1663120270-2673-1-git-send-email-jdamato@fastly.com) |
 
 
 > 注: x86 由于没有 tlb IS 方案, 因此只能采用 IPI 的方式来完成 TLB shootdown.
@@ -581,7 +581,7 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/07/06 | Mel Gorman <mgorman@suse.de> | [TLB flush multiple pages per IPI v7](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c7e1e3ccfbd153c890240a391f258efaedfa94d0) | BATCHED_UNMAP_TLB_FLUSH 完成了 TLB 批处理, 在批量解除页面映射后, 发送一个 IPI 来刷新多个 TLB range 的条目, 而不是每个 TLB entry 刷新都发送一个 IPI. | v7 ☑✓ 4.3-rc1 | [LORE v5,0/3](https://lore.kernel.org/all/1433767854-24408-1-git-send-email-mgorman@suse.de)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/4](https://lore.kernel.org/all/1436189996-7220-1-git-send-email-mgorman@suse.de) |
 | 2017/05/07 | Andy Lutomirski <luto@kernel.org> | [x86 TLB flush cleanups, moving toward PCID support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d6e41f1151feeb118eee776c09323aceb4a415d9) | TODO | v1 ☑✓ 4.13-rc1 | [LORE v1,0/10](https://lore.kernel.org/all/cover.1494160201.git.luto@kernel.org) |
-| 2021/02/23 | Barry Song <song.bao.hua@hisilicon.com> | [Documentation/features: mark BATCHED_UNMAP_TLB_FLUSH doesn't apply to ARM64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6bfef171d0d74cb050112e0e49feb20bfddf7f42) | 在 x86 上, BATCHED_UNMAP_TLB_FLUSH 用于批处理 TLB, 在解除页面映射后, 发送一个 IPI 到 TLB 刷新所有条目. 在 arm64 上, TLB shootdown 是由硬件完成的. 刷新指令是内部共享的. 本地刷新限制在启动(每个 CPU 1 次)和任务获得新的 ASID 时. 因此, 将该特性标记为 "TODO" 是不恰当的. 所以这个补丁对某些架构上不需要的这类功能标记为 "N/A". | v1 ☑✓ 5.13-rc1 | [LORE](https://lore.kernel.org/all/20210223003230.11976-1-song.bao.hua@hisilicon.com) |
+| 2021/02/23 | Barry Song <song.bao.hua@hisilicon.com> | [Documentation/features: mark BATCHED_UNMAP_TLB_FLUSH doesn't apply to ARM64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6bfef171d0d74cb050112e0e49feb20bfddf7f42) | 在 x86 上, BATCHED_UNMAP_TLB_FLUSH 用于批处理 TLB, 在解除页面映射后, 发送一个 IPI 到 TLB 刷新所有条目. 在 arm64 上, TLB shootdown 是由硬件完成的. 刷新指令是内部共享的. 本地刷新限制在启动 (每个 CPU 1 次) 和任务获得新的 ASID 时. 因此, 将该特性标记为 "TODO" 是不恰当的. 所以这个补丁对某些架构上不需要的这类功能标记为 "N/A". | v1 ☑✓ 5.13-rc1 | [LORE](https://lore.kernel.org/all/20210223003230.11976-1-song.bao.hua@hisilicon.com) |
 | 2022/07/11 | Barry Song <21cnbao@gmail.com> | [mm: arm64: bring up BATCHED_UNMAP_TLB_FLUSH](https://lore.kernel.org/all/20220711034615.482895-1-21cnbao@gmail.com) | 虽然 ARM64 有硬件来完成 TLB shootdown, 但硬件广播的开销并不小. 最简单的微基准测试表明, 即使在只有 8 核的 snapdragon 888 上, ptep_clear_flush() 的开销也是巨大的, 即使只分页一个进程映射的一个页面, perf top 显示这造成 5.36% 的 CPU 消耗. 当页面由多个进程映射或硬件有更多 CPU 时, 由于 TLB 分解的可扩展性较差, 成本应该会更高. 在这种场景下同样的基准测试可能会导致大约 100 核的 ARM64 服务器上 16.99% 的 CPU 消耗. 该补丁集利用了现有的 BATCHED_UNMAP_TLB_FLUSH 进行了优化.<br>1. 仅在第一阶段 arch_tlbbatch_add_mm() 中发送 tlbi 指令.<br>2. 等待 dsb 完成 tlbi, 同时在 arch_tlbbatch_flush() 中执行 tlbbatch sync. 在 snapdragon 上的测试表明, ptep_clear_flush() 的开销已被该补丁集优化掉. 即使在 snapdragon 888 上通过单个进程映射一个页面, 微基准也能提升 5% 的性能. | v2 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/lkml/20220707125242.425242-1-21cnbao@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/all/20220711034615.482895-1-21cnbao@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/r/20220822082120.8347-1-yangyicong@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/2](https://lore.kernel.org/r/20220921084302.43631-1-yangyicong@huawei.com) |
 
 ### 2.2.5 relaxed TLB flushes
@@ -610,7 +610,7 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2015/07/24 | Will Deacon <will.deacon@arm.com> | [arm64: support for 8.1 LSE atomic instructions](https://lwn.net/Articles/650900) | 为 Linux 内核添加了对[新原子指令(LSE atomic instructions)的支持](https://mysqlonarm.github.io/ARM-LSE-and-MySQL), 这是作为 ARMv8.1 中大系统扩展(LSE-LSE atomic instructions)的一部分引入的. 新的指令可以在编译时通过 CONFIG_ARM64_LSE_ATOMICS 选项配置出来.<br>之前测试发现, 核少的时候关 LSE 性能更好, 核多的时候, 开 LSE 性能更好. | v1 ☑ 4.3-rc1 | [2015/07/13 Patchwork 00/18](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200625080314.230-1-yezhenyu2@huawei.com)<br>*-*-*-*-*-*-*-* <br>[2015/07/24 Patchwork v2,07/20](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1437734531-10698-8-git-send-email-will.deacon@arm.com/) |
+| 2015/07/24 | Will Deacon <will.deacon@arm.com> | [arm64: support for 8.1 LSE atomic instructions](https://lwn.net/Articles/650900) | 为 Linux 内核添加了对 [新原子指令(LSE atomic instructions) 的支持](https://mysqlonarm.github.io/ARM-LSE-and-MySQL), 这是作为 ARMv8.1 中大系统扩展 (LSE-LSE atomic instructions) 的一部分引入的. 新的指令可以在编译时通过 CONFIG_ARM64_LSE_ATOMICS 选项配置出来.<br> 之前测试发现, 核少的时候关 LSE 性能更好, 核多的时候, 开 LSE 性能更好. | v1 ☑ 4.3-rc1 | [2015/07/13 Patchwork 00/18](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20200625080314.230-1-yezhenyu2@huawei.com)<br>*-*-*-*-*-*-*-* <br>[2015/07/24 Patchwork v2,07/20](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1437734531-10698-8-git-send-email-will.deacon@arm.com/) |
 | 2021/12/10 | Mark Brown <broonie@kernel.org> | [arm64: atomics: cleanups and codegen improvements](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211027184424.166237-1-broonie@kernel.org) | SME 指令的支持. | v5 ☑ [5.17-rc1](https://lore.kernel.org/lkml/20220106185501.1480075-1-catalin.marinas@arm.com) | [Patchwork 0/5](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211210151410.2782645-1-mark.rutland@arm.com) |
 
 
@@ -624,7 +624,7 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | 2019/04/18 | Mark Brown <broonie@kernel.org> | [KVM: arm64: SVE cleanups](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1555603631-8107-1-git-send-email-Dave.Martin@arm.com) | KVM guest SVE 指令的支持. | v2 ☑ 5.2-rc1 | [Patchwork v2,00/14](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1555603631-8107-1-git-send-email-Dave.Martin@arm.com) |
 | 2019/04/18 | Mark Brown <broonie@kernel.org> | [arm64: Expose SVE2 features for userspace](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1555609298-10498-1-git-send-email-Dave.Martin@arm.com) | 支持向用户空间报告 SVE2 的存在及其可选功能. 同时为 KVM 虚拟化 guest 提供了 SVE2 的可见性. | v2 ☑ 5.2-rc1 | [Patchwork v2,00/14](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1555609298-10498-1-git-send-email-Dave.Martin@arm.com) |
 
-2022 年 6 月, Arm 工程师 Wilco Dijkstra 为 Glibc 提供了 SVE 优化的 memcpy 实现, 超过 32 字节的 memcpy 使用 SVE 实现, 这显着改善了随机 memcpy 测试的性能. 参见 [glibc-commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=9f298bfe1f183804bb54b54ff9071afc0494906c), 以及 phoronix 报道--[Glibc Adds Arm SVE-Optimized Memory Copy - Can "Significantly" Help Performance](https://www.phoronix.com/scan.php?page=news_item&px=Glibc-Arm-SVE-Memcpy-Optimize).
+2022 年 6 月, Arm 工程师 Wilco Dijkstra 为 Glibc 提供了 SVE 优化的 memcpy 实现, 超过 32 字节的 memcpy 使用 SVE 实现, 这显着改善了随机 memcpy 测试的性能. 参见 [glibc-commit](https://sourceware.org/git/?p=glibc.git;a=commit;h=9f298bfe1f183804bb54b54ff9071afc0494906c), 以及 phoronix 报道 --[Glibc Adds Arm SVE-Optimized Memory Copy - Can"Significantly"Help Performance](https://www.phoronix.com/scan.php?page=news_item&px=Glibc-Arm-SVE-Memcpy-Optimize).
 
 
 
@@ -634,6 +634,8 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/10/27 | Mark Brown <broonie@kernel.org> | [arm64/sme: Initial support for the Scalable Matrix Extension](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211027184424.166237-1-broonie@kernel.org) | SME 指令的支持. v7 版本前 6 个 [prepare 的补丁](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-AArch64)先合入了 [5.17-rc1](https://lore.kernel.org/lkml/20220106185501.1480075-1-catalin.marinas@arm.com) | v5 ☐ | [LORE v3,00/42](https://lore.kernel.org/all/20211019172247.3045838-1-broonie@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2021/10/27 Patchwork v5,00/38](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211027184424.166237-1-broonie@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2021/12/10 Patchwork v7,00/37](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211210184133.320748-1-broonie@kernel.org) |
+| 2023/01/16 | Mark Brown <broonie@kernel.org> | [arm64/sme: Support SME 2 and SME 2.1](https://lore.kernel.org/all/20221208-arm64-sme2-v4-0-f2fa0aef982f@kernel.org) | Arm 最近发布了 SME 扩展的版本 2 和 2.1. SME 2 引入的特征之一是一些新的体系结构状态，即 ZT0 寄存器. 本系列增加了对这一功能以及新 SME 版本的所有其他功能的支持. | v4 ☐☑✓ | [LORE v4,0/21](https://lore.kernel.org/all/20221208-arm64-sme2-v4-0-f2fa0aef982f@kernel.org) |
+
 
 ## 2.4 pseudo-NMI
 -------
@@ -683,7 +685,7 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 为了解决这个问题, ARM v8.1 在修复这个问题的时候, 不得不在 pstate 中抠出来一个 bit 来设置 PAN(Privileged Access Never), 如果 PAN 为 1 的时候, 那么就限制在 EL1 里边不允许访问 EL0 的内存. 被称为 ARMv8.1-PAN, Privileged access never, 它的主要工作就是限制内核态不能访问用户态的数据. 如果启用了 CONFIG_ARM64_PAN, 内核试图访问用户空间的内存时, 则会报权限错误, 相反, [copy_from_user()](https://elixir.bootlin.com/linux/v4.3/source/arch/arm64/lib/copy_from_user.S#L34) 以及 [copy_to_user()](https://elixir.bootlin.com/linux/v4.3/source/arch/arm64/lib/copy_to_user.S#L35) 等接口中访问用户空间内存时必须清除 PAN 位(或使用 `ldt*/stt*` 指令), 在完成后则必须恢复.
 
-[Arm Chips Vulnerable to PAN Bypass – "We All Know it’s Broken"](https://techmonitor.ai/techonology/hardware/arm-pan-bypass)
+[Arm Chips Vulnerable to PAN Bypass –"We All Know it’s Broken"](https://techmonitor.ai/techonology/hardware/arm-pan-bypass)
 [PAN](https://blog.siguza.net/PAN)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -730,8 +732,7 @@ ARM v8.2 引入了 [UAO](https://community.arm.com/arm-community-blogs/b/archite
 ## 2.6 PAC
 -------
 
-2016 年 10 月, ARMV8.3-A 指令集中加入了[指针认证(Pointer Authentication)机制](https://www.kernel.org/doc/html/latest/arm64/pointer-authentication.html
-), 在使用寄存器的值作为指针访问数据或代码之前验证其内容, 目的是为了对抗 ROP/JOP 攻击.
+2016 年 10 月, ARMV8.3-A 指令集中加入了 [指针认证(Pointer Authentication) 机制](https://www.kernel.org/doc/html/latest/arm64/pointer-authentication.html), 在使用寄存器的值作为指针访问数据或代码之前验证其内容, 目的是为了对抗 ROP/JOP 攻击.
 
 [ARM pointer authentication](https://lwn.net/Articles/718888)
 [开源快递: ARM 指针身份认证 (arm pointer authentication)](https://www.cnblogs.com/liuhailong0112/p/14258844.html)
@@ -739,13 +740,13 @@ ARM v8.2 引入了 [UAO](https://community.arm.com/arm-community-blogs/b/archite
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2018/12/07 | Kristina Martsenko <kristina.martsenko@arm.com> | [ARMv8.3 pointer authentication userspace support](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20181207183931.4285-1-kristina.martsenko@arm.com) | RISC-V高级核心本地中断(Advacned Core Local Interruptor-ACLINT) 支持 | v8 ☐ | [Patchwork v5,00/17](https://patchwork.kernel.org/project/linux-riscv/cover/20210830041729.237252-1-anup.patel@wdc.com)<br>*-*-*-*-*-*-*-*<br>[Patchwork v6,00/13](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20181207183931.4285-1-kristina.martsenko@arm.com) |
+| 2018/12/07 | Kristina Martsenko <kristina.martsenko@arm.com> | [ARMv8.3 pointer authentication userspace support](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20181207183931.4285-1-kristina.martsenko@arm.com) | RISC-V 高级核心本地中断(Advacned Core Local Interruptor-ACLINT) 支持 | v8 ☐ | [Patchwork v5,00/17](https://patchwork.kernel.org/project/linux-riscv/cover/20210830041729.237252-1-anup.patel@wdc.com)<br>*-*-*-*-*-*-*-*<br>[Patchwork v6,00/13](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20181207183931.4285-1-kristina.martsenko@arm.com) |
 | 2019/03/19 | Kristina Martsenko <kristina.martsenko@arm.com> | [arm64: pac: Optimize kernel entry/exit key installation code paths](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20181207183931.4285-1-kristina.martsenko@arm.com) | PAC 合入后, svc(SYSCALL) 进入和退出以及进程切换的过程中, 会进行 key 的切换, 会存在 10+ 个 MSR 操作, 因此造成了性能劣化. | v8 ☑ 5.13-rc1 | [Patchwork v8,3/3](https://patchwork.kernel.org/project/linux-arm-kernel/patch/2d653d055f38f779937f2b92f8ddd5cf9e4af4f4.1616123271.git.pcc@google.com)<br>*-*-*-*-*-*-*-*<br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b90e483938ce387c256e03fb144f82f64551847b) |
 
 ## 2.7 Linux to Apple Silicon Macs
 -------
 
-2020 年 11 月 11 日在苹果新品发布会上发布了适用于部分Mac、iPad设备 ARM64 芯片 Apple M1, 社区开始有不少团队开始着手于 Linux 支持 Apple M1 芯片. 目前有两个团队在做这块工作 Corellium 的 [corellium/linux-m1](https://github.com/corellium/linux-m1) 以及 [AsahiLinux/linux](https://github.com/AsahiLinux/linux). 其中
+2020 年 11 月 11 日在苹果新品发布会上发布了适用于部分 Mac、iPad 设备 ARM64 芯片 Apple M1, 社区开始有不少团队开始着手于 Linux 支持 Apple M1 芯片. 目前有两个团队在做这块工作 Corellium 的 [corellium/linux-m1](https://github.com/corellium/linux-m1) 以及 [AsahiLinux/linux](https://github.com/AsahiLinux/linux). 其中
 
 *   [Corellium](https://github.com/corellium) 一直致力于为用户提供虚拟 iOS 系统桌面解决方案, 这个团队从 A10 芯片开始就开始做 Linux 的适配, 因此 M1 刚出来就做了快速的适配.
 
@@ -775,8 +776,8 @@ ARM v8.2 引入了 [UAO](https://community.arm.com/arm-community-blogs/b/archite
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/06/10 | Anup Patel <anup.patel@wdc.com> | [RISC-V CPU Idle Support](https://patchwork.kernel.org/project/linux-riscv/cover/20210610052221.39958-1-anup.patel@wdc.com) | RISC-V高级核心本地中断(Advacned Core Local Interruptor-ACLINT) 支持 | v8 ☐ | [2021/06/10Patchwork v7,0/8](https://patchwork.kernel.org/project/linux-riscv/cover/20210830041729.237252-1-anup.patel@wdc.com)<br>*-*-*-*-*-*-*-*<br>[LWN v8, 0/8](https://lwn.net/Articles/872513) |
-| 2021/08/30 | Anup Patel <anup.patel@wdc.com> | [Linux RISC-V ACLINT Support](https://patchwork.kernel.org/project/linux-riscv/cover/20210830041729.237252-1-anup.patel@wdc.com) | RISC-V高级核心本地中断(Advacned Core Local Interruptor-ACLINT) 支持 | v3 ☐ | [Patchwork RFC,v3,00/11](https://patchwork.kernel.org/project/linux-riscv/cover/20210610052221.39958-1-anup.patel@wdc.com) |
+| 2021/06/10 | Anup Patel <anup.patel@wdc.com> | [RISC-V CPU Idle Support](https://patchwork.kernel.org/project/linux-riscv/cover/20210610052221.39958-1-anup.patel@wdc.com) | RISC-V 高级核心本地中断(Advacned Core Local Interruptor-ACLINT) 支持 | v8 ☐ | [2021/06/10Patchwork v7,0/8](https://patchwork.kernel.org/project/linux-riscv/cover/20210830041729.237252-1-anup.patel@wdc.com)<br>*-*-*-*-*-*-*-*<br>[LWN v8, 0/8](https://lwn.net/Articles/872513) |
+| 2021/08/30 | Anup Patel <anup.patel@wdc.com> | [Linux RISC-V ACLINT Support](https://patchwork.kernel.org/project/linux-riscv/cover/20210830041729.237252-1-anup.patel@wdc.com) | RISC-V 高级核心本地中断(Advacned Core Local Interruptor-ACLINT) 支持 | v3 ☐ | [Patchwork RFC,v3,00/11](https://patchwork.kernel.org/project/linux-riscv/cover/20210610052221.39958-1-anup.patel@wdc.com) |
 
 
 # 4 CPU 漏洞
@@ -787,15 +788,15 @@ ARM v8.2 引入了 [UAO](https://community.arm.com/arm-community-blogs/b/archite
 
 [Blocking straight-line speculation — eventually](https://lwn.net/Articles/877845)
 
-Google 的 SafeSide 小组发现 ARM CPU 存在新的投机执行漏洞, 可导致侧信道攻击. 研究人员在 Armv8-A(Cortex-A) CPU 体系结构中发现了一个名为直线推测( Straight-Line Speculation , SLS) 的新漏洞, 被追踪为 [CVE-2020-13844](https://nvd.nist.gov/vuln/detail/CVE-2020-13844). 该漏洞可导致攻击者对 ARM 架构处理器进行侧边信道攻击(SCA).
+Google 的 SafeSide 小组发现 ARM CPU 存在新的投机执行漏洞, 可导致侧信道攻击. 研究人员在 Armv8-A(Cortex-A) CPU 体系结构中发现了一个名为直线推测(Straight-Line Speculation , SLS) 的新漏洞, 被追踪为 [CVE-2020-13844](https://nvd.nist.gov/vuln/detail/CVE-2020-13844). 该漏洞可导致攻击者对 ARM 架构处理器进行侧边信道攻击(SCA).
 
-让目标处理器通过预先访问数据来提升性能, 然后再扔掉所有使用过的计算分支(computational branches), 而 SLS 则通过类似的侧道攻击就能让黑客从处理器直接获得(窃取)重要数据.
+让目标处理器通过预先访问数据来提升性能, 然后再扔掉所有使用过的计算分支 (computational branches), 而 SLS 则通过类似的侧道攻击就能让黑客从处理器直接获得(窃取) 重要数据.
 
 SLS 被认为是 Spectre 漏洞的变体, 但二者的攻击范围略有不同, SLS 漏洞仅影响 Arm Armv-A 处理器, 而 Spectre 漏洞影响所有主要芯片制造商的 CPU. 到目前为止, 该漏洞还没有在野利用.
 
 [Arm CPUs Hit By Straight Line Speculation Vulnerability, LLVM Adds Initial Mitigation](https://www.phoronix.com/scan.php?page=news_item&px=Arm-Straight-Line-Speculation)
 
-很快在 [GCC](https://gcc.gnu.org/pipermail/gcc-patches/2020-June/547520.html) 和 [LLVM](https://reviews.llvm.org/rG9c895aea118a2f50ca8413372363c3ff6ecc21bf) 编译器中推出了针对 SLS 的保障措施, 通过在易受 SLS 影响的指令周围插入投机障碍(SB)指令或其他 DSB + ISB 指令来减少直线预测.
+很快在 [GCC](https://gcc.gnu.org/pipermail/gcc-patches/2020-June/547520.html) 和 [LLVM](https://reviews.llvm.org/rG9c895aea118a2f50ca8413372363c3ff6ecc21bf) 编译器中推出了针对 SLS 的保障措施, 通过在易受 SLS 影响的指令周围插入投机障碍 (SB) 指令或其他 DSB + ISB 指令来减少直线预测.
 
 [LLVM Adds Additional Protections For Arm's SLS Speculation Vulnerability Mitigation](https://www.phoronix.com/scan.php?page=news_item&px=Arm-SLS-More-In-LLVM)
 
@@ -850,14 +851,14 @@ SLS 被认为是 Spectre 漏洞的变体, 但二者的攻击范围略有不同, 
 
 ARM 规范 [DEN0098](https://developer.arm.com/documentation/den0098/latest) 中描述的 ARM 架构的 TRNG 固件接口定义了一个基于 ARM SMCCC 的接口, 该接口由固件提供给真实随机数生成器.
 
-Arm True Random Number Generator Firmware Interface 1.0 于去年发布, 最终由Arm TrustZone的TRNG或其他原始噪声等硬件设备
+Arm True Random Number Generator Firmware Interface 1.0 于去年发布, 最终由 Arm TrustZone 的 TRNG 或其他原始噪声等硬件设备
 提供支持.
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/12/11 | Vladimir Murzin <vladimir.murzin@arm.com> | [ARM: arm64: Add SMCCC TRNG entropy service](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=38db987316a38a3fe55ff7f5f4653fcb520a9d26) | NA | v4 ☑ 5.12-rc1 | [LORE v4,0/5](https://lore.kernel.org/lkml/20201211160005.187336-1-andre.przywara@arm.com) |
-| 2021/07/26 | Vladimir Murzin <vladimir.murzin@arm.com> | [hwrng: Add Arm SMCCC TRNG based driver](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0888d04b47a165ae8c429c6fe11b3c43f5017f31) | 添加一个"arm_smccc_trng"驱动程序, 并允许将熵暴露给用户空间. ARM 规范定义了此真正的随机数生成器固件接口, 用于为随机池设定种子, 也可由 KVM Guest 使用. 使用此新驱动程序, 可以通过 `/dev/hwrng` 公开来自此固件接口的熵. 反过来, 这对于能够使用 rng-tool 的 rngtest 实用程序等来验证熵的质量非常有用. 参见 [Arm SMCCC TRNG Driver Queued Ahead Of Linux 5.15](https://www.phoronix.com/scan.php?page=news_item&px=Arm-SMCCC-TRNG-Linux-5.15). | v3 ☑ 5.15_rc1 | [LKML v3,0/2](https://lkml.org/lkml/2021/7/26/1571), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0888d04b47a165ae8c429c6fe11b3c43f5017f31) |
+| 2021/07/26 | Vladimir Murzin <vladimir.murzin@arm.com> | [hwrng: Add Arm SMCCC TRNG based driver](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0888d04b47a165ae8c429c6fe11b3c43f5017f31) | 添加一个 "arm_smccc_trng" 驱动程序, 并允许将熵暴露给用户空间. ARM 规范定义了此真正的随机数生成器固件接口, 用于为随机池设定种子, 也可由 KVM Guest 使用. 使用此新驱动程序, 可以通过 `/dev/hwrng` 公开来自此固件接口的熵. 反过来, 这对于能够使用 rng-tool 的 rngtest 实用程序等来验证熵的质量非常有用. 参见 [Arm SMCCC TRNG Driver Queued Ahead Of Linux 5.15](https://www.phoronix.com/scan.php?page=news_item&px=Arm-SMCCC-TRNG-Linux-5.15). | v3 ☑ 5.15_rc1 | [LKML v3,0/2](https://lkml.org/lkml/2021/7/26/1571), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0888d04b47a165ae8c429c6fe11b3c43f5017f31) |
 
 
 ### 6.2.2 LRNG
@@ -923,16 +924,28 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 
 英特尔工程师 Ben Widawsky 已经开始发布一个关于 Linux 上 CXL 的博客文章系列, 参见 [Compute Express Link Overview](https://bwidawsk.net/blog/2022/6/compute-express-link-intro)
 
-[公众号-半导体行业观察-越来越热的 CXL](https://mp.weixin.qq.com/s/sB2bmFcEaYsH1Jg19E0-eg)
+[公众号 - 半导体行业观察 - 越来越热的 CXL](https://mp.weixin.qq.com/s/sB2bmFcEaYsH1Jg19E0-eg)
 
 [CXL 3.0 Specification Released - Doubles The Data Rate Of CXL 2.0](https://www.phoronix.com/news/CXL-3.0-Specification-Released)
 
+[kernel cxl.git](https://git.kernel.org/pub/scm/linux/kernel/git/cxl/cxl.git)
+
+#### 6.3.2.1 CXL Support
+-------
+
 [Linux 6.0 Continues Plumbing For Compute Express Link (CXL)](https://www.phoronix.com/news/Linux-6.0-CXL)
+
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/02/16 | Ben Widawsky <ben.widawsky@intel.com> | [CXL 2.0 Support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=68a5a9a243354ed52f7b37b057bd5e98cba870c8) | TODO | v5 ☐☑✓ | [LORE v3,00/16](https://lore.kernel.org/lkml/20210111225121.820014-1-ben.widawsky@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/9](https://lore.kernel.org/all/20210217040958.1354670-1-ben.widawsky@intel.com) |
 | 2022/08/12 | Jonathan Cameron <Jonathan.Cameron@huawei.com> | [CXL 3.0 Performance Monitoring Unit support](https://lore.kernel.org/all/20220812151214.2025-1-Jonathan.Cameron@huawei.com) | CXL rev 3.0 规范引入了一个 CXL 性能监控单元定义. CXL 组件可以有任意数量的这样的块. 定义是高度灵活的, 但这也给驱动程序带来了复杂性. | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20220812151214.2025-1-Jonathan.Cameron@huawei.com) |
+
+
+#### 6.3.2.2 CXL RAM
+-------
+
+[CXL RAM Regions Being Worked On For Linux 6.3](https://www.phoronix.com/news/CXL-RAM-Region-Linux-6.3)
 
 
 ## 6.4 CPU IDLE(C-state)
@@ -996,7 +1009,7 @@ Google Google 推出[芯片设计门户网站](https://developers.google.com/sil
 [GlobalFoundries Partners With Google's Open-Source Silicon Effort To Provide 180nm Tech](https://www.phoronix.com/news/Google-GloFo-GF180MCU)
 
 
-中国科学院大学("国科大")的 ["一生一芯" 计划](https://ysyx.org).
+中国科学院大学 ("国科大") 的 ["一生一芯" 计划](https://ysyx.org).
 
 
 ### 6.10.1 预取
@@ -1042,10 +1055,10 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/03/01 | Jithu Joseph <jithu.joseph@intel.com> | [Introduce In Field Scan driver](https://lore.kernel.org/all/20220301195457.21152-1-jithu.joseph@intel.com) | [Intel "In-Field Scan" Coming With Sapphire Rapids As New Silicon Failure Testing Feature](https://www.phoronix.com/news/Intel-In-Field-Scan) | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/20220301195457.21152-1-jithu.joseph@intel.com) |
+| 2022/03/01 | Jithu Joseph <jithu.joseph@intel.com> | [Introduce In Field Scan driver](https://lore.kernel.org/all/20220301195457.21152-1-jithu.joseph@intel.com) | [Intel"In-Field Scan"Coming With Sapphire Rapids As New Silicon Failure Testing Feature](https://www.phoronix.com/news/Intel-In-Field-Scan) | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/20220301195457.21152-1-jithu.joseph@intel.com) |
 
 
-[Linux 6.1 Will Make It A Bit Easier To Help Spot Faulty CPUs](https://www.phoronix.com/news/Linux-6.1-Seg-Fault-Report-CPU) 
+[Linux 6.1 Will Make It A Bit Easier To Help Spot Faulty CPUs](https://www.phoronix.com/news/Linux-6.1-Seg-Fault-Report-CPU)
 
 [Linux 6.1 Will Try To Print The CPU Core Where A Seg Fault Occurs](https://www.phoronix.com/news/Linux-6.1-Seg-Fault-Print-CPU)
 
@@ -1057,7 +1070,18 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 ## 6.12 P-State
 -------
 
+
 [phoronix-P-State EPP Linux & Open-Source News](https://www.phoronix.com/search/P-State%20EPP)
+
+### 6.12.1 Intel
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/02/01 | Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com> | [Add TPMI support](https://lore.kernel.org/all/20230202010738.2186174-1-srinivas.pandruvada@linux.intel.com) | Intel Topology Aware Register and PM Capsule Interface | v1 ☐☑✓ | [LORE v1,0/7](https://lore.kernel.org/all/20230202010738.2186174-1-srinivas.pandruvada@linux.intel.com) |
+
+### 6.12.2 AMD
+-------
 
 [How To Use The New AMD P-State Driver With Linux 5.17](https://www.phoronix.com/news/AMD-P-State-How-To)
 [AMD Making It Easier To Switch To Their New P-State CPU Frequency Scaling Driver](https://www.phoronix.com/news/AMD-Easier-P-State-Usage)
@@ -1065,22 +1089,23 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 [New Patches Allow More Easily Managing The AMD P-State Linux Driver](https://www.phoronix.com/news/AMD-P-State-Built-In-Options)
 [Linux 6.1-rc7 Makes It Easier To Manage The AMD P-State Driver](https://www.phoronix.com/news/Linux-6.1-rc7-Easier-AMD-Pstate)
 
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/12/24 | Huang Rui <ray.huang@amd.com> | [cpufreq: Introduce a new AMD CPU frequency control mechanism](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=38fec059bb69793f38cfa7a671d4bdbfe2a647aa) | TODO |v7 ☐☑✓ | [LORE v7,0/14](https://lore.kernel.org/all/20211224010508.110159-1-ray.huang@amd.com) |
 | 2022/11/11 | Perry Yuan <Perry.Yuan@amd.com> | [Implement AMD Pstate EPP Driver](tps://lore.kernel.org/lkml/20221219064042.661122-1-perry.yuan@amd.com) | [AMD P-State EPP Patches Spun An 8th Time For Helping Out Linux Performance & Efficiency](https://www.phoronix.com/news/AMD-P-State-EPP-v8) | v4 ☐☑✓ 5.17-rc1 | [LORE v4,0/9](https://lore.kernel.org/all/20221110175847.3098728-1-Perry.Yuan@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,00/13](https://lore.kernel.org/lkml/20221219064042.661122-1-perry.yuan@amd.com) |
 | 2022/03/25 | Mario Limonciello <mario.limonciello@amd.com> | [Improve usability for amd-pstate](https://lore.kernel.org/all/20220325054228.5247-1-mario.limonciello@amd.com) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20220325054228.5247-1-mario.limonciello@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/linux-pm/20220414164801.1051-1-mario.limonciello@amd.com) |
-| 2023/01/13 | Wyes Karny <wyes.karny@amd.com> | [amd_pstate: Add guided autonomous mode support](https://lore.kernel.org/all/20230113052141.2874296-1-wyes.karny@amd.com) | [AMD Updates P-State "Guided Autonomous Mode" Support For Linux](https://www.phoronix.com/news/AMD-Guided-Auto-Mode-v2) | v2 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20230113052141.2874296-1-wyes.karny@amd.com) |
+| 2023/01/13 | Wyes Karny <wyes.karny@amd.com> | [amd_pstate: Add guided autonomous mode support](https://lore.kernel.org/all/20230113052141.2874296-1-wyes.karny@amd.com) | [AMD Updates P-State"Guided Autonomous Mode"Support For Linux](https://www.phoronix.com/news/AMD-Guided-Auto-Mode-v2) | v2 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20230113052141.2874296-1-wyes.karny@amd.com) |
 
 
 
 <br>
 
-*   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.
+*   本作品 / 博文 ([AderStep - 紫夜阑珊 - 青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.
 
-*   采用<a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="知识共享许可协议" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名-非商业性使用-相同方式共享 4.0 国际许可协议</a>进行许可. 欢迎转载、使用、重新发布, 但务必保留文章署名[成坚gatieme](http://blog.csdn.net/gatieme) ( 包含链接: http://blog.csdn.net/gatieme ), 不得用于商业目的.
+*   采用 <a rel="license"href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt=" 知识共享许可协议 "style="border-width:0"src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png"/></a><a rel="license"href="http://creativecommons.org/licenses/by-nc-sa/4.0/">知识共享署名 - 非商业性使用 - 相同方式共享 4.0 国际许可协议</a> 进行许可. 欢迎转载、使用、重新发布, 但务必保留文章署名[成坚 gatieme](http://blog.csdn.net/gatieme) (包含链接: http://blog.csdn.net/gatieme), 不得用于商业目的.
 
 *   基于本文修改后的作品务必以相同的许可发布. 如有任何疑问, 请与我联系.
 
-*   **转载请务必注明出处, 谢谢, 不胜感激**
+*   ** 转载请务必注明出处, 谢谢, 不胜感激 **
 <br>
