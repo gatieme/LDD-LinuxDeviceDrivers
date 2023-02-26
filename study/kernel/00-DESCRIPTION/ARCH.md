@@ -339,6 +339,12 @@ AMD 关于大小核的专利 [US20210173715A1: METHOD OF TASK TRANSITION BETWEEN
 
 [Understanding Intel's RAPL Driver On Linux](https://www.phoronix.com/scan.php?page=news_item&px=MTcxMjY)
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2013/11/12 | Stephane Eranian <eranian@google.com> | [perf/x86: add Intel RAPL PMU support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=65661f96d3b32f4b28fef26d21be81d7e173b965) | TODO | v7 ☑✓ 3.14-rc1 | [LORE v7,0/4](https://lore.kernel.org/all/1384275531-10892-1-git-send-email-eranian@google.com) |
+| 2023/02/17 | Wyes Karny <wyes.karny@amd.com> | [perf/x86/rapl: Enable Core RAPL for AMD](https://lore.kernel.org/all/20230217161354.129442-1-wyes.karny@amd.com) | AMD 处理器支持通过 RAPL 计数器对每个包和每个核心的能量进行监控, 用户可以在监控模式下访问 RAPL 计数器.<br>核心 RAPL 计数器提供每个核心的功耗信息. 对于 AMD 处理器, 包级 RAPL 计数器已暴露给 perf. 通过 `perf stat -a --per-core -C 0-127 -e power/energy-cores` 查看. 参见 phoronix 报道 [Tiny Patch Gets AMD Per-Core Energy Monitoring For Linux's Perf](https://www.phoronix.com/news/Linux-Perf-AMD-Per-Core-Energy) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230217161354.129442-1-wyes.karny@amd.com) |
+
+
 
 ## 1.6 安全相关
 -------
@@ -947,6 +953,7 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 
 [CXL RAM Regions Being Worked On For Linux 6.3](https://www.phoronix.com/news/CXL-RAM-Region-Linux-6.3)
 
+[Intel Has More CXL Improvements Ready For Linux 6.3](https://www.phoronix.com/news/Linux-6.3-CXL)
 
 ## 6.4 CPU IDLE(C-state)
 -------
@@ -1088,7 +1095,7 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 [AMD P-State EPP Driver Updated For More Power/Performance Control On Linux](https://www.phoronix.com/news/AMD-P-State-EPP-v4)
 [New Patches Allow More Easily Managing The AMD P-State Linux Driver](https://www.phoronix.com/news/AMD-P-State-Built-In-Options)
 [Linux 6.1-rc7 Makes It Easier To Manage The AMD P-State Driver](https://www.phoronix.com/news/Linux-6.1-rc7-Easier-AMD-Pstate)
-
+[AMD P-State EPP Submitted For Linux 6.3 To Improve CPU Performance/Power](https://www.phoronix.com/news/Linux-6.3-Power-Management)
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|

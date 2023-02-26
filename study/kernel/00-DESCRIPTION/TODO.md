@@ -230,8 +230,7 @@ MGLRU 合入后, 引起了不少场景的性能劣化, 参见 phoronix 报道 [A
 
 
 
-[调度器 34—RT 负载均衡](https://www.cnblogs.com/hellokitty2/p/15974333.html)
-[实时调度负载均衡](https://github.com/freelancer-leon/notes/blob/master/kernel/sched/sched_rt_load_balance.md)
+
 
 
 [Latencies, schedulers, interrupts oh my! The epic story of a Linux Kernel upgrade](https://www.nutanix.dev/2021/12/09/latencies-schedulers-interrupts-oh-my-the-epic-story-of-a-linux-kernel-upgrade)
@@ -340,4 +339,20 @@ MGLRU 合入后, 引起了不少场景的性能劣化, 参见 phoronix 报道 [A
 
 
 
-目前, 无法在构建时禁用 CPU 漏洞缓解措施. 需要通过内核参数禁用缓解, 例如 "mitigations=off".  此补丁创建了一种在编译期间禁用缓解的简单方法(CONFIG_DEFAULT_CPU_MITIGATIONS_OFF), 因此, 不安全的内核用户在启动不安全内核时不需要处理内核参数.
+
+
+
+
+
+
+
+[[LSF/MM/BPF TOPIC] Using hardware counters to determine hot/cold pages](https://lore.kernel.org/all/6bbf2c47-05ab-b78c-3165-2eff18962d6d@linux.ibm.com)
+
+
+
+
+### 4.7.5 sync wakeup
+-------
+
+
+[Linux 6.3 Scheduler Updates Bring Fixes & Minor Optimizations](https://www.phoronix.com/news/Linux-6.3-Scheduler)

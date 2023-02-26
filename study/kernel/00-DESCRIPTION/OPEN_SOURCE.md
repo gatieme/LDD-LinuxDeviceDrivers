@@ -126,7 +126,7 @@
 | [SOSP](https://sosp.org) | ACM 操作系统原理大会(SOSP: ACM Symposium on Operating Systems Principles) |
 | [OSDI](https://www.usenix.org/conferences/all) | OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementation, 但随着时代的发展, 它早已不局限在操作系统领域. |
 | [USENIX](https://www.usenix.org/conferences/all) | NA |
-
+| [OSPM](http://retis.sssup.it/ospm-summit/) | Power Management and Scheduling in the Linux Kernel (OSPM) Summit |
 
 ## 6.1 Linux Plumbers Conference (LPC)
 -------
@@ -182,10 +182,16 @@ OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementatio
 | 2022/05/02 ~ 2022/05/04 | [LSFMM-2022](https://lwn.net/Articles/893733) |
 
 
-## 6.6 [KernelPodCast](https://kernelpodcast.org)
+## 6.6 OSPM
+-------
+
+## 6.7 [KernelPodCast](https://kernelpodcast.org)
 -------
 
 [S2E1 – 2023/01/21](https://kernelpodcast.org/2023/01/21/s2e1-2023-01-21)
+
+
+[Power Management and Scheduling in the Linux Kernel V edition (OSPM-summit 2023)](https://lore.kernel.org/all/Y8lFkbJ6nluNdVYO@localhost.localdomain/)
 
 # 7 统计信息
 -------
