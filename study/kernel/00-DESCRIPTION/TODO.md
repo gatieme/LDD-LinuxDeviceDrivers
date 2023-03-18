@@ -85,7 +85,7 @@ https://lkml.org/lkml/2021/3/16/546
 
 
 
-| 2022/10/26 | Joey Gouly <joey.gouly@arm.com> | [mm: In-kernel support for memory-deny-write-execute (MDWE)](https://patchwork.kernel.org/project/linux-mm/cover/20221026150457.36957-1-joey.gouly@arm.com/) | 689074 | v1 ☐☑ | [LORE RFC,0/4](https://lore.kernel.org/linux-arm-kernel/20220413134946.2732468-1-catalin.marinas@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/2](https://lore.kernel.org/r/20221026150457.36957-1-joey.gouly@arm.com) |
+| 2022/10/26 | Joey Gouly <joey.gouly@arm.com> | [mm: In-kernel support for memory-deny-write-execute (MDWE)](https://patchwork.kernel.org/project/linux-mm/cover/20221026150457.36957-1-joey.gouly@arm.com/) | 689074 | v1 ☐☑ | [LORE RFC,0/4](https://lore.kernel.org/linux-arm-kernel/20220413134946.2732468-1-catalin.marinas@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/2](https://lore.kernel.org/r/20221026150457.36957-1-joey.gouly@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/2](https://lore.kernel.org/r/20230119160344.54358-1-joey.gouly@arm.com) |
 
 
 | 2022/11/02 | David Hildenbrand <david@redhat.com> | [mm/autonuma: replace savedwrite infrastructure](https://patchwork.kernel.org/project/linux-mm/cover/20221102191209.289237-1-david@redhat.com/) | 参见 LPC-2022 [Copy On Write, Get User Pages, and Mysterious Counters](https://lpc.events/event/16/contributions/1267/) | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20220926152618.194810-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/6](https://lore.kernel.org/r/20221102191209.289237-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/r/20221108174652.198904-1-david@redhat.com) |
@@ -197,23 +197,24 @@ https://www.latexlive.com
 
 
 
-| 2022/11/15 | Nhat Pham <nphamcs@gmail.com> | [cachestat: a new syscall for page cache state of files](https://patchwork.kernel.org/project/linux-mm/cover/20221115182901.2755368-1-nphamcs@gmail.com/) | 695661 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20221115182901.2755368-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20221205175140.1543229-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/r/20221208223104.1554368-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/4](https://lore.kernel.org/r/20221216192149.3902877-1-nphamcs@gmail.com) |
+| 2022/11/15 | Nhat Pham <nphamcs@gmail.com> | [cachestat: a new syscall for page cache state of files](https://patchwork.kernel.org/project/linux-mm/cover/20221115182901.2755368-1-nphamcs@gmail.com/) | 695661 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20221115182901.2755368-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20221205175140.1543229-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/r/20221208223104.1554368-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/4](https://lore.kernel.org/r/20221216192149.3902877-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/3](https://lore.kernel.org/r/20230104231127.2634648-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,0/3](https://lore.kernel.org/r/20230126175356.1582123-1-nphamcs@gmail.com) |
+| 2023/01/24 | Nhat Pham <nphamcs@gmail.com> | [[v7,2/3] cachestat: implement cachestat syscall](https://patchwork.kernel.org/project/linux-mm/patch/20230124192946.1824096-1-nphamcs@gmail.com/) | 715251 | v7 ☐☑ | [LORE v7,0/3](https://lore.kernel.org/r/20230124192946.1824096-1-nphamcs@gmail.com) |
 | 2022/12/16 | Keith Busch <kbusch@meta.com> | [dmapool enhancements](https://patchwork.kernel.org/project/linux-mm/cover/20221216201625.2362737-1-kbusch@meta.com/) | 705206 | v1 ☐☑ | [LORE v1,0/11](https://lore.kernel.org/r/20221216201625.2362737-1-kbusch@meta.com) |
-
-
-
-
-MGLRU 合入后, 引起了不少场景的性能劣化, 参见 phoronix 报道 [An MGLRU Performance Regression Fix Is On The Way Plus Another Optimization](https://www.phoronix.com/news/MGLRU-SVT-Performance-Fix).
-
-
-
-
-
-
+| 2023/02/01 | Alexander Halbuer <halbuer@sra.uni-hannover.de> | [mm: reduce lock contention of pcp buffer refill](https://patchwork.kernel.org/project/linux-mm/patch/20230201162549.68384-1-halbuer@sra.uni-hannover.de/) | 717782 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230201162549.68384-1-halbuer@sra.uni-hannover.de) |
 | 2020/02/27 | Valentin Schneider <valentin.schneider@arm.com> | [sched, arm64: enable CONFIG_SCHED_SMT for arm64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=6f693dd5be08237b337f557c510d99addb9eb9ec) | TODO | v2 ☑✓ 5.7-rc1 | [LORE v2,0/2](https://lore.kernel.org/all/20200227191433.31994-1-valentin.schneider@arm.com) |
 | 2022/12/02 | Brian Foster <bfoster@redhat.com> | [proc: improve root readdir latency with many threads](https://lore.kernel.org/all/20221202171620.509140-1-bfoster@redhat.com) | TODO | v3 ☐☑✓ | [LORE v3,0/5](https://lore.kernel.org/all/20221202171620.509140-1-bfoster@redhat.com) |
-
 | 2023/01/09 | Yian Chen <yian.chen@intel.com> | [Enable LASS (Linear Address space Separation)](https://lore.kernel.org/all/20230110055204.3227669-1-yian.chen@intel.com) | 参见 LWN 报道 [Support for Intel's LASS](https://lwn.net/Articles/919683) 和 phoronix 报道 [Intel Posts Linux Patches For Linear Address Space Separation (LASS)](https://www.phoronix.com/news/Linear-Address-Space-Separation) | v1 ☐☑✓ | [LORE v1,0/7](https://lore.kernel.org/all/20230110055204.3227669-1-yian.chen@intel.com) |
+| 2023/02/01 | Marcelo Tosatti <mtosatti@redhat.com> | [fold per-CPU vmstats remotely](https://patchwork.kernel.org/project/linux-mm/cover/20230201195013.881721887@redhat.com/) | 717871 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20230201195013.881721887@redhat.com) |
+| 2023/02/02 | Yosry Ahmed <yosryahmed@google.com> | [Ignore non-LRU-based reclaim in memcg reclaim](https://patchwork.kernel.org/project/linux-mm/cover/20230202233229.3895713-1-yosryahmed@google.com/) | 718353 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20230202233229.3895713-1-yosryahmed@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/2](https://lore.kernel.org/r/20230228085002.2592473-1-yosryahmed@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/r/20230309093109.3039327-1-yosryahmed@google.com) |
+| 2023/02/05 | Yafang Shao <laoar.shao@gmail.com> | [bpf, mm: introduce cgroup.memory=nobpf](https://patchwork.kernel.org/project/linux-mm/cover/20230205065805.19598-1-laoar.shao@gmail.com/) | 718891 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20230205065805.19598-1-laoar.shao@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20230210154734.4416-1-laoar.shao@gmail.com) |
+| 2023/02/06 | Dan Williams <dan.j.williams@intel.com> | [CXL RAM and the'Soft Reserved'=> 'System RAM' default](https://patchwork.kernel.org/project/linux-mm/cover/167564534874.847146.5222419648551436750.stgit@dwillia2-xfh.jf.intel.com/) | 718969 | v1 ☐☑ | [LORE v1,0/18](https://lore.kernel.org/r/167564534874.847146.5222419648551436750.stgit@dwillia2-xfh.jf.intel.com) |
+| 2023/02/06 | Alistair Popple <apopple@nvidia.com> | [mm: Introduce a cgroup to limit the amount of locked and pinned memory](https://patchwork.kernel.org/project/linux-mm/cover/cover.c238416f0e82377b449846dbb2459ae9d7030c8e.1675669136.git-series.apopple@nvidia.com/) | 719027 | v1 ☐☑| [LORE v1,0/19](https://lore.kernel.org/r/cover.c238416f0e82377b449846dbb2459ae9d7030c8e.1675669136.git-series.apopple@nvidia.com) |
+| 2023/02/06 | Sergey Senozhatsky <senozhatsky@chromium.org> | [zsmalloc: fine-grained fullness grouping](https://patchwork.kernel.org/project/linux-mm/cover/20230206092559.2722946-1-senozhatsky@chromium.org/) | 719058 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20230206092559.2722946-1-senozhatsky@chromium.org) |
+| 2023/02/06 | Charan Teja Kalla <quic_charante@quicinc.com> | [mm: shmem: support POSIX_FADV_[WILL|DONT]NEED for shmem files](https://patchwork.kernel.org/project/linux-mm/cover/cover.1675690847.git.quic_charante@quicinc.com/) | 719143 | v6 ☐☑ | [LORE v6,0/2](https://lore.kernel.org/r/cover.1675690847.git.quic_charante@quicinc.com) |
+| 2023/02/11 | Matthew Wilcox <willy@infradead.org> | [New arch interfaces for manipulating multiple pages](https://patchwork.kernel.org/project/linux-mm/cover/20230211033948.891959-1-willy@infradead.org/) | 720910 | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20230211033948.891959-1-willy@infradead.org) |
+| 2023/02/13 | Deepak Gupta <debug@rivosinc.com> | [[v1,RFC,Zisslpcfi,05/20] mmap : Introducing new protection "PROT_SHADOWSTACK" for mmap](https://patchwork.kernel.org/project/linux-mm/patch/20230213045351.3945824-6-debug@rivosinc.com/) | 721169 | v1 ☐☑ | [LORE v1,0/20](https://lore.kernel.org/r/20230213045351.3945824-6-debug@rivosinc.com) |
+| 2023/02/13 | Deepak Gupta <debug@rivosinc.com> | [[v1,RFC,Zisslpcfi,05/20] mmap : Introducing new protection "PROT_SHADOWSTACK" for mmap](https://patchwork.kernel.org/project/linux-mm/patch/20230213045351.3945824-6-debug@rivosinc.com/) | 721169 | v1 ☐☑ | [LORE v1,0/20](https://lore.kernel.org/r/20230213045351.3945824-6-debug@rivosinc.com) |
+| 2023/02/17 | Alexander Halbuer <halbuer@sra.uni-hannover.de> | [mm, page_alloc: batch cma update on pcp buffer refill](https://patchwork.kernel.org/project/linux-mm/patch/20230217120504.87043-1-halbuer@sra.uni-hannover.de/) | 722919 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230217120504.87043-1-halbuer@sra.uni-hannover.de) |
 
 
 
@@ -339,14 +340,22 @@ MGLRU 合入后, 引起了不少场景的性能劣化, 参见 phoronix 报道 [A
 
 
 
+| 2023/01/09 | T.J. Mercier <tjmercier@google.com> | [Track exported dma-buffers with memcg](https://patchwork.kernel.org/project/linux-mm/cover/20230109213809.418135-1-tjmercier@google.com/) | 710263 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20230109213809.418135-1-tjmercier@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20230123191728.2928839-1-tjmercier@google.com) |
+| 2023/01/13 | David Hildenbrand <david@redhat.com> | [mm: support `__HAVE_ARCH_PTE_SWP_EXCLUSIVE` on all architectureswith swap PTEs](https://patchwork.kernel.org/project/linux-mm/cover/20230113171026.582290-1-david@redhat.com/) | 711859 | v1 ☐☑ | [LORE v1,0/26](https://lore.kernel.org/r/20230113171026.582290-1-david@redhat.com) |
+| 2023/01/17 | Jann Horn <jannh@google.com> | [fork, vmalloc: KASAN-poison backing pages of vmapped stacks](https://patchwork.kernel.org/project/linux-mm/patch/20230117163543.1049025-1-jannh@google.com/) | 712819 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230117163543.1049025-1-jannh@google.com) |
+| 2023/01/18 | Nicholas Piggin <npiggin@gmail.com> | [shoot lazy tlbs](https://patchwork.kernel.org/project/linux-mm/cover/20230118080011.2258375-1-npiggin@gmail.com/) | 713096 | v6 ☐☑ | [LORE v6,0/5](https://lore.kernel.org/r/20230118080011.2258375-1-npiggin@gmail.com) |
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/01/08 | Andy Lutomirski <luto@kernel.org> | [mm, sched: Rework lazy mm handling](https://lore.kernel.org/all/cover.1641659630.git.luto@kernel.org) | TODO | v1 ☐☑✓ | [LORE v1,0/23](https://lore.kernel.org/all/cover.1641659630.git.luto@kernel.org) |
+
+| 2023/03/03 | Marcelo Tosatti <mtosatti@redhat.com> | [fold per-CPU vmstats remotely](https://patchwork.kernel.org/project/linux-mm/cover/20230303195841.310844446@redhat.com/) | 726527 | v3 ☐☑ | [LORE v3,0/11](https://lore.kernel.org/r/20230303195841.310844446@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/12](https://lore.kernel.org/r/20230305133657.255737580@redhat.com) |
+
+| 2023/03/06 | James Houghton <jthoughton@google.com> | [mm: rmap: merge HugeTLB mapcount logic with THPs](https://patchwork.kernel.org/project/linux-mm/cover/20230306230004.1387007-1-jthoughton@google.com/) | 727125 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20230306230004.1387007-1-jthoughton@google.com) |
+| 2023/03/08 | Mike Rapoport <rppt@kernel.org> | [Prototype for direct map awareness in page allocator](https://patchwork.kernel.org/project/linux-mm/cover/20230308094106.227365-1-rppt@kernel.org/) | 727808 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20230308094106.227365-1-rppt@kernel.org) |
 
 
 
 
-
-
-
-[[LSF/MM/BPF TOPIC] Using hardware counters to determine hot/cold pages](https://lore.kernel.org/all/6bbf2c47-05ab-b78c-3165-2eff18962d6d@linux.ibm.com)
 
 
 
@@ -355,4 +364,9 @@ MGLRU 合入后, 引起了不少场景的性能劣化, 参见 phoronix 报道 [A
 -------
 
 
-[Linux 6.3 Scheduler Updates Bring Fixes & Minor Optimizations](https://www.phoronix.com/news/Linux-6.3-Scheduler)
+
+
+
+[How to Use Performance Monitor Unit(PMU) of 64-bit ARMv8-A in Linux](https://blog.csdn.net/omnispace/article/details/79517182)
+
+

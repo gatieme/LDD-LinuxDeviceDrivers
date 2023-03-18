@@ -2575,7 +2575,7 @@ commit [6e5fb223e89d ("mm: sched: numa: Implement constant, per task Working Set
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2022/01/28 | Bharata B Rao <bharata@amd.com> | [sched/numa: Process Adaptive autoNUMA](https://lore.kernel.org/lkml/20220128052851.17162-1-bharata@amd.com) | 实现了一种进程自适应 autoNUMA 算法 (Process Adaptive autoNUMA, PAN). 在每个进程级别上收集 NUMA 故障统计信息, 以更好地捕获应用程序行为, 计算 autoNUMA 扫描周期.<br> 在现有的扫描周期计算机制中: 1.  扫描周期是从每线程的统计数据中派生出来的. 2.  静态阈值(NUMA_PERIOD_threshold) 用于更改扫描速率.<br> 这组补丁集将 NUMA fault 按照不同的维护划分, 如本地的与远程的 (local vs. remote), 私有的和共享的(private vs. shared). 然后在每个进程级别收集 numa faults 统计数据, 从而更好地捕获应用程序行为. 不再使用静态阈值, 而是根据远程故障率来学习和调整扫描速率, 可以更好地响应不同的工作负载行为. 由于进程的线程已经被视为一个 numa_group, 因此我们在任务的[内存管理] 中添加了一组度量标准, 以跟踪各种类型的错误并从中推导出扫描速度. 新的每进程故障统计数据只对每进程扫描周期计算有贡献, 而现有的每线程统计数据继续对 numa_group 统计数据有贡献, 后者最终确定跨节点迁移内存和线程的阈值. 参见 phoronix 的报道 [AMD Cooking Up A"PAN"Feature That Can Help Boost Linux Performance](https://www.phoronix.com/scan.php?page=news_item&px=AMD-PAN-Linux-RFC) | v0 ☐ | [LKML v0,0/5](https://lkml.org/lkml/2022/1/28/16), [LORE](https://lore.kernel.org/lkml/20220128052851.17162-1-bharata@amd.com) |
-| 2023/01/16 | Raghavendra K T <raghavendra.kt@amd.com> | [sched/numa: Enhance vma scanning](https://lore.kernel.org/all/cover.1673610485.git.raghavendra.kt@amd.com) | 借助了 Mel 的建议核想法, 不同于 Process Adaptive autoNUMA. 本补丁集 <br>1. 最多跟踪 4 个最近访问 vma 的线程, 只扫描访问 vma 的线程. (注意: 只使用 unsigned int. 实验表明, 追踪 8 种不同的 pid 开销更大)<br>2. 前 2 次无条件允许线程扫描 vmas, 以保持扫描的初衷.<br>3. 如果有超过 4 个线程(即超过我们可以记住的 pid), 默认允许扫描, 因为我们可能会错过记录当前线程是否对 vma 有任何兴趣.<br> 通过这个补丁集, 可以看到扫描开销(AutoNuma 开销) 大幅减少, 其中一些 enchmark 提高了性能, 而其他的几乎没有倒退. | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/cover.1673610485.git.raghavendra.kt@amd.com) |
+| 2023/01/16 | Raghavendra K T <raghavendra.kt@amd.com> | [sched/numa: Enhance vma scanning](https://lore.kernel.org/all/cover.1673610485.git.raghavendra.kt@amd.com) | 借助了 Mel 的建议核想法, 不同于 Process Adaptive autoNUMA. 本补丁集 <br>1. 最多跟踪 4 个最近访问 vma 的线程, 只扫描访问 vma 的线程. (注意: 只使用 unsigned int. 实验表明, 追踪 8 种不同的 pid 开销更大)<br>2. 前 2 次无条件允许线程扫描 vmas, 以保持扫描的初衷.<br>3. 如果有超过 4 个线程(即超过我们可以记住的 pid), 默认允许扫描, 因为我们可能会错过记录当前线程是否对 vma 有任何兴趣.<br> 通过这个补丁集, 可以看到扫描开销(AutoNuma 开销) 大幅减少, 其中一些 enchmark 提高了性能, 而其他的几乎没有倒退. | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/cover.1673610485.git.raghavendra.kt@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/all/cover.1675159422.git.raghavendra.kt@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/all/cover.1677557481.git.raghavendra.kt@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/all/cover.1677672277.git.raghavendra.kt@amd.com) |
 
 
 ### 4.6.4 NUMA Balancing Placement And Migration
@@ -4719,7 +4719,7 @@ v4.5 实现 [Dynamic power model from device tree](https://git.kernel.org/pub/sc
 
 一般来说, PM_OPP 是知道 CPU 可以运行的电压和频率. 当可以将 CPU 的动态功耗估计为:
 
-$Pdyn = C \times V^2 \times f = dynamic-power-coefficient \times V^2 \times f$
+$Pdyn = C \times V^2 \times frequency = dynamic-power-coefficient \times V^2 \times frequency$
 
 其中 C 为其电容系数, 值为 dynamic-power-coefficient, V 和 f 分别为 OPP 的电压和频率.
 
@@ -4755,7 +4755,7 @@ energy
 $$
 
 
-em_cpu_energy() 正式通过这种计算方式估计指定 CPU (scale_cpu 一定) 在特定 CPU utilization 和频率下的功耗.
+[em_cpu_energy()](https://elixir.bootlin.com/linux/v5.15/source/include/linux/energy_model.h#L157) 正是通过这种计算方式估计指定 CPU (scale_cpu 一定) 在特定 CPU utilization 和频率下的功耗.
 
 随后 v5.19 [Introduce support for artificial Energy Model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=985a67709a66c456414182ed179544786e00321e) 允许 Energy Model 通过 [EM_PERF_DOMAIN_ARTIFICIAL 手动指定设备的 cost](https://elixir.bootlin.com/linux/v5.19/source/kernel/power/energy_model.c#L384), em_create_perf_table() 过程中[可以使用 get_cost() 来获取](https://elixir.bootlin.com/linux/v5.19/source/kernel/power/energy_model.c#L164) 对应的 cost.
 
@@ -5653,7 +5653,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 2022/03/17 | [Improved response times with latency nice](https://lwn.net/Articles/887842) | [LWN: 采用 latency nice 改善响应时间](https://blog.csdn.net/Linux_Everything/article/details/123887454) |
 | 2022/04/05 | NA | 国内对这组补丁的分析 [latency-nice 优先级补丁源码分析](https://blog.csdn.net/qq_23662505/article/details/123977540) |
 | 2022/09/13 | LPC-2022 上关于 latency nice 的演讲: [Latency hints for CFS task](https://lpc.events/event/16/contributions/1273) | NA |
-
+| 2023/03/09 | [An EEVDF CPU scheduler for Linux](https://lwn.net/Articles/925371) |
 
 2020 年, Parth Shah 提出了 latency nice 的概念. 旨在对应用的延迟进行感知和标记, 降低延迟敏感应用程序的调度延迟, 使其更快地获得 CPU 时间. latency_nice 值与现有 nice 值相对应, 介于 -20 和 19 之间. 数字越低, 优先级越高.
 

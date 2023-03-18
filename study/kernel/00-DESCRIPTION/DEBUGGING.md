@@ -213,6 +213,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2022/08/01 | CGEL <cgel.zte@gmail.com> | [[RFC,1/2] psi: introduce memory.pressure.stat](https://patchwork.kernel.org/project/linux-mm/patch/20220801004205.1593100-1-ran.xiaokai@zte.com.cn/) | 664363 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20220801004205.1593100-1-ran.xiaokai@zte.com.cn) |
 | 2022/09/10 | Christoph Hellwig <hch@lst.de> | [[1/5] mm: add PSI accounting around ->read_folio and ->readahead calls](https://patchwork.kernel.org/project/linux-mm/patch/20220910065058.3303831-2-hch@lst.de/) | 675899 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20220910065058.3303831-2-hch@lst.de) |
 | 2022/09/15 | Christoph Hellwig <hch@lst.de> | [improve pagecache PSI annotations v2](https://lore.kernel.org/all/20220915094200.139713-1-hch@lst.de) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220915094200.139713-1-hch@lst.de) |
+| 2023/02/10 | Sudarshan Rajagopalan <quic_sudaraja@quicinc.com> | [psi: reduce min window size to 50ms](https://patchwork.kernel.org/project/linux-mm/patch/8b7a3270fe253de1cd2b71473e29394409b2a0f7.1676067791.git.quic_sudaraja@quicinc.com/) | 720854 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/8b7a3270fe253de1cd2b71473e29394409b2a0f7.1676067791.git.quic_sudaraja@quicinc.com) |
 
 
 # 7 DYNAMIC_DEBUG
@@ -251,7 +252,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/07/29 | Jason A. Donenfeld <Jason@zx2c4.com> | [random: implement getrandom() in vDSO](https://lore.kernel.org/all/20220729145525.1729066-1-Jason@zx2c4.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220729145525.1729066-1-Jason@zx2c4.com) |
+| 2022/07/29 | Jason A. Donenfeld <Jason@zx2c4.com> | [random: implement getrandom() in vDSO](https://lore.kernel.org/all/20220729145525.1729066-1-Jason@zx2c4.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220729145525.1729066-1-Jason@zx2c4.com)<br>*-*-*-*-*-*-*-* <br>[2023/01/01 LORE v14,0/7](https://lore.kernel.org/all/20230101162910.710293-1-Jason@zx2c4.com) |
 
 
 # 9 PRINTK
@@ -299,6 +300,11 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/02/07 | John Ogness <john.ogness@linutronix.de> | [implement threaded console printing](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) | 参见 phoronix 报道 [Linux Gets Patches For Threaded Console Printing](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Threaded-Console-Print) 和 [Patches Updated For Linux To Enjoy Consoles Running At Full-Speed](https://www.phoronix.com/scan.php?page=news_item&px=Printk-v3-Consoles-Full-Speed) | v1 ☐ | [LORE v1,0/13](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) |
 | 2022/09/11 | Thomas Gleixner <tglx@linutronix.de> | [printk: A new approach - WIP](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |  | v1 ☐☑✓ | [LORE v1,0/29](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/01/30 | Hyeonggon Yoo <42.hyeyoo@gmail.com> | [mm, printk: introduce new format for page_type](https://patchwork.kernel.org/project/linux-mm/cover/20230130042514.2418-1-42.hyeyoo@gmail.com/) | 716768 | v4 ☐☑ | [LORE v4,0/3](https://lore.kernel.org/r/20230130042514.2418-1-42.hyeyoo@gmail.com) |
 
 
 # 10 KEXEC
@@ -815,12 +821,6 @@ https://patchwork.kernel.org/project/linux-trace-devel/list/?submitter=200911&st
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/01/18 | Beau Belgrave <beaub@linux.microsoft.com> | [user_events: Enable user processes to create and write to trace events](https://lore.kernel.org/all/20220118204326.2169-1-beaub@linux.microsoft.com) | 20220118204326.2169-1-beaub@linux.microsoft.com | v10 ☐☑✓ | [LORE v10,0/12](https://lore.kernel.org/all/20220118204326.2169-1-beaub@linux.microsoft.com) |
 
-## 14.9 DEPT(Dependency Tracker)
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/05/04 | Byungchul Park <byungchul.park@lge.com> | [DEPT(Dependency Tracker)](https://patchwork.kernel.org/project/linux-mm/cover/1651652269-15342-1-git-send-email-byungchul.park@lge.com/) | 638196 | v6 ☐☑ | [LORE v6,0/21](https://lore.kernel.org/r/1651652269-15342-1-git-send-email-byungchul.park@lge.com) |
 
 
 # 15 kptr_restrict
