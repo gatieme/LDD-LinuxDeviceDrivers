@@ -444,10 +444,14 @@ Peter Zijlstra 在 [RT-Summit 2017](https://wiki.linuxfoundation.org/realtime/ev
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/10/09 | Juri Lelli <juri.lelli@redhat.com> | [Towards implementing proxy execution](https://lore.kernel.org/all/20181009092434.26221-1-juri.lelli@redhat.com) | TODO | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20181009092434.26221-1-juri.lelli@redhat.com) |
 | 2020/12/18 | ValenƟn Schneider <valentin.schneider@arm.com> | [Looking forward on proxy execution](https://lpc.events/event/7/contributions/758) | TODO | v1 ☐☑✓ | [GitLab, linux-arm RFC v3,00/08](https://gitlab.arm.com/linux-arm/linux-vs/-/tree/mainline/sched/proxy-rfc-v3/) |
-| 2022/10/03 | Connor O'Brien <connoro@google.com> | [Reviving the Proxy Execution Series](https://lore.kernel.org/all/20221003214501.2050087-1-connoro@google.com) | TODO | v1 ☐☑✓ | [LORE v1,0/11](https://lore.kernel.org/all/20221003214501.2050087-1-connoro@google.com) |
+| 2022/10/03 | Connor O'Brien <connoro@google.com> | [Reviving the Proxy Execution Series](https://lore.kernel.org/all/20221003214501.2050087-1-connoro@google.com) | TODO | v1 ☐☑✓ | [2022/10/03 LORE v1,0/11](https://lore.kernel.org/all/20221003214501.2050087-1-connoro@google.com)<br>*-*-*-*-*-*-*-* <br>[2023/03/20 LORE v2,0/12](https://lore.kernel.org/all/20230320233720.3488453-1-jstultz@google.com)<br>*-*-*-*-*-*-*-* <br>[2023/04/11 LORE v3,00/14](https://lore.kernel.org/all/20230411042511.1606592-1-jstultz@google.com) |
 
 
 # 12 深入理解并行编程
+-------
+
+
+## 12.1 理论
 -------
 
 Paul McKenney's parallel programming book, [LWN](https://lwn.net/Articles/421425), [PerfBook](https://mirrors.edge.kernel.org/pub/linux/kernel/people/paulmck/perfbook/perfbook.html), [cgit, perfbook](https://git.kernel.org/pub/scm/linux/kernel/git/paulmck/perfbook.git/)
@@ -455,6 +459,19 @@ Paul McKenney's parallel programming book, [LWN](https://lwn.net/Articles/421425
 计算机体系结构基础, [第 10 章 并行编程基础](https://foxsen.github.io/archbase/并行编程基础.html)
 
 
+## 12.2 并行化框架
+-------
+
+[taskflow 的总结: 令人敬畏的并行计算](https://github.com/taskflow/awesome-parallel-computing)
+
+### 12.2.1 Task/Function Flow
+-------
+
+| 项目 | 描述 |
+|:---:|:----:|
+| [taskflow/taskflow](https://github.com/taskflow/taskflow) | Function Flow 并行化业界标杆, 犹他大学开发, 支持异构. [官网](https://taskflow.github.io). 论文<br>1. [Taskflow: A Lightweight Parallel and Heterogeneous Task Graph Computing System, TPDS 2021](https://taskflow.github.io/papers/tpds21-taskflow.pdf)<br>2. [Late Breaking Results: Efficient Timing Propagation with Simultaneous Structural and Pipeline Parallelisms, DAC 2022](https://tsung-wei-huang.github.io/papers/dac2022.pdf)<br>3. [Pipeflow: An Efficient Task-Parallel Pipeline Programming Framework using Modern C++, HPDC 2022](https://arxiv.org/abs/2202.00717)<br>4. [From RTL to CUDA: A GPU Acceleration Flow for RTL Simulation with Batch Stimulus, ICPP 2022](https://icpp22.gitlabpages.inria.fr/prog/) |
+| [ChunelFeng/CGraph](https://github.com/ChunelFeng/CGraph) | ChunelFeng 的图化调度并行框架, 轻量, 快捷, 暂不支持异构 |
+| [AthrunArthur/functionflow](https://github.com/AthrunArthur/functionflow) | 基于 C++11 的 FunctionFlow 并行编程库. |
 
 <br>
 

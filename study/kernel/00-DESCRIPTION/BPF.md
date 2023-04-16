@@ -72,6 +72,8 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 [bpftrace Cheat Sheet](https://www.brendangregg.com/BPF/bpftrace-cheat-sheet.html)
 
+[Standardizing BPF](https://lwn.net/Articles/926882)
+
 # 2 工作流程
 -------
 
@@ -548,13 +550,20 @@ Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标�
 | [Introduction to Parca - Part 1](https://www.polarsignals.com/blog/posts/2023/01/19/introduction-to-parca-agent) | Parca 是一个基于 eBPF 在线采样工具. |
 | [DWARF-based Stack Walking Using eBPF](https://www.polarsignals.com/blog/posts/2022/11/29/profiling-without-frame-pointers) | NA |
 
-## X.2 eBPF 月报
+## X.3 eBPF 月报
 -------
 
 
 [ebpf 月报 - 2023 年 1 月](https://segmentfault.com/a/1190000043355631)
 
 
+## X.4 业界论文
+-------
+
+| 论文 | 描述 |
+|:---:|:----:|
+| [Flexible and Low-Overhead System-Call Aggregation using BPF](https://www4.cs.fau.de/Ausarbeitung/MA-I4-2021-12-Gerhorst.pdf)<br>[AnyCall: Fast and Flexible System-Call Aggregation](https://dl.acm.org/doi/10.1145/3477113.3487267) | 通过 eBPF 实现的 ANYCALL, 它使用内核内字节码编译器在内核模式下执行安全检查的用户代码. 这允许多个快速的系统调用与错误检查和处理逻辑交织聚合在一起, 只使用一次用户态 / 内核态转换. 并将其扩展为支持系统调用和用户内存访问. 由于内核已经支持灵活的事件处理和调试, 重用 BPF 来实现系统调用聚合, 这表明软件隔离进程对于现代通用操作系统是可行的. 为了证明将真实的用户应用程序移植到 ANYCALL 既实用又直接, 我移植了两个真实的工具, 并记录了所需的代码更改. 最后, 我评估了 ANYCALL 在具有操作系统级缓解措施的系统上的性能, 以对抗活跃或不活跃的瞬时执行漏洞, 包括例如针对 Meltdown 的内核页表隔离 (KPTI). 在 KPTI 不活跃的系统上, 我演示了在计算受限的实际应用程序中高达 10% 的加速. 另一方面, 当 KPTI 处于活动状态时, 我的评估表明, 使用 ANYCALL 可以使系统调用爆发速度提高 98%, 而实际应用程序的速度提高了 32% 到 40%. 参见 [【欧拉多咖 | OS每周快讯】2022.12.06~2022.12.12](https://www.chaspark.com/#/hotspots/821172234535870464) |
+| [XRP: In-Kernel Storage Functions with eBPF【OSDI’22】](https://www.usenix.org/system/files/osdi22-zhong_1.pdf) | XRP 框架允许应用程序从 NVMe 驱动程序中的 eBPF 探针执行用户定义的存储功能, 如索引查找或聚合, 从而安全地绕过内核的大部分存储堆栈. 为了保持文件系统语义, XRP 将少量内核态转移到其 NVMe 驱动程序探针, 并在探针处调用用户注册的 eBPF 函数. |
 
 <br>
 

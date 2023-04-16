@@ -258,6 +258,10 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 # 9 PRINTK
 -------
 
+
+## 9.1 Printk Improve
+-------
+
 [Enhanced printk() with Enterprise Event Logging](http://evlog.sourceforge.net/enhanced_printk.html)
 
 
@@ -268,6 +272,11 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2018/11/24 | Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp> | [printk: Add caller information to printk() output.](https://lore.kernel.org/lkml/1543045075-3008-1-git-send-email-penguin-kernel@I-love.SAKURA.ne.jp) | NA | v1 ☑ 5.1-rc1 | [PatchWork 0/3,v4](https://lore.kernel.org/lkml/1543045075-3008-1-git-send-email-penguin-kernel@I-love.SAKURA.ne.jp)<br>*-*-*-*-*-*-*-* <br>[关键 commit 15ff2069cb7f](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=15ff2069cb7f967dae6a8f8c176ba51447c75f00) |
 | 2021/10/12 | "Matthew Wilcox (Oracle)" <willy@infradead.org> | [Improvements to %pGp](https://patchwork.kernel.org/project/linux-mm/patch/20211012182647.1605095-6-willy@infradead.org) | `%pGp` 用来打印 page flag 的信息(通过 format_page_flags() 打印 `__def_pageflag_name`), 但是之前打印的方式比较麻烦, 需要使用 `%#lx(%pGp)`, 先用 hex 16 进制打印一次, 再用 `%pGp` 打印一次, 使用起来略显麻烦. 因此修改 `%pGp` 在打印 flag 的同时, 同时用 hex 打印一次. 这样单用 `%pGp` 就可以完成输出. | v1 ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-mm/patch/20211012182647.1605095-6-willy@infradead.org) |
 | 2017/11/08 | Linus Torvalds <torvalds@linux-foundation.org> | [stop using '%pK' for /proc/kallsyms pointer values](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c0f3ea1589394deac2d840c685f57c69e4ac4243) | commit [c0f3ea158939 stop using '%pK' for /proc/kallsyms pointer values](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c0f3ea1589394deac2d840c685f57c69e4ac4243) 4.15 之后, kallsyms 不用 %pK 打印了. 但是仍然用 kptr_restrict 控制权限. | v1 ☑ 5.1-rc1 | [ommit c0f3ea158939](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c0f3ea1589394deac2d840c685f57c69e4ac4243) |
+| 2022/04/27 | Guilherme G. Piccoli <gpiccoli@igalia.com> | [The panic notifiers refactor](https://lore.kernel.org/all/20220427224924.592546-1-gpiccoli@igalia.com) | 20220427224924.592546-1-gpiccoli@igalia.com | v1 ☐☑✓ | [LORE v1,0/30](https://lore.kernel.org/all/20220427224924.592546-1-gpiccoli@igalia.com) |
+| 2023/01/30 | Hyeonggon Yoo <42.hyeyoo@gmail.com> | [mm, printk: introduce new format for page_type](https://patchwork.kernel.org/project/linux-mm/cover/20230130042514.2418-1-42.hyeyoo@gmail.com/) | 716768 | v4 ☐☑ | [LORE v4,0/3](https://lore.kernel.org/r/20230130042514.2418-1-42.hyeyoo@gmail.com) |
+
+## 9.2 threaded/atomic console support
+-------
 
 [Linux 5.10 Begins Landing The Long Overdue Revamp Of printk()](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.10-printk)
 
@@ -287,7 +296,6 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2020/07/21 | John Ogness <john.ogness@linutronix.de> | [printk: ringbuffer: support dataless records](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d397820f36ffe4701343b6ee12687d60db0ed8db) | 20200721132528.9661-1-john.ogness@linutronix.de | v2 ☑ 5.10-rc1 | [LORE](https://lore.kernel.org/all/20200721132528.9661-1-john.ogness@linutronix.de) |
 | 2020/09/14 | John Ogness <john.ogness@linutronix.de> | [printk: reimplement LOG_CONT handling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f5f022e53b874f978dda23847173cbf2589b07f5) | 20200914123354.832-6-john.ogness@linutronix.de | v5 ☑ 5.10-rc1 | [LORE v5,0/6](https://lore.kernel.org/all/20200914123354.832-1-john.ogness@linutronix.de) |
 | 2020/09/19 | John Ogness <john.ogness@linutronix.de> | [printk: move dictionaries to meta data](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f5f022e53b874f978dda23847173cbf2589b07f5) | 20200918223421.21621-1-john.ogness@linutronix.de | v2 ☑ 5.10-rc1 | [LORE v2,0/3](https://lore.kernel.org/all/20200918223421.21621-1-john.ogness@linutronix.de) |
-| 2022/04/27 | Guilherme G. Piccoli <gpiccoli@igalia.com> | [The panic notifiers refactor](https://lore.kernel.org/all/20220427224924.592546-1-gpiccoli@igalia.com) | 20220427224924.592546-1-gpiccoli@igalia.com | v1 ☐☑✓ | [LORE v1,0/30](https://lore.kernel.org/all/20220427224924.592546-1-gpiccoli@igalia.com) |
 
 
 [Linux 5.19's Printk To Offload Messages To Per-Console KThreads](https://www.phoronix.com/news/Linux-Threaded-Console-Print)
@@ -299,12 +307,18 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/02/07 | John Ogness <john.ogness@linutronix.de> | [implement threaded console printing](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) | 参见 phoronix 报道 [Linux Gets Patches For Threaded Console Printing](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Threaded-Console-Print) 和 [Patches Updated For Linux To Enjoy Consoles Running At Full-Speed](https://www.phoronix.com/scan.php?page=news_item&px=Printk-v3-Consoles-Full-Speed) | v1 ☐ | [LORE v1,0/13](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) |
-| 2022/09/11 | Thomas Gleixner <tglx@linutronix.de> | [printk: A new approach - WIP](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |  | v1 ☐☑✓ | [LORE v1,0/29](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |
+| 2023/03/02 | John Ogness <john.ogness@linutronix.de> | [threaded/atomic console support](https://lore.kernel.org/all/87wn3zsz5x.fsf@jogness.linutronix.de) | TODO | v1 ☐☑✓ | [LORE v1,0/18](https://lore.kernel.org/all/87wn3zsz5x.fsf@jogness.linutronix.de) |
+
+
+## 9.3 A new approach printk
+-------
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2023/01/30 | Hyeonggon Yoo <42.hyeyoo@gmail.com> | [mm, printk: introduce new format for page_type](https://patchwork.kernel.org/project/linux-mm/cover/20230130042514.2418-1-42.hyeyoo@gmail.com/) | 716768 | v4 ☐☑ | [LORE v4,0/3](https://lore.kernel.org/r/20230130042514.2418-1-42.hyeyoo@gmail.com) |
+| 2022/09/11 | Thomas Gleixner <tglx@linutronix.de> | [printk: A new approach - WIP](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |  | v1 ☐☑✓ | [LORE v1,0/29](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |
+
+
 
 
 # 10 KEXEC
@@ -811,15 +825,19 @@ https://patchwork.kernel.org/project/linux-trace-devel/list/?submitter=200911&st
 | 2021/10/8 | Jiri Olsa <jolsa@kernel.org> | [x86/ftrace: Add direct batch interface](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=5fae941b9a6f95773df644e7cf304bf199707876) | 1615872606-56087-1-git-send-email-aubrey.li@intel.com | v2 ☑✓ 5.16-rc1 | [LKML v2,0/8](https://lkml.org/lkml/2021/10/8/186), [LORE v2,0/8](https://lore.kernel.org/all/20211008091336.33616-1-jolsa@kernel.org) |
 
 
-## 14.8 user_events
+## 14.8 uprobe
 -------
 
+### 14.8.1 user events
+-------
 
-[User events — but not quite yet](https://lwn.net/Articles/889607)
+User Events 于 [5.18-rc1](https://kernelnewbies.org/Linux_5.18#User_events) 合入主线, 参见 Document [user_events: User-based Event Tracing](https://www.kernel.org/doc/html/latest/trace/user_events.html) 以及 example [`samples/user_events/example.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/samples/user_events/example.c?id=c57eb4781509)
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/01/18 | Beau Belgrave <beaub@linux.microsoft.com> | [user_events: Enable user processes to create and write to trace events](https://lore.kernel.org/all/20220118204326.2169-1-beaub@linux.microsoft.com) | 20220118204326.2169-1-beaub@linux.microsoft.com | v10 ☐☑✓ | [LORE v10,0/12](https://lore.kernel.org/all/20220118204326.2169-1-beaub@linux.microsoft.com) |
+| 2022/01/18 | Beau Belgrave <beaub@linux.microsoft.com> | [user_events: Enable user processes to create and write to trace events](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=864ea0e10cc90416a01b46f0d47a6f26dc020820) | Linux 已经有一种方法允许使用内核跟踪工具(uprobes)跟踪用户空间进程. 此版本添加了一个新的 ABI, 允许进程创建和写入与内核跟踪级别事件隔离的跟踪事件. 这样可以更快地跟踪用户模式数据, 并打开托管代码以参与跟踪事件, 其中存根位置为 dynamic.<br>进程通常只希望仅在有用时才进行跟踪. 进程可以将描述事件格式的事件注册到内核. 内核将创建事件. 然后, 该进程将从映射的 tracefs 文件中接收页面映射中的一个字节, 它可以检查该文件. 特权任务可以启用该事件, 这会将映射的字节更改为 true. 然后, 进程可以开始将事件写入跟踪 buffer. 参见 [User events — but not quite yet](https://lwn.net/Articles/889607). | v10 ☑✓ [5.18-rc1](https://kernelnewbies.org/Linux_5.18#User_events) | [LORE v10,0/12](https://lore.kernel.org/all/20220118204326.2169-1-beaub@linux.microsoft.com) |
+| 2023/03/28 | Beau Belgrave <beaub@linux.microsoft.com> | [tracing/user_events: Remote write ABI](https://lore.kernel.org/all/20230328235219.203-1-beaub@linux.microsoft.com) | 之前的 API 使用起来并不方便, 因此进行了重构. 参见 [User trace events, one year later](https://lwn.net/Articles/927595). 当前正在使用一个需要 mmap() 的共享页面. 删除共享页面实现并移动到用户注册地址实现. 在这个新模型中, 从用户程序注册事件期间指定了 3 个新值. 第一个是启用或禁用事件时要更新的地址. 第二个是要设置/清除的位, 以反映正在启用的事件. 第三个是指定地址的值的大小. 这允许在用户程序中使用本地 32/64 位值来支持内核跟踪程序和用户跟踪程序. 例如, 当事件启用时, 为内核跟踪程序设置第 31 位允许用户跟踪程序使用其他位作为引用计数或其他标志. 内核端原子地更新位, 用户程序也需要原子地更新这些值. 用户提供的地址必须在自然边界上对齐, 这允许单页检查, 并防止奇怪的行为, 如跨 2 页而不是单页的启用值. 当遇到页面错误时, 它们将通过工作队列异步完成. 如果页面错误返回, 则再次尝试写更新. 如果页面不能故障进入, 那么我们将登录并等待下一次事件被启用/禁用. 这是为了防止由于不良用户进程在注册地址后取消映射或更改保护值而导致的无限循环. | v10 ☐☑✓ | [LORE v10,0/12](https://lore.kernel.org/all/20230328235219.203-1-beaub@linux.microsoft.com)|
 
 
 
@@ -864,15 +882,24 @@ LWN 上也对此进行了[汇总报道](https://lwn.net/Kernel/Index/#Android-Ge
 ## 17.1 启动加速
 -------
 
+Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 [Fedora 38 Wants To Make Sure Shutdowns & Reboots Are Faster](https://www.phoronix.com/news/Fedora-38-Faster-Reboots) 以及 [Fedora wiki--Changes/Shorter Shutdown Timer](https://fedoraproject.org/wiki/Changes/Shorter_Shutdown_Timer).
 
+### 17.1.1 启动优化
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/03/21 | Rasmus Villemoes <linux@rasmusvillemoes.dk> | [background initramfs unpacking, and CONFIG_MODPROBE_PATH](https://lore.kernel.org/patchwork/patch/1394812) | 启动阶段异步解压 initramfs. 可以加速系统启动. | v1 ☑ [5.13-rc1](https://kernelnewbies.org/Linux_5.13) | [Patchwork](https://lore.kernel.org/patchwork/patch/1394812) |
-| 2021/11/21 | David Woodhouse <dwmw2@infradead.org> | [Parallel CPU bringup for x86_64](https://lkml.org/lkml/2021/12/9/664) | 随着核数的增多, 内核的启动速度越来越慢. 这组补丁能够并行启动辅助 (x86_64) CPU 内核. 对 v6 测hi发现可以显著改善 Sapphire Rapids CPU 系统的启动时间, 从 71s 降低到 14s. 随后 v7 增加了对 AMD CPU 的支持. | v1 ☐ | [LWN ](https://lwn.net/Articles/878161), [LKML](https://lkml.org/lkml/2021/12/9/664), [LORE 00/11](https://lkml.kernel.org/lkml/20211209150938.3518-1-dwmw2@infradead.org),  [Phoronix 报道 v1](https://www.phoronix.com/news/Linux-x86_64-Parallel-CPU-Boot)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/9](https://lore.kernel.org/lkml/20211215145633.5238-1-dwmw2@infradead.org), [Phoronix 报道 v3](https://www.phoronix.com/news/Parallel-CPU-Bringup-AMD-Snag)<br>*-*-*-*-*-*-*-* <br>[LORE v6](https://lore.kernel.org/lkml/20230202215625.3248306-1-usama.arif@bytedance.com), [Phoronix 报道 v6](https://www.phoronix.com/news/Linux-CPU-Parallel-Bringup-2023)<br>*-*-*-*-*-*-*-* <br>[LORE v7](20230207230436.2690891-1-usama.arif@bytedance.com) |
 | 2022/11/02 | Stuart Hayes <stuart.w.hayes@gmail.com> | [cpufreq: acpi: Defer setting boost MSRs](https://lore.kernel.org/all/20221102195957.82871-1-stuart.w.hayes@gmail.com) | [Deferred Enabling Of ACPI CPUFreq Boost Support Can Help Boot Times For Large Servers](https://www.phoronix.com/news/CPUFreq-Defer-Boost-MSRs) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221102195957.82871-1-stuart.w.hayes@gmail.com) |
 
-Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 [Fedora 38 Wants To Make Sure Shutdowns & Reboots Are Faster](https://www.phoronix.com/news/Fedora-38-Faster-Reboots) 以及 [Fedora wiki--Changes/Shorter Shutdown Timer](https://fedoraproject.org/wiki/Changes/Shorter_Shutdown_Timer).
+### 17.1.2 并行 CPU BringUp
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/11/21 | David Woodhouse <dwmw2@infradead.org> | [Parallel CPU bringup for x86_64](https://lkml.org/lkml/2021/12/9/664) | 随着核数的增多, 内核的启动速度越来越慢. 这组补丁能够并行启动辅助 (x86_64) CPU 内核. 对 v6 测hi发现可以显著改善 Sapphire Rapids CPU 系统的启动时间, 从 71s 降低到 14s. 随后 v7 增加了对 AMD CPU 的支持. | v1 ☐ | [LWN ](https://lwn.net/Articles/878161), [LKML](https://lkml.org/lkml/2021/12/9/664), [LORE 00/11](https://lkml.kernel.org/lkml/20211209150938.3518-1-dwmw2@infradead.org),  [Phoronix 报道 v1](https://www.phoronix.com/news/Linux-x86_64-Parallel-CPU-Boot)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/9](https://lore.kernel.org/lkml/20211215145633.5238-1-dwmw2@infradead.org), [Phoronix 报道 v3](https://www.phoronix.com/news/Parallel-CPU-Bringup-AMD-Snag)<br>*-*-*-*-*-*-*-* <br>[LORE v6](https://lore.kernel.org/lkml/20230202215625.3248306-1-usama.arif@bytedance.com), [Phoronix 报道 v6](https://www.phoronix.com/news/Linux-CPU-Parallel-Bringup-2023)<br>*-*-*-*-*-*-*-* <br>[LORE v7](20230207230436.2690891-1-usama.arif@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v17,0/8](https://lore.kernel.org/lkml/20230328195758.1049469-1-usama.arif@bytedance.com) |
+| 2023/04/15 | Thomas Gleixner <tglx@linutronix.de> | [cpu/hotplug, x86: Reworked parallel CPU bringup](https://lore.kernel.org/all/20230414225551.858160935@linutronix.de) | [Reworked x86_64 Parallel Boot Support Posted For The Linux Kernel](https://www.phoronix.com/news/Linux-Parallel-Boot-x86-Rework) | v1 ☐☑✓ | [LORE v1,0/37](https://lore.kernel.org/all/20230414225551.858160935@linutronix.de) |
+
 
 
 # 18 LIB
@@ -933,7 +960,15 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 [Linux 6.2 Speeds Up A Function By 715x - kallsyms_lookup_name()](https://www.phoronix.com/news/Linux-6.2-Modules)
 
 
+# X 学习参考
+-------
 
+## X.1 业界论文
+-------
+
+| 论文 | 描述 |
+|:---:|:----:|
+| [Hubble: Performance Debugging with In-Production, Just-In-Time Method Tracing on Android](https://www.usenix.org/system/files/osdi22-luo.pdf) | Hubble是一个method-tracing系统, 在所有支持的和即将由华为制造的安卓设备上运行, 以帮助调试性能问题. Hubble instruments every non-inlined bytecode method’s entry and exit, 以记录method的名称和时间戳. trace points被记录到一个内存中的环形缓冲器中, 旧的数据会不断被覆盖. 这些数据只有在检测到性能问题时才会被保存下来, 使工程师在检测到异常情况之前就能及时获得宝贵的、详细的运行时间数据. 参见 [datawine-论文阅读](https://datawine.github.io/paper-reading.html), 参见 [【欧拉多咖 | OS每周快讯】2022.12.06~2022.12.12](https://www.chaspark.com/#/hotspots/821172234535870464) |
 
 <br>
 
