@@ -467,6 +467,8 @@ Paul McKenney's parallel programming book, [LWN](https://lwn.net/Articles/421425
 ### 12.2.1 Task/Function Flow
 -------
 
+[curated list of awesome open source workflow engines](https://github.com/meirwah/awesome-workflow-engines)
+
 | 项目 | 描述 |
 |:---:|:----:|
 | [taskflow/taskflow](https://github.com/taskflow/taskflow) | Function Flow 并行化业界标杆, 犹他大学开发, 支持异构. [官网](https://taskflow.github.io). 论文<br>1. [Taskflow: A Lightweight Parallel and Heterogeneous Task Graph Computing System, TPDS 2021](https://taskflow.github.io/papers/tpds21-taskflow.pdf)<br>2. [Late Breaking Results: Efficient Timing Propagation with Simultaneous Structural and Pipeline Parallelisms, DAC 2022](https://tsung-wei-huang.github.io/papers/dac2022.pdf)<br>3. [Pipeflow: An Efficient Task-Parallel Pipeline Programming Framework using Modern C++, HPDC 2022](https://arxiv.org/abs/2202.00717)<br>4. [From RTL to CUDA: A GPU Acceleration Flow for RTL Simulation with Batch Stimulus, ICPP 2022](https://icpp22.gitlabpages.inria.fr/prog/) |

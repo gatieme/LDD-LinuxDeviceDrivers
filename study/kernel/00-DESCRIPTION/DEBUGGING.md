@@ -341,9 +341,17 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 
 ### 11.1.1 perf script
 -------
+
+`struct scripting_ops` 封装了 perf 支持的高级语言解析框架. 可通过 script_spec_register() 注册, 当前支持 perl, python.
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2019/09/18 | Yafang Shao <laoar.shao@gmail.com> | [introduce new perf-script page-reclaim](https://lore.kernel.org/patchwork/cover/1128886) | 为 perf 引入了一个新的 python 脚本 page-reclaim.py 页面回收, 用于报告页面回收详细信息.<br>此脚本目前的用途如下:<br>1. 识别由直接回收引起的延迟峰值<br>2. 延迟峰值与 pageout 是否相关<br>3. 请求页面回收的原因, 即是否是内存碎片<br>4. 页面回收效率等. 将来, 我们还可以将其增强以分析 memcg 回收. | v1 ☐ | [PatchWork 0/2](https://lore.kernel.org/patchwork/cover/1128886) |
+| 2009/11/25 | Tom Zanussi <tzanussi@gmail.com> | [perf trace: general-purpose scripting support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1ae4a971250c55e473ca53c78011fcf73809885d) | 为解析 ascii 跟踪输出的流行方法提供一种更高效、更强大的替代方法, 以便从中提取有用的信息. 为了避免所有这些的开销和复杂性, 这个补丁集提供了一个直接到脚本的解释器路径来做同样的事情, 但以一种更规则化的方式, 它利用了跟踪基础结构提供的所有事件元信息, 例如为此目的设计的 "格式文件" 中包含的事件 / 字段信息. 它允许将通用脚本语言的全部功能应用于跟踪流, 以进行非琐碎的分析, 并突然提供了大量有用的工具和模块库(例如, 用于 Perl 的 CPAN), 以应用于创建新的、有趣的跟踪应用程序的问题. 当前只实现了一个 Perl 接口, 但其目的是使添加对其他语言(如 Python、Ruby 等)的支持相对容易——他们所需要做的就是以 Perl 实现为例, 提供自己的 trace_scripting_ops 实现和支持函数. | v2 ☑✓ 2.6.33-rc1 | [LORE v2,0/7](https://lore.kernel.org/all/1259133352-23685-1-git-send-email-tzanussi@gmail.com) |
+| 2010/01/27 | Tom Zanussi <tzanussi@gmail.com> | [perf trace: Python scripting support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cff68e582237cae3cf456f01153202175961dfbe) | [Scripting support for perf](https://lwn.net/Articles/373842) 以及 [Python support for the Linux perf profiler](https://docs.python.org/zh-cn/dev/howto/perf_profiling.html) | v1 ☑✓ 2.6.34-rc1 | [LORE v1,0/12](https://lore.kernel.org/all/1264580883-15324-1-git-send-email-tzanussi@gmail.com) |
+| 2019/09/18 | Yafang Shao <laoar.shao@gmail.com> | [introduce new perf-script page-reclaim](https://lore.kernel.org/patchwork/cover/1128886) | 为 perf 引入了一个新的 python 脚本 page-reclaim.py 页面回收脚本, 用于报告页面回收详细信息.<br>此脚本目前的用途如下: <br>1. 识别由直接回收引起的延迟峰值<br>2. 延迟峰值与 pageout 是否相关<br>3. 请求页面回收的原因, 即是否是内存碎片<br>4. 页面回收效率等. 将来, 我们还可以将其增强以分析 memcg 回收. | v1 ☐ | [PatchWork 0/2](https://lore.kernel.org/lkml/1568817522-8754-1-git-send-email-laoar.shao@gmail.com) |
+| 2020/04/09 | Andreas Gerstmayr <agerstmayr@redhat.com> | [perf script: Add flamegraph.py script](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5287f926920688e1151741d49da37a533ccf1960) | 这个脚本与 d3-flame-graph 协同工作, 从 perf 生成火焰图. 它支持两种输出格式：JSON 和 HTML(默认). HTML 格式将在 `/usr/share/d3-flame-graph/d3-flamegraph-base.html` 中查找一个独立的 d3-flame-graph template, 并填充收集的堆栈. | v1 ☑✓ 5.8-rc1 | [LORE](https://lore.kernel.org/lkml/20200320151355.66302-1-agerstmayr@redhat.com) |
+| 2022/12/06 | Petar Gligoric <petar.gligor@gmail.com> | [perf: introduce perf based task analyzer](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e8478b84d6ba9ccfac15dfce103062c4fa7ded2f) | 此补丁系列引入了任务分析器, 并添加了输出 csv 文件的功能, 以便在第三方脚本(例如 pandas 和 friends)中进行进一步分析. 任务分析器根据 sched:sched_switch 事件解析记录的性能数据文件. 它为每个任务的用户输出有用的信息, 用户可以根据自己的喜好和需要修改输出. | v2 ☑✓ 6.2-rc1 | [LORE v2,0/3](https://lore.kernel.org/all/20221206154406.41941-1-petar.gligor@gmail.com) |
 
 
 ### 11.1.2 show-lost-events
@@ -377,35 +385,6 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2021/12/01 | Namhyung Kim <namhyung@kernel.org> | [perf tools: Add SPE total latency as PERF_SAMPLE_WEIGHT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0fde9c6e291e528878ea3713997777713fe44c6) | 20211201220855.1260688-1-namhyung@kernel.org | v2 ☐☑✓ 5.17-rc1 | [LORE](https://lore.kernel.org/all/20211201220855.1260688-1-namhyung@kernel.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0fde9c6e291e528878ea3713997777713fe44c6) |
 | 2022/04/29 | Shaokun Zhang <zhangshaokun@hisilicon.com> | [drivers/perf: arm_spe: Expose saturating counter to 16-bit](https://patchwork.kernel.org/project/linux-arm-kernel/patch/20220429063307.63251-1-zhangshaokun@hisilicon.com/) | 636823 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220429063307.63251-1-zhangshaokun@hisilicon.com) |
 
-
-## 11.3 TOPDOWN
--------
-
-[Support standalone metrics and metric groups for perf](https://lore.kernel.org/all/20170831194036.30146-1-andi@firstfloor.org)
-
-
-### 11.3.1 stat topdown
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2016/05/24 | Andi Kleen <andi@firstfloor.org> | [perf stat: Basic support for TopDown in perf stat](https://lore.kernel.org/all/1464119559-17203-1-git-send-email-andi@firstfloor.org) | perf stat 支持 topdown 分析. | v1 ☑ 4.8-rc1 | [PatchWork 1/4](https://lore.kernel.org/all/1464119559-17203-1-git-send-email-andi@firstfloor.org) |
-| 2021/02/02 | Kan Liang <kan.liang@linux.intel.com> | [perf stat: Support L2 Topdown events](https://lore.kernel.org/lkml/1612296553-21962-9-git-send-email-kan.liang@linux.intel.com) | perf stat 支持 Level 2 级别 topdown 分析. [perf core PMU support for Sapphire Rapids (User tools)](https://lore.kernel.org/lkml/1612296553-21962-1-git-send-email-kan.liang@linux.intel.com) 系列中的其中一个补丁. | v1 ☑ 5.12-rc1 | [PatchWork 1/4](https://lore.kernel.org/lkml/1612296553-21962-9-git-send-email-kan.liang@linux.intel.com) |
-
-
-### 11.3.2 metricsgroup topdown
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2017/08/31 | Andi Kleen <andi@firstfloor.org> | [Support standalone metrics and metric groups for perf](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b90f1333ef08d2a497ae239798868b046f4e3a97) | 向 perf-stat 添加对 JSON 文件中指定的独立度量 metrics 的支持. 度量 metrics 使用多个事件来计算更高级别结果 (例如 IPC, TOPDOWN 等) 的公式. 对于更复杂的度量(比如 pipeline, TOPDOWN), 需要具有特定于微架构的配置, 因此将度量 metrics 与 JSON 事件列表联系起来是有意义的. 以前的度量始终与事件关联, 并随该事件自动启用. 但现在改变它, 可以有独立的指标. 它们与事件处于相同的 JSON 数据结构中, 但没有事件名称, 只有度量名称. 同时允许在度量组中组织度量, 这允许一次选择几个相关度量的快捷方式. | v3 ☑✓ 4.15-rc1 | [LORE v3,0/11](https://lore.kernel.org/all/20170831194036.30146-2-andi@firstfloor.org) |
-| 2017/08/31 | Andi Kleen <andi@firstfloor.org> | [perf arm64 metricgroup support](https://lore.kernel.org/all/20170831194036.30146-1-andi@firstfloor.org) | 为 perf stat 添加[对 JSON 文件中指定的独立指标](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b18f3e365019de1a5b26a851e123f0aedcce881f) 的通用支持. 这些指标是一个公式, 它使用多个事件来计算更高级别的结果(例如 IPC, TOPDOWN 分析等). 添加一个新的 `-M /--metrics` 选项来添加指定的度量或度量组. 并增加了对 Intel X86 平台的支持. 通过这些 JSON 文件定义的事件组合度量, 可以很好的支持 TOPDOWN 分析. | v3 ☑ 4.15-rc1 | [PatchWork v3,00/11](https://lore.kernel.org/all/20170831194036.30146-1-andi@firstfloor.org) |
-| 2020/09/11 | Kan Liang <kan.liang@linux.intel.com> | [TopDown metrics support for Ice Lake (perf tool)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=328781df86fa8f9299219c74ffae876bd625c6d1) | 为 perf metrics 分析增加对 Ice Lake 的支持. 将原本 group 重命名为 topdown. | v3 ☑ 5.10-rc1 | [PatchWork v3,0/4](https://lore.kernel.org/lkml/20200911144808.27603-1-kan.liang@linux.intel.com) |
-| 2021/04/07 | John Garry <john.garry@huawei.com> | [perf arm64 metricgroup support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0cc177cfc95d565e1a458136a592b0bd6d487db0) | perf 支持 HiSilicon hip08 平台的 topdown metric. 支持到 Level 3. 自此鲲鹏 920 的 ARM64 服务器上, 可以使用:<br>`sudo perf stat -M TopDownL1 sleeep 1`<br>来进行 TopDown 分析了. | v1 ☑ 5.13-rc1 | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1614784938-27080-1-git-send-email-john.garry@huawei.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1616668398-144648-1-git-send-email-john.garry@huawei.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1617791570-165223-1-git-send-email-john.garry@huawei.com) |
-| 2022/05/28 | zhengjun <zhengjun.xing@linux.intel.com> | [perf vendor events intel: Add metrics for Sapphirerapids](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1bcca2b1bd67f3c0e5c3a88ed16c6389f01a5b31) | TODO | v2 ☑✓ 5.19-rc1 | [LORE v2,0/2](https://lore.kernel.org/all/20220528095933.1784141-1-zhengjun.xing@linux.intel.com) |
-| 2022/08/25 | zhengjun.xing@linux.intel.com <zhengjun.xing@linux.intel.com> | [perf stat: Capitalize topdown metricsnel.org/all/20220825015458.3252239-1-zhengjun.xing@linux.intel.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/9-1-zhengjun.xing@linux.intel.com) |
-| 2022/10/21 | Shang XiaoJing <shangxiaojing@huawei.com> | [perf vendor events arm64: Fix incorrect Hisi hip08 L3 metrics](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e9229d5b6254a75291536f582652c599957344d2) | TODO | v2 ☑✓ 6.1-rc3 | [LORE v2,0/3](https://lore.kernel.org/all/20221021105035.10000-1-shangxiaojing@huawei.com) |
-| 2022/12/14 | Sandipan Das <sandipan.das@amd.com> | [perf vendor events amd: Add Zen 4 events and metrics](https://lore.kernel.org/all/20221214082652.419965-1-sandipan.das@amd.com) | [Linux 6.2 Adds AMD Zen 4 Pipeline Utilization Data To Help Find Performance Bottlenecks](https://www.phoronix.com/news/LInux-6.2-AMD-Zen-4-Events) | v2 ☐☑✓ 6.2-rc1 | [LORE v2,0/4](https://lore.kernel.org/all/20221214082652.419965-1-sandipan.das@amd.com) |
 
 
 ## 11.3 Userspace counter access
@@ -460,6 +439,37 @@ x86 和 arm64 都支持直接访问用户空间中的事件计数器. 访问序�
 | 2022/07/04 | Marco Elver <elver@google.com> | [perf/hw_breakpoint: Optimize for thousands of tasks](https://lore.kernel.org/all/20220704150514.48816-1-elver@google.com) | TODO | v3 ☐☑✓ | [LORE v3,0/14](https://lore.kernel.org/all/20220704150514.48816-1-elver@google.com) |
 
 
+## 11.8 TOPDOWN
+-------
+
+[Support standalone metrics and metric groups for perf](https://lore.kernel.org/all/20170831194036.30146-1-andi@firstfloor.org)
+
+
+### 11.8.1 stat topdown
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/05/24 | Andi Kleen <andi@firstfloor.org> | [perf stat: Basic support for TopDown in perf stat](https://lore.kernel.org/all/1464119559-17203-1-git-send-email-andi@firstfloor.org) | perf stat 支持 topdown 分析. | v1 ☑ 4.8-rc1 | [PatchWork 1/4](https://lore.kernel.org/all/1464119559-17203-1-git-send-email-andi@firstfloor.org) |
+| 2021/02/02 | Kan Liang <kan.liang@linux.intel.com> | [perf stat: Support L2 Topdown events](https://lore.kernel.org/lkml/1612296553-21962-9-git-send-email-kan.liang@linux.intel.com) | perf stat 支持 Level 2 级别 topdown 分析. [perf core PMU support for Sapphire Rapids (User tools)](https://lore.kernel.org/lkml/1612296553-21962-1-git-send-email-kan.liang@linux.intel.com) 系列中的其中一个补丁. | v1 ☑ 5.12-rc1 | [PatchWork 1/4](https://lore.kernel.org/lkml/1612296553-21962-9-git-send-email-kan.liang@linux.intel.com) |
+
+
+### 11.8.2 metricsgroup topdown
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2017/08/31 | Andi Kleen <andi@firstfloor.org> | [Support standalone metrics and metric groups for perf](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b90f1333ef08d2a497ae239798868b046f4e3a97) | 向 perf-stat 添加对 JSON 文件中指定的独立度量 metrics 的支持. 度量 metrics 使用多个事件来计算更高级别结果 (例如 IPC, TOPDOWN 等) 的公式. 对于更复杂的度量(比如 pipeline, TOPDOWN), 需要具有特定于微架构的配置, 因此将度量 metrics 与 JSON 事件列表联系起来是有意义的. 以前的度量始终与事件关联, 并随该事件自动启用. 但现在改变它, 可以有独立的指标. 它们与事件处于相同的 JSON 数据结构中, 但没有事件名称, 只有度量名称. 同时允许在度量组中组织度量, 这允许一次选择几个相关度量的快捷方式. | v3 ☑✓ 4.15-rc1 | [LORE v3,0/11](https://lore.kernel.org/all/20170831194036.30146-2-andi@firstfloor.org) |
+| 2017/08/31 | Andi Kleen <andi@firstfloor.org> | [perf arm64 metricgroup support](https://lore.kernel.org/all/20170831194036.30146-1-andi@firstfloor.org) | 为 perf stat 添加[对 JSON 文件中指定的独立指标](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b18f3e365019de1a5b26a851e123f0aedcce881f) 的通用支持. 这些指标是一个公式, 它使用多个事件来计算更高级别的结果(例如 IPC, TOPDOWN 分析等). 添加一个新的 `-M /--metrics` 选项来添加指定的度量或度量组. 并增加了对 Intel X86 平台的支持. 通过这些 JSON 文件定义的事件组合度量, 可以很好的支持 TOPDOWN 分析. | v3 ☑ 4.15-rc1 | [PatchWork v3,00/11](https://lore.kernel.org/all/20170831194036.30146-1-andi@firstfloor.org) |
+| 2020/09/11 | Kan Liang <kan.liang@linux.intel.com> | [TopDown metrics support for Ice Lake (perf tool)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=328781df86fa8f9299219c74ffae876bd625c6d1) | 为 perf metrics 分析增加对 Ice Lake 的支持. 将原本 group 重命名为 topdown. | v3 ☑ 5.10-rc1 | [PatchWork v3,0/4](https://lore.kernel.org/lkml/20200911144808.27603-1-kan.liang@linux.intel.com) |
+| 2021/04/07 | John Garry <john.garry@huawei.com> | [perf arm64 metricgroup support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0cc177cfc95d565e1a458136a592b0bd6d487db0) | perf 支持 HiSilicon hip08 平台的 topdown metric. 支持到 Level 3. 自此鲲鹏 920 的 ARM64 服务器上, 可以使用:<br>`sudo perf stat -M TopDownL1 sleeep 1`<br>来进行 TopDown 分析了. | v1 ☑ 5.13-rc1 | [PatchWork 0/5](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1614784938-27080-1-git-send-email-john.garry@huawei.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1616668398-144648-1-git-send-email-john.garry@huawei.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3,0/6](https://patchwork.kernel.org/project/linux-arm-kernel/cover/1617791570-165223-1-git-send-email-john.garry@huawei.com) |
+| 2022/05/28 | zhengjun <zhengjun.xing@linux.intel.com> | [perf vendor events intel: Add metrics for Sapphirerapids](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1bcca2b1bd67f3c0e5c3a88ed16c6389f01a5b31) | TODO | v2 ☑✓ 5.19-rc1 | [LORE v2,0/2](https://lore.kernel.org/all/20220528095933.1784141-1-zhengjun.xing@linux.intel.com) |
+| 2022/08/25 | zhengjun.xing@linux.intel.com <zhengjun.xing@linux.intel.com> | [perf stat: Capitalize topdown metricsnel.org/all/20220825015458.3252239-1-zhengjun.xing@linux.intel.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/9-1-zhengjun.xing@linux.intel.com) |
+| 2022/10/21 | Shang XiaoJing <shangxiaojing@huawei.com> | [perf vendor events arm64: Fix incorrect Hisi hip08 L3 metrics](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e9229d5b6254a75291536f582652c599957344d2) | TODO | v2 ☑✓ 6.1-rc3 | [LORE v2,0/3](https://lore.kernel.org/all/20221021105035.10000-1-shangxiaojing@huawei.com) |
+| 2022/12/14 | Sandipan Das <sandipan.das@amd.com> | [perf vendor events amd: Add Zen 4 events and metrics](https://lore.kernel.org/all/20221214082652.419965-1-sandipan.das@amd.com) | [Linux 6.2 Adds AMD Zen 4 Pipeline Utilization Data To Help Find Performance Bottlenecks](https://www.phoronix.com/news/LInux-6.2-AMD-Zen-4-Events) | v2 ☐☑✓ 6.2-rc1 | [LORE v2,0/4](https://lore.kernel.org/all/20221214082652.419965-1-sandipan.das@amd.com) |
+
+
+## 11.9
 
 
 # 12 KPROBE

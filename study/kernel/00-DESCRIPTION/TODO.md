@@ -20,33 +20,21 @@ https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13305
 
 | 2022/08/19 | Alexei Starovoitov <alexei.starovoitov@gmail.com> | [bpf: BPF specific memory allocator.](https://patchwork.kernel.org/project/linux-mm/cover/20220819214232.18784-1-alexei.starovoitov@gmail.com/) | 669364 | v3 ☐☑ | [LORE v3,0/15](https://lore.kernel.org/r/20220819214232.18784-1-alexei.starovoitov@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/15](https://lore.kernel.org/r/20220826024430.84565-1-alexei.starovoitov@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/15](https://lore.kernel.org/r/20220901161547.57722-1-alexei.starovoitov@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/16](https://lore.kernel.org/r/20220902211058.60789-1-alexei.starovoitov@gmail.com) |
 | 2022/09/02 | Yafang Shao <laoar.shao@gmail.com> | [bpf: Introduce selectable memcg for bpf map](https://patchwork.kernel.org/project/linux-mm/cover/20220902023003.47124-1-laoar.shao@gmail.com/) | 673444 | v3 ☐☑ | [LORE v3,0/13](https://lore.kernel.org/r/20220902023003.47124-1-laoar.shao@gmail.com) |
+| 2022/11/07 | Song Liu <song@kernel.org> | [execmem_alloc for BPF programs](https://patchwork.kernel.org/project/linux-mm/cover/20221107223921.3451913-1-song@kernel.org/) | 692973 | v2 ☐☑ | [LORE v2,0/5](https://lore.kernel.org/r/20221107223921.3451913-1-song@kernel.org)[LORE v4,0/6](https://lore.kernel.org/r/20221117202322.944661-1-song@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/6](https://lore.kernel.org/r/20221128190245.2337461-1-song@kernel.org) |
+| 2022/11/17 | Song Liu <song@kernel.org> | [execmem_alloc for BPF programs](https://patchwork.kernel.org/project/linux-mm/cover/20221117202322.944661-1-song@kernel.org/) | 696625 | v4 ☐☑ | |
+| 2022/12/12 | Yafang Shao <laoar.shao@gmail.com> | [mm, bpf: Add BPF into /proc/meminfo](https://patchwork.kernel.org/project/linux-mm/cover/20221212003711.24977-1-laoar.shao@gmail.com/) | 703689 | v1 ☐☑ | [LORE v1,0/9](https://lore.kernel.org/r/20221212003711.24977-1-laoar.shao@gmail.com) |
 
 
 
 
 | 2022/09/13 | Doug Berger <opendmb@gmail.com> | [mm: introduce Designated Movable Blocks](https://patchwork.kernel.org/project/linux-mm/cover/20220913195508.3511038-1-opendmb@gmail.com/) | 676674 | v1 ☐☑ | [LORE v1,0/21](https://lore.kernel.org/r/20220913195508.3511038-1-opendmb@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/9](https://lore.kernel.org/r/20230311003855.645684-1-opendmb@gmail.com) |
+| 2022/10/19 | Andrei Vagin <avagin@gmail.com> | [seccomp: add the synchronous mode for seccomp_unotify](https://lore.kernel.org/all/20221020011048.156415-1-avagin@gmail.com) | TODO | v2 ☐☑✓ | [LORE v2,0/5](https://lore.kernel.org/all/20221020011048.156415-1-avagin@gmail.com) |
 
 
 [Linux RSEQ Patches Updated For Allowing Faster getCPU () In C Libraries](https://www.phoronix.com/news/Linux-RSEQ-Faster-getCPU)
 
 
-
-
-
-
-
-| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/10/19 | Andrei Vagin <avagin@gmail.com> | [seccomp: add the synchronous mode for seccomp_unotify](https://lore.kernel.org/all/20221020011048.156415-1-avagin@gmail.com) | TODO | v2 ☐☑✓ | [LORE v2,0/5](https://lore.kernel.org/all/20221020011048.156415-1-avagin@gmail.com) |
-
-
-
-
-
-
-
 [Seccomp 机制与 seccomp notify 介绍](https://just4coding.com/2022/04/03/seccomp/)
-26e9a1ded892 sched/debug: fix dentry leak in update_sched_domain_debugfs
 
 git log --oneline android-mainline-5.10...HEAD | grep ANDROID | grep sched | grep -E "vendor|hook"
 
@@ -108,48 +96,30 @@ khugepage_code 将选择命中率最高的节点作为首选节点, 并尝试在
 节点均衡是由 commit 9f1b868a13ac("mm: thp: khugepaged: add policy for finding target node") 以满足 "numactl—interleave=all". 但交叉只是一种暗示, 并没有什么硬性要求.
 
 因此, 使用 nodemask 来记录具有相同命中记录的节点, 巨大的页面分配可能会回退到这些节点. 并删除__GFP_THISNODE, 因为它不允许回退. 如果 nodemask 为空 (没有设置节点), 这意味着只有一个节点的历史记录最多, nodemask 方法实际上类似于 `__GFP_THISNODE`.
-
-| 2022/11/03 | Yang Shi <shy828301@gmail.com> | [[v2,1/2] mm: khugepaged: allow page allocation fallback to eligible nodes](https://patchwork.kernel.org/project/linux-mm/patch/20221103213641.7296-1-shy828301@gmail.com/) | 691842 | v2 ☐☑ | [LORE v2,0/2](https://lore.kernel.org/r/20221103213641.7296-1-shy828301@gmail.com) |
-| 2022/11/04 | zhaoyang.huang <zhaoyang.huang@unisoc.com> | [[RFC] mm: introduce object accounting via backtrace on slub](https://patchwork.kernel.org/project/linux-mm/patch/1667550838-10639-1-git-send-email-zhaoyang.huang@unisoc.com/) | 692001 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/1667550838-10639-1-git-send-email-zhaoyang.huang@unisoc.com) |
-| 2022/11/07 | Kirill A. Shutemov <kirill.shutemov@linux.intel.com> | [[PATCHv11.1,04/16] x86/mm: Handle LAM on context switch](https://patchwork.kernel.org/project/linux-mm/patch/20221107213558.27807-1-kirill.shutemov@linux.intel.com/) | 692964 | v1 ☐☑ | [LORE v1,0/16](https://lore.kernel.org/r/20221107213558.27807-1-kirill.shutemov@linux.intel.com) |
-| 2022/11/07 | Song Liu <song@kernel.org> | [execmem_alloc for BPF programs](https://patchwork.kernel.org/project/linux-mm/cover/20221107223921.3451913-1-song@kernel.org/) | 692973 | v2 ☐☑ | [LORE v2,0/5](https://lore.kernel.org/r/20221107223921.3451913-1-song@kernel.org)[LORE v4,0/6](https://lore.kernel.org/r/20221117202322.944661-1-song@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/6](https://lore.kernel.org/r/20221128190245.2337461-1-song@kernel.org) |
-| 2022/11/08 | Lukas Czerner <lczerner@redhat.com> | [shmem: user and group quota support for tmpfs](https://patchwork.kernel.org/project/linux-mm/cover/20221108133010.75226-1-lczerner@redhat.com/) | 693244 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20221108133010.75226-1-lczerner@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/r/20221121142854.91109-1-lczerner@redhat.com) |
-| 2022/11/08 | Linus Torvalds <torvalds@linux-foundation.org> | [[1/4] mm: introduce 'encoded' page pointers with embedded extra bits](https://patchwork.kernel.org/project/linux-mm/patch/20221108194139.57604-1-torvalds@linux-foundation.org/) | 693373 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20221108194139.57604-1-torvalds@linux-foundation.org)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/4](https://lore.kernel.org/r/20221109203051.1835763-1-torvalds@linux-foundation.org) |
+| 2022/11/04 | zhaoyang.huang <zhaoyang.huang@unisoc.com> | [mm: introduce object accounting via backtrace on slub](https://patchwork.kernel.org/project/linux-mm/patch/1667550838-10639-1-git-send-email-zhaoyang.huang@unisoc.com/) | 692001 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/1667550838-10639-1-git-send-email-zhaoyang.huang@unisoc.com) |
+| 2022/11/08 | Linus Torvalds <torvalds@linux-foundation.org> | [mm: introduce'encoded'page pointers with embedded extra bits](https://patchwork.kernel.org/project/linux-mm/patch/20221108194139.57604-1-torvalds@linux-foundation.org/) | 693373 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20221108194139.57604-1-torvalds@linux-foundation.org)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/4](https://lore.kernel.org/r/20221109203051.1835763-1-torvalds@linux-foundation.org) |
 | 2022/11/09 | Chao Xu <amos.xuchao@gmail.com> | [mm/vmscan: simplify the nr assignment logic for pages to scan](https://patchwork.kernel.org/project/linux-mm/patch/20221109070416.620887-1-Chao.Xu9@zeekrlife.com/) | 693511 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221109070416.620887-1-Chao.Xu9@zeekrlife.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20221110113130.284290-1-Chao.Xu9@zeekrlife.com) |
-| 2022/11/09 | Joao Martins <joao.m.martins@oracle.com> | [[v3] mm/hugetlb_vmemmap: remap head page to newly allocated page](https://patchwork.kernel.org/project/linux-mm/patch/20221109200623.96867-1-joao.m.martins@oracle.com/) | 693796 | v3 ☐☑ | [LORE v3,0/1](https://lore.kernel.org/r/20221109200623.96867-1-joao.m.martins@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/1](https://lore.kernel.org/r/20221110121214.6297-1-joao.m.martins@oracle.com|
-| 2022/11/10 | Lu Jialin <lujialin4@huawei.com> | [mm/memcontrol.c: drains percpu charge caches in memory.reclaim](https://patchwork.kernel.org/project/linux-mm/patch/20221110065316.67204-1-lujialin4@huawei.com/) | 693926 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221110065316.67204-1-lujialin4@huawei.com) |
-| 2022/11/17 | Song Liu <song@kernel.org> | [execmem_alloc for BPF programs](https://patchwork.kernel.org/project/linux-mm/cover/20221117202322.944661-1-song@kernel.org/) | 696625 | v4 ☐☑ | |
-| 2022/11/19 | Ananda Badmaev <a.badmaev@clicknet.pro> | [mm: add zblock - new allocator for use via zpool API](https://patchwork.kernel.org/project/linux-mm/patch/20221119082159.63636-1-a.badmaev@clicknet.pro/) | 697232 | v7 ☐☑ | [LORE v6,0/1](https://lore.kernel.org/r/20221104085856.18745-1-a.badmaev@clicknet.pro)<br>*-*-*-*-*-*-*-* <br>[LORE v9,0/1](https://lore.kernel.org/r/20221202040110.14291-1-a.badmaev@clicknet.pro)[LORE v7,0/1](https://lore.kernel.org/r/20221119082159.63636-1-a.badmaev@clicknet.pro)<br>*-*-*-*-*-*-*-* <br>[LORE v8,0/1](https://lore.kernel.org/r/20221121145435.41002-1-a.badmaev@clicknet.pro) |
-| 2022/11/21 | Vlastimil Babka <vbabka@suse.cz> | [Introduce CONFIG_SLUB_TINY and deprecate SLOB](https://patchwork.kernel.org/project/linux-mm/cover/20221121171202.22080-1-vbabka@suse.cz/)| 697743 | v1 ☐☑ | [LORE v1,0/12](https://lore.kernel.org/r/20221121171202.22080-1-vbabka@suse.cz) |
 | 2022/11/21 | Aleksey Romanov <avromanov@sberdevices.ru> | [Introduce merge identical pages mechanism](https://patchwork.kernel.org/project/linux-mm/cover/20221121190020.66548-1-avromanov@sberdevices.ru/) | 697795 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20221121190020.66548-1-avromanov@sberdevices.ru) |
-| 2022/11/22 | Mina Almasry <almasrymina@google.com> | [[RFC,v1] mm: Add memory.demote for proactive demotion only](https://patchwork.kernel.org/project/linux-mm/patch/20221122203850.2765015-2-almasrymina@google.com/) | 698229 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221122203850.2765015-2-almasrymina@google.com) |
-| 2022/11/24 | Jiasheng Jiang <jiasheng@iscas.ac.cn> | [mm/vmalloc: Add check for KMEM_CACHE](https://patchwork.kernel.org/project/linux-mm/patch/20221124040226.17953-1-jiasheng@iscas.ac.cn/) | 698747 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221124040226.17953-1-jiasheng@iscas.ac.cn) |
 | 2022/11/25 | Peter Xu <peterx@redhat.com> | [mm/thp: Re-apply mkdirty for small pages after split](https://patchwork.kernel.org/project/linux-mm/patch/20221125185857.3110155-1-peterx@redhat.com/) | 699295 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221125185857.3110155-1-peterx@redhat.com) |
-| 2022/11/25 | Jann Horn <jannh@google.com> | [[v3,1/3] mm/khugepaged: Take the right locks for page table retraction](https://patchwork.kernel.org/project/linux-mm/patch/20221125213714.4115729-1-jannh@google.com/) | 699315 | v3 ☐☑ | [LORE v3,0/3](https://lore.kernel.org/r/20221125213714.4115729-1-jannh@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/3](https://lore.kernel.org/r/20221128180252.1684965-1-jannh@google.com) |[LORE v4,0/3](https://lore.kernel.org/r/20221128180252.1684965-1-jannh@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/3](https://lore.kernel.org/r/20221129154730.2274278-1-jannh@google.com) |
-| 2022/11/28 | Alexander Potapenko <glider@google.com> | [[1/2] lockdep: allow instrumenting lockdep.c with KMSAN](https://patchwork.kernel.org/project/linux-mm/patch/20221128094541.2645890-1-glider@google.com/) | 699627 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20221128094541.2645890-1-glider@google.com) |
-| 2022/11/28 | Brian Foster <bfoster@redhat.com> | [filemap: skip write and wait if end offset precedes start](https://patchwork.kernel.org/project/linux-mm/cover/20221128155632.3950447-1-bfoster@redhat.com/) | 699767 | v2 ☐☑ | [LORE v2,0/2](https://lore.kernel.org/r/20221128155632.3950447-1-bfoster@redhat.com) |
 | 2022/11/29 | Liam Howlett <Liam.Howlett@Oracle.com> | [VMA type safety through VMA iterator](https://patchwork.kernel.org/project/linux-mm/cover/20221129164352.3374638-1-Liam.Howlett@oracle.com/) | 700163 | v1 ☐☑ | [LORE v1,0/43](https://lore.kernel.org/r/20221129164352.3374638-1-Liam.Howlett@oracle.com) |
-| 2022/11/30 |  <ye.xingchen@zte.com.cn> | [mm/huge_memory: add TRANSPARENT_HUGEPAGE_NEVER for THP](https://patchwork.kernel.org/project/linux-mm/patch/202211301651462590168@zte.com.cn/) | 700357 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/202211301651462590168@zte.com.cn) |
-| 2022/11/30 | Matthew Wilcox <willy@infradead.org> | [Split page pools from struct page](https://patchwork.kernel.org/project/linux-mm/cover/20221130220803.3657490-1-willy@infradead.org/) | 700614 | v1 ☐☑ | [LORE v1,0/24](https://lore.kernel.org/r/20221130220803.3657490-1-willy@infradead.org) |
-| 2022/12/01 | Mina Almasry <almasrymina@google.com> | [[v1] mm: disable top-tier fallback to reclaim on proactive reclaim](https://patchwork.kernel.org/project/linux-mm/patch/20221201233317.1394958-1-almasrymina@google.com/) | 701011 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221201233317.1394958-1-almasrymina@google.com) |
+| 2022/12/01 | Mina Almasry <almasrymina@google.com> | [mm: disable top-tier fallback to reclaim on proactive reclaim](https://patchwork.kernel.org/project/linux-mm/patch/20221201233317.1394958-1-almasrymina@google.com/) | 701011 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221201233317.1394958-1-almasrymina@google.com) |
 | 2022/12/02 | Alistair Popple <apopple@nvidia.com> | [mm/mmap: Properly unaccount memory on mas_preallocate() failure](https://patchwork.kernel.org/project/linux-mm/patch/20221202045339.2999017-1-apopple@nvidia.com/) | 701081 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221202045339.2999017-1-apopple@nvidia.com) |
-| 2022/12/02 | David Hildenbrand <david@redhat.com> | [[RFC] mm/userfaultfd: enable writenotify while userfaultfd-wp is enabled for a VMA](https://patchwork.kernel.org/project/linux-mm/patch/20221202122748.113774-1-david@redhat.com/) | 701236 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221202122748.113774-1-david@redhat.com) |
+
 | 2022/12/02 | Brian Foster <bfoster@redhat.com> | [proc: improve root readdir latency with many threads](https://patchwork.kernel.org/project/linux-mm/cover/20221202171620.509140-1-bfoster@redhat.com/) | 701317 | v3 ☐☑ | [LORE v3,0/5](https://lore.kernel.org/r/20221202171620.509140-1-bfoster@redhat.com) |
-| 2022/11/09 | Baoquan He <bhe@redhat.com> | [mm/vmalloc.c: allow vread() to read out vm_map_ram areas](https://patchwork.kernel.org/project/linux-mm/cover/20221109033535.269229-1-bhe@redhat.com/) | 693476 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20221109033535.269229-1-bhe@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/7](https://lore.kernel.org/r/20221204013046.154960-1-bhe@redhat.com) |
 | 2022/12/05 | Li,Rongqing <lirongqing@baidu.com> | [mm: memcontrol: speedup memory cgroup resize](https://patchwork.kernel.org/project/linux-mm/patch/1670240992-28563-1-git-send-email-lirongqing@baidu.com/) | 701772 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/1670240992-28563-1-git-send-email-lirongqing@baidu.com) |
-| 2022/12/05 | Stephen Boyd <swboyd@chromium.org> | [pstore: Avoid kcore oops by vmap()ing with VM_IOREMAP](https://patchwork.kernel.org/project/linux-mm/patch/20221205233136.3420802-1-swboyd@chromium.org/) | 702003 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221205233136.3420802-1-swboyd@chromium.org) |
-| 2022/12/06 | Fabio M. De Francesco <fmdefrancesco@gmail.com> | [mm/highmem: Add notes about conversions from kmap{,_atomic}()](https://patchwork.kernel.org/project/linux-mm/patch/20221206070029.7342-1-fmdefrancesco@gmail.com/) | 702076 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221206070029.7342-1-fmdefrancesco@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20221207225308.8290-1-fmdefrancesco@gmail.com) |
+
+
+| 2022/11/09 | Baoquan He <bhe@redhat.com> | [mm/vmalloc.c: allow vread() to read out vm_map_ram areas](https://patchwork.kernel.org/project/linux-mm/cover/20221109033535.269229-1-bhe@redhat.com/) | 693476 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20221109033535.269229-1-bhe@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/7](https://lore.kernel.org/r/20221204013046.154960-1-bhe@redhat.com) |
+\| 2022/12/06 | Fabio M. De Francesco <fmdefrancesco@gmail.com> | [mm/highmem: Add notes about conversions from kmap{,_atomic}()](https://patchwork.kernel.org/project/linux-mm/patch/20221206070029.7342-1-fmdefrancesco@gmail.com/) | 702076 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221206070029.7342-1-fmdefrancesco@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20221207225308.8290-1-fmdefrancesco@gmail.com) |
 | 2022/12/06 | David Hildenbrand <david@redhat.com> | [mm: support `__HAVE_ARCH_PTE_SWP_EXCLUSIVE` on all architectures with swap PTEs](https://patchwork.kernel.org/project/linux-mm/cover/20221206144730.163732-1-david@redhat.com/) | 702222 | v1 ☐☑ | [LORE v1,0/26](https://lore.kernel.org/r/20221206144730.163732-1-david@redhat.com) |
-| 2022/12/06 | Nico Pache <npache@redhat.com> | [[RFC] vmscan: Scale file_is_tiny calculation based on priority](https://patchwork.kernel.org/project/linux-mm/patch/20221206222315.37631-1-npache@redhat.com/) | 702319 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221206222315.37631-1-npache@redhat.com) |
+| 2022/12/06 | Nico Pache <npache@redhat.com> | [vmscan: Scale file_is_tiny calculation based on priority](https://patchwork.kernel.org/project/linux-mm/patch/20221206222315.37631-1-npache@redhat.com/) | 702319 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221206222315.37631-1-npache@redhat.com) |
 | 2022/12/07 | Vishal Moola (Oracle) <vishal.moola@gmail.com> | [Convert deactivate_page() to deactivate_folio()](https://patchwork.kernel.org/project/linux-mm/cover/20221207002158.418789-1-vishal.moola@gmail.com/) | 702344 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20221207002158.418789-1-vishal.moola@gmail.com) |
-| 2022/12/07 | Kefeng Wang <wangkefeng.wang@huawei.com> | [[1/2] mm: huge_memory: Convert madvise_free_huge_pmd to use a folio](https://patchwork.kernel.org/project/linux-mm/patch/20221207023431.151008-1-wangkefeng.wang@huawei.com/) | 702384 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20221207023431.151008-1-wangkefeng.wang@huawei.com) |
-| 2022/12/08 | chengkaitao <pilgrimtao@gmail.com> | [[v2] mm: memcontrol: protect the memory in cgroup from being oom killed](https://patchwork.kernel.org/project/linux-mm/patch/20221208034644.3077-1-chengkaitao@didiglobal.com/) | 702809 | v2 ☐☑ | [LORE v2,0/1](https://lore.kernel.org/r/20221208034644.3077-1-chengkaitao@didiglobal.com) |
-| 2022/12/08 | David Hildenbrand <david@redhat.com> | [[v1] mm/userfaultfd: enable writenotify while userfaultfd-wp is enabled for a VMA](https://patchwork.kernel.org/project/linux-mm/patch/20221208114137.35035-1-david@redhat.com/) | 702923 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221208114137.35035-1-david@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20221209080912.7968-1-david@redhat.com) |
+| 2022/12/07 | Kefeng Wang <wangkefeng.wang@huawei.com> | [mm: huge_memory: Convert madvise_free_huge_pmd to use a folio](https://patchwork.kernel.org/project/linux-mm/patch/20221207023431.151008-1-wangkefeng.wang@huawei.com/) | 702384 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20221207023431.151008-1-wangkefeng.wang@huawei.com) |
+| 2022/12/08 | chengkaitao <pilgrimtao@gmail.com> | [mm: memcontrol: protect the memory in cgroup from being oom killed](https://patchwork.kernel.org/project/linux-mm/patch/20221208034644.3077-1-chengkaitao@didiglobal.com/) | 702809 | v2 ☐☑ | [LORE v2,0/1](https://lore.kernel.org/r/20221208034644.3077-1-chengkaitao@didiglobal.com) |
 | 2022/12/08 | Wenchao Hao <haowenchao@huawei.com> | [cma:tracing: Print alloc result in trace_cma_alloc_finish](https://patchwork.kernel.org/project/linux-mm/patch/20221208142130.1501195-1-haowenchao@huawei.com/) | 702989 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221208142130.1501195-1-haowenchao@huawei.com) |
 | 2022/12/08 | Peter Xu <peterx@redhat.com> | [mm/uffd: Always wr-protect pte in pte|pmd_mkuffd_wp()](https://patchwork.kernel.org/project/linux-mm/patch/20221208194628.766316-1-peterx@redhat.com/) | 703082 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221208194628.766316-1-peterx@redhat.com) |
 | 2022/12/09 | Xander <xandermoerkerken@gmail.com> | [Added ability to vmalloc executable memory](https://patchwork.kernel.org/project/linux-mm/patch/20221209131052.64235-1-xander.moerkerken@omron.com/) | 703287 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221209131052.64235-1-xander.moerkerken@omron.com) |
 | 2022/12/09 | Nhat Pham <nphamcs@gmail.com> | [[v3,2/4] workingset: refactor LRU refault to expose refault recency check](https://patchwork.kernel.org/project/linux-mm/patch/20221209172922.3143160-1-nphamcs@gmail.com/) | 703468 | v3 ☐☑ | [LORE v3,0/4](https://lore.kernel.org/r/20221209172922.3143160-1-nphamcs@gmail.com) |
-| 2022/12/12 | Yafang Shao <laoar.shao@gmail.com> | [mm, bpf: Add BPF into /proc/meminfo](https://patchwork.kernel.org/project/linux-mm/cover/20221212003711.24977-1-laoar.shao@gmail.com/) | 703689 | v1 ☐☑ | [LORE v1,0/9](https://lore.kernel.org/r/20221212003711.24977-1-laoar.shao@gmail.com) |
 | 2022/12/12 | David Hildenbrand <david@redhat.com> | [[mm-stable] mm/gup_test: free memory allocated via kvcalloc() using kvfree()](https://patchwork.kernel.org/project/linux-mm/patch/20221212182018.264900-1-david@redhat.com/) | 703907 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221212182018.264900-1-david@redhat.com) |
 | 2022/12/12 | Jason A. Donenfeld <Jason@zx2c4.com> | [mm: add VM_DROPPABLE for designating always lazily freeable mappings](https://patchwork.kernel.org/project/linux-mm/patch/20221212185347.1286824-2-Jason@zx2c4.com/) | 703918 | v12 ☐☑ | [LORE v12,0/6](https://lore.kernel.org/r/20221212185347.1286824-2-Jason@zx2c4.com)[LORE v14,0/7](https://lore.kernel.org/r/20230101162910.710293-3-Jason@zx2c4.com) |
 | 2022/12/12 | Mike Kravetz <mike.kravetz@oracle.com> | [[1/2] hugetlb: really allocate vma lock for all sharable vmas](https://patchwork.kernel.org/project/linux-mm/patch/20221212235042.178355-1-mike.kravetz@oracle.com/) | 703972 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20221212235042.178355-1-mike.kravetz@oracle.com) |
@@ -172,14 +142,29 @@ khugepage_code 将选择命中率最高的节点作为首选节点, 并尝试在
 | 2022/12/23 | Zach O'Keefe <zokeefe@google.com> | [mm/shmem: restore SHMEM_HUGE_DENY precedence over MADV_COLLAPSE](https://patchwork.kernel.org/project/linux-mm/patch/20221223003833.2793963-1-zokeefe@google.com/) | 706614 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221223003833.2793963-1-zokeefe@google.com) |
 | 2022/12/23 | Zach O'Keefe <zokeefe@google.com> | [mm/MADV_COLLAPSE: don't expand collapse when vm_end is past requested end](https://patchwork.kernel.org/project/linux-mm/patch/20221223003953.2795313-1-zokeefe@google.com/) | 706615 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221223003953.2795313-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/2](https://lore.kernel.org/r/20221224081203.3193960-1-zokeefe@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/2](https://lore.kernel.org/r/20221224082035.3197140-1-zokeefe@google.com) |
 | 2022/12/23 | Soichiro Ueda <the.latticeheart@gmail.com> | [virtio_balloon: high order allocation](https://patchwork.kernel.org/project/linux-mm/patch/20221223093527.12424-1-the.latticeheart@gmail.com/) | 706715 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221223093527.12424-1-the.latticeheart@gmail.com) |
+| 2023/03/22 | Liu Shixin <liushixin2@huawei.com> | [Delay the initialization of zswap](https://patchwork.kernel.org/project/linux-mm/cover/20230322102006.780624-1-liushixin2@huawei.com/) | 732661 | v6 ☐☑ | [LORE v6,0/2](https://lore.kernel.org/r/20230322102006.780624-1-liushixin2@huawei.com))<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/4](https://lore.kernel.org/r/20230325071420.2246461-1-liushixin2@huawei.com) |
+| 2023/03/22 | Florian Schmidt <flosch@nutanix.com> | [[RFC] memcg v1: provide read access to memory.pressure_level](https://patchwork.kernel.org/project/linux-mm/patch/20230322142525.162469-1-flosch@nutanix.com/) | 732770 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230322142525.162469-1-flosch@nutanix.com) |
 
 
 | 2022/10/24 | Nick Terrell <nickrterrell@gmail.com> | [zstd: Update to upstream v1.5.2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2aa14b1ab2c41a4fe41efae80d58bb77da91f19f) | [Updated Zstd Implementation Merged For Linux 6.2](https://www.phoronix.com/news/Linux-6.2-Zstd) | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20221024202606.404049-1-nickrterrell@gmail.com) |
 | 2022/11/10 | Nick Desaulniers <ndesaulniers@google.com> | [Makefile.debug: support for -gz=zstd](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9f8fe647797a4bc049bc7cceaf3a63584678ba04) | 实现 DEBUG_INFO_COMPRESSED_ZSTD, 参见 phoronix 报道 [Linux 6.2 Allows For Zstd-Compressed Debug Information](https://www.phoronix.com/news/Linux-6.2-Zstd-Debug-Info) | v3 ☐☑✓ 6.2-rc1 | [LORE](https://lore.kernel.org/all/20221110195932.377841-1-ndesaulniers@google.com) |
+| 2023/03/23 | Krcka, Tomas <krckatom@amazon.de> | [[v2] mm: Be less noisy during memory hotplug](https://patchwork.kernel.org/project/linux-mm/patch/20230323174349.35990-1-krckatom@amazon.de/) | 733270 | v2 ☐☑ | [LORE v2,0/1](https://lore.kernel.org/r/20230323174349.35990-1-krckatom@amazon.de) |
+| 2023/03/25 | Mark Brown <broonie@kernel.org> | [regmap: Add basic maple tree register cache](https://patchwork.kernel.org/project/linux-mm/cover/20230325-regcache-maple-v1-0-1c76916359fb@kernel.org) | 733856 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20230325-regcache-maple-v1-0-1c76916359fb@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/2](https://lore.kernel.org/r/20230325-regcache-maple-v2-0-799dcab3ecb1@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/2](https://lore.kernel.org/r/20230325-regcache-maple-v3-0-23e271f93dc7@kernel.org) |
 
+
+| 2023/03/27 | Matthew Wilcox <willy@infradead.org> | [Prevent ->map_pages from sleeping](https://patchwork.kernel.org/project/linux-mm/cover/20230327174515.1811532-1-willy@infradead.org/) | 734281 | v2 ☐☑ | [LORE v2,0/3](https://lore.kernel.org/r/20230327174515.1811532-1-willy@infradead.org) |
+
+| 2023/03/28 | Alistair Popple <apopple@nvidia.com> | [mm: Take a page reference when removing device exclusive entries](https://patchwork.kernel.org/project/linux-mm/patch/20230328021434.292971-1-apopple@nvidia.com/) | 734394 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230328021434.292971-1-apopple@nvidia.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20230330012519.804116-1-apopple@nvidia.com) |
+| 2023/03/28 | Yosry Ahmed <yosryahmed@google.com> | [memcg: make rstat flushing irq and sleep friendly](https://patchwork.kernel.org/project/linux-mm/cover/20230328061638.203420-1-yosryahmed@google.com/) | 734466 | v1 ☐☑ | [LORE v1,0/9](https://lore.kernel.org/r/20230328061638.203420-1-yosryahmed@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/9](https://lore.kernel.org/r/20230328221644.803272-1-yosryahmed@google.com) |
+| 2023/03/28 | Muchun Song <songmuchun@bytedance.com> | [Simplify kfence code](https://patchwork.kernel.org/project/linux-mm/cover/20230328095807.7014-1-songmuchun@bytedance.com/) | 734539 | v1 ☐☑ | [LORE v1,0/6](https://lore.kernel.org/r/20230328095807.7014-1-songmuchun@bytedance.com) |
 
 
 | 2022/04/06 | Liao Chang <liaochang1@huawei.com> | [softirq: Introduce softirq throttling](https://lore.kernel.org/all/20220406022749.184807-1-liaochang1@huawei.com) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20220406022749.184807-1-liaochang1@huawei.com) |
+| 2023/03/29 | Yicong Yang <yangyicong@huawei.com> | [arm64: support batched/deferred tlb shootdown during page reclamation](https://patchwork.kernel.org/project/linux-mm/cover/20230329035512.57392-1-yangyicong@huawei.com/) | 734835 | v8 ☐☑ | [LORE v8,0/2](https://lore.kernel.org/r/20230329035512.57392-1-yangyicong@huawei.com) |
+| 2023/03/29 | Luis Chamberlain <mcgrof@kernel.org> | [module: avoid userspace pressure on unwanted allocations](https://patchwork.kernel.org/project/linux-mm/cover/20230329053149.3976378-1-mcgrof@kernel.org/) | 734852 | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20230329053149.3976378-1-mcgrof@kernel.org) |
+| 2023/03/30 | Longlong Xia <xialonglong1@huawei.com> | [mm: ksm: support hwpoison for ksm page](https://patchwork.kernel.org/project/linux-mm/cover/20230330074501.205092-1-xialonglong1@huawei.com/) | 735257 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20230330074501.205092-1-xialonglong1@huawei.com) |
+| 2023/03/30 | Yosry Ahmed <yosryahmed@google.com> | [memcg: avoid flushing stats atomically where possible](https://patchwork.kernel.org/project/linux-mm/cover/20230330191801.1967435-1-yosryahmed@google.com/) | 735542 | v3 ☐☑ | [LORE v3,0/8](https://lore.kernel.org/r/20230330191801.1967435-1-yosryahmed@google.com) |
+| 2023/03/30 | Shaun Tancheff <shaun.tancheff@gmail.com> | [memcg: Set memory min, low, high values along with max](https://patchwork.kernel.org/project/linux-mm/patch/20230330202232.355471-1-shaun.tancheff@gmail.com/) | 735566 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230330202232.355471-1-shaun.tancheff@gmail.com) |
 
 
 http://viz-js.com
@@ -190,14 +175,13 @@ https://www.latexlive.com
 
 
 
-| 2022/11/15 | Nhat Pham <nphamcs@gmail.com> | [cachestat: a new syscall for page cache state of files](https://patchwork.kernel.org/project/linux-mm/cover/20221115182901.2755368-1-nphamcs@gmail.com/) | 695661 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20221115182901.2755368-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20221205175140.1543229-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/r/20221208223104.1554368-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/4](https://lore.kernel.org/r/20221216192149.3902877-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/3](https://lore.kernel.org/r/20230104231127.2634648-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,0/3](https://lore.kernel.org/r/20230126175356.1582123-1-nphamcs@gmail.com) |
-| 2023/01/24 | Nhat Pham <nphamcs@gmail.com> | [[v7,2/3] cachestat: implement cachestat syscall](https://patchwork.kernel.org/project/linux-mm/patch/20230124192946.1824096-1-nphamcs@gmail.com/) | 715251 | v7 ☐☑ | [LORE v7,0/3](https://lore.kernel.org/r/20230124192946.1824096-1-nphamcs@gmail.com) |
+
+
 | 2022/12/16 | Keith Busch <kbusch@meta.com> | [dmapool enhancements](https://patchwork.kernel.org/project/linux-mm/cover/20221216201625.2362737-1-kbusch@meta.com/) | 705206 | v1 ☐☑ | [LORE v1,0/11](https://lore.kernel.org/r/20221216201625.2362737-1-kbusch@meta.com) |
 | 2023/02/01 | Alexander Halbuer <halbuer@sra.uni-hannover.de> | [mm: reduce lock contention of pcp buffer refill](https://patchwork.kernel.org/project/linux-mm/patch/20230201162549.68384-1-halbuer@sra.uni-hannover.de/) | 717782 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230201162549.68384-1-halbuer@sra.uni-hannover.de) |
 | 2020/02/27 | Valentin Schneider <valentin.schneider@arm.com> | [sched, arm64: enable CONFIG_SCHED_SMT for arm64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=6f693dd5be08237b337f557c510d99addb9eb9ec) | TODO | v2 ☑✓ 5.7-rc1 | [LORE v2,0/2](https://lore.kernel.org/all/20200227191433.31994-1-valentin.schneider@arm.com) |
 | 2022/12/02 | Brian Foster <bfoster@redhat.com> | [proc: improve root readdir latency with many threads](https://lore.kernel.org/all/20221202171620.509140-1-bfoster@redhat.com) | TODO | v3 ☐☑✓ | [LORE v3,0/5](https://lore.kernel.org/all/20221202171620.509140-1-bfoster@redhat.com) |
 | 2023/01/09 | Yian Chen <yian.chen@intel.com> | [Enable LASS (Linear Address space Separation)](https://lore.kernel.org/all/20230110055204.3227669-1-yian.chen@intel.com) | 参见 LWN 报道 [Support for Intel's LASS](https://lwn.net/Articles/919683) 和 phoronix 报道 [Intel Posts Linux Patches For Linear Address Space Separation (LASS)](https://www.phoronix.com/news/Linear-Address-Space-Separation) | v1 ☐☑✓ | [LORE v1,0/7](https://lore.kernel.org/all/20230110055204.3227669-1-yian.chen@intel.com) |
-| 2023/02/02 | Yosry Ahmed <yosryahmed@google.com> | [Ignore non-LRU-based reclaim in memcg reclaim](https://patchwork.kernel.org/project/linux-mm/cover/20230202233229.3895713-1-yosryahmed@google.com/) | 718353 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20230202233229.3895713-1-yosryahmed@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/2](https://lore.kernel.org/r/20230228085002.2592473-1-yosryahmed@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/r/20230309093109.3039327-1-yosryahmed@google.com) |
 | 2023/02/05 | Yafang Shao <laoar.shao@gmail.com> | [bpf, mm: introduce cgroup.memory=nobpf](https://patchwork.kernel.org/project/linux-mm/cover/20230205065805.19598-1-laoar.shao@gmail.com/) | 718891 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20230205065805.19598-1-laoar.shao@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20230210154734.4416-1-laoar.shao@gmail.com) |
 | 2023/02/06 | Dan Williams <dan.j.williams@intel.com> | [CXL RAM and the'Soft Reserved'=> 'System RAM' default](https://patchwork.kernel.org/project/linux-mm/cover/167564534874.847146.5222419648551436750.stgit@dwillia2-xfh.jf.intel.com/) | 718969 | v1 ☐☑ | [LORE v1,0/18](https://lore.kernel.org/r/167564534874.847146.5222419648551436750.stgit@dwillia2-xfh.jf.intel.com) |
 | 2023/02/06 | Alistair Popple <apopple@nvidia.com> | [mm: Introduce a cgroup to limit the amount of locked and pinned memory](https://patchwork.kernel.org/project/linux-mm/cover/cover.c238416f0e82377b449846dbb2459ae9d7030c8e.1675669136.git-series.apopple@nvidia.com/) | 719027 | v1 ☐☑| [LORE v1,0/19](https://lore.kernel.org/r/cover.c238416f0e82377b449846dbb2459ae9d7030c8e.1675669136.git-series.apopple@nvidia.com) |
@@ -297,12 +281,10 @@ https://www.latexlive.com
 
 
 | 2023/01/26 | Waiman Long <longman@redhat.com> | [sched: Store restrict_cpus_allowed_ptr() call state](https://lore.kernel.org/all/20230127015527.466367-1-longman@redhat.com) | TODO | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230127015527.466367-1-longman@redhat.com) |
-| 2023/01/20 | Wander Lairson Costa <wander@redhat.com> | [Fix put_task_struct() calls under PREEMPT_RT](https://lore.kernel.org/all/20230120150246.20797-1-wander@redhat.com) | TODO | v2 ☐☑✓ | [LORE v2,0/4](https://lore.kernel.org/all/20230120150246.20797-1-wander@redhat.com) |
 
 
 
 
-| 2023/01/13 | Nathan Huckleberry <nhuck@google.com> | [workqueue: Add WQ_SCHED_FIFO](https://lore.kernel.org/all/20230113210703.62107-1-nhuck@google.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230113210703.62107-1-nhuck@google.com) |
 | 2018/11/11 | Paul E. McKenney <paulmck@linux.ibm.com> | [Automate initrd generation for v4.21/v5.0](https://lore.kernel.org/all/20181111200127.GA9511@linux.ibm.com) | 内核中引入 nolibc, 参见 LWN 报道 [Nolibc: a minimal C-library replacement shipped with the kernel](https://lwn.net/Articles/920158) | v5 ☐☑✓ | [LORE v5,0/8](https://lore.kernel.org/all/20181111200127.GA9511@linux.ibm.com) |
 | 2023/01/30 | Fan Wu <wufan@linux.microsoft.com> | [Integrity Policy Enforcement LSM (IPE)](https://lore.kernel.org/all/1675119451-23180-1-git-send-email-wufan@linux.microsoft.com) | TODO | v9 ☐☑✓ | [LORE v9,0/16](https://lore.kernel.org/all/1675119451-23180-1-git-send-email-wufan@linux.microsoft.com) |
 | 2022/12/30 | Dmitrii Bundin <dmitrii.bundin.a@gmail.com> | [scripts/gdb: add mm introspection utils](https://patchwork.kernel.org/project/linux-mm/patch/20221230163512.23736-1-dmitrii.bundin.a@gmail.com) | 707744 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221230163512.23736-1-dmitrii.bundin.a@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20221231171258.7907-1-dmitrii.bundin.a@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/1](https://lore.kernel.org/r/20230101172312.21452-1-dmitrii.bundin.a@gmail.com) |
@@ -324,13 +306,6 @@ https://www.latexlive.com
 
 
 
-
-
-在 CORE 之间平衡负载时, 目标 CPU 的所有 SMT 同级 (如果有的话) 必须处于空闲状态. 否则, 拉新任务会降低繁忙 SMT 同级的吞吐量. 系统的总吞吐量保持不变.
-当在 SMT 核心内平衡负载时, 则遵循硬件指示的优先级.
-
-
-
 | 2023/01/09 | T.J. Mercier <tjmercier@google.com> | [Track exported dma-buffers with memcg](https://patchwork.kernel.org/project/linux-mm/cover/20230109213809.418135-1-tjmercier@google.com/) | 710263 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20230109213809.418135-1-tjmercier@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20230123191728.2928839-1-tjmercier@google.com) |
 | 2023/01/13 | David Hildenbrand <david@redhat.com> | [mm: support `__HAVE_ARCH_PTE_SWP_EXCLUSIVE` on all architectureswith swap PTEs](https://patchwork.kernel.org/project/linux-mm/cover/20230113171026.582290-1-david@redhat.com/) | 711859 | v1 ☐☑ | [LORE v1,0/26](https://lore.kernel.org/r/20230113171026.582290-1-david@redhat.com) |
 | 2023/01/17 | Jann Horn <jannh@google.com> | [fork, vmalloc: KASAN-poison backing pages of vmapped stacks](https://patchwork.kernel.org/project/linux-mm/patch/20230117163543.1049025-1-jannh@google.com/) | 712819 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230117163543.1049025-1-jannh@google.com) |
@@ -344,21 +319,10 @@ https://www.latexlive.com
 | 2023/03/06 | James Houghton <jthoughton@google.com> | [mm: rmap: merge HugeTLB mapcount logic with THPs](https://patchwork.kernel.org/project/linux-mm/cover/20230306230004.1387007-1-jthoughton@google.com/) | 727125 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20230306230004.1387007-1-jthoughton@google.com) |
 | 2023/03/08 | Mike Rapoport <rppt@kernel.org> | [Prototype for direct map awareness in page allocator](https://patchwork.kernel.org/project/linux-mm/cover/20230308094106.227365-1-rppt@kernel.org/) | 727808 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20230308094106.227365-1-rppt@kernel.org) |
 | 2023/03/14 | chenjun (AM) <chenjun102@huawei.com> | [mm/slub: Reduce memory consumption in extreme scenarios](https://patchwork.kernel.org/project/linux-mm/patch/20230314123403.100158-1-chenjun102@huawei.com/) | 729899 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230314123403.100158-1-chenjun102@huawei.com) |
-| 2023/03/14 | Heiko Carstens <hca@linux.ibm.com> | [[-next] s390/mm: try VMA lock-based page fault handling first](https://patchwork.kernel.org/project/linux-mm/patch/20230314132808.1266335-1-hca@linux.ibm.com/) | 729931 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230314132808.1266335-1-hca@linux.ibm.com) |
-| 2023/03/15 | GONG, Ruiqi <gongruiqi1@huawei.com> | [[RFC] Randomized slab caches for kmalloc()](https://patchwork.kernel.org/project/linux-mm/patch/20230315095459.186113-1-gongruiqi1@huawei.com/) | 730246 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230315095459.186113-1-gongruiqi1@huawei.com) |
 | 2023/03/16 | Gou Hao <gouhao@uniontech.com> | [mm/slub: reduce the calculation times of'MAX_OBJS_PER_PAGE'](https://patchwork.kernel.org/project/linux-mm/patch/20230316012517.10479-1-gouhao@uniontech.com/) | 730565 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230316012517.10479-1-gouhao@uniontech.com) |
 | 2023/03/16 | Yang Yang <yang.yang29@zte.com.cn> | [[linux-next] mm: workingset: simplify the calculation of workingset size](https://patchwork.kernel.org/project/linux-mm/patch/202303161723055514455@zte.com.cn/) | 730688 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/202303161723055514455@zte.com.cn) |
 | 2023/03/16 | Alexandre Ghiti <alexghiti@rivosinc.com> | [riscv: Use PUD/P4D/PGD pages for the linear mapping](https://patchwork.kernel.org/project/linux-mm/cover/20230316131711.1284451-1-alexghiti@rivosinc.com/) | 730795 | v8 ☐☑ | [LORE v8,0/4](https://lore.kernel.org/r/20230316131711.1284451-1-alexghiti@rivosinc.com) |
 | 2023/03/16 | Ritesh Harjani (IBM) <ritesh.list@gmail.com> | [[RFCv1,WIP] ext2: Move direct-io to use iomap](https://patchwork.kernel.org/project/linux-mm/patch/eae9d2125de1887f55186668937df7475b0a33f4.1678977084.git.ritesh.list@gmail.com/) | 730837 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/eae9d2125de1887f55186668937df7475b0a33f4.1678977084.git.ritesh.list@gmail.com) |
-| 2023/03/19 | buddy.zhang <buddy.zhang@biscuitos.cn> | [mm: Keep memory type same on DEVMEM Page-Fault](https://patchwork.kernel.org/project/linux-mm/patch/20230319033750.475200-1-buddy.zhang@biscuitos.cn/) | 731498 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230319033750.475200-1-buddy.zhang@biscuitos.cn) |
-| 2023/03/20 | mawupeng <mawupeng1@huawei.com> | [Add overflow checks for several syscalls](https://patchwork.kernel.org/project/linux-mm/cover/20230320024739.224850-1-mawupeng1@huawei.com/) | 731660 | v4 ☐☑ | [LORE v4,0/4](https://lore.kernel.org/r/20230320024739.224850-1-mawupeng1@huawei.com) |
-keyiya1keyiya1 ke
-
-
-https://lore.kernel.org/all/20230312080945.14171-1-ypodemsk@redhat.com/
-
-
-
 
 ### 4.7.5 sync wakeup
 -------
@@ -366,20 +330,7 @@ https://lore.kernel.org/all/20230312080945.14171-1-ypodemsk@redhat.com/
 
 
 
-
 [How to Use Performance Monitor Unit(PMU) of 64-bit ARMv8-A in Linux](https://blog.csdn.net/omnispace/article/details/79517182)
-
-
-
-
-
-
-
-
-
-| 2023/03/30 | Mathieu Desnoyers <mathieu.desnoyers@efficios.com> | [sched: Introduce per-mm/cpu concurrency id state](https://lore.kernel.org/all/20230330230911.228720-1-mathieu.desnoyers@efficios.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230330230911.228720-1-mathieu.desnoyers@efficios.com) |
-
-
 
 [Linux Will Stop Randomizing Per-CPU Entry Area When KASLR Is Not Active](https://www.phoronix.com/news/Linux-Random-Per-CPU-Entry-ASLR)
 
@@ -394,12 +345,7 @@ https://lore.kernel.org/all/20230312080945.14171-1-ypodemsk@redhat.com/
 
 
 
-| 2022/06/06 | Ankur Arora <ankur.a.arora@oracle.com> | [huge page clearing optimizations](https://lore.kernel.org/all/20220606202109.1306034-1-ankur.a.arora@oracle.com) | TODO | v3 ☐☑✓ | [LORE v3,0/21](https://lore.kernel.org/all/20220606202109.1306034-1-ankur.a.arora@oracle.com) |
-| 2023/04/02 | Ankur Arora <ankur.a.arora@oracle.com> | [x86/clear_huge_page: multi-page clearing](https://lore.kernel.org/all/20230403052233.1880567-1-ankur.a.arora@oracle.com) | TODO | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20230403052233.1880567-1-ankur.a.arora@oracle.com) |
 | 2023/04/01 | Xi Wang <xii@google.com> | [Morphing CFS into FDL, The Fair Deadline Scheduling Class](https://lore.kernel.org/all/20230401230556.2781604-1-xii@google.com) | TODO | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20230401230556.2781604-1-xii@google.com) |
-
-
-
 | 2023/03/30 | David Dai <davidai@google.com> | [Improve VM CPUfreq and task placement behavior](https://lore.kernel.org/all/20230331014356.1033759-1-davidai@google.com) | [CPUfreq/sched and VM guest workload problems](https://lpc.events/event/16/contributions/1195) | v2 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20230331014356.1033759-1-davidai@google.com) |
 
 
@@ -409,15 +355,13 @@ https://lore.kernel.org/all/20230312080945.14171-1-ypodemsk@redhat.com/
 
 
 
+| 2023/04/26 | Bouska, Zdenek"<zdenek.bouska@siemens.com> | [Unfair qspinlocks on ARM64 without LSE atomics => 3ms delay in interrupt handling](https://patchwork.kernel.org/project/linux-mm/patch/20221230163512.23736-1-dmitrii.bundin.a@gmail.com) | 707744 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/all/AS1PR10MB567534190B05A4493674173BEB659@AS1PR10MB5675.EURPRD10.PROD.OUTLOOK.COM) |
+
+[Re: [Question]: try to fix contention between expire_timers and try_to_del_timer_sync](https://lore.kernel.org/lkml/20170728092831.GA24839@arm.com)
 
 
 
-通常, 当操作系统内核启动时, 它会发现可用内存并愉快地设置自己以使用该内存. 但是, UEFI 规范的 2.9 版添加了不可接受内存 (unaccepted memory) 的概念; 使用此机制时, 系统 (通常是虚拟化来宾) 将启动, 其内存处于不可接受状态. 在明确接受内存之前, 该系统将无法使用提供的内存. 在此类系统上, 引导加载程序通常会预先接受足够的内存以允许来宾内核引导; 该内核在使用之前必须负责接受其余部分.
 
-| 优势 | 描述 |
-|:---:|:----:|
-| 加速开启 TDX/SEV-SNP 后虚拟机的启动. | SEV-SNP 和英特尔 TDX 等安全访客环境可以通过加密、反向映射表等方式保护其内存内容免受主机和其他访客的影响. 但是, 设置该保护需要一些时间, 这会大大减慢启动过程. 显式接受步骤允许操作系统随时间推移内存初始化. 如果仅在需要时以块形式接受内存, 则系统将更快地启动到运行状态.  来自 Kirill Shutemov 的添加未接受内存支持的补丁利用了这一点, 将内存的接受推迟到需要时才接受. |
-| 显式接受有助于保护安全的来宾免受恶意虚拟机监控程序的侵害 | 这些虚拟机监控程序可能会尝试在后台使用来宾的内存玩游戏. 如果虚拟机监控程序尝试将新页面潜入来宾的地址空间, 则来宾将不接受该新内存, 并且尝试访问它将生成错误. |
 
-每个供应商的安全环境都有自己的管理验收过程的方法, 因此实现验收的一些代码必须特定于一个子体系结构. Shutemov 的补丁增加了对英特尔 TDX 的支持, 但对 AMD 的 SEV-SNP 的支持来自 Tom Lendacky 的单独补丁集.
+为解析 ascii 跟踪输出的流行方法提供一种更高效、更强大的替代方法, 以便从中提取有用的信息. 为了避免所有这些的开销和复杂性, 这个补丁集提供了一个直接到脚本的解释器路径来做同样的事情, 但以一种更规则化的方式, 它利用了跟踪基础结构提供的所有事件元信息, 例如为此目的设计的 "格式文件" 中包含的事件 / 字段信息. 它允许将通用脚本语言的全部功能应用于跟踪流, 以进行非琐碎的分析, 并突然提供了大量有用的工具和模块库(例如, 用于 Perl 的 CPAN), 以应用于创建新的、有趣的跟踪应用程序的问题. 当前只实现了一个 Perl 接口, 但其目的是使添加对其他语言(如 Python、Ruby 等)的支持相对容易——他们所需要做的就是以 Perl 实现为例, 提供自己的 trace_scripting_ops 实现和支持函数.
 
