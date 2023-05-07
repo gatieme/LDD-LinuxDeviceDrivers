@@ -411,10 +411,10 @@ Linux 一开始是在一台 i386 上的机器开发的, i386 的硬件页表是 
 | MADV_SEQUENTIAL | 与 MADV_RANDOM 相反, 期望顺序的访问 page, 因此内核应该积极的预读给定范围内的 page, 并在访问过后快速释放. |
 | MADV_DONTFORK | 在执行 fork (2) 后, 子进程不允许使用此范围的页面. 这样是为了避免 COW 机制导致父进程在写入页面时更改页面的物理位置. |
 | MADV_DOFORK | 撤销 MADV_DONTFORK 的效果, 恢复默认行为. |
-| MADV_HWPOISON | 使指定范围内的页面 "中毒", 即模拟硬件内存损坏的效果, 访问这些页面会引起与之相同处理. 此操作仅仅适用于特权 (CAP_SYS_ADMIN) 进程. 此操作将会导致进程收到 SIGBUS, 并且页面被取消映射.<br> 此功能用于测试内存错误的处理代码；仅当内核配置为 CONFIG_MEMORY_FAILURE 时才可用. |
+| MADV_HWPOISON | 使指定范围内的页面 "中毒", 即模拟硬件内存损坏的效果, 访问这些页面会引起与之相同处理. 此操作仅仅适用于特权 (CAP_SYS_ADMIN) 进程. 此操作将会导致进程收到 SIGBUS, 并且页面被取消映射.<br> 此功能用于测试内存错误的处理代码; 仅当内核配置为 CONFIG_MEMORY_FAILURE 时才可用. |
 | MADV_MERGEABLE | 为指定范围内的页面启用 KSM (Kernel Samepage Merging). 内核会定期扫描那些被标记为可合并的用户内存区域, 寻找具有相同的内容的页面. 他们将被一个单一的具有写保护的页面取代, 并且要更新此页面时发生 COW 操作！KSM 仅仅用于合并私有匿名映射的页面.<br>KSM 功能适用于生成相同数据的多个实例的应用程序(例如, KVM 等虚拟化系统). KSM 会消耗大量的处理能力, 应该小心使用. 详细可以参阅内核源文件: Documentation/admin-guide/mm/ksm.rst.<br>MADV_MERGEABLE 和 MADV_UNMERGEABLE 操作仅在内核配置了 CONFIG_KSM 时才可用. |
-| MADV_UNMERGEABLE | 撤消先前的 MADV_MERGEABLE 操作对指定地址范围的影响；同时恢复在指定的地址范围内合并的所有页面. |
-| MADV_SOFT_OFFLINE | 将指定范围内的页面软脱机. 即保留指定范围内的所有页面, 使其脱离正常内存管理, 不再使用, 而原 page 的内容被迁移到新的页面, 对该区域的访问不受任何影响, 即 MADV_SOFT_OFFLINE 的操作效果对进程是不可见的, 并不会改变其语义.<br> 此功能用于测试内存错误处理代码； 仅当内核配置为 CONFIG_MEMORY_FAILURE 时才可用. |
+| MADV_UNMERGEABLE | 撤消先前的 MADV_MERGEABLE 操作对指定地址范围的影响; 同时恢复在指定的地址范围内合并的所有页面. |
+| MADV_SOFT_OFFLINE | 将指定范围内的页面软脱机. 即保留指定范围内的所有页面, 使其脱离正常内存管理, 不再使用, 而原 page 的内容被迁移到新的页面, 对该区域的访问不受任何影响, 即 MADV_SOFT_OFFLINE 的操作效果对进程是不可见的, 并不会改变其语义.<br> 此功能用于测试内存错误处理代码;  仅当内核配置为 CONFIG_MEMORY_FAILURE 时才可用. |
 | MADV_HUGEPAGE | 对指定范围的页面启用透明大页 (THP). 目前, 透明大页仅仅适用于私有匿名页. 内核会定期扫描标记为大页候选的区域, 然后将其替换为大页. 当区域自然对齐到大页大小时, 内核也会直接分配大页 (参见 posix_memalign (2)).<br> 此功能主要针对那些映射大范围区域, 且一次性访问内存大片区域的应用程序, 如 QEMU. 大页容易导致严重的内存浪费, 比如访问访问 1 字节内容需要映射 2MB 的内存页, 而不是 4KB 的内存页！有关更多详细信息, 请参阅 Linux 内核源文件 Documentation/admin-guide/mm/transhuge.rst<br> 大多数常见的内核配置默认提供 MADV_HUGEPAGE 样式的行为, 因此通常不需要 MADV_HUGEPAGE. 它主要用于嵌入式系统, 其内核中默认情况下可能不会启用 MADV_HUGEPAGE 类似的行为. 在此类系统上, 可使用此标志来有选择地启用 THP. 每当使用 MADV_HUGEPAGE 时, 它应该始终位于可访问的内存区域中, 开发人员需要确保在启用透明大页面时不会增加应用程序的内存占用的风险.<br>MADV_HUGEPAGE 和 MADV_NOHUGEPAGE 操作仅在内核配置了 CONFIG_TRANSPARENT_HUGEPAGE 时才可用. |
 | MADV_NOHUGEPAGE | 确保指定范围内的页面不会使用透明大页. |
 | MADV_DONTDUMP | 从核心转储中排除指定范围的页面. 这在已知大内存区域无法用于核心转储的应用程序中很有用. MADV_DONTDUMP 的效果优先于通过 /proc/[pid]/coredump_filter 文件设置的位掩码, 请参阅 core . 注所谓核心转储, 指的是在进程发生错误时, 将进程地址空及其一些特定状态数据保存到磁盘文件中, 以供调试使用. |
@@ -4186,7 +4186,6 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 
 [The future of the page cache](https://lwn.net/Articles/712467)
 
-[vmtouch](https://github.com/hoytech/vmtouch) 是一个 Linux 下管理和控制文件系统缓存的工具. 它可以用来, 查看一个文件 (或者目录) 哪些部分在内存中, 把文件调入内存, 把文件清除出内存, 把文件锁住在内存中而不被换出到磁盘上. 参见 [vmtouch——Linux 下的文件缓存管理神器播](https://blog.csdn.net/weixin_29762151/article/details/116554695), [vmtouch - the Virtual Memory Toucher](https://www.cnblogs.com/zengkefu/p/5636273.html), [vmtouch 实现原理解析](https://blog.csdn.net/DKH63671763/article/details/87990669), [ebpf 实践之 查看文件占用的缓存大小](https://www.jianshu.com/p/32aff371d6f5), [利用 vmtouch 管理文件的 page cache](http://wangxuemin.github.io/2016/02/15 / 利用 vmtouch 管理文件的 page%20cache)
 
 ## 6.1 PAGE CACHE
 -------
@@ -4450,6 +4449,36 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2005/10/06 | WU Fengguang <wfg@mail.ustc.edu.cn> | [per-zone dirty limits v3](https://lore.kernel.org/patchwork/patch/268866) | per-zone 的脏页限制.<br> 在回收期间回写单个文件页面显示了糟糕的 IO 模式, 但在 VM 有其他方法确保区域中的页面是可回收的之前, 我们不能停止这样做. 随着时间的推移, 出现了一些建议, 当在内存压力期间出现需要清理页面时, 至少要在 inode-proximity 中对页面进行写转. 但是即使这样也会中断来自刷新器的回写, 而不能保证附近的 inode-page 位于同一问题区域. 脏页面之所以会到达 LRU 列表的末尾, 部分原因在于脏限制是一个全局限制, 而大多数系统都有多个大小不同的 LRU 列表. 多个节点有多个区域, 有多个文件列表, 但与此同时, 除了在遇到脏页时回收它们之外, 没有任何东西可以平衡这些列表之间的脏页.  | v3 ☐ | [PatchWork](https://lore.kernel.org/patchwork/patch/268866) |
 
+## 6.4 Page Cache Statistic
+-------
+
+
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2022/12/06 | [Checking page-cache status with cachestat()](https://lwn.net/Articles/917096) | [LWN：使用cachestat()来检查page-cache状态！](https://blog.csdn.net/Linux_Everything/article/details/128337452) |
+
+内核中的 page cache 会将文件的 page 保存在 RAM 中, 让这些 page 可以不需要每次都要浪费从持久性存储设备上读取的时间就可以直接访问到. 应用程序通常完全不知道 page cache 的相关行为; PageCache 可以显著加快进程的执行效率. 不过, 有些应用程序如果可以从了解某个文件某一时刻有多少在 page cache 中, 可以进一步得到一些改善.
+
+通常上, 为了了解到一个文件中哪些 page 是在于 page cache 中了. 应用程序只需要用 mmap() 将某个文件 map 到它的地址空间内, 然后调用 mincore() 就可以返回一个 vector, 其中展示了该文件中有哪些 page 是驻留的.参见 [如何分析查看 page cahce 内存中缓存了哪些文件 ( mmap + mincore )?](https://zhuanlan.zhihu.com/p/620860777). 业界有很多根据此原理实现的工具.
+
+
+| 工具 | 描述 |
+|:---:|:----:|
+| [vmtouch](https://github.com/hoytech/vmtouch) | 一个 Linux 下管理和控制文件系统缓存的工具. 它可以用来, 查看一个文件 (或者目录) 哪些部分在内存中, 把文件调入内存, 把文件清除出内存, 把文件锁住在内存中而不被换出到磁盘上. 参见 [vmtouch——Linux 下的文件缓存管理神器播](https://blog.csdn.net/weixin_29762151/article/details/116554695), [vmtouch - the Virtual Memory Toucher](https://www.cnblogs.com/zengkefu/p/5636273.html), [vmtouch 实现原理解析](https://blog.csdn.net/DKH63671763/article/details/87990669), [ebpf 实践之 查看文件占用的缓存大小](https://www.jianshu.com/p/32aff371d6f5), [利用 vmtouch 管理文件的 page cache](http://wangxuemin.github.io/2016/02/15 / 利用 vmtouch 管理文件的 page%20cache) |
+| [ftools](https://github.com/david415/linux-ftools) | Google 提供的[工具集](https://github.com/bugwz/linux-ftools), 专门用于分析缓冲区和缓存. 它包括以下工具: fincore, fadvise, fallocate 将显示缓冲区和文件列表中的文件. 但是已经不再维护. 参见 [Linux下的Cache/Buffer](https://bugwz.com/2019/01/01/cache-and-buffer) |
+| [pcstat](https://github.com/tobert/pcstat) |  获取文件的页面缓存统计信息. |
+| [pgcacher](https://github.com/rfyiamcool/pgcacher) | rfyiamcool(知乎) 参考了 pcstat 的设计, 开发的加强版的 page cache 分析工具 , 相比 pcstat 来说做了很多调整, 调整了进程打开文件的目录, 还支持全局查询、排序输出、支持多线程并发检索、目录深度递归、忽略小 size 文件、指定和排除目录等等选项. |
+
+
+这种方法可以获取文件的页面缓存统计信息, 但开销却非常大; 因为它需要建立一个(可能本来根本不需要的) mapping, 并且返回的信息对于许多应用程序的需求来说粒度太细了.
+
+因此 2022 年, Nhat Pham 提出的 cachestat() 系统调用就是将 Page Cache 信息提供出来.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/11/15 | Nhat Pham <nphamcs@gmail.com> | [cachestat: a new syscall for page cache state of files](https://patchwork.kernel.org/project/linux-mm/cover/20221115182901.2755368-1-nphamcs@gmail.com/) | 内核中的 page cache 会将文件的 page 保存在 RAM 中, 让这些 page 可以不需要每次都要浪费从持久性存储设备上读取的时间就可以直接访问到. 应用程序通常完全不知道 page cache 的相关行为; 它加快了速度, 这是最重要的一点. 不过, 有些应用程序可以从了解某个文件某一时刻有多少在 page cache 中, 从而得到一些改善. Nhat Pham 提出的 cachestat() 系统调用就是一系列尝试中的最新成果, 从而可以将这些信息提供出来. 参见 LWN 报道 [Checking page-cache status with cachestat()](https://lwn.net/Articles/917096) | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20221115182901.2755368-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20221205175140.1543229-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/r/20221208223104.1554368-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/4](https://lore.kernel.org/r/20221216192149.3902877-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/3](https://lore.kernel.org/r/20230104231127.2634648-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/3](https://lore.kernel.org/all/20230124021118.154078-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,0/3](https://lore.kernel.org/r/20230126175356.1582123-1-nphamcs@gmail.com) |
+
 
 ### 6.3.4 其他
 -------
@@ -4458,7 +4487,6 @@ Linux 内核在脏页数量到达一定门槛时, 或者用户在命令行输入
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/07/13 | Jan Kara <jack@suse.cz> | [writeback: Fix bandwidth estimates](https://patchwork.kernel.org/project/linux-mm/cover/20210712165811.13163-1-jack@suse.cz) | NA | v2 ☐ | [PatchWork 0/5,v2](https://patchwork.kernel.org/project/linux-mm/cover/20210712165811.13163-1-jack@suse.cz) |
 | 2011/08/10 | Mel Gorman <mgorman@suse.de> | [Reduce filesystem writeback from page reclaim v3](https://lore.kernel.org/all/1312973240-32576-1-git-send-email-mgorman@suse.de) | 1312973240-32576-1-git-send-email-mgorman@suse.de | v3 ☐☑✓ | [LORE v3,0/7](https://lore.kernel.org/all/1312973240-32576-1-git-send-email-mgorman@suse.de) |
-| 2022/11/15 | Nhat Pham <nphamcs@gmail.com> | [cachestat: a new syscall for page cache state of files](https://patchwork.kernel.org/project/linux-mm/cover/20221115182901.2755368-1-nphamcs@gmail.com/) | 内核中的 page cache 会将文件的 page 保存在 RAM 中, 让这些 page 可以不需要每次都要浪费从持久性存储设备上读取的时间就可以直接访问到. 应用程序通常完全不知道 page cache 的相关行为；它加快了速度, 这是最重要的一点. 不过, 有些应用程序可以从了解某个文件某一时刻有多少在 page cache 中, 从而得到一些改善. Nhat Pham 提出的 cachestat() 系统调用就是一系列尝试中的最新成果, 从而可以将这些信息提供出来. 参见 LWN 报道 [Checking page-cache status with cachestat()](https://lwn.net/Articles/917096) | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20221115182901.2755368-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20221205175140.1543229-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/r/20221208223104.1554368-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/4](https://lore.kernel.org/r/20221216192149.3902877-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/3](https://lore.kernel.org/r/20230104231127.2634648-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/3](https://lore.kernel.org/all/20230124021118.154078-1-nphamcs@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,0/3](https://lore.kernel.org/r/20230126175356.1582123-1-nphamcs@gmail.com) |
 
 
 
@@ -5399,7 +5427,7 @@ mcpage 有成本. 除了 THP 没有带来 TLB 的好处之外, 与 4K 基本页�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/06/06 | Ankur Arora <ankur.a.arora@oracle.com> | [huge page clearing optimizations](https://lore.kernel.org/all/20220606202109.1306034-1-ankur.a.arora@oracle.com) | 本系列在巨大的页面清除路径中引入了两个优化: <br>1. 扩展 clear_page() 机制以处理大于单个页面的扩展数据块.<br>2. 支持对巨大页面和巨型页面进行非缓存页面清理.<br>第一个优化对于大页面故障处理很有用，第二个优化对于预处理或巨大页面很有用.<br>直接的动机是加速创建由巨大页面支持的大型虚拟机. | v3 ☐☑✓ | [LORE v3,0/21](https://lore.kernel.org/all/20220606202109.1306034-1-ankur.a.arora@oracle.com) |
+| 2022/06/06 | Ankur Arora <ankur.a.arora@oracle.com> | [huge page clearing optimizations](https://lore.kernel.org/all/20220606202109.1306034-1-ankur.a.arora@oracle.com) | 本系列在巨大的页面清除路径中引入了两个优化: <br>1. 扩展 clear_page() 机制以处理大于单个页面的扩展数据块.<br>2. 支持对巨大页面和巨型页面进行非缓存页面清理.<br>第一个优化对于大页面故障处理很有用, 第二个优化对于预处理或巨大页面很有用.<br>直接的动机是加速创建由巨大页面支持的大型虚拟机. | v3 ☐☑✓ | [LORE v3,0/21](https://lore.kernel.org/all/20220606202109.1306034-1-ankur.a.arora@oracle.com) |
 | 2023/04/02 | Ankur Arora <ankur.a.arora@oracle.com> | [x86/clear_huge_page: multi-page clearing](https://lore.kernel.org/all/20230403052233.1880567-1-ankur.a.arora@oracle.com) | 本系列将介绍针对大页面的多页清除. [参见之前讨论](https://lore.kernel.org/lkml/CAHk-=wj9En-BC4t7J9xFZOws5ShwaR9yor7FxHZr8CTVyEP_+Q@mail.gmail.com). 在 x86 上, 页面清除通常是通过字符串指令完成的. 与 MOV 循环不同的是, 这些循环允许我们显式地向处理器通告区域大小, 这可以作为 uarch 省略 cacheline 分配的提示. 但是也存在一些问题, 延长的归零周期意味着由于缺少抢占点而增加的延迟. | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20230403052233.1880567-1-ankur.a.arora@oracle.com) |
 
 
