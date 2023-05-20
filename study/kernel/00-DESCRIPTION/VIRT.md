@@ -235,7 +235,13 @@ Anbox 使用 Linux 命名空间 (user, pid, uts, net, mount, ipc) 在容器中�
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/01/02 | Jinank Jain <jinankjain@linux.microsoft.com> | [x86/hyperv: Add support for detecting nested hypervisor](https://lore.kernel.org/all/8e3e7112806e81d2292a66a56fe547162754ecea.1672639707.git.jinankjain@linux.microsoft.com) | [Microsoft Hyper-V Nested Hypervisor Support Comes For Linux 6.3](https://www.phoronix.com/news/Linux-6.3-Nested-Hyper-V) | v10 ☐☑✓ | [LORE v10,0/5](https://lore.kernel.org/all/8e3e7112806e81d2292a66a56fe547162754ecea.1672639707.git.jinankjain@linux.microsoft.com) |
 
+# 11 Hypervisor
+-------
 
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/04/24 | Elliot Berman <quic_eberman@quicinc.com> | [Drivers for Gunyah hypervisor](https://lore.kernel.org/all/20230424231558.70911-1-quic_eberman@quicinc.com) | [Qualcomm Continues Working To Upstream Gunyah Hypervisor Support In Linux](https://www.phoronix.com/news/Qualcomm-Gunyah-Linux-v12) | v12 ☐☑✓ | [LORE v12,0/25](https://lore.kernel.org/all/20230424231558.70911-1-quic_eberman@quicinc.com) |
+| 2023/05/12 | Yi-De Wu <yi-de.wu@mediatek.com> | [GenieZone hypervisor drivers](https://lore.kernel.org/all/20230512080405.12043-1-yi-de.wu@mediatek.com) | TODO | v3 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/lkml/20230413090735.4182-1-yi-de.wu@mediatek.com)<br>*-*-*-*-*-*-*-*<br>[LORE v2,0/7](https://lore.kernel.org/lkml/20230428103622.18291-1-yi-de.wu@mediatek.com)<br>*-*-*-*-*-*-*-*<br>[LORE v3,0/7](https://lore.kernel.org/all/20230512080405.12043-1-yi-de.wu@mediatek.com) |
 
 <br>
 

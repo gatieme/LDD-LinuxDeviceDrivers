@@ -1672,7 +1672,7 @@ https://lore.kernel.org/patchwork/patch/408914
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2023/04/01 | Vlastimil Babka <vbabka@suse.cz> | [mm: remove all the slab allocators](https://patchwork.kernel.org/project/linux-mm/patch/20230401094658.11146-1-vbabka@suse.cz) | 由于 SLOB 的拆除正在进行中, SLAB 的拆除也在计划中, 我意识到——为什么我们应该停止拆除 SLUB? 在 2023 年, 板坯分配器的作用是什么? [RAM 尺寸越来越大, 模块越来越便宜](https://www.theregister.com/2023/03/29/dram_prices_crash). 对象构造函数的技巧在 1994 年可能很有趣, 但对当代 CPU 来说却不是. 因此, slab 分配器现在所做的只是在页面分配器上添加一层不必要的复杂性. 因此, 这组补丁尝试删除所有三个 slab 分配器, 并且 slab.h 和 mm/slab_common.c 文件中只保留一个将所有内容传递给页面分配器的层. 这将允许用户逐渐转移并直接使用页面分配器. 总结优势:<br>1. 需要维护的代码更少: 这个补丁删除了超过 13k 行, 如果我在这方面花了更多的时间, 以及以后随着用户从遗留层过渡, 可以删除更多的代码.<br>2. 简化的 MEMCG_KMEM 记帐: 虽然我很懒, 只是在这个补丁中将其标记为 BROKEN, 但既然我们使用了页面分配器, 那么使用页面 MEMCG 记帐应该是微不足道的. 每个对象的核算在过去经历了几次迭代, 而且总是很复杂, 增加了开销. 相比之下, 页面会计要简单得多.<br>3. 简化了 KASAN 和朋友: 在这个补丁中也很懒, 所以不能启用它们, 但应该很容易修复, 只在页面级别工作.<br>4. 更简单的调试: 只需使用 debug_pagealloc=on, 无需查找复杂得离谱的 slub_debug 参数的确切语法.<br>5. 速度: 没有测量, 但对于页面分配器, 我们有 pcplist, 所以它应该可以很好地扩展. 不需要疯狂的 SLUB 的 cmpxchg_double()疯狂. 也许那个东西现在也可以移除. | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230401094658.11146-1-vbabka@suse.cz) |
+| 2023/04/01 | Vlastimil Babka <vbabka@suse.cz> | [mm: remove all the slab allocators](https://patchwork.kernel.org/project/linux-mm/patch/20230401094658.11146-1-vbabka@suse.cz) | 由于 SLOB 的拆除正在进行中, SLAB 的拆除也在计划中, 我意识到——为什么我们应该停止拆除 SLUB? 在 2023 年, 板坯分配器的作用是什么? [RAM 尺寸越来越大, 模块越来越便宜](https://www.theregister.com/2023/03/29/dram_prices_crash). 对象构造函数的技巧在 1994 年可能很有趣, 但对当代 CPU 来说却不是. 因此, slab 分配器现在所做的只是在页面分配器上添加一层不必要的复杂性. 因此, 这组补丁尝试删除所有三个 slab 分配器, 并且 slab.h 和 mm/slab_common.c 文件中只保留一个将所有内容传递给页面分配器的层. 这将允许用户逐渐转移并直接使用页面分配器. 总结优势:<br>1. 需要维护的代码更少: 这个补丁删除了超过 13k 行, 如果我在这方面花了更多的时间, 以及以后随着用户从遗留层过渡, 可以删除更多的代码.<br>2. 简化的 MEMCG_KMEM 记帐: 虽然我很懒, 只是在这个补丁中将其标记为 BROKEN, 但既然我们使用了页面分配器, 那么使用页面 MEMCG 记帐应该是微不足道的. 每个对象的核算在过去经历了几次迭代, 而且总是很复杂, 增加了开销. 相比之下, 页面会计要简单得多.<br>3. 简化了 KASAN 和朋友: 在这个补丁中也很懒, 所以不能启用它们, 但应该很容易修复, 只在页面级别工作.<br>4. 更简单的调试: 只需使用 debug_pagealloc=on, 无需查找复杂得离谱的 slub_debug 参数的确切语法.<br>5. 速度: 没有测量, 但对于页面分配器, 我们有 pcplist, 所以它应该可以很好地扩展. 不需要疯狂的 SLUB 的 cmpxchg_double()疯狂. 也许那个东西现在也可以移除. 参见 phoronix 报道 [Linux's SLAB Allocator Next On Deck For Deprecation & Removal](https://www.phoronix.com/news/Linux-Deprecating-Removing-SLAB)| v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230401094658.11146-1-vbabka@suse.cz) |
 
 
 ### 2.3.1 SLAB
@@ -2451,7 +2451,8 @@ v3.6 [commit 7db8889ab05b ("mm: have order> 0 compaction start off where it left
 | 2008/08/11 | Christoph Lameter <cl@linux-foundation.org> | [Slab Fragmentation Reduction V14](https://lore.kernel.org/patchwork/patch/125818) | SLAB 抗碎片化 | v14 ☐ | [PatchWork v5](https://lore.kernel.org/patchwork/patch/90742)<br>*-*-*-*-*-*-*-* <br>[PatchWork v14](https://lore.kernel.org/patchwork/patch/125818) |
 | 2017/03/07 | Vlastimil Babka <vbabka@suse.cz> | [try to reduce fragmenting fallbacks](https://lore.kernel.org/patchwork/patch/766804) | 修复 [Regression in mobility grouping?](https://lkml.org/lkml/2016/9/28/94) 上报的碎片化问题, 通过修改 fallback 机制和 compaction 机制来减少永久随便化的可能性. 其中 fallback 修改时, 仅尝试从不同 migratetype 的 pageblock 中窃取的页面中挑选最小 (但足够) 的页面. | v3 ☑ [4.12-rc1](https://kernelnewbies.org/Linux_4.12#Memory_management) | [PatchWork v6](https://lore.kernel.org/patchwork/patch/766804), [KernelNewbies](https://kernelnewbies.org/Linux_4.12#Memory_management), [关键 commit 3bc48f96cf11 ("mm, page_alloc: split least stolen page in fallback")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc48f96cf11ce8699e419d5e47ae0d456403274) |
 | 2018/11/23 | Mel Gorman | [Fragmentation avoidance improvements v5](https://lore.kernel.org/patchwork/patch/1016503) | 伙伴系统页面分配时的反碎片化 | v5 ☑ 5.0-rc1 | [PatchWork v5](https://lore.kernel.org/patchwork/patch/1016503) |
-| 2022/01/27 | Mike Rapoport <rppt@kernel.org> | [Prototype for direct map awareness in page allocator](https://lore.kernel.org/all/20220127085608.306306-1-rppt@kernel.org) | [LSFMM-2022/Solutions for direct-map fragmentation](https://lwn.net/Articles/894557) | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20220127085608.306306-1-rppt@kernel.org) |
+| 2022/01/27 | Mike Rapoport <rppt@kernel.org> | [Prototype for direct map awareness in page allocator](https://lore.kernel.org/all/20220127085608.306306-1-rppt@kernel.org) | [LSFMM-2022/Solutions for direct-map fragmentation](https://lwn.net/Articles/894557), [Solutions for direct-map fragmentation](https://lwn.net/Articles/894557), [Reconsidering the direct-map fragmentation problem](https://lwn.net/Articles/931406)
+ | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20220127085608.306306-1-rppt@kernel.org) |
 
 
 # 4 页面回收
@@ -4116,6 +4117,15 @@ PowerPC 体系结构 (POWER10) 支持热/冷页面跟踪功能(Hot/Cold page tra
 2. THP 利用率
 
 3. 页面提升.
+
+### 4.4.6 Working Set Reporting
+------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/05/10 | Yuanchu Xie <yuanchu@google.com> | [mm: Working Set Reporting](https://lore.kernel.org/all/20230509185419.1088297-1-yuanchu@google.com) | balloon device 是在来宾虚拟机和主机之间共享内存的典型机制. 开发这种 [auto-ballon 能力](https://www.linux-kvm.org/page/Projects/auto-ballooning)的早期项目于 2013 年完成. 最近, 已经创建了额外的VIRTIO设备(VIRTIO -mem、VIRTIO -pmem), 为许多用例提供了[更多的工具](https://kvmforum2020.sched.com/event/eE4U/virtio-balloonpmemmem-managing-guest-memory-david-hildenbrand-michael-s-tsirkin-red-hat), 每种工具都有优点和缺点，它在多虚拟机场景中特别有用, 在这种场景中, 内存被过度使用, 并且随着系统上工作负载的变化, 需要动态更改虚拟机内存大小. balloon device 现在有许多特性来帮助在来宾和主机之间明智地共享内存资源 (例如, 免费页面提示、统计、免费页面报告). 对于在多虚拟机环境中负责优化内存资源的主控制器程序, 它必须使用这些工具来回答两个具体问题: 统一的工作集报告结构, 适用于服务器和客户端. 它涉及主机上的每个节点直方图、每个内存直方图和虚拟气球驱动程序扩展.<br> 有两种使用工作集报告的方法: 事件驱动和查询. 主机控制器可以接收来自 reclaim 的通知, 它会生成一个报告, 或者控制器可以直接查询直方图.<br>1. 补丁 1 引入了工作集报告机制和主机接口. 补丁 2 扩展了带有工作集报告的虚拟 balloon 驱动程序.<br> 最初的 RFC 以 MGLRU 为基础, 旨在作为讨论和改进的概念验证. tj 和作者的目标是支持活动 / 非活动 LRU 和来自用户空间的工作集估计. 作者正在编写演示脚本并获得一些数据. | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20230509185419.1088297-1-yuanchu@google.com) |
+
 
 
 # 5 Swappiness

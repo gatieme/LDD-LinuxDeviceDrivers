@@ -460,6 +460,7 @@ raw_tracepoint 相比 tracepoint
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/10/14 | Wang Nan <wangnan0@huawei.com> | [perf tools: filtering events using eBPF programs](https://lore.kernel.org/all/1444826502-49291-1-git-send-email-wangnan0@huawei.com) | TODO | v1 ☐☑✓ | [LORE v1,0/31](https://lore.kernel.org/all/1444826502-49291-1-git-send-email-wangnan0@huawei.com) |
+| 2023/03/14 | Namhyung Kim <namhyung@kernel.org> | [perf record: Implement BPF sample filter (v5)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c46bf3bd00167e09729f884dd479b0a8d1a63f95) | 社区有诉求基于 sample 数据进行更复杂的性能事件示例过滤. 最近内核增加了 BPF 程序可以访问性能样本数据, 这是用户空间部分启用这样的过滤.<br>perf record 具有 `--filter` 选项, 用于在命令行中对最后一个指定的事件设置筛选器. 到目前为止, 它只适用于跟踪点和英特尔 PT 事件. 这个补丁集将其扩展为使用 BPF, 以便为任何事件启用通用样本过滤器. 添加了一个新的过滤器表达式解析器(使用 flex/bison)来处理过滤器字符串. 当前它只接受用逗号分隔的非常简单的表达式. | v5 ☑✓ 6.4-rc1 | [LORE v5,0/10](https://lore.kernel.org/all/20230314234237.3008956-1-namhyung@kernel.org) |
 
 
 ## 8.3 coolbpf(surtrace & pyLCC)

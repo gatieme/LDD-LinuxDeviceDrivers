@@ -18,8 +18,6 @@ https://lore.kernel.org/patchwork/project/lkml/list/?submitter=13305
 
 
 
-
-
 | 2022/08/19 | Alexei Starovoitov <alexei.starovoitov@gmail.com> | [bpf: BPF specific memory allocator.](https://patchwork.kernel.org/project/linux-mm/cover/20220819214232.18784-1-alexei.starovoitov@gmail.com/) | 669364 | v3 ☐☑ | [LORE v3,0/15](https://lore.kernel.org/r/20220819214232.18784-1-alexei.starovoitov@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/15](https://lore.kernel.org/r/20220826024430.84565-1-alexei.starovoitov@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/15](https://lore.kernel.org/r/20220901161547.57722-1-alexei.starovoitov@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/16](https://lore.kernel.org/r/20220902211058.60789-1-alexei.starovoitov@gmail.com) |
 | 2022/09/02 | Yafang Shao <laoar.shao@gmail.com> | [bpf: Introduce selectable memcg for bpf map](https://patchwork.kernel.org/project/linux-mm/cover/20220902023003.47124-1-laoar.shao@gmail.com/) | 673444 | v3 ☐☑ | [LORE v3,0/13](https://lore.kernel.org/r/20220902023003.47124-1-laoar.shao@gmail.com) |
 | 2022/11/07 | Song Liu <song@kernel.org> | [execmem_alloc for BPF programs](https://patchwork.kernel.org/project/linux-mm/cover/20221107223921.3451913-1-song@kernel.org/) | 692973 | v2 ☐☑ | [LORE v2,0/5](https://lore.kernel.org/r/20221107223921.3451913-1-song@kernel.org)[LORE v4,0/6](https://lore.kernel.org/r/20221117202322.944661-1-song@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/6](https://lore.kernel.org/r/20221128190245.2337461-1-song@kernel.org) |
@@ -365,5 +363,72 @@ https://www.latexlive.com
 
 
 
-为解析 ascii 跟踪输出的流行方法提供一种更高效、更强大的替代方法, 以便从中提取有用的信息. 为了避免所有这些的开销和复杂性, 这个补丁集提供了一个直接到脚本的解释器路径来做同样的事情, 但以一种更规则化的方式, 它利用了跟踪基础结构提供的所有事件元信息, 例如为此目的设计的 "格式文件" 中包含的事件 / 字段信息. 它允许将通用脚本语言的全部功能应用于跟踪流, 以进行非琐碎的分析, 并突然提供了大量有用的工具和模块库(例如, 用于 Perl 的 CPAN), 以应用于创建新的、有趣的跟踪应用程序的问题. 当前只实现了一个 Perl 接口, 但其目的是使添加对其他语言(如 Python、Ruby 等)的支持相对容易——他们所需要做的就是以 Perl 实现为例, 提供自己的 trace_scripting_ops 实现和支持函数.
+
+
+
+使用 numa 扫描增强功能 [LORE v3,0/4](https://lore.kernel.org/all/cover.1677672277.git.raghavendra.kt@amd.com), 只允许以前访问过 vma 的线程进行扫描. 虽然这改善了显著的系统时间开销, 但也存在一些角落情况, 这确实需要一些放松, 例如 PeterZ 提出的担忧, 即属于不相交的 VMS 集合的线程之间的不公平可能会放大属于未扫描的一些任务的 vma 区域的副作用. 目前, 这是通过无条件地允许 mm 级别 (mm->numa_scan_seq) 的前两次扫描来处理的.<br> 其中一个具有类似副作用的测试是 numa01_THREAD_ALLOC, 其中通过主线程进行分配, 并将其划分为 24MB 的内存块以连续地归零.
+
+
+
+(这是 LKP 测试默认运行的, 而 numa01 是 mmtests 默认运行的 (mmtests 由每个线程在整个 3GB 区域上操作)
+
+因此, 为了解决这个问题, 这里的建议是：
+
+
+
+1) 每个 vma 扫描计数器, 每次成功扫描 (可能扫描 256MB 或 sysctl_scan_size) 都会递增 2) 前几次进行无条件扫描 (准确地说, 正常扫描时会计算出一半的窗口)3) 在 vma 级别扫描整个 mm 时重置计数器 (这需要记住 mm->numa_scan_sequece)
+
+有了这个补丁, 我看到 numa01_THREAD_ALLOC 情况有了很好的改善, 但请注意, 在 [1] 中, 当基准测试运行时, 系统时间大幅减少, 这个补丁增加了一些系统时间.
+
+
+
+
+
+
+这是将根 cfg_rq runnable_avg 作为一种考虑 CPU 频率和 "migrate_util" 类型负载平衡最繁忙 CPU 选择的 CPU 争用的方法的想法的实现.
+
+
+
+https://lkml.kernel.org/r/424e2c81-987d-f10e-106d-8b4c611768bc@arm.com 网站
+
+| 2023/05/12 | Dietmar Eggemann <dietmar.eggemann@arm.com> | [sched: Consider CPU contention in frequency, EAS max util & load-balance busiest CPU selection](https://lore.kernel.org/all/20230512101029.342823-1-dietmar.eggemann@arm.com) | TODO | v2 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20230406155030.1989554-1-dietmar.eggemann@arm.com)[LORE v2,0/2](https://lore.kernel.org/all/20230512101029.342823-1-dietmar.eggemann@arm.com) |
+
+
+
+
+[Discussion](https://lkml.kernel.org/r/424e2c81-987d-f10e-106d-8b4c611768bc@arm.com)
+
+
+
+[](https://www.phoronix.com/news/Linux-6.4-Avoid-Unnecessary-SMT)
+
+
+| 2023/04/06 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched: Avoid unnecessary migrations within SMT domains](https://lore.kernel.org/all/20230406203148.19182-1-ricardo.neri-calderon@linux.intel.com) | TODO | v4 ☐☑✓ |
+
+
+
+| 2023/03/07 | Jens Axboe <axboe@kernel.dk> | [Add FMODE_NOWAIT support to pipes](https://lore.kernel.org/all/20230308031033.155717-1-axboe@kernel.dk) | [Pipe FMODE_NOWAIT Support Sent In For Linux 6.4 As A 10~23x Performance Improvement](https://www.phoronix.com/news/Pipe-FMODE_NOWAIT-Linux-6.4). | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20230308031033.155717-1-axboe@kernel.dk) |
+
+
+Web Pilot 根据 URL 生成文章摘要, 总结, 翻译.
+AskYourPDF 从 PDF 文件内容生成摘要, 分析内容等.
+Chat with PDF
+kagi.com/summarizer
+
+
+[A kernel without buffer heads](https://lwn.net/Articles/930173)
+[Unprivileged BPF and authoritative security hooks](https://lwn.net/Articles/929746)
+[Designated movable (memory) blocks](https://lwn.net/Articles/928795)
+[The ongoing trouble with get_user_pages()](https://lwn.net/Articles/930667)
+[A storage standards update at LSFMM+BPF](https://lwn.net/Articles/931282)
+[A storage standards update at LSFMM+BPF](https://lwn.net/Articles/931282)
+
+
+[Memory-management changes for CXL](https://lwn.net/Articles/931416)
+
+[The future of memory tiering](https://lwn.net/Articles/931421)
+
+
+| 2023/05/16 | Chen Yu <yu.c.chen@intel.com> | [sched/fair: Introduce SIS_PAIR to wakeup task on local idle core first](https://lore.kernel.org/all/20230516011159.4552-1-yu.c.chen@intel.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230516011159.4552-1-yu.c.chen@intel.com) |
+
 

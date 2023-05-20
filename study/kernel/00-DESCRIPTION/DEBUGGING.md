@@ -719,6 +719,15 @@ Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM F
 | 2022/12/27 | Thomas Weißschuh <linux@weissschuh.net> | [reduce maximum memory usage](https://lore.kernel.org/all/20221216-objtool-memory-v2-0-17968f85a464@weissschuh.net) | 使用 objtool 处理 vmlinux.o 是内核构建中最占用内存的步骤. 通过减少最大内存使用量, 我们可以减少整个内核构建的最大内存使用.<br>因此, 在内核构建过程中, 内存不足的机器上的内存压力得到了缓解, 而且构建速度更快, 因为需要的交换更少. 参见 phoronix 报道 [New Patches Aim To Reduce Memory Use While Compiling The Linux Kernel](https://www.phoronix.com/news/Linux-Kernel-Build-Less-RAM). | v2 ☐☑✓ | [LORE v2,0/8](https://lore.kernel.org/all/20221216-objtool-memory-v2-0-17968f85a464@weissschuh.net) |
 
 
+## 13.12 PIE
+-------
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/04/28 | Hou Wenlong <houwenlong.hwl@antgroup.com> | [x86/pie: Make kernel image's virtual address flexible](https://lore.kernel.org/all/cover.1682673542.git.houwenlong.hwl@antgroup.com) | 这些补丁允许 x86_64 上将内核构建为位置独立可执行文件(PIE). PIE 内核可以被重新定位在虚拟地址空间的顶部 2G 之下. 这个补丁集提供了一个例子, 允许内核映像在地址空间的顶部 512G 中重新定位. PIE 内核的最终目的是提高内核的安全性, 以及内核映像的虚拟地址的可扩展性, 甚至可以在地址空间的下半部分. 内核可以容纳更多的位置, 这意味着攻击者可以更难猜测. 参见 phoronix 报道 [New Patches Aim To Tackle Linux x86_64 PIE Support](https://www.phoronix.com/news/Linux-x86_64-PIE-2023). | v1 ☐☑✓ | [LORE v1,0/43](https://lore.kernel.org/all/cover.1682673542.git.houwenlong.hwl@antgroup.com) |
+
+
 # 14 FTRACE
 -------
 
@@ -907,7 +916,7 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/11/21 | David Woodhouse <dwmw2@infradead.org> | [Parallel CPU bringup for x86_64](https://lkml.org/lkml/2021/12/9/664) | 随着核数的增多, 内核的启动速度越来越慢. 这组补丁能够并行启动辅助 (x86_64) CPU 内核. 对 v6 测hi发现可以显著改善 Sapphire Rapids CPU 系统的启动时间, 从 71s 降低到 14s. 随后 v7 增加了对 AMD CPU 的支持. | v1 ☐ | [LWN ](https://lwn.net/Articles/878161), [LKML](https://lkml.org/lkml/2021/12/9/664), [LORE 00/11](https://lkml.kernel.org/lkml/20211209150938.3518-1-dwmw2@infradead.org),  [Phoronix 报道 v1](https://www.phoronix.com/news/Linux-x86_64-Parallel-CPU-Boot)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/9](https://lore.kernel.org/lkml/20211215145633.5238-1-dwmw2@infradead.org), [Phoronix 报道 v3](https://www.phoronix.com/news/Parallel-CPU-Bringup-AMD-Snag)<br>*-*-*-*-*-*-*-* <br>[LORE v6](https://lore.kernel.org/lkml/20230202215625.3248306-1-usama.arif@bytedance.com), [Phoronix 报道 v6](https://www.phoronix.com/news/Linux-CPU-Parallel-Bringup-2023)<br>*-*-*-*-*-*-*-* <br>[LORE v7](20230207230436.2690891-1-usama.arif@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v17,0/8](https://lore.kernel.org/lkml/20230328195758.1049469-1-usama.arif@bytedance.com) |
+| 2021/11/21 | David Woodhouse <dwmw2@infradead.org> | [Parallel CPU bringup for x86_64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0c7ffa32dbd6b09a87fea4ad1de8b27145dfd9a6) | 随着核数的增多, 内核的启动速度越来越慢. 这组补丁能够并行启动辅助 (x86_64) CPU 内核. 对 v6 测hi发现可以显著改善 Sapphire Rapids CPU 系统的启动时间, 从 71s 降低到 14s. 随后 v7 增加了对 AMD CPU 的支持. 参见 [Parallel CPU Bring-Up Poised For Linux 6.5](https://www.phoronix.com/news/Parallel-CPU-Bringup-TIP-Linux). | v1 ☐ | [LWN ](https://lwn.net/Articles/878161), [LKML](https://lkml.org/lkml/2021/12/9/664), [LORE 00/11](https://lkml.kernel.org/lkml/20211209150938.3518-1-dwmw2@infradead.org),  [Phoronix 报道 v1](https://www.phoronix.com/news/Linux-x86_64-Parallel-CPU-Boot)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/9](https://lore.kernel.org/lkml/20211215145633.5238-1-dwmw2@infradead.org), [Phoronix 报道 v3](https://www.phoronix.com/news/Parallel-CPU-Bringup-AMD-Snag)<br>*-*-*-*-*-*-*-* <br>[LORE v6](https://lore.kernel.org/lkml/20230202215625.3248306-1-usama.arif@bytedance.com), [Phoronix 报道 v6](https://www.phoronix.com/news/Linux-CPU-Parallel-Bringup-2023)<br>*-*-*-*-*-*-*-* <br>[LORE v7](20230207230436.2690891-1-usama.arif@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v17,0/8](https://lore.kernel.org/lkml/20230328195758.1049469-1-usama.arif@bytedance.com) |
 | 2023/04/15 | Thomas Gleixner <tglx@linutronix.de> | [cpu/hotplug, x86: Reworked parallel CPU bringup](https://lore.kernel.org/all/20230414225551.858160935@linutronix.de) | [Reworked x86_64 Parallel Boot Support Posted For The Linux Kernel](https://www.phoronix.com/news/Linux-Parallel-Boot-x86-Rework) | v1 ☐☑✓ | [LORE v1,0/37](https://lore.kernel.org/all/20230414225551.858160935@linutronix.de) |
 
 
