@@ -4118,14 +4118,17 @@ PowerPC 体系结构 (POWER10) 支持热/冷页面跟踪功能(Hot/Cold page tra
 
 3. 页面提升.
 
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/04/02 | Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com> | [Support arch-specific page aging mechanism](https://lore.kernel.org/all/20230402104240.1734931-1-aneesh.kumar@linux.ibm.com) | 像 POWERPC 这样的体系结构支持页面访问计数机制, 该机制可用于更好地识别系统中的冷/热页面. POWER10 支持 32 位页面访问计数, 该计数根据页面访问增加, 根据时间衰减减少. 页访问计数是根据物理地址过滤来增加的, 因此应该通过页表 (mmap) 和读 / 写系统调用来计算访问.<br>这个补丁集更新了多代 LRU, 使用这个页面访问计数而不是页表引用位来将页面分类到一个代. 在回收的排序阶段, 页面被分类为生成. 目前排序阶段使用存储在页标志中的生成详细信息, 通过此更改, 我们可以避免使用页标志来存储生成. 这将释放用于存储生成的 3 位页标志. 由于页面访问计数机制也可以通过读 / 写对访问进行计数, 因此我们可以考虑避免在页面标志中使用层索引. | v1 ☐☑✓ | [LORE v1,0/7](https://lore.kernel.org/all/20230402104240.1734931-1-aneesh.kumar@linux.ibm.com) |
+
 ### 4.4.6 Working Set Reporting
 ------
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2023/05/10 | Yuanchu Xie <yuanchu@google.com> | [mm: Working Set Reporting](https://lore.kernel.org/all/20230509185419.1088297-1-yuanchu@google.com) | balloon device 是在来宾虚拟机和主机之间共享内存的典型机制. 开发这种 [auto-ballon 能力](https://www.linux-kvm.org/page/Projects/auto-ballooning)的早期项目于 2013 年完成. 最近, 已经创建了额外的VIRTIO设备(VIRTIO -mem、VIRTIO -pmem), 为许多用例提供了[更多的工具](https://kvmforum2020.sched.com/event/eE4U/virtio-balloonpmemmem-managing-guest-memory-david-hildenbrand-michael-s-tsirkin-red-hat), 每种工具都有优点和缺点，它在多虚拟机场景中特别有用, 在这种场景中, 内存被过度使用, 并且随着系统上工作负载的变化, 需要动态更改虚拟机内存大小. balloon device 现在有许多特性来帮助在来宾和主机之间明智地共享内存资源 (例如, 免费页面提示、统计、免费页面报告). 对于在多虚拟机环境中负责优化内存资源的主控制器程序, 它必须使用这些工具来回答两个具体问题: 统一的工作集报告结构, 适用于服务器和客户端. 它涉及主机上的每个节点直方图、每个内存直方图和虚拟气球驱动程序扩展.<br> 有两种使用工作集报告的方法: 事件驱动和查询. 主机控制器可以接收来自 reclaim 的通知, 它会生成一个报告, 或者控制器可以直接查询直方图.<br>1. 补丁 1 引入了工作集报告机制和主机接口. 补丁 2 扩展了带有工作集报告的虚拟 balloon 驱动程序.<br> 最初的 RFC 以 MGLRU 为基础, 旨在作为讨论和改进的概念验证. tj 和作者的目标是支持活动 / 非活动 LRU 和来自用户空间的工作集估计. 作者正在编写演示脚本并获得一些数据. | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20230509185419.1088297-1-yuanchu@google.com) |
-
+| 2023/05/10 | Yuanchu Xie <yuanchu@google.com> | [mm: Working Set Reporting](https://lore.kernel.org/all/20230509185419.1088297-1-yuanchu@google.com) | balloon device 是在来宾虚拟机和主机之间共享内存的典型机制. 开发这种 [auto-ballon 能力](https://www.linux-kvm.org/page/Projects/auto-ballooning)的早期项目于 2013 年完成. 最近, 已经创建了额外的VIRTIO设备(VIRTIO -mem、VIRTIO -pmem), 为许多用例提供了[更多的工具](https://kvmforum2020.sched.com/event/eE4U/virtio-balloonpmemmem-managing-guest-memory-david-hildenbrand-michael-s-tsirkin-red-hat), 每种工具都有优点和缺点，它在多虚拟机场景中特别有用, 在这种场景中, 内存被过度使用, 并且随着系统上工作负载的变化, 需要动态更改虚拟机内存大小. balloon device 现在有许多特性来帮助在来宾和主机之间明智地共享内存资源 (例如, 免费页面提示、统计、免费页面报告). 对于在多虚拟机环境中负责优化内存资源的主控制器程序, 它必须使用这些工具来回答两个具体问题: 统一的工作集报告结构, 适用于服务器和客户端. 它涉及主机上的每个节点直方图、每个内存直方图和虚拟气球驱动程序扩展.<br> 有两种使用工作集报告的方法: 事件驱动和查询. 主机控制器可以接收来自 reclaim 的通知, 它会生成一个报告, 或者控制器可以直接查询直方图.<br>1. 补丁 1 引入了工作集报告机制和主机接口. 补丁 2 扩展了带有工作集报告的虚拟 balloon 驱动程序.<br> 最初的 RFC 以 MGLRU 为基础, 旨在作为讨论和改进的概念验证. tj 和作者的目标是支持活动 / 非活动 LRU 和来自用户空间的工作集估计. 作者正在编写演示脚本并获得一些数据. 参见 LWN 报道 [Memory overcommit in containerized environments](https://lwn.net/Articles/931658). | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20230509185419.1088297-1-yuanchu@google.com) |
 
 
 # 5 Swappiness
@@ -4895,6 +4898,8 @@ Google 的工程师 Mina Almasry 提出了一种新的思路, 通过 [mremap 的
 
 ### 7.1.11 HugeTLB High-Granularity Mapping
 -------
+
+[High-granularity mappings for huge pages](https://lwn.net/Articles/931773)
 
 HugeTLB 高粒度映射 (HugeTLB High-Granularity Mapping, HGM)(早期也叫 HugeTLB Double Mapping) 的概念. 从广义上讲, 本系列将教 HugeTLB 如何以不同粒度映射 HugeTLB 页面, 更重要的是, 如何部分映射 HugeTLB 页面. 高粒度映射不会分解大页面本身; 它只影响它们的映射方式.
 
@@ -5829,7 +5834,7 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 
 *   object-based reverse mapping(objrmap)
 
-在 2003 年, IBM 的 Dave McCracken 提出了一种新的解决方法 [** 基于对象的反向映射 **("object-based reverse mapping")](https://lwn.net/Articles/23732), 简称 objrmap. 虽然这组补丁当时未合入主线, 但是向社区证实了, 从 struct page 找到映射该物理页的页表项 PTE. 该方法虽然存在一些问题, 但是测试证明可以显著解决 RMAP 在部分场景的巨大开销问题. 参见 [Performance of partial object-based rmap](https://lkml.org/lkml/2003/2/19/235).
+在 2003 年, IBM 的 Dave McCracken 提出了一种新的解决方法 [基于对象的反向映射 ("object-based reverse mapping")](https://lwn.net/Articles/23732), 简称 objrmap. 虽然这组补丁当时未合入主线, 但是向社区证实了, 从 struct page 找到映射该物理页的页表项 PTE. 该方法虽然存在一些问题, 但是测试证明可以显著解决 RMAP 在部分场景的巨大开销问题. 参见 [Performance of partial object-based rmap](https://lkml.org/lkml/2003/2/19/235).
 
 用户空间进程的页面主要有两种, 一种是 file mapped page, 另外一种是 anonymous mapped page. Dave McCracken 的 objrmap 方案虽然性能不错(保证逆向映射功能的基础上, 同时又能修正 rmap 带来的各种问题). 但是只是适用于 file mapped page, 对于匿名映射页面, 这个方案无能为力.
 
@@ -5846,7 +5851,6 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 > 不过历史的洪流不可阻挡, 处理器厂商设计了扩展模块以便寻址更多的内存, 高端的服务器也配置了越来越多的内存.
 >
 > 这也迫使 Linus 改变之前的思路, 让 Linux 内核支持更大的内存.
-
 
 通过新增结构 anon_vma, 类似于重用 address_space 的想法, 即拥有一个数据结构 trampoline.
 一个 VMA 中的所有页面只共享一个 anon_vma. vma->anon_vma 表示 vma 是否映射了页面. 相关的处理在 do_anonymous_fault()-=>anon_vma_prepare().
@@ -7067,6 +7071,8 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 [知乎 - DAMON: Linux 内存数据访问监控框架](https://zhuanlan.zhihu.com/p/446677951)
 
 [openEuler kernel SIG 2021-11-19 周例会](https://www.bilibili.com/video/BV1Ji4y1Z7o3) 上讲解了这个特性.
+
+[A 2023 DAMON update](https://lwn.net/Articles/931769)
 
 对指定的程序进行内存相关优化, 了解业务给定工作负载的数据访问模式至关重要. 但是, 从庞大和复杂的工作量中手动提取此类模式非常详尽. 更糟糕的是, 现有的内存访问分析工具会为不必要的详细分析结果带来不可接受的高开销.
 

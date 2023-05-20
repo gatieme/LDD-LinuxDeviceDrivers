@@ -417,18 +417,22 @@ kagi.com/summarizer
 
 
 [A kernel without buffer heads](https://lwn.net/Articles/930173)
+[Sunsetting buffer heads](https://lwn.net/Articles/931809)
+
 [Unprivileged BPF and authoritative security hooks](https://lwn.net/Articles/929746)
 [Designated movable (memory) blocks](https://lwn.net/Articles/928795)
 [The ongoing trouble with get_user_pages()](https://lwn.net/Articles/930667)
 [A storage standards update at LSFMM+BPF](https://lwn.net/Articles/931282)
-[A storage standards update at LSFMM+BPF](https://lwn.net/Articles/931282)
+[Memory overcommit in containerized environments](https://lwn.net/Articles/931662)
 
-
+[Live migration of virtual machines over CXL](https://lwn.net/Articles/931528)
 [Memory-management changes for CXL](https://lwn.net/Articles/931416)
 
 [The future of memory tiering](https://lwn.net/Articles/931421)
+[Peer-to-peer DMA](https://lwn.net/Articles/931668)
+[Computational storage](https://lwn.net/Articles/931949)
+[The state of the page in 2023](https://lwn.net/Articles/931794)
 
 
-| 2023/05/16 | Chen Yu <yu.c.chen@intel.com> | [sched/fair: Introduce SIS_PAIR to wakeup task on local idle core first](https://lore.kernel.org/all/20230516011159.4552-1-yu.c.chen@intel.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230516011159.4552-1-yu.c.chen@intel.com) |
 
-
+像 POWERPC 这样的体系结构支持页面访问计数机制, 该机制可用于更好地识别系统中的冷/热页面. POWER10 支持 32 位页面访问计数, 该计数根据页面访问增加, 根据时间衰减减少. 页访问计数是根据物理地址过滤来增加的, 因此应该通过页表 (mmap) 和读 / 写系统调用来计算访问.<br>这个补丁集更新了多代 LRU, 使用这个页面访问计数而不是页表引用位来将页面分类到一个代. 在回收的排序阶段, 页面被分类为生成. 目前排序阶段使用存储在页标志中的生成详细信息, 通过此更改, 我们可以避免使用页标志来存储生成. 这将释放用于存储生成的 3 位页标志. 由于页面访问计数机制也可以通过读 / 写对访问进行计数, 因此我们可以考虑避免在页面标志中使用层索引. 这样就能释放 2
