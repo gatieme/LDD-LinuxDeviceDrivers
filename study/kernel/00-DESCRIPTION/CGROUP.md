@@ -51,6 +51,13 @@ blogexcerpt: FZF 是目前最快的模糊搜索工具. 使用golang编写. 结�
 
 **-*-*-*-*-*-*-*-*-*-*-*-*-*-*-* 正文 -*-*-*-*-*-*-*-*-*-*-*-*-*-*-***
 
+# X CGROUP CORE
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/04/03 | Yosry Ahmed <yosryahmed@google.com> | [cgroup: eliminate atomic rstat](https://patchwork.kernel.org/project/linux-mm/cover/20230403220337.443510-1-yosryahmed@google.com/) | 736574 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20230403220337.443510-1-yosryahmed@google.com) |
+
 
 
 # 1 CPU
