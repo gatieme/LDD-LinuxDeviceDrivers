@@ -461,4 +461,12 @@ kagi.com/summarizer
 [Memory passthrough for virtual machines](https://lwn.net/Articles/931933)
 
 
-当 `{rt, cfs}_rq` 或 `dl` 任务被节流时, 由于 cookie 任务不会从核心树中退出队列, 因此 sched_core_find() 和 sched_core_next() 可能返回 throttledtask, 这可能导致 throttledtask 在 CPU 上运行. 因此, 我们在 sched_core_find() 和 sched_core_next() 中添加检查, 以确保返回的是一个未受限制的可运行任务.
+BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF program 是不会导致安全问题的. 包括检查 memory 的访问, 以及模拟执行流程来确保 program 会在有限时间内结束, 等等. 其中很多检查都有助于确保 program 是安全的, 能避免某些类型的 bug, 其他的检查都是专门为了排查恶意 program 的, 如果 kernel 允许接受非特权用户的 BPF program 的话, 这些检查都是必须的.
+
+大多数这类恶意 program 的检查工作都是在 2015 年的 4.4 kernel 里实现的. 尤其是其中很多工作是为了阻止 BPF program 把 kernel 指针值泄露给 user space. 这些指针对攻击者会很有用, 因为他们可以被用来推算出某些特定的数据结构或者代码的位置. 所以我们一定要避免被非特权的进程拿到这些指针数据. 在 kernel 4.7 里面
+
+
+ 其他还有一些 patch 是用来避免 BPF program 里的预测执行(speculative-execution)类型的攻击.
+
+
+
