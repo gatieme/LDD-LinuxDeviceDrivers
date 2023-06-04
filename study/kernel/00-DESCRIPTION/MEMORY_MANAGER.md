@@ -539,6 +539,11 @@ MADV_PAGEOUT 在某种程度上类似于 MADV_DONTNEED, 它提示内核当前不
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/01/01 | Jason A. Donenfeld <Jason@zx2c4.com> | [[v14,2/7] mm: add VM_DROPPABLE for designating always lazily freeable mappings](https://patchwork.kernel.org/project/linux-mm/patch/20230101162910.710293-3-Jason@zx2c4.com/) | 708127 | v14 ☐☑ | [LORE v14,0/7](https://lore.kernel.org/r/20230101162910.710293-3-Jason@zx2c4.com) |
 
+### 1.6.7 Optimizing single-owner memory
+-------
+
+[Optimizing single-owner memory](https://lwn.net/Articles/932391)
+
 
 ## 1.7 page table pages
 -------
@@ -607,6 +612,10 @@ github 地址: [Mitosis Project](https://github.com/mitosis-project), [linux 内
 | 2020 | [Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines; March, 2020; aspl0359a-achermanna.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/0/3/aspl0359a-achermanna.pdf) |
 | 2021 | [Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; asplos21_vmitosis.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/8/asplos21_vmitosis.pdf)<br>[Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; vmitosis_ext_abstract.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/1/vmitosis_ext_abstract.pdf) |
 
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/05/30 | Russell King (Oracle) <linux@armlinux.org.uk> | [arm64 kernel text replication](https://lore.kernel.org/all/ZHYCUVa8fzmB4XZV@shell.armlinux.org.uk) | NUMA 系统在跨节点访问数据和指令时具有更大的延迟, 这可能导致主要执行本地节点以外访问的 CPU 核心的性能降低. 通常情况下, 当 ARM64 系统启动时, 内核最终会被放置在内存中, 每个 CPU 内核都必须从内核所在的 NUMA 节点中获取指令和数据. 这意味着在执行内核代码时, 该节点本地的 CPU 将比远程节点中的 CPU 运行得更快. 访问远程 NUMA 节点内存的延迟越高, 这些节点上的内核性能就越差.<br>如果每个节点的 RAM 中都有内核文本的本地副本, 并且每个节点都使用其内核文本的局部副本运行内核, 那么理所当然的是, 在从远程内存获取指令时, 内核将运行得更快, 因为 STALL 更少. | v1 ☐☑✓ | [LORE v1,0/17](https://lore.kernel.org/all/ZHYCUVa8fzmB4XZV@shell.armlinux.org.uk) |
 
 ### 1.7.5 Shared Page Table
 -------
@@ -723,7 +732,7 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 ## 1.9 page attributes
 -------
 
-## 1.9.1 CPA(Change Page Attribute)
+### 1.9.1 CPA(Change Page Attribute)
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -5688,6 +5697,7 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 | 2021 年 | [Introducing maple trees](https://lwn.net/Articles/845507) |
 | 2021 年 | [LSF/MM TOPIC] mmap locking topics](https://www.spinics.net/lists/linux-mm/msg258803.html) |
 | 2022 年 | [The ongoing search for mmap_lock scalability](https://lwn.net/Articles/893906)<br>LPC-2022 [Scalability solutions for the mmap_lock - Maple Tree and per-VMA locks](https://lpc.events/event/16/contributions/1271) |
+| 2023 年 | [Improving page-fault scalability](https://lwn.net/Articles/932298) 和 [Mitigating vmap lock contention](https://lwn.net/Articles/932396) |
 
 #### 8.2.5.1 SPF(Speculative page faults)
 -------
@@ -7426,6 +7436,8 @@ OS 判断如果是在用户态触发这个硬件内存错误时, 处理方式是
 ## 14.7 ASLR
 -------
 
+[万字长文---手把手教你加固内核安全配置](https://blog.csdn.net/weixin_42135087/article/details/126658723)
+
 ### 14.7.1 ASLR(User Space)
 -------
 
@@ -7736,6 +7748,10 @@ ZONE_MOVABLE 一个 pseudo zone, 它实际是从内核划分的某个 zone 中�
 通过代码标记标识源代码中的特定位置, 该位置在编译时生成, 可以嵌入到特定于应用程序的结构中. [Code tagging framework and applications](https://lore.kernel.org/all/20220830214919.53220-1-surenb@google.com) 代码标记框架采用了 "为给定类型的对象定义一个特殊的 elf 部分, 以便我们可以在运行时遍历它们" 的老技巧, 并为它创建一个适当的库.
 
 并提供代码标记的几个应用程序, 提供内存分配跟踪 (Memory allocation tracking)、动态故障注入(Dynamic fault injection)、延迟跟踪(Latency tracking) 和改进的错误代码报告(Improved error codes).
+
+[Code tagging and memory-allocation profiling](https://lwn.net/Articles/932402)
+
+[A framework for code tagging](https://lwn.net/Articles/906660)
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|

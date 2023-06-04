@@ -445,6 +445,7 @@ Peter Zijlstra 在 [RT-Summit 2017](https://wiki.linuxfoundation.org/realtime/ev
 | 2018/10/09 | Juri Lelli <juri.lelli@redhat.com> | [Towards implementing proxy execution](https://lore.kernel.org/all/20181009092434.26221-1-juri.lelli@redhat.com) | TODO | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20181009092434.26221-1-juri.lelli@redhat.com) |
 | 2020/12/18 | ValenƟn Schneider <valentin.schneider@arm.com> | [Looking forward on proxy execution](https://lpc.events/event/7/contributions/758) | TODO | v1 ☐☑✓ | [GitLab, linux-arm RFC v3,00/08](https://gitlab.arm.com/linux-arm/linux-vs/-/tree/mainline/sched/proxy-rfc-v3/) |
 | 2022/10/03 | Connor O'Brien <connoro@google.com> | [Reviving the Proxy Execution Series](https://lore.kernel.org/all/20221003214501.2050087-1-connoro@google.com) | TODO | v1 ☐☑✓ | [2022/10/03 LORE v1,0/11](https://lore.kernel.org/all/20221003214501.2050087-1-connoro@google.com)<br>*-*-*-*-*-*-*-* <br>[2023/03/20 LORE v2,0/12](https://lore.kernel.org/all/20230320233720.3488453-1-jstultz@google.com)<br>*-*-*-*-*-*-*-* <br>[2023/04/11 LORE v3,00/14](https://lore.kernel.org/all/20230411042511.1606592-1-jstultz@google.com) |
+| 2023/06/01 | John Stultz <jstultz@google.com> | [Generalized Priority Inheritance via Proxy Execution v3](https://lore.kernel.org/all/20230601055846.2349566-1-jstultz@google.com) | TODO | v3 ☐☑✓ | [LORE v3,0/13](https://lore.kernel.org/all/20230601055846.2349566-1-jstultz@google.com) |
 
 
 # 12 深入理解并行编程

@@ -104,6 +104,8 @@ Intel 发布的 ControlFlag 用机器学习来发现代码中的错误, 支持 C
 
 在内核态尝试 dump 用户态的栈对调试是非常有帮助的.
 
+[Dumping User and Kernel Stacks on Kernel Events](https://blog.csdn.net/devwang_com/article/details/93633488)
+
 [how to print stack trace in-your-user](http://kungjohan.blogspot.com/2012/06/how-to-print-stack-trace-in-your-user.html)
 
 [how-to-dump-user-space-stack-in-kernel-space](https://stackoverflow.com/questions/38384259/how-to-dump-user-space-stack-in-kernel-space)
