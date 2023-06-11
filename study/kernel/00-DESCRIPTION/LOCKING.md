@@ -430,7 +430,7 @@ Lockdep 跟踪锁的获取顺序, 以检测死锁, 以及 IRQ 和 IRQ 启用/禁
 
 代理执行(proxy execution) 并不是一个很新颖的概念, 它早就存在于学术界和邮件列表的讨论中.
 
-早在 2010 年 [20th Euromicro Conference on Real-Time Systems (ECRTS2010)](http://www.artist-embedded.org/artist/Overview,1909.html), Peter Zijlstra 与 Thomas Gleixner 等进行 preemption rt 专题演讲, 讨论到优先级继承(priority inheritance) 时, 就提到了代理执行(proxy execution), 当时在 Doug Niehaus 的堪萨斯大学实时项目中就已经存在代理执行, 但不幸的是, 它缺乏 SMP 支持, 因此并没有得到广泛的推广, 但是这项技术得到了 Thomas 的赞誉. 参见当时 LWN 的报道 [Realtime Linux: academia v. reality](https://lwn.net/Articles/397422).
+早在 2010 年 [20th Euromicro Conference on Real-Time Systems (ECRTS2010)](http://www.artist-embedded.org/artist/Overview,1909.html), Peter Zijlstra 与 Thomas Gleixner 等进行 preemption rt 专题演讲, 讨论到优先级继承(priority inheritance) 时, 就提到了代理执行(proxy execution), 当时在 Doug Niehaus 的堪萨斯大学实时项目中就已经存在代理执行, 但不幸的是, 它缺乏 SMP 支持, 因此并没有得到广泛的推广, 但是这项技术得到了 Thomas 的赞誉. 参见当时 LWN 的报道 [Realtime Linux: academia v. reality](https://lwn.net/Articles/397422), 以及学术界的论文 [A Flexible Scheduling Framework Supporting Multiple Programming Models with Arbitrary Semantics in Linux](https://static.lwn.net/images/conf/rtlws11/papers/proc/p38.pdf)
 
 Peter Zijlstra 在 [RT-Summit 2017](https://wiki.linuxfoundation.org/realtime/events/rt-summit2017/schedule) 时进行了主题为 [Proxy Execution (initial topic: "Migrate disable: What's wrong with that?")](https://wiki.linuxfoundation.org/realtime/events/rt-summit2017/proxy-execution) 的专题讨论, 详细介绍了 Proxy Execution 的思想. 其 Slides 参见 [proxy-execution_peter-zijlstra.pdf](https://wiki.linuxfoundation.org/_media/realtime/events/rt-summit2017/proxy-execution_peter-zijlstra.pdf).
 
@@ -440,12 +440,14 @@ Peter Zijlstra 在 [RT-Summit 2017](https://wiki.linuxfoundation.org/realtime/ev
 
 接着 2022 年来自 Google 的 Connor O'Brien 继续对代理执行(proxy execution) 进行了探索.
 
+又来到 2023 年, Google 的 John Stultz 继续接受了这项工作. 参见 LWN 报道 [Addressing priority inversion with proxy execution](https://lwn.net/Articles/934114) 以及作者的 github 代码分支 [johnstultz-work/linux-dev/proxy-exec-v4-6.4-rc3](https://github.com/johnstultz-work/linux-dev/commits/proxy-exec-v4-6.4-rc3).
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/10/09 | Juri Lelli <juri.lelli@redhat.com> | [Towards implementing proxy execution](https://lore.kernel.org/all/20181009092434.26221-1-juri.lelli@redhat.com) | TODO | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20181009092434.26221-1-juri.lelli@redhat.com) |
 | 2020/12/18 | ValenƟn Schneider <valentin.schneider@arm.com> | [Looking forward on proxy execution](https://lpc.events/event/7/contributions/758) | TODO | v1 ☐☑✓ | [GitLab, linux-arm RFC v3,00/08](https://gitlab.arm.com/linux-arm/linux-vs/-/tree/mainline/sched/proxy-rfc-v3/) |
 | 2022/10/03 | Connor O'Brien <connoro@google.com> | [Reviving the Proxy Execution Series](https://lore.kernel.org/all/20221003214501.2050087-1-connoro@google.com) | TODO | v1 ☐☑✓ | [2022/10/03 LORE v1,0/11](https://lore.kernel.org/all/20221003214501.2050087-1-connoro@google.com)<br>*-*-*-*-*-*-*-* <br>[2023/03/20 LORE v2,0/12](https://lore.kernel.org/all/20230320233720.3488453-1-jstultz@google.com)<br>*-*-*-*-*-*-*-* <br>[2023/04/11 LORE v3,00/14](https://lore.kernel.org/all/20230411042511.1606592-1-jstultz@google.com) |
-| 2023/06/01 | John Stultz <jstultz@google.com> | [Generalized Priority Inheritance via Proxy Execution v3](https://lore.kernel.org/all/20230601055846.2349566-1-jstultz@google.com) | TODO | v3 ☐☑✓ | [LORE v3,0/13](https://lore.kernel.org/all/20230601055846.2349566-1-jstultz@google.com) |
+| 2023/06/01 | John Stultz <jstultz@google.com> | [Generalized Priority Inheritance via Proxy Execution](https://lore.kernel.org/all/20230601055846.2349566-1-jstultz@google.com) | TODO | v3 ☐☑✓ | [LORE v4,0/13](https://lore.kernel.org/all/20230601055846.2349566-1-jstultz@google.com) |
 
 
 # 12 深入理解并行编程

@@ -346,7 +346,6 @@ https://www.latexlive.com
 
 
 
-| 2023/04/01 | Xi Wang <xii@google.com> | [Morphing CFS into FDL, The Fair Deadline Scheduling Class](https://lore.kernel.org/all/20230401230556.2781604-1-xii@google.com) | TODO | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20230401230556.2781604-1-xii@google.com) |
 | 2023/03/30 | David Dai <davidai@google.com> | [Improve VM CPUfreq and task placement behavior](https://lore.kernel.org/all/20230331014356.1033759-1-davidai@google.com) | [CPUfreq/sched and VM guest workload problems](https://lpc.events/event/16/contributions/1195) | v2 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20230331014356.1033759-1-davidai@google.com) |
 
 
@@ -459,15 +458,18 @@ kagi.com/summarizer
 
 
 [Memory passthrough for virtual machines](https://lwn.net/Articles/931933)
-[Memory-management documentation and development process](https://lwn.net/Articles/932398/)
+[Memory-management documentation and development process](https://lwn.net/Articles/932398)
 
 BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF program 是不会导致安全问题的. 包括检查 memory 的访问, 以及模拟执行流程来确保 program 会在有限时间内结束, 等等. 其中很多检查都有助于确保 program 是安全的, 能避免某些类型的 bug, 其他的检查都是专门为了排查恶意 program 的, 如果 kernel 允许接受非特权用户的 BPF program 的话, 这些检查都是必须的.
 
 大多数这类恶意 program 的检查工作都是在 2015 年的 4.4 kernel 里实现的. 尤其是其中很多工作是为了阻止 BPF program 把 kernel 指针值泄露给 user space. 这些指针对攻击者会很有用, 因为他们可以被用来推算出某些特定的数据结构或者代码的位置. 所以我们一定要避免被非特权的进程拿到这些指针数据. 在 kernel 4.7 里面
 
-
- 其他还有一些 patch 是用来避免 BPF program 里的预测执行 (speculative-execution) 类型的攻击.
-
+其他还有一些 patch 是用来避免 BPF program 里的预测执行 (speculative-execution) 类型的攻击.
 
 
-[Code tagging and memory-allocation profiling](https://lwn.net/Articles/932402)
+
+
+
+
+
+
