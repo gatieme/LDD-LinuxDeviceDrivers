@@ -1991,6 +1991,8 @@ max_idle_balance_cost 则跟踪了当前调度域最近一段时间执行 idle b
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2013/09/13 | Jason Low <jason.low2@hp.com> | [sched: Limiting idle balance](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f48627e686a69f5215cb0761e731edb3d9859dd9) | 这些补丁修改和添加了限制 idle balance 的方式. [第一个补丁](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=abfafa54db9aba404e8e6763503f04d35bd07138) 减少了我们高估 avg_idle 的可能性. [第二个补丁](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9bd721c55c8a886b938a45198aab0ccb52f1f7fa) 引入了 sd->max_idle_balance_cost 跟踪了跟踪每个调度域执行 idle balance 所花费的最大成本, 如果当前 CPU 的平均 idle 时间 rq->avg_idle 小于 sd->max_idle_balance_cost, 则限制 idle balance, 此时没必要再通过 idle balance 从其他 CPU 上 pull 一个进程过来, 因此可能 idle balance 还没有完成, 就本核上其他进程就可以已经唤醒准备投入运行. [第三个补丁](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f48627e686a69f5215cb0761e731edb3d9859dd9) 则周期性地衰减每个 sched_domain 的 max_idle_balance_cost. 当 CPU 保持空闲的时间很短且不超过执行平衡的成本时, 这些更改进一步减少了我们尝试 idle balance 的机会. | v5 ☑ 3.13-rc1 | [LORE v5,0/3](https://lore.kernel.org/all/1379096813-3032-1-git-send-email-jason.low2@hp.com) |
+| 2023/06/13 | Chen Yu <yu.c.chen@intel.com> | [Limit the scan depth to find the busiest sched group during newidle balance](https://lore.kernel.org/all/cover.1686554037.git.yu.c.chen@intel.com) | 这是为了降低新空闲平衡的成本, 在一些高核数系统上, 新空闲平衡占用了明显的 CPU 周期.<br>提议 ILB_UTIL 主要根据当前调度域中的系统利用率来调整该域内的新空闲平衡扫描深度. 域中的空闲时间越多, 每个新空闲余额用于扫描繁忙组的时间就越多. 尽管 newidle 平衡具有每个域的 max_newidle_lb_cost 来决定是否启动平衡, 但 ILB_UTIL 提供了较小的粒度来决定每个域有多少组. | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/cover.1686554037.git.yu.c.chen@intel.com) |
+
 
 ### 4.4.2 Improve cost accounting of newidle_balance
 -------
@@ -2011,8 +2013,12 @@ idle balance 中执行 update_blocked_average 是很费时费力的, 可以做�
 | 2022/06/08 | Josh Don <joshdon@google.com> | [sched: allow newidle balancing to bail out of load_balance](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=792b9f65a568f48c50b3175536db9cde5a1edcc0) | 在执行 newidle 负载平衡时, 可能会有新任务到达, 也可能有挂起的唤醒. 如果检测到这些情况, newidle_balance() 已经通过退出 sched_domain load_balance() 解决了这个问题. 这对于最小化唤醒延迟非常重要.<br> 然而, 如果我们已经在 load_balance() 中, 在返回到 newidle_balance() 之前, 我们可能会在那里停留一段时间. 如果我们在 LBF_ALL_PINNED 情况下输入 "goto redo" 循环, 情况会更加恶化. 一个非常直接的解决方法是调整 should_we_balance(), 以便在执行 CPU_NEWLY_IDLE Balance 且检测到新任务时释放. 测试发现, 两个轮流休眠和相互唤醒的线程绑定到两个核上, 其他大量利用率为 100% 的线程被绑定到所有其他核上, 如果没有这个补丁, 这对线程的唤醒延迟约为 120us, 几乎全部花费在 load_balance() 中. 合入这个补丁后, 唤醒延迟降低到 6us. | v1 ☑✓ 6.0-rc1 | [LORE](https://lore.kernel.org/all/20220609025515.2086253-1-joshdon@google.com) |
 
 
-### 4.4.3 Task Stealing
+### 4.4.3 Task Stealing From LLC
 -------
+
+#### 4.4.3.1 steal tasks to improve CPU utilization
+-------
+
 
 [Load balancing via scalable task stealing](http://linuxplumbersconf.org/event/2/contributions/155/attachments/13/12/lpc2018_steal.pdf)
 
@@ -2034,7 +2040,20 @@ Steal Task 通过将唤醒任务推送到空闲 CPU, 并在 CPU 空闲时从繁�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2013/08/29 | Jason Low <jason.low2@hp.com> | [steal tasks to improve CPU utilization](http://lwn.net/Articles/769225) | steal tasks. | v1 ☑ 4.13-rc1 | [PatchWork v1](https://lore.kernel.org/lkml/1540220381-424433-1-git-send-email-steven.sistare@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/10](https://lore.kernel.org/lkml/1541448489-19692-1-git-send-email-steven.sistare@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,00/10](https://lore.kernel.org/lkml/1541767840-93588-1-git-send-email-steven.sistare@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,00/10](https://lore.kernel.org/lkml/1544131696-2888-1-git-send-email-steven.sistare@oracle.com) |
+| 2013/08/29 | Jason Low <jason.low2@hp.com> | [steal tasks to improve CPU utilization](http://lwn.net/Articles/769225) | newidle balance 时从同一个 LLC 域内的其他 CPU 上 steal tasks. | v1 ☑ 4.13-rc1 | [PatchWork v1](https://lore.kernel.org/lkml/1540220381-424433-1-git-send-email-steven.sistare@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/10](https://lore.kernel.org/lkml/1541448489-19692-1-git-send-email-steven.sistare@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,00/10](https://lore.kernel.org/lkml/1541767840-93588-1-git-send-email-steven.sistare@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,00/10](https://lore.kernel.org/lkml/1544131696-2888-1-git-send-email-steven.sistare@oracle.com) |
+
+#### 4.4.3.2 shared wakequeue for newidle balance
+-------
+
+为每个 LLC 创建一个 struct swqueue, 确保它们在自己的缓存中, 以避免在不同 LLC 上的 cpu 之间错误共享. 当一个任务第一次被唤醒时, 它会在 enqueue_task_fair() 结束时将自己加入当前 LLC 的 swqueue 中. 只有当任务没有通过 select_task_rq() 手动迁移到当前核心, 并且没有固定到特定的 CPU 时, 才会发生队列. 在调用 newidle_balance() 之前, 内核将从其 LLC 的 swqueue 中拉出一个任务.
+
+与 SIS_NODE 之间的差异, Peter 提出了 [sched/fair: Multi-LLC select_idle_sibling()](https://lore.kernel.org/all/20230530113249.GA156198@hirez.programming.kicks-ass.net), 该补丁解决了 Tejun 的问题, 即当工作队列针对具有小型 CCX 的 Zen2 机器上的特定 LLC 时, 由于 select_idle_sbling() 没有考虑当前 LLC 之外的任何内容, 将有大量空闲时间. 这个补丁(SIS_NODE) 本质上是对这里的提议的补充. SID_NODE 唤醒任务时在同一 DIE 上的相邻 LLC 中寻找空闲内核, 而 swqueue 则允许即将空闲的内核从 LLC 内寻找排队的任务. 也就是说, 在目前的形式中, 由于 SIS_NODE 在 LLC 之间搜索空闲内核, 而 swqueue 在单个 LLC 内将任务排队, 因此处的两个功能处于不同的范围.
+
+从原理上这个实现和前面 Steal Task 很类似. 只是 Steal Task 维护了过载 CPU 的稀疏矩阵和位图, 而 shared wakequeue 则是从维护了 LLC 域内就绪任务的队列(shared wakequeue).
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2023/06/13 | David Vernet <void@manifault.com> | [sched: Implement shared wakequeue in CFS](https://lore.kernel.org/all/20230613052004.2836135-1-void@manifault.com) | 引入 swqueue, newidle balance 时用于从 LLC 内拉取任务. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20230613052004.2836135-1-void@manifault.com) |
 
 
 ## 4.5 NOHZ Idle Balance
@@ -5624,6 +5643,14 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 | 2022/07/18 | Fabio M. De Francesco <fmdefrancesco@gmail.com> | [module: Replace kmap() with kmap_local_page()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=554694ba120b87e39cf732ed632e6a0c52fafb7c) | module 模块使用 kmap_local_page() 替代 kmap() | v1 ☑✓ 6.0-rc1 | [LORE](https://lore.kernel.org/all/20220718002645.28817-1-fmdefrancesco@gmail.com) |
 
 后来主线上 Dexuan Cui 报 Migrate Disable 合入后引入了问题, [5.10: sched_cpu_dying() hits BUG_ON during hibernation: kernel BUG at kernel/sched/core.c:7596!](https://lkml.org/lkml/2020/12/22/141). Valentin Schneider 怀疑是有些 kworker 线程在 CPU 下线后又选到了下线核上运行, 因此建议去测试这组补丁 [workqueue: break affinity initiatively](https://lkml.org/lkml/2020/12/18/406). Dexuan Cui 测试以后可以解决这个问题, 但是会有其他 WARN. Peter Zijlstra 的 解决方案如下 [sched: Fix hot-unplug regression](https://lore.kernel.org/patchwork/cover/1368710).
+
+#### 8.7.1.3 migrate_disable & cpus_allowed
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/04/23 | Sebastian Andrzej Siewior <bigeasy@linutronix.de> | [sched: Provide a pointer to the valid CPU mask](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bd3706251ee8ab67e69d9340ac2abdca217e733) | [sched: Add migrate_disable()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=af449901b84c98cbd84a0113223ba3bcfcb12a26) 中 migrate_disable_switch() 会修改 task 的 affinity 到 cpumask_of(task_cpu(task)), 因此不频繁修改 cpus_allowed, 引入了一个指针 cpus_ptr, 默认情况下 task->cpus_ptr=&task->cpus_mask, 在 migration disabled 的过程中, 临时修改 cpus_ptr 为 task->cpus_ptr = &cpumask_of(task_cpu(task)) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20190423142636.14347-1-bigeasy@linutronix.de) |
+
 
 
 ### 8.7.2 RT LOCK
