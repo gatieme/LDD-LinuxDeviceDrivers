@@ -619,6 +619,8 @@ Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标�
 | [apache/skywalking-rover](https://github.com/apache/skywalking-rover) | |
 | [GroundCover](https://github.com/groundcover-com) | [GroundCover](https://www.groundcover.com) 轻松、大规模地监控 K8s 应用 |
 | [Exein-io/pulsar](https://github.com/Exein-io/pulsar) | [Tracing the Linux kernel using Exein Pulsar: a 5 Minute Tutorial](https://blog.exein.io/pulsar-tutorial)
+| [L3AF](https://l3af.io) | L3AF 致力于为 eBPF 程序创建一个市场, 用户和开发人员可以共享自己签名的 eBPF 程序, 并从市场下载其他人分享的 eBPF 程序. L3AF 平台可用于编排和编写从市场上到多种业务需求的选定 eBPF 程序. 通过这种方式, L3AF 为开发人员提供了一个与云和供应商无关的平台, 用于在运行时向操作系统添加功能. |
+| [ebpf-for-windows](https://github.com/microsoft/ebpf-for-windows) | [eBPF programming on Windows](https://blog.subcom.tech/ebpf-programming-on-windows). |
 
 
 ## X.2 业界博客

@@ -729,6 +729,14 @@ Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM F
 | 2023/04/28 | Hou Wenlong <houwenlong.hwl@antgroup.com> | [x86/pie: Make kernel image's virtual address flexible](https://lore.kernel.org/all/cover.1682673542.git.houwenlong.hwl@antgroup.com) | 这些补丁允许 x86_64 上将内核构建为位置独立可执行文件(PIE). PIE 内核可以被重新定位在虚拟地址空间的顶部 2G 之下. 这个补丁集提供了一个例子, 允许内核映像在地址空间的顶部 512G 中重新定位. PIE 内核的最终目的是提高内核的安全性, 以及内核映像的虚拟地址的可扩展性, 甚至可以在地址空间的下半部分. 内核可以容纳更多的位置, 这意味着攻击者可以更难猜测. 参见 phoronix 报道 [New Patches Aim To Tackle Linux x86_64 PIE Support](https://www.phoronix.com/news/Linux-x86_64-PIE-2023). | v1 ☐☑✓ | [LORE v1,0/43](https://lore.kernel.org/all/cover.1682673542.git.houwenlong.hwl@antgroup.com) |
 
 
+## 13.13 Scope Guard
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/06/12 | Peter Zijlstra <peterz@infradead.org> | [Scope-based Resource Management](https://lore.kernel.org/all/20230612090713.652690195@infradead.org) | [Scope-based resource management for the kernel](https://lwn.net/Articles/934679) | v3 ☐☑✓ | [LORE v3,0/57](https://lore.kernel.org/all/20230612090713.652690195@infradead.org) |
+
+
 # 14 FTRACE
 -------
 

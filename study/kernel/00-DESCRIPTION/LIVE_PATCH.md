@@ -28,8 +28,8 @@ Google 设计了一套新的用户空间实时补丁创建工具, [LLpatch](http
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2008/12/22 | Jeff Arnold <jbarnold@MIT.EDU> | [Ksplice: Rebootless kernel updates](https://lore.kernel.org/patchwork/cover/137199) | KSplice 的实现方案 | v1 ☐ | [PatchWork RFC v3](https://lore.kernel.org/patchwork/cover/135799)<br>*-*-*-*-*-*-*-* <br>[PatchWork v1](https://lore.kernel.org/patchwork/cover/137199) |
-| 2014/04/30 |  Jiri Slaby <jslaby@suse.cz> | [kGraft](https://lore.kernel.org/patchwork/cover/460811) | SUSE 的 Kgraft 方案 | RFC v1 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/460811), [LWN](https://lwn.net/Articles/596776) |
+| 2008/12/22 | Jeff Arnold <jbarnold@MIT.EDU> | [Ksplice: Rebootless kernel updates](https://lore.kernel.org/lkml/1228521840-3886-1-git-send-email-jbarnold@mit.edu/) | KSplice 的实现方案 | v1 ☐ | [PatchWork RFC v3](https://lore.kernel.org/patchwork/cover/135799)<br>*-*-*-*-*-*-*-* <br>[PatchWork v1](https://lore.kernel.org/lkml/1228521840-3886-1-git-send-email-jbarnold@mit.edu) |
+| 2014/04/30 |  Jiri Slaby <jslaby@suse.cz> | [kGraft]https://lore.kernel.org/lkml/1398868249-26169-1-git-send-email-jslaby@suse.cz) | SUSE 的 Kgraft 方案 | RFC v1 ☐ | [PatchWork RFC](https://lore.kernel.org/lkml/1398868249-26169-1-git-send-email-jslaby@suse.cz), [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/jirislaby/kgraft.git) |
 | 2014/07/15 | Josh Poimboeuf <jpoimboe@redhat.com> | [kpatch: dynamic kernel patching](https://lore.kernel.org/patchwork/cover/482999) | Redhat 的实现方案 | v1 ☐ | [PatchWork RFC](https://lore.kernel.org/patchwork/cover/461063)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/482999) |
 | 2014/12/16 | Seth Jennings <sjenning@redhat.com> | [Kernel Live Patching](https://lore.kernel.org/patchwork/cover/527257) | 内核热补丁的基础框架 | v7 ☑ 4.0-rc1 | [PatchWork v7](https://lore.kernel.org/patchwork/cover/527257), [LKML](https://www.lkml.org/lkml/2017/2/13/831)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6](https://lore.kernel.org/patchwork/cover/525706/) |
 
@@ -114,6 +114,10 @@ https://git.kernel.org/pub/scm/linux/kernel/git/jirislaby/kgraft.git/
 [kGraft — live kernel patching from SUSE](https://lwn.net/Articles/584016)
 
 
+| 时间  | 作者 |特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:--:|:----:|:---------:|:----:|
+| 2016/02/10 | Jiri Slaby <jslaby@suse.cz> | [kgraft](https://git.kernel.org/pub/scm/linux/kernel/git/jirislaby/kgraft.git) | Suse 旧的 kgraft 方案. 参见 [SUSE Releases Source-Code For kGraft Live Kernel Patching](https://www.phoronix.com/news/MTY0NTE) | RFC ☐ 5.14-rc1  | [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/jirislaby/kgraft.git) |
+| 2015/05/04 | Jiri Slaby <jslaby@suse.cz> | [kGraft on the top of KLP](https://lore.kernel.org/all/1430742009-5895-1-git-send-email-jslaby@suse.cz) | TODO | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/1430742009-5895-1-git-send-email-jslaby@suse.cz) |
 
 
 ### 1.4.2 KernelCare @ CloudLinux
@@ -132,6 +136,8 @@ SUSE 和 Red Hat 都尝试将自家的解决方案推向 Linux Mainline, 社区�
 随后在并在2016年10月, Canonical 宣布他们正基于 livepatch 推出自己的的商业内核更新服务 Canonical Livepatch服务.
 
 2022 LPC-2022 上, Mate/Facebook 也宣布他们转向内核实时补丁 [Kernel Live Patching at Scale](https://lpc.events/event/16/contributions/1199). phoronix 随后也进行了报道 [Linux Kernel Live Patching Working Fairly Well For Millions Of Meta Servers](https://www.phoronix.com/news/Meta-Linux-Kernel-Live-Patching).
+
+
 
 ## 1.6 总结
 -------
@@ -429,4 +435,11 @@ kpatch 的实现一直是根据内核的进展而演进的, 对 JUMP_LABEL 的�
 # 7 Kpatch 自动化工具
 -------
 
+
+
+| 时间  | 作者 |特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:--:|:----:|:---------:|:----:|
+| 2016/02/10 | Li Bin <huawei.libin@huawei.com> | [livepatch: patch creation tooling proposal](https://lore.kernel.org/all/cover.1477578530.git.jpoimboe@redhat.com) | Kpatch-Build | RFC ☐ 4.0-rc1  | [GitHub](https://github.com/dynup/kpatch) |
+| 2016/02/10 | Jiri Slaby <jslaby@suse.cz> | [announcing LLpatch: arch-independent live-patch creation](https://lore.kernel.org/all/CABFpvm2o+d0e-dfmCx7H6=8i3QQS_xyGFt4i3zn8G=Myr_miag@mail.gmail.com) | Google 提供的新的用户空间实时补丁创建工具, LLpatch, 与 kpatch 构建并行, 但不需要它的特定于 arch 的代码来进行 ELF 分析和操作. 基于 LLVM-diff 可以访问比 kpatch 的 create-diff- -object 能够从 elf 级别的差异中推断出的更多信息. | RFC ☐ 5.14-rc1  | [GitHub](https://github.com/google/LLpatch) |
+| 2023/03/06 | Joe Lawrence <joe.lawrence@redhat.com> | [livepatch: klp-convert tool](https://lore.kernel.org/all/20230306140824.3858543-1-joe.lawrence@redhat.com) | livepatches 可能会使用不包含在其自身作用域中的符号, 并且, 正因为如此, 最终可能会编译为只在模块加载期间解决的重定位. 然而, 当引用的符号没有导出时, 解决这个重定位问题需要关于保存符号的对象 (vmlinux 或模块) 及其在对象中的位置的信息, 因为一个对象可能包含多个具有相同名称的符号. 提供这些信息必须根据 `Documentation/livepatch/module-self-format.txt` 中指定的内容进行. 目前, 还没有一种简单的方法可以在最终的 livepatch elf 对象中嵌入所需的信息. klp-convert 以两种不同的形式解决了这个问题: 1. 依靠在内核编译期间构建的符号映射来自动推断重定位目标符号, 并且, 当这种推断不可能时.<br>2. 通过使用 elf 对象中的注释将重定位相应地转换为规范, 使其能够由 livepatch 加载器处理. 鉴于以上所述, 添加对符号形式的符号映射的支持 `.klp` 文件; 添加 klp 转换工具; 将 klp 转换工具集成到 kbuild 中; 使 livepatch 模块在内核编译管道中可识别; 添加数据结构和宏, 使用户能够注释 livepatch 源代码; 使 modpost stage 与 livepatches 兼容; 参见 [Understand and review klp-convert patchset](https://hackweek.opensuse.org/22/projects/understand-and-review-klp-convert-patchset), [klp-convert and livepatch relocations, LPC-2019](https://lpc.events/event/4/contributions/507/attachments/316/533/LPC2019.pdf). | v7 ☐☑✓ | [LORE v7,0/10](https://lore.kernel.org/all/20230306140824.3858543-1-joe.lawrence@redhat.com), [SUSE/klp-convert](https://github.com/SUSE/klp-convert), [joe-lawrence/linux](https://github.com/joe-lawrence/linux/tree/klp-convert-v5) |
 

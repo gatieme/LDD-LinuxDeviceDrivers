@@ -461,11 +461,13 @@ Paul McKenney's parallel programming book, [LWN](https://lwn.net/Articles/421425
 
 计算机体系结构基础, [第 10 章 并行编程基础](https://foxsen.github.io/archbase/并行编程基础.html)
 
+[Is Parallel Programming Hard, And, If So, What Can You Do About It?](https://mirrors.edge.kernel.org/pub/linux/kernel/people/paulmck/perfbook/perfbook.html)
 
 ## 12.2 并行化框架
 -------
 
 [taskflow 的总结: 令人敬畏的并行计算](https://github.com/taskflow/awesome-parallel-computing)
+
 
 ### 12.2.1 Task/Function Flow
 -------
