@@ -241,7 +241,7 @@ https://www.latexlive.com
 
 在 util_fits_cpu() 中添加一个新状态, 以反映任务适合 CPU 的情况, 除了 uclamp_min 提示 (这是一种性能要求).
 
-使用 - 1 表示 CPU 不适合只是因为 uclamp_min, 因此我们可以使用这个新值采取额外的操作, 以选择不符合 uclamp_min 提示的最佳 CPU.
+使用 -1 表示 CPU 不适合只是因为 uclamp_min, 因此我们可以使用这个新值采取额外的操作, 以选择不符合 uclamp_min 提示的最佳 CPU.
 
 
 | 2023/01/12 | Daniel Bristot de Oliveira <bristot@kernel.org> | [sched/idle: Make idle poll dynamic per-cpu](https://lore.kernel.org/all/20230112162426.217522-1-bristot@kernel.org) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230112162426.217522-1-bristot@kernel.org) |
@@ -484,4 +484,4 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 
 
 
-[eBPFmon: A new tool for exploring and interacting with eBPF applications](https://redcanary.com/blog/ebpfmon)
+uclamp_min造成的任务 misfit 并不意味着 cpu overutiled, 因为这仅仅是 uclamp_min 的约束, 具有小 util_avg 的任务可能不适合所在高 capacity 的 cpu. 在 util_filts_cpu() 中添加一个新状态, 以反映任务适合 cpu 的情况, 但 uclamp_min 提示除外, 这是一个性能要求. 使用 -1 来反映 CPU 不适合只是因为 uclamp_min, 所以我们可以使用这个新值来采取额外的操作, 以选择与 uclamp_minhint 不匹配的最佳 CPU. 当 util_filts_cpu() 返回 -1 时, 我们将继续寻找一种可能的性能更好的 cpu, 它用 capacity_orig_of() - thermal_load_avg 代替容量反转检测来检测容量反转.

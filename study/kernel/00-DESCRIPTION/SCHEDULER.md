@@ -4736,6 +4736,13 @@ Misfit Task 对调度器 ** 负载均衡 ** 做了如下改造, 参见 [commit c
 
 当容量较低的 CPU 进行负载平衡, 需要谨慎考虑它从 capacity 较高的 sched_group 中 PULL 某些任务出来, 我们 [不应该在只有一个任务运行的情况下从 CPU 中提取任务](https://elixir.bootlin.com/linux/v4.20/source/kernel/sched/fair.c#L8538), 因为这肯定会阻碍该任务的进度. 如果有多个任务在运行, 那么高 capacity 的 sched_group 的负载平衡已经采取了任何可能的措施来解决不平衡问题, 如果还有多个任务在运行, 我们应该通过移动一个任务来更好地利用系统计算能力. 参见 [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4ad3831a9d4af5e36da5d44a3b9c6522d0353cee).
 
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2018/07/04 | Morten Rasmussen <morten.rasmussen@arm.com> | [sched/fair: Migrate 'misfit' tasks on asymmetric capacity systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9c63e84db29bcf584040931ad97c2edd11e35f6c) | TODO | v4 ☐☑✓ | [LORE v4,0/12](https://lore.kernel.org/all/1530699470-29808-1-git-send-email-morten.rasmussen@arm.com) |
+| 2023/02/01 | Vincent Guittot <vincent.guittot@linaro.org> | [unlink misfit task from cpu overutilized](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=a2e90611b9f425adbbfcdaa5b5e49958ddf6f61b) | uclamp_min造成的任务 misfit 并不意味着 cpu overutilized, 因为这仅仅是 uclamp_min 的约束, 具有小 util_avg 的任务可能不适合所在高 capacity 的 cpu. 允许 `task_fits_cpu()/asym_fits_cpu()/cpu_overutilized() -=> util_filts_cpu()` 返回 -1 来反映 CPU 不适合指定任务只是因为 uclamp_min, 所以我们可以使用这个状态来采取额外的操作, 以选择与 uclamp_min 匹配的最佳 CPU. 当 util_filts_cpu() 返回 -1 时, 不再认为 CPU 是 overutilized 的, 因此 select_idle_capacity() 和 find_energy_efficient_cpu() 将继续寻找一种可能的性能更好的 CPU, 它用 capacity_orig_of() - thermal_load_avg 代替容量反转检测来检测容量反转. | v5 ☐☑✓ | [LORE v5,0/2](https://lore.kernel.org/all/20230201143628.270912-1-vincent.guittot@linaro.org) |
+
+
+
 *   Misfit vs NO_HZ
 
 [sched/fair: Kick nohz balance if rq->misfit_task_load](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5fbdfae5221a5208ed8e7653fc1c4b31de420f74)
