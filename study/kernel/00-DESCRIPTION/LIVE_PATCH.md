@@ -18,6 +18,8 @@ https://ruby-china.org/topics/20680
 https://www.open-open.com/news/view/1d7445f
 https://www.infoworld.com/article/2851028/four-ways-linux-is-headed-for-no-downtime-kernel-patching.html
 
+[热补丁的全面调研](https://blog.csdn.net/Rong_Toa/article/details/120925606)
+
 # 1 热补丁的历史
 -------
 

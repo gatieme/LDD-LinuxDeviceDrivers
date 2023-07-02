@@ -207,7 +207,7 @@ ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如
 
 2. 不感知 SMT 兄弟 CPU 的状态, 导致不必要的迁移.
 
-但是测试发现, v5.16 优先级的修复, 只是一定程度缓解了问题, 修正了 HT 和 SMT CPU 的次序, 优先 P-core(HT) -=> E-core(HT, 不支持 SMT) -=> P-core(SMT). 但是 E-core 和 P-core(SMT) 在判断是否进行迁移时, 并不感知 SMT CORE 上其他兄弟 CPU 实际的工作状态. 系统中依旧存在异常的进程迁移.
+但是测试发现, v5.16 优先级的修复, 只是一定程度缓解了问题, 修正了 HT 和 SMT CPU 的次序, 优先 P-core(HT) -=> E-core(HT, 不支持 SMT) -=> P-core(SMT). 但是 E-core 和 P-core(SMT) 在判断是否进行迁移时, 并不感知 SMT CORE 上其他兄弟 CPU 实际的工作状态. 系统中依旧存在异常的进程迁移. 这就造成混合 CPU 系统上(由高频 SMT 内核和低频非 SMT 内核混合而成的处理器), 根据旧代码, 如果有多个 SMT 同级繁忙, 则低优先级 CPU 会从高优先级内核中提取任务, 从而导致许多不必要的任务迁移.
 
 现在 ASYM_PACKING 的实现, x86 初始化 ITMT 时通过 [sched_set_itmt_core_prio()](https://elixir.bootlin.com/linux/v6.0/source/arch/x86/kernel/itmt.c#L189) 为编号较高的 SMT 兄弟节点分配较低的优先级 [arch_asym_cpu_priority()](https://elixir.bootlin.com/linux/v6.0/source/arch/x86/kernel/itmt.c#L199). 但是实际上, CPU Core 的任何 SMT 兄弟之间没有区别.
 
@@ -219,12 +219,13 @@ ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如
 
 通过 [find_busiest_group()](https://lore.kernel.org/lkml/20221122203532.15013-2-ricardo.neri-calderon@linux.intel.com) 让低优先级的核检查所有 SMT 兄弟节点以找到最繁忙的队列. 这对于支持 Intel Thread Director 的 IPC Classes 也是必需的, 因为目标 CPU 将需要检查在相同优先级 CPU 上运行的任务.
 
-当然这组补丁集不会影响原来 Power7 SMT8 的 ASYM_PACKING 逻辑. 对于没有实现 sched_ferences_asym() 的 新 check_smt 参数的架构, 功能不会改变.
+
+这样通过改进负载均衡器, 使其能够识别具有多个繁忙同级的 SMT 内核, 并允许优先级较低的 CPU 提取任务, 这只进行必要的迁移, 避免了多余的迁移, 并允许低优先级内核检查所有 SMT 同级中最繁忙的队列. 当然这组补丁集不会影响原来 Power7 SMT8 的 ASYM_PACKING 逻辑. 对于没有实现 sched_ferences_asym() 的 新 check_smt 参数的架构, 功能不会改变.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/09/10 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Fix load balancing of SMT siblings with ASYM_PACKING](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4006a72bdd93b1ffedc2bd8646dee18c822a2c26) | 参见 [Fixing a corner case in asymmetric CPU packing](https://lwn.net/Articles/880367), 在使用非对称封装 (ASM_PACKING) 时, 可能存在具有三个优先级的 CPU 拓扑, 其中只有物理核心的子集支持 SMT. 这种架构下 ASM_PACKING 和 SMT 以及 load_balance 都存在冲突.<br> 这种拓扑的一个实例是 Intel Alder Lake. 在 Alder Lake 上, 应该通过首先选择 Core(酷睿) cpu, 然后选择 Atoms, 最后再选择 Core 的 SMT 兄弟 cpu 来分散工作. 然而, 当前负载均衡器的行为与使用 ASYM_PACKING 时描述的不一致. 负载平衡器将选择高优先级的 CPU (Intel Core) 而不是中优先级的 CPU (Intel Atom), 然后将负载溢出到低优先级的 SMT 同级 CPU. 这使得中等优先级的 Atoms cpu 空闲, 而低优先级的 cpu sibling 繁忙.<br>1. 首先改善了 SMT 中 sibling cpu 优先级的计算方式, 它将比单个 core 优先级更低.<br>2. 当决定目标 CPU 是否可以从最繁忙的 CPU 提取任务时, 还检查执行负载平衡的 CPU 和最繁忙的候选组的 SMT 同级 CPU 的空闲状态. | v5 ☑ 5.16-rc1 | [PatchWork v1](https://lore.kernel.org/patchwork/cover/1408312)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://lore.kernel.org/patchwork/cover/1413015)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3 0/6](https://lore.kernel.org/patchwork/cover/1428441)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,0/6](https://lore.kernel.org/patchwork/cover/1474500)<br>*-*-*-*-*-*-*-* <br>[LKML v5,0/6](https://lkml.org/lkml/2021/9/10/913), [LORE v5,0/6](https://lore.kernel.org/all/20210911011819.12184-1-ricardo.neri-calderon@linux.intel.com) |
-| 2022/08/25 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Avoid unnecessary migrations within SMT domains](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=044f0e27dec6e30bb8875a4a12c5f2594964e93f) | 参见 phoronix 报道 [Linux 6.5 To Boast Improved Handling For Intel Hybrid CPUs With Hyper Threading](https://www.phoronix.com/news/Linux-6.4-Avoid-Unnecessary-SMT). | v1 ☐☑✓ | [2022/08/25 LORE v1,0/4](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2022/11/22 LORE v2,0/7](https://lore.kernel.org/lkml/20221122203532.15013-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2023/02/07 LORE v3,0/10](https://lore.kernel.org/all/20230207045838.11243-1-ricardo.neri-calderon@linux.intel.com) |
+| 2022/08/25 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Avoid unnecessary migrations within SMT domains](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=046a5a95c3b0425cfe79e43021d8ee90c1c4f8c9) | 参见 phoronix 报道 [Linux 6.5 To Boast Improved Handling For Intel Hybrid CPUs With Hyper Threading](https://www.phoronix.com/news/Linux-6.4-Avoid-Unnecessary-SMT). | v1 ☐☑✓ | [2022/08/25 LORE v1,0/4](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2022/11/22 LORE v2,0/7](https://lore.kernel.org/lkml/20221122203532.15013-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2023/02/07 LORE v3,0/10](https://lore.kernel.org/all/20230207045838.11243-1-ricardo.neri-calderon@linux.intel.com) |
 
 
 #### 1.4.1.3 Intel Thread Director (ITD)

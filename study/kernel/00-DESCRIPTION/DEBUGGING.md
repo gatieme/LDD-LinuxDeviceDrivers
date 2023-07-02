@@ -925,7 +925,7 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/11/21 | David Woodhouse <dwmw2@infradead.org> | [Parallel CPU bringup for x86_64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0c7ffa32dbd6b09a87fea4ad1de8b27145dfd9a6) | 随着核数的增多, 内核的启动速度越来越慢. 这组补丁能够并行启动辅助 (x86_64) CPU 内核. 对 v6 测hi发现可以显著改善 Sapphire Rapids CPU 系统的启动时间, 从 71s 降低到 14s. 随后 v7 增加了对 AMD CPU 的支持. 参见 [Parallel CPU Bring-Up Poised For Linux 6.5](https://www.phoronix.com/news/Parallel-CPU-Bringup-TIP-Linux). | v1 ☐ | [LWN ](https://lwn.net/Articles/878161), [LKML](https://lkml.org/lkml/2021/12/9/664), [LORE 00/11](https://lkml.kernel.org/lkml/20211209150938.3518-1-dwmw2@infradead.org),  [Phoronix 报道 v1](https://www.phoronix.com/news/Linux-x86_64-Parallel-CPU-Boot)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/9](https://lore.kernel.org/lkml/20211215145633.5238-1-dwmw2@infradead.org), [Phoronix 报道 v3](https://www.phoronix.com/news/Parallel-CPU-Bringup-AMD-Snag)<br>*-*-*-*-*-*-*-* <br>[LORE v6](https://lore.kernel.org/lkml/20230202215625.3248306-1-usama.arif@bytedance.com), [Phoronix 报道 v6](https://www.phoronix.com/news/Linux-CPU-Parallel-Bringup-2023)<br>*-*-*-*-*-*-*-* <br>[LORE v7](20230207230436.2690891-1-usama.arif@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v17,0/8](https://lore.kernel.org/lkml/20230328195758.1049469-1-usama.arif@bytedance.com) |
+| 2021/11/21 | David Woodhouse <dwmw2@infradead.org> | [Parallel CPU bringup for x86_64](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=0c7ffa32dbd6b09a87fea4ad1de8b27145dfd9a6) | 随着核数的增多, 内核的启动速度越来越慢. 这组补丁能够并行启动辅助 (x86_64) CPU 内核. 对 v6 测hi发现可以显著改善 Sapphire Rapids CPU 系统的启动时间, 从 71s 降低到 14s. 随后 v7 增加了对 AMD CPU 的支持. 参见 [Parallel CPU Bring-Up Poised For Linux 6.5](https://www.phoronix.com/news/Parallel-CPU-Bringup-TIP-Linux). [Parallel CPU Bringup Lands For Linux 6.5 To Shorten Boot/Reboot Time On Large Servers](https://www.phoronix.com/news/Parallel-CPU-Bringup-Linux-6.5). | v1 ☐ | [LWN ](https://lwn.net/Articles/878161), [LKML](https://lkml.org/lkml/2021/12/9/664), [LORE 00/11](https://lkml.kernel.org/lkml/20211209150938.3518-1-dwmw2@infradead.org),  [Phoronix 报道 v1](https://www.phoronix.com/news/Linux-x86_64-Parallel-CPU-Boot)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/9](https://lore.kernel.org/lkml/20211215145633.5238-1-dwmw2@infradead.org), [Phoronix 报道 v3](https://www.phoronix.com/news/Parallel-CPU-Bringup-AMD-Snag)<br>*-*-*-*-*-*-*-* <br>[LORE v6](https://lore.kernel.org/lkml/20230202215625.3248306-1-usama.arif@bytedance.com), [Phoronix 报道 v6](https://www.phoronix.com/news/Linux-CPU-Parallel-Bringup-2023)<br>*-*-*-*-*-*-*-* <br>[LORE v7](20230207230436.2690891-1-usama.arif@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v17,0/8](https://lore.kernel.org/lkml/20230328195758.1049469-1-usama.arif@bytedance.com) |
 | 2023/04/15 | Thomas Gleixner <tglx@linutronix.de> | [cpu/hotplug, x86: Reworked parallel CPU bringup](https://lore.kernel.org/all/20230414225551.858160935@linutronix.de) | [Reworked x86_64 Parallel Boot Support Posted For The Linux Kernel](https://www.phoronix.com/news/Linux-Parallel-Boot-x86-Rework) | v1 ☐☑✓ | [LORE v1,0/37](https://lore.kernel.org/all/20230414225551.858160935@linutronix.de) |
 
 
@@ -986,6 +986,16 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 -------
 
 [Linux 6.2 Speeds Up A Function By 715x - kallsyms_lookup_name()](https://www.phoronix.com/news/Linux-6.2-Modules)
+
+# 23 Auto Tune
+-------
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/09/27 | Oracle | [bpftune For BPF-Based](https://lore.kernel.org/all/20220927131518.30000-1-ojeda@kernel.org) | [Oracle Developing "bpftune" For BPF-Based, Automatic Tuning Of Linux Systems](https://www.phoronix.com/news/Oracle-bpftune)<br>*-*-*-*-*-*-*-* <br>[https://blogs.oracle.com/linux/post/introducing-bpftune](https://blogs.oracle.com/linux/post/introducing-bpftune)<br>*-*-*-*-*-*-*-* <br>[]() | v10 ☐☑✓ | [GitHub](https://github.com/oracle-samples/bpftune) |
+| 2022/09/27 | Atune | NA | NA | NA | NA |
+| 2022/09/27 | Ktune | NA | NA | NA | NA |
 
 
 # X 学习参考

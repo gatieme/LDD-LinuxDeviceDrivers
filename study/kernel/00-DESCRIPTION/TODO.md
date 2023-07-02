@@ -372,7 +372,7 @@ https://www.latexlive.com
 
 (这是 LKP 测试默认运行的, 而 numa01 是 mmtests 默认运行的 (mmtests 由每个线程在整个 3GB 区域上操作)
 
-因此, 为了解决这个问题, 这里的建议是：
+因此, 为了解决这个问题, 这里的建议是:
 
 
 
@@ -472,7 +472,7 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2014/10/17 | Paul Gortmaker <paul.gortmaker@windriver.com> | [simple wait queue support (from -rt)](https://lore.kernel.org/all/1413591782-23453-1-git-send-email-paul.gortmaker@windriver.com) | Simple wait queues 支持在 preempt-rt 内核中已经存在了相当长的一段时间 (至少从 3.4 开始). 在今年的 RT 峰会上, 我们一致认为, 对其进行最终清理并将其纳入主流是有意义的. 它类似于普通的等待队列支持, 但没有一些使用较少的功能, 与普通的等待排队相比, 占用空间更小. 对于非 RT, 我们仍然可以从足迹减少系数中受益. 在本系列中, 我们将简单的等待队列部署在两个位置：(1) 用于完成量, (2) 用于 RCU 处理. 参考 LWN 报道 [Simple wait queues](https://lwn.net/Articles/577370). | v2 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/1386810399-8973-1-git-send-email-paul.gortmaker@windriver.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/all/1413591782-23453-1-git-send-email-paul.gortmaker@windriver.com) |
+| 2014/10/17 | Paul Gortmaker <paul.gortmaker@windriver.com> | [simple wait queue support (from -rt)](https://lore.kernel.org/all/1413591782-23453-1-git-send-email-paul.gortmaker@windriver.com) | Simple wait queues 支持在 preempt-rt 内核中已经存在了相当长的一段时间 (至少从 3.4 开始). 在今年的 RT 峰会上, 我们一致认为, 对其进行最终清理并将其纳入主流是有意义的. 它类似于普通的等待队列支持, 但没有一些使用较少的功能, 与普通的等待排队相比, 占用空间更小. 对于非 RT, 我们仍然可以从足迹减少系数中受益. 在本系列中, 我们将简单的等待队列部署在两个位置: (1) 用于完成量, (2) 用于 RCU 处理. 参考 LWN 报道 [Simple wait queues](https://lwn.net/Articles/577370). | v2 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/1386810399-8973-1-git-send-email-paul.gortmaker@windriver.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/all/1413591782-23453-1-git-send-email-paul.gortmaker@windriver.com) |
 | 2016/02/19 | Daniel Wagner <wagi@monom.org> | [Simple wait queue support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=abedf8e2419fb873d919dd74de2e84b510259339) | Simple wait queues 支持. | v8 ☐☑✓ 4.6-rc1 | [LORE v8,0/5](https://lore.kernel.org/all/1455871601-27484-1-git-send-email-wagi@monom.org) |
 
 | 2023/05/18 | Tejun Heo <tj@kernel.org> | [workqueue: Improve unbound workqueue execution locality](https://lore.kernel.org/all/20230519001709.2563-1-tj@kernel.org) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230519001709.2563-1-tj@kernel.org) |
@@ -484,11 +484,4 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 
 
 
-
-
-
-
-[Understand and review klp-convert patchset](https://hackweek.opensuse.org/22/projects/understand-and-review-klp-convert-patchset), [klp-convert and livepatch relocations, LPC-2019](https://lpc.events/event/4/contributions/507/attachments/316/533/LPC2019.pdf)
-
-
-Livepatches 可能会使用不包含在其自身作用域中的符号, 并且, 正因为如此, 最终可能会编译为只在模块加载期间解决的重定位. 然而, 当引用的符号没有导出时, 解决这个重定位问题需要关于保存符号的对象 (vmlinux 或模块) 及其在对象中的位置的信息, 因为一个对象可能包含多个具有相同名称的符号. 提供这些信息必须根据 `Documentation/livepatch/module-self-format.txt` 中指定的内容进行. 目前, 还没有一种简单的方法可以在最终的 livepatch elf 对象中嵌入所需的信息. klp-convert 以两种不同的形式解决了这个问题: 1. 依靠在内核编译期间构建的符号映射来自动推断重定位目标符号, 并且, 当这种推断不可能时.<br>2. 通过使用 elf 对象中的注释将重定位相应地转换为规范, 使其能够由 livepatch 加载器处理. 鉴于以上所述, 添加对符号形式的符号映射的支持 `.klp` 文件; 添加 klp 转换工具; 将 klp 转换工具集成到 kbuild 中; 使 livepatch 模块在内核编译管道中可识别; 添加数据结构和宏, 使用户能够注释 livepatch 源代码; 使 modpost stage 与 livepatches 兼容;
+[eBPFmon: A new tool for exploring and interacting with eBPF applications](https://redcanary.com/blog/ebpfmon)

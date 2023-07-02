@@ -316,6 +316,8 @@ Google 的 Joel Fernandes 等发现 RCU 并没有很好的节能, 在 Android �
 
 [NUMA Interface For FUTEX2 Still Being Tackled For Linux](https://www.phoronix.com/news/FUTEX2-NUMA-Still-Coming-2022)
 
+[内核工匠-futex问答](https://blog.csdn.net/feelabclihu/article/details/127020166)
+
 # 7 Semaphores
 -------
 

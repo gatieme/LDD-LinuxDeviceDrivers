@@ -65,6 +65,9 @@ git log --oneline v5.15...v5.16 | grep -E "Merge tag | Linux"  | grep -E "sched|
 | 5.17 | 2022/03/20 | [sched_core_for_v5.17_rc1, 5.17-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6ae71436cda7)<br>[sched_urgent_for_v5.17_rc2, 5.17-rc2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=10c64a0f2806)<br>[sched_urgent_for_v5.17_rc2_p2, 5.17-rc2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=24f4db1f3a27)<br>[sched_urgent_for_v5.17_rc4, 5.17-rc4](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6f3573672324)<br>[sched_urgent_for_v5.17_rc5, 5.17-rc5](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0b0894ff78cc) |
 | 5.18 | NA | [sched-core-2022-03-22, 5.18-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3fe2f7446f1e029b220f7f650df6d138f91651f2), [scheduler updates for v5.18](https://lore.kernel.org/lkml/YjhZUezhnamHAl0H@gmail.com) |
 | 6.3 | NA | [Linux 6.3 Scheduler Updates Bring Fixes & Minor Optimizations](https://www.phoronix.com/news/Linux-6.3-Scheduler), [scheduler changes for v6.3](https://lore.kernel.org/lkml/Y%2FNttaqRZ+zaHIjo@gmail.com) |
+| 6.4 | NA | NA |
+| 6.5 | NA | [Linux 6.5 To Enhance Load Balancing For Intel Hybrid CPUs](https://www.phoronix.com/news/Linux-6.5-Intel-Hybrid-Sched), [Scheduler changes for v6.5](https://lore.kernel.org/lkml/ZJq3HtUKZp2uMWLu@gmail.com) |
+
 
 cgit 上查看 sched 所有的 log 信息 :
 
@@ -684,6 +687,9 @@ b37e67a6c648 ck: sched: introduce per-cgroup identity
 
 该功能是基于控制组 (control group, cgroup) 的概念, 需要内核开启 CGROUP 的支持才可使用.
 
+[内核工匠-CFS组调度](https://blog.csdn.net/feelabclihu/article/details/128586905)
+
+[内核工匠-CFS线程调度机制分析](https://blog.csdn.net/feelabclihu/article/details/127699138)
 
 ### 2.1.2 autogroup
 -------
@@ -708,7 +714,8 @@ CFS 用户反复在社区抱怨并行 kbuild 对桌面交互性有负面影响
 ### 2.1.3 CFS BANDWIDTH 带宽控制
 -------
 
-*   CFS BANDWIDTH 带宽控制
+#### 2.1.3.1 CFS BANDWIDTH 带宽控制
+-------
 
 内核中的 [`CFS BANDWIDTH Controller`](https://lwn.net/Articles/428230) 是控制每个 CGROUP 可以使用多少 CPU 时间的一种有效方式. 它可以避免某些进程消耗过多的 CPU 时间, 并确保所有需要 CPU 的进程都能拿到足够的时间.
 
@@ -720,6 +727,9 @@ CFS 用户反复在社区抱怨并行 kbuild 对桌面交互性有负面影响
 | 2022/10/19 | Chuyi Zhou <zhouchuyi@bytedance.com> | [sched/fair: Add min_ratio for cfs bandwidth_control](https://lore.kernel.org/all/20221019031551.24312-1-zhouchuyi@bytedance.com) | 如果用户设置的配额 / 周期比过小, 在当前的 cfs 带宽控制机制下, 长时间持锁可能会导致任务被节流, 导致整个 [系统卡住](https://lore.kernel.org/lkml/5987be34-b527-4ff5-a17d-5f6f0dc94d6d@huawei.com). 为了防止上述情况的发生, 本补丁在 `procfs` 中增加了 `sysctl_sched_cfs_bandwidth_min_ratio`, 它表示用户可以设置的配额 / 周期的最小百分比. 默认值为 0, 用户可以设置配额和周期而不触发此约束. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221019031551.24312-1-zhouchuyi@bytedance.com) |
 | 2022/10/17 | Josh Don <joshdon@google.com> | [sched: async unthrottling for cfs bandwidth](https://lore.kernel.org/all/20221017234750.454419-1-joshdon@google.com) | CFS 带宽目前分配新的运行时, 并在 hrtimer 回调中取消 cfs_rq 的内联. 运行时分发是一个每个 CPU 的操作, 而取消节流是一个每个 cgroup 的操作, 因为需要 tg 遍历. 在拥有大量 CPU 和大型 cgroup 层次结构的机器上, CPU *cgroups 的工作可能在单个 hrtimer 回调中无法完成: 由于 IRQ 被禁用, 很容易发生 hard lockup. 具体来说, 我们发现在 256 个 CPU、O(1000) 个 cCGROUP 在层次结构中被限制以及高内存带宽使用的配置中存在可伸缩性问题. 要解决这个问题, 我们可以通过 CSD 异步取消 cfs_rq 的节流. 每个 CPU 负责自己进行节流, 从而在整个系统中更公平地划分总体工作, 并避免 hard lockup. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221017234750.454419-1-joshdon@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/all/20221026224449.214839-1-joshdon@google.com) |
 | 2022/12/12 | Peng Zhang <zhangpeng.00@bytedance.com> | [sched: Throttling through task work for cfs bandwidth](https://lore.kernel.org/all/20221212061321.36422-1-zhangpeng.00@bytedance.com) | 若任务占用资源并在内核空间中被限制, 则可能会导致阻塞, 从而造成或者加剧优先级翻转的问题. 这组补丁试图通过在任务返回到用户模式时使用 task_work 来限制任务来解决此问题.<br> 这个补丁使用 task_work 在任务返回到用户空间时将 throttle 的任务出队, 然后在 unthrottle 时再将其入列. 当前能正常工作, 但目前的实现并没有考虑到所有的细节, 比如竞争条件、负载跟踪等. 作者认为这种解决方案的最大缺点是, 在解锁过程中可能有太多的任务需要排队, 从而导致巨大的开销和延迟. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221212061321.36422-1-zhangpeng.00@bytedance.com) |
+| 2022/11/16 | Josh Don <joshdon@google.com> | [sched: async unthrottling for cfs bandwidth](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit?id=8ad075c2eb1f6b4b33436144ea1ef2619f3b6398) | CFS 带宽当前分配新的运行时, 并在 hrtimer 回调中解除 cfs_rq 的 throttle 限制. 运行时分发是每个 CPU 的操作, 而解节流是每个组的操作, 因为需要执行 tg 遍历. 在具有大量 CPU 和大型 CGROUP 层次结构的机器上, 这种 CPU CGROUP 工作在单个 hrtimer 回调中可能做得太多: 由于 IRQ 被禁用, 可能很容易发生 Hard Lockup.<br>具体来说, 我们在 256 个 cpu 的配置中发现了这个可伸缩性问题, 层次结构中的 0(1000) 个 cgroups 被限制, 并且内存带宽使用率很高.<br>为了解决这个问题, 我们可以通过 CSD 异步地解除 cfs_rq 的限制. 每个 cpu 都负责解除自身的限制, 从而在整个系统中更公平地分配总工作, 并避免 Hard Lockup. | v3 ☐☑✓ 6.3-rc1 | [LORE](https://lore.kernel.org/all/20221117005418.3499691-1-joshdon@google.com) |
+| 2023/02/24 | Shrikanth Hegde <sshegde@linux.vnet.ibm.com> | [Interleave cfs bandwidth timers for improved single thread performance at low utilization](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=41abdba9374734b743019fc1cc05e3225c82ba6b) | CPU CFS 带宽控制器使用 hrtimer. 目前没有初始值设置. 因此, 所有周期计时器将在到期时对齐. 当有多个 CPU CGROUP 时, 就会发生这种情况. 如果在每个 CPU CGROUP 组的利用率较低且所有 CPU CGROUP 组的总利用率低于 50% 时交错使用计时器, 则可以实现性能增益. 如果计时器是交错的, 那么不受限制的 CGROUP 组可以自由运行, 而不需要许多上下文切换, 并且还可以从 SMT 折叠中受益. 这个提交在初始化每个 hrtimer 后添加一个随机偏移量. 这将导致在过期时交错使用计时器, 这有助于实现上述性能增益. | v3 ☐☑✓ 6.4-rc1 | [LORE](https://lore.kernel.org/all/20230223185153.1499710-1-sshegde@linux.vnet.ibm.com) |
+
 
 这个 bandwidth controller 提供了两个参数来管理针对各个 cgroup 的限制.
 
@@ -733,8 +743,8 @@ CFS 用户反复在社区抱怨并行 kbuild 对桌面交互性有负面影响
 这两种情况的区别很重要. 想象一下, 某个 cgroup 中只有一个进程, 需要运行 30ms. 在第一种情况下, 30ms 小于被授予的 50ms 时长, 所以进程能够完成任务, 不会被限制. 在第二种情况下, 进程在运行 25ms 后将被停止执行, 不得不等待下一个 50ms 周期再继续运行来完成工作. 如果 workload 对延迟敏感的话, 就需要仔细考虑 bandwidth controller 参数的设置.
 
 
-*   flatten RQ 优化整体吞吐量
-
+#### 2.1.3.2 flatten RQ 优化整体吞吐量
+-------
 
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -742,7 +752,8 @@ CFS 用户反复在社区抱怨并行 kbuild 对桌面交互性有负面影响
 | 2019/09/06 | Rik van Riel <riel@surriel.com> | [sched,fair: flatten CPU controller runqueues](https://lore.kernel.org/lkml/20190906191237.27006-1-riel@surriel.com/) | 当前 CPU cgroup 的实现使用了分层的运行队列, 当一个任务被唤醒时, 它会被放到它所在组的运行队列中, 这个组也会被放到它上面的组的运行队列中, 以此类推. 对于每秒进行大量唤醒的工作负载, 这将增加相当大的开销, 特别是在默认的 systemd 层次结构为 2 或 3 级的情况下. 这个补丁系列试图通过将所有任务放在相同层次的运行队列上, 并根据组的优先级来调整任务优先级, 从而减少这种开销. 组的优先级是周期性计算的.<br> 后续版本还计划完成 CONFIG_CFS_BANDWIDTH 的重构:<br>1. 当一个 cgroup 被 throttle 时, 将该 cgroup 及其子组标记为 throttle.<br>2. 当 pick_next_entity 发现一个任务在一个 throttched cgroup 上, 将它隐藏在 cgroup 运行队列 (它不再用于可运行的任务). 保持 vruntime 不变, 并调整运行队列的 vruntime 为最左边的任务的 vruntime.<br>3. 当一个 cgroup 被 unthrottle, 并且上面有任务时, 把它放在一个 vruntime 排序的堆上, 与主运行队列分开.<br>4. 让 pick_next_task_fair 在每次调用时从堆中抓取一个任务, 并且该堆的最小 vruntime 低于 CPU 的 cfs_rq 的 vruntime (或者 CPU 没有其他可运行的任务).<br>5. 将选中的任务放置在 CPU 的 cfs_rq 上, 将其 vruntime 与 GENTLE_FAIR_SLEEPERS 逻辑重新规范化. 这应该有助于将已经可运行的任务与最近未被限制的组交织在一起, 并防止严重的群体问题.<br>6. 如果组在所有的任务都有机会运行之前再次被节流, 那么 vruntime 排序将确保被节流的 cgroup 中的所有任务都有机会运行一段 | v9 ☑ 4.6-rc1 | [LKML v8,0/5](https://lore.kernel.org/all/1455871601-27484-1-git-send-email-wagi@monom.org) |
 
 
-*   bursty 应对进程的突发负载
+#### 2.1.3.3 bursty 应对进程的突发负载
+-------
 
 
 可以想象, Bandwidth Controller 并未完全满足每一个 workload 的全部需求. 这种机制对于那些需要持续执行特定 CPU 时长的工作负载来说效果相当不错. 不过, 对于突发性的工作负载, 会比较尴尬. 某个进程在大多数时间段内需要使用的时间可能远远少于它的配额 (quota), 但偶尔会出现一个突发的工作, 此时它所需要用到的 CPU 时间可能又比配额要多. 在延迟问题并不敏感的情况下, 当然可以让该进程等待到下一个周期来完成它的工作, 但如果延迟问题确实影响很大的话, 那么我们不应该让它再等到下个周期.
@@ -774,8 +785,8 @@ Chang 的 patch set 采用了与之前不同的方法: 允许 cgroup 将一些�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/05/21 | Cong Wang <xiyou.wangcong@gmail.com> | [sched/fair: improve CFS throttle](https://lore.kernel.org/all/20180522062017.5193-1-xiyou.wangcong@gmail.com) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20180522062017.5193-1-xiyou.wangcong@gmail.com) |
 | 2019/11/26 | Konstantin Khlebnikov <khlebnikov@yandex-team.ru> | [sched/fair: add burst to cgroup cpu bandwidth controller](https://lore.kernel.org/all/157476581065.5793.4518979877345136813.stgit@buzz) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/157476581065.5793.4518979877345136813.stgit@buzz) |
-| 2021/06/21 | JHuaixin Chang | [sched/fair: Burstable CFS bandwidth controller](https://lore.kernel.org/patchwork/cover/1396878) | 突发任务的带宽控制优化, 通过临时之前剩余累计的配额, 使得突发进程在当前周期的配额突然用尽之后, 还可以临时使用之前累计的配额使用, 从而降低突发任务的时延. | v6 ☑ 5.14-rc1 | [2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1354613)<br>*-*-*-*-*-*-*-*<br>[2021/01/20 v2](https://lore.kernel.org/patchwork/cover/1368037)<br>*-*-*-*-*-*-*-*<br>[2021/01/21 v3](https://lore.kernel.org/patchwork/cover/1368746)<br>*-*-*-*-*-*-*-*<br>[2021-02-02 v4](https://lore.kernel.org/patchwork/cover/1396878)<br>*-*-*-*-*-*-*-*<br>[2021/05/20 v5](https://lore.kernel.org/patchwork/cover/1433660)<br>*-*-*-*-*-*-*-*<br>[2021/06/21 v6](https://lore.kernel.org/patchwork/cover/1449268)<br>*-*-*-*-*-*-*-*<br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f4183717b370ad28dd0c0d74760142b20e6e7931) |
-| 2021/08/30 | Huaixin Chang <changhuaixin@linux.alibaba.com> | [Add statistics and ducument for cfs bandwidth burst](https://lore.kernel.org/patchwork/cover/1396878) | 为 Burstable CFS bandwidth 添加统计信息和文档. | v1 ☑ 5.16-rc1 | [2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1396878)<br>*-*-*-*-*-*-*-*<br>[2021/08/30 LORE v2 0/2](https://lore.kernel.org/all/20210830032215.16302-1-changhuaixin@linux.alibaba.com) |
+| 2021/06/21 | JHuaixin Chang | [sched/fair: Burstable CFS bandwidth controller](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=f4183717b370ad28dd0c0d74760142b20e6e7931) | 突发任务的带宽控制优化, 通过临时之前剩余累计的配额, 使得突发进程在当前周期的配额突然用尽之后, 还可以临时使用之前累计的配额使用, 从而降低突发任务的时延. | v6 ☑ 5.14-rc1 | [2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1354613)<br>*-*-*-*-*-*-*-*<br>[2021/01/20 v2](https://lore.kernel.org/patchwork/cover/1368037)<br>*-*-*-*-*-*-*-*<br>[2021/01/21 v3](https://lore.kernel.org/lkml/20210121110453.18899-1-changhuaixin@linux.alibaba.com)<br>*-*-*-*-*-*-*-*<br>[2021-02-02 v4](https://lore.kernel.org/lkml/20210316044931.39733-1-changhuaixin@linux.alibaba.com)<br>*-*-*-*-*-*-*-*<br>[2021/05/20 v5](https://lore.kernel.org/lkml/20210520123419.8039-1-changhuaixin@linux.alibaba.com)<br>*-*-*-*-*-*-*-*<br>[2021/06/21 v6](https://lore.kernel.org/all/20210621092800.23714-2-changhuaixin@linux.alibaba.com)<br>*-*-*-*-*-*-*-*<br>[commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f4183717b370ad28dd0c0d74760142b20e6e7931) |
+| 2021/08/30 | Huaixin Chang <changhuaixin@linux.alibaba.com> | [Add statistics and ducument for cfs bandwidth burst](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=d73df887b6b8174dfbb7f5f878fbd1e0e2eb3f08) | 为 Burstable CFS bandwidth 添加统计信息和文档. | v1 ☑ 5.16-rc1 | [2020/12/17 v1](https://lore.kernel.org/patchwork/cover/1396878)<br>*-*-*-*-*-*-*-*<br>[2021/08/30 LORE v2 0/2](https://lore.kernel.org/all/20210830032215.16302-1-changhuaixin@linux.alibaba.com) |
 | 2021/11/29 | Honglei Wang <wanghonglei@didichuxing.com> | [sched/fair: prevent cpu burst too many periods](https://lore.kernel.org/patchwork/cover/1396878) | commit f4183717b370 ("sched/fair: Introduce the burstable CFS controller") 引入了一个问题, 任务在持久性期间可能获得比配额更多的 cpu. 例如, 一个任务组的配额为每周期 100ms, 可以获得 100ms 突发, 其平均利用率约为每周期 105ms. 一旦这个组获得了一个空闲时间段, 它就有机会在公共带宽配置中获得超过其配额的 10 个或更多时间段的计算能力 (例如, 100 毫秒作为时间段). 这意味着任务获得了可以 "偷走" 完成日常工作的能力, 因为所有任务都可以安排出去或睡觉, 以帮助团队获得空闲时间. cpu burst 的本来目的是帮助处理突发性工作负载. 但是, 如果一个任务组在没有突发性工作负载的情况下, 能够在持续时间内获得超过其配额的计算能力, 那么它违背了初衷. 此修补程序将突发限制为一个时段, 以便在很长时间内不会突破配额限制. 有了这个, 我们可以给任务组更多的 cpu 突发能力来处理真正的突发性工作负载,  而不必担心被恶意 "窃取". | v1 ☑ 5.16-rc1 | [LKML](https://lkml.org/lkml/2021/11/29/663) |
 | 2022/05/18 | Fam Zheng <fam.zheng@bytedance.com> | [sched: Enable root level cgroup bandwidth control](https://lore.kernel.org/all/20220518100841.1497391-1-fam.zheng@bytedance.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220518100841.1497391-1-fam.zheng@bytedance.com) |
 
@@ -3653,6 +3664,8 @@ v3.0 [commit 317f394160e9 ("sched: Move the second half of ttwu() to the remote 
 ### 4.7.2 WAKE_AFFINE
 -------
 
+[numa节点间CPU利用率不均衡 - wakeup affinity](https://blog.csdn.net/yiyeguzhou100/article/details/103656664)
+
 #### 4.7.2.1 smark wake_affine
 -------
 
@@ -4375,6 +4388,9 @@ Donnefort 称: 边距删除使内核能够充分利用能量模型, 任务更有
 | 2021/12/20 | Vincent Donnefort <vincent.donnefort@arm.com> | [Fix stuck overutilized](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) | NA | v1 ☐ | [LORE 0/3](https://lkml.kernel.org/lkml/20211220114323.22811-1-vincent.donnefort@arm.com) |
 | 2022/10/06 | Pierre Gondois <pierre.gondois@arm.com> | [sched/fair: feec() improvement](https://lore.kernel.org/all/20221006081052.3862167-1-pierre.gondois@arm.com) | TODO | v2 ☐☑✓ | [LORE v2,0/1](https://lore.kernel.org/all/20221006081052.3862167-1-pierre.gondois@arm.com) |
 
+
+
+
 #### 7.2.3.5 latency sensitive
 -------
 
@@ -4460,6 +4476,65 @@ a47662b5d1b8 ANDROID: sched: Add group_misfit_task load-balance type
 b523403113a5 ANDROID: sched: Enable idle balance to pull single task towards cpu with higher capacity
 ac3ecee61d29 ANDROID: sched: Prevent unnecessary active balance of single task in sched group
 ```
+
+* 可运行提升 (runnable boosting)
+
+在 EAS 平衡器中实现可运行提升 (runnable boosting) 功能: 考虑频率中的 CPU 争用、EAS 最大效用和负载平衡最繁忙的 CPU 选择. 将 CPU runnable_avg 纳入 CPU 利用率的考虑范畴, 以此来考虑以下方面的 CPU 争用:
+
+1.	CPU 频率
+2.	EAS "最大 util"
+3.	"migrate_util" 类型负载平衡最繁忙的 CPU 选择.
+
+这提高了某些工作负载的 CPU 利用率, 同时保持其他关键工作负载不变.
+
+移动设备中的每个实体负载跟踪 (PELT)util_avg 的响应性对于任务提升期间的利用率变化仍然被认为太低. 在 Android 中, 这表现在 UI 活动的第一帧很容易是 jankframe(一个不满足所需帧渲染时间的帧, 例如. 16ms@60Hz 因为 CPU 频率在这一点上通常较低并且必须快速上升. UI 活动的开始还表现为 CPU 争用的发生, 尤其是在小 CPU 上. 目前的小 CPU 的原始 CPU 容量只有~ 150, 这意味着在较低频率下的实际 CPU 容量甚至会小得多.
+
+scheduleutil 通过以下方式将 CPU util_avg 映射到 CPU 频率请求中:
+
+```cpp
+sugov_next_freq_shared()
+-=> sched_cpu_util();
+	-=> effective_cpu_util(cpu, cpu_util_cfs(cpu), ENERGY_UTIL, NULL);
+-=> get_next_freq();
+	-=> util = map_util_perf(util);
+	-=> freq = map_util_freq(util, freq, max);
+```
+
+引入 cpu_util_cfs_boost 考虑 cpu 的 runnable load, CFS 任务的 CPU 争用可以通过 cpu_util_cfs_boost() 中的 'CPU runnable > CPU utililization 来检测和发现. 最终
+
+1. scheduleutil 通过调用 cpu_util_cfs_boost() 来使用 (runnable boosting).
+
+```cpp
+sugov_next_freq_shared()
+-=> sched_cpu_util();
+	-=> effective_cpu_util(cpu, cpu_util_cfs_boost(cpu), ENERGY_UTIL, NULL);
+-=> get_next_freq();
+	-=> util = map_util_perf(util);
+	-=> freq = map_util_freq(util, freq, max);
+```
+
+2. 为了与 schedutil 的 CPU 频率选择同步, 能量感知调度 (EAS) 还在最大 util 检测期间调用 cpuutil(…, boost=1).
+
+```cpp
+compute_energy
+-=> unsigned long max_util = eenv_pd_max_util(eenv, pd_cpus, p, dst_cpu);
+	-=> for_each_cpu(cpu, pd_cpus): util = cpu_util(cpu, p, dst_cpu, 1);
+```
+
+3. 此外, 当迁移类型为 "migrate_util"(即仅在未设置 SD_SHARE_PKG_RESOURCES 标志的调度域中) 时, 可运行提升 (runnable boosting) 也用于负载平衡, 以进行最繁忙的 CPU 选择.
+
+```cpp
+load_balance()
+-=> group = find_busiest_group(&env);
+-=> find_busiest_queue(&env, group);
+	-=> case migrate_util: util = cpu_util_cfs_boost(i);
+```
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/05/15 | Dietmar Eggemann <dietmar.eggemann@arm.com> | [sched: Consider CPU contention in frequency, EAS max util & load-balance busiest CPU selection](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7d0583cf9ec7bf8e5897dc7d3a7059e8fae5464a) | 参见 [Linux 6.5 To Enhance Load Balancing For Intel Hybrid CPUs](https://www.phoronix.com/news/Linux-6.5-Intel-Hybrid-Sched). | v3 ☐☑✓ | [LORE v3,0/2](https://lore.kernel.org/all/20230515115735.296329-1-dietmar.eggemann@arm.com) |
+
 
 
 #### 7.2.3.x EAS timeline
@@ -5219,10 +5294,15 @@ schedtune 与 uclamp 都是由 ARM 公司的 Patrick Bellasi 主导开发.
 ## 7.6 freezer 冻结
 -------
 
+[进程冻结（freezing of task）](https://blog.csdn.net/rikeyone/article/details/103182748)
+
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:------:|:---:|
-| 2021/06/24 | Peter Zijlstra <peterz@infradead.org> | [freezer,sched: Rewrite core freezer logic](https://lore.kernel.org/all/YMMijNqaLDbS3sIv@hirez.programming.kicks-ass.net) | 重写冻结的核心逻辑, 从而使得 WRT 解冻的表现更加合理. 通过将 PF_FROZEN 替换为 TASK_FROZEN (一种特殊的块状态), 可以确保冻结的任务保持冻结状态, 直到明确解冻, 并且不会像目前可能的那样过早随机唤醒. | v1 ☐☑✓ | [2021/06/01 LORE RFC](https://lore.kernel.org/all/YLXt+%2FWr5%2FKWymPC@hirez.programming.kicks-ass.net)<br>*-*-*-*-*-*-*-* <br>[2021/06/11 LORE v1](https://lore.kernel.org/all/YMMijNqaLDbS3sIv@hirez.programming.kicks-ass.net)<br>*-*-*-*-*-*-*-* <br>[2021/06/24 LORE v2,0/4](https://lore.kernel.org/all/20210624092156.332208049@infradead.org) |
+| 2008/08/11 | Matt Helsley <matthltc@us.ibm.com> | [Container Freezer v6: Reuse Suspend Freezer](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=957a4eeaf4af614ab0fc4c09a22593d6ab233f5b) | 本补丁系列介绍了一个 CGROUP 子系统, 该子系统利用 swsusp 冻结器来冻结一组任务. 它对于批处理作业管理脚本非常有用. 它在未来也应该对实现容器检查点/重新启动有用. 容器文件系统中的冷冻子系统定义了一个名为冷冻状态的 cgroup 文件. 读取冷冻状态将返回 cgroup 的当前状态. 将 "FROZEN" 写入状态文件将冻结 cgroup 中的所有任务. 写入 "RUNNING" 将解冻 cgroup 中的任务. | v6 ☐☑✓ 2.6.28-rc1 | [LORE v6,0/5](https://lore.kernel.org/all/20080811235323.872291138@us.ibm.com) |
+| 2021/06/24 | Peter Zijlstra <peterz@infradead.org> | [freezer,sched: Rewrite core freezer logic](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f5d39b020809146cc28e6e73369bf8065e0310aa) | 重写冻结的核心逻辑, 从而使得 WRT 解冻的表现更加合理. 通过将 PF_FROZEN 替换为 TASK_FROZEN (一种特殊的块状态), 可以确保冻结的任务保持冻结状态, 直到明确解冻, 并且不会像目前可能的那样过早随机唤醒. | v1 ☐☑✓ 6.1-rc1 | [2021/06/01 LORE RFC](https://lore.kernel.org/all/YLXt+%2FWr5%2FKWymPC@hirez.programming.kicks-ass.net)<br>*-*-*-*-*-*-*-* <br>[2021/06/11 LORE v1](https://lore.kernel.org/all/YMMijNqaLDbS3sIv@hirez.programming.kicks-ass.net)<br>*-*-*-*-*-*-*-* <br>[2021/06/24 LORE v2,0/4](https://lore.kernel.org/all/20210624092156.332208049@infradead.org) |
 | 2022/05/05 | Peter Zijlstra <peterz@infradead.org> | [ptrace-vs-PREEMPT_RT and freezer rewrite](https://lore.kernel.org/all/20220421150248.667412396@infradead.org) | TODO | v4 ☐☑✓ | [LORE v2,0/5](https://lore.kernel.org/all/20220421150248.667412396@infradead.org)<br>*-*-*-*-*-*-*-* <br>[2022/08/22 LORE v3,0/6](https://lore.kernel.org/all/20220822111816.760285417@infradead.org)<br>*-*-*-*-*-*-*-* <br>[2022/10/08 LORE v3,0/6](https://lore.kernel.org/all/20211009100754.690769957@infradead.org) |
+| 2023/01/13 | Luis Chamberlain <mcgrof@kernel.org> | [vfs: provide automatic kernel freeze / resume](https://lore.kernel.org/all/20230114003409.1168311-1-mcgrof@kernel.org) | [Removing the kthread freezer](https://lwn.net/Articles/935602) | v3 ☐☑✓ | [2023/01/13 LORE v3,0/24](https://lore.kernel.org/all/20230114003409.1168311-1-mcgrof@kernel.org))<br>*-*-*-*-*-*-*-* <br>[2023/05/07 LORE v1,0/6](https://lore.kernel.org/all/20230508011717.4034511-1-mcgrof@kernel.org) |
+
 
 ## 7.7 异构
 -------

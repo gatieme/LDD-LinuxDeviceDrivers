@@ -103,6 +103,9 @@
 |  6.1 | NA | NA | [Linux 6.1 Features Include Initial Rust Code, MGLRU, New AMD CPU Features, More Security](https://www.phoronix.com/review/linux-61-features), [The Most Interesting New Features For Linux 6.1](https://www.phoronix.com/news/Linux-6.1-Features) |
 |  6.2 | NA | NA | [The Many New Features On The Horizon For Linux 6.2](https://www.phoronix.com/news/Linux-6.2-Early-Features)<br>*-*-*-*-*-*-*-* <br>[Linux 6.2-rc1 Brings Stable Intel Arc Graphics, Call Depth Tracking & Many More Features](https://www.phoronix.com/news/Linux-6.2-rc1-Released)<br>*-*-*-*-*-*-*-* <br>[Linux 6.2 Features: Stable Intel Arc Graphics. RTX 30 Support, Intel On Demand + IFS Ready](https://www.phoronix.com/review/linux-62-features) |
 | 6.3 | NA | NA | [Linux 6.3 Features Expected From AMD Auto IBRS To Pluton CRB TPM2 & Dropping Old Code](https://www.phoronix.com/news/Linux-6.3-Early-Features-Look) |
+| 6.4 | NA | NA | NA |
+| 6.5 | [The first half of the 6.5 merge window](https://lwn.net/Articles/936418) | NA | NA |
+
 
 # 6 业界会议
 -------
@@ -184,6 +187,11 @@ OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementatio
 
 ## 6.6 OSPM
 -------
+
+| 日期 | 官网 | 链接 |
+|:---:|:----:|:----:|
+| 2023/04/17-2023/04/19 | [5th OSPM Summit](https://retis.santannapisa.it/luca/ospm-summit/2023) | [LWN 汇总](https://lwn.net/Archives/ConferenceIndex/#OS-Directed_Power-Management_Summit-2023)<br>[LWN-Reports from OSPM 2023, part 1](https://lwn.net/Articles/934142)<br>[LWN-Reports from OSPM 2023, part 2](https://lwn.net/Articles/934459)<br>[LWN-Reports from OSPM 2023, part 3](https://lwn.net/Articles/935180) |
+
 
 ## 6.7 [KernelPodCast](https://kernelpodcast.org)
 -------
