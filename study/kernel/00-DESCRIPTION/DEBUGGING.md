@@ -734,7 +734,7 @@ Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM F
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2023/06/12 | Peter Zijlstra <peterz@infradead.org> | [Scope-based Resource Management](https://lore.kernel.org/all/20230612090713.652690195@infradead.org) | [Scope-based resource management for the kernel](https://lwn.net/Articles/934679) | v3 ☐☑✓ | [LORE v3,0/57](https://lore.kernel.org/all/20230612090713.652690195@infradead.org) |
+| 2023/06/12 | Peter Zijlstra <peterz@infradead.org> | [Scope-based Resource Management](https://lore.kernel.org/all/20230612090713.652690195@infradead.org) | [Scope-based resource management for the kernel](https://lwn.net/Articles/934679) 以及 [Scope-Based Resource Management Infrastructure Merged For Linux 6.5](https://www.phoronix.com/news/Linux-6.5-Scope-Resource-Manage). | v3 ☐☑✓ | [LORE v3,0/57](https://lore.kernel.org/all/20230612090713.652690195@infradead.org) |
 
 
 # 14 FTRACE
