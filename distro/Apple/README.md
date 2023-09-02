@@ -130,6 +130,19 @@ xnu-6153.11.26
 
 在 [Mach3.0 中对系统线程所作的一项改进即称为 continuation](https://www.gnu.org/software/hurd/microkernel/mach/gnumach/continuation.html), 其动因恰在于避免保留线程堆栈, 希望使用完全无状态的 continuation 函数.(参见 Uresh Vahalia 的经典著作"UNIX Internals"http://www.china-pub.com/computers/common/info.asp?id=12731).
 
+
+# 4 QEMU
+-------
+
+| 工具 | 描述 |
+|:---:|:----:|
+| [darwinkvm](https://docs.darwinkvm.com) | NA |
+| [Booting a macOS Apple Silicon kernel in QEMU](https://worthdoingbadly.com/xnuqemu3) | NA |
+| [Darwin VM](http://althenia.net/notes/darwin) | NA |
+| [PureDarwin](https://www.puredarwin.org) | NA |
+| [Strong ARMing with MacOS: Adventures in Cross-Platform Emulation](https://blogs.blackberry.com/en/2021/05/strong-arming-with-macos-adventures-in-cross-platform-emulation) | NA |
+
+
 <br>
 
 *   本作品 / 博文 [成坚 (gatieme) @ 内核干货 (OSKernelLAB)- 紫夜阑珊 - 青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚 (gatieme)](http://blog.csdn.net/gatieme) 创作.

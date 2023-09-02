@@ -116,7 +116,7 @@ Intel 发布的 ControlFlag 用机器学习来发现代码中的错误, 支持 C
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/06/23 | 胡俊鹏 and <dongzhiyan_linux@163.com> | [dongzhiyan-stack/user_stack_backstrace-in-kernel](https://github.com/dongzhiyan-stack/user_stack_backstrace-in-kernel) | 海康 CLK 2019 的一个 slides, 内核态回溯用户态栈. 对于一些比较难解析符号的场景也有对策 | v1 ☐ | [github](https://github.com/dongzhiyan-stack/user_stack_backstrace-in-kernel) |
 | 2012/4/11 | "Tu, Xiaobing" <xiaobing.tu@intel.com> | [kernel patch for dump user space stack tool](https://lkml.org/lkml/2012/4/11/49) | 内核态回溯用户态栈. | v1 ☐ | [LKML RFC 1/2](https://lkml.org/lkml/2012/4/11/49) |
-| 2023/05/01 | Indu Bhagat <indu.bhagat@oracle.com> | [SFrame based stack tracer for user space in the kernel](https://lore.kernel.org/all/20230501200410.3973453-1-indu.bhagat@oracle.com) | [Reliable user-space stack traces with SFrame](https://lwn.net/Articles/932209) | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20230501200410.3973453-1-indu.bhagat@oracle.com) |
+| 2023/05/01 | Indu Bhagat <indu.bhagat@oracle.com> | [SFrame based stack tracer for user space in the kernel](https://lore.kernel.org/all/20230501200410.3973453-1-indu.bhagat@oracle.com) | [Reliable user-space stack traces with SFrame](https://lwn.net/Articles/932209) 以及 [SFrame: fast, low-overhead stack traces](https://lwn.net/Articles/940686). | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20230501200410.3973453-1-indu.bhagat@oracle.com) |
 
 
 ## 2.4 patchwork

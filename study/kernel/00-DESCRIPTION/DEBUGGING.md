@@ -543,6 +543,10 @@ x86 和 arm64 都支持直接访问用户空间中的事件计数器. 访问序�
 | 2022/11/14 | Jiri Slaby (SUSE) <jirislaby@kernel.org> | [gcc-LTO support for the kernel](https://lore.kernel.org/all/20221114114344.18650-1-jirislaby@kernel.org) | [Patches Posted For GCC LTO Optimizing The Linux Kernel](https://www.phoronix.com/news/GCC-LTO-Linux-2022) | v1 ☐☑✓ | [LORE v1,00/46](https://lore.kernel.org/all/20221114114344.18650-1-jirislaby@kernel.org) |
 
 
+其他相关
+
+[Unified LTO Bitcode Front-End Comes Together For LLV](https://www.phoronix.com/news/LLVM-Unified-LTO-Front-End).
+
 
 4.  BOLT'ing
 
@@ -669,6 +673,7 @@ Mesa CI 开始使用 Mold 作为其 x86_64 和 AArch64 上的默认链接器, �
 
 [Mold 1.6 High Speed Linker Adds PPC64 and s390x, Smaller Output Files](https://www.phoronix.com/news/Mold-1.6-Linker)
 
+[Mold 2.0 High Speed Linker Released: Moves From AGPL To MIT License](https://www.phoronix.com/news/Mold-2.0-Linker)
 
 ## 13.9 Compiler Optimization
 -------

@@ -161,7 +161,6 @@ khugepage_code 将选择命中率最高的节点作为首选节点, 并尝试在
 
 
 | 2022/04/06 | Liao Chang <liaochang1@huawei.com> | [softirq: Introduce softirq throttling](https://lore.kernel.org/all/20220406022749.184807-1-liaochang1@huawei.com) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20220406022749.184807-1-liaochang1@huawei.com) |
-| 2023/03/29 | Yicong Yang <yangyicong@huawei.com> | [arm64: support batched/deferred tlb shootdown during page reclamation](https://patchwork.kernel.org/project/linux-mm/cover/20230329035512.57392-1-yangyicong@huawei.com/) | 734835 | v8 ☐☑ | [LORE v8,0/2](https://lore.kernel.org/r/20230329035512.57392-1-yangyicong@huawei.com) |
 | 2023/03/29 | Luis Chamberlain <mcgrof@kernel.org> | [module: avoid userspace pressure on unwanted allocations](https://patchwork.kernel.org/project/linux-mm/cover/20230329053149.3976378-1-mcgrof@kernel.org/) | 734852 | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20230329053149.3976378-1-mcgrof@kernel.org) |
 | 2023/03/30 | Longlong Xia <xialonglong1@huawei.com> | [mm: ksm: support hwpoison for ksm page](https://patchwork.kernel.org/project/linux-mm/cover/20230330074501.205092-1-xialonglong1@huawei.com/) | 735257 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20230330074501.205092-1-xialonglong1@huawei.com) |
 | 2023/03/30 | Yosry Ahmed <yosryahmed@google.com> | [memcg: avoid flushing stats atomically where possible](https://patchwork.kernel.org/project/linux-mm/cover/20230330191801.1967435-1-yosryahmed@google.com/) | 735542 | v3 ☐☑ | [LORE v3,0/8](https://lore.kernel.org/r/20230330191801.1967435-1-yosryahmed@google.com) |
@@ -504,9 +503,7 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 | 2023/06/21 | Matthew Wilcox <willy@infradead.org> | [Remove pagevecs](https://patchwork.kernel.org/project/linux-mm/cover/20230621164557.3510324-1-willy@infradead.org/) | 759217 | v1 ☐☑ | [LORE v1,0/13](https://lore.kernel.org/r/20230621164557.3510324-1-willy@infradead.org) |
 | 2023/06/21 | Yuanchu Xie <yuanchu@google.com> | [mm: working set reporting](https://patchwork.kernel.org/project/linux-mm/cover/20230621180454.973862-1-yuanchu@google.com/) | 759245 | v2 ☐☑ |  |
 | 2023/06/22 | Kasireddy, Vivek <vivek.kasireddy@intel.com> | [udmabuf: Add back support for mapping hugetlb pages](https://patchwork.kernel.org/project/linux-mm/cover/20230622072710.3707315-1-vivek.kasireddy@intel.com/) | 759373 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20230622072710.3707315-1-vivek.kasireddy@intel.com) |
-| 2023/06/22 | Qi Zheng <zhengqi.arch@bytedance.com> | [use refcount+RCU method to implement lockless slab shrink](https://patchwork.kernel.org/project/linux-mm/cover/20230622085335.77010-1-zhengqi.arch@bytedance.com/) | 759412 | v1 ☐☑ | [LORE v1,0/29](https://lore.kernel.org/r/20230622085335.77010-1-zhengqi.arch@bytedance.com) |
 | 2023/06/22 | Ryan Roberts <ryan.roberts@arm.com> | [Transparent Contiguous PTEs for User Mappings](https://patchwork.kernel.org/project/linux-mm/cover/20230622144210.2623299-1-ryan.roberts@arm.com/) | 759528 | v1 ☐☑ | [LORE v1,0/14](https://lore.kernel.org/r/20230622144210.2623299-1-ryan.roberts@arm.com) |
-| 2023/06/26 | Ryan Roberts <ryan.roberts@arm.com> | [variable-order, large folios for anonymous memory](https://patchwork.kernel.org/project/linux-mm/cover/20230626171430.3167004-1-ryan.roberts@arm.com/) | 760361 | v1 ☐☑ | [LORE v1,0/10](https://lore.kernel.org/r/20230626171430.3167004-1-ryan.roberts@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/5](https://lore.kernel.org/r/20230726095146.2826796-1-ryan.roberts@arm.com) |
 | 2023/06/27 | zhaoyang.huang <zhaoyang.huang@unisoc.com> | [mm: introduce statistic for inode's gen&tier](https://patchwork.kernel.org/project/linux-mm/patch/1687857438-29142-1-git-send-email-zhaoyang.huang@unisoc.com/) | 760556 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/1687857438-29142-1-git-send-email-zhaoyang.huang@unisoc.com) |
 | 2023/06/27 | Chuck Lever <cel@kernel.org> | [shmemfs stable directory offsets](https://patchwork.kernel.org/project/linux-mm/cover/168789864000.157531.11122232592994999253.stgit@manet.1015granger.net/) | 760743 | v5 ☐☑ | [LORE v5,0/3](https://lore.kernel.org/r/168789864000.157531.11122232592994999253.stgit@manet.1015granger.net) |
 | 2023/07/10 | Yajun Deng <yajun.deng@linux.dev> | [dma-contiguous: support numa CMA for specified node](https://patchwork.kernel.org/project/liux-mm/patch/20230710074944.3501810-1-yajun.deng@linux.dev/) | 763917 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230710074944.3501810-1-ajun.deng@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/1](https://lore.kernel.org/r/20230711110822.1105785-1-yajun.deng@linux.dev) |
@@ -515,8 +512,8 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 | 2023/07/23 | Hyeonggon Yoo <42.hyeyoo@gmail.com> | [An attempt to improve SLUB on NUMA / under memory pressure](https://patchwork.kernel.org/project/linux-mm/cover/20230723190906.4082646-1-42.hyeyoo@gmail.com/) | 768670 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20230723190906.4082646-1-42.hyeyoo@gmail.com) |
 | 2023/07/23 | Hugh Dickins <hughd@google.com> | [[v3,11/13,fix] mm/khugepaged: delete khugepaged_collapse_pte_mapped_thps(): fix](https://patchwork.kernel.org/project/linux-mm/patch/bfc6cab2-497f-32bf-dd5-98dc1987e4a9@google.com/) | 768689 | v3 ☐☑ | [LORE v3,0/13](https://lore.kernel.org/r/bfc6cab2-497f-32bf-dd5-98dc1987e4a9@google.com) |
 | 2023/07/24 | Zhongkun He <hezhongkun.hzk@bytedance.com> | [zram: memcg accounting](https://patchwork.kernel.org/project/linux-mm/cover/20230724062143.2244078-1-hezhongkun.hzk@bytedance.com/) | 768727 | v2 ☐☑ | [LORE v2,0/2](https://lore.kernel.org/r/20230724062143.2244078-1-hezhongkun.hzk@bytedance.com) |
-| 2023/07/24 | Mark Brown <broonie@kernel.org> | [arm64/gcs: Provide support for GCS in userspace](https://patchwork.kernel.org/project/linux-mm/cover/20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org/) | 768889 | v2 ☐☑ | [LORE v2,0/35](https://lore.kernel.org/r/20230724-arm64-gcs-v2-0-dc2c1d44c2eb@kernel.org) |
-| 2023/07/24 | Qi Zheng <zhengqi.arch@bytedance.com> | [use refcount+RCU method to implement lockless slab shrink](https://patchwork.kernel.org/project/linux-mm/cover/20230724094354.90817-1-zhengqi.arch@bytedance.com/) | 768800 | v2 ☐☑ | [LORE v2,0/47](https://lore.kernel.org/r/20230724094354.90817-1-zhengqi.arch@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/49](https://lore.kernel.org/r/20230727080502.77895-1-zhengqi.arch@bytedance.com) |
+
+
 
 | 2023/07/27 | Ryan Roberts <ryan.roberts@arm.com> | [Optimize large folio interaction with deferred split](https://patchwork.kernel.org/project/linux-mm/cover/20230727141837.3386072-1-ryan.roberts@arm.com/) | 770154 | v4 ☐☑ | [LORE v4,0/3](https://lore.kernel.org/r/20230727141837.3386072-1-ryan.roberts@arm.com) |
 
@@ -524,7 +521,54 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 
 
 
+[Much ado about SBAT](https://lwn.net/Articles/938422)
+
+[Challenges for KernelCI](https://lwn.net/Articles/939538)
 
 
-这是新空闲平衡优化  [Limit the scan depth to find the busiest sched group during newidle balance](https://lore.kernel.org/all/cover.1686554037.git.yu.c.chen@intel.com) 的新版本. 它旨在降低新空闲平衡的成本, 在一些高核计数系统上, 新空闲平衡被发现占用了明显的 CPU 周期. 例如, 当在 Intel Sapphire Rapids 上运行 sqlite 时, 它有 2 x 56C/112T = 224 个 cpu: newidle_balance 以及 update_sd_lb_stats 的热点达到 5% 以上. 为了减少这一开销, Tim 提出的问题启发了我们进行优化:<br>1. 第一个是 ILB_UTIL. 建议在 update_sd_lb_stats() 中限制扫描深度. 扫描深度取决于该调度域的总体利用率. 利用率越高, update_sd_lb_stats() 扫描的数据就越少. 亦然.<br>2. 第二个是 ILB_FAST. 与其总是在 update_sd_lb_stats() 中查找最繁忙的组, 不如降低标准并尝试查找相对繁忙的组. 当本地组为 group_has_spare 时, ILB_FAST 生效. 因为当有许多 cpu 并发地运行 newidle_balance() 时, 计划组应该有很高的空闲百分比.<br>3. 与 ILB_UTIL 和 ILB_FAST 相比, ILB_UTIL 抑制了系统繁忙时的调度组扫描. 后者在系统不忙时选择折衷的忙群. 它们相互补充, 独立工作.
+
+
+
+[An ioctl() call to detect memory writes](https://lwn.net/Articles/940704)
+[BPF iterators for filesystems](https://lwn.net/Articles/937326)
+[Exceptions in BPF](https://lwn.net/Articles/938435)
+[Randomness for kmalloc()](https://lwn.net/Articles/938637)
+[Beginning the software-interrupt lock pushdown](https://lwn.net/Articles/939973)
+[Following up on file-position locking](https://lwn.net/Articles/940808)
+[Out-of-memory victim selection with BPF](https://lwn.net/Articles/941614)
+
+
+
+
+[一文读懂｜Linux 进程管理之 CFS 负载均衡](https://www.qinglite.cn/doc/4126647762640fe5c)
+[CFS 任务的负载均衡 (load balance)](http://www.wowotech.net/process_management/load_balance_detail.html)
+[步道师 Peter-CFS 任务的负载均衡](https://blog.csdn.net/melody157398/article/details/106449788)
+[步道师 Peter-CFS 任务的负载均衡 (框架篇)](https://blog.csdn.net/melody157398/article/details/105445504/)
+[内核工匠 - CFS 任务的负载均衡](https://blog.csdn.net/feelabclihu/article/details/106435849)
+
+
+| 2023/07/28 | Fabio M. De Francesco <fmdefrancesco@gmail.com> | [Documentation/page_tables: Add info about MMU/TLB and Page Faults](https://patchwork.kernel.org/project/linux-mm/patch/20230728120054.12306-1-fmdefrancesco@gmail.com/) | 770552 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230728120054.12306-1-fmdefrancesco@gmail.com) |
+| 2023/08/04 | Zhongkun He <hezhongkun.hzk@bytedance.com> | [zram: memcg accounting](https://patchwork.kernel.org/project/linux-mm/cover/20230804075720.207943-1-hezhongkun.hzk@bytedance.com/) | 772958 | v2 ☐☑ | [LORE v2,0/2](https://lore.kernel.org/r/20230804075720.207943-1-hezhongkun.hzk@bytedance.com) |
+| 2023/08/04 | Liam Ni <zhiguangni01@gmail.com> | [NUMA:Improve the efficiency of calculating pages loss](https://patchwork.kernel.org/project/linux-mm/patch/CACZJ9cUXiWxDb6hF4JFhWe7Np82k6LopVQ+_AoGFOccN4kjJqA@mail.gmail.com) | 773185 | v3 ☐☑ | [LORE v3,0/1](https://lore.kernel.org/r/CACZJ9cUXiWxDb6hF4JFhWe7Np82k6LopVQ+_AoGFOccN4kjJqA@mail.gmail.com) |
+| 2023/08/08 | Yan Zhao <yan.y.zhao@intel.com> | [Reduce NUMA balance caused TLB-shootdowns in a VM](https://patchwork.kernel.org/project/linux-mm/cover/20230808071329.19995-1-yan.y.zhao@intel.com/) | 773948 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20230808071329.19995-1-yan.y.zhao@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/5](https://lore.kernel.org/r/20230810085636.25914-1-yan.y.zhao@intel.com) |
+| 2023/08/08 | Jinliang Zheng <alexjlzheng@gmail.com> | [writeback: remove redundant checks for root memcg](https://patchwork.kernel.org/project/linux-mm/patch/20230808084431.1632934-1-alexjlzheng@tencent.com/) | 773962 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230808084431.1632934-1-alexjlzheng@tencent.com) |
+| 2023/08/17 | Kasireddy, Vivek <vivek.kasireddy@intel.com> | [udmabuf: Add back support for mapping hugetlb pages (v3)](https://patchwork.kernel.org/project/linux-mm/cover/20230817064623.3424348-1-vivek.kasireddy@intel.com/) | 776879 | v3 ☐☑ | [LORE v3,0/2](https://lore.kernel.org/r/20230817064623.3424348-1-vivek.kasireddy@intel.com) |
+| 2023/08/17 | Kasireddy, Vivek <vivek.kasireddy@intel.com> | [udmabuf: Add support for page migration out of movable zone or CMA](https://patchwork.kernel.org/project/linux-mm/cover/20230817064934.3424431-1-vivek.kasireddy@intel.com/) | 776880 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20230817064934.3424431-1-vivek.kasireddy@intel.com) |
+
+
+
+
+
+$$$
+avg\_vruntime_{cfs\_rq}' = avg\_vruntime_{cfs\_rq} - avg\_load_{cfs\_rq} * delta
+= \sum_{i=0}^{N} (vruntime_{se} - min\_vruntime_{cfs\_rq}) \times weight - \sum_{i=0}^{N} load\_weight * delta
+= \sum_{i=0}^{N} [vruntime_{se} - (min\_vruntime_{cfs\_rq} - delta)] \times weight]
+$$$
+
+
+$`avg\_vruntime_{cfs\_rq}' = avg\_vruntime_{cfs\_rq} - avg\_load_{cfs\_rq} * delta
+= \sum \limits_{i = 0}^{N} (vruntime_{se} - min\_vruntime_{cfs\_rq}) \times weight - \sum \limits_{i = 0}^{N} load\_weight * delta
+= \sum \limits_{i = 0}^{N} [vruntime_{se} - (min\_vruntime_{cfs\_rq} - delta)] \times weight]`$
+
+
 
