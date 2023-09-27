@@ -231,6 +231,8 @@ ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如
 #### 1.4.1.3 Intel Thread Director (ITD)
 -------
 
+[Intel支持混合内核架构的硬件线程调度器是怎么工作的？](https://mp.weixin.qq.com/s/9Zl-h61hm0kDhq68bsBEJQ)
+
 [Thread Director](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/2) 其实是一个软硬协同优化的范畴.
 
 早在 2018 年, 苹果就发布过自家 AMP 硬件上的软硬协同优化的调度器, 中文专利号 [CN108984282A 具有闭环性能控制器的 AMP 体系结构的调度器 / Scheduler for AMP architecture with closed loop performance controller](https://www.patentguru.com/cn/CN108984282A).
@@ -1137,6 +1139,13 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/07/10 | Mina Almasry <almasrymina@google.com> | [Device Memory TCP](https://lore.kernel.org/all/20230710223304.1174642-1-almasrymina@google.com) | 通过该方案, 我们能够通过直接从设备存储器发送和接收数据, 达到约96.6%的线路速率. 参见 [Google Posts Experimental Linux Code For "Device Memory TCP" - Network To/From Accelerator RAM](https://www.phoronix.com/news/Linux-Device-Memory-TCP). | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/20230710223304.1174642-1-almasrymina@google.com) |
 
+
+## 6.14 Cache 带宽管控
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/08/29 | Tony Luck <tony.luck@intel.com> | [Add support for Sub-NUMA cluster (SNC) systems](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com) | [Intel Fixing Up Sub-NUMA Clustering For Linux So That It Behaves With RDT](https://www.phoronix.com/news/Intel-SNT-RDT-Fixing-Up) | v5 ☐☑✓ | [LORE v5,0/8](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com) |
 
 
 <br>

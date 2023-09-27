@@ -666,6 +666,15 @@ a789992b7674 ck: sched: introduce 'idle seeker' and ID_IDLE_AVG
 b37e67a6c648 ck: sched: introduce per-cgroup identity
 ```
 
+#### 1.5.4.4 SMT control
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/07/05 | Laurent Dufour <ldufour@linux.ibm.com> | [Introduce SMT level and add PowerPC support](https://lore.kernel.org/all/20230705145143.40545-1-ldufour@linux.ibm.com) | [Partial SMT Enablement Support Lands For Linux 6.6](https://www.phoronix.com/news/Linux-6.6-Partial-SMT-Enable) | v4 ☐☑✓ | [LORE v4,0/10](https://lore.kernel.org/all/20230705145143.40545-1-ldufour@linux.ibm.com) |
+| 2023/09/19 | Yicong Yang <yangyicong@huawei.com> | [arch_topology: Support SMT control on arm64](https://lore.kernel.org/all/20230919123319.23785-1-yangyicong@huawei.com) | [HiSilicon Posts SMT Run-Time Control Patches For ARM64 Linux](https://www.phoronix.com/news/Linux-ARM64-Run-Time-SMT-Switch) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230919123319.23785-1-yangyicong@huawei.com) |
+
+
 
 # 2 组调度支持 (Group Scheduling)
 -------
@@ -966,6 +975,8 @@ v3.8 合入了 [LWN-2013/01/29, Per-entity load tracking](https://lwn.net/Articl
 
 ### 3.2.1 PELT 算法思想
 -------
+
+[Rust401/OS-kernel-dev-config- PELT 专栏](https://github.com/Rust401/OS-kernel-dev-config/blob/main/notes/pelt)
 
 
 进程消耗的 CPU 时间 和 负载 load 是否有区别, 是的, 当然有区别, Paul Turner 在提交 per-entity load tracking 补丁集的时候对这个问题做了回答.
@@ -3387,6 +3398,8 @@ v4.13 引入 NUMA WAKE AFFINE 的时候测试发现, CPU 的空闲造成了 NAS 
 
 [深入理解 Linux 内核之进程唤醒](https://blog.csdn.net/21cnbao/article/details/119881140)
 
+[郑琦-Linux 源代码跟读-Linux抢占调度](https://zhuanlan.zhihu.com/p/339378819)
+
 ### 4.7.1 Optimize TTWU(try_to_wake_up)
 -------
 
@@ -3410,7 +3423,7 @@ v3.0 版本 [sched: Reduce runqueue lock contention -v6](https://git.kernel.org/
 | 2022/08/24 | Peng Wang <rocking@linux.alibaba.com> | [sched/fair: select waker's cpu for wakee on sync wakeup](https://lore.kernel.org/all/1508aa17d1a169077c8d8d8c22d2bd529101af0e.1661313074.git.rocking@linux.alibaba.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/1508aa17d1a169077c8d8d8c22d2bd529101af0e.1661313074.git.rocking@linux.alibaba.com) |
 
 
-### 4.7.1.1 TTWU 中的内存屏障
+#### 4.7.1.1 TTWU 上半部中的内存屏障
 -------
 
 [<奔跑吧 Linux 内核> 卷 2-- 附录 E 关于 try_to_wake_up() 里的内存屏障使用](https://blog.csdn.net/rlk8888/article/details/123352327)
@@ -3751,6 +3764,7 @@ Chen Yu 新的思路是, 首先在 SMT 域中扫描一个空闲的同级节点. 
 | 2023/02/03 | Chen Yu <yu.c.chen@intel.com> | [sched/fair: Introduce SIS_CURRENT to wake up short task on current CPU](https://lore.kernel.org/lkml/cover.1682661027.git.yu.c.chen@intel.com) | v7 之前 title [sched/fair: Wake short task on current CPU](https://lore.kernel.org/all/cover.1675361144.git.yu.c.chen@intel.com), 其主要目的是避免在不必要时出现过多的跨 CPU 唤醒. 频繁的跨 CPU 唤醒会对某些工作负载造成严重损害, 尤其是在高核心数系统上. 如果唤醒和唤醒都是短时任务, 则通过将唤醒置于唤醒 CPU 上来禁止跨 CPU 唤醒. 短时间的任务可能会成为高负载系统的麻烦制造者, 因为它会带来频繁的上下文切换. 因此, 此策略仅在系统繁忙时生效. 此外, 当仍有空闲 CPU 时, 禁止空闲 CPU 扫描是不合理的. 首先利用第一个补丁 [sched/fair: Record the average duration of a task](https://lore.kernel.org/all/155aa36ba14b8a1f8e6c3ccda7999125edfff990.1675361144.git.yu.c.chen@intel.com) 跟踪任务的平均运行时间 dur_avg, 从而更好地定义小任务. 然后选择本地 CPU 进行唤醒. 测试发现, Intel 2 x 56C/112T 平台的性能有了显著提高. 例如, 在某些情况下, 它将缩放 (1200+%), netperf(600+%). 商业 RDBMS 对 schbench、hacksbench、tbench 和 OLTP 工作负载没有明显影响. 参见 phoronix 报道 [Linux Performance Patches Revved To Avoid Too Many Unnecessary Cross-CPU Wake-ups](https://www.phoronix.com/news/Linux-Wake-Short-Task-CPU). | v5 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220915165407.1776363-1-yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/2](https://lore.kernel.org/all/cover.1666531576.git.yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/2](https://lore.kernel.org/all/cover.1675361144.git.yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/2](https://lore.kernel.org/all/cover.1677069490.git.yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/2](https://lore.kernel.org/all/cover.1682060436.git.yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,0/2](https://lore.kernel.org/all/cover.1682661027.git.yu.c.chen@intel.com) |
 | 2023/03/27 | Aaron Lu <aaron.lu@intel.com> | [sched/fair: Make tg->load_avg per node](https://lore.kernel.org/all/20230327053955.GA570404@ziqianlu-desk2) | 使用 sysbench 在一个 docker 实例中对 Postgres 进行基准测试, 并将 sysbench 的 nr_threads 设置为 nr_cpu 时, 可以观察到 update_cfs_group() 和 update_load_avg() 在一个 2sockets/112core/224cpu 的 Intel Sapphire Rapids 节点上显示了明显的 cpu 开销 (10% 和 7.8%), 而在另一个节点的 cpu 的热点通常较低 (4% 和 3%). 分析发现热点主要是访问 tg->load_avg, 其中 update_load_avg() 是写端, update_cfs_group() 是读端.<br> 为什么只有一个节点的 CPU 有更大的开销, 原因是: task_group 是根据需要从 slab 分配的, 无论哪个 CPU 进行分配, 分配的 tg 将位于该节点上, 访问 tg->load_avg 将对同一节点上的 CPU 有更低的成本, 而对远程节点的 CPU 有更高的成本.<br>Tim Chen 告诉我, PeterZ 曾经提到过一种解决类似问题的方法, 即为每个节点设置一个计数器, 所以对 tg->load_avg 也做同样的事情.<br> 优化后, 这两个节点上运行 5 分钟所看到的最坏的情况占比也才 2%.<br> 针对这个工作负载有另外一个发现: 这个工作负载存在有很多唤醒时的任务迁移, 这就是为什么 update_load_avg() 和 update_cfs_group() 显示出明显的成本. 在 N 个实例中运行这个工作负载, 其中 N >= 2, sysbench 的 nr_threads 设置为 1/N nr_cpu, 在唤醒时间上的任务迁移大大减少, 上面提到的两个函数的开销也下降了很多. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230327053955.GA570404@ziqianlu-desk2) |
 | 2023/05/16 | Chen Yu <yu.c.chen@intel.com> | [sched/fair: Introduce SIS_PAIR to wakeup task on local idle core first](https://lore.kernel.org/all/20230516011159.4552-1-yu.c.chen@intel.com) | 在 SMT 域中扫描一个空闲的同级节点. 在之前的上下文切换周期中, 如果唤醒器和唤醒器相互唤醒, 则它们可能共享资源, 并且可以将唤醒器放在唤醒器旁边的空闲兄弟节点上, 以避免 C2C 开销. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230516011159.4552-1-yu.c.chen@intel.com) |
+| 2023/09/12 | Aaron Lu <aaron.lu@intel.com> | [Reduce cost of accessing tg->load_avg](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1528c661c24b407e92194426b0adbb43de859ce0) | [New Scheduler Optimization Can Help Out PostgreSQL & More On Sapphire Rapids](https://www.phoronix.com/news/Linux-Sched-Postgres-SPR) | v2 ☐☑✓ | [LORE v2,0/1](https://lore.kernel.org/all/20230912065808.2530-1-aaron.lu@intel.com) |
 
 
 ### 4.7.5 sync wakeup
@@ -5174,7 +5188,7 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 |:----:|:----:|:---:|:----------:|:---:|
 | 2021/08/12 | Viresh Kumar <viresh.kumar@linaro.org> | [Add callback to register with energy model](https://lore.kernel.org/patchwork/cover/1424708) | 当前许多 cpufreq 驱动程序向每个策略的注册了能耗模型, 并通过相同的操作 dev_pm_opp_of_register_em() 来完成. 但是随着  thermal-cooling 的完善, 可以在 cpufreq 层次通过新的回调 register_em 来完成这个工作. | v3 ☐ | [PatchWork V3,0/9](https://patchwork.kernel.org/project/linux-arm-kernel/cover/cover.1628742634.git.viresh.kumar@linaro.org) |
 | 2021/09/08| Viresh Kumar <viresh.kumar@linaro.org> | [Inefficient OPPs](https://patchwork.kernel.org/project/linux-pm/cover/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) | schedutil 中增加了对低能效 (inefficient) OPP 的感知, 引入 CPUFREQ_RELATION_E 标记来使得 CPUFREQ 只使用和引用有效的频点.<br>Arm 的 Power 团队在为谷歌的 Pixel4 开发一个实验性内核, 以评估和改进现实生活中 Android 设备上的主线性能和能耗. 发现 SD855 SoC 有几个效率低下的 OPP. 这些 OPP 尽管频率较低, 但功耗却较高, 任务这种频率下工作, 性能不光下降了, 功耗也很高. 通过将它们从 EAS 能效模型中移除, 使得最高效的 CPU 在任务分配上更有吸引力, 有助于减少中、大型 CPU 的运行时间, 同时提高了集群的空闲时间. 由于集群之间存在巨大的能源成本差异, 因此增加空闲时间对该平台来说至关重要. | v7 ☑ 5.16-rc1 | [PatchWork v7,0/9](https://patchwork.kernel.org/project/linux-pm/cover/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) |
-| 2023/07/24 | Jie Zhan <zhanjie9@hisilicon.com> | [cpufreq: Support per-policy performance boost](https://lore.kernel.org/all/20230724075827.4160512-1-zhanjie9@hisilicon.com) | 通过添加 "local_boost" sysfs 接口启用按策略提升. 与全局升压开关相同, 将 1/0 写入 "local_boost" 可分别启用 / 禁用 cpufreq 策略上的升压.<br>全局和本地增压控制的用户视图应为:<br>1. 启用全局增强最初会对所有策略启用本地增强, 然后可以对每个策略单独启用或禁用本地增强, 前提是平台确实支持.<br>2. 禁用全局 boost 会使启用本地 boost 成为非法, 而将 0 写入 "local_boost" 是可以的, 但不会生效. [Per-Policy CPU Performance Boosting Proposed For Linux](https://www.phoronix.com/news/Linux-Per-Policy-CPU-Perf-Boost) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230724075827.4160512-1-zhanjie9@hisilicon.com) |
+| 2023/07/24 | Jie Zhan <zhanjie9@hisilicon.com> | [cpufreq: Support per-policy performance boost](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=218a06a79d9a98a96ef46bb003d4d8adb0962056) | 通过添加 "local_boost" sysfs 接口启用按策略提升. 与全局升压开关相同, 将 1/0 写入 "local_boost" 可分别启用 / 禁用 cpufreq 策略上的升压.<br>全局和本地增压控制的用户视图应为:<br>1. 启用全局增强最初会对所有策略启用本地增强, 然后可以对每个策略单独启用或禁用本地增强, 前提是平台确实支持.<br>2. 禁用全局 boost 会使启用本地 boost 成为非法, 而将 0 写入 "local_boost" 是可以的, 但不会生效. [Per-Policy CPU Performance Boosting Proposed For Linux](https://www.phoronix.com/news/Linux-Per-Policy-CPU-Perf-Boost) | v1 ☐☑✓ 6.6-rc1 | [LORE](https://lore.kernel.org/all/20230724075827.4160512-1-zhanjie9@hisilicon.com) |
 
 
 ### 7.3.4 各个厂商基于 schedutil 的进一步优化和改进
@@ -5922,6 +5936,8 @@ enqueue_task_fair()
 
 [[SchedulerWakeupLatency] Per-task vruntime wakeup bonus](https://lore.kernel.org/all/87blla2pdt.derkling@matbug.net)
 
+EEVDF 最终在 [v6.6-rc1 合入主线](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3ca9a836ff53db8eb76d559764c07fb3b015886a), EEVDF 取代了现有的 CFS 调度程序代码, 虽然最初可能会出现一些性能回归, 但开发人员将积极地解决这些问题. 参见  [EEVDF Scheduler Merged For Linux 6.6, Intel Hybrid Cluster Scheduling Re-Introduced](https://www.phoronix.com/news/Linux-6.6-EEVDF-Merged) 以及 [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d07f09a1f99cabbc86bc5c97d962eb8a466106b5).
+
 EEVDF 全称 "Earliest Eligible Virtual Deadline First" 调度算法, 它并不是什么新事物, 是在 1995 年由 Ion Stoica 和 Hussein Abdel-Wahab 在 1995 年的论文 [Earliest Eligible Virtual Deadline First A Flexible](https://people.eecs.berkeley.edu/~istoica/papers/eevdf-tr-95.pdf) 中描述过. 它的名字就暗示, 它是跟内核的 deadline scheduler 所使用的 Earliest Deadline First algorithm 很类似. 但是这里的差异是, EEVDF 不是一个 realtime 时调度程序, 所以工作方式不一样. 理解 EEVDF 需要掌握几个 (相对) 简单的概念.
 
 EEVDF 跟 CFS 一样, 试图把可用的 CPU 时间公平地分配给正在争夺它的那些进程. 例如, 如果有五个进程试图在一个 CPU 上运行, 那么每个进程应该得到 20% 的可用时间. 每个进程的 nice 值可以用来调整其公平时间的计算结果, nice 值较低 (因此优先级较高) 的进程有权获得更多的 CPU 时间, 而牺牲那些具有较高 nice 值的进程. 这些内容都是以前就有的概念.
@@ -6002,7 +6018,7 @@ latency_nice 影响的就是 `se->slice`
 | 2009/09/16 | Ingo Molnar <mingo@elte.hu> | [sched: Implement a gentler fair-sleepers feature](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=51e0304ce6e55a6e59658558916b4f74da085ff0) | 引入 GENTLE_FAIR_SLEEPERS sched_feature 只给睡眠的线程 50% 的 vruntime 补偿优待, 这使它们能够更快地奔跑, 但不会让他们窃取过多的补偿. | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=51e0304ce6e55a6e59658558916b4f74da085ff0) |
 | 2023/04/01 | Xi Wang <xii@google.com> | [Morphing CFS into FDL, The Fair Deadline Scheduling Class](https://lore.kernel.org/all/20230401230556.2781604-1-xii@google.com) | TODO | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20230401230556.2781604-1-xii@google.com) |
 | 2023/03/28 | Peter Zijlstra <peterz@infradead.org> | [sched: EEVDF using latency-nice](https://lore.kernel.org/all/20230328092622.062917921@infradead.org) | [EEVDF Scheduler Patches Updated For The Linux Kernel](https://www.phoronix.com/news/Linux-EEVDF-EO-March) | v1 ☐☑✓ | [LORE 00/10](https://lore.kernel.org/all/20230306132521.968182689@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/17](https://lore.kernel.org/all/20230328092622.062917921@infradead.org) |
-| 2023/07/19 | Peter Zijlstra <peterz@infradead.org> | [sched: EEVDF and latency-nice and/or slice-attr](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b41bbb33cf75d251a816768580819aec17be718d) | [Updated EEVDF Linux CPU Scheduler Patches Posted That Plan To Replace CFS](https://www.phoronix.com/news/EEVDF-Scheduler-Linux-EO-May) 以及 [EEVDF Scheduler May Be Ready For Landing With Linux 6.6](https://www.phoronix.com/news/Linux-6.6-EEVDF-Likely). | v1 ☐☑✓ 6.6-rc1 | [LORE v1,0/15](https://lore.kernel.org/all/20230531115839.089944915@infradead.org), [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d07f09a1f99cabbc86bc5c97d962eb8a466106b5) |
+| 2023/07/19 | Peter Zijlstra <peterz@infradead.org> | [sched: EEVDF and latency-nice and/or slice-attr](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b41bbb33cf75d251a816768580819aec17be718d) | [Updated EEVDF Linux CPU Scheduler Patches Posted That Plan To Replace CFS](https://www.phoronix.com/news/EEVDF-Scheduler-Linux-EO-May) 以及 [EEVDF Scheduler May Be Ready For Landing With Linux 6.6](https://www.phoronix.com/news/Linux-6.6-EEVDF-Likely), [EEVDF Scheduler Merged For Linux 6.6, Intel Hybrid Cluster Scheduling Re-Introduced](https://www.phoronix.com/news/Linux-6.6-EEVDF-Merged) | v1 ☐☑✓ 6.6-rc1 | [LORE v1,0/15](https://lore.kernel.org/all/20230531115839.089944915@infradead.org), [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d07f09a1f99cabbc86bc5c97d962eb8a466106b5) |
 
 
 ### 8.9.2 Xen CPU Scheduling
@@ -6079,7 +6095,7 @@ CONFIG_HW_VIP_THREAD 被标记为 static_vip/dynamic_vip, VIP 线程提供了 mu
 
 CONFIG_HUAWEI_SCHED_VIP 被标记为 vip_prio, 为 VIP 线程提供了近似于优先级的功能. 同时提供了较为完善的 VIP Load Balance 机制.
 
-#### 8.9.3.4
+#### 8.9.3.4 业界混部技术
 -------
 
 [星汉未来 - 一文看懂业界在离线混部技术](https://blog.51cto.com/u_15513890/5017537)
@@ -6148,6 +6164,9 @@ Intel 的 [Wult/Wake Up Latency Tracer](https://github.com/intel/wult) 一个在
 
 ### 10.1.1 进程创建 FORK
 -------
+
+[Race-free process creation in the GNU C Library](https://lwn.net/Articles/943022)
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

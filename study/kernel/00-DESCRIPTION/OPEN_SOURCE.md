@@ -105,7 +105,7 @@
 | 6.3 | NA | NA | [Linux 6.3 Features Expected From AMD Auto IBRS To Pluton CRB TPM2 & Dropping Old Code](https://www.phoronix.com/news/Linux-6.3-Early-Features-Look) |
 | 6.4 | NA | NA | NA |
 | 6.5 | [The first half of the 6.5 merge window](https://lwn.net/Articles/936418) | NA | NA |
-
+| 6.6 | [The first half of the 6.6 merge window](https://lwn.net/Articles/942954), [The rest of the 6.6 merge window](https://lwn.net/Articles/943245) | NA | NA |
 
 # 6 业界会议
 -------

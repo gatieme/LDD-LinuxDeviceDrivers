@@ -617,6 +617,8 @@ Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标�
 ## X.1 业界工具
 -------
 
+[Issue #002 | Programming the Kernel with eBPF](https://www.kerno.io/blog/programming-the-kernel-with-ebpf)
+
 | 工具 | 描述 |
 |:---:|:----:|
 | [nyrahul/ebpf-guidee](https://github.com/nyrahul/ebpf-guide) | eBPF 常见问题, 样例以及工具汇总 |

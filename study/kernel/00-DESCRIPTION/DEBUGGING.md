@@ -66,6 +66,9 @@ blogexcerpt: FZF 是目前最快的模糊搜索工具. 使用golang编写. 结�
 
 [CPU Architectures » x86-specific Documentation » 9. ORC unwinderView page source](https://www.kernel.org/doc/html/latest/x86/orc-unwinder.html)
 
+[内核栈回溯原理应用](https://www.cnblogs.com/mysky007/p/12539754.<!DOCTYPE html>
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/11/23 | Shile Zhang <shile.zhang@linux.alibaba.com> | [Speed booting by sorting ORC unwind tables at build time](https://lore.kernel.org/patchwork/cover/1162315) | ORC unwind有两个表, .orc_unwind_ip和.orc_unwind 二分搜索需要排序. 在构建时对其进行排序可以节省更多CPU周期有助于加快内核引导. 添加ORC表排序在一个独立的线程有助于避免更多的链接. | RFC v6 ☐ | [PatchWork v6](https://lore.kernel.org/patchwork/cover/1162315) |
@@ -305,6 +308,9 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 
 [A discussion on printk()](https://lwn.net/Articles/909980)
 
+[Printk Cleanups Ready For Linux 6.6 - Stepping Towards Threaded/Atomic Console Printing](https://www.phoronix.com/news/Linux-6.6-printk)
+
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/02/07 | John Ogness <john.ogness@linutronix.de> | [implement threaded console printing](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) | 参见 phoronix 报道 [Linux Gets Patches For Threaded Console Printing](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Threaded-Console-Print) 和 [Patches Updated For Linux To Enjoy Consoles Running At Full-Speed](https://www.phoronix.com/scan.php?page=news_item&px=Printk-v3-Consoles-Full-Speed) | v1 ☐ | [LORE v1,0/13](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) |
@@ -318,6 +324,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/09/11 | Thomas Gleixner <tglx@linutronix.de> | [printk: A new approach - WIP](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |  | v1 ☐☑✓ | [LORE v1,0/29](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |
+| 2023/09/16 | John Ogness <john.ogness@linutronix.de> | [provide nbcon base](https://lore.kernel.org/all/20230916192007.608398-1-john.ogness@linutronix.de) | [NBCON Console Patches Updated For Eventually Unblocking Real-Time Linux Kernel](https://www.phoronix.com/news/Linux-NCON-Consoles-v5) | v5 ☐☑✓ | [LORE v5,0/8](https://lore.kernel.org/all/20230916192007.608398-1-john.ogness@linutronix.de) |
 
 
 
@@ -467,10 +474,28 @@ x86 和 arm64 都支持直接访问用户空间中的事件计数器. 访问序�
 | 2022/05/28 | zhengjun <zhengjun.xing@linux.intel.com> | [perf vendor events intel: Add metrics for Sapphirerapids](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1bcca2b1bd67f3c0e5c3a88ed16c6389f01a5b31) | TODO | v2 ☑✓ 5.19-rc1 | [LORE v2,0/2](https://lore.kernel.org/all/20220528095933.1784141-1-zhengjun.xing@linux.intel.com) |
 | 2022/08/25 | zhengjun.xing@linux.intel.com <zhengjun.xing@linux.intel.com> | [perf stat: Capitalize topdown metricsnel.org/all/20220825015458.3252239-1-zhengjun.xing@linux.intel.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/9-1-zhengjun.xing@linux.intel.com) |
 | 2022/10/21 | Shang XiaoJing <shangxiaojing@huawei.com> | [perf vendor events arm64: Fix incorrect Hisi hip08 L3 metrics](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e9229d5b6254a75291536f582652c599957344d2) | TODO | v2 ☑✓ 6.1-rc3 | [LORE v2,0/3](https://lore.kernel.org/all/20221021105035.10000-1-shangxiaojing@huawei.com) |
-| 2022/12/14 | Sandipan Das <sandipan.das@amd.com> | [perf vendor events amd: Add Zen 4 events and metrics](https://lore.kernel.org/all/20221214082652.419965-1-sandipan.das@amd.com) | [Linux 6.2 Adds AMD Zen 4 Pipeline Utilization Data To Help Find Performance Bottlenecks](https://www.phoronix.com/news/LInux-6.2-AMD-Zen-4-Events) | v2 ☐☑✓ 6.2-rc1 | [LORE v2,0/4](https://lore.kernel.org/all/20221214082652.419965-1-sandipan.das@amd.com) |
+| 2022/12/14 | Sandipan Das <sandipan.das@amd.com> | [perf vendor events amd: Add Zen 4 events and metrics](https://lore.kernel.org/all/20221214082652.419965-1-sandipan.das@amd.com) | [Linux 6.2 Adds AMD Zen 4 Pipeline Utilization Data To Help Find Performance Bottlenecks](https://www.phoronix.com/news/LInux-6.2-AMD-Zen-4-Events) | v2 ☐☑✓ 6.2-rc1 | [LORE v2,0/4](https://lore.kernel.org/all/20221214082652.419965-1-sandipan.das@amd.com)|
+| 2023/06/07 | kan.liang@linux.intel.com <kan.liang@linux.intel.com> | [New metricgroup output in perf stat default mode](https://lore.kernel.org/all/20230607162700.3234712-1-kan.liang@linux.intel.com) | 在默认模式下, metricgroup 的当前输出包括事件和度量, 这是不必要的, 并且使输出难以读取. 此外, 由于度量中的事件不同, 不同的 ARCH(甚至不同代的 ARCH)可能具有不同的输出格式. 该补丁提出了一种新的输出格式, 只输出每个度量的值和度量组名称. 它可以在 ARCH 和各代之间带来干净一致的输出格式. | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20230607162700.3234712-1-kan.liang@linux.intel.com) |
 
 
-## 11.9
+
+## 11.9 perf bperf
+-------
+
+
+perf 使用 PMC (performance monitoring counters)来监控系统的性能. PMC 是有限的硬件资源. 例如, Intel cpu 每个 cpu 有 3 个固定 PMC 和 4 个可编程 PMC.
+
+现代数据中心系统以许多不同的方式使用这些 PMC: 系统级监控、(可能是嵌套的)容器级监控、每个进程监控、分析 (在示例模式下) 等等. 在某些情况下, 活动的 perf_event 比可用的硬件 PMC 还多. 为了允许所有 perf_events 都有机会运行, 有必要对事件进行昂贵的时间复用.
+
+另一方面, 许多监视工具计算公共度量 (周期、指令). 让多个工具创建多个"循环" 的 perf_event 并占用多个 PMC 是一种浪费.
+
+bperf 试图通过允许多个 "周期" 或 "指令" 的 perf_event (在不同作用域) 共享 PMU 来减少这种浪费. bperf 没有让每个 perf-stat 会话读取自己的 perf_events, 而是使用 BPF 程序读取 perf_events 并将读取的数据聚合到 BPF 映射中. 然后, perf-stat 会话从这些 BPF 映射中读取值.
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2020/12/28 | Song Liu <songliubraving@fb.com> | [Introduce perf-stat -b for BPF programs](https://lore.kernel.org/all/20201228174054.907740-1-songliubraving@fb.com) | 引入了 perf-stat-b 选项来统计 BPF 程序的事件. 这与 bpftool 程序配置文件类似. 但是 perf-stat 使它更加灵活. | v6 ☐☑✓ | [LORE v6,0/4](https://lore.kernel.org/all/20201228174054.907740-1-songliubraving@fb.com) |
+| 2021/03/16 | Song Liu <songliubraving@fb.com> | [perf-stat: share hardware PMCs with BPF](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7fac83aaf2eecc9e7e7b72da694c49bb4ce7fdfc) | TODO | v2 ☐☑✓ 5.13-rc1 | [LORE](https://lore.kernel.org/all/20210312020257.197137-1-songliubraving@fb.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/all/20210316211837.910506-1-songliubraving@fb.com)|
+| 2021/06/25 | Namhyung Kim <namhyung@kernel.org> | [perf stat: Enable BPF counters with --for-each-cgroup](https://lore.kernel.org/all/20210625071826.608504-1-namhyung@kernel.org) | bperf 被添加到使用 BPF 来计算各种性能事件目的, 对其扩展 cgroup 的支持. 与其他 bperf 不同, 它不与其他进程共享事件, 但它可以减少 perf 会话中每个被监视的 GROUP 组的不必要事件 (以及多路复用的开销). 当 `for-each-cgroup` 与 `BPF -counters` 一起使用时, 它将在每个 cpu 内部打开 cgroup-switches 事件, 并附加新的 BPF 程序来读取给定的 perf_events 并聚合 cgroups 的结果. 只有当 task 切换到另一个 group 组中的 task 时才会调用它. | v4 ☐☑✓ | [LORE v4,0/4](https://lore.kernel.org/all/20210625071826.608504-1-namhyung@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v5](https://lore.kernel.org/all/20210701211227.1403788-1-namhyung@kernel.org)|
 
 
 # 12 KPROBE
@@ -739,7 +764,7 @@ Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM F
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2023/06/12 | Peter Zijlstra <peterz@infradead.org> | [Scope-based Resource Management](https://lore.kernel.org/all/20230612090713.652690195@infradead.org) | [Scope-based resource management for the kernel](https://lwn.net/Articles/934679) 以及 [Scope-Based Resource Management Infrastructure Merged For Linux 6.5](https://www.phoronix.com/news/Linux-6.5-Scope-Resource-Manage). | v3 ☐☑✓ | [LORE v3,0/57](https://lore.kernel.org/all/20230612090713.652690195@infradead.org) |
+| 2023/06/12 | Peter Zijlstra <peterz@infradead.org> | [Scope-based Resource Management](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7170509cadbb76e5fa7d7b090d2cbdb93d56a2de) | [Scope-based resource management for the kernel](https://lwn.net/Articles/934679) 以及 [Scope-Based Resource Management Infrastructure Merged For Linux 6.5](https://www.phoronix.com/news/Linux-6.5-Scope-Resource-Manage). | v3 ☐☑✓ 6.6-rc1 | [LORE v3,0/57](https://lore.kernel.org/all/20230612090713.652690195@infradead.org) |
 
 
 # 14 FTRACE

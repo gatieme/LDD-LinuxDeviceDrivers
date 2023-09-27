@@ -414,7 +414,6 @@ https://lkml.kernel.org/r/424e2c81-987d-f10e-106d-8b4c611768bc@arm.com 网站
 | 2023/04/17 | Vishal Moola <vishal.moola@gmail.com> | [Split ptdesc from struct page](https://patchwork.kernel.org/project/linux-mm/cover/20230417205048.15870-1-vishal.moola@gmail.com/) | 740662 | v1 ☐☑ | [LORE v1,0/33](https://lore.kernel.org/r/20230417205048.15870-1-vishal.moola@gmail.com) |
 | 2023/04/18 | Романов Алексей Васильевич <avromanov@sberdevices.ru> | [Introduce objects folding mechanism](https://patchwork.kernel.org/project/linux-mm/cover/20230418062503.62121-1-avromanov@sberdevices.ru/) | 740774 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20230418062503.62121-1-avromanov@sberdevices.ru) |
 | 2023/04/18 | Luis Chamberlain <mcgrof@kernel.org> | [[v4] module: add debug stats to help identify memory pressure](https://patchwork.kernel.org/project/linux-mm/patch/ZD7jaL8s+pPolwU1@bombadil.infradead.org/) | 741080 | v4 ☐☑ | [LORE v4,0/1](https://lore.kernel.org/r/ZD7jaL8s+pPolwU1@bombadil.infradead.org) |
-| 2023/04/18 | Johannes Weiner <hannes@cmpxchg.org> | [mm: reliable huge page allocator](https://patchwork.kernel.org/project/linux-mm/cover/20230418191313.268131-1-hannes@cmpxchg.org/) | 741091 | v1 ☐☑ | [LORE v1,0/26](https://lore.kernel.org/r/20230418191313.268131-1-hannes@cmpxchg.org) |
 | 2023/04/18 | Waiman Long <longman@redhat.com> | [mm/mmap: Map MAP_STACK to VM_STACK](https://patchwork.kernel.org/project/linux-mm/patch/20230418210230.3495922-1-longman@redhat.com/) | 741110 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230418210230.3495922-1-longman@redhat.com) |
 | 2023/04/18 | Luis Chamberlain <mcgrof@kernel.org> | [module: add debugging auto-load duplicate module support](https://patchwork.kernel.org/project/linux-mm/patch/20230418204636.791699-1-mcgrof@kernel.org/) | 741107 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230418204636.791699-1-mcgrof@kernel.org) |
 | 2023/04/18 | Waiman Long <longman@redhat.com> | [mm/mmap: Map MAP_STACK to VM_STACK](https://patchwork.kernel.org/project/linux-mm/patch/20230418210230.3495922-1-longman@redhat.com/) | 741110 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230418210230.3495922-1-longman@redhat.com) |
@@ -555,20 +554,31 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 | 2023/08/17 | Kasireddy, Vivek <vivek.kasireddy@intel.com> | [udmabuf: Add back support for mapping hugetlb pages (v3)](https://patchwork.kernel.org/project/linux-mm/cover/20230817064623.3424348-1-vivek.kasireddy@intel.com/) | 776879 | v3 ☐☑ | [LORE v3,0/2](https://lore.kernel.org/r/20230817064623.3424348-1-vivek.kasireddy@intel.com) |
 | 2023/08/17 | Kasireddy, Vivek <vivek.kasireddy@intel.com> | [udmabuf: Add support for page migration out of movable zone or CMA](https://patchwork.kernel.org/project/linux-mm/cover/20230817064934.3424431-1-vivek.kasireddy@intel.com/) | 776880 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20230817064934.3424431-1-vivek.kasireddy@intel.com) |
 
+| 2023/04/18 | Johannes Weiner <hannes@cmpxchg.org> | [mm: reliable huge page allocator](https://patchwork.kernel.org/project/linux-mm/cover/20230418191313.268131-1-hannes@cmpxchg.org/) | 741091 | v1 ☐☑ | [LORE v1,0/26](https://lore.kernel.org/r/20230418191313.268131-1-hannes@cmpxchg.org) |
+| 2023/08/21 | Johannes Weiner <hannes@cmpxchg.org> | [mm: page_alloc: freelist migratetype hygiene](https://patchwork.kernel.org/project/linux-mm/cover/20230821183733.106619-1-hannes@cmpxchg.org/) | 777975 | v1 ☐☑ | [LORE v1,0/8](https://lore.kernel.org/r/20230821183733.106619-1-hannes@cmpxchg.org) |
+| 2023/08/21 | Mateusz Guzik <mjguzik@gmail.com> | [execve scalability issues, part 1](https://patchwork.kernel.org/project/linux-mm/cover/20221202829.2163744-1-mjguzik@gmail.com/) | 778000 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20230821202829.2163744-1-mjguzik@gmail.com)
+| 2023/08/21 | Yosry Ahmed <yosryahmed@google.com> | [memcg: non-unified flushing for userspace stats](https://patchwork.kernel.org/project/li-mm/cover/20230821205458.1764662-1-yosryahmed@google.com/) | 778004 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20230821205458.1764662-1sryahmed@google.com) |
 
 
 
 
-$$$
-avg\_vruntime_{cfs\_rq}' = avg\_vruntime_{cfs\_rq} - avg\_load_{cfs\_rq} * delta
-= \sum_{i=0}^{N} (vruntime_{se} - min\_vruntime_{cfs\_rq}) \times weight - \sum_{i=0}^{N} load\_weight * delta
-= \sum_{i=0}^{N} [vruntime_{se} - (min\_vruntime_{cfs\_rq} - delta)] \times weight]
-$$$
+
+[Why glibc's fstat() is slow](https://lwn.net/Articles/944214)
+
+[Linux 6.7 To Make It Easier To Toggle Support For x86 32-bit Programs](https://www.phoronix.com/news/Linux-6.7-ia32_emulation-Boot)
+[Red Hat Working On Delayed Module Signature Verification To Speed-Up Linux Boot Times](https://www.phoronix.com/news/Linux-Delay-Module-Verification)
+[Linux's SLUB Allocator Preparing To Better Fend Off Cross-Cache Attacks](https://www.phoronix.com/news/Linux-SLUB-Prevent-Cross-Cache)
 
 
-$`avg\_vruntime_{cfs\_rq}' = avg\_vruntime_{cfs\_rq} - avg\_load_{cfs\_rq} * delta
-= \sum \limits_{i = 0}^{N} (vruntime_{se} - min\_vruntime_{cfs\_rq}) \times weight - \sum \limits_{i = 0}^{N} load\_weight * delta
-= \sum \limits_{i = 0}^{N} [vruntime_{se} - (min\_vruntime_{cfs\_rq} - delta)] \times weight]`$
+[Intel oneAPI Initiative Evolves Into The Unified Acceleration "UXL" Foundation](https://www.phoronix.com/review/oneapi-uxl-foundation)
+[](https://www.phoronix.com/news/Linux-6.6-x86-microcode)
 
 
 
+
+[Moving physical pages from user space](https://lwn.net/Articles/944115)
+[Revisiting the kernel's preemption models (part 1)](https://lwn.net/Articles/944686)
+[User-space spinlocks with help from rseq()](https://lwn.net/Articles/944895)
+
+
+[Intel支持混合内核架构的硬件线程调度器是怎么工作的？](https://mp.weixin.qq.com/s/9Zl-h61hm0kDhq68bsBEJQ)
