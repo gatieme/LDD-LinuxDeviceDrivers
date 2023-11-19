@@ -570,7 +570,7 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 [Linux's SLUB Allocator Preparing To Better Fend Off Cross-Cache Attacks](https://www.phoronix.com/news/Linux-SLUB-Prevent-Cross-Cache)
 
 
-[Intel oneAPI Initiative Evolves Into The Unified Acceleration "UXL" Foundation](https://www.phoronix.com/review/oneapi-uxl-foundation)
+[Intel oneAPI Initiative Evolves Into The Unified Acceleration"UXL"Foundation](https://www.phoronix.com/review/oneapi-uxl-foundation)
 [](https://www.phoronix.com/news/Linux-6.6-x86-microcode)
 
 
@@ -579,6 +579,19 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 [Moving physical pages from user space](https://lwn.net/Articles/944115)
 [Revisiting the kernel's preemption models (part 1)](https://lwn.net/Articles/944686)
 [User-space spinlocks with help from rseq()](https://lwn.net/Articles/944895)
+[Google Proposes New mseal() Memory Sealing Syscall For Linux](https://www.phoronix.com/news/Linux-mseal-Memory-Sealing)
+[GCC features to help harden the kernel](https://lwn.net/Articles/946041)
+[Rethinking multi-grain timestamps](https://lwn.net/Articles/946394)
+[mseal() and what comes after](https://lwn.net/Articles/948129)
+[Finer-grained BPF tokens](https://lwn.net/Articles/947173)
 
 
-[Intel支持混合内核架构的硬件线程调度器是怎么工作的？](https://mp.weixin.qq.com/s/9Zl-h61hm0kDhq68bsBEJQ)
+[Red-black trees for BPF programs](https://lwn.net/Articles/924128)
+
+
+
+
+
+在目前的情况下, 我们应该看到从 perf-script、perf-schedule-timehist 和 tp_printk 中报告的调度任务状态的三种不同结果. tracepoint sched_switch 的. 不难看出前两个是建立在第三个的基础上的, 这也是我们看到这个的原因. 不一致性在于前两种方法不能跟上随着内核发展而报告的任务状态定义的内部变化. 在 tracepoint sched_switch 中导出任务状态的内部表示并不是一个好的做法, 而且根本不鼓励这样做容易破坏依赖于它的用户空间工具. 特别是当跟踪点由于其稳定性而被大量应用于许多可观测性工具中时性质, 这使得它们不再仅用于调试目的, 我们应该小心地决定应该向用户空间报告什么, 以及什么不应该.
+
+因此, 要彻底解决上面提到的问题, 而不是选择与用户空间跟踪工具同步

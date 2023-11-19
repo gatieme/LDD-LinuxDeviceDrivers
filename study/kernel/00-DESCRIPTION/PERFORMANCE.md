@@ -103,6 +103,7 @@ https://www.phoronix.com/scan.php?page=news_item&px=UDP-IPV6-5P-Optimization
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/03 | Peter Oskolkov <posk@google.com> | [thread_info: use helpers to snapshot thread flags](https://lwn.net/Articles/722293) | 参见报道 [Linux 5.17 To Continue With I/O Optimizations, 5~6% Improvement Pending For NVMe](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Will-Continue-IO) | v1 ☐ | [PatchWork v4,00/10](https://lore.kernel.org/patchwork/cover/1471548) |
 | 2022/12/18 | Eric Van Hensbergen <evanhensbergen@icloud.com> | [Performance fixes for 9p filesystem](https://lore.kernel.org/all/20221218232217.1713283-1-evanhensbergen@icloud.com) | [New Patches Aim To Boost Linux 9p Performance By ~10x](https://www.phoronix.com/news/Linux-9p-10x-Performance) | v2 ☐☑✓ | [LORE v2,0/10](https://lore.kernel.org/all/20221218232217.1713283-1-evanhensbergen@icloud.com) |
+| 2023/10/04 | Nikhil V <quic_nprakash@quicinc.com> | [PM: hibernate: LZ4 compression support](https://lore.kernel.org/all/cover.1696410298.git.quic_nprakash@quicinc.com) | 目前, 当休眠 Linux 系统时, LZO 压缩用于保留内存内容, 而高通公司今天发布的新补丁系列允许更改使用的压缩 API, 并使 LZ4 成为 Linux 休眠期间的新选项. 切换到 LZ4 压缩时, 解压缩率从 335 MB/s 跃升至 501 MB/s, 进而将系统恢复时间缩短了大约半秒. [Linux Patches Allow Changing Hibernation Compression Format For Better Performance](https://www.phoronix.com/news/Linux-LZ4-Hibernation-Patches). | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/cover.1696410298.git.quic_nprakash@quicinc.com) |
 
 
 # 5 ARCH

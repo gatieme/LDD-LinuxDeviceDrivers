@@ -352,6 +352,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 
 `struct scripting_ops` 封装了 perf 支持的高级语言解析框架. 可通过 script_spec_register() 注册, 当前支持 perl, python.
 
+支持对 Python 使用 Linux perf 进行性能分析 [The challenge of compiling for verified architectures](https://lwn.net/Articles/946254).
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

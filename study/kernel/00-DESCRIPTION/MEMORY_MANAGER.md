@@ -6122,6 +6122,7 @@ git://github.com/glommer/linux.git kmemcg-slab
 | 2022/02/01 | Yosry Ahmed <yosryahmed@google.com> | [memcg: add per-memcg total kernel memory stat](https://patchwork.kernel.org/project/linux-mm/patch/20220201200823.3283171-1-yosryahmed@google.com/) | 610482 | v1 ☐☑ | [PatchWork v1,0/1](https://lore.kernel.org/r/20220201200823.3283171-1-yosryahmed@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/1](https://lore.kernel.org/r/20220203193856.972500-1-yosryahmed@google.com) |
 | 2022/05/21 | Vasily Averin <vvs@openvz.org> | [memcg: accounting for objects allocated by mkdir cgroup](https://lore.kernel.org/all/06505918-3b8a-0ad5-5951-89ecb510138e@openvz.org) | TODO | v2 ☐☑✓ | [LORE v2,0/9](https://lore.kernel.org/all/06505918-3b8a-0ad5-5951-89ecb510138e@openvz.org) |
 | 2022/06/28 | Yosry Ahmed <yosryahmed@google.com> | [KVM: mm: count KVM mmu usage in memory stats](https://patchwork.kernel.org/project/linux-mm/cover/20220628220938.3657876-1-yosryahmed@google.com/) | 654790 | v6 ☐☑ | [LORE v6,0/4](https://lore.kernel.org/r/20220628220938.3657876-1-yosryahmed@google.com) |
+| 2023/09/29 | Roman Gushchin <roman.gushchin@linux.dev> | [mm: improve performance of accounted kernel memory allocations](https://lore.kernel.org/all/20230929180056.1122002-1-roman.gushchin@linux.dev) | [New Patches Speed-Up Linux's Accounted Kernel Memory Allocations By ~30%](https://www.phoronix.com/news/Linux-Faster-Accounted-Kmem) | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20230929180056.1122002-1-roman.gushchin@linux.dev) |
 
 
 ## 9.4 MEMCG LRU
