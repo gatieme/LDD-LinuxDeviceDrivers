@@ -369,7 +369,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2009/03/25 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [perf_counter: Add event overlow handling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=43a21ea81a2400992561146327c4785ce7f7be38) | 使用 mmap() 提供更好的溢出管理和更可靠的数据流. 之前方法没有任何 user-> 内核反馈, 并依赖于用户空间保持更新, 与之不同的是，此方法依赖于用户空间将其最后一次读位置写入到控件页. 它将确保新输出不会覆盖尚未读取的事件, 同时允许丢失没有剩余空间的新事件, 并增加溢出计数器, 提供确切的事件丢失数字. 丢失事件用 PERF_EVENT_LOST(后来被改名为 [PERF_RECORD_LOST](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cdd6c482c9ff9c55475ee7392ec8f672eddb7be6)) 标记. | v1 ☑✓ 2.6.31-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=43a21ea81a2400992561146327c4785ce7f7be38) |
+| 2009/03/25 | Peter Zijlstra <a.p.zijlstra@chello.nl> | [perf_counter: Add event overlow handling](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=43a21ea81a2400992561146327c4785ce7f7be38) | 使用 mmap() 提供更好的溢出管理和更可靠的数据流. 之前方法没有任何 user-> 内核反馈, 并依赖于用户空间保持更新, 与之不同的是, 此方法依赖于用户空间将其最后一次读位置写入到控件页. 它将确保新输出不会覆盖尚未读取的事件, 同时允许丢失没有剩余空间的新事件, 并增加溢出计数器, 提供确切的事件丢失数字. 丢失事件用 PERF_EVENT_LOST(后来被改名为 [PERF_RECORD_LOST](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=cdd6c482c9ff9c55475ee7392ec8f672eddb7be6)) 标记. | v1 ☑✓ 2.6.31-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=43a21ea81a2400992561146327c4785ce7f7be38) |
 | 2015/05/10 | Kan Liang <kan.liang@intel.com> | [large PEBS interrupt threshold](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c4937a91ea56b546234b0608a413ebad90536d26) | 其中 [perf/x86/intel: Introduce PERF_RECORD_LOST_SAMPLES](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f38b0dbb491a6987e198aa6b428db8692a6480f8) 引入 PERF_RECORD_LOST_SAMPLES. | v9 ☑✓ 4.2-rc1 | [LORE v9,0/8](https://lore.kernel.org/all/1431285195-14269-1-git-send-email-kan.liang@intel.com) |
 | 2011/01/29 | Arnaldo Carvalho de Melo <acme@redhat.com> | [perf top: Switch to non overwrite mode](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=93fc64f14472ae24fd640bf3834a178f59142842) | perf top 发现 PERF_RECORD_LOST 丢失事件时上报 WARN. | v1 ☑✓ 2.6.39-rc1  | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=93fc64f14472ae24fd640bf3834a178f59142842) |
 | 2011/10/29 | Arnaldo Carvalho de Melo <acme@redhat.com> | [perf hists browser: Warn about lost events](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7b27509fc62686c53e9301560034e6b0b001174d) | 发现 PERF_RECORD_LOST 丢失事件时上报 WARN. | v1 ☑✓ 3.2-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7b27509fc62686c53e9301560034e6b0b001174d) |
@@ -399,9 +399,9 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 ## 11.3 Userspace counter access
 -------
 
-x86 和 arm64 都支持直接访问用户空间中的事件计数器. 访问序列并不简单，目前存在于 perf 测试代码(tools/perf/arch/x86/tests/rdpmc.c)中, 在 PAPI 和 libpfm4 等项目中有类似的用例程序.
+x86 和 arm64 都支持直接访问用户空间中的事件计数器. 访问序列并不简单, 目前存在于 perf 测试代码(tools/perf/arch/x86/tests/rdpmc.c)中, 在 PAPI 和 libpfm4 等项目中有类似的用例程序.
 
-为了支持 usersapce 访问，必须首先使用 perf_evsel__mmap() 映射事件. 然后, 对 perf_evsel__read() 对 PMU 进行读取.
+为了支持 usersapce 访问, 必须首先使用 perf_evsel__mmap() 映射事件. 然后, 对 perf_evsel__read() 对 PMU 进行读取.
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -768,6 +768,16 @@ Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM F
 | 2023/06/12 | Peter Zijlstra <peterz@infradead.org> | [Scope-based Resource Management](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7170509cadbb76e5fa7d7b090d2cbdb93d56a2de) | [Scope-based resource management for the kernel](https://lwn.net/Articles/934679) 以及 [Scope-Based Resource Management Infrastructure Merged For Linux 6.5](https://www.phoronix.com/news/Linux-6.5-Scope-Resource-Manage). | v3 ☐☑✓ 6.6-rc1 | [LORE v3,0/57](https://lore.kernel.org/all/20230612090713.652690195@infradead.org) |
 
 
+## 13.14 Compiler
+-------
+
+
+| 编号 | 应用 | 功能 |
+|:---:|:----:|:---:|
+| 1 | [Cling](https://github.com/vgvassilev/cling) | 用于这个基于 LLVM/Clang 构建的开源交互式 C++ 解释器. Cling 是作为 LLVM/Clang 的扩展实现的, 以用作利用读取-求值-打印循环 (REPL) 概念的中间人, 并依赖于实时 (JIT) 编译. [Cling 1.0 发布用于交互式 C++ 解释器](https://www.phoronix.com/news/Cling-1.0-Released) |
+
+
+
 # 14 FTRACE
 -------
 
@@ -908,7 +918,7 @@ User Events 于 [5.18-rc1](https://kernelnewbies.org/Linux_5.18#User_events) 合
 -------
 
 
-谷歌的Android因其移动操作系统以及各种供应商/设备内核树所携带的所有下游补丁而臭名昭著, 而近年来, 更多的代码已经上游. 谷歌也一直在转向Android通用内核映像（GKI）作为其所有产品内核的基础, 以进一步减少碎片化. 展望未来, 谷歌在 2021 年北美开源峰会展示了一种["上游优先"(Moving Google toward the mainline)](https://lwn.net/Articles/871195)的方法, 以推动新的内核功能. 追求"新功能的上游优先开发模型", 以确保新代码首先进入主线Linux内核, 而不是直接在Android源代码树中停留.
+谷歌的Android因其移动操作系统以及各种供应商/设备内核树所携带的所有下游补丁而臭名昭著, 而近年来, 更多的代码已经上游. 谷歌也一直在转向Android通用内核映像(GKI)作为其所有产品内核的基础, 以进一步减少碎片化. 展望未来, 谷歌在 2021 年北美开源峰会展示了一种["上游优先"(Moving Google toward the mainline)](https://lwn.net/Articles/871195)的方法, 以推动新的内核功能. 追求"新功能的上游优先开发模型", 以确保新代码首先进入主线Linux内核, 而不是直接在Android源代码树中停留.
 
 谷歌的 Todd Kjos 随后在 Linux Plumbers Conference(LPC2021) 上谈到了他们的[通用内核映像(Generic Kernel Image, GKI)计划](https://linuxplumbersconf.org/event/11/contributions/1046). 通过 Android 12 和他们基于 Linux 5.10 的 GKI 映像, 进一步减少了碎片化, 以至于"几乎被消除". 在 Android 12 GKI 中, 大多数供应商/OEM 内核功能现在要么被上游到 Linux 内核中, 要么被隔离到供应商模块或者钩子中, 要么合并到 Android Common Kernel 中.
 

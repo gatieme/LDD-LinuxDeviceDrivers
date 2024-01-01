@@ -595,3 +595,13 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 在目前的情况下, 我们应该看到从 perf-script、perf-schedule-timehist 和 tp_printk 中报告的调度任务状态的三种不同结果. tracepoint sched_switch 的. 不难看出前两个是建立在第三个的基础上的, 这也是我们看到这个的原因. 不一致性在于前两种方法不能跟上随着内核发展而报告的任务状态定义的内部变化. 在 tracepoint sched_switch 中导出任务状态的内部表示并不是一个好的做法, 而且根本不鼓励这样做容易破坏依赖于它的用户空间工具. 特别是当跟踪点由于其稳定性而被大量应用于许多可观测性工具中时性质, 这使得它们不再仅用于调试目的, 我们应该小心地决定应该向用户空间报告什么, 以及什么不应该.
 
 因此, 要彻底解决上面提到的问题, 而不是选择与用户空间跟踪工具同步
+
+
+
+
+
+
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2023/09/21 | [Revisiting the kernel's preemption models (part 1)](https://lwn.net/Articles/944686) | [LWN：重新审视内核的多种抢占模型！](https://blog.csdn.net/Linux_Everything/article/details/133781615) |
+| 2023/10/02 | [Revisiting the kernel's preemption model, part 2](https://lwn.net/Articles/945422) | [LWN：重新审视内核抢占模型，第二部分！](https://blog.csdn.net/Linux_Everything/article/details/133820074)

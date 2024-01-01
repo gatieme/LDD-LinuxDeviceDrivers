@@ -4900,6 +4900,7 @@ Energy Model Framework 统一了系统中所有能效的感知模块和设备, �
 
 DTB 中通过 OPP 字段标记 CPU 的电压及频率信息, 参见 [Documentation/devicetree/bindings/opp](https://www.kernel.org/doc/Documentation/devicetree/bindings/opp). 通过 CPUS 记录 CPU 的拓扑以及 capacity, 电容系数等信息, 参见 [Documentation/devicetree/bindings/arm/cpu-capacity](https://www.kernel.org/doc/Documentation/devicetree/bindings/arm/cpu-capacity.txt), 以及 [Documentation/devicetree/bindings/arm/cpus](https://www.kernel.org/doc/Documentation/devicetree/bindings/arm/cpus.yaml).
 
+CPU 的 capacity 通过 capacity-dmips-mhz 来标记. CPU 的 power Energy Model 则提供了两种方式来注册, 一种是通过 dynamic-power-coefficient, 再结合电压和频率进行计算, 一种是不提供 dynamic-power-coefficient, 那么就要求在 OPP 表中通过 opp-microwatt 显式设置功耗数据.
 
 | DTB 结构 | DTB 字段 | 描述 |
 |:-------:|:--------:|:---:|
@@ -4910,6 +4911,9 @@ DTB 中通过 OPP 字段标记 CPU 的电压及频率信息, 参见 [Documentati
 |---------|----------|-----|
 | opp_table | opp-hz | CPU 频点 |
 | opp_table | opp-microvolt | CPU 对应频点下, 所需要的电压 |
+| opp_table | opp-microamp | CPU 对应频点下, 所需要的电流 |
+| opp_table | opp-microwatt | CPU 对应频点下, 所消耗的功耗 |
+
 
 v4.5 实现 [Dynamic power model from device tree](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2f7e8a175db72bdaf377235962fd85796edb3fbc) 时扩展了 CPU DTS 节点, 引入了 dynamic-power-coefficient 字段用来表示动态功率系数 (即电容系数), 从而有效地估计功耗.
 
@@ -5438,17 +5442,60 @@ CONFIG_SCHED_CORE_CTL 的方案, 不光通过 do_isolation_work_cpu_stop() 支�
 ## 8.1 抢占支持 (preemption)
 -------
 
-**2.6 时代开始支持 ** (首次在 2.5.4 版本引入 [<sup>37</sup>](#refer-anchor-37), 感谢知友 [@costa](https://www.zhihu.com/people/78ceb98e7947731dc06063f682cf9640) 考证! 关于 Linux 版本规则,  可看我文章 [<sup>4</sup>](#refer-anchor-4).
+** 2.6 时代开始支持 ** (首次在 2.5.4 版本引入 [<sup>37</sup>](#refer-anchor-37), 感谢知友 [@costa](https://www.zhihu.com/people/78ceb98e7947731dc06063f682cf9640)
+
+考证! 关于 Linux 版本规则,  可看我文章 [<sup>4</sup>](#refer-anchor-4).
 
 
 可抢占性, 对一个系统的调度延时具有重要意义. 2.6 之前, 一个进程进入内核态后, 别的进程无法抢占, 只能等其完成或退出内核态时才能抢占, 这带来严重的延时问题, 2.6 开始支持内核态抢占.
+
+
+
+
+
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/01/18 | Frederic Weisbecker & Peter Zijlstra 等 | [preempt: Tune preemption flavour on boot v4](https://lore.kernel.org/patchwork/cover/1366962) | 增加了 PREEMPT_DYNAMIC 配置选项, 允许内核启动阶段选择使用哪种抢占模式 (none, voluntary, full) 等, 同时支持 debugfs 中提供开关, 在系统运行过程中动态的修改这个配置. | RFC v4 ☑ 5.12-rc1 | [PatchWork](https://lkml.org/lkml/2021/1/18/672), [LORE](https://lore.kernel.org/all/20210118141223.123667-1-frederic@kernel.org) |
 | 2021/10/25 | Frederic Weisbecker <frederic@kernel.org> | [arm64: Support dynamic preemption v2](https://lore.kernel.org/patchwork/cover/1366962) | 增加了 PREEMPT_DYNAMIC 配置选项, 允许内核启动阶段选择使用哪种抢占模式 (none, voluntary, full) 等, 同时支持 debugfs 中提供开关, 在系统运行过程中动态的修改这个配置. | RFC v4 ☑ 5.12-rc1 | [PatchWork](https://lkml.org/lkml/2021/10/25/500) |
+| 2023/11/07 | Ankur Arora <ankur.a.arora@oracle.com> | [Make the kernel preemptible](https://lore.kernel.org/all/20231107215742.363031-1-ankur.a.arora@oracle.com) | TODO | v1 ☐☑✓ | [LORE v1,0/86](https://lore.kernel.org/all/20231107215742.363031-1-ankur.a.arora@oracle.com) |
 
+
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2023/09/21 | [Revisiting the kernel's preemption models (part 1)](https://lwn.net/Articles/944686) | [LWN：重新审视内核的多种抢占模型！](https://blog.csdn.net/Linux_Everything/article/details/133781615) |
+| 2023/10/02 | [Revisiting the kernel's preemption model, part 2](https://lwn.net/Articles/945422) | [LWN：重新审视内核抢占模型，第二部分！](https://blog.csdn.net/Linux_Everything/article/details/133820074)
+
+
+| 调度时机/抢占模式 | 返回用户态 | 显式抢占点(cond_resched()及其同类) | 返回内核(tick/IPI/irq at irqexit) | 不可抢占段在(preempt_count() == preempt_offset)处结束 |
+|:---:|:----:|:----:|:----:|:----:|
+| none(PREEMPT_NONE) | Y | N | N | N |
+| voluntary(CONFIG_PREEMPT_VOLUNTARY) | Y | Y | N | N |
+| full(CONFIG_PREEMPTION) | Y | N | Y | Y |
+| rt(CONFIG_PREEMPT_RT) | Y | N | Y | Y |
+
+
+由于没有明确的抢占点的理想位置, 它们往往随机分布在代码中, 并随着时间的推移而积累, 因为它们是在发现延迟问题时添加的.
+
+在自愿模式中, 调度器的工作是匹配需求一侧的抢占点(需要安排的任务) 和供给端 (一个调用 cond_resched() 的任务). 而完全抢占模型跟踪抢占计数, 因此调度器可以始终知道抢占是否安全, 并且可以驱动抢占本身.
+
+因此 Thomas 在 [Re: sched: define TIF_ALLOW_RESCHED](https://lore.kernel.org/lkml/87jzshhexi.ffs@tglx) 中概述的那样, 建议统一抢占模型, 并且希望: 始终启用 preempt_count 并允许调度程序驱动基于有效模型的抢占策略.
+
+要做到这一点, 添加一个新的标志, TIF_NEED_RESCHED_LAZY 调度器来标记需要重新调度, 但被推迟到任务在内核中完成执行——自愿抢占. 原来的 TIF_NEED_RESCHED 标志仍然在所有三个抢占时计算点, TIF_NEED_RESCHED_LAZY 只需要在 ret-to-user 时判断.
+
+| 调度时机/抢占模式 | ret-to-user | ret-to-kernel | preempt_count() |
+|:---:|:----:|:----:|:----:|
+| none      | Y | N | N |
+| voluntary | Y | Y | Y |
+| full      | Y | Y | Y |
+
+这种是线下没有明确的抢占点了, 在内核中分布很长时间的进程就没有办法放弃 CPU. 对于完全抢占, 这是没有问题的, 因为我们总是使用 TIF_NEED_RESCHED. 对于无/自愿抢占, 如果标记为 TIF_NEED_RESCHED_LAZY 的任务在下一个 tick 之前没有抢占, 我们通过升级到 TIF_NEED_RESCHED 来处理它. 这样当任务 ret-to-kernel 时, 或者退出一个不可抢占的临界区时, 就触发抢占. 也就是说, 这提供了更一致的最大延迟 (~2 tick) 长度 + 不可抢占部分的长度) 与旧模型相比其中最大延迟取决于的动态分布 cond_resched() 点.
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/11/07 | Ankur Arora <ankur.a.arora@oracle.com> | [Make the kernel preemptible](https://lore.kernel.org/all/20231107215742.363031-1-ankur.a.arora@oracle.com) | [New Set Of 86 Patches Overhaul The Linux Kernel's Preemption Model](https://www.phoronix.com/news/Overhaul-Linux-Preemptible-RFC) | v1 ☐☑✓ | [LORE v1,0/86](https://lore.kernel.org/all/20231107215742.363031-1-ankur.a.arora@oracle.com) |
 
 
 ## 8.2 NO_HZ
