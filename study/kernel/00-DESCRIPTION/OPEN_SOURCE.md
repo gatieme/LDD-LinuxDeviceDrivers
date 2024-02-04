@@ -106,6 +106,16 @@
 | 6.4 | NA | NA | NA |
 | 6.5 | [The first half of the 6.5 merge window](https://lwn.net/Articles/936418) | NA | NA |
 | 6.6 | [The first half of the 6.6 merge window](https://lwn.net/Articles/942954), [The rest of the 6.6 merge window](https://lwn.net/Articles/943245) | NA | NA |
+| 6.7 | NA | NA | NA |
+| 6.8 | [The first half of the 6.8 merge window](https://lwn.net/Articles/957188), [The rest of the 6.8 merge window](https://lwn.net/Articles/958178) | NA | NA |
+
+
+年终盘点
+
+| 年份 | 革新技术 |
+|:---:|:-------:|
+| 2022 | [为了忘却的纪念——2022 Linux 内核十大技术革新功能](https://blog.csdn.net/csdnnews/article/details/128731761) |
+| 2023 | [熠熠生辉 | 2023 年 Linux 内核十大技术革新功能](https://blog.csdn.net/csdnnews/article/details/135493424) |
 
 # 6 业界会议
 -------

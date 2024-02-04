@@ -109,7 +109,7 @@ v5.7 引入了拆分锁检测的支持, 这依赖于 x86_64 intel CPU 遇到拆�
 ### 1.1.2 Sub-Page Write Protection
 -------
 
-| 2020/01/19 | Yu-cheng Yu <yu-cheng.yu@intel.com> | [Enable Sub-Page Write Protection Support](https://lwn.net/Articles/810033) | 基于 EPT 的子页写保护 (SPP) 允许虚拟机监视器(VMM) 以子页 (128 字节) 粒度为客户物理内存指定写权限. 当 SPP 工作时, 硬件强制对受保护的 4KB 页面中的子页面进行写访问检查. 该特性的目标是为内存保护和虚拟机内省等使用提供细粒度的内存保护. 当 "子页面写保护"(第 23 位)在 Secondary VM-Execution Controls 中为 1 时, SPP 被启用. 该特性支持子页权限表 (SPPT), 子页权限向量存储在 SPPT 的叶条目中. 根页面是通过 VMCS 中的子页面权限表指针(SPPTP) 引用的.<br> 要为 guest 内存启用 SPP, guest 页面应该首先映射到一个 4KB 的 EPT 条目, 然后设置相应条目的 SPP 的 61bit. 当硬件遍历 EPT 时, 它使用 gpa 遍历 SPPT 以查找 SPPT 叶子条目中的子页面权限向量. 如果设置了对应位, 则允许写子页, 否则产生 SPP 触发的 EPT 冲突. | v30 ☐ | [Patchwork v30,00/32](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) |
+| 2020/01/19 | Yu-cheng Yu <yu-cheng.yu@intel.com> | [Enable Sub-Page Write Protection Support](https://lwn.net/Articles/810033) | 基于 EPT 的子页写保护 (SPP) 允许虚拟机监视器 (VMM) 以子页 (128 字节) 粒度为客户物理内存指定写权限. 当 SPP 工作时, 硬件强制对受保护的 4KB 页面中的子页面进行写访问检查. 该特性的目标是为内存保护和虚拟机内省等使用提供细粒度的内存保护. 当 "子页面写保护"(第 23 位) 在 Secondary VM-Execution Controls 中为 1 时, SPP 被启用. 该特性支持子页权限表 (SPPT), 子页权限向量存储在 SPPT 的叶条目中. 根页面是通过 VMCS 中的子页面权限表指针(SPPTP) 引用的.<br> 要为 guest 内存启用 SPP, guest 页面应该首先映射到一个 4KB 的 EPT 条目, 然后设置相应条目的 SPP 的 61bit. 当硬件遍历 EPT 时, 它使用 gpa 遍历 SPPT 以查找 SPPT 叶子条目中的子页面权限向量. 如果设置了对应位, 则允许写子页, 否则产生 SPP 触发的 EPT 冲突. | v30 ☐ | [Patchwork v30,00/32](https://lore.kernel.org/linux-crypto/20210818033117.91717-1-tianjia.zhang@linux.alibaba.com) |
 
 
 ## 1.2 指令加速
@@ -166,6 +166,12 @@ phoronix 上所有与 [Alder Lake 相关的报道](https://www.phoronix.com/scan
 
 Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的异构 (或者混合架构) 处理器架构 [Alder Lake](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures), 与 ARM 的 big.LITTLE 以及 DynamIQ 架构类似, 它包含了基于 Golden Cove 微架构的性能核 (P-core/Performance cores) 以及基于新的 Gracemont 架构的能效核(E-core/Efficiency cores). P-core 优先用于需要低延迟的单线程任务, 而 E-core 在功率有限或多线程情景方面更好.
 
+[What Is Performance Hybrid Architecture?](https://www.intel.com/content/www/us/en/support/articles/000091896/processors.html)
+
+[Heterogeneous_computing](https://en.wikipedia.org/wiki/Heterogeneous_computing)
+
+[Processing Architecture for Power Efficiency and Performance](https://www.arm.com/technologies/big-little)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/10/02 | Catalin Marinas <catalin.marinas@arm.com> | [x86: Add initial support to discover Intel hybrid CPUs](https://lore.kernel.org/lkml/20201002201931.2826-1-ricardo.neri-calderon@linux.intel.com) | 支持混合微架构的 CPU(Alder Lake CPU) | v3 ☐ | [Patchwork 0/3](https://lore.kernel.org/lkml/20201002201931.2826-1-ricardo.neri-calderon@linux.intel.com) |
@@ -173,6 +179,8 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 | 2021/04/05  | Kan Liang <kan.liang@linux.intel.com> | [Add Alder Lake support for perf (kernel)](https://lkml.org/lkml/2021/4/5/775) | perf 支持 Hybrid CPU(内核态). | v1 ☑ 5.13-rc1 | [LKML V5 00/25](https://lkml.org/lkml/2021/4/5/775), [LKML V3 00/25](https://lkml.org/lkml/2021/3/26/964) |
 | 2021/04/23  | Kan Liang <kan.liang@linux.intel.com> | [perf tool: AlderLake hybrid support series 1](https://lkml.org/lkml/2021/4/23/52) | perf 支持 Hybrid CPU(内核态). | v1 ☑ 5.13-rc1 | [LKML v5 00/26](https://lkml.org/lkml/2021/4/23/52) |
 | 2021/05/27  | Kan Liang <kan.liang@linux.intel.com> | [perf: Support perf-mem/perf-c2c for AlderLake](https://lkml.org/lkml/2021/4/5/775) | perf 支持 Hybrid CPU(内核态). | v2 ☑ 5.14-rc1 | [LKML v1 0/8](https://lkml.org/lkml/2021/4/5/775), [LKML v2 0/8](https://lkml.org/lkml/2021/5/27/191) |
+| 2023/02/13 | Zhao Liu <zhao1.liu@linux.intel.com> | [Introduce hybrid CPU topology](https://lore.kernel.org/all/20230213095035.158240-1-zhao1.liu@linux.intel.com) | 在 QEMU 中引入混合拓扑, 依赖于 QEMU 支持 [Support smp.clusters for x86](https://lists.gnu.org/archive/html/qemu-devel/2023-02/msg03184.html) | v1 ☐☑✓ | [LORE v1,0/52](https://lore.kernel.org/all/20230213095035.158240-1-zhao1.liu@linux.intel.com) |
+| 2023/11/30 | Zhao Liu <zhao1.liu@linux.intel.com> | [qom-topo: Abstract Everything about CPU Topology](https://lore.kernel.org/all/20231130144203.2307629-1-zhao1.liu@linux.intel.com) | 关于混合拓扑支持 [Introduce hybrid CPU topology](https://lore.kernel.org/all/20230213095035.158240-1-zhao1.liu@linux.intel.com) 之后的最新尝试, 使用现代 QOM 方法来定义 CPU 拓扑, 基于这种方式, 通过 cli 定义混合拓扑. 列出了详细的 Reference. | v1 ☐☑✓ | [LORE v1,0/41](https://lore.kernel.org/all/20231130144203.2307629-1-zhao1.liu@linux.intel.com) |
 
 
 #### 1.4.1.2 P-State(HWP)
@@ -231,7 +239,7 @@ ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如
 #### 1.4.1.3 Intel Thread Director (ITD)
 -------
 
-[Intel支持混合内核架构的硬件线程调度器是怎么工作的？](https://mp.weixin.qq.com/s/9Zl-h61hm0kDhq68bsBEJQ)
+[Intel 支持混合内核架构的硬件线程调度器是怎么工作的？](https://mp.weixin.qq.com/s/9Zl-h61hm0kDhq68bsBEJQ)
 
 [Thread Director](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/2) 其实是一个软硬协同优化的范畴.
 
@@ -243,10 +251,16 @@ ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如
 
 随后发布了 v2, 参见 phoronix 报道 [Intel Advances Linux"IPC Classes"Design To Improve Load Balancing For Hybrid CPUs](https://www.phoronix.com/news/Intel-IPC-Classes-Post-RFC).
 
+
+*       混合拓扑结构支持
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/11/06 | Ricardo Neri <ricardo.neri-calderon-AT-linux.intel.com> | [Thermal: Introduce the Hardware Feedback Interface for thermal and performance management](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bd30cdfd9bd73b68e4977ce7c5540aa7b14c25cd) | 支持 Intel HFI.<br> 英特尔硬件反馈接口 (HFI) 提供系统中每个 CPU 的性能(performance) 和能效 (Energy efficiency) 的信息. 它使用一个在硬件和操作系统之间共享的表. 该表的内容可能由于系统运行条件的变化 (如达到热极限) 或外部因素的作用 (如热设计功率的变化) 而更新.<br>HFI 提供的信息被指定为相对于系统中其他 cpu 的数字、单元较少的能力. 这些功能的范围为 [0-255], 其中更高的数字表示更高的功能. 如果 CPU 的性能效率或能量能力效率为 0, 硬件建议分别出于性能、能量效率或热原因, 不要在该 CPU 上调度任何任务.<br> 内核或用户空间可以使用来自 HFI 的信息来修改任务放置或调整功率限制. 当前这个补丁集中于用户空间. 热通知框架 (thermal notification framework) 被扩展以支持 CPU capacity 的更新. | v1 ☑ 5.18-rc1 | [2021/11/06 LWN](https://lwn.net/Articles/875296)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/lkml/20211220151438.1196-1-ricardo.neri-calderon@linux.intel.com), [phoronix v2](https://www.phoronix.com/scan.php?page=news_item&px=Intel-HFI-Linux-v2-2021)<br>*-*-*-*-*-*-*-* <br>[PatchWork v5,0/7](https://patchwork.kernel.org/project/linux-pm/cover/20220127193454.12814-1-ricardo.neri-calderon@linux.intel.com), [phoronix v5](https://www.phoronix.com/scan.php?page=news_item&px=Intel-HFI-For-Linux-5.18) |
 | 2022/09/09 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched: Introduce classes of tasks for load balance](https://lore.kernel.org/all/20220909231205.14009-1-ricardo.neri-calderon@linux.intel.com) | 实现 Thread-Director, 根据应用程序的类型 classes 实现选核和负载均衡. | v1 ☐☑✓ | [LORE v1,00/23](https://lore.kernel.org/all/20220909231205.14009-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/22](https://lore.kernel.org/all/20221128132100.30253-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/24](https://lore.kernel.org/all/20230207051105.11575-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,00/24](https://lore.kernel.org/all/20230613042422.5344-1-ricardo.neri-calderon@linux.intel.com) |
+| 2024/01/31 | Stanislaw Gruszka <stanislaw.gruszka@linux.intel.com> | [thermal/netlink/intel_hfi: Enable HFI feature only when required](https://lore.kernel.org/all/20240131120535.933424-1-stanislaw.gruszka@linux.intel.com) | 该补丁集仅在有用户空间实体侦听热网络链接事件时才启用 HFI. 引入了一个 netlink 通知, 它与 netlink_has_listners()检查一起, 允许驱动程序根据实际用户空间消费者的存在发送 netlink 多播事件. 此功能通过允许在不需要时禁用功能来优化资源使用. 然后在 intel_hif 驱动程序中实现通知机制, 用于动态禁用硬件反馈接口 (HFI). 通过实现 netlink 通知回调, 驱动程序现在可以根据实际需求启用或禁用 HFI, 特别是当用户空间应用程序(如英特尔速度选择或英特尔低功耗守护进程) 利用与性能和能效功能相关的事件时. 在有 Intel HFI 但没有安装用户空间组件的机器上, 我们可以节省大量的 CPU 周期. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240131120535.933424-1-stanislaw.gruszka@linux.intel.com) |
+| 2024/02/02 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [thermal: intel: hfi: Prework for the virtualization of HFI](https://lore.kernel.org/all/20240203040515.23947-1-ricardo.neri-calderon@linux.intel.com) | 用于 [支持 IPC 类任务的调度](https://lore.kernel.org/all/20230613042422.5344-1-ricardo.neri-calderon@linux.intel.com) 的基础 <br>1. 重新组织 HFI 驱动程序的部分, 以便于实现虚拟 HFI 表.<br>2. 引入了 ITD 类的概念并启用了 ITD.<br>3. 增加了对重置当前任务的 ITD 分类历史的支持, 以便在上下文切换期间使用. HFI 的虚拟化要求在系统中无条件启用 HFI 和 ITD. 这与 Stanislaw 的补丁集 [thermal/netlink/intel_hfi: Enable HFI feature only when required](https://lore.kernel.org/all/20240131120535.933424-1-stanislaw.gruszka@linux.intel.com) 存在冲突. | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20240203040515.23947-1-ricardo.neri-calderon@linux.intel.com) |
+| 2024/02/03 | Zhao Liu <zhao1.liu@linux.intel.com> | [Intel Thread Director Virtualization](https://lore.kernel.org/all/20240203091214.411862-1-zhao1.liu@linux.intel.com) | 以虚拟化硬件反馈接口 (HFI) 和英特尔线程控制器(ITD), 从而为使用 ITD 进行调度的虚拟机带来好处. 他的实验表明, 在某些工作负载和配置中, 性能提高了 14%. [Intel Thread Director Virtualization Patches Boost Some Workloads By ~14%](https://www.phoronix.com/news/Intel-Thread-Director-Virt) | v1 ☐☑✓ | [LORE v1,0/26](https://lore.kernel.org/all/20240203091214.411862-1-zhao1.liu@linux.intel.com)|
 
 
 
@@ -347,7 +361,7 @@ AMD 关于大小核的专利 [US20210173715A1: METHOD OF TASK TRANSITION BETWEEN
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2013/11/12 | Stephane Eranian <eranian@google.com> | [perf/x86: add Intel RAPL PMU support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=65661f96d3b32f4b28fef26d21be81d7e173b965) | TODO | v7 ☑✓ 3.14-rc1 | [LORE v7,0/4](https://lore.kernel.org/all/1384275531-10892-1-git-send-email-eranian@google.com) |
-| 2023/02/17 | Wyes Karny <wyes.karny@amd.com> | [perf/x86/rapl: Enable Core RAPL for AMD](https://lore.kernel.org/all/20230217161354.129442-1-wyes.karny@amd.com) | AMD 处理器支持通过 RAPL 计数器对每个包和每个核心的能量进行监控, 用户可以在监控模式下访问 RAPL 计数器.<br>核心 RAPL 计数器提供每个核心的功耗信息. 对于 AMD 处理器, 包级 RAPL 计数器已暴露给 perf. 通过 `perf stat -a --per-core -C 0-127 -e power/energy-cores` 查看. 参见 phoronix 报道 [Tiny Patch Gets AMD Per-Core Energy Monitoring For Linux's Perf](https://www.phoronix.com/news/Linux-Perf-AMD-Per-Core-Energy) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230217161354.129442-1-wyes.karny@amd.com) |
+| 2023/02/17 | Wyes Karny <wyes.karny@amd.com> | [perf/x86/rapl: Enable Core RAPL for AMD](https://lore.kernel.org/all/20230217161354.129442-1-wyes.karny@amd.com) | AMD 处理器支持通过 RAPL 计数器对每个包和每个核心的能量进行监控, 用户可以在监控模式下访问 RAPL 计数器.<br> 核心 RAPL 计数器提供每个核心的功耗信息. 对于 AMD 处理器, 包级 RAPL 计数器已暴露给 perf. 通过 `perf stat -a --per-core -C 0-127 -e power/energy-cores` 查看. 参见 phoronix 报道 [Tiny Patch Gets AMD Per-Core Energy Monitoring For Linux's Perf](https://www.phoronix.com/news/Linux-Perf-AMD-Per-Core-Energy) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230217161354.129442-1-wyes.karny@amd.com) |
 
 
 
@@ -544,7 +558,7 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 [Torwards a more Scalable KVM Hypervisor](https://events19.linuxfoundation.org/wp-content/uploads/2017/12/Update_Wanpeng-LI_Torwards-a-more-Scalable-KVM-Hypervisor.pdf)
 
 [TLB flush 操作](http://www.wowotech.net/memory_management/tlb-flush.html)
-[进程切换分析（2）：TLB 处理](http://www.wowotech.net/process_management/context-switch-tlb.html)
+[进程切换分析(2)：TLB 处理](http://www.wowotech.net/process_management/context-switch-tlb.html)
 
 [stackoverflow: What is tlb shootdown ?](https://stackoverflow.com/questions/3748384/what-is-tlb-shootdown)
 
@@ -659,7 +673,7 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/10/27 | Mark Brown <broonie@kernel.org> | [arm64/sme: Initial support for the Scalable Matrix Extension](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211027184424.166237-1-broonie@kernel.org) | SME 指令的支持. v7 版本前 6 个 [prepare 的补丁](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-AArch64)先合入了 [5.17-rc1](https://lore.kernel.org/lkml/20220106185501.1480075-1-catalin.marinas@arm.com) | v5 ☐ | [LORE v3,00/42](https://lore.kernel.org/all/20211019172247.3045838-1-broonie@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2021/10/27 Patchwork v5,00/38](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211027184424.166237-1-broonie@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2021/12/10 Patchwork v7,00/37](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211210184133.320748-1-broonie@kernel.org) |
-| 2023/01/16 | Mark Brown <broonie@kernel.org> | [arm64/sme: Support SME 2 and SME 2.1](https://lore.kernel.org/all/20221208-arm64-sme2-v4-0-f2fa0aef982f@kernel.org) | Arm 最近发布了 SME 扩展的版本 2 和 2.1. SME 2 引入的特征之一是一些新的体系结构状态，即 ZT0 寄存器. 本系列增加了对这一功能以及新 SME 版本的所有其他功能的支持. | v4 ☐☑✓ | [LORE v4,0/21](https://lore.kernel.org/all/20221208-arm64-sme2-v4-0-f2fa0aef982f@kernel.org) |
+| 2023/01/16 | Mark Brown <broonie@kernel.org> | [arm64/sme: Support SME 2 and SME 2.1](https://lore.kernel.org/all/20221208-arm64-sme2-v4-0-f2fa0aef982f@kernel.org) | Arm 最近发布了 SME 扩展的版本 2 和 2.1. SME 2 引入的特征之一是一些新的体系结构状态, 即 ZT0 寄存器. 本系列增加了对这一功能以及新 SME 版本的所有其他功能的支持. | v4 ☐☑✓ | [LORE v4,0/21](https://lore.kernel.org/all/20221208-arm64-sme2-v4-0-f2fa0aef982f@kernel.org) |
 
 
 ## 2.4 pseudo-NMI
@@ -1038,7 +1052,7 @@ Rosetta 是一个转译过程, 允许用户在 Apple Silicon 上运行包含 x86
 
 Tachyum 宣布其设计一款完全通用的处理器 Prodigy T16128, 预计 2023 年发布, [Tachyum's Monster 128 Core 5.7GHz 'Universal Processor' Does Everything](https://www.tomshardware.com/news/tachyum-128-core-all-purpose-cpu), 号称一款芯片上可以同时运行通用计算, 高性能计算以及 AI 等业务和负载, 原生支持 x86, ARM, RISC-V 和 ISA 的二进制.
 
-Google Google 推出[芯片设计门户网站](https://developers.google.com/silicon), 计划名为 Open MPW Shuttle Program, 允许任何人利用开源 PDK 和其他开源 EDA 工具来提交开源集成电路设计, Google 会为他们免费制造, 不会收取任何费用. 虽然芯片制造是在 130 纳米工艺（SKY130）上完成的, 但这一计划对资金有限的开源硬件项目具有巨大的推动作用.
+Google Google 推出 [芯片设计门户网站](https://developers.google.com/silicon), 计划名为 Open MPW Shuttle Program, 允许任何人利用开源 PDK 和其他开源 EDA 工具来提交开源集成电路设计, Google 会为他们免费制造, 不会收取任何费用. 虽然芯片制造是在 130 纳米工艺(SKY130) 上完成的, 但这一计划对资金有限的开源硬件项目具有巨大的推动作用.
 
 [GlobalFoundries Partners With Google's Open-Source Silicon Effort To Provide 180nm Tech](https://www.phoronix.com/news/Google-GloFo-GF180MCU)
 
@@ -1071,7 +1085,7 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 
 | 指令集架构 | 描述 | 代表架构 |
 |:--------:|:----:|:------:|
-| CISC (Complex instruction set computer) 复杂指令集计算机 | NA | HP 的 PA-RISC, IBM 的 PowerPC, Compaq（被并入 HP）的 Alpha, MIPS 公司的 MIPS, SUN 公司的 SPARC 等. |
+| CISC (Complex instruction set computer) 复杂指令集计算机 | NA | HP 的 PA-RISC, IBM 的 PowerPC, Compaq(被并入 HP)的 Alpha, MIPS 公司的 MIPS, SUN 公司的 SPARC 等. |
 | RISC (Reduced instruction set computer) 精简指令集计算机 | NA | NA |
 | [MISC (Minimal instruction set computer), 最小指令集计算机](http://en.wikipedia.org/wiki/Minimal_instruction_set_computer) | [从零开始手敲自举编译器(一): MISC 概览](https://zhuanlan.zhihu.com/p/412201989) 和 [github-whoiscc/miniboot/](https://github.com/whoiscc/miniboot) |
 | [OISC (One instruction set computer, 单指令集计算机)](http://en.wikipedia.org/wiki/One_instruction_set_computer) | NA | NA |
@@ -1117,6 +1131,9 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 ### 6.12.2 AMD
 -------
 
+#### 6.12.2.1 AMD P-State Driver
+-------
+
 [How To Use The New AMD P-State Driver With Linux 5.17](https://www.phoronix.com/news/AMD-P-State-How-To)
 [AMD Making It Easier To Switch To Their New P-State CPU Frequency Scaling Driver](https://www.phoronix.com/news/AMD-Easier-P-State-Usage)
 [AMD P-State EPP Driver Updated For More Power/Performance Control On Linux](https://www.phoronix.com/news/AMD-P-State-EPP-v4)
@@ -1130,6 +1147,26 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 | 2022/11/11 | Perry Yuan <Perry.Yuan@amd.com> | [Implement AMD Pstate EPP Driver](tps://lore.kernel.org/lkml/20221219064042.661122-1-perry.yuan@amd.com) | [AMD P-State EPP Patches Spun An 8th Time For Helping Out Linux Performance & Efficiency](https://www.phoronix.com/news/AMD-P-State-EPP-v8) | v4 ☐☑✓ 5.17-rc1 | [LORE v4,0/9](https://lore.kernel.org/all/20221110175847.3098728-1-Perry.Yuan@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,00/13](https://lore.kernel.org/lkml/20221219064042.661122-1-perry.yuan@amd.com) |
 | 2022/03/25 | Mario Limonciello <mario.limonciello@amd.com> | [Improve usability for amd-pstate](https://lore.kernel.org/all/20220325054228.5247-1-mario.limonciello@amd.com) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20220325054228.5247-1-mario.limonciello@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/linux-pm/20220414164801.1051-1-mario.limonciello@amd.com) |
 | 2023/01/13 | Wyes Karny <wyes.karny@amd.com> | [amd_pstate: Add guided autonomous mode support](https://lore.kernel.org/all/20230113052141.2874296-1-wyes.karny@amd.com) | [AMD Updates P-State"Guided Autonomous Mode"Support For Linux](https://www.phoronix.com/news/AMD-Guided-Auto-Mode-v2) | v2 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20230113052141.2874296-1-wyes.karny@amd.com) |
+| 2024/01/30 | Perry Yuan <perry.yuan@amd.com> | [enable x86_energy_perf_policy for AMD CPU](https://lore.kernel.org/all/cover.1706583551.git.perry.yuan@amd.com) | 对 AMD 处理器上 x86_energy_perf_policy 实用程序的支持, 这些处理器使用 CPPC(Collaborative Processor Performance Control) 接口进行频率缩放, 并使用 AMD_state 驱动程序模块. AMD 处理器已经支持各种能源性能偏好 EPP(Energy Performance Preference) 配置文件. 有了这个实用程序, 用户现在可以使用提供的命令在这些 EPP 配置文件之间无缝切换. 并使用此工具检查 CPPC 的功能. 此增强旨在提高 AMD 处理器的电源效率和性能管理, 为用户提供对系统能源性能行为的更多控制. 参见 [Linux's x86_energy_perf_policy Utility Being Extended To AMD CPUs](https://www.phoronix.com/news/AMD-x86_energy_perf_policy) | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/cover.1706583551.git.perry.yuan@amd.com) |
+
+
+#### 6.12.2.2 AMD P-State Preferred Core
+-------
+
+[AMD P-State Preferred Core Patches For Linux Updated, Will Be Enabled By Default](https://www.phoronix.com/news/AMD-Preferred-Core-Linux-v2)
+
+[AMD P-State Preferred Core Support For Linux Tried A 13th Time](https://www.phoronix.com/news/AMD-P-State-Preferred-Core-13)
+
+[](https://www.phoronix.com/news/AMD-State-Preferred-Core-Linux)
+
+[AMD P-State Preferred Core Support Coming With Linux 6.9](https://www.phoronix.com/news/Linux-6.9-AMD-P-State-Preferred)
+
+
+磁芯频率受半导体工艺变化的影响. 并非所有内核都能够达到最大频率, 具体取决于基础架构限制. 因此, AMD 重新定义了硬件最大频率的概念. 这意味着一小部分内核可以达到最大频率. 为了找到给定场景的最佳进程调度策略, 操作系统需要通过 CPPC 接口的最高性能功能寄存器来了解平台通知的核心排序.
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/08/15 | Meng Li <li.meng@amd.com> | [AMD Pstate Preferred Core](https://lore.kernel.org/all/20230815061546.3556083-1-li.meng@amd.com) | TODO | v2 ☐☑✓ | [LORE v2,0/7](https://lore.kernel.org/all/20230815061546.3556083-1-li.meng@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v13,0/7](https://lore.kernel.org/all/20240112092531.789841-1-li.meng@amd.com) |
 
 
 ## 6.13 Device
@@ -1137,7 +1174,7 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2023/07/10 | Mina Almasry <almasrymina@google.com> | [Device Memory TCP](https://lore.kernel.org/all/20230710223304.1174642-1-almasrymina@google.com) | 通过该方案, 我们能够通过直接从设备存储器发送和接收数据, 达到约96.6%的线路速率. 参见 [Google Posts Experimental Linux Code For "Device Memory TCP" - Network To/From Accelerator RAM](https://www.phoronix.com/news/Linux-Device-Memory-TCP). | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/20230710223304.1174642-1-almasrymina@google.com) |
+| 2023/07/10 | Mina Almasry <almasrymina@google.com> | [Device Memory TCP](https://lore.kernel.org/all/20230710223304.1174642-1-almasrymina@google.com) | 通过该方案, 我们能够通过直接从设备存储器发送和接收数据, 达到约 96.6% 的线路速率. 参见 [Google Posts Experimental Linux Code For"Device Memory TCP"- Network To/From Accelerator RAM](https://www.phoronix.com/news/Linux-Device-Memory-TCP). | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/20230710223304.1174642-1-almasrymina@google.com) |
 
 
 ## 6.14 Cache 带宽管控

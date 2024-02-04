@@ -80,6 +80,8 @@ blogexcerpt: FZF 是目前最快的模糊搜索工具. 使用golang编写. 结�
 # 3 DRM
 -------
 
+[The Linux graphics stack in a nutshell, part 2](https://lwn.net/Articles/955708)
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/11/11 | Tvrtko Ursulin <tvrtko.ursulin@linux.intel.com> | [DRM scheduling cgroup controller](https://lore.kernel.org/all/20221111104435.3152347-1-tvrtko.ursulin@linux.intel.com) | TODO | v2 ☐☑✓ | [LORE v2,0/13](https://lore.kernel.org/all/20221111104435.3152347-1-tvrtko.ursulin@linux.intel.com) |

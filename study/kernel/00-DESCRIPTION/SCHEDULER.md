@@ -379,7 +379,12 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 | 2022/03/11 | Chen Ying <chenying.kernel@bytedance.com> | [sched/fair: prioritize normal task over sched_idle task with vruntime offset](https://lore.kernel.org/all/f87a8c0d-527d-a9bc-9653-ff955e0e95b4@bytedance.com) | 对 SCHED_IDLE 类型的进程, 将其 vruntime 添加一个 sched_idle_vruntime_offset 的增量, 从而保证 SCHED_IDLE 进程的 sched_entity 在 CFS 红黑树中总是在非 SCHED_IDLE sched_entity 的右侧. 这可以允许选择非 SCHED_IDLE 任务, 并在空闲任务之前运行. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/f87a8c0d-527d-a9bc-9653-ff955e0e95b4@bytedance.com) |
 
 
+### 1.1.7 EEVDF
+-------
 
+但是, CFS 调度器不强制执行任何调度截止时间, 并且存在许多延迟关键任务未按时调度的极端情况 - 延迟关键任务的这种调度延迟会导致高尾延迟. 例如, Wine(Linux 上的一个 Windows-API 仿真层) 有一个 wineserver 进程. 该 wineserver 进程是一个单线程事件路由器, 它将 Window 事件中继到其他进程. 它对延迟非常关键, 因此触发器的 wineserver 调度延迟会级联相关任务的延迟. 但是, CFS 并不总是立即安排 wineserver . 由于 wineserver 作为中央事件轮回器消耗了相当多的 CPU 时间, 因此其 vruntime 值将非常高, 因此 CFS 不会一直立即选择 wineserver 任务.
+
+由于这些限制, CFS 调度程序在服务了 15+ 年后最近退休了. 最早符合条件的虚拟截止时间优先 (EEVDF) 调度程序是在 Linux 内核 6.6 版本(2023 年 11 月)中作为新的默认调度程序引入的.
 
 ## 1.2  实时线程 SCHED\_RT
 -------
@@ -460,7 +465,7 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2023/06/08 | Daniel Bristot de Oliveira <bristot@kernel.org> | [SCHED_DEADLINE server infrastructure](https://lore.kernel.org/all/cover.1686239016.git.bristot@kernel.org) | 如果具有较高优先级的任务(例如 SCHED_FIFO)独占 CPU, 则低优先级任务(例如, SCHED_OTHER)可能会出现饥饿. RT Throttling 是不久前引入的一种(主要是调试)对策, 可以用来为低优先级任务(通常是后台类型的工作, 例如工作队列、计时器等)保留一些 CPU 时间. 然而, 它也有自己的问题(请参阅文档), 并且即使不需要运行优先级较低的活动, 也会无条件地限制 FIFO 任务, 这会产生不希望的影响(也有一些机制可以解决这个问题, 但同样也有其自身的问题). 引入截止日期服务器, 为饥饿条件下的低优先级任务需求提供服务. 最后期限服务器是通过扩展 SCHED_Deadline 实现来构建的, 以允许两级调度(即, deadline 实体成为低优先级调度实体的容器). | v3 ☐☑✓ | [LORE v1,00/13](https://lore.kernel.org/all/20190726145409.947503076@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/6](https://lore.kernel.org/all/20200807095051.385985-1-juri.lelli@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/all/cover.1686239016.git.bristot@kernel.org) |
+| 2023/06/08 | Daniel Bristot de Oliveira <bristot@kernel.org> | [SCHED_DEADLINE server infrastructure](https://lore.kernel.org/all/cover.1686239016.git.bristot@kernel.org) | 如果具有较高优先级的任务 (例如 SCHED_FIFO) 独占 CPU, 则低优先级任务 (例如, SCHED_OTHER) 可能会出现饥饿. RT Throttling 是不久前引入的一种 (主要是调试) 对策, 可以用来为低优先级任务 (通常是后台类型的工作, 例如工作队列、计时器等) 保留一些 CPU 时间. 然而, 它也有自己的问题 (请参阅文档), 并且即使不需要运行优先级较低的活动, 也会无条件地限制 FIFO 任务, 这会产生不希望的影响 (也有一些机制可以解决这个问题, 但同样也有其自身的问题). 引入截止日期服务器, 为饥饿条件下的低优先级任务需求提供服务. 最后期限服务器是通过扩展 SCHED_Deadline 实现来构建的, 以允许两级调度 (即, deadline 实体成为低优先级调度实体的容器). | v3 ☐☑✓ | [LORE v1,00/13](https://lore.kernel.org/all/20190726145409.947503076@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/6](https://lore.kernel.org/all/20200807095051.385985-1-juri.lelli@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/all/cover.1686239016.git.bristot@kernel.org) |
 
 
 ## 1.4 其他一些调度类的尝试
@@ -555,11 +560,11 @@ linux 调度器定义了多个调度类, 不同调度类的调度优先级不同
 |:---:|:----:|
 | [同时多线程](https://zh.alegsaonline.com/art/90586) | 一句话介绍 交错式多线程 (IMT), 同步多线程 (SMT), 芯片级多处理 (CMP 或多核处理器) |
 | [超能课堂 (104)-- 超线程 / SMT 多线程技术有什么用？](https://www.expreview.com/56674.html) | 简单介绍了 SMT 的工作原理 |
-| [说一说超线程 / 同步多线程(HT/SMT)技术那些事儿](https://zhuanlan.zhihu.com/p/352676442) | SMT 一些疑惑解答 |
+| [说一说超线程 / 同步多线程 (HT/SMT) 技术那些事儿](https://zhuanlan.zhihu.com/p/352676442) | SMT 一些疑惑解答 |
 | [被误解的 CPU 利用率、超线程、动态调频 —— CPU 性能之迷 Part 1](https://zhuanlan.zhihu.com/p/534119705) | 介绍了 ITMT 3.0 以及 SMT 技术 |
 | [曲速未来 揭露：新的 PortSmash 超线程 CPU Vuln 可以窃取解密密钥](https://zhuanlan.zhihu.com/p/48625343) | PortSmash 漏洞 (CVE-2018-5407), 该漏洞使用定时攻击来窃取来自同一 CPU 核心中运行 SMT / 超线程的其他进程的信息 |
 | [超线程技术究竟好不好？](https://www.zhihu.com/question/290385913) | NA |
-| [超威半导体(AMD)的超线程技术和英特尔(Intel)的超线程技术有差别吗？](https://www.zhihu.com/question/350083255) | NA |
+| [超威半导体 (AMD) 的超线程技术和英特尔 (Intel) 的超线程技术有差别吗？](https://www.zhihu.com/question/350083255) | NA |
 | [CPU 的超线程技术提升 IPC 吗?](https://www.zhihu.com/question/404826890), [关于 SMT 的性能收益](https://zhuanlan.zhihu.com/p/164603076) | NA |
 | [超线程的两个线程资源是动态分配的还是固定一半一半的？](https://www.zhihu.com/question/59721493) | NA |
 | [英特尔超线程技术](https://baike.baidu.com/item / 英特尔超线程技术 / 10233952) | NA |
@@ -700,9 +705,9 @@ b37e67a6c648 ck: sched: introduce per-cgroup identity
 
 该功能是基于控制组 (control group, cgroup) 的概念, 需要内核开启 CGROUP 的支持才可使用.
 
-[内核工匠-CFS组调度](https://blog.csdn.net/feelabclihu/article/details/128586905)
+[内核工匠 - CFS 组调度](https://blog.csdn.net/feelabclihu/article/details/128586905)
 
-[内核工匠-CFS线程调度机制分析](https://blog.csdn.net/feelabclihu/article/details/127699138)
+[内核工匠 - CFS 线程调度机制分析](https://blog.csdn.net/feelabclihu/article/details/127699138)
 
 ### 2.1.2 autogroup
 -------
@@ -740,7 +745,7 @@ CFS 用户反复在社区抱怨并行 kbuild 对桌面交互性有负面影响
 | 2022/10/19 | Chuyi Zhou <zhouchuyi@bytedance.com> | [sched/fair: Add min_ratio for cfs bandwidth_control](https://lore.kernel.org/all/20221019031551.24312-1-zhouchuyi@bytedance.com) | 如果用户设置的配额 / 周期比过小, 在当前的 cfs 带宽控制机制下, 长时间持锁可能会导致任务被节流, 导致整个 [系统卡住](https://lore.kernel.org/lkml/5987be34-b527-4ff5-a17d-5f6f0dc94d6d@huawei.com). 为了防止上述情况的发生, 本补丁在 `procfs` 中增加了 `sysctl_sched_cfs_bandwidth_min_ratio`, 它表示用户可以设置的配额 / 周期的最小百分比. 默认值为 0, 用户可以设置配额和周期而不触发此约束. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221019031551.24312-1-zhouchuyi@bytedance.com) |
 | 2022/10/17 | Josh Don <joshdon@google.com> | [sched: async unthrottling for cfs bandwidth](https://lore.kernel.org/all/20221017234750.454419-1-joshdon@google.com) | CFS 带宽目前分配新的运行时, 并在 hrtimer 回调中取消 cfs_rq 的内联. 运行时分发是一个每个 CPU 的操作, 而取消节流是一个每个 cgroup 的操作, 因为需要 tg 遍历. 在拥有大量 CPU 和大型 cgroup 层次结构的机器上, CPU *cgroups 的工作可能在单个 hrtimer 回调中无法完成: 由于 IRQ 被禁用, 很容易发生 hard lockup. 具体来说, 我们发现在 256 个 CPU、O(1000) 个 cCGROUP 在层次结构中被限制以及高内存带宽使用的配置中存在可伸缩性问题. 要解决这个问题, 我们可以通过 CSD 异步取消 cfs_rq 的节流. 每个 CPU 负责自己进行节流, 从而在整个系统中更公平地划分总体工作, 并避免 hard lockup. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221017234750.454419-1-joshdon@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/all/20221026224449.214839-1-joshdon@google.com) |
 | 2022/12/12 | Peng Zhang <zhangpeng.00@bytedance.com> | [sched: Throttling through task work for cfs bandwidth](https://lore.kernel.org/all/20221212061321.36422-1-zhangpeng.00@bytedance.com) | 若任务占用资源并在内核空间中被限制, 则可能会导致阻塞, 从而造成或者加剧优先级翻转的问题. 这组补丁试图通过在任务返回到用户模式时使用 task_work 来限制任务来解决此问题.<br> 这个补丁使用 task_work 在任务返回到用户空间时将 throttle 的任务出队, 然后在 unthrottle 时再将其入列. 当前能正常工作, 但目前的实现并没有考虑到所有的细节, 比如竞争条件、负载跟踪等. 作者认为这种解决方案的最大缺点是, 在解锁过程中可能有太多的任务需要排队, 从而导致巨大的开销和延迟. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221212061321.36422-1-zhangpeng.00@bytedance.com) |
-| 2022/11/16 | Josh Don <joshdon@google.com> | [sched: async unthrottling for cfs bandwidth](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit?id=8ad075c2eb1f6b4b33436144ea1ef2619f3b6398) | CFS 带宽当前分配新的运行时, 并在 hrtimer 回调中解除 cfs_rq 的 throttle 限制. 运行时分发是每个 CPU 的操作, 而解节流是每个组的操作, 因为需要执行 tg 遍历. 在具有大量 CPU 和大型 CGROUP 层次结构的机器上, 这种 CPU CGROUP 工作在单个 hrtimer 回调中可能做得太多: 由于 IRQ 被禁用, 可能很容易发生 Hard Lockup.<br>具体来说, 我们在 256 个 cpu 的配置中发现了这个可伸缩性问题, 层次结构中的 0(1000) 个 cgroups 被限制, 并且内存带宽使用率很高.<br>为了解决这个问题, 我们可以通过 CSD 异步地解除 cfs_rq 的限制. 每个 cpu 都负责解除自身的限制, 从而在整个系统中更公平地分配总工作, 并避免 Hard Lockup. | v3 ☐☑✓ 6.3-rc1 | [LORE](https://lore.kernel.org/all/20221117005418.3499691-1-joshdon@google.com) |
+| 2022/11/16 | Josh Don <joshdon@google.com> | [sched: async unthrottling for cfs bandwidth](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit?id=8ad075c2eb1f6b4b33436144ea1ef2619f3b6398) | CFS 带宽当前分配新的运行时, 并在 hrtimer 回调中解除 cfs_rq 的 throttle 限制. 运行时分发是每个 CPU 的操作, 而解节流是每个组的操作, 因为需要执行 tg 遍历. 在具有大量 CPU 和大型 CGROUP 层次结构的机器上, 这种 CPU CGROUP 工作在单个 hrtimer 回调中可能做得太多: 由于 IRQ 被禁用, 可能很容易发生 Hard Lockup.<br> 具体来说, 我们在 256 个 cpu 的配置中发现了这个可伸缩性问题, 层次结构中的 0(1000) 个 cgroups 被限制, 并且内存带宽使用率很高.<br> 为了解决这个问题, 我们可以通过 CSD 异步地解除 cfs_rq 的限制. 每个 cpu 都负责解除自身的限制, 从而在整个系统中更公平地分配总工作, 并避免 Hard Lockup. | v3 ☐☑✓ 6.3-rc1 | [LORE](https://lore.kernel.org/all/20221117005418.3499691-1-joshdon@google.com) |
 | 2023/02/24 | Shrikanth Hegde <sshegde@linux.vnet.ibm.com> | [Interleave cfs bandwidth timers for improved single thread performance at low utilization](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=41abdba9374734b743019fc1cc05e3225c82ba6b) | CPU CFS 带宽控制器使用 hrtimer. 目前没有初始值设置. 因此, 所有周期计时器将在到期时对齐. 当有多个 CPU CGROUP 时, 就会发生这种情况. 如果在每个 CPU CGROUP 组的利用率较低且所有 CPU CGROUP 组的总利用率低于 50% 时交错使用计时器, 则可以实现性能增益. 如果计时器是交错的, 那么不受限制的 CGROUP 组可以自由运行, 而不需要许多上下文切换, 并且还可以从 SMT 折叠中受益. 这个提交在初始化每个 hrtimer 后添加一个随机偏移量. 这将导致在过期时交错使用计时器, 这有助于实现上述性能增益. | v3 ☐☑✓ 6.4-rc1 | [LORE](https://lore.kernel.org/all/20230223185153.1499710-1-sshegde@linux.vnet.ibm.com) |
 
 
@@ -2025,7 +2030,7 @@ max_idle_balance_cost 则跟踪了当前调度域最近一段时间执行 idle b
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2013/09/13 | Jason Low <jason.low2@hp.com> | [sched: Limiting idle balance](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f48627e686a69f5215cb0761e731edb3d9859dd9) | 这些补丁修改和添加了限制 idle balance 的方式. [第一个补丁](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=abfafa54db9aba404e8e6763503f04d35bd07138) 减少了我们高估 avg_idle 的可能性. [第二个补丁](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9bd721c55c8a886b938a45198aab0ccb52f1f7fa) 引入了 sd->max_idle_balance_cost 跟踪了跟踪每个调度域执行 idle balance 所花费的最大成本, 如果当前 CPU 的平均 idle 时间 rq->avg_idle 小于 sd->max_idle_balance_cost, 则限制 idle balance, 此时没必要再通过 idle balance 从其他 CPU 上 pull 一个进程过来, 因此可能 idle balance 还没有完成, 就本核上其他进程就可以已经唤醒准备投入运行. [第三个补丁](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f48627e686a69f5215cb0761e731edb3d9859dd9) 则周期性地衰减每个 sched_domain 的 max_idle_balance_cost. 当 CPU 保持空闲的时间很短且不超过执行平衡的成本时, 这些更改进一步减少了我们尝试 idle balance 的机会. | v5 ☑ 3.13-rc1 | [LORE v5,0/3](https://lore.kernel.org/all/1379096813-3032-1-git-send-email-jason.low2@hp.com) |
-| 2023/06/13 | Chen Yu <yu.c.chen@intel.com> | [Limit the scan depth to find the busiest sched group during newidle balance](https://lore.kernel.org/all/cover.1686554037.git.yu.c.chen@intel.com) | 这是为了降低新空闲平衡的成本, 在一些高核数系统上, 新空闲平衡占用了明显的 CPU 周期.<br>提议 ILB_UTIL 主要根据当前调度域中的系统利用率来调整该域内的新空闲平衡扫描深度. 域中的空闲时间越多, 每个新空闲余额用于扫描繁忙组的时间就越多. 尽管 newidle 平衡具有每个域的 max_newidle_lb_cost 来决定是否启动平衡, 但 ILB_UTIL 提供了较小的粒度来决定每个域有多少组. | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/cover.1686554037.git.yu.c.chen@intel.com) |
+| 2023/06/13 | Chen Yu <yu.c.chen@intel.com> | [Limit the scan depth to find the busiest sched group during newidle balance](https://lore.kernel.org/all/cover.1686554037.git.yu.c.chen@intel.com) | 这是为了降低新空闲平衡的成本, 在一些高核数系统上, 新空闲平衡占用了明显的 CPU 周期.<br> 提议 ILB_UTIL 主要根据当前调度域中的系统利用率来调整该域内的新空闲平衡扫描深度. 域中的空闲时间越多, 每个新空闲余额用于扫描繁忙组的时间就越多. 尽管 newidle 平衡具有每个域的 max_newidle_lb_cost 来决定是否启动平衡, 但 ILB_UTIL 提供了较小的粒度来决定每个域有多少组. | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/cover.1686554037.git.yu.c.chen@intel.com) |
 
 
 ### 4.4.2 Improve cost accounting of newidle_balance
@@ -2082,11 +2087,11 @@ Steal Task 通过将唤醒任务推送到空闲 CPU, 并在 CPU 空闲时从繁�
 
 为每个 LLC 创建一个 struct swqueue, 确保它们在自己的缓存中, 以避免在不同 LLC 上的 cpu 之间错误共享. 当一个任务第一次被唤醒时, 它会在 enqueue_task_fair() 结束时将自己加入当前 LLC 的 swqueue 中. 只有当任务没有通过 select_task_rq() 手动迁移到当前核心, 并且没有固定到特定的 CPU 时, 才会发生队列. 在调用 newidle_balance() 之前, 内核将从其 LLC 的 swqueue 中拉出一个任务.
 
-与 SIS_NODE 之间的差异, Peter 提出了 [sched/fair: Multi-LLC select_idle_sibling()](https://lore.kernel.org/all/20230530113249.GA156198@hirez.programming.kicks-ass.net), 该补丁解决了 Tejun 的问题, 即当工作队列针对具有小型 CCX 的 Zen2 机器上的特定 LLC 时, 由于 select_idle_sbling() 没有考虑当前 LLC 之外的任何内容, 将有大量空闲时间. 这个补丁(SIS_NODE) 本质上是对这里的提议的补充. SID_NODE 唤醒任务时在同一 DIE 上的相邻 LLC 中寻找空闲内核, 而 swqueue 则允许即将空闲的内核从 LLC 内寻找排队的任务. 也就是说, 在目前的形式中, 由于 SIS_NODE 在 LLC 之间搜索空闲内核, 而 swqueue 在单个 LLC 内将任务排队, 因此处的两个功能处于不同的范围.
+与 SIS_NODE 之间的差异, Peter 提出了 [sched/fair: Multi-LLC select_idle_sibling()](https://lore.kernel.org/all/20230530113249.GA156198@hirez.programming.kicks-ass.net), 该补丁解决了 Tejun 的问题, 即当工作队列针对具有小型 CCX 的 Zen2 机器上的特定 LLC 时, 由于 select_idle_sbling() 没有考虑当前 LLC 之外的任何内容, 将有大量空闲时间. 这个补丁 (SIS_NODE) 本质上是对这里的提议的补充. SID_NODE 唤醒任务时在同一 DIE 上的相邻 LLC 中寻找空闲内核, 而 swqueue 则允许即将空闲的内核从 LLC 内寻找排队的任务. 也就是说, 在目前的形式中, 由于 SIS_NODE 在 LLC 之间搜索空闲内核, 而 swqueue 在单个 LLC 内将任务排队, 因此处的两个功能处于不同的范围.
 
 参见 phoronix 报道 [Meta Proposes Shared Workqueue For Linux's CFS - Small Throughput Win](https://www.phoronix.com/news/Meta-Linux-CFS-swqueue-RFC).
 
-从原理上这个实现和前面 Steal Task 很类似. 只是 Steal Task 维护了过载 CPU 的稀疏矩阵和位图, 而 shared wakequeue 则是从维护了 LLC 域内就绪任务的队列(shared wakequeue).
+从原理上这个实现和前面 Steal Task 很类似. 只是 Steal Task 维护了过载 CPU 的稀疏矩阵和位图, 而 shared wakequeue 则是从维护了 LLC 域内就绪任务的队列 (shared wakequeue).
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
@@ -3398,7 +3403,7 @@ v4.13 引入 NUMA WAKE AFFINE 的时候测试发现, CPU 的空闲造成了 NAS 
 
 [深入理解 Linux 内核之进程唤醒](https://blog.csdn.net/21cnbao/article/details/119881140)
 
-[郑琦-Linux 源代码跟读-Linux抢占调度](https://zhuanlan.zhihu.com/p/339378819)
+[郑琦 - Linux 源代码跟读 - Linux 抢占调度](https://zhuanlan.zhihu.com/p/339378819)
 
 ### 4.7.1 Optimize TTWU(try_to_wake_up)
 -------
@@ -3683,7 +3688,7 @@ v3.0 [commit 317f394160e9 ("sched: Move the second half of ttwu() to the remote 
 ### 4.7.2 WAKE_AFFINE
 -------
 
-[numa节点间CPU利用率不均衡 - wakeup affinity](https://blog.csdn.net/yiyeguzhou100/article/details/103656664)
+[numa 节点间 CPU 利用率不均衡 - wakeup affinity](https://blog.csdn.net/yiyeguzhou100/article/details/103656664)
 
 #### 4.7.2.1 smark wake_affine
 -------
@@ -4521,7 +4526,7 @@ sugov_next_freq_shared()
 	-=> freq = map_util_freq(util, freq, max);
 ```
 
-引入 cpu_util_cfs_boost 考虑 cpu 的 runnable load, CFS 任务的 CPU 争用可以通过 cpu_util_cfs_boost() 中的 'CPU runnable > CPU utililization 来检测和发现. 最终
+引入 cpu_util_cfs_boost 考虑 cpu 的 runnable load, CFS 任务的 CPU 争用可以通过 cpu_util_cfs_boost() 中的'CPU runnable> CPU utililization 来检测和发现. 最终
 
 1. scheduleutil 通过调用 cpu_util_cfs_boost() 来使用 (runnable boosting).
 
@@ -4759,8 +4764,8 @@ Misfit Task 对调度器 ** 负载均衡 ** 做了如下改造, 参见 [commit c
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2018/07/04 | Morten Rasmussen <morten.rasmussen@arm.com> | [sched/fair: Migrate 'misfit' tasks on asymmetric capacity systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9c63e84db29bcf584040931ad97c2edd11e35f6c) | TODO | v4 ☐☑✓ | [LORE v4,0/12](https://lore.kernel.org/all/1530699470-29808-1-git-send-email-morten.rasmussen@arm.com) |
-| 2023/02/01 | Vincent Guittot <vincent.guittot@linaro.org> | [unlink misfit task from cpu overutilized](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=a2e90611b9f425adbbfcdaa5b5e49958ddf6f61b) | uclamp_min造成的任务 misfit 并不意味着 cpu overutilized, 因为这仅仅是 uclamp_min 的约束, 具有小 util_avg 的任务可能不适合所在高 capacity 的 cpu. 允许 `task_fits_cpu()/asym_fits_cpu()/cpu_overutilized() -=> util_filts_cpu()` 返回 -1 来反映 CPU 不适合指定任务只是因为 uclamp_min, 所以我们可以使用这个状态来采取额外的操作, 以选择与 uclamp_min 匹配的最佳 CPU. 当 util_filts_cpu() 返回 -1 时, 不再认为 CPU 是 overutilized 的, 因此 select_idle_capacity() 和 find_energy_efficient_cpu() 将继续寻找一种可能的性能更好的 CPU, 它用 capacity_orig_of() - thermal_load_avg 代替容量反转检测来检测容量反转. | v5 ☐☑✓ | [LORE v5,0/2](https://lore.kernel.org/all/20230201143628.270912-1-vincent.guittot@linaro.org) |
+| 2018/07/04 | Morten Rasmussen <morten.rasmussen@arm.com> | [sched/fair: Migrate'misfit'tasks on asymmetric capacity systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9c63e84db29bcf584040931ad97c2edd11e35f6c) | TODO | v4 ☐☑✓ | [LORE v4,0/12](https://lore.kernel.org/all/1530699470-29808-1-git-send-email-morten.rasmussen@arm.com) |
+| 2023/02/01 | Vincent Guittot <vincent.guittot@linaro.org> | [unlink misfit task from cpu overutilized](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=a2e90611b9f425adbbfcdaa5b5e49958ddf6f61b) | uclamp_min 造成的任务 misfit 并不意味着 cpu overutilized, 因为这仅仅是 uclamp_min 的约束, 具有小 util_avg 的任务可能不适合所在高 capacity 的 cpu. 允许 `task_fits_cpu()/asym_fits_cpu()/cpu_overutilized() -=> util_filts_cpu()` 返回 -1 来反映 CPU 不适合指定任务只是因为 uclamp_min, 所以我们可以使用这个状态来采取额外的操作, 以选择与 uclamp_min 匹配的最佳 CPU. 当 util_filts_cpu() 返回 -1 时, 不再认为 CPU 是 overutilized 的, 因此 select_idle_capacity() 和 find_energy_efficient_cpu() 将继续寻找一种可能的性能更好的 CPU, 它用 capacity_orig_of() - thermal_load_avg 代替容量反转检测来检测容量反转. | v5 ☐☑✓ | [LORE v5,0/2](https://lore.kernel.org/all/20230201143628.270912-1-vincent.guittot@linaro.org) |
 
 
 
@@ -4821,12 +4826,12 @@ EAS 允许 Device Tree(cpufreq-dt), Firmware(arm_scmi) 以及其他设备通过 
 早期 ANDROID 通过 DTS 描述能效表模型, 并在启动时完成并构建能效表, 如下所示.
 
 ```cpp
-# android-4.9-q-release
+// android-4.9-q-release
 8b35ef456fb4 ANDROID: sched: Compute cpu capacity available at current frequency
 1f998b359379 ANDROID: sched: Support for extracting EAS energy costs from DT
 4f569991b1d9 ANDROID: arm64, topology: Updates to use DT bindings for EAS costing data
 
-# android-4.14-stable
+// android-4.14-stable
 04b6162839f5 ANDROID: arm64: Support for extracting EAS energy costs from DT
 1973fddfbe29 ANDROID: arm: Add Energy Model to dtb for TC2
 0582a4c38431 ANDROID: hisilicon: Add energy model data to hisilicon 6220 dtb
@@ -4834,7 +4839,7 @@ EAS 允许 Device Tree(cpufreq-dt), Firmware(arm_scmi) 以及其他设备通过 
 0b7f0b93863c ANDROID: Documentation: DT bindings for energy model cost data required by EAS
 4b319b9f25fd ANDROID: arm64, dts: add hikey cpu capacity-dmips-mhz information
 
-# android-4.19-stable
+// android-4.19-stable
 99f3cc6e0581 ANDROID: drivers: Introduce a legacy Energy Model loading driver
 a0912a31bdae ANDROID: cpufreq: scmi: Register an Energy Model
 b085f79aeecc UPSTREAM: firmware: arm_scmi: add a getter for power of performance states
@@ -5192,7 +5197,7 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 |:----:|:----:|:---:|:----------:|:---:|
 | 2021/08/12 | Viresh Kumar <viresh.kumar@linaro.org> | [Add callback to register with energy model](https://lore.kernel.org/patchwork/cover/1424708) | 当前许多 cpufreq 驱动程序向每个策略的注册了能耗模型, 并通过相同的操作 dev_pm_opp_of_register_em() 来完成. 但是随着  thermal-cooling 的完善, 可以在 cpufreq 层次通过新的回调 register_em 来完成这个工作. | v3 ☐ | [PatchWork V3,0/9](https://patchwork.kernel.org/project/linux-arm-kernel/cover/cover.1628742634.git.viresh.kumar@linaro.org) |
 | 2021/09/08| Viresh Kumar <viresh.kumar@linaro.org> | [Inefficient OPPs](https://patchwork.kernel.org/project/linux-pm/cover/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) | schedutil 中增加了对低能效 (inefficient) OPP 的感知, 引入 CPUFREQ_RELATION_E 标记来使得 CPUFREQ 只使用和引用有效的频点.<br>Arm 的 Power 团队在为谷歌的 Pixel4 开发一个实验性内核, 以评估和改进现实生活中 Android 设备上的主线性能和能耗. 发现 SD855 SoC 有几个效率低下的 OPP. 这些 OPP 尽管频率较低, 但功耗却较高, 任务这种频率下工作, 性能不光下降了, 功耗也很高. 通过将它们从 EAS 能效模型中移除, 使得最高效的 CPU 在任务分配上更有吸引力, 有助于减少中、大型 CPU 的运行时间, 同时提高了集群的空闲时间. 由于集群之间存在巨大的能源成本差异, 因此增加空闲时间对该平台来说至关重要. | v7 ☑ 5.16-rc1 | [PatchWork v7,0/9](https://patchwork.kernel.org/project/linux-pm/cover/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) |
-| 2023/07/24 | Jie Zhan <zhanjie9@hisilicon.com> | [cpufreq: Support per-policy performance boost](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=218a06a79d9a98a96ef46bb003d4d8adb0962056) | 通过添加 "local_boost" sysfs 接口启用按策略提升. 与全局升压开关相同, 将 1/0 写入 "local_boost" 可分别启用 / 禁用 cpufreq 策略上的升压.<br>全局和本地增压控制的用户视图应为:<br>1. 启用全局增强最初会对所有策略启用本地增强, 然后可以对每个策略单独启用或禁用本地增强, 前提是平台确实支持.<br>2. 禁用全局 boost 会使启用本地 boost 成为非法, 而将 0 写入 "local_boost" 是可以的, 但不会生效. [Per-Policy CPU Performance Boosting Proposed For Linux](https://www.phoronix.com/news/Linux-Per-Policy-CPU-Perf-Boost) | v1 ☐☑✓ 6.6-rc1 | [LORE](https://lore.kernel.org/all/20230724075827.4160512-1-zhanjie9@hisilicon.com) |
+| 2023/07/24 | Jie Zhan <zhanjie9@hisilicon.com> | [cpufreq: Support per-policy performance boost](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=218a06a79d9a98a96ef46bb003d4d8adb0962056) | 通过添加 "local_boost" sysfs 接口启用按策略提升. 与全局升压开关相同, 将 1/0 写入 "local_boost" 可分别启用 / 禁用 cpufreq 策略上的升压.<br> 全局和本地增压控制的用户视图应为:<br>1. 启用全局增强最初会对所有策略启用本地增强, 然后可以对每个策略单独启用或禁用本地增强, 前提是平台确实支持.<br>2. 禁用全局 boost 会使启用本地 boost 成为非法, 而将 0 写入 "local_boost" 是可以的, 但不会生效. [Per-Policy CPU Performance Boosting Proposed For Linux](https://www.phoronix.com/news/Linux-Per-Policy-CPU-Perf-Boost) | v1 ☐☑✓ 6.6-rc1 | [LORE](https://lore.kernel.org/all/20230724075827.4160512-1-zhanjie9@hisilicon.com) |
 
 
 ### 7.3.4 各个厂商基于 schedutil 的进一步优化和改进
@@ -5328,11 +5333,11 @@ schedtune 与 uclamp 都是由 ARM 公司的 Patrick Bellasi 主导开发.
 ## 7.6 freezer 冻结
 -------
 
-[进程冻结（freezing of task）](https://blog.csdn.net/rikeyone/article/details/103182748)
+[进程冻结 (freezing of task)](https://blog.csdn.net/rikeyone/article/details/103182748)
 
 | 时间  | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:------:|:---:|
-| 2008/08/11 | Matt Helsley <matthltc@us.ibm.com> | [Container Freezer v6: Reuse Suspend Freezer](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=957a4eeaf4af614ab0fc4c09a22593d6ab233f5b) | 本补丁系列介绍了一个 CGROUP 子系统, 该子系统利用 swsusp 冻结器来冻结一组任务. 它对于批处理作业管理脚本非常有用. 它在未来也应该对实现容器检查点/重新启动有用. 容器文件系统中的冷冻子系统定义了一个名为冷冻状态的 cgroup 文件. 读取冷冻状态将返回 cgroup 的当前状态. 将 "FROZEN" 写入状态文件将冻结 cgroup 中的所有任务. 写入 "RUNNING" 将解冻 cgroup 中的任务. | v6 ☐☑✓ 2.6.28-rc1 | [LORE v6,0/5](https://lore.kernel.org/all/20080811235323.872291138@us.ibm.com) |
+| 2008/08/11 | Matt Helsley <matthltc@us.ibm.com> | [Container Freezer v6: Reuse Suspend Freezer](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=957a4eeaf4af614ab0fc4c09a22593d6ab233f5b) | 本补丁系列介绍了一个 CGROUP 子系统, 该子系统利用 swsusp 冻结器来冻结一组任务. 它对于批处理作业管理脚本非常有用. 它在未来也应该对实现容器检查点 / 重新启动有用. 容器文件系统中的冷冻子系统定义了一个名为冷冻状态的 cgroup 文件. 读取冷冻状态将返回 cgroup 的当前状态. 将 "FROZEN" 写入状态文件将冻结 cgroup 中的所有任务. 写入 "RUNNING" 将解冻 cgroup 中的任务. | v6 ☐☑✓ 2.6.28-rc1 | [LORE v6,0/5](https://lore.kernel.org/all/20080811235323.872291138@us.ibm.com) |
 | 2021/06/24 | Peter Zijlstra <peterz@infradead.org> | [freezer,sched: Rewrite core freezer logic](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f5d39b020809146cc28e6e73369bf8065e0310aa) | 重写冻结的核心逻辑, 从而使得 WRT 解冻的表现更加合理. 通过将 PF_FROZEN 替换为 TASK_FROZEN (一种特殊的块状态), 可以确保冻结的任务保持冻结状态, 直到明确解冻, 并且不会像目前可能的那样过早随机唤醒. | v1 ☐☑✓ 6.1-rc1 | [2021/06/01 LORE RFC](https://lore.kernel.org/all/YLXt+%2FWr5%2FKWymPC@hirez.programming.kicks-ass.net)<br>*-*-*-*-*-*-*-* <br>[2021/06/11 LORE v1](https://lore.kernel.org/all/YMMijNqaLDbS3sIv@hirez.programming.kicks-ass.net)<br>*-*-*-*-*-*-*-* <br>[2021/06/24 LORE v2,0/4](https://lore.kernel.org/all/20210624092156.332208049@infradead.org) |
 | 2022/05/05 | Peter Zijlstra <peterz@infradead.org> | [ptrace-vs-PREEMPT_RT and freezer rewrite](https://lore.kernel.org/all/20220421150248.667412396@infradead.org) | TODO | v4 ☐☑✓ | [LORE v2,0/5](https://lore.kernel.org/all/20220421150248.667412396@infradead.org)<br>*-*-*-*-*-*-*-* <br>[2022/08/22 LORE v3,0/6](https://lore.kernel.org/all/20220822111816.760285417@infradead.org)<br>*-*-*-*-*-*-*-* <br>[2022/10/08 LORE v3,0/6](https://lore.kernel.org/all/20211009100754.690769957@infradead.org) |
 | 2023/01/13 | Luis Chamberlain <mcgrof@kernel.org> | [vfs: provide automatic kernel freeze / resume](https://lore.kernel.org/all/20230114003409.1168311-1-mcgrof@kernel.org) | [Removing the kthread freezer](https://lwn.net/Articles/935602) | v3 ☐☑✓ | [2023/01/13 LORE v3,0/24](https://lore.kernel.org/all/20230114003409.1168311-1-mcgrof@kernel.org))<br>*-*-*-*-*-*-*-* <br>[2023/05/07 LORE v1,0/6](https://lore.kernel.org/all/20230508011717.4034511-1-mcgrof@kernel.org) |
@@ -5451,10 +5456,6 @@ CONFIG_SCHED_CORE_CTL 的方案, 不光通过 do_isolation_work_cpu_stop() 支�
 
 
 
-
-
-
-
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/01/18 | Frederic Weisbecker & Peter Zijlstra 等 | [preempt: Tune preemption flavour on boot v4](https://lore.kernel.org/patchwork/cover/1366962) | 增加了 PREEMPT_DYNAMIC 配置选项, 允许内核启动阶段选择使用哪种抢占模式 (none, voluntary, full) 等, 同时支持 debugfs 中提供开关, 在系统运行过程中动态的修改这个配置. | RFC v4 ☑ 5.12-rc1 | [PatchWork](https://lkml.org/lkml/2021/1/18/672), [LORE](https://lore.kernel.org/all/20210118141223.123667-1-frederic@kernel.org) |
@@ -5465,10 +5466,10 @@ CONFIG_SCHED_CORE_CTL 的方案, 不光通过 do_isolation_work_cpu_stop() 支�
 | 日期 | LWN | 翻译 |
 |:---:|:----:|:---:|
 | 2023/09/21 | [Revisiting the kernel's preemption models (part 1)](https://lwn.net/Articles/944686) | [LWN：重新审视内核的多种抢占模型！](https://blog.csdn.net/Linux_Everything/article/details/133781615) |
-| 2023/10/02 | [Revisiting the kernel's preemption model, part 2](https://lwn.net/Articles/945422) | [LWN：重新审视内核抢占模型，第二部分！](https://blog.csdn.net/Linux_Everything/article/details/133820074)
+| 2023/10/02 | [Revisiting the kernel's preemption model, part 2](https://lwn.net/Articles/945422) | [LWN：重新审视内核抢占模型, 第二部分！](https://blog.csdn.net/Linux_Everything/article/details/133820074)
 
 
-| 调度时机/抢占模式 | 返回用户态 | 显式抢占点(cond_resched()及其同类) | 返回内核(tick/IPI/irq at irqexit) | 不可抢占段在(preempt_count() == preempt_offset)处结束 |
+| 调度时机 / 抢占模式 | 返回用户态 | 显式抢占点 (cond_resched() 及其同类) | 返回内核 (tick/IPI/irq at irqexit) | 不可抢占段在 (preempt_count() == preempt_offset) 处结束 |
 |:---:|:----:|:----:|:----:|:----:|
 | none(PREEMPT_NONE) | Y | N | N | N |
 | voluntary(CONFIG_PREEMPT_VOLUNTARY) | Y | Y | N | N |
@@ -5478,19 +5479,19 @@ CONFIG_SCHED_CORE_CTL 的方案, 不光通过 do_isolation_work_cpu_stop() 支�
 
 由于没有明确的抢占点的理想位置, 它们往往随机分布在代码中, 并随着时间的推移而积累, 因为它们是在发现延迟问题时添加的.
 
-在自愿模式中, 调度器的工作是匹配需求一侧的抢占点(需要安排的任务) 和供给端 (一个调用 cond_resched() 的任务). 而完全抢占模型跟踪抢占计数, 因此调度器可以始终知道抢占是否安全, 并且可以驱动抢占本身.
+在自愿模式中, 调度器的工作是匹配需求一侧的抢占点 (需要安排的任务) 和供给端 (一个调用 cond_resched() 的任务). 而完全抢占模型跟踪抢占计数, 因此调度器可以始终知道抢占是否安全, 并且可以驱动抢占本身.
 
 因此 Thomas 在 [Re: sched: define TIF_ALLOW_RESCHED](https://lore.kernel.org/lkml/87jzshhexi.ffs@tglx) 中概述的那样, 建议统一抢占模型, 并且希望: 始终启用 preempt_count 并允许调度程序驱动基于有效模型的抢占策略.
 
 要做到这一点, 添加一个新的标志, TIF_NEED_RESCHED_LAZY 调度器来标记需要重新调度, 但被推迟到任务在内核中完成执行——自愿抢占. 原来的 TIF_NEED_RESCHED 标志仍然在所有三个抢占时计算点, TIF_NEED_RESCHED_LAZY 只需要在 ret-to-user 时判断.
 
-| 调度时机/抢占模式 | ret-to-user | ret-to-kernel | preempt_count() |
+| 调度时机 / 抢占模式 | ret-to-user | ret-to-kernel | preempt_count() |
 |:---:|:----:|:----:|:----:|
 | none      | Y | N | N |
 | voluntary | Y | Y | Y |
 | full      | Y | Y | Y |
 
-这种是线下没有明确的抢占点了, 在内核中分布很长时间的进程就没有办法放弃 CPU. 对于完全抢占, 这是没有问题的, 因为我们总是使用 TIF_NEED_RESCHED. 对于无/自愿抢占, 如果标记为 TIF_NEED_RESCHED_LAZY 的任务在下一个 tick 之前没有抢占, 我们通过升级到 TIF_NEED_RESCHED 来处理它. 这样当任务 ret-to-kernel 时, 或者退出一个不可抢占的临界区时, 就触发抢占. 也就是说, 这提供了更一致的最大延迟 (~2 tick) 长度 + 不可抢占部分的长度) 与旧模型相比其中最大延迟取决于的动态分布 cond_resched() 点.
+这种是线下没有明确的抢占点了, 在内核中分布很长时间的进程就没有办法放弃 CPU. 对于完全抢占, 这是没有问题的, 因为我们总是使用 TIF_NEED_RESCHED. 对于无 / 自愿抢占, 如果标记为 TIF_NEED_RESCHED_LAZY 的任务在下一个 tick 之前没有抢占, 我们通过升级到 TIF_NEED_RESCHED 来处理它. 这样当任务 ret-to-kernel 时, 或者退出一个不可抢占的临界区时, 就触发抢占. 也就是说, 这提供了更一致的最大延迟 (~2 tick) 长度 + 不可抢占部分的长度) 与旧模型相比其中最大延迟取决于的动态分布 cond_resched() 点.
 
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -5753,6 +5754,7 @@ PREEMPT-RT PATCH 的核心思想是最小化内核中不可抢占部分的代码
 
 [Real-Time"PREEMPT_RT"Work Down To Just 50 Patches Atop Linux 6.0-rc1](https://www.phoronix.com/news/Linux-6.0-RT-Patches)
 
+[Real-Time Patches Updated Against The Linux 6.8 Kernel](https://www.phoronix.com/news/Linux-6.8-rc1-Real-Time)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -5987,16 +5989,23 @@ EEVDF 最终在 [v6.6-rc1 合入主线](https://git.kernel.org/pub/scm/linux/ker
 
 EEVDF 全称 "Earliest Eligible Virtual Deadline First" 调度算法, 它并不是什么新事物, 是在 1995 年由 Ion Stoica 和 Hussein Abdel-Wahab 在 1995 年的论文 [Earliest Eligible Virtual Deadline First A Flexible](https://people.eecs.berkeley.edu/~istoica/papers/eevdf-tr-95.pdf) 中描述过. 它的名字就暗示, 它是跟内核的 deadline scheduler 所使用的 Earliest Deadline First algorithm 很类似. 但是这里的差异是, EEVDF 不是一个 realtime 时调度程序, 所以工作方式不一样. 理解 EEVDF 需要掌握几个 (相对) 简单的概念.
 
-EEVDF 跟 CFS 一样, 试图把可用的 CPU 时间公平地分配给正在争夺它的那些进程. 例如, 如果有五个进程试图在一个 CPU 上运行, 那么每个进程应该得到 20% 的可用时间. 每个进程的 nice 值可以用来调整其公平时间的计算结果, nice 值较低 (因此优先级较高) 的进程有权获得更多的 CPU 时间, 而牺牲那些具有较高 nice 值的进程. 这些内容都是以前就有的概念.
+
+EEVDF 跟 CFS 一样, EEVDF 追求在任务之间公平使用 CPU 时间. 试图把可用的 CPU 时间公平地分配给正在争夺它的那些进程. 例如, 如果有五个进程试图在一个 CPU 上运行, 那么每个进程应该得到 20% 的可用时间. 每个进程的 nice 值可以用来调整其公平时间的计算结果, nice 值较低 (因此优先级较高) 的进程有权获得更多的 CPU 时间, 而牺牲那些具有较高 nice 值的进程. 这些内容都是以前就有的概念.
+
+与 CFS 不一样的是, EEVDF 引入了两个概念：任务的资格 (eligibility) 和滞后 (lag).
 
 我们来考虑一下一秒钟时长的一个时间段; 在这段时间内, 我们的五个进程中, 每个进程应该得到 200ms 的 CPU 时间. 由于一些原因, 没能按照安排来做到, 其中一些进程得到了过多的时间, 而另一些进程则被缩短了. EEVDF 会对每个进程计算出该进程应该得到的时间和它实际得到的时间之间的差异. 这个差异被称为 "lag". lag 值为正的进程就没有得到公平的份额, 应该比 lag 值为负的过程要更早调度.
 
 事实上, 当且仅当计算出的 lag 值大于或等于零时, 才认为这个进程是 "合格的 (eligible)"; 任何具有负值的 lag 值的进程都都没有资格运行. 对于任何不合格的过程, 在未来的某个时间, 它有权得到的时间逐渐增长, 赶上它实际得到的时间, 于是可以再次成为合格的进程; 这个时间就被称为 "合格时间 (eligible time)".
 
-| 关键因子 | 描述 |
-|:-------:|:---:|
-| lag 值 | lag 值计算是 EEVDF 调度器中的一个关键部分, 内核为了能正确得到这个值煞费苦心. 即使没有完整的 EEVDF 算法, 也可以利用一个进程的 lag 值来将其公平地放在运行队列中; lag 值较高的进程应该先运行, 从而以使整个系统的 lag 值比较均匀. |
-| 虚拟截止日期 (virtual deadline) | 另一个起作用的因素是 "虚拟截止日期 (virtual deadline)", 它是一个进程应该得到其应有的 CPU 时间的最早时间. 这个期限的计算方法是将一个进程分配的时间片与它的合格时间值相加. 一个拥有 10ms 时间片的进程, 如果其合格时间 (eligible time) 是未来 20ms, 那么它的 virtual deadline 就是未来 30ms |
+
+
+| 关键因子 | 诉求原理 | 描述 |
+|:-------:|:------:|:----:|
+| lag 值 | EEVDF 管理应为任务分配多少 CPU 时间, 该任务由任务的静态优先级(也就是 nice 值)调整. 任务滞后(lag)是理想 CPU 时间与分配给任务的实际 CPU 时间之间的差距. 正滞后意味着分配的 CPU 时间更少. 另一方面, 负滞后意味着分配给任务的 CPU 时间过多, 因此使用负滞后值调度此类任务违反了 CPU 时间的合理使用. 使用 EEVDF 术语, 只有正滞后值的任务才有资格进行计划. 为了公平起见, EEVDF 调度程序不会调度具有负滞后值的不合格任务. | lag 值计算是 EEVDF 调度器中的一个关键部分, 内核为了能正确得到这个值煞费苦心. 即使没有完整的 EEVDF 算法, 也可以利用一个进程的 lag 值来将其公平地放在运行队列中; lag 值较高的进程应该先运行, 从而以使整个系统的 lag 值比较均匀. |
+| 虚拟截止日期 (virtual deadline) | 另一个起作用的因素是 "虚拟截止日期 (virtual deadline)". 虚拟截止时间是完成执行任务请求的时间片的时间. 它是通过将任务的分配时间片及其启发式估计的合格时间(即任务可能开始运行的时间)相加来计算的. 从概念上讲, 任务可能在符合条件的时间开始, 并在虚拟截止日期完成其时间片. EEVDF 假定任务的时间片是通过设置延迟 nice 值来给出的. EEVDF 调度程序始终选择具有最早虚拟截止日期的合格任务. | 它是一个进程应该得到其应有的 CPU 时间的最早时间. 这个期限的计算方法是将一个进程分配的时间片与它的合格时间值相加. 一个拥有 10ms 时间片的进程, 如果其合格时间 (eligible time) 是未来 20ms, 那么它的 virtual deadline 就是未来 30ms |
+
+EEVDF 调度器希望平滑而自然地处理延迟关键型任务. 延迟关键型任务具有较小的延迟值, 因此它具有较短的时间片. 因此, 它的虚拟截止时间早于具有较长切片的非延迟关键任务. 因此, 假设两个任务具有相同的 nice 值, 但具有不同的延迟 nice 值. 延迟关键型任务将更频繁地安排, 切片更短.
 
 EEVDF 的核心理念就可以从它的名字中看出, 它将首先运行那些具有最早的 virtual deadline 的进程. 因此, 调度选择是结合了 fairness(用于计算合格时间的 lag 值) 以及每个进程当前有用的时间值来共同决定的.
 
@@ -6147,7 +6156,7 @@ CONFIG_HUAWEI_SCHED_VIP 被标记为 vip_prio, 为 VIP 线程提供了近似于�
 
 [星汉未来 - 一文看懂业界在离线混部技术](https://blog.51cto.com/u_15513890/5017537)
 
-[字节跳动开源 Katalyst：在离线混部调度，成本优化升级](https://www.oschina.net/news/233867/katalyst-open-source)
+[字节跳动开源 Katalyst：在离线混部调度, 成本优化升级](https://www.oschina.net/news/233867/katalyst-open-source)
 
 [kubewharf/katalyst-core](https://github.com/kubewharf/katalyst-core)
 
@@ -6473,6 +6482,9 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 
 作者提供了一个用户空间部分的示例 [github/rgushchin/atc](https://github.com/rgushchin/atc), 它加载了一些简单的钩子. 它非常简单, 只是为了简化使用所提供的内核补丁.
 
+[Min: sched_ext: a BPF-extensible scheduler class (Part 1)](https://lwn.net/Articles/955481)
+
+[sched_ext: a BPF-extensible scheduler class (Part 1)](https://blogs.igalia.com/changwoo/sched-ext-a-bpf-extensible-scheduler-class-part-1/)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -6558,7 +6570,7 @@ B 站 Plugsched 介绍视频 [纯干货解读：Plugsched, 首次实现 Linux ke
 | [Task Type(TT) CPU Scheduler](https://github.com/hamadmarri/TT-CPU-Scheduler) | 根据任务的行为检测并识别任务类型, 并根据其类型控制调度. 基于任务类型的好处是允许调度程序进行更多控制, 并选择接下来在 CPU 中运行的最佳任务. 当前有 5 种类型: 实时 (REALTIME), 交互 (INTERACTIVE), 无类型 (NO_TYPE), 计算密集型 (CPU_BOUND), 批处理 (BATCH). 调度器通过 detect_type() 周期性地探测应用的 task_type. |
 | [Baby-CPU-Scheduler](https://github.com/hamadmarri/Baby-CPU-Scheduler) | 一个非常基本, 轻量级但性能非常高的调度器 Basic Scheduler (BS). 可以将其用作 Linux 上的基本调度程序进行学习 |
 | [BORE/Burst-Oriented Response Enhancer (BORE) CPU Scheduler](https://github.com/firelzrd/bore-scheduler) | BORE(面向突发的响应增强器) 是 CFS(完全公平调度程序) 的增强版本, CFS 是 Linux 中默认的 CPU 调度程序, 旨在保持 CFS 的高吞吐量性能, 同时在尽可能宽的负载情况下提供对用户输入的更高响应能力. 为了实现这一目标, BORE 为每个单独的任务引入了一个称为 "突发性" 的灵活性维度, 部分偏离了 CFS 固有的 "完全公平" 原则. 延迟是指任务在显式放弃后通过进入睡眠、IO 等待或屈服而消耗的累积 CPU 时间得出的分数. 该分数代表了广泛的时间特征, 从纳秒到数百秒不等, 在不同的任务中有所不同. 参见 [foxhoundsk 的博客](https://hackmd.io/@foxhoundsk/bore-sched) |
-| [MuQss/Multiple run-queues for BFS](https://lore.kernel.org/all/1355591803.23863.3.camel@findus-T530) | [两个非常有意思的适合桌面使用的 Linux task 调度器: BFS 和 MuqSS](https://blog.csdn.net/juS3Ve/article/details/102380529)<br>[操作系统调度算法 5——MuQss，多队列跳表调度器](https://zhuanlan.zhihu.com/p/373693657), [ckolivas/linux](https://github.com/ckolivas/linux), [CK 的博客](http://ck-hack.blogspot.com). [细说 CFS 与 MuQSS 以及 load-balance](https://blog.csdn.net/qq_23662505/article/details/120220689), [MuQSS_调度器 - The_MuQSS_CPU_scheduler](https://github.com/jiebaomaster/linux-kernel-doc-translate/blob/master/lwn/MuQSS_调度器 - The_MuQSS_CPU_scheduler.md) |
+| [MuQss/Multiple run-queues for BFS](https://lore.kernel.org/all/1355591803.23863.3.camel@findus-T530) | [两个非常有意思的适合桌面使用的 Linux task 调度器: BFS 和 MuqSS](https://blog.csdn.net/juS3Ve/article/details/102380529)<br>[操作系统调度算法 5——MuQss, 多队列跳表调度器](https://zhuanlan.zhihu.com/p/373693657), [ckolivas/linux](https://github.com/ckolivas/linux), [CK 的博客](http://ck-hack.blogspot.com). [细说 CFS 与 MuQSS 以及 load-balance](https://blog.csdn.net/qq_23662505/article/details/120220689), [MuQSS_调度器 - The_MuQSS_CPU_scheduler](https://github.com/jiebaomaster/linux-kernel-doc-translate/blob/master/lwn/MuQSS_调度器 - The_MuQSS_CPU_scheduler.md) |
 
 
 
@@ -6702,7 +6714,7 @@ ARM & Linaro 的内核团队针对 Android/linux 等做了大量的调度的优�
 | [adrestia](https://github.com/mfleming/adrestia) | 更简单的调度器唤醒延迟微基准测试, hackbench 等进行 pipe 测试往往都经过了 futex 路径. 因此 [Matt Fleming](https://www.codeblueprint.co.uk) 在 2016 年编写了此 benchmark, 以便通过在唤醒路径中覆盖测试到不同的路径. 同时提供了第 95 百分位唤醒延迟值. | 第 95 百分位唤醒延迟值 |
 | [unixbench/context1]() | NA | NA |
 | [os-scheduler-responsiveness-test](https://github.com/hamadmarri/os-scheduler-responsiveness-test) | os 调度程序响应能力测试. 这是一个 Python/Go 脚本, 用于测试操作系统调度程序的响应性或交互性. 交互式线程的睡眠时间多于运行时间 (即用户单击). 该脚本测量与 3 个不同任务的交互性 (对 10000 个数组进行排序, 读取文件并打印到控制台, 读取文件并将其写入另一个文件). 在每个过程中, 它休眠在 1s-3s 之间的随机时间. 同时, 你可以运行素数计算的 CPU 密集型程序, 这对于在繁重的任务运行期间测试交互性很有用. |
-| [jitterdebugger](https://github.com/igaw/jitterdebugger) | [foxhoundsk 的博客 jitterdebugger 介绍](https://hackmd.io/@foxhoundsk/jitterdebugger), 衡量调度器[切换时延](https://source.android.com/docs/core/audio/latency/contrib?hl=en#schedLatency)以及操作系统底噪抖动的工具.  |
+| [jitterdebugger](https://github.com/igaw/jitterdebugger) | [foxhoundsk 的博客 jitterdebugger 介绍](https://hackmd.io/@foxhoundsk/jitterdebugger), 衡量调度器 [切换时延](https://source.android.com/docs/core/audio/latency/contrib?hl=en#schedLatency) 以及操作系统底噪抖动的工具.  |
 
 
 ### 12.4.2 调度器延迟分析

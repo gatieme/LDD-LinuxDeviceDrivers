@@ -620,6 +620,7 @@ github 地址: [Mitosis Project](https://github.com/mitosis-project), [linux 内
 | 2020 | [Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines; March, 2020; aspl0359a-achermanna.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/0/3/aspl0359a-achermanna.pdf) |
 | 2021 | [Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; asplos21_vmitosis.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/8/asplos21_vmitosis.pdf)<br>[Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; vmitosis_ext_abstract.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/1/vmitosis_ext_abstract.pdf) |
 
+[Kernel-text replication on NUMA systems](https://lwn.net/Articles/956900)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -1656,6 +1657,8 @@ Date:   Wed Sep 11 14:20:35 2013 -0700
 
 ### 2.2.10 其他
 -------
+
+[The trouble with MAX_ORDER](https://lwn.net/Articles/956321)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -6994,6 +6997,12 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 | 2022/08/14 | Imran Khan <imran.f.khan@oracle.com> | [[v3] kfence: add sysfs interface to disable kfence for selected slabs.](https://patchwork.kernel.org/project/linux-mm/patch/20220814195353.2540848-1-imran.f.khan@oracle.com/) | 667448 | v3 ☐☑ | [LORE v3,0/1](https://lore.kernel.org/all/20220814195353.2540848-1-imran.f.khan@oracle.com) |
 | 2023/03/28 | Muchun Song <songmuchun@bytedance.com> | [Simplify kfence code](https://patchwork.kernel.org/project/linux-mm/cover/20230328095807.7014-1-songmuchun@bytedance.com/) | 734539 | v1 ☐☑ | [LORE v1,0/6](https://lore.kernel.org/r/20230328095807.7014-1-songmuchun@bytedance.com) |
 | 2023/04/03 | Peng Zhang <zhangpeng.00@bytedance.com> | [mm: kfence: Improve the performance of `__kfence_alloc() and __kfence_free()`](https://patchwork.kernel.org/project/linux-mm/patch/20230403062757.74057-1-zhangpeng.00@bytedance.com/) | 736236 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230403062757.74057-1-zhangpeng.00@bytedance.com) |
+
+
+### 13.3.8 UBSAN
+-------
+
+[Better handling of integer wraparound in the kernel](https://lwn.net/Articles/959189)
 
 
 ## 13.4 Debugging

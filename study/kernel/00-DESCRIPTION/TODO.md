@@ -599,9 +599,4 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 
 
 
-
-
-| 日期 | LWN | 翻译 |
-|:---:|:----:|:---:|
-| 2023/09/21 | [Revisiting the kernel's preemption models (part 1)](https://lwn.net/Articles/944686) | [LWN：重新审视内核的多种抢占模型！](https://blog.csdn.net/Linux_Everything/article/details/133781615) |
-| 2023/10/02 | [Revisiting the kernel's preemption model, part 2](https://lwn.net/Articles/945422) | [LWN：重新审视内核抢占模型，第二部分！](https://blog.csdn.net/Linux_Everything/article/details/133820074)
+对 AMD 处理器上 x86_energy_perf_policy 实用程序的支持, 这些处理器使用 CPPC(Collaborative Processor Performance Control) 接口进行频率缩放, 并使用 AMD_state 驱动程序模块. AMD 处理器已经支持各种能源性能偏好 EPP(Energy Performance Preference) 配置文件. 有了这个实用程序, 用户现在可以使用提供的命令在这些 EPP 配置文件之间无缝切换. 并使用此工具检查 CPPC 的功能. 此增强旨在提高 AMD 处理器的电源效率和性能管理, 为用户提供对系统能源性能行为的更多控制.

@@ -78,6 +78,10 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 [Seven Core Issues about eBPF](https://www.alibabacloud.com/blog/seven-core-issues-about-ebpf_599668)
 
+[The State of eBPF](https://www.linuxfoundation.org/hubfs/eBPF/The_State_of_eBPF.pdf)
+
+[eBPF - Unleash the Linux kernel](https://aymanace2049.hashnode.dev/ebpf-unleash-the-linux-kernel)
+
 # 2 工作流程
 -------
 
@@ -602,7 +606,7 @@ glcc 则实现了 eBPF 驱动和 libbpf 的支持, 允许 eBPF 程序无需修�
 
 Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标准. Wasmtime 还支持与 C/C++, Python, .NET, Go 和其他编程语言的集成, 同时在 Windows / Linux / macOS 平台上运行等等.
 
-
+[WASM 原生时代已经到来 | 解读 WebAssembly 的 2022](https://csdnnews.blog.csdn.net/article/details/128739217)
 
 # 10 云原生
 -------
@@ -625,9 +629,9 @@ Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标�
 | [apache/skywalking-rover](https://github.com/apache/skywalking-rover) | |
 | [GroundCover](https://github.com/groundcover-com) | [GroundCover](https://www.groundcover.com) 轻松、大规模地监控 K8s 应用 |
 | [Exein-io/pulsar](https://github.com/Exein-io/pulsar) | [Tracing the Linux kernel using Exein Pulsar: a 5 Minute Tutorial](https://blog.exein.io/pulsar-tutorial)
-| [L3AF](https://l3af.io) | L3AF 致力于为 eBPF 程序创建一个市场, 用户和开发人员可以共享自己签名的 eBPF 程序, 并从市场下载其他人分享的 eBPF 程序. L3AF 平台可用于编排和编写从市场上到多种业务需求的选定 eBPF 程序. 通过这种方式, L3AF 为开发人员提供了一个与云和供应商无关的平台, 用于在运行时向操作系统添加功能. |
 | [ebpf-for-windows](https://github.com/microsoft/ebpf-for-windows) | [eBPF programming on Windows](https://blog.subcom.tech/ebpf-programming-on-windows). |
 | [redcanaryco/ebpfmon](https://github.com/redcanaryco/ebpfmon) | [eBPFmon: A new tool for exploring and interacting with eBPF applications](https://redcanary.com/blog/ebpfmon) |
+| [TrailOfBits](https://github.com/trailofbits) | [Trail of Bits 开发了一套开源库, 旨在简化 eBPF 应用程序的创建和部署. 这些库有助于高效的进程和网络事件监控、函数跟踪、内核调试符号解析和 eBPF 代码生成. 参见 [Use our suite of eBPF libraries](https://blog.trailofbits.com/2023/08/09/use-our-suite-of-ebpf-libraries). |
 
 ## X.2 业界博客
 -------
@@ -651,6 +655,16 @@ Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标�
 |:---:|:----:|
 | [Flexible and Low-Overhead System-Call Aggregation using BPF](https://www4.cs.fau.de/Ausarbeitung/MA-I4-2021-12-Gerhorst.pdf)<br>[AnyCall: Fast and Flexible System-Call Aggregation](https://dl.acm.org/doi/10.1145/3477113.3487267) | 通过 eBPF 实现的 ANYCALL, 它使用内核内字节码编译器在内核模式下执行安全检查的用户代码. 这允许多个快速的系统调用与错误检查和处理逻辑交织聚合在一起, 只使用一次用户态 / 内核态转换. 并将其扩展为支持系统调用和用户内存访问. 由于内核已经支持灵活的事件处理和调试, 重用 BPF 来实现系统调用聚合, 这表明软件隔离进程对于现代通用操作系统是可行的. 为了证明将真实的用户应用程序移植到 ANYCALL 既实用又直接, 我移植了两个真实的工具, 并记录了所需的代码更改. 最后, 我评估了 ANYCALL 在具有操作系统级缓解措施的系统上的性能, 以对抗活跃或不活跃的瞬时执行漏洞, 包括例如针对 Meltdown 的内核页表隔离 (KPTI). 在 KPTI 不活跃的系统上, 我演示了在计算受限的实际应用程序中高达 10% 的加速. 另一方面, 当 KPTI 处于活动状态时, 我的评估表明, 使用 ANYCALL 可以使系统调用爆发速度提高 98%, 而实际应用程序的速度提高了 32% 到 40%. 参见 [【欧拉多咖 | OS 每周快讯】2022.12.06~2022.12.12](https://www.chaspark.com/#/hotspots/821172234535870464) |
 | [XRP: In-Kernel Storage Functions with eBPF【OSDI’22】](https://www.usenix.org/system/files/osdi22-zhong_1.pdf) | XRP 框架允许应用程序从 NVMe 驱动程序中的 eBPF 探针执行用户定义的存储功能, 如索引查找或聚合, 从而安全地绕过内核的大部分存储堆栈. 为了保持文件系统语义, XRP 将少量内核态转移到其 NVMe 驱动程序探针, 并在探针处调用用户注册的 eBPF 函数. |
+
+
+## X.5 eBPF 管理
+-------
+
+| 工具 | 描述 |
+|:---:|:----:|
+| [L3AF](https://l3af.io) | L3AF 致力于为 eBPF 程序创建一个市场, 用户和开发人员可以共享自己签名的 eBPF 程序, 并从市场下载其他人分享的 eBPF 程序. L3AF 平台可用于编排和编写从市场上到多种业务需求的选定 eBPF 程序. 通过这种方式, L3AF 为开发人员提供了一个与云和供应商无关的平台, 用于在运行时向操作系统添加功能. |
+| [bpfman](https://github.com/bpfman/bpfman) | [Fedora 40 Looks To bpfman For Managing eBPF Programs](https://www.phoronix.com/news/Fedora-40-bpfman-eBPF-Manager) |
+
 
 <br>
 

@@ -91,6 +91,7 @@ https://www.phoronix.com/scan.php?page=news_item&px=UDP-IPV6-5P-Optimization
 
 [UDP IPv6 Optimizations Queued Up For Linux 5.18](https://www.phoronix.com/scan.php?page=news_item&px=UDP-IPv6-Opts-5.18)
 
+[](https://www.phoronix.com/news/Linux-6.8-Networking)
 
 # 4 IO
 -------
@@ -150,6 +151,22 @@ Intel AderLake 引入大小核之后, Windows & Intel 联盟做了足够多的�
 -------
 
 [Intel Xeon Platinum 8380 Performance Is Looking Great For Linux 6.0](https://www.phoronix.com/news/Linux-6.0-Xeon-8380-Ice-Lake)
+
+
+# 11 新语言
+-------
+
+## 11.1 RUST
+-------
+
+
+## 11.2 C++
+-------
+
+
+[A 2024 Discussion Whether To Convert The Linux Kernel From C To Modern C++](https://www.phoronix.com/news/CPP-Linux-Kernel-2024-Discuss)
+
+
 
 <br>
 
