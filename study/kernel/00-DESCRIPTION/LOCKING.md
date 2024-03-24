@@ -490,6 +490,19 @@ Paul McKenney's parallel programming book, [LWN](https://lwn.net/Articles/421425
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/05/18 | Tejun Heo <tj@kernel.org> | [workqueue: Improve unbound workqueue execution locality](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=523a301e66afd1ea9856660bcf3cee3a7c84c6dd) | 重构 workqueue, 使其感知具有多个 L3 缓存的系统受益.<br>"默认行为是根据最后一级缓存边界进行软仿射. 从给定 LLC 排队的工作项由在同一 LLC 上运行的工作线程执行, 但工作线程可以跨缓存边界移动, 因为计划程序认为合适. 在具有多个 L3 缓存的机器上, 随着小芯片设计变得越来越流行, 这提高了缓存局部性, 同时不会过多地损害工作保护.<br>未绑定的工作队列现在在执行相关性方面也更加灵活. 支持不同级别的相关性作用域, 并且可以动态修改默认和按工作队列的相关性设置. 这应该有助于解决最近在非对称 ARM CPU 中观察到的次优行为. 参见 [Linux 6.6 WQ Change May Help Out AMD CPUs & Other Systems With Multiple L3 Caches](https://www.phoronix.com/news/Linux-6.6-Workqueue) | v1 ☐☑✓ [6.6-rc1](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bd30fe6a7d9b72e73c5ac9109cbc3066dde08034) | [LORE](https://lore.kernel.org/all/20230519001709.2563-1-tj@kernel.org) |
 
+
+# 13 Windows NT Synchronization Primitive Driver
+-------
+
+
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/02/14 | Elizabeth Figura <zfigura@codeweavers.com> | [NT synchronization primitive driver](https://lore.kernel.org/all/20240214233645.9273-1-zfigura@codeweavers.com) | 参见 LWN 报道 [Windows NT synchronization primitives for Linux](https://lwn.net/Articles/961884) 以及 phoronix 报道 [Windows NT Synchronization Primitive Driver Updated For The Linux Kernel](https://www.phoronix.com/news/NTSYNC-Linux-Update-February)
+ | v1 ☐☑✓ | [2024/02/14 LORE v1,00/31](https://lore.kernel.org/all/20240214233645.9273-1-zfigura@codeweavers.com)<br>*-*-*-*-*-*-*-* <br>[2024/02/19 LORE v2,00/31](https://lore.kernel.org/lkml/20240219223833.95710-1-zfigura@codeweavers.com) |
+
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

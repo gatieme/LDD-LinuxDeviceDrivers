@@ -238,10 +238,14 @@ Anbox 使用 Linux 命名空间 (user, pid, uts, net, mount, ipc) 在容器中�
 # 11 Hypervisor
 -------
 
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/04/24 | Elliot Berman <quic_eberman@quicinc.com> | [Drivers for Gunyah hypervisor](https://lore.kernel.org/all/20230424231558.70911-1-quic_eberman@quicinc.com) | [Qualcomm Continues Working To Upstream Gunyah Hypervisor Support In Linux](https://www.phoronix.com/news/Qualcomm-Gunyah-Linux-v12) | v12 ☐☑✓ | [LORE v12,0/25](https://lore.kernel.org/all/20230424231558.70911-1-quic_eberman@quicinc.com) |
 | 2023/05/12 | Yi-De Wu <yi-de.wu@mediatek.com> | [GenieZone hypervisor drivers](https://lore.kernel.org/all/20230512080405.12043-1-yi-de.wu@mediatek.com) | TODO | v3 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/lkml/20230413090735.4182-1-yi-de.wu@mediatek.com)<br>*-*-*-*-*-*-*-*<br>[LORE v2,0/7](https://lore.kernel.org/lkml/20230428103622.18291-1-yi-de.wu@mediatek.com)<br>*-*-*-*-*-*-*-*<br>[LORE v3,0/7](https://lore.kernel.org/all/20230512080405.12043-1-yi-de.wu@mediatek.com) |
+| 2024/02/26 | Lai Jiangshan <jiangshanlai@gmail.com> | [KVM: x86/PVM: Introduce a new hypervisor](https://lore.kernel.org/all/20240226143630.33643-1-jiangshanlai@gmail.com) | [PVM Virtualization Framework Proposed For Linux - Built Atop The KVM Hypervisor](https://www.phoronix.com/news/PVM-Hypervisor-Linux-RFC) | v1 ☐☑✓ | [LORE v1,0/73](https://lore.kernel.org/all/20240226143630.33643-1-jiangshanlai@gmail.com) |
+
+
 
 <br>
 

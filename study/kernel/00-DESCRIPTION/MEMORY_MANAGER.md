@@ -738,6 +738,14 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 | 2023/02/02 | Breno Leitao <leitao@debian.org> | [cpu/bugs: Disable CPU mitigations at compilation time](https://lore.kernel.org/all/20230202180858.1539234-1-leitao@debian.org) | 目前, 无法在构建时禁用 CPU 漏洞缓解措施. 需要通过内核参数禁用缓解, 例如 "mitigations=off".  此补丁创建了一种在编译期间禁用缓解的简单方法(CONFIG_DEFAULT_CPU_MITIGATIONS_OFF), 因此, 不安全的内核用户在启动不安全内核时不需要处理内核参数. 参见 phoronix 报道 [Proposed Linux Patch Would Allow Disabling CPU Security Mitigations At Build-Time](https://www.phoronix.com/news/Linux-Default-Mitigations-Off). | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230202180858.1539234-1-leitao@debian.org) |
 
 
+### 1.8.5 SandBox Mode
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/02/14 | Petr Tesarik <petrtesarik@huaweicloud.com> | [Introduce SandBox Mode (SBM)](https://lore.kernel.org/all/20240214113035.2117-1-petrtesarik@huaweicloud.com) | 沙盒函数将使用一组单独的页表运行, 这些页表将其地址空间限制为相关代码、输入缓冲区(映射的只读)和输出缓冲区. 因此, 该函数将无法访问系统中的任何其他内存. 这一变化具有一些深远的影响; 例如, 如果中断到达, 则必须撤消它, 以便中断处理程序可以在内核的地址空间内运行. [A sandbox mode for the kernel](https://lwn.net/Articles/963734) | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20240214113035.2117-1-petrtesarik@huaweicloud.com) |
+
+
 
 ## 1.9 page attributes
 -------
@@ -5490,6 +5498,16 @@ mcpage 有成本. 除了 THP 没有带来 TLB 的好处之外, 与 4K 基本页�
 | 2023/04/02 | Ankur Arora <ankur.a.arora@oracle.com> | [x86/clear_huge_page: multi-page clearing](https://lore.kernel.org/all/20230403052233.1880567-1-ankur.a.arora@oracle.com) | 本系列将介绍针对大页面的多页清除. [参见之前讨论](https://lore.kernel.org/lkml/CAHk-=wj9En-BC4t7J9xFZOws5ShwaR9yor7FxHZr8CTVyEP_+Q@mail.gmail.com). 在 x86 上, 页面清除通常是通过字符串指令完成的. 与 MOV 循环不同的是, 这些循环允许我们显式地向处理器通告区域大小, 这可以作为 uarch 省略 cacheline 分配的提示. 但是也存在一些问题, 延长的归零周期意味着由于缺少抢占点而增加的延迟. | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20230403052233.1880567-1-ankur.a.arora@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/9](https://lore.kernel.org/r/20230403052233.1880567-1-ankur.a.arora@oracle.com) |
 
 
+### 7.4.2 使用场景
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/03/11 | Maíra Canal <mcanal@igalia.com> | [drm/v3d: Enable Super Pages](https://lore.kernel.org/all/20240311100959.205545-1-mcanal@igalia.com) | [Raspberry Pi V3D Graphics Driver Preps For Super Pages To Boost Performance](https://www.phoronix.com/news/Raspberry-Pi-V3D-Super-Pages) | v3 ☐☑✓ | [LORE v3,0/5](https://lore.kernel.org/all/20240311100959.205545-1-mcanal@igalia.com) |
+
+
+
+
 # 8 进程虚拟地址空间(VMA)
 -------
 
@@ -5984,6 +6002,15 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 | 2006/08/10 | Haavard Skinnemoen <hskinnemoen@atmel.com> | [Generic ioremap_page_range: introduction](https://lore.kernel.org/patchwork/patch/62430) | 基于 i386 实现的 ioremap_page_range() 的通用实现, 将 I/O 地址空间映射到内核虚拟地址空间. | v1 ☑ 2.6.19-rc1 | [PatchWork 0/14](https://lore.kernel.org/patchwork/patch/62430) |
 | 2015/03/03 | Toshi Kani <toshi.kani@hp.com> | [Kernel huge I/O mapping support](https://lore.kernel.org/patchwork/patch/547056) | ioremap() 支持透明大页. 扩展了 ioremap() 接口, 尽可能透明地创建具有大页面的 I/O 映射. 当一个大页面不能满足请求范围时, ioremap() 继续使用 4KB 的普通页面映射. 使用 ioremap() 不需要改变驱动程序. 但是, 为了使用巨大的页面映射, 请求的物理地址必须以巨面大小 (x86 上为 2MB 或 1GB) 对齐. 内核巨页的 I/O 映射将提高 NVME 和其他具有大内存的设备的性能, 并减少创建它们映射的时间. | v3 ☑ 4.1-rc1 | [PatchWork v3,0/6](https://lore.kernel.org/patchwork/patch/547056) |
 | 2015/05/15 | Haavard Skinnemoen <hskinnemoen@atmel.com> | [mtrr, mm, x86: Enhance MTRR checks for huge I/O mapping](https://lore.kernel.org/patchwork/patch/943736) | 增强了对巨页 I/O 映射的 MTRR 检查.<br>1. 允许 pud_set_huge() 和 pmd_set_huge() 创建一个巨页映射, 当范围被任何内存类型的单个 MTRR 条目覆盖时. <br>2. 当指定的 PMD 映射范围超过一个 MTRR 条目时, 记录 pr_warn_once() 消息. 当这个范围被 MTRR 覆盖时, 驱动程序应该发出一个与单个 MTRR 条目对齐的映射请求. | v5 ☐ | [PatchWork v5,0/6](https://lore.kernel.org/patchwork/patch/943736) |
+
+
+## 8.6 内核栈
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/03/11 | Pasha Tatashin <pasha.tatashin@soleen.com> | [Dynamic Kernel Stacks](https://lore.kernel.org/all/20240311164638.2015063-1-pasha.tatashin@soleen.com) | 根据去年 LSF/MM 峰会的提议, Google 已经实现了对动态内核堆栈的支持. 在过去十年中, 上游 Linux 内核的默认堆栈大小从之前的 8K 增加到 16K. 谷歌一直在使用内核补丁来保留 8K 堆栈, 但随着时间的推移, 他们遇到了对更大堆栈大小的需求, 这反过来又增加了超大规模部署的内存使用量. 为了减少增加的内存使用, 谷歌一直在研究动态内核堆栈, 因为许多内核线程可以容纳 4K 或 8K 堆栈. [Dynamic Kernel Stacks Proposed For Linux With Big Memory Savings](https://www.phoronix.com/news/Linux-Dynamic-Kernel-Stacks-RFC) | v1 ☐☑✓ | [LORE v1,0/14](https://lore.kernel.org/all/20240311164638.2015063-1-pasha.tatashin@soleen.com) |
 
 
 
@@ -6634,7 +6661,8 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 [LWN: LSFMM-2022/CXL 1: Management and tiering](https://lwn.net/Articles/894598)
 
-[](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.18-NUMA-Regression-Fix)
+
+[CXL For Linux 6.9 Adds Error Injection, Native Memory Performance Enumeration](https://www.phoronix.com/news/Linux-6.9-CXL)
 
 ### 12.1.2 多级内存(Top-tier memory management)/ 内存分级(memory tiering) 支持
 -------

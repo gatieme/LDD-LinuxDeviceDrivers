@@ -632,6 +632,7 @@ Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标�
 | [ebpf-for-windows](https://github.com/microsoft/ebpf-for-windows) | [eBPF programming on Windows](https://blog.subcom.tech/ebpf-programming-on-windows). |
 | [redcanaryco/ebpfmon](https://github.com/redcanaryco/ebpfmon) | [eBPFmon: A new tool for exploring and interacting with eBPF applications](https://redcanary.com/blog/ebpfmon) |
 | [TrailOfBits](https://github.com/trailofbits) | [Trail of Bits 开发了一套开源库, 旨在简化 eBPF 应用程序的创建和部署. 这些库有助于高效的进程和网络事件监控、函数跟踪、内核调试符号解析和 eBPF 代码生成. 参见 [Use our suite of eBPF libraries](https://blog.trailofbits.com/2023/08/09/use-our-suite-of-ebpf-libraries). |
+| [Netflix/bpftop](https://github.com/Netflix/bpftop) | [bpftop blog](https://netflixtechblog.com/announcing-bpftop-streamlining-ebpf-performance-optimization-6a727c1ae2e5)
 
 ## X.2 业界博客
 -------

@@ -71,7 +71,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 ## 2.1 debug
 -------
 
-systrace, perfetto, drgn
+systrace, perfetto, drgn, systemtep
 
 [All my favorite tracing tools: eBPF, QEMU, Perfetto, new ones I built and more](https://thume.ca/2023/12/02/tracing-methods) 将 eBPF 跟踪与 Perfetto 可视化相结合, 通过使用一些巧妙的技巧来诊断大量跟踪中的尾部延迟问题.
 
@@ -92,6 +92,13 @@ Intel 发布的 ControlFlag 用机器学习来发现代码中的错误, 支持 C
 [Intel Makes ControlFlag Open-Source For Helping To Detect Bugs In Code](https://www.phoronix.com/scan.php?page=news_item&px=Intel-ControlFlag-Open-Source)
 
 [Intel's ControlFlag 1.2 Released To Use AI To Provide Full Support For Spotting C++ Bugs](https://www.phoronix.com/scan.php?page=news_item&px=Intel-ControlFlag-1.2).
+
+*  systemtap
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2019/05/29 | Alex Feng <lifeng1519@gmail.com> | Kernel Visualization Tool | 该工具用于分析 Linux/Solaris/BSD 内核指定流程的调用关系链, 并绘制特定函数的调用图，帮助开发者理解代码. | ☐ | [Kernel Visualization Tool](https://github.com/x2c3z4/kernel_visualization) |
+
 
 ## 2.2 call kernel func from userspace
 -------
@@ -217,6 +224,13 @@ Arch Linux 在 2022 年 5 月份开始了也提供了他们的 [debuginfod 调�
 | [kmon](https://github.com/orhun/kmon) | NA | 用于管理 Linux 内核模块和监视内核活动的终端工具, 使用 Rust 编写. |
 | [Sysinternals/ProcDump-for-Linux](https://github.com/Sysinternals/ProcDump-for-Linux) | [sysinternals](https://www.sysinternals.com) | ProcDump 是 windows 下一个实用维测工具, 其主要用途是监视应用程序的 CPU 峰值, 并在出现峰值期间生成故障转储. 这个为官方 LINUX 移植版本. |
 
+
+
+# 5 性能分析工具
+-------
+
+
+[Intel Makes Continuous Profiler Open-Source To Help Improve CPU Performance](https://www.phoronix.com/news/Intel-Continuous-Profiler-OSS)
 
 
 <br>

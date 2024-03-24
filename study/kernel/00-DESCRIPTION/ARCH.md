@@ -133,7 +133,7 @@ v5.7 引入了拆分锁检测的支持, 这依赖于 x86_64 intel CPU 遇到拆�
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/10/06 | Xin Li <xin3.li@intel.com> | [Enable LKGS instruction](https://lore.kernel.org/all/20221006154041.13001-1-xin3.li@intel.com) | [Intel Preps The Linux Kernel For LKGS - Part Of FRED](https://www.phoronix.com/news/Intel-LKGS-Linux-Patches) | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20221006154041.13001-1-xin3.li@intel.com) |
-| 2022/12/19 | Xin Li <xin3.li@intel.com> | [x86: enable FRED for x86-64](https://lore.kernel.org/all/20221220063658.19271-1-xin3.li@intel.com) | [Intel Sends Out Initial Linux Kernel Patches For FRED](https://www.phoronix.com/news/Intel-FRED-Linux-Patches) | v1 ☐☑✓ | [LORE v1,0/32](https://lore.kernel.org/all/20221220063658.19271-1-xin3.li@intel.com) |
+| 2022/12/19 | Xin Li <xin3.li@intel.com> | [x86: enable FRED for x86-64](https://lore.kernel.org/all/20221220063658.19271-1-xin3.li@intel.com) | [Intel Sends Out Initial Linux Kernel Patches For FRED](https://www.phoronix.com/news/Intel-FRED-Linux-Patches) 和 [Intel FRED Merged For Linux 6.9 As An Important Improvement With Future CPUs](https://www.phoronix.com/news/Intel-FRED-Merged-Linux-6.9). | v1 ☐☑✓ | [LORE v1,0/32](https://lore.kernel.org/all/20221220063658.19271-1-xin3.li@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v13,0/35](https://lore.kernel.org/all/20231205105030.8698-1-xin3.li@intel.com) |
 
 
 
@@ -261,6 +261,7 @@ ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如
 | 2024/01/31 | Stanislaw Gruszka <stanislaw.gruszka@linux.intel.com> | [thermal/netlink/intel_hfi: Enable HFI feature only when required](https://lore.kernel.org/all/20240131120535.933424-1-stanislaw.gruszka@linux.intel.com) | 该补丁集仅在有用户空间实体侦听热网络链接事件时才启用 HFI. 引入了一个 netlink 通知, 它与 netlink_has_listners()检查一起, 允许驱动程序根据实际用户空间消费者的存在发送 netlink 多播事件. 此功能通过允许在不需要时禁用功能来优化资源使用. 然后在 intel_hif 驱动程序中实现通知机制, 用于动态禁用硬件反馈接口 (HFI). 通过实现 netlink 通知回调, 驱动程序现在可以根据实际需求启用或禁用 HFI, 特别是当用户空间应用程序(如英特尔速度选择或英特尔低功耗守护进程) 利用与性能和能效功能相关的事件时. 在有 Intel HFI 但没有安装用户空间组件的机器上, 我们可以节省大量的 CPU 周期. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240131120535.933424-1-stanislaw.gruszka@linux.intel.com) |
 | 2024/02/02 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [thermal: intel: hfi: Prework for the virtualization of HFI](https://lore.kernel.org/all/20240203040515.23947-1-ricardo.neri-calderon@linux.intel.com) | 用于 [支持 IPC 类任务的调度](https://lore.kernel.org/all/20230613042422.5344-1-ricardo.neri-calderon@linux.intel.com) 的基础 <br>1. 重新组织 HFI 驱动程序的部分, 以便于实现虚拟 HFI 表.<br>2. 引入了 ITD 类的概念并启用了 ITD.<br>3. 增加了对重置当前任务的 ITD 分类历史的支持, 以便在上下文切换期间使用. HFI 的虚拟化要求在系统中无条件启用 HFI 和 ITD. 这与 Stanislaw 的补丁集 [thermal/netlink/intel_hfi: Enable HFI feature only when required](https://lore.kernel.org/all/20240131120535.933424-1-stanislaw.gruszka@linux.intel.com) 存在冲突. | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20240203040515.23947-1-ricardo.neri-calderon@linux.intel.com) |
 | 2024/02/03 | Zhao Liu <zhao1.liu@linux.intel.com> | [Intel Thread Director Virtualization](https://lore.kernel.org/all/20240203091214.411862-1-zhao1.liu@linux.intel.com) | 以虚拟化硬件反馈接口 (HFI) 和英特尔线程控制器(ITD), 从而为使用 ITD 进行调度的虚拟机带来好处. 他的实验表明, 在某些工作负载和配置中, 性能提高了 14%. [Intel Thread Director Virtualization Patches Boost Some Workloads By ~14%](https://www.phoronix.com/news/Intel-Thread-Director-Virt) | v1 ☐☑✓ | [LORE v1,0/26](https://lore.kernel.org/all/20240203091214.411862-1-zhao1.liu@linux.intel.com)|
+| 2024/02/23 | Stanislaw Gruszka <stanislaw.gruszka@linux.intel.com> | [thermal/netlink/intel_hfi: Enable HFI feature only when required](https://lore.kernel.org/all/20240223155942.60813-1-stanislaw.gruszka@linux.intel.com) | 英特尔 HFI 驱动程序可以在需要时启用它, 从而"节省大量 CPU 周期". 仅在有用户空间使用者处于活动状态时启用它. 如果英特尔 Speed Select 或英特尔低功耗守护程序正在运行, 英特尔 HFI 接口将被激活, 但如果不是, 它将被禁用, 从而显然可以节省大量 CPU 资源. 参见 phoronix 报道 [英特尔 HFI 驱动程序可以“节省大量 CPU 周期”，只需在需要时才启用自身](https://www.phoronix.com/news/Intel-HFI-Enable-Disable). | v4 ☐☑✓ | [LORE v4,0/3](https://lore.kernel.org/all/20240223155942.60813-1-stanislaw.gruszka@linux.intel.com) |
 
 
 
@@ -468,6 +469,11 @@ SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安�
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/06/07 | Nikolay Borisov <nik.borisov@suse.com> | [Add ability to disable ia32 at boot time](https://lore.kernel.org/all/20230607072936.3766231-1-nik.borisov@suse.com) | [Linux Patches Posted That Would Allow Boot-Time Disabling Of x86 32-bit Processes](https://www.phoronix.com/news/Linux-Boot-Disable-32-bit) | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20230607072936.3766231-1-nik.borisov@suse.com) |
 
+
+## 1.11 X86S
+-------
+
+[Intel Continues Prepping The Linux Kernel For X86S](https://www.phoronix.com/news/Linux-6.9-More-X86S)
 
 
 # 2 ARM64
@@ -822,6 +828,8 @@ ARM v8.2 引入了 [UAO](https://community.arm.com/arm-community-blogs/b/archite
 # 4 CPU 漏洞
 -------
 
+[GhostRace Detailed - Speculative Race Conditions Affecting All Major CPUs / ISAs](https://www.phoronix.com/news/CPU-Speculative-GhostRace)
+
 ## 4.1 Straight Line Speculation
 -------
 
@@ -847,8 +855,17 @@ SLS 被认为是 Spectre 漏洞的变体, 但二者的攻击范围略有不同, 
 | 2021/12/04 | Peter Zijlstra <peterz@infradead.org> | [x86: Add stright-line-speculation mitigations](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e463a09af2f0677b9485a7e8e4e70b396b2ffb6f) | 20211204134338.760603010@infradead.org | v2 ☑✓ 5.17-rc1 | [LORE v2,0/6](https://lore.kernel.org/all/20211204134338.760603010@infradead.org) |
 
 
-## 4.2  Control-Flow Enforcement Technology (CET)
+## 4.2 Control-Flow Enforcement Technology (CET)
 -------
+
+
+
+## 4.X 通用机制
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/11/21 | Breno Leitao <leitao@debian.org> | [x86/bugs: Add a separate config for each mitigation](https://lore.kernel.org/all/20231121160740.1249350-1-leitao@debian.org) | CONFIG_SPECULATION_MITIGATIONS 相关的 MITIGATION 特性进行了细粒度控制. <br>1. 用户可以只选择对其工作负载很重要的缓解措施. <br>2. 用户和开发人员可以选择禁用破坏程序集代码生成、使其难以读取的缓解措施.<br>3. 可读性更强, 所有特性都整改为带明显的 MITIGATION 前缀. 参见 [Linux 6.9 Making It Easier Managing Security Mitigation Options](https://www.phoronix.com/news/Linux-6.9-CONFIG-MITIGATIONS). | v6 ☐☑✓ | [LORE v6,0/13](https://lore.kernel.org/all/20231121160740.1249350-1-leitao@debian.org) |
 
 # 5 benchmark
 -------
@@ -930,6 +947,10 @@ Arm True Random Number Generator Firmware Interface 1.0 于去年发布, 最终�
 | 2021/11/21 | "Stephan Müller" <smueller@chronox.de> | [/dev/random - a new approach](https://lore.kernel.org/lkml/2036923.9o76ZdvQCi@positron.chronox.de) | 随机数实现改进. | v1 ☐ | [Patchwork v43 00/15](https://lore.kernel.org/lkml/2036923.9o76ZdvQCi@positron.chronox.de) |
 | 2022/02/23 | Jason A. Donenfeld <Jason@zx2c4.com> | [VM fork detection for RNG](https://lore.kernel.org/all/20220223220456.666193-1-Jason@zx2c4.com) | [Linux RNG Improvements Aim For Better VM Security](https://www.phoronix.com/scan.php?page=news_item&px=Linux-RNG-VM-Forks) | v2 ☐☑✓ | [LORE v2,0/2](https://lore.kernel.org/all/20220223220456.666193-1-Jason@zx2c4.com) |
 
+### 6.2.3 A RDRAND followup
+-------
+
+[A RDRAND followup](https://lwn.net/Articles/963281)
 
 
 ## 6.3 总线
@@ -1157,16 +1178,25 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 
 [AMD P-State Preferred Core Support For Linux Tried A 13th Time](https://www.phoronix.com/news/AMD-P-State-Preferred-Core-13)
 
-[](https://www.phoronix.com/news/AMD-State-Preferred-Core-Linux)
-
 [AMD P-State Preferred Core Support Coming With Linux 6.9](https://www.phoronix.com/news/Linux-6.9-AMD-P-State-Preferred)
 
 
 磁芯频率受半导体工艺变化的影响. 并非所有内核都能够达到最大频率, 具体取决于基础架构限制. 因此, AMD 重新定义了硬件最大频率的概念. 这意味着一小部分内核可以达到最大频率. 为了找到给定场景的最佳进程调度策略, 操作系统需要通过 CPPC 接口的最高性能功能寄存器来了解平台通知的核心排序.
 
+AMD-pstate 首选核心的早期实现仅支持静态核心排名和目标性能. 现在, 它能够根据工作负载和平台条件动态更改首选核心, 并考虑到热量和老化.
+
+AMD-pstate 驱动程序利用 ITMT 体系结构提供的功能和数据结构, 使调度器倾向于在内核上进行调度, 从而可以以较低的电压获得更高的频率. 我们称它为 "首选核心(AMD-pstate preferred core)".
+
+1. 通过调用 sched_set_itmt_core_prio() 来设置优先级, 调用 sched_set_itmt_support() 来启用 ITMT 特性. AMD-pstate 驱动使用最高的性能值来表示 CPU 的优先级. 数值越高优先级越高.
+
+2. AMD-pstate 驱动程序将在引导时提供初始核心排序. 它依靠 CPPC 接口将内核排名传递给操作系统和调度器, 以确保操作系统首先选择性能最高的内核来调度进程. 当 AMD-pstate 驱动程序接收到具有最高性能变化的消息时, 它将更新核心排名.
+
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2023/08/15 | Meng Li <li.meng@amd.com> | [AMD Pstate Preferred Core](https://lore.kernel.org/all/20230815061546.3556083-1-li.meng@amd.com) | TODO | v2 ☐☑✓ | [LORE v2,0/7](https://lore.kernel.org/all/20230815061546.3556083-1-li.meng@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v13,0/7](https://lore.kernel.org/all/20240112092531.789841-1-li.meng@amd.com) |
+| 2023/08/15 | Meng Li <li.meng@amd.com> | [amd-pstate preferred core](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=dfddf34a3f0d45483f5b3e46c2e7bda173796f1b) | [AMD Pstate Preferred Core](https://lore.kernel.org/all/20230815061546.3556083-1-li.meng@amd.com) 以及 [AMD P-State Preferred Core Submitted For Linux 6.9 While Intel Meteor Lake Gets Tuned](https://www.phoronix.com/news/AMD-P-State-Preferred-Core-69) | v2 ☐☑✓ 6.9-rc1 | [LORE v2,0/7](https://lore.kernel.org/all/20230815061546.3556083-1-li.meng@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v13,0/7](https://lore.kernel.org/all/20240112092531.789841-1-li.meng@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v14,0/7](https://lore.kernel.org/lkml/20240119090502.3869695-1-li.meng@amd.com) |
+| 2024/03/18 | Perry Yuan <perry.yuan@amd.com> | [AMD Pstate Driver Core Performance Boost](https://lore.kernel.org/all/cover.1710754236.git.perry.yuan@amd.com) | 该补丁集系列为 AMD pstate 驱动程序增加了核心性能提升 (core performance boost) 功能, 包括被动, 引导和主动模式支持. 用户可以使用新的 sysfs 条目: "/sys/devices/system/cpu/amd_pstate/cpb_boost" 更改核心频率 boost 控制. 由于与支持所有模式的新 cpb_boost 的功能冲突, 传统的 boost 接口已被删除. 参见 [AMD Posts Updated Linux Patches For P-State Core Performance Boost](https://www.phoronix.com/news/AMD-Core-Performance-Boost-6). | v6 ☐☑✓ | [LORE v6,0/6](https://lore.kernel.org/all/cover.1710754236.git.perry.yuan@amd.com) |
+| 2024/03/08 | Sibi Sankar <quic_sibis@quicinc.com> | [cpufreq: scmi: Add boost frequency support](https://lore.kernel.org/all/20240308104410.385631-1-quic_sibis@quicinc.com) | [ARM SCMI CPUFreq Driver Enabling Boost Support By Default With Linux 6.9](https://www.phoronix.com/news/ARM-SCMI-CPUFreq-Boost-Linux-69). | v3 ☐☑✓ | [LORE v3,0/2](https://lore.kernel.org/all/20240308104410.385631-1-quic_sibis@quicinc.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/2](https://www.phoronix.com/news/Linux-69-RAM-Bandwidth-Throttle) |
 
 
 ## 6.13 Device
@@ -1183,6 +1213,9 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/08/29 | Tony Luck <tony.luck@intel.com> | [Add support for Sub-NUMA cluster (SNC) systems](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com) | [Intel Fixing Up Sub-NUMA Clustering For Linux So That It Behaves With RDT](https://www.phoronix.com/news/Intel-SNT-RDT-Fixing-Up) | v5 ☐☑✓ | [LORE v5,0/8](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com) |
+| 2023/12/07 | Tony Luck <tony.luck@intel.com> | [x86/resctrl: mba_MBps enhancements](https://lore.kernel.org/all/20231207195613.153980-1-tony.luck@intel.com) | TODO | v6 ☐☑✓ | [LORE v6,0/3](https://lore.kernel.org/all/20231207195613.153980-1-tony.luck@intel.com) |
+| 2024/02/13 | James Morse <james.morse@arm.com> | [x86/resctrl: monitored closid+rmid together, separate arch/fs locking](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/log/?id=fb700810d30b9eb333a7bf447012e1158e35c62f) | [Improved Memory Bandwidth Throttling Behavior For Linux 6.9](https://www.phoronix.com/news/Linux-69-RAM-Bandwidth-Throttle) | v9 ☐☑✓ 6.9-rc1 | [LORE v9,0/24](https://lore.kernel.org/all/20240213184438.16675-1-james.morse@arm.com) |
+
 
 
 <br>
