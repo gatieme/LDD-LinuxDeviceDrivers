@@ -990,6 +990,8 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/03/21 | Rasmus Villemoes <linux@rasmusvillemoes.dk> | [background initramfs unpacking, and CONFIG_MODPROBE_PATH](https://lore.kernel.org/patchwork/patch/1394812) | 启动阶段异步解压 initramfs. 可以加速系统启动. | v1 ☑ [5.13-rc1](https://kernelnewbies.org/Linux_5.13) | [Patchwork](https://lore.kernel.org/patchwork/patch/1394812) |
 | 2022/11/02 | Stuart Hayes <stuart.w.hayes@gmail.com> | [cpufreq: acpi: Defer setting boost MSRs](https://lore.kernel.org/all/20221102195957.82871-1-stuart.w.hayes@gmail.com) | [Deferred Enabling Of ACPI CPUFreq Boost Support Can Help Boot Times For Large Servers](https://www.phoronix.com/news/CPUFreq-Defer-Boost-MSRs) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221102195957.82871-1-stuart.w.hayes@gmail.com) |
+| 2024/02/22 | Gang Li <gang.li@linux.dev> | [hugetlb: parallelize hugetlb page init on boot](https://lore.kernel.org/all/20240222140422.393911-1-gang.li@linux.dev) | 用于在启动时并行化 HugeTLB 页面初始化. 对于具有大量 HugeTLB 页面的系统, 这可以大大缩短启动时间. 参见 phoronix 报道 [Linux 6.9 Will Boot Much Faster For Systems With Large Amounts Of RAM](https://www.phoronix.com/news/Linux-6.9-RAM-HugeTLB-Boot-Fast). | v6 ☐☑✓ | [LORE v6,0/8](https://lore.kernel.org/all/20240222140422.393911-1-gang.li@linux.dev) |
+
 
 ### 17.1.2 并行 CPU BringUp
 -------
@@ -1068,6 +1070,7 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/09/27 | Miguel Ojeda <ojeda@kernel.org> | [Rust support](https://lore.kernel.org/all/20220927131518.30000-1-ojeda@kernel.org) | TODO| v10 ☐☑✓ | [LORE 00/13](https://lore.kernel.org/all/20210414184604.23473-1-ojeda@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v10,0/27](https://lore.kernel.org/all/20220927131518.30000-1-ojeda@kernel.org) |
 | 2024/02/27 | Daniel Almeida <daniel.almeida@collabora.com> | [Rewrite the VP9 codec library in Rust](https://lore.kernel.org/all/20240227215146.46487-1-daniel.almeida@collabora.com) | Collabora 的 Daniel Almeida 发布了 Linux 内核的 Video 4 Linux 2 (V4L2) 子系统中 VP9 编解码器库代码的重写. 在使用 Rust 而不是现有的 C 代码时, 这应该会产生更好的内存安全性, 并更好地抵御现有代码中的潜在问题. 参见 phoronix 报道 [Linux's V4L2 VP9 Codec Kernel Code Rewritten In Rust For Better Memory Safety](https://www.phoronix.com/news/VP9-Linux-Kernel-Rust-V4L2-RFC). | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20240227215146.46487-1-daniel.almeida@collabora.com) |
+| 2024/03/27 | Wedson Almeida Filho <wedsonaf@gmail.com> | [In-place module initialisation](https://lore.kernel.org/all/20240327032337.188938-1-wedsonaf@gmail.com) | [Microsoft Engineer Sends Rust Linux Kernel Patches For In-Place Module Initialization](https://www.phoronix.com/news/Linux-Rust-In-Place-Module-Init) | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20240327032337.188938-1-wedsonaf@gmail.com) |
 
 
 ## 22.2 C++

@@ -475,7 +475,6 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 | 2014/10/17 | Paul Gortmaker <paul.gortmaker@windriver.com> | [simple wait queue support (from -rt)](https://lore.kernel.org/all/1413591782-23453-1-git-send-email-paul.gortmaker@windriver.com) | Simple wait queues 支持在 preempt-rt 内核中已经存在了相当长的一段时间 (至少从 3.4 开始). 在今年的 RT 峰会上, 我们一致认为, 对其进行最终清理并将其纳入主流是有意义的. 它类似于普通的等待队列支持, 但没有一些使用较少的功能, 与普通的等待排队相比, 占用空间更小. 对于非 RT, 我们仍然可以从足迹减少系数中受益. 在本系列中, 我们将简单的等待队列部署在两个位置: (1) 用于完成量, (2) 用于 RCU 处理. 参考 LWN 报道 [Simple wait queues](https://lwn.net/Articles/577370). | v2 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/1386810399-8973-1-git-send-email-paul.gortmaker@windriver.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/all/1413591782-23453-1-git-send-email-paul.gortmaker@windriver.com) |
 | 2016/02/19 | Daniel Wagner <wagi@monom.org> | [Simple wait queue support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=abedf8e2419fb873d919dd74de2e84b510259339) | Simple wait queues 支持. | v8 ☐☑✓ 4.6-rc1 | [LORE v8,0/5](https://lore.kernel.org/all/1455871601-27484-1-git-send-email-wagi@monom.org) |
 
-| 2023/05/18 | Tejun Heo <tj@kernel.org> | [workqueue: Improve unbound workqueue execution locality](https://lore.kernel.org/all/20230519001709.2563-1-tj@kernel.org) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230519001709.2563-1-tj@kernel.org) |
 
 
 | 2023/06/14 | Liupu Wang <wangliupu@loongson.cn> | [LoongArch: Add SMT (Simultaneous Multi-Threading) support](https://lore.kernel.org/all/20230614093755.88881-1-wangliupu@loongson.cn) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230614093755.88881-1-wangliupu@loongson.cn) |
@@ -603,6 +602,16 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 [A Fix Is On The Way For A Previously-Reported Linux 5.18 Performance Regression](https://www.phoronix.com/news/Linux-5.18-NUMA-Regression-Fix)
 
 
+[[LSF/MM/BPF TOPIC] TAO: THP Allocator Optimizations](https://lore.kernel.org/all/20240229183436.4110845-1-yuzhao@google.com) 致力于使透明大页面的分配尽可能高效.
 
+ZONE_NOSPLIT 将防止大页面的拆分, 其中连续的页面块不能拆分到给定大小以下, 它的存在是为了帮助系统维护大块内存(用于透明的大页面等), 这将使内核不必在以后重新组装它们, 而不必经历持续的压缩过程.
 
-[Linux 6.9 Has A Big Rework To CPU Timers - Some Power/Performance Benefits](https://www.phoronix.com/news/Linux-6.9-Timers-Rework)
+ZONE_NOMERGE 具有最小块大小属性, 但也不允许将页面块合并为更大的组; 因此, 它只能容纳单一大小的块. 为内核创建接近第二个本机页面大小的内容, 使较大的页面在有意义的情况下可用, 同时仍保持较小的页面可用.
+
+从某种意义上说, 这项工作可以看作是那些希望看到 Linux 整体使用更大页面大小的人和那些担心相关的内部碎片成本的人之间的一种妥协.
+
+但是, 对于透明大页, 内部碎片仍然是一个问题; 进程可能分配了这样的页面, 但只使用其中的一小部分内存. 当前的内核将尝试通过将大页面拆分回基本页面来应对这种情况, 从而允许将未使用的部分重新分配到其他地方.
+
+位于 (或更高) ZONE_NOSPLIT 的页面显然不会发生拆分; 这正是 Zone 存在要强制执行的策略. 取而代之的是, 赵的补丁集引入了 "粉碎(shattering)" 大页面的概念. 如果页面被破坏, 其内容将被迁移(复制) 到位于合适区域的较小页面; 一旦该过程完成, 可以将保持完整的原始大页面分配给其他用途. 粉碎比分割(splitting)更昂贵; Yu Zhao 认为, 对于未正确使用其内存的进程来说, 这是一个适当的成本; "在零售术语中, 购买的退货需要支付进货费, 原始商品可以转售".
+
+另一个声称的 ZONE_NOMERGE 优点是它促进了巨大的 vmemmap 优化 (HVO), 这在 2020 年已经介绍过了. 简而言之, 这个技巧允许内核恢复用于保存 page 大页面中许多页面结构的内存. 在使用大量大页面的系统中, 这种优化可以节省大量内存. 在当前的内核中, HVO 只能与 hugetlbfs 机制一起使用, 该机制不透明, 通常只在特殊情况下使用.  ZONE_NOMERGE 但是, 页面被组织在固定块中, 就像 hugetlbfs 页面一样, 因此很容易将 HVO 与它们一起使用.

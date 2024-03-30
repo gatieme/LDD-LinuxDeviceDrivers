@@ -5133,6 +5133,28 @@ Andrea 建议将工作放入工作队列中.
 | 2015/07/02 | Vlastimil Babka <vbabka@suse.cz> | [Outsourcing compaction for THP allocations to kcompactd](https://lwn.net/Articles/650051) | 本 RFC 系列是处理 THP 分配延迟尝试的另一个演进. 与前一个版本 [Outsourcing page fault THP allocations to khugepaged](https://lwn.net/Articles/643891) 的主要区别是借用了每个节点的 kcompactd. 试着把所有东西都放进 khugepaged 太笨拙了, 而 kcompactd 可以有更多的好处. 作者用 mmtests/thpscale 对它进行了简单的测试, 但是目前效果并不明显. | RFC ☐ | [PatchWork RFC v2,0/4](https://lore.kernel.org/lkml/1435826795-13777-1-git-send-email-vbabka@suse.cz) |
 
 
+#### 7.2.3.3 TAO: THP Allocator Optimizations
+-------
+
+
+[[LSF/MM/BPF TOPIC] TAO: THP Allocator Optimizations](https://lore.kernel.org/all/20240229183436.4110845-1-yuzhao@google.com) 致力于使透明大页面的分配尽可能高效. 参见 LWN 相关报道 [Formalizing policy zones for memory](https://lwn.net/Articles/964239).
+
+ZONE_NOSPLIT 将防止大页面的拆分, 其中连续的页面块不能拆分到给定大小以下, 它的存在是为了帮助系统维护大块内存(用于透明的大页面等), 这将使内核不必在以后重新组装它们, 而不必经历持续的压缩过程.
+
+ZONE_NOMERGE 具有最小块大小属性, 但也不允许将页面块合并为更大的组; 因此, 它只能容纳单一大小的块. 为内核创建接近第二个本机页面大小的内容, 使较大的页面在有意义的情况下可用, 同时仍保持较小的页面可用.
+
+从某种意义上说, 这项工作可以看作是那些希望看到 Linux 整体使用更大页面大小的人和那些担心相关的内部碎片成本的人之间的一种妥协.
+
+但是, 对于透明大页, 内部碎片仍然是一个问题; 进程可能分配了这样的页面, 但只使用其中的一小部分内存. 当前的内核将尝试通过将大页面拆分回基本页面来应对这种情况, 从而允许将未使用的部分重新分配到其他地方.
+
+位于 (或更高) ZONE_NOSPLIT 的页面显然不会发生拆分; 这正是 Zone 存在要强制执行的策略. 取而代之的是, 赵的补丁集引入了 "粉碎(shattering)" 大页面的概念. 如果页面被破坏, 其内容将被迁移(复制) 到位于合适区域的较小页面; 一旦该过程完成, 可以将保持完整的原始大页面分配给其他用途. 粉碎比分割(splitting)更昂贵; Yu Zhao 认为, 对于未正确使用其内存的进程来说, 这是一个适当的成本; "在零售术语中, 购买的退货需要支付进货费, 原始商品可以转售".
+
+另一个声称的 ZONE_NOMERGE 优点是它促进了巨大的 vmemmap 优化 (HVO), 这在 2020 年已经介绍过了. 简而言之, 这个技巧允许内核恢复用于保存 page 大页面中许多页面结构的内存. 在使用大量大页面的系统中, 这种优化可以节省大量内存. 在当前的内核中, HVO 只能与 hugetlbfs 机制一起使用, 该机制不透明, 通常只在特殊情况下使用.  ZONE_NOMERGE 但是, 页面被组织在固定块中, 就像 hugetlbfs 页面一样, 因此很容易将 HVO 与它们一起使用.
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/02/29 | Yu Zhao <yuzhao@google.com> | [TAO: THP Allocator Optimizations](https://lore.kernel.org/all/20240229183436.4110845-1-yuzhao@google.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240229183436.4110845-1-yuzhao@google.com) |
+
 
 ### 7.2.4 improve THP collapse rate
 -------
@@ -5454,6 +5476,7 @@ khugepaged 处理流程
 | 2022/10/25 | Nathan Chancellor <nathan@kernel.org> | [mm/khugepaged: Initialize index and nr in collapse_file()](https://patchwork.kernel.org/project/linux-mm/patch/20221025173407.3423241-1-nathan@kernel.org/) | 688749 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221025173407.3423241-1-nathan@kernel.org) |
 | 2022/10/26 | Johannes Weiner <hannes@cmpxchg.org> | [[v2] mm: vmscan: split khugepaged stats from direct reclaim stats](https://patchwork.kernel.org/project/linux-mm/patch/20221026180133.377671-1-hannes@cmpxchg.org/) | 689123 | v2 ☐☑ | [LORE v2,0/1](https://lore.kernel.org/r/20221026180133.377671-1-hannes@cmpxchg.org) |
 | 2022/11/25 | Jann Horn <jannh@google.com> | [[v3,1/3] mm/khugepaged: Take the right locks for page table retraction](https://patchwork.kernel.org/project/linux-mm/patch/20221125213714.4115729-1-jannh@google.com/) | 可以在 mmap 锁、附加到 vma 的 anon_vm 的锁或 vma 的 address_space 的锁下对 vma 映射的地址范围进行分页表遍历. 只需要持有其中一个, 并且不需要以独占模式持有. | v3 ☐☑ | [LORE v3,0/3](https://lore.kernel.org/r/20221125213714.4115729-1-jannh@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/3](https://lore.kernel.org/r/20221128180252.1684965-1-jannh@google.com) |[LORE v4,0/3](https://lore.kernel.org/r/20221128180252.1684965-1-jannh@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/3](https://lore.kernel.org/r/20221129154730.2274278-1-jannh@google.com) |
+
 
 
 ## 7.3 复合页 Compound Page
@@ -7603,6 +7626,7 @@ OS 判断如果是在用户态触发这个硬件内存错误时, 处理方式是
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2022/01/30 | Edgecombe, Rick P <rick.p.edgecombe@intel.com> | [Shadow stacks for userspace](https://patchwork.kernel.org/project/linux-mm/cover/20220130211838.8382-1-rick.p.edgecombe@intel.com) | [User-space shadow stacks (maybe) for 6.4](https://lwn.net/Articles/926649), [Intel Shadow Stack Finally Merged For Linux 6.6](https://www.phoronix.com/news/Intel-Shadow-Stack-Linux-6.6). | v1 ☐☑ | [PatchWork v1,0/35](https://lore.kernel.org/r/20220130211838.8382-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/39](https://lore.kernel.org/r/20220929222936.14584-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/37](https://lore.kernel.org/r/20221104223604.29615-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/39](https://lore.kernel.org/r/20221203003606.6838-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/39](https://lore.kernel.org/r/20230119212317.8324-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/41](https://lore.kernel.org/r/20230218211433.26859-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/41](https://lore.kernel.org/r/20230227222957.24501-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,0/40](https://lore.kernel.org/r/20230319001535.23210-1-rick.p.edgecombe@intel.com) |
 | 2023/07/16 | Mark Brown <broonie@kernel.org> | [arm64/gcs: Provide support for GCS in userspace](https://lore.kernel.org/all/20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org) | 影子堆栈的 64 位 Arm 实现称为"受保护的控制堆栈"("guarded control stack/GCS), 参见 LWN 报道 [Shadow stacks for 64-bit Arm systems](https://lwn.net/Articles/940403). | v1 ☐☑✓ | [LORE v1,0/35](https://lore.kernel.org/all/20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/36](https://lore.kernel.org/all/20230731-arm64-gcs-v3-0-cddf9f980d98@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/36](https://lore.kernel.org/r/20230807-arm64-gcs-v4-0-68cfa37f9069@kernel.org) |
+| 2024/03/15 | H.J. Lu <hjl.tools@gmail.com> | [x86/shstk: Enable shadow stack for x32](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2883f01ec37dd8668e7222dfdb5980c86fdfe277) | [Linux Enabling Shadow Stack Support For x32](https://www.phoronix.com/news/Linux-x32-Shadow-Stacks) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240315140433.1966543-1-hjl.tools@gmail.com) |
 
 
 
