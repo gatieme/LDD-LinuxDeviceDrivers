@@ -593,40 +593,7 @@ MADV_PAGEOUT 在某种程度上类似于 MADV_DONTNEED, 它提示内核当前不
 | 2022/04/21 | Tong Tiangen <tongtiangen@huawei.com> | [mm: page_table_check: add support on arm64 and riscv](https://patchwork.kernel.org/project/linux-mm/cover/20220317141203.3646253-1-tongtiangen@huawei.com) | 页面表检查通过将新页面的页面表条目 (PTE, PMD 等) 添加到表中, 在用户空间访问新页面时执行额外的验证 X86 支持它.<br> 这个补丁集做了一些简单的更改, 使其更容易支持新的体系结构, 然后我们在 ARM64 和 RICV 上支持这个功能. | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20220317141203.3646253-1-tongtiangen@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/20220322144447.3563146-1-tongtiangen@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/4](https://lore.kernel.org/r/20220418034444.520928-1-tongtiangen@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/5](https://lore.kernel.org/r/20220421082042.1167967-1-tongtiangen@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/6](https://lore.kernel.org/r/20220507110114.4128854-1-tongtiangen@huawei.com) |
 | 2022/05/31 | Matthew Wilcox <willy@infradead.org> | [Allocate and free frozen pages](https://patchwork.kernel.org/project/linux-mm/cover/20220531150611.1303156-1-willy@infradead.org/) | 我们已经有了冻结页面的能力 (安全地将其引用计数减少到 0). 一些用户(如 slab) 希望能够分配冻结的页面并避免触及引用计数. 它还可以避免在这些页面上进行虚假的临时引用. | v1 ☐☑ | [LORE v1,0/6](https://lore.kernel.org/r/20220531150611.1303156-1-willy@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/16](https://lore.kernel.org/r/20220809171854.3725722-1-willy@infradead.org) |
 
-### 1.7.4 Local Page Tables
--------
-
-
-#### 1.7.4.1 [Mitosis: Transparently Replicating Page Tables](https://research.vmware.com/projects/mitosis-transparently-self-replicating-page-tables)
--------
-
-传统的 NUMA Balacning 当前策略只涉及: Memory Migration(将进程的私有内存迁移到进程所在的 NUMA Node 上) 和 Task Placement(将进程迁移到其频繁访问的内存所在的 NUMA Node 上). 但是页表本身也是在内存中存储的, 迁移的过程中, 并没有考虑对页表进行迁移, 因此页表可能在远端节点上. 这样如果 TLB 都是 Hint 的, 倒是影响不太大, 但是如果存在大量的 TLB Miss, 那么每次 Page Table Walk 都不得不去访问访问远端的页表.
-
-那么理论上, NUMA 系统下, 页表在内存中的存储位置, 对性能也有较大的影响. Mitosis 团队测试发现, 在 4 插槽 Intel Haswell 机器上, 对于 HPCC RandomAccess 基准测试工作负载, 由于页表放置在远端的 NUMA NODE 上导致的性能下降可能高达 3.4 倍. 虽然此工作负载的设计目的是具有较高的缓存未命中率, 但在 Redis 等 Key-Value 数据库也可以看到类似的效果, 在最坏的情况下, 性能下降可能高达 2 倍.
-
-为了减少 NUMA 机器上页表行走的远程访问开销, [Mitosis](https://www.cs.yale.edu/homes/abhishek/reto-osdi18.pdf) 设计了一种用于透明自复制页表的技术. 通过更改页表分配和管理子系统, 在 NUMA 节点上完全复制页表. 可以在每个进程的基础上启用页表复制, 从而为进程运行的每个 NUMA 节点创建和维护一个副本. 当进程计划在内核上运行时, 它会用本地 NUMA 节点的页表副本的物理地址写入内核的页表指针 (x86 处理器上的 CR3 寄存器). 每次操作系统修改页面表时, 我们都会确保更新有效地传播到所有副本页面表, 并基于所有副本(包括硬件更新的脏位和访问位) 返回一致的值.
-
-测试表明, Mitosis 可以完全缓解 HPCC RandomAccess 的性能劣化, 并将其他单线程工作负载分别提高 30% 和 15%.
-
-随后, 2021 年作者所在团队进一步扩展了 Mitosis 的设计, 以支持虚拟化环境. 通过支持 KVM 扩展, 以提高在虚拟化系统中运行的应用程序的性能. 在具有硬件支持 (扩展页表) 的虚拟环境中, 处理 TLB 未命中比在本机情况下的开销更高, 因为所需的 2D 页表遍历最多引入 24 次内存访问来解决单个 TLB 未命中. 通过修改虚拟机监控程序, 以便在 guest 操作系统下透明地执行复制, 从而使未修改的 guest 操作系统能够在 VM 中运行.
-
-[Mitosis 公开地址](https://gandhijayneel.github.io/mitosis)
-
-github 地址: [Mitosis Project](https://github.com/mitosis-project), [linux 内核](https://github.com/gandhijayneel/mitosis-linux-release), [numactl](https://github.com/gandhijayneel/mitosis-numactl-release)
-
-| 时间线 | 相关论文 |
-|:-----:|:-------:|
-| 2019 | [Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines; October, 2019; 1910.05398.pdf](https://research.vmware.com/files/attachments/0/0/0/0/0/9/5/1910.05398.pdf) |
-| 2020 | [Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines; March, 2020; aspl0359a-achermanna.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/0/3/aspl0359a-achermanna.pdf) |
-| 2021 | [Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; asplos21_vmitosis.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/8/asplos21_vmitosis.pdf)<br>[Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; vmitosis_ext_abstract.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/1/vmitosis_ext_abstract.pdf) |
-
-[Kernel-text replication on NUMA systems](https://lwn.net/Articles/956900)
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2023/05/30 | Russell King (Oracle) <linux@armlinux.org.uk> | [arm64 kernel text replication](https://lore.kernel.org/all/ZHYCUVa8fzmB4XZV@shell.armlinux.org.uk) | NUMA 系统在跨节点访问数据和指令时具有更大的延迟, 这可能导致主要执行本地节点以外访问的 CPU 核心的性能降低. 通常情况下, 当 ARM64 系统启动时, 内核最终会被放置在内存中, 每个 CPU 内核都必须从内核所在的 NUMA 节点中获取指令和数据. 这意味着在执行内核代码时, 该节点本地的 CPU 将比远程节点中的 CPU 运行得更快. 访问远程 NUMA 节点内存的延迟越高, 这些节点上的内核性能就越差.<br>如果每个节点的 RAM 中都有内核文本的本地副本, 并且每个节点都使用其内核文本的局部副本运行内核, 那么理所当然的是, 在从远程内存获取指令时, 内核将运行得更快, 因为 STALL 更少. | v1 ☐☑✓ | [LORE v1,0/17](https://lore.kernel.org/all/ZHYCUVa8fzmB4XZV@shell.armlinux.org.uk) |
-
-### 1.7.5 Shared Page Table
+### 1.7.4 Shared Page Table
 -------
 
 
@@ -645,7 +612,7 @@ Linux 进程使用不同的虚拟地址空间. 因此, 管理该地址空间状�
 | 2022/12/06 | Khalid Aziz <khalid@gonehiking.org> | [Add support for sharing page tables across processes (Previously mshare)](https://patchwork.kernel.org/project/linux-mm/cover/cover.1670287695.git.khalid.aziz@oracle.com/) | 702250 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/cover.1670287695.git.khalid.aziz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/r/cover.1682453344.git.khalid.aziz@oracle.com) |
 
 
-### 1.7.6 Reclaim unused page-table pages
+### 1.7.5 Reclaim unused page-table pages
 -------
 
 | 日期 | LWN | 翻译 |
@@ -659,7 +626,7 @@ Linux 进程使用不同的虚拟地址空间. 因此, 管理该地址空间状�
 | 2022/08/25 | Qi Zheng <zhengqi.arch@bytedance.com> | [Try to free empty and zero user PTE page table pages](https://patchwork.kernel.org/project/linux-mm/cover/20220825101037.96517-1-zhengqi.arch@bytedance.com/) | 671004 | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20220825101037.96517-1-zhengqi.arch@bytedance.com) |
 | 2023/05/29 | Hugh Dickins <hughd@google.com> | [mm: free retracted page table by RCU](https://patchwork.kernel.org/project/linux-mm/cover/35e983f5-7ed3-b310-d949-9ae8b130cdab@google.com/) | 751737 | v1 ☐☑ | [LORE v1,0/12](https://lore.kernel.org/r/35e983f5-7ed3-b310-d949-9ae8b130cdab@google.com) |
 
-### 1.7.7 get info about PTEs
+### 1.7.6 get info about PTEs
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -667,7 +634,7 @@ Linux 进程使用不同的虚拟地址空间. 因此, 管理该地址空间状�
 | 2022/11/03 | Muhammad Usama Anjum <usama.anjum@collabora.com> | [Implement IOCTL to get and optionally clear info about PTEs](https://patchwork.kernel.org/project/linux-mm/cover/20221103100736.2356351-1-usama.anjum@collabora.com/) | 本补丁系列在 procfs 上实现 IOCTL, 以获取关于页表项 (pte) 的信息. 该 ioctl 支持以下操作: 历史上, 软脏 PTE 位跟踪一直用于 CRIU 项目. procfs 接口足以查找软脏位状态, 并清除进程中所有页面的软脏位. 我们有这样的场景, 需要根据需要跟踪特定页面的软脏 PTE 位. 这就需要在进程运行时跟踪和清除内存区域的机制, 以模拟 Windows 的 getWriteWatch()系统调用. 这个系统调用被游戏用来跟踪脏页, 只处理脏页. CRIU 项目需要页面[相关信息, 如果页面是文件映射、呈现和交换的](https://lore.kernel.org/all/20221014134802.1361436-1-mdanylo@google.com). 还需要添加[所需的掩码、任意掩码、排除掩码和返回掩码](https://lore.kernel.org/all/YyiDg79flhWoMDZB@gmail.com). | v4 ☐☑ | [LORE v4,0/3](https://lore.kernel.org/r/20221103100736.2356351-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/3](https://lore.kernel.org/r/20221109102303.851281-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v12,0/5](https://lore.kernel.org/r/20230406074005.1784728-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v14,0/5](https://lore.kernel.org/r/20230418062008.1434826-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v16,0/5](https://lore.kernel.org/r/20230525085517.281529-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v19,0/5](https://lore.kernel.org/r/20230615141144.665148-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v20,0/5](https://lore.kernel.org/r/20230621072404.2918101-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v21,0/5](https://lore.kernel.org/r/20230626113156.1274521-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v22,0/5](https://lore.kernel.org/r/20230628095426.1886064-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v24,0/5](https://lore.kernel.org/r/20230711125241.1587820-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v26,0/5](https://lore.kernel.org/r/20230727093637.1262110-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v27,0/6](https://lore.kernel.org/r/20230808104309.357852-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v28,0/6](https://lore.kernel.org/r/20230809061603.1969154-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v29,0/6](https://lore.kernel.org/r/20230811180842.3141781-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v32,0/6](https://lore.kernel.org/r/20230816113049.1697849-1-usama.anjum@collabora.com)<br>*-*-*-*-*-*-*-* <br>[LORE v33,0/6](https://lore.kernel.org/r/20230821141518.870589-1-usama.anjum@collabora.com) |
 
 
-### 1.7.8 new page table range API
+### 1.7.7 new page table range API
 -------
 
 新的 API 基于一次设置 N 个页表条目. N 个条目属于相同的 PMD、相同的 folio 和相同的 VMA, 因此 ptep++ 是一个合法的操作, 锁定由您负责. 有些架构可以做得更好, 而不仅仅是一个循环, 但我一直犹豫要不要对我不太了解的架构进行太深入的更改.
@@ -693,7 +660,7 @@ Linux 进程使用不同的虚拟地址空间. 因此, 管理该地址空间状�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/09/04 | Rick Edgecombe <rick.p.edgecombe@intel.com> | [arm64: Memory Tagging Extension user-space support](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) | 使用 [PKS(Protection Keys for Supervisor)]() 对页表进行写保护. 其基本思想是使页表成为只读的, 除非在需要修改页表时临时基于每个 cpu 来修改. | v1  ☐ | [PatchWork RFC,0/4](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) |
 
-#### 1.8.2 内存标签扩展(Arm v8.5 memory tagging extension-MTE)
+### 1.8.2 内存标签扩展(Arm v8.5 memory tagging extension-MTE)
 -------
 
 [MTE 技术在 Android 上的应用](https://zhuanlan.zhihu.com/p/353807709)
@@ -714,7 +681,7 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/09/04 | Catalin Marinas <catalin.marinas@arm.com> | [arm64: Memory Tagging Extension user-space support](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) | NA | v9 ☑ 5.10-rc1 | [2019/12/11 PatchWork 00/22](https://patchwork.kernel.org/project/linux-mm/cover/20191211184027.20130-1-catalin.marinas@arm.com)<br>*-*-*-*-*-*-*-* <br>[2020/09/04 PatchWork v9,00/29](https://patchwork.kernel.org/project/linux-mm/cover/20200904103029.32083-1-catalin.marinas@arm.com) |
 
-#### 1.8.3 Linear Address Masking
+### 1.8.3 Linear Address Masking
 -------
 
 [Intel Preparing Linear Address Masking Support (LAM)](https://www.phoronix.com/scan.php?page=news_item&px=Intel-LAM-Glibc)
@@ -746,6 +713,15 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 | 2024/02/14 | Petr Tesarik <petrtesarik@huaweicloud.com> | [Introduce SandBox Mode (SBM)](https://lore.kernel.org/all/20240214113035.2117-1-petrtesarik@huaweicloud.com) | 沙盒函数将使用一组单独的页表运行, 这些页表将其地址空间限制为相关代码、输入缓冲区(映射的只读)和输出缓冲区. 因此, 该函数将无法访问系统中的任何其他内存. 这一变化具有一些深远的影响; 例如, 如果中断到达, 则必须撤消它, 以便中断处理程序可以在内核的地址空间内运行. [A sandbox mode for the kernel](https://lwn.net/Articles/963734) | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20240214113035.2117-1-petrtesarik@huaweicloud.com) |
 
 
+### 1.8.6 heap-spraying attacks
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/07/14 | GONG, Ruiqi <gongruiqi@huaweicloud.com> | [Randomized slab caches for kmalloc()](https://lore.kernel.org/all/20230714064422.3305234-1-gongruiqi@huaweicloud.com) | TODO | v5 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230714064422.3305234-1-gongruiqi@huaweicloud.com) |
+| 2024/03/05 | Kees Cook <keescook@chromium.org> | [slab: Introduce dedicated bucket allocator](https://lore.kernel.org/all/20240305100933.it.923-kees@kernel.org) | [Hardening the kernel against heap-spraying attacks](https://lwn.net/Articles/965837) | v2 ☐☑✓ | [LORE v2,0/9](https://lore.kernel.org/all/20240305100933.it.923-kees@kernel.org) |
+
+
 
 ## 1.9 page attributes
 -------
@@ -758,13 +734,65 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 | 2018/09/17 | Srivatsa S. Bhat <srivatsa.bhat@linux.vnet.ibm.com> | [x86/mm/cpa: Improve large page preservation handling](https://lore.kernel.org/patchwork/patch/987147) | 优化 页面属性(CPA) 代码中的 try_preserve_large_page(), 降低 CPU 消耗. | v3 ☑ 4.20-rc1 | [PatchWork RFC v3](https://lore.kernel.org/patchwork/patch/987147) |
 
 
-## 1.10 其他页面页表相关
+## 1.10 NUMA 多副本
+-------
+
+
+### 1.10.1 代码段多副本
+-------
+
+
+[Alibaba Cloud Linux-代码多副本功能](https://help.aliyun.com/zh/alinux/user-guide/cross-node-code-copy)
+
+
+[专利-CN101604263-一种实现操作系统核心代码段多副本运行的方法](https://aiqicha.baidu.com/patent/info?referId=91899084dc0a8bc8d928108df7a6cb86cfdd383f&pid=29798672078730)
+[专利-CN112099799B-NUMA感知的SMP系统只读代码段多副本优化方法及系统](https://www.zhangqiaokeyan.com/patent-detail/061204860298.html)
+
+[带你读《2022龙蜥社区全景白皮书》——5.3.4 跨处理器节点内存访问优化](https://developer.aliyun.com/article/1229463)
+
+[Kernel-text replication on NUMA systems](https://lwn.net/Articles/956900)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/05/30 | Russell King (Oracle) <linux@armlinux.org.uk> | [arm64 kernel text replication](https://lore.kernel.org/all/ZHYCUVa8fzmB4XZV@shell.armlinux.org.uk) | NUMA 系统在跨节点访问数据和指令时具有更大的延迟, 这可能导致主要执行本地节点以外访问的 CPU 核心的性能降低. 通常情况下, 当 ARM64 系统启动时, 内核最终会被放置在内存中, 每个 CPU 内核都必须从内核所在的 NUMA 节点中获取指令和数据. 这意味着在执行内核代码时, 该节点本地的 CPU 将比远程节点中的 CPU 运行得更快. 访问远程 NUMA 节点内存的延迟越高, 这些节点上的内核性能就越差.<br>如果每个节点的 RAM 中都有内核文本的本地副本, 并且每个节点都使用其内核文本的局部副本运行内核, 那么理所当然的是, 在从远程内存获取指令时, 内核将运行得更快, 因为 STALL 更少. | v1 ☐☑✓ | [LORE v1,0/17](https://lore.kernel.org/all/ZHYCUVa8fzmB4XZV@shell.armlinux.org.uk) |
+
+
+### 1.10.2 页表多副本
+-------
+
+#### 1.10.2.1 [Mitosis: Transparently Replicating Page Tables](https://research.vmware.com/projects/mitosis-transparently-self-replicating-page-tables)
+-------
+
+传统的 NUMA Balacning 当前策略只涉及: Memory Migration(将进程的私有内存迁移到进程所在的 NUMA Node 上) 和 Task Placement(将进程迁移到其频繁访问的内存所在的 NUMA Node 上). 但是页表本身也是在内存中存储的, 迁移的过程中, 并没有考虑对页表进行迁移, 因此页表可能在远端节点上. 这样如果 TLB 都是 Hint 的, 倒是影响不太大, 但是如果存在大量的 TLB Miss, 那么每次 Page Table Walk 都不得不去访问访问远端的页表.
+
+那么理论上, NUMA 系统下, 页表在内存中的存储位置, 对性能也有较大的影响. Mitosis 团队测试发现, 在 4 插槽 Intel Haswell 机器上, 对于 HPCC RandomAccess 基准测试工作负载, 由于页表放置在远端的 NUMA NODE 上导致的性能下降可能高达 3.4 倍. 虽然此工作负载的设计目的是具有较高的缓存未命中率, 但在 Redis 等 Key-Value 数据库也可以看到类似的效果, 在最坏的情况下, 性能下降可能高达 2 倍.
+
+为了减少 NUMA 机器上页表行走的远程访问开销, [Mitosis](https://www.cs.yale.edu/homes/abhishek/reto-osdi18.pdf) 设计了一种用于透明自复制页表的技术. 通过更改页表分配和管理子系统, 在 NUMA 节点上完全复制页表. 可以在每个进程的基础上启用页表复制, 从而为进程运行的每个 NUMA 节点创建和维护一个副本. 当进程计划在内核上运行时, 它会用本地 NUMA 节点的页表副本的物理地址写入内核的页表指针 (x86 处理器上的 CR3 寄存器). 每次操作系统修改页面表时, 我们都会确保更新有效地传播到所有副本页面表, 并基于所有副本(包括硬件更新的脏位和访问位) 返回一致的值.
+
+测试表明, Mitosis 可以完全缓解 HPCC RandomAccess 的性能劣化, 并将其他单线程工作负载分别提高 30% 和 15%.
+
+随后, 2021 年作者所在团队进一步扩展了 Mitosis 的设计, 以支持虚拟化环境. 通过支持 KVM 扩展, 以提高在虚拟化系统中运行的应用程序的性能. 在具有硬件支持 (扩展页表) 的虚拟环境中, 处理 TLB 未命中比在本机情况下的开销更高, 因为所需的 2D 页表遍历最多引入 24 次内存访问来解决单个 TLB 未命中. 通过修改虚拟机监控程序, 以便在 guest 操作系统下透明地执行复制, 从而使未修改的 guest 操作系统能够在 VM 中运行.
+
+[Mitosis 公开地址](https://gandhijayneel.github.io/mitosis)
+
+github 地址: [Mitosis Project](https://github.com/mitosis-project), [linux 内核](https://github.com/gandhijayneel/mitosis-linux-release), [numactl](https://github.com/gandhijayneel/mitosis-numactl-release)
+
+| 时间线 | 相关论文 |
+|:-----:|:-------:|
+| 2019 | [Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines; October, 2019; 1910.05398.pdf](https://research.vmware.com/files/attachments/0/0/0/0/0/9/5/1910.05398.pdf) |
+| 2020 | [Mitosis: Transparently Self-Replicating Page-Tables for Large-Memory Machines; March, 2020; aspl0359a-achermanna.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/0/3/aspl0359a-achermanna.pdf) |
+| 2021 | [Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; asplos21_vmitosis.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/8/asplos21_vmitosis.pdf)<br>[Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; vmitosis_ext_abstract.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/1/vmitosis_ext_abstract.pdf) |
+
+
+
+## 1.x 其他页面页表相关
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/04/28 | Matthew Wilcox <willy@infradead.org> | [Record the mm_struct in the page table pages](https://lore.kernel.org/patchwork/patch/1232723) | NA| v1 ☐ | [PatchWork 0/6](https://lore.kernel.org/patchwork/patch/1232723) |
 | 2022/02/14 | David Hildenbrand <david@redhat.com> | [mm: enforce pageblock_order < MAX_ORDER](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b3d40a2b6d10c9d0424d2b398bf962fb6adad87e) | 20220214174132.219303-1-david@redhat.com | v1 ☑✓ 5.18-rc1 | [LORE v1,0/2](https://lore.kernel.org/all/20220214174132.219303-1-david@redhat.com) |
+| 2024/04/10 | Li RongQing <lirongqing@baidu.com> | [x86/cpu: Take NUMA node into account when allocating per-CPU cpumasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e0a9ac192fd62322b932c6018db60217b3ad866d) | 由于大多数每个 CPU 的 cpumask 都是从它们自己的本地处理器内核访问的, 因此将它们本地分配给给定的 NUMA 节点是有意义的. 参见 phoronix 报道 [Linux 6.10 To Account For NUMA Node When Allocating Per-CPU Cpumasks](https://www.phoronix.com/news/Linux-Per-CPU-NUMA-Node-Cpumask). | v1 ☑✓ 5.18-rc1 | [LORE](https://lore.kernel.org/all/171272659069.10875.14275567183040175048.tip-bot2@tip-bot2) |
 
 
 # 2 内存分配
@@ -1822,7 +1850,7 @@ kmalloc 的 API 家族对 mm 非常关键, 但有一个缺点, 就是它的对�
 | 2022/04/14 | Hyeonggon Yoo <42.hyeyoo@gmail.com> | [common kmalloc subsystem on SLAB/SLUB](https://patchwork.kernel.org/project/linux-mm/cover/20220308114142.1744229-1-42.hyeyoo@gmail.com) | 清理 slab 公共代码. 在这组补丁之后后, kmalloc 子系统在 SLAB 和 SLUB 之间得到了完美的推广. | v1 ☐☑ | [2022/03/08 LORE v1,00/15](https://lore.kernel.org/r/20220308114142.1744229-1-42.hyeyoo@gmail.com)<br>*-*-*-*-*-*-*-* <br>[2022/04/14 LORE v2,0/23](https://lore.kernel.org/r/20220414085727.643099-1-42.hyeyoo@gmail.com)<br>*-*-*-*-*-*-*-* <br>[2022/07/12 LORE v3,0/15](https://lore.kernel.org/r/20220712133946.307181-1-42.hyeyoo@gmail.com) |
 | 2022/07/01 | Feng Tang <feng.tang@intel.com> | [mm/slub: enable debugging memory wasting of kmalloc](https://lore.kernel.org/all/20220701135954.45045-1-feng.tang@intel.com) | 这个补丁帮助显示了当前 kmalloc 下的浪费的空间, 信息在 `/sys/kernel/debug/slab/kmalloc-xx/alloc_traces` 中显示, 显示的格式为: waste = 总共浪费的字节数目 / 单词请求浪费的字节数目. | v1 ☐☑✓ | [LORE RFC](https://lore.kernel.org/r/20220630014715.73330-1-feng.tang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE](https://lore.kernel.org/all/20220701135954.45045-1-feng.tang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/2](https://lore.kernel.org/r/20220725112025.22625-1-feng.tang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/17](https://lore.kernel.org/r/20220817101826.236819-1-42.hyeyoo@gmail.com) |
 | 2022/06/07 | Uladzislau Rezki (Sony) <urezki@gmail.com> | [Reduce a vmalloc internal lock contention preparation work](https://lore.kernel.org/all/20220607093449.3100-1-urezki@gmail.com) | TODO | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20220607093449.3100-1-urezki@gmail.com) |
-| 2023/05/08 | Gong Ruiqi <gongruiqi1@huawei.com> | [[RFC,v2] Randomized slab caches for kmalloc()](https://patchwork.kernel.org/project/linux-mm/patch/20230508075507.1720950-1-gongruiqi1@huawei.com/) | [Linux 6.6 Adding Randomized Kmalloc Caches For Further System Hardening](https://www.phoronix.com/news/Linux-Randomize-Kmalloc-Cache) | v2 ☐☑ | [LORE v2,0/1](https://lore.kernel.org/r/20230508075507.1720950-1-gongruiqi1@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/1](https://lore.kernel.org/r/20230626031835.2279738-1-gongruiqi@huaweicloud.com) |
+| 2023/05/08 | Gong Ruiqi <gongruiqi1@huawei.com> | [[RFC,v2] Randomized slab caches for kmalloc()](https://patchwork.kernel.org/project/linux-mm/patch/20230508075507.1720950-1-gongruiqi1@huawei.com/) | [Linux 6.6 Adding Randomized Kmalloc Caches For Further System Hardening](https://www.phoronix.com/news/Linux-Randomize-Kmalloc-Cache) 和 [Randomness for kmalloc()](https://lwn.net/Articles/938637). | v2 ☐☑ | [LORE v2,0/1](https://lore.kernel.org/r/20230508075507.1720950-1-gongruiqi1@huawei.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/1](https://lore.kernel.org/r/20230626031835.2279738-1-gongruiqi@huaweicloud.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5](https://lore.kernel.org/all/20230714064422.3305234-1-gongruiqi@huaweicloud.com) |
 
 
 ### 2.3.6 改进与优化
@@ -1867,8 +1895,7 @@ https://lore.kernel.org/patchwork/patch/78940
 https://lore.kernel.org/patchwork/patch/72119
 https://lore.kernel.org/patchwork/patch/63980
 https://lore.kernel.org/patchwork/patch/91223
-https://lore.kernel.org/patchwork/patch/145184
-https://lore.kernel.org/patchwork/patch/668967
+  https://lore.kernel.org/patchwork/patch/668967
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -2299,6 +2326,7 @@ v2.6.24 实现迁移类型 MIGRATETYPE 的时候, 在从伙伴系统中内存分
 它后来替代了成块回收, 使得后者在 3.5 中被移除.
 
 [memory compaction 原理、实现与分析](https://blog.csdn.net/21cnbao/article/details/118687445)
+[超详细！Linux内核内存规整详解](https://blog.csdn.net/feelabclihu/article/details/134343592)
 
 通过碎片索引 [fragmentation_index()](https://elixir.bootlin.com/linux/v2.6.35/source/mm/compaction.c#L495) 可以确定分配失败是由于内存不足还是外部碎片造成的. 参见 [Linux 内存碎片化检视之 buddy_info | extfrag_index | unusable_index](https://blog.csdn.net/memory01/article/details/80958009).
 
@@ -4880,10 +4908,11 @@ HugeTLB CMA 在设计的时候, 已经考虑了 NUMA 的存在.
 
 Google 的工程师 Mina Almasry 提出了一种新的思路, 通过 [mremap 的方式重新映射程序的的 ELF 到大页上](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=550a7d60bd5e35a56942dba6d8a26752beb26c9f), 来支持代码段大页. 作者提供了一个用户态工具库 [chromium/hugepage_text](https://chromium.googlesource.com/chromium/src/+/refs/heads/main/chromeos/hugepage_text) 来辅助完成这项工作. 可以在尽可能不修改应用程序代码的情况下完成代码段大页的映射, 可以显著提升应用程序的性能. 具体使用也可以参考作者提交的测试用例 [commit 12b613206474 ("mm, hugepages: add hugetlb vma mremap() test")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=12b613206474cea36671d6e3a7be7d1db7eb8741).
 
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/10/14 | Mina Almasry <almasrymina@google.com> | [mm, hugepages: add mremap() support for hugepage backed vma](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=12b613206474cea36671d6e3a7be7d1db7eb8741) | 通过简单地重新定位页表项, 使得 mremap() 支持 hugepage 的 vma 段. 页表条目被重新定位到 mremap() 上的新虚拟地址.<br> 作者验证的测试场景是一个简单的 bench: 它在 hugepages 中重新加载可执行文件的 ELF 文本, 这大大提高了上述可执行文件的执行性能.<br> 将 hugepages 上的 mremap 操作限制为原始映射的大小, 因为底层 hugetlb 保留还不能处理到更大的大小的重映射.<br> 在 mremap () 操作期间, 我们检测 pmd_shared 的映射, 并在 mremap () 期间取消这些映射的共享. 在访问和故障时, 再次建立共享. | v1 ☑ 5.16-rc1 | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20210730221522.524256-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v4,1/2](https://patchwork.kernel.org/project/linux-mm/patch/20211006194515.423539-1-almasrymina@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,1/2](https://lore.kernel.org/all/20211013195825.3058275-1-almasrymina@google.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=550a7d60bd5e35a56942dba6d8a26752beb26c9f)<br>*-*-*-*-*-*-*-* <br>[PatchWork v8,1/2](https://patchwork.kernel.org/project/linux-mm/patch/20211014200542.4126947-1-almasrymina@google.com) |
-| 2022/02/02 | Mike Kravetz <mike.kravetz@oracle.com> | [Add hugetlb MADV_DONTNEED support](https://patchwork.kernel.org/project/linux-mm/cover/20220128222605.66828-1-mike.kravetz@oracle.com/) | 609660 | v1 ☐☑ | [PatchWork v1,0/3](https://lore.kernel.org/all/20220128222605.66828-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/3](https://lore.kernel.org/r/20220202014034.182008-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/3](https://lore.kernel.org/r/20220215002348.128823-1-mike.kravetz@oracle.com) |
+| 2022/02/02 | Mike Kravetz <mike.kravetz@oracle.com> | [Add hugetlb MADV_DONTNEED support](https://patchwork.kernel.org/project/linux-mm/cover/20220128222605.66828-1-mike.kravetz@oracle.com/) | Oracle Linux Blog 的 [Transparent Hugepages(THP) for .text mappings](https://blogs.oracle.com/linux/post/transparent-hugepages-for-text-mappings). | v1 ☐☑ | [PatchWork v1,0/3](https://lore.kernel.org/all/20220128222605.66828-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2,0/3](https://lore.kernel.org/r/20220202014034.182008-1-mike.kravetz@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/3](https://lore.kernel.org/r/20220215002348.128823-1-mike.kravetz@oracle.com) |
 
 #### 7.1.8.1 内核代码段大页
 -------
@@ -5491,7 +5520,7 @@ khugepaged 处理流程
 | 2007/10/04 | Christoph Lameter <clameter@sgi.com> | [Virtual Compound Page Support V2](https://lore.kernel.org/patchwork/patch/93090) | NA | ☑ 4.11-rc1 | [PatchWork RFC](https://lore.kernel.org/patchwork/patch/93090) |
 | 2008/10/23 | Andy Whitcroft <apw@shadowen.org> | [Fixes for gigantic compounds pages V3](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=18229df5b613ed0732a766fc37850de2e7988e43) | NA | v1 ☑✓ 2.6.28-rc4 | [LORE v1](https://lore.kernel.org/all/1223458499-12752-1-git-send-email-apw@shadowen.org)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/2](https://lore.kernel.org/all/1224771559-19363-1-git-send-email-apw@shadowen.org) |
 
-### 7.3.2  Multiple consecutive page
+### 7.3.2 Multiple consecutive page
 -------
 
 4k 太小, 2M 太大. 是否可以在中间做些什么. 这个系列展示了中间立场可能是什么样子. 它提供了 THP 的一些优点, 同时消除了一些缺点. Multiple Consecutive Page 使用 8K 到 2M 个基本页的 "多个连续页"(mcpages)进行匿名用户空间映射. 与 2M 映射相比, 这将导致更少的内部碎片, 从而减少内存消耗和浪费 CPU 时间归零内存, 而这些内存将永远不会被使用.
@@ -7433,6 +7462,7 @@ CSDN 宣传博客 [内存不超过 5M, datop 在识别冷热内存及跨 numa �
 | 2023/02/27 | Stefan Roesch <shr@devkernel.io> | [[v1] prctl: add flags to enable KSM at the process level](https://patchwork.kernel.org/project/linux-mm/patch/20230227220206.436662-1-shr@devkernel.io/) | 725338 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230227220206.436662-1-shr@devkernel.io) |
 | 2023/08/11 | Stefan Roesch <shr@devkernel.io> | [[mm/ksm: add pages scanned metric](https://patchwork.kernel.org/project/linux-mm/patch/20230811193655.2518943-1-shr@devkernel.io/) | 775482 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230811193655.2518943-1-shr@devkernel.io) |
 | 2023/08/17 | Stefan Roesch <shr@devkernel.io> | [proc/ksm: add ksm stats to /proc/pid/smaps](https://patchwork.kernel.org/project/linux-mm/patch/20230817162301.3472457-1-shr@devkernel.io/) | 777100 | v3 ☐☑ | [LORE v3,0/1](https://lore.kernel.org/r/20230817162301.3472457-1-shr@devkernel.io) |
+| 2024/03/29 | Hui Zhu <teawater@gmail.com> | [mm: Introduce uKSM for user-controlled KSM](https://lore.kernel.org/all/20240329104035.62942-1-teawater@antgroup.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240329104035.62942-1-teawater@antgroup.com) |
 
 
 ## 14.2 HWPoison - 内存页错误的处理
@@ -7458,7 +7488,7 @@ CSDN 宣传博客 [内存不超过 5M, datop 在识别冷热内存及跨 numa �
 | 2022/06/30 | Naoya Horiguchi <naoya.horiguchi@linux.dev> | [mm, hwpoison: enable 1GB hugepage support (v3)](https://patchwork.kernel.org/project/linux-mm/cover/20220630022755.3362349-1-naoya.horiguchi@linux.dev/) | 655232 | v3 ☐☑ | [LORE v3,0/9](https://lore.kernel.org/r/20220630022755.3362349-1-naoya.horiguchi@linux.dev)[LORE v4,0/9](https://lore.kernel.org/r/20220704013312.2415700-1-naoya.horiguchi@linux.dev)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/8](https://lore.kernel.org/r/20220714042420.1847125-1-naoya.horiguchi@linux.dev) |
 | 2023/04/14 | Longlong Xia <xialonglong1@huawei.com> | [mm: ksm: support hwpoison for ksm page](https://patchwork.kernel.org/project/linux-mm/cover/20230414021741.2597273-1-xialonglong1@huawei.com/) | 739667 | v2 ☐☑ | [LORE v2,0/2](https://lore.kernel.org/r/20230414021741.2597273-1-xialonglong1@huawei.com) |
 
-### 14.2.1  memory-failure
+### 14.2.1 memory-failure
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |

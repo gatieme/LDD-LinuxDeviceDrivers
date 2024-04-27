@@ -275,7 +275,12 @@ XOR a, b
 | 17 | [NUMA入门：那些必须知道的基础概念](https://www.it610.com/article/1281587993060065280.htm) | NA |
 | 18 | [NUMA Domian和NUMA Distance](https://www.cnblogs.com/kongchung/p/14745803.html) | NA |
 | 19 | [如何看待第 12 代英特尔酷睿处理器的产品革新？会给行业带来什么影响？](https://www.zhihu.com/question/494592488/answer/2206656842) | NA |
-
+| 20 | [【芯片学习】X86 CPU 发展历史与分析——1971~2020——明白Intel架构的变迁](https://blog.csdn.net/Hide_in_Code/article/details/113799454) | NA |
+| 21 | [Pentium 4处理器架构/微架构/流水线 (11) - NetBurst执行核详解 - Load/Store操作/存储转发](https://stkeke.blog.csdn.net/article/details/85452650) | NA |
+| 22 | [8086架构/流水线及其优化](https://stkeke.blog.csdn.net/article/details/85230687) | NA |
+| 23 | [Intel X86-64 处理器架构演进](https://zhuanlan.zhihu.com/p/515658946) | NA |
+| 24 | [TALK 笔记-处理器体系结构, 历史及演进](https://www.douban.com/note/797605944) | NA |
+| 25 | [微电之窗 | 详谈CPU处理器架构演进 (Intel)](https://mp.weixin.qq.com/s?__biz=Mzg3MTIyMTU3OA==&mid=2247509982&idx=2&sn=84a1fd3c140b147a53dee7a7e3329017) |
 
 <br>
 

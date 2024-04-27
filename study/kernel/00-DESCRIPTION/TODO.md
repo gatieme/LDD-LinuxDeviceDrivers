@@ -530,7 +530,6 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 [An ioctl() call to detect memory writes](https://lwn.net/Articles/940704)
 [BPF iterators for filesystems](https://lwn.net/Articles/937326)
 [Exceptions in BPF](https://lwn.net/Articles/938435)
-[Randomness for kmalloc()](https://lwn.net/Articles/938637)
 [Beginning the software-interrupt lock pushdown](https://lwn.net/Articles/939973)
 [Following up on file-position locking](https://lwn.net/Articles/940808)
 [Out-of-memory victim selection with BPF](https://lwn.net/Articles/941614)
@@ -597,21 +596,31 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 
 
 
-
+Skip idle CPU search on busy system
+Skip cpus with no sched domain attach
+https://lore.kernel.org/all/20240220225622.2626569-1-qyousef@layalina.io/
 
 [A Fix Is On The Way For A Previously-Reported Linux 5.18 Performance Regression](https://www.phoronix.com/news/Linux-5.18-NUMA-Regression-Fix)
 
+Rotary Interactivity Favor Scheduler Version 3(Brain-Eating)  Update.
+https://lore.kernel.org/all/CANQmPXgdaiSUV89Vk_xR3dRAyKeGK6x=CJwaSLTC_gv_ocNP1A@mail.gmail.com/
+https://lore.kernel.org/all/20100911173732.551632040@efficios.com/
+https://lore.kernel.org/all/20231116105425.84773-1-s921975628@gmail.com/
+https://lore.kernel.org/all/20231215052652.917741-1-imran.f.khan@oracle.com/
+https://lore.kernel.org/all/20240115105052.398761-1-khorenko@virtuozzo.com/
+https://lore.kernel.org/all/20231215130501.24542-1-anna-maria@linutronix.de/
+cba6167f0adb
 
-[[LSF/MM/BPF TOPIC] TAO: THP Allocator Optimizations](https://lore.kernel.org/all/20240229183436.4110845-1-yuzhao@google.com) 致力于使透明大页面的分配尽可能高效.
+| 2023/09/29 | Kees Cook <keescook@chromium.org> | [`chelsio: Annotate structs with __counted_by`](https://lore.kernel.org/all/20230929181042.work.990-kees@kernel.org) | TODO | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20230929181042.work.990-kees@kernel.org) |
+| 2023/10/25 | Steven Rostedt <rostedt@goodmis.org> | [sched: Extended Scheduler Time Slice](https://lore.kernel.org/all/20231025235413.597287e1@gandalf.local.home) | TODO | v2 ☐☑✓ | [LORE v1](https://lore.kernel.org/all/20231025054219.1acaa3dd@gandalf.local.home)[LORE v2](https://lore.kernel.org/all/20231025235413.597287e1@gandalf.local.home) |
+| 2023/10/31 | Keisuke Nishimura <keisuke.nishimura@inria.fr> | [sched/fair: Fix the decision for load balance](https://lore.kernel.org/all/20231031133821.1570861-1-keisuke.nishimura@inria.fr) | TODO | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20231031133821.1570861-1-keisuke.nishimura@inria.fr) |
+| 2024/03/04 | Christian Loehle <christian.loehle@arm.com> | [Introduce per-task io utilization boost](https://lore.kernel.org/all/20240304201625.100619-1-christian.loehle@arm.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20240304201625.100619-1-christian.loehle@arm.com) |
+| 2023/11/30 | Valentin Schneider <vschneid@redhat.com> | [sched/fair: Delay throttling to kernel exit](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com) |
+| 2024/03/24 | Qais Yousef <qyousef@layalina.io> | [sched: Don't trigger misfit if affinity is restricted](https://lore.kernel.org/all/20240324004552.999936-1-qyousef@layalina.io) | TODO | v8 ☐☑✓ | [LORE v8,0/4](https://lore.kernel.org/all/20240324004552.999936-1-qyousef@layalina.io) |
+| 2024/04/11 | Kyle Huey <me@kylehuey.com> | [Combine perf and bpf for fast eval of hw breakpoint conditions](https://lore.kernel.org/all/20240412015019.7060-1-khuey@kylehuey.com) | TODO | v6 ☐☑✓ | [LORE v6,0/7](https://lore.kernel.org/all/20240412015019.7060-1-khuey@kylehuey.com) |
+| 2024/04/07 | Ingo Molnar <mingo@kernel.org> | [sched: Split out kernel/sched/fair_balance.c, numa_balancing.c and syscalls.c, plus other updates](https://lore.kernel.org/all/20240407084319.1462211-1-mingo@kernel.org) | TODO | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20240407084319.1462211-1-mingo@kernel.org) |
+| 2023/05/09 | Kristina Martsenko <kristina.martsenko@arm.com> | [arm64: Support for Armv8.8 memcpy instructions in userspace](https://lore.kernel.org/all/20230509142235.3284028-1-kristina.martsenko@arm.com) | Armv8.8 扩展添加了执行 memcpy()、memset() 和 memmove() 操作 (FEAT_MOPS). 此系列增加了对的支持使用用户空间中的新指令. | v8 ☐☑✓ | [LORE v8,0/11](https://lore.kernel.org/all/20230509142235.3284028-1-kristina.martsenko@arm.com) |
+| 2023/09/15 | Kristina Martsenko <kristina.martsenko@arm.com> | [KVM: arm64: Support for Arm v8.8 memcpy instructions in KVM guests](https://lore.kernel.org/all/20230915124840.474888-1-kristina.martsenko@arm.com) | TODO | v8 ☐☑✓ | [LORE v8,0/3](https://lore.kernel.org/all/20230915124840.474888-1-kristina.martsenko@arm.com) |
 
-ZONE_NOSPLIT 将防止大页面的拆分, 其中连续的页面块不能拆分到给定大小以下, 它的存在是为了帮助系统维护大块内存(用于透明的大页面等), 这将使内核不必在以后重新组装它们, 而不必经历持续的压缩过程.
 
-ZONE_NOMERGE 具有最小块大小属性, 但也不允许将页面块合并为更大的组; 因此, 它只能容纳单一大小的块. 为内核创建接近第二个本机页面大小的内容, 使较大的页面在有意义的情况下可用, 同时仍保持较小的页面可用.
-
-从某种意义上说, 这项工作可以看作是那些希望看到 Linux 整体使用更大页面大小的人和那些担心相关的内部碎片成本的人之间的一种妥协.
-
-但是, 对于透明大页, 内部碎片仍然是一个问题; 进程可能分配了这样的页面, 但只使用其中的一小部分内存. 当前的内核将尝试通过将大页面拆分回基本页面来应对这种情况, 从而允许将未使用的部分重新分配到其他地方.
-
-位于 (或更高) ZONE_NOSPLIT 的页面显然不会发生拆分; 这正是 Zone 存在要强制执行的策略. 取而代之的是, 赵的补丁集引入了 "粉碎(shattering)" 大页面的概念. 如果页面被破坏, 其内容将被迁移(复制) 到位于合适区域的较小页面; 一旦该过程完成, 可以将保持完整的原始大页面分配给其他用途. 粉碎比分割(splitting)更昂贵; Yu Zhao 认为, 对于未正确使用其内存的进程来说, 这是一个适当的成本; "在零售术语中, 购买的退货需要支付进货费, 原始商品可以转售".
-
-另一个声称的 ZONE_NOMERGE 优点是它促进了巨大的 vmemmap 优化 (HVO), 这在 2020 年已经介绍过了. 简而言之, 这个技巧允许内核恢复用于保存 page 大页面中许多页面结构的内存. 在使用大量大页面的系统中, 这种优化可以节省大量内存. 在当前的内核中, HVO 只能与 hugetlbfs 机制一起使用, 该机制不透明, 通常只在特殊情况下使用.  ZONE_NOMERGE 但是, 页面被组织在固定块中, 就像 hugetlbfs 页面一样, 因此很容易将 HVO 与它们一起使用.
+lag_i = S - s_i = w_i \times (V - v_i) = w_i \times [\frac{\sum \limits_{0}^{n}w_{i} \times (v_{i} - v_{0})}{W} + v_{0} - v_i] = w_i \times [\frac{\sum \limits_{0}^{n}w_{i} \times (v_{i} - v_{0})}{W} - (v_{i} - v_0)] > 0

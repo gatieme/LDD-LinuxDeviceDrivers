@@ -261,7 +261,7 @@ ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如
 | 2024/01/31 | Stanislaw Gruszka <stanislaw.gruszka@linux.intel.com> | [thermal/netlink/intel_hfi: Enable HFI feature only when required](https://lore.kernel.org/all/20240131120535.933424-1-stanislaw.gruszka@linux.intel.com) | 该补丁集仅在有用户空间实体侦听热网络链接事件时才启用 HFI. 引入了一个 netlink 通知, 它与 netlink_has_listners()检查一起, 允许驱动程序根据实际用户空间消费者的存在发送 netlink 多播事件. 此功能通过允许在不需要时禁用功能来优化资源使用. 然后在 intel_hif 驱动程序中实现通知机制, 用于动态禁用硬件反馈接口 (HFI). 通过实现 netlink 通知回调, 驱动程序现在可以根据实际需求启用或禁用 HFI, 特别是当用户空间应用程序(如英特尔速度选择或英特尔低功耗守护进程) 利用与性能和能效功能相关的事件时. 在有 Intel HFI 但没有安装用户空间组件的机器上, 我们可以节省大量的 CPU 周期. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240131120535.933424-1-stanislaw.gruszka@linux.intel.com) |
 | 2024/02/02 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [thermal: intel: hfi: Prework for the virtualization of HFI](https://lore.kernel.org/all/20240203040515.23947-1-ricardo.neri-calderon@linux.intel.com) | 用于 [支持 IPC 类任务的调度](https://lore.kernel.org/all/20230613042422.5344-1-ricardo.neri-calderon@linux.intel.com) 的基础 <br>1. 重新组织 HFI 驱动程序的部分, 以便于实现虚拟 HFI 表.<br>2. 引入了 ITD 类的概念并启用了 ITD.<br>3. 增加了对重置当前任务的 ITD 分类历史的支持, 以便在上下文切换期间使用. HFI 的虚拟化要求在系统中无条件启用 HFI 和 ITD. 这与 Stanislaw 的补丁集 [thermal/netlink/intel_hfi: Enable HFI feature only when required](https://lore.kernel.org/all/20240131120535.933424-1-stanislaw.gruszka@linux.intel.com) 存在冲突. | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20240203040515.23947-1-ricardo.neri-calderon@linux.intel.com) |
 | 2024/02/03 | Zhao Liu <zhao1.liu@linux.intel.com> | [Intel Thread Director Virtualization](https://lore.kernel.org/all/20240203091214.411862-1-zhao1.liu@linux.intel.com) | 以虚拟化硬件反馈接口 (HFI) 和英特尔线程控制器(ITD), 从而为使用 ITD 进行调度的虚拟机带来好处. 他的实验表明, 在某些工作负载和配置中, 性能提高了 14%. [Intel Thread Director Virtualization Patches Boost Some Workloads By ~14%](https://www.phoronix.com/news/Intel-Thread-Director-Virt) | v1 ☐☑✓ | [LORE v1,0/26](https://lore.kernel.org/all/20240203091214.411862-1-zhao1.liu@linux.intel.com)|
-| 2024/02/23 | Stanislaw Gruszka <stanislaw.gruszka@linux.intel.com> | [thermal/netlink/intel_hfi: Enable HFI feature only when required](https://lore.kernel.org/all/20240223155942.60813-1-stanislaw.gruszka@linux.intel.com) | 英特尔 HFI 驱动程序可以在需要时启用它, 从而"节省大量 CPU 周期". 仅在有用户空间使用者处于活动状态时启用它. 如果英特尔 Speed Select 或英特尔低功耗守护程序正在运行, 英特尔 HFI 接口将被激活, 但如果不是, 它将被禁用, 从而显然可以节省大量 CPU 资源. 参见 phoronix 报道 [英特尔 HFI 驱动程序可以“节省大量 CPU 周期”，只需在需要时才启用自身](https://www.phoronix.com/news/Intel-HFI-Enable-Disable). | v4 ☐☑✓ | [LORE v4,0/3](https://lore.kernel.org/all/20240223155942.60813-1-stanislaw.gruszka@linux.intel.com) |
+| 2024/02/23 | Stanislaw Gruszka <stanislaw.gruszka@linux.intel.com> | [thermal/netlink/intel_hfi: Enable HFI feature only when required](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b33f3d2677b8ddd7a3aba2b02497422a1d2c2a01) | 英特尔 HFI 驱动程序可以在需要时启用它, 从而"节省大量 CPU 周期". 仅在有用户空间使用者处于活动状态时启用它. 如果英特尔 Speed Select 或英特尔低功耗守护程序正在运行, 英特尔 HFI 接口将被激活, 但如果不是, 它将被禁用, 从而显然可以节省大量 CPU 资源. 参见 phoronix 报道 [英特尔 HFI 驱动程序可以“节省大量 CPU 周期”，只需在需要时才启用自身](https://www.phoronix.com/news/Intel-HFI-Enable-Disable) 以及 [](https://www.phoronix.com/news/Intel-HFI-Efficient-Linux-6.10) | v4 ☐☑✓ v6.10-rc1 | [LORE v4,0/3](https://lore.kernel.org/all/20240223155942.60813-1-stanislaw.gruszka@linux.intel.com) |
 
 
 
@@ -859,8 +859,19 @@ SLS 被认为是 Spectre 漏洞的变体, 但二者的攻击范围略有不同, 
 -------
 
 
+## 4.3 branch history injection
+-------
 
-## 4.X 通用机制
+[The "branch history injection" hardware vulnerability](https://lwn.net/Articles/969210)
+
+[Linux Kernel Patched For Branch History Injection "BHI" Intel CPU Vulnerability](https://www.phoronix.com/news/Linux-BHI-Branch-History-Inject)
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2024/04/05 | Josh Poimboeuf <jpoimboe@kernel.org> | [x86/bugs: Change commas to semicolons in 'spectre_v2' sysfs file](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2bb69f5fc72183e1c62547d900f560d0e9334925) | TODO | v2 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2bb69f5fc72183e1c62547d900f560d0e9334925) |
+
+
+## 4.X 安全框架层
 -------
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1017,6 +1028,16 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 
 [Memory-management changes for CXL](https://lwn.net/Articles/931416)
 
+
+#### 6.3.2.3 CXL Devices
+-------
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/03/24 | ira.weiny@intel.com <ira.weiny@intel.com> | [DCD: Add support for Dynamic Capacity Devices (DCD)](https://lore.kernel.org/all/20240324-dcd-type2-upstream-v1-0-b7b00d623625@intel.com) | 动态容量设备 (DCD)(CXL 3.1 sec 9.13.3) 是一种 CXL 存储器设备, 它允许存储器容量动态变化, 而无需重置设备、重新配置 HDM 解码器或重新配置软件 DAX 区域. 动态容量最大的使用案例之一是允许主机在数据中心内动态共享内存, 而不增加每台主机连接的内存. 添加或删除内存的一般流程是让协调器协调内存的使用. 通常, 在这样的系统中有 5 个参与者, 即编排器、结构管理器、主机看到的设备、主机内核和主机用户. | v1 ☐☑✓ | [LORE v1,0/26](https://lore.kernel.org/all/20240324-dcd-type2-upstream-v1-0-b7b00d623625@intel.com) |
+
+
 ## 6.4 CPU IDLE(C-state)
 -------
 
@@ -1032,17 +1053,26 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 ## 6.5 memory model
 -------
 
+
+### 6.5.1 barrier
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2009/07/08 | Jiri Olsa <jolsa@redhat.com> | [memory barrier: adding smp_mb__after_lock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ad46276952f1af34cd91d46d49ba13d347d56367) | TODO | v1 ☑✓ 2.6.31-rc3 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=ad46276952f1af34cd91d46d49ba13d347d56367) |
 | 2013/08/12 | Oleg Nesterov <oleg@redhat.com> | [sched: fix the theoretical signal_wake_up() vs schedule() race](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e0acd0a68ec7dbf6b7a81a87a867ebd7ac9b76c4) | 在 try_to_wake_up 路径引入了 smp_mb__before_spinlock(), 入口位置的 smp_wmb() 就被替换为 smp_mb__before_spinlock(). | v1 ☑✓ v3.11-rc6 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=e0acd0a68ec7dbf6b7a81a87a867ebd7ac9b76c4) |
 | 2017/08/02 | Peter Zijlstra <peterz@infradead.org> | [Getting rid of smp_mb__before_spinlock](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ae813308f4630642d2c1c87553929ce95f29f9ef) | 本系列删除了 smp_mb_before_spinlock() 用户, 并将调度路径下转换为使用 smp_mb_after_spinlock(), 从而在相同数量的障碍下提供更多保障. | v1 ☑✓ 4.14-rc1 | [LORE v1,0/4](https://lore.kernel.org/all/20170802113837.280183420@infradead.org) |
 | 2017/08/07 | Byungchul Park <byungchul.park@lge.com> | [lockdep: Implement crossrelease feature](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ef0758dd0fd70b98b889af26e27f003656952db8) | 1502089981-21272-1-git-send-email-byungchul.park@lge.com | v8 ☑✓ 4.14-rc1 | [LORE v8,0/14](https://lore.kernel.org/all/1502089981-21272-1-git-send-email-byungchul.park@lge.com) |
+| 2018/07/16 | Paul E. McKenney <paulmck@linux.vnet.ibm.com> | [Updates to the formal memory model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=71b7ff5ebc9b1d5aa95eb48d6388234f1304fd19) | NA | v1 ☑✓ 4.19-rc1 | [LORE v1,0/14](https://lore.kernel.org/all/20180716180540.GA14222@linux.vnet.ibm.com) |
 
+
+### 6.5.3 内存一致性问题(memory consistency)
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2018/07/16 | Paul E. McKenney <paulmck@linux.vnet.ibm.com> | [Updates to the formal memory model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=71b7ff5ebc9b1d5aa95eb48d6388234f1304fd19) | NA | v1 ☑✓ 4.19-rc1 | [LORE v1,0/14](https://lore.kernel.org/all/20180716180540.GA14222@linux.vnet.ibm.com) |
+| 2024/04/10 | Zayd Qumsieh <zayd_qumsieh@apple.com> | [tso: aarch64: Expose TSO for virtualized linux on Apple Silicon](https://lore.kernel.org/all/20240410211652.16640-1-zayd_qumsieh@apple.com) | x86 CPU 使用 TSO 内存模型. Apple Silicon CPU 能够选择性地使用 TSO 内存模型. 这可以通过设置 ACTLR 来完成. TSOEN 位为 1. 此功能对 x86 仿真器非常有用, 因为它消除了仿真器插入内存屏障以遵守的需要. 通过 TSO 存储器模型. 此补丁系列将添加 ACTLR. TSOEN 支持 Apple Silicon 机器上的虚拟化 linux. 用户空间将能够使用 prctl 将 CPU 的内存模型从默认的 ARM64 内存模型更改为 TSO 内存模型. 可以使用一个简单的测试来确定 TSO 内存模型是否正在使用中. 这必须在 Apple Silicon MacOS Sonoma 14.4 版或更高版本上完成, 因为早期版本不支持修改 TSOEN 位. 用例程序参见 [TSOEnabler](https://github.com/saagarjha/TSOEnabler/blob/master/testtso/main.c), 如果 TSO 正在使用, 此程序将无限期挂起, 如果不使用, 则几乎立即崩溃. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240410211652.16640-1-zayd_qumsieh@apple.com) |
+
 
 ## 6.6 objtool
 -------
@@ -1059,6 +1089,9 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 Rosetta 是一个转译过程, 允许用户在 Apple Silicon 上运行包含 x86_64 指令的应用程序. 在 macOS 中, 这允许为基于英特尔的 Mac 电脑构建的应用程序在 Apple Silicon 上无缝运行; Rosetta 可以在 ARM Linux 虚拟机中为英特尔 Linux 应用程序提供同样的功能.
 
 [macOS 13 Adding Ability To Use Rosetta In ARM Linux VMs For Speedy x86_64 Linux Binaries](https://www.phoronix.com/scan.php?page=news_item&px=macOS-13-Rosetta-Linux-Binaries)
+
+
+
 
 
 ## 6.8 原子操作
@@ -1215,6 +1248,7 @@ AMD-pstate 驱动程序利用 ITMT 体系结构提供的功能和数据结构, �
 | 2023/08/29 | Tony Luck <tony.luck@intel.com> | [Add support for Sub-NUMA cluster (SNC) systems](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com) | [Intel Fixing Up Sub-NUMA Clustering For Linux So That It Behaves With RDT](https://www.phoronix.com/news/Intel-SNT-RDT-Fixing-Up) | v5 ☐☑✓ | [LORE v5,0/8](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com) |
 | 2023/12/07 | Tony Luck <tony.luck@intel.com> | [x86/resctrl: mba_MBps enhancements](https://lore.kernel.org/all/20231207195613.153980-1-tony.luck@intel.com) | TODO | v6 ☐☑✓ | [LORE v6,0/3](https://lore.kernel.org/all/20231207195613.153980-1-tony.luck@intel.com) |
 | 2024/02/13 | James Morse <james.morse@arm.com> | [x86/resctrl: monitored closid+rmid together, separate arch/fs locking](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/log/?id=fb700810d30b9eb333a7bf447012e1158e35c62f) | [Improved Memory Bandwidth Throttling Behavior For Linux 6.9](https://www.phoronix.com/news/Linux-69-RAM-Bandwidth-Throttle) | v9 ☐☑✓ 6.9-rc1 | [LORE v9,0/24](https://lore.kernel.org/all/20240213184438.16675-1-james.morse@arm.com) |
+| 2024/03/21 | James Morse <james.morse@arm.com> | [x86/resctrl: Move the resctrl filesystem code to /fs/resctrl](https://lore.kernel.org/all/20240321165106.31602-1-james.morse@arm.com) | TODO | v1 ☐☑✓ | [LORE v1,0/31](https://lore.kernel.org/all/20240321165106.31602-1-james.morse@arm.com) |
 
 
 

@@ -75,6 +75,8 @@ systrace, perfetto, drgn, systemtep
 
 [All my favorite tracing tools: eBPF, QEMU, Perfetto, new ones I built and more](https://thume.ca/2023/12/02/tracing-methods) 将 eBPF 跟踪与 Perfetto 可视化相结合, 通过使用一些巧妙的技巧来诊断大量跟踪中的尾部延迟问题.
 
+[Perfetto数据流架构故障分析：带你研究 trace 为何丢失](https://blog.csdn.net/feelabclihu/article/details/136266302)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/05/29 | Sandoval @ Facebook | [A kernel debugger in Python: drgn](https://lwn.net/Articles/789641) | 一款 kernel 调试器, 可以利用 Python 脚本来访问正在运行的 kernel 里的数据结构<br>Drgn 在 [LSFMM2019](https://lwn.net/Articles/lsfmm2019) 被公开, LWN 随即进行了报道  [A kernel debugger in Python: drgn](https://lwn.net/Articles/789641), 随后 [2021 年报道](https://lwn.net/Articles/878309/)了 [drgn: How the Linux Kernel Team at Meta Debugs the Kernel at Scale (Meta)](https://developers.facebook.com/blog/post/2021/12/09/drgn-how-linux-kernel-team-meta-debugs-kernel-scale), Meta 的内核团队使用了 Drgn 跟踪内核中出现的问题, 并贡献了非常分布的用例集合. | ☐ | [Github](https://github.com/osandov/drgn), [User Guide](https://drgn.readthedocs.io/en/latest/user_guide.html), [BPF drgn tools](https://www.kernel.org/doc/html/latest/bpf/drgn.html) |
@@ -98,6 +100,10 @@ Intel 发布的 ControlFlag 用机器学习来发现代码中的错误, 支持 C
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/05/29 | Alex Feng <lifeng1519@gmail.com> | Kernel Visualization Tool | 该工具用于分析 Linux/Solaris/BSD 内核指定流程的调用关系链, 并绘制特定函数的调用图，帮助开发者理解代码. | ☐ | [Kernel Visualization Tool](https://github.com/x2c3z4/kernel_visualization) |
+
+*  Dtrace
+
+[Oracle Releases DTrace 2.0.0-1.14 For Linux Systems](https://www.phoronix.com/news/D-Trace-2.0.0-1.14)
 
 
 ## 2.2 call kernel func from userspace

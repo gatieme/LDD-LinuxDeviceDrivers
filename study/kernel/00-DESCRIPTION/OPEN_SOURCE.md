@@ -108,7 +108,7 @@
 | 6.6 | [The first half of the 6.6 merge window](https://lwn.net/Articles/942954), [The rest of the 6.6 merge window](https://lwn.net/Articles/943245) | NA | NA |
 | 6.7 | NA | NA | NA |
 | 6.8 | [The first half of the 6.8 merge window](https://lwn.net/Articles/957188), [The rest of the 6.8 merge window](https://lwn.net/Articles/958178) | NA | NA |
-
+| 6.9 | [The first half of the 6.9 merge window](https://lwn.net/Articles/965141), [Kernel prepatch 6.9-rc1](https://lwn.net/Articles/966525), [The rest of the 6.9 merge window](https://lwn.net/Articles/965541)
 
 年终盘点
 

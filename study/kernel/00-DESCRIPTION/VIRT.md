@@ -246,6 +246,14 @@ Anbox 使用 Linux 命名空间 (user, pid, uts, net, mount, ipc) 在容器中�
 | 2024/02/26 | Lai Jiangshan <jiangshanlai@gmail.com> | [KVM: x86/PVM: Introduce a new hypervisor](https://lore.kernel.org/all/20240226143630.33643-1-jiangshanlai@gmail.com) | [PVM Virtualization Framework Proposed For Linux - Built Atop The KVM Hypervisor](https://www.phoronix.com/news/PVM-Hypervisor-Linux-RFC) | v1 ☐☑✓ | [LORE v1,0/73](https://lore.kernel.org/all/20240226143630.33643-1-jiangshanlai@gmail.com) |
 
 
+# 12 HaltPolling
+-------
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/02/15 | Mihai Carabas <mihai.carabas@oracle.com> | [Enable haltpoll for arm64](https://lore.kernel.org/all/1707982910-27680-1-git-send-email-mihai.carabas@oracle.com) | 这个补丁集允许在arm64上使用haltpoll-governer. 通过减少IPC延迟. openEuler 有类似的方案, 参见 [最佳实践](https://docs.openeuler.org/zh/docs/20.09/docs/Virtualization/最佳实践.html#halt-polling) 以及 [漫话Linux之“躺平”: IDLE 子系统](https://mp.weixin.qq.com/s?__biz=Mzg2OTc0ODAzMw==&mid=2247502695&idx=1&sn=60f6132f5f4f1d0f515cad74e83b3c63&source=41). | v4 ☐☑✓ | [LORE](https://lore.kernel.org/all/1707982910-27680-1-git-send-email-mihai.carabas@oracle.com) |
+
 
 <br>
 
