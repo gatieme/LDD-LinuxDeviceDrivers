@@ -60,7 +60,8 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2024/02/21 | Anna-Maria Behnsen <anna-maria@linutronix.de> | [timers: Move from a push remote at enqueue to a pull at expiry model](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/log/?id=b2cf7507e18649a30512515ec0ca89f26b2c2d0f) | [Linux 6.9 Has A Big Rework To CPU Timers - Some Power/Performance Benefits](https://www.phoronix.com/news/Linux-6.9-Timers-Rework) | v11 ☐☑✓ 6.9-rc1 | [LORE v11,0/20](https://lore.kernel.org/all/20240221090548.36600-1-anna-maria@linutronix.de) |
+| 2024/02/21 | Anna-Maria Behnsen <anna-maria@linutronix.de> | [timers: Move from a push remote at enqueue to a pull at expiry model](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/log/?id=b2cf7507e18649a30512515ec0ca89f26b2c2d0f) | [Linux 6.9 Has A Big Rework To CPU Timers - Some Power/Performance Benefits](https://www.phoronix.com/news/Linux-6.9-Timers-Rework) | v11 ☐☑✓ 6.9-rc1 | [2024/01/15, LORE v10,00/20](https://lore.kernel.org/all/20240115143743.27827-1-anna-maria@linutronix.de/)<br>*-*-*-*-*-*-*-* <br>[2024/02/21, LORE v11,0/20](https://lore.kernel.org/all/20240221090548.36600-1-anna-maria@linutronix.de) |
+| 2023/06/06 | Thomas Gleixner <tglx@linutronix.de> | [posix-timers: Cure inconsistencies and the SIG_IGN mess](https://lore.kernel.org/all/20230606132949.068951363@linutronix.de) | TODO | v1 ☐☑✓ | [LORE v1,0/45](https://lore.kernel.org/all/20230606132949.068951363@linutronix.de)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/50](https://lore.kernel.org/lkml/20240410164558.316665885@linutronix.de) |
 
 
 

@@ -108,7 +108,9 @@
 | 6.6 | [The first half of the 6.6 merge window](https://lwn.net/Articles/942954), [The rest of the 6.6 merge window](https://lwn.net/Articles/943245) | NA | NA |
 | 6.7 | NA | NA | NA |
 | 6.8 | [The first half of the 6.8 merge window](https://lwn.net/Articles/957188), [The rest of the 6.8 merge window](https://lwn.net/Articles/958178) | NA | NA |
-| 6.9 | [The first half of the 6.9 merge window](https://lwn.net/Articles/965141), [Kernel prepatch 6.9-rc1](https://lwn.net/Articles/966525), [The rest of the 6.9 merge window](https://lwn.net/Articles/965541)
+| 6.9 | [The first half of the 6.9 merge window](https://lwn.net/Articles/965141), [Kernel prepatch 6.9-rc1](https://lwn.net/Articles/966525), [The rest of the 6.9 merge window](https://lwn.net/Articles/965541) | NA | NA |
+| 6.10 | [The first half of the 6.10 merge window](https://lwn.net/Articles/973687) | NA | NA |
+
 
 年终盘点
 
@@ -190,18 +192,19 @@ OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementatio
 ## 6.5 LSFMM
 -------
 
-| 日期 | 链接 |
-|:---:|:----:|
-| 2022/05/02 ~ 2022/05/04 | [LSFMM-2022](https://lwn.net/Articles/893733) |
+| 日期 | 链接 | GOOGLE 文档 |
+|:---:|:----:|:-----------:|
+| 2022/05/02 ~ 2022/05/04 | [LSFMM-2022](https://lwn.net/Articles/893733) | NA |
+| NA | []() | [LSFMMBPF 2023 Schedule](https://docs.google.com/spreadsheets/d/1tIDYHgLhhcetoXtgyvcoM6YZWWHcVLdNYipBq2dH-_k/edit#gid=1622936535) |
 
 
-## 6.6 OSPM
+## 6.6 OSPM(Power Management and Scheduling in the Linux Kernel)
 -------
 
-| 日期 | 官网 | 链接 |
-|:---:|:----:|:----:|
-| 2023/04/17-2023/04/19 | [5th OSPM Summit](https://retis.santannapisa.it/luca/ospm-summit/2023) | [LWN 汇总](https://lwn.net/Archives/ConferenceIndex/#OS-Directed_Power-Management_Summit-2023)<br>[LWN-Reports from OSPM 2023, part 1](https://lwn.net/Articles/934142)<br>[LWN-Reports from OSPM 2023, part 2](https://lwn.net/Articles/934459)<br>[LWN-Reports from OSPM 2023, part 3](https://lwn.net/Articles/935180) |
-
+| 日期 | 官网 | 链接 | GOOGLE 文档 |
+|:---:|:----:|:---:|:-----------:|
+| 2023/04/17-2023/04/19 | [5th OSPM Summit](https://retis.santannapisa.it/luca/ospm-summit/2023) | [LWN 汇总](https://lwn.net/Archives/ConferenceIndex/#OS-Directed_Power-Management_Summit-2023)<br>[LWN-Reports from OSPM 2023, part 1](https://lwn.net/Articles/934142)<br>[LWN-Reports from OSPM 2023, part 2](https://lwn.net/Articles/934459)<br>[LWN-Reports from OSPM 2023, part 3](https://lwn.net/Articles/935180) | [OSPM23 - topics - Google 云端硬盘](https://docs.google.com/spreadsheets/u/0/d/10AJFQporrCPH9Gn6-MaRotdfO4Hm4LG6dVAoDrQdj5A/htmlview?pli=1#gid=1185197977) |
+| 2024/05/30-2024/05/21 | [6th OSPM Summit](https://retis.sssup.it/ospm-summit/2024) | [LWN 汇总]()<br>[LORE](https://lore.kernel.org/all/ZbJHfiWnujLz2Pfm@localhost.localdomain) | [OSPM24 - topics - Google 云端硬盘](https://docs.google.com/spreadsheets/d/13lOYsbNWhQU7pNbyHI97fC7GT0Eu8aMbU9ATvPJfV0A/edit?usp=sharing) |
 
 ## 6.7 [KernelPodCast](https://kernelpodcast.org)
 -------
@@ -210,6 +213,14 @@ OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementatio
 
 
 [Power Management and Scheduling in the Linux Kernel V edition (OSPM-summit 2023)](https://lore.kernel.org/all/Y8lFkbJ6nluNdVYO@localhost.localdomain/)
+
+
+## 6.8 Linaro Forum for Arm Linux kernel
+-------
+
+
+[The first Linaro Forum for Arm Linux kernel topics](https://lwn.net/Articles/969031)
+
 
 # 7 统计信息
 -------

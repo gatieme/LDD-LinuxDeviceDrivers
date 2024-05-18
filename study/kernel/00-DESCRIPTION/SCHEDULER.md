@@ -158,7 +158,7 @@ O(n) 调度理解起来简单:
 在每次进程切换时, 内核依次扫描就绪队列上的每一个进程, 计算每个进程的优先级, 再选择出优先级最高的进程来运行; 尽管这个算法理解简单, 但是它花费在选择优先级最高进程上的时间却不容忽视. 系统中可运行的进程越多, 花费的时间就越大, 时间复杂度为 O (n).
 
 
-### 1.1.1 O(1) 调度器
+### 1.1.2 O(1) 调度器
 -------
 
 2.6 时代开始支持 (2002 年引入).
@@ -175,7 +175,7 @@ O(n) 调度理解起来简单:
 | 2002/02/11 |  Ingo Molnar <mingo@earth2.(none)> | [merge to the -K3 scheduler.](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=908920b1d370e7a5c301d14cfce10c310be19be3) | TODO | v1 ☑✓ 2.5.2 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7e54bc75751cfb3c3eb5da7bdc900b8adcc2cda4) |
 
 
-### 1.1.2 夭折的 RSDL(The Rotating Staircase Deadline Scheduler) 调度器
+### 1.1.3 夭折的 RSDL(The Rotating Staircase Deadline Scheduler) 调度器
 -------
 
 **2007 年 4 月提出, 预期进入 2.6.22, 后夭折.**
@@ -183,24 +183,37 @@ O(n) 调度理解起来简单:
 O(1) 调度器存在一个比较严重的问题: 复杂的交互进程识别启发式算法 - 为了识别交互性的和批处理型的两大类进程, 该启发式算法融入了睡眠时间作为考量的标准, 但对于一些特殊的情况, 经常判断不准, 而且是改完一种情况又发现一种情况.
 
 
-Con Kolivas (八卦: 这家伙白天是个麻醉医生) 为解决这个问题提出 **RSDL(The Rotating Staircase Deadline Scheduler)** 算法. 该算法的亮点是对公平概念的重新思考: ** 交互式 (A)** 和 ** 批量式 (B)** 进程应该是被完全公平对待的, 对于两个动态优先级完全一样的 A, B 进程, ** 它们应该被同等地对待, 至于它们是交互式与否 (交互式的应该被更快调度),　应该从他们对分配给他们的时间片的使用自然地表现出来, 而不是应该由调度器自作高明地根据他们的睡眠时间去猜测 **. 这个算法的核心是 **Rotating Staircase**, 是一种衰减式的优先级调整, 不同进程的时间片使用方式不同, 会让它们以不同的速率衰减 (在优先级队列数组中一级一级下降, 这是下楼梯这名字的由来), 从而自然地区分开来进程是交互式的 (间歇性的少量使用时间片) 和批量式的 (密集的使用时间片). 具体算法细节可看这篇文章: [The Rotating Staircase Deadline Scheduler [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/224865/)
+Con Kolivas (八卦: 这家伙白天是个麻醉医生) 为解决这个问题提出 **RSDL(The Rotating Staircase Deadline Scheduler)** 算法. 该算法的亮点是对公平概念的重新思考: ** 交互式 (A)** 和 ** 批量式 (B)** 进程应该是被完全公平对待的, 对于两个动态优先级完全一样的 A, B 进程, ** 它们应该被同等地对待, 至于它们是交互式与否 (交互式的应该被更快调度),　应该从他们对分配给他们的时间片的使用自然地表现出来, 而不是应该由调度器自作高明地根据他们的睡眠时间去猜测 **. 这个算法的核心是 **Rotating Staircase**, 是一种衰减式的优先级调整, 不同进程的时间片使用方式不同, 会让它们以不同的速率衰减 (在优先级队列数组中一级一级下降, 这是下楼梯这名字的由来), 从而自然地区分开来进程是交互式的 (间歇性的少量使用时间片) 和批量式的 (密集的使用时间片). 具体算法细节可看这篇文章: [The Rotating Staircase Deadline Scheduler [LWN.net]](https://link.zhihu.com/?target=https%3A//lwn.net/Articles/224865)
 
-[RSDL cpu scheduler v0.33](https://lore.kernel.org/lkml/200703232005.05839.kernel@kolivas.org)
+[2007/03/04, RSDL completely fair starvation free interactive cpu scheduler](https://lwn.net/Articles/224654)
 
-[debug rsdl 0.33](https://lore.kernel.org/lkml/200703241026.57143.kernel@kolivas.org)
+[2007/03/23, RSDL cpu scheduler v0.33](https://lore.kernel.org/lkml/200703232005.05839.kernel@kolivas.org)
 
-[[REPORT] cfs-v4 vs sd-0.44](https://lore.kernel.org/lkml/20070421121235.GA2044@1wt.eu)
+[2007/03/24, debug rsdl 0.33](https://lore.kernel.org/lkml/200703241026.57143.kernel@kolivas.org)
 
-[rsdl v46 report,numbers,comments](https://lore.kernel.org/lkml/20070424112601.56f5bfb6@reforged/)
+[2007/04/21, [REPORT] cfs-v4 vs sd-0.44](https://lore.kernel.org/lkml/20070421121235.GA2044@1wt.eu)
+
+[2007/04/24, rsdl v46 report,numbers,comments](https://lore.kernel.org/lkml/20070424112601.56f5bfb6@reforged/)
+
+[cheduler Situation](https://lore.kernel.org/all/cdc89fe60708030507r29283942mbb9947edbe04e23a@mail.gmail.com)
+
+### 1.1.4 nicksched
+-------
+
+[nicksched v33](https://lwn.net/Articles/229250)
 
 ### 1.1.3 完全公平的调度器 (CFS)
 -------
 
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2007/04/17 | [Schedulers: the plot thickens](https://lwn.net/Articles/230574) | [LWN 230574: 内核调度器替换方案的激烈竞争](https://tinylab.org/lwn-230574), [知乎--草莓熊麦昆的翻译](https://zhuanlan.zhihu.com/p/697235380) |
+
 **2.6.23(2007 年 10 月发布)**
 
-Con Kolivas 的完全公平的想法启发了原 O(1) 调度器作者 Ingo Molnar, 他重新实现了一个新的调度器, 叫 CFS(Completely Fair Scheduler). 它从 RSDL/SD 中吸取了完全公平的思想, 不再跟踪进程的睡眠时间, 也不再企图区分交互式进程. 它将所有的进程都统一对待, 这就是公平的含义. CFS 的算法和实现都相当简单, 众多的测试表明其性能也非常优越.
+Con Kolivas 的完全公平的想法启发了原 O(1) 调度器作者 Ingo Molnar, 他重新实现了一个新的调度器, 叫 CFS(Completely Fair Scheduler). 它从 RSDL/SD 中吸取了完全公平的思想, 不再跟踪进程的睡眠时间, 也不再企图区分交互式进程. 它将所有的进程都统一对待, 这就是公平的含义. CFS 的算法和实现都相当简单, 众多的测试表明其性能也非常优越.参见 [2007/04/13, [patch] Modular Scheduler Core and Completely Fair Scheduler [CFS]](https://lwn.net/Articles/230501).
 
-> 新的 CFS 调度器的核心同样是 ** 完全公平性 **, 即平等地看待所有普通进程, 让它们自身行为彼此区分开来, 从而指导调度器进行下一个执行进程的选举.
+> 新的 CFS 调度器的核心同样是 完全公平性, 即平等地看待所有普通进程, 让它们自身行为彼此区分开来, 从而指导调度器进行下一个执行进程的选举.
 
 
 不管是 O(n) 还是 O(1) 调度算法, 其基本思路都是通过一系列运行指标确定进程的优先级, 然后根据进程的优先级确定调度哪个进程, 而 CFS 则转换了一种思路, 它不计算优先级, 而是通过计算进程消耗的 CPU 时间 (标准化以后的虚拟 CPU 时间) 来确定谁来调度. 从而到达所谓的公平性.
@@ -461,11 +474,16 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 
 [1½ Topics: realtime throttling and user-space adaptive spinning](https://lwn.net/Articles/931789)
 
-[Deadline servers as a realtime throttling replacement](https://lwn.net/Articles/934415)
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2013/01/29 | [Deadline servers as a realtime throttling replacement](https://lwn.net/Articles/934415) | [LinuxNews搬运工--LWN: 用 deadline server 来实现实时任务的限制!](https://blog.csdn.net/Linux_Everything/article/details/131388431), [知乎--草莓熊麦昆的翻译](https://zhuanlan.zhihu.com/p/697548424) |
+
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2023/06/08 | Daniel Bristot de Oliveira <bristot@kernel.org> | [SCHED_DEADLINE server infrastructure](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=63ba8422f876e32ee564ea95da9a7313b13ff0a1) | 如果具有较高优先级的任务 (例如 SCHED_FIFO) 独占 CPU, 则低优先级任务 (例如, SCHED_OTHER) 可能会出现饥饿. RT Throttling 是不久前引入的一种 (主要是调试) 对策, 可以用来为低优先级任务 (通常是后台类型的工作, 例如工作队列、计时器等) 保留一些 CPU 时间. 然而, 它也有自己的问题 (请参阅文档), 并且即使不需要运行优先级较低的活动, 也会无条件地限制 FIFO 任务, 这会产生不希望的影响 (也有一些机制可以解决这个问题, 但同样也有其自身的问题). 引入截止日期服务器, 为饥饿条件下的低优先级任务需求提供服务. 最后期限服务器是通过扩展 SCHED_Deadline 实现来构建的, 以允许两级调度 (即, deadline 实体成为低优先级调度实体的容器). | v3 ☐☑✓ v6.8-rc1 | [LORE v1,00/13](https://lore.kernel.org/all/20190726145409.947503076@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/6](https://lore.kernel.org/all/20200807095051.385985-1-juri.lelli@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/all/cover.1686239016.git.bristot@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/7](https://lore.kernel.org/all/cover.1699095159.git.bristot@kernel.org) |
+| 2023/06/08 | Daniel Bristot de Oliveira <bristot@kernel.org> | [SCHED_DEADLINE server infrastructure](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=63ba8422f876e32ee564ea95da9a7313b13ff0a1) | 如果具有较高优先级的任务 (例如 SCHED_FIFO) 独占 CPU, 则低优先级任务 (例如, SCHED_OTHER) 可能会出现饥饿. RT Throttling 是不久前引入的一种 (主要是调试) 对策, 可以用来为低优先级任务 (通常是后台类型的工作, 例如工作队列、计时器等) 保留一些 CPU 时间. 然而, 它也有自己的问题 (请参阅文档), 并且即使不需要运行优先级较低的活动, 也会无条件地限制 FIFO 任务, 这会产生不希望的影响 (也有一些机制可以解决这个问题, 但同样也有其自身的问题). 引入截止日期服务器, 为饥饿条件下的低优先级任务需求提供服务. 最后期限服务器是通过扩展 SCHED_Deadline 实现来构建的, 以允许两级调度 (即, deadline 实体成为低优先级调度实体的容器). | v3 ☐☑✓ v6.8-rc1 | [LORE v1,00/13](https://lore.kernel.org/all/20190726145409.947503076@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/6](https://lore.kernel.org/all/20200807095051.385985-1-juri.lelli@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/all/cover.1686239016.git.bristot@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/7](https://lore.kernel.org/all/cover.1699095159.git.bristot@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/6](https://lore.kernel.org/all/cover.1712337227.git.bristot@kernel.org) |
+| 2024/03/12 | Joel Fernandes (Google) <joel@joelfernandes.org> | [Fair scheduling deadline server fixes](https://lore.kernel.org/all/20240313012451.1693807-1-joel@joelfernandes.org) | 截止日期服务器 [SCHED_DEADLINE server infrastructure](https://lore.kernel.org/all/cover.1699095159.git.bristot@kernel.org) 允许 RT 任务在系统上安全运行, 而不是由于 RT 节流, 浪费了 RT 任务可能无法在空闲系统上执行的 CPU. 以下是我们在测试 ChromeOS 的截止日期服务器时发现的修补程序. 当我发现我的单元测试正在崩溃时, 它像滚雪球一样从 10 个补丁增加到 15 个补丁, 然后我们也看到了与 dl_timer 相关的领域中的一些崩溃! 所有这些都是固定的. 在其他几个修复程序中, 还有一个对核心调度的修复程序. 感谢您的全面审查. 我把所有的补丁都放在 Daniel 和 Peter 的补丁之上, 因为我会让他们把它压缩掉, 并适当地归因于贡献者. | v2 ☐☑✓ | [LORE 00/10](https://lore.kernel.org/all/20240216183108.1564958-1-joel@joelfernandes.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/15](https://lore.kernel.org/all/20240313012451.1693807-1-joel@joelfernandes.org) |
 
 
 ## 1.4 其他一些调度类的尝试
@@ -631,6 +649,7 @@ coscheduling 协同调度是为了解决云服务场景, 为不同用户提供�
 | 2022/09/29 | Cruz Zhao <CruzZhao@linux.alibaba.com> | [sched/core: Optimize the process of picking the max prio task for the core](https://lore.kernel.org/all/1664435913-57227-1-git-send-email-CruzZhao@linux.alibaba.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/1664435913-57227-1-git-send-email-CruzZhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[LORE](https://lore.kernel.org/all/1664767168-30029-1-git-send-email-CruzZhao@linux.alibaba.com) |
 | 2021/08/17 | Josh Don <joshdon@google.com> | [sched/core: Simplify core-wide task selection](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bc9ffef31bf59819c9fc032178534ff9ed7c4981) | 对于 Core Scheduling, 如果 cookie 不匹配, pick_next_task 将更新 "max" 任务 (因为在这种情况下, 新任务的优先级必须高于当前最大值). 然而, 如果我们找到一个具有匹配 cookie 且优先级高于 "max" 的任务, 却无法更新 "max". 这可能导致 SMT-X(X> 2) 机器上的额外迭代. Josh Don 尝试通过 [sched/core: fix pick_next_task'max'tracking](https://lore.kernel.org/all/20210818005615.138527-1-joshdon@google.com) 修复此问题. 最终经过讨论. Tao 建议采用两次任务选择来避免重试循环. 第一次遍历从所有 SMT 上查找 max, 找到其 max->core_cookie, 第二次遍历基于此 core_cookie 为每个 SMT CPU Thread pick_task, 它不仅避免了重试循环, 还使代码更简单. 同时修复了 Josh Don 发现的问题. | v1 ☑✓ 5.16-rc1 | [LORE](https://lore.kernel.org/all/YSS9+k1teA9oPEKl@hirez.programming.kicks-ass.net) |
 | 2023/03/22 | Hao Jia <jiahao.os@bytedance.com>| [sched/core: Avoid selecting the task that is throttled to run when core-sched enable](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=530bfad1d53d103f98cec66a3e491a36d397884d) | 当 `{rt, cfs}_rq` 或 `dl` 任务被节流时, 由于 cookie 任务不会从核心树中退出队列, 因此 sched_core_find() 和 sched_core_next() 可能返回 throttledtask, 这可能导致 throttledtask 在 CPU 上运行. 因此, 我们在 sched_core_find() 和 sched_core_next() 中添加检查, 以确保返回的是一个未受限制的可运行任务. | v1 ☐☑✓ 6.4-rc1 | [LORE](https://lore.kernel.org/all/167947694502.5837.16156353798978583164.tip-bot2@tip-bot2) |
+| 2024/03/07 | Cruz Zhao <CruzZhao@linux.alibaba.com> | [introduce CPUTIME_FORCEIDLE_TASK and add](https://lore.kernel.org/all/20240307101945.11280-1-CruzZhao@linux.alibaba.com) | 由于 core sched 使用 rq_clock() 作为时钟源来计算 forceidle 时间, irq 时间将被计入 forceidle. 然而, 在某些情况下, forceidle sum 将比 exec 运行时大得多, 例如, 我们观察到调用 futex_wake() 的任务的 forceidle 时间比 exec 运行时大 50%, 这令人困惑. 我们使用 rq_clock_TASK() 作为时钟源, 引入 cpustat[CPUTIME_FORCEIDLE_TASK] 来计算 SMT 兄弟被强制空闲时任务实际运行的时间. | v2 ☐☑✓ | [2024/02/19, LORE](https://lore.kernel.org/all/20240219084134.10673-1-CruzZhao@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[2024/03/07, LORE v2,0/3](https://lore.kernel.org/all/20240307101945.11280-1-CruzZhao@linux.alibaba.com) |
 
 
 #### 1.5.4.3 SMT 驱离 (SMT expeller) 技术
@@ -744,7 +763,6 @@ CFS 用户反复在社区抱怨并行 kbuild 对桌面交互性有负面影响
 | 2022/05/18 | Fam Zheng <fam.zheng@bytedance.com> | [sched: Enable root level cgroup bandwidth control](https://lore.kernel.org/all/20220518100841.1497391-1-fam.zheng@bytedance.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220518100841.1497391-1-fam.zheng@bytedance.com) |
 | 2022/10/19 | Chuyi Zhou <zhouchuyi@bytedance.com> | [sched/fair: Add min_ratio for cfs bandwidth_control](https://lore.kernel.org/all/20221019031551.24312-1-zhouchuyi@bytedance.com) | 如果用户设置的配额 / 周期比过小, 在当前的 cfs 带宽控制机制下, 长时间持锁可能会导致任务被节流, 导致整个 [系统卡住](https://lore.kernel.org/lkml/5987be34-b527-4ff5-a17d-5f6f0dc94d6d@huawei.com). 为了防止上述情况的发生, 本补丁在 `procfs` 中增加了 `sysctl_sched_cfs_bandwidth_min_ratio`, 它表示用户可以设置的配额 / 周期的最小百分比. 默认值为 0, 用户可以设置配额和周期而不触发此约束. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221019031551.24312-1-zhouchuyi@bytedance.com) |
 | 2022/10/17 | Josh Don <joshdon@google.com> | [sched: async unthrottling for cfs bandwidth](https://lore.kernel.org/all/20221017234750.454419-1-joshdon@google.com) | CFS 带宽目前分配新的运行时, 并在 hrtimer 回调中取消 cfs_rq 的内联. 运行时分发是一个每个 CPU 的操作, 而取消节流是一个每个 cgroup 的操作, 因为需要 tg 遍历. 在拥有大量 CPU 和大型 cgroup 层次结构的机器上, CPU *cgroups 的工作可能在单个 hrtimer 回调中无法完成: 由于 IRQ 被禁用, 很容易发生 hard lockup. 具体来说, 我们发现在 256 个 CPU、O(1000) 个 cCGROUP 在层次结构中被限制以及高内存带宽使用的配置中存在可伸缩性问题. 要解决这个问题, 我们可以通过 CSD 异步取消 cfs_rq 的节流. 每个 CPU 负责自己进行节流, 从而在整个系统中更公平地划分总体工作, 并避免 hard lockup. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221017234750.454419-1-joshdon@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/all/20221026224449.214839-1-joshdon@google.com) |
-| 2022/12/12 | Peng Zhang <zhangpeng.00@bytedance.com> | [sched: Throttling through task work for cfs bandwidth](https://lore.kernel.org/all/20221212061321.36422-1-zhangpeng.00@bytedance.com) | 若任务占用资源并在内核空间中被限制, 则可能会导致阻塞, 从而造成或者加剧优先级翻转的问题. 这组补丁试图通过在任务返回到用户模式时使用 task_work 来限制任务来解决此问题.<br> 这个补丁使用 task_work 在任务返回到用户空间时将 throttle 的任务出队, 然后在 unthrottle 时再将其入列. 当前能正常工作, 但目前的实现并没有考虑到所有的细节, 比如竞争条件、负载跟踪等. 作者认为这种解决方案的最大缺点是, 在解锁过程中可能有太多的任务需要排队, 从而导致巨大的开销和延迟. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221212061321.36422-1-zhangpeng.00@bytedance.com) |
 | 2022/11/16 | Josh Don <joshdon@google.com> | [sched: async unthrottling for cfs bandwidth](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit?id=8ad075c2eb1f6b4b33436144ea1ef2619f3b6398) | CFS 带宽当前分配新的运行时, 并在 hrtimer 回调中解除 cfs_rq 的 throttle 限制. 运行时分发是每个 CPU 的操作, 而解节流是每个组的操作, 因为需要执行 tg 遍历. 在具有大量 CPU 和大型 CGROUP 层次结构的机器上, 这种 CPU CGROUP 工作在单个 hrtimer 回调中可能做得太多: 由于 IRQ 被禁用, 可能很容易发生 Hard Lockup.<br> 具体来说, 我们在 256 个 cpu 的配置中发现了这个可伸缩性问题, 层次结构中的 0(1000) 个 cgroups 被限制, 并且内存带宽使用率很高.<br> 为了解决这个问题, 我们可以通过 CSD 异步地解除 cfs_rq 的限制. 每个 cpu 都负责解除自身的限制, 从而在整个系统中更公平地分配总工作, 并避免 Hard Lockup. | v3 ☐☑✓ 6.3-rc1 | [LORE](https://lore.kernel.org/all/20221117005418.3499691-1-joshdon@google.com) |
 | 2023/02/24 | Shrikanth Hegde <sshegde@linux.vnet.ibm.com> | [Interleave cfs bandwidth timers for improved single thread performance at low utilization](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=41abdba9374734b743019fc1cc05e3225c82ba6b) | CPU CFS 带宽控制器使用 hrtimer. 目前没有初始值设置. 因此, 所有周期计时器将在到期时对齐. 当有多个 CPU CGROUP 时, 就会发生这种情况. 如果在每个 CPU CGROUP 组的利用率较低且所有 CPU CGROUP 组的总利用率低于 50% 时交错使用计时器, 则可以实现性能增益. 如果计时器是交错的, 那么不受限制的 CGROUP 组可以自由运行, 而不需要许多上下文切换, 并且还可以从 SMT 折叠中受益. 这个提交在初始化每个 hrtimer 后添加一个随机偏移量. 这将导致在过期时交错使用计时器, 这有助于实现上述性能增益. | v3 ☐☑✓ 6.4-rc1 | [LORE](https://lore.kernel.org/all/20230223185153.1499710-1-sshegde@linux.vnet.ibm.com) |
 
@@ -809,12 +827,24 @@ Chang 的 patch set 采用了与之前不同的方法: 允许 cgroup 将一些�
 | 2022/05/18 | Fam Zheng <fam.zheng@bytedance.com> | [sched: Enable root level cgroup bandwidth control](https://lore.kernel.org/all/20220518100841.1497391-1-fam.zheng@bytedance.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220518100841.1497391-1-fam.zheng@bytedance.com) |
 
 
+#### 2.1.3.5 Defer CFS throttle to user entry
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/12/12 | Peng Zhang <zhangpeng.00@bytedance.com> | [sched: Throttling through task work for cfs bandwidth](https://lore.kernel.org/all/20221212061321.36422-1-zhangpeng.00@bytedance.com) | 若任务占用资源并在内核空间中被限制, 则可能会导致阻塞, 从而造成或者加剧优先级翻转的问题. 这组补丁试图通过在任务返回到用户模式时使用 task_work 来限制任务来解决此问题.<br> 这个补丁使用 task_work 在任务返回到用户空间时将 throttle 的任务出队, 然后在 unthrottle 时再将其入列. 当前能正常工作, 但目前的实现并没有考虑到所有的细节, 比如竞争条件、负载跟踪等. 作者认为这种解决方案的最大缺点是, 在解锁过程中可能有太多的任务需要排队, 从而导致巨大的开销和延迟. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221212061321.36422-1-zhangpeng.00@bytedance.com) |
+20220526103929.14976-1-zhouchengming@bytedance.com) |
+| 2023/10/30 | Valentin Schneider <vschneid@redhat.com> | [sched/fair: Make the BW replenish timer expire in hardirq context for PREEMPT_RT](https://lore.kernel.org/all/20231030145104.4107573-1-vschneid@redhat.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20231030145104.4107573-1-vschneid@redhat.com) |
+| 2024/02/02 | Valentin Schneider <vschneid@redhat.com> | [sched/fair: Defer CFS throttle to user entry](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com) | Peter 之前再 [Re: [PATCH] sched/fair: Make the BW replenish timer expire in hardirq context for PREEMPT_RT](https://lore.kernel.org/all/20231031160120.GE15024@noisy.programming.kicks-ass.net) 提到 , 对 CFS 任务进行 BW throttle 的时候, 并不在更新运行时统计信息发现 cfs_rq 已经耗尽其配额时, 立即执行 throttle, 而是等待任务即将返回到用户空间时再进行 throttle, 这是非常安全的, 在 PREEMPT_RT 的内核上可以有效地防止内核态优先级翻转, 因为如果它在用户空间中，则无法持有任何内核内锁. | v1 ☐☑✓ | [2023/11/30, LORE v1,0/2](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2024/02/02, LORE v2,0/5](https://lore.kernel.org/all/20240202080920.3337862-1-vschneid@redhat.com) |
+
+
 ### 2.1.4 leaf_cfs_rq
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/05/26 | Chengming Zhou <zhouchengming@bytedance.com> | [sched/fair: optimize and simplify rq](https://lore.kernel.org/all/20220526103929.14976-1-zhouchengming@bytedance.com) | TODO | v3 ☐☑✓ | [LORE v3,0/2](https://lore.kernel.org/all/20220526103929.14976-1-zhouchengming@bytedance.com) |
+| 2022/05/26 | Chengming Zhou <zhouchengming@bytedance.com> | [sched/fair: optimize and simplify rq](https://lore.kernel.org/all/20220526103929.14976-1-zhouchengming@bytedance.com) | TODO | v3 ☐☑✓ | [LORE v3,0/2](https://lore.kernel.org/all/
 
 
 
@@ -1553,13 +1583,12 @@ rebalance_domains()
 ### 4.3.1.3 新的命名方式
 -------
 
-多年来, 我们已经发展出了一个丰富多彩的调度器负载平衡函数名称动物园——两者都遵循随机, 独特的模式, 以及获得不再准确的历史性误称. 我们有 "newidle_balance()" 来重新平衡新空闲的任务, 有 "rebalance_domains()" 用来重新平衡域. 我们有
-一个 find_idlest_cpu()函数, 其目的不再是查找空闲的 cpu, 以及一个 find_businest_queue()函数, 其目的不再是寻找最繁忙的运行队列. 因此 Ingo 发送了一组补丁集, 对负载均衡中不当的函数名进行了修正, 并沿着 sched_balance_*() 命名空间组织函数:
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:--------:|:----:|
-| 2024/03/08 | Ingo Molnar <mingo@kernel.org> | [sched/balancing: Standardize the naming of scheduler load-balancing functions](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=686d148cbb5a1c2891914b8d11147d3c5556a29a) | TODO | v1 ☐☑✓ | [LORE v1,0/13](https://lore.kernel.org/all/20240308111819.1101550-1-mingo@kernel.org) |
+| 2024/03/08 | Ingo Molnar <mingo@kernel.org> | [sched/balancing: Misc updates & cleanups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e492e1b0e0721f3929ef9d9708d029144b396dd7) | 修正 load_balancing 路径下部分数据结构以及变量的命名方式. | v1 ☐☑✓ | [LORE v4,00/10](https://lore.kernel.org/all/20240308105901.1096078-1-mingo@kernel.org) |
+| 2024/03/08 | Ingo Molnar <mingo@kernel.org> | [sched/balancing: Standardize the naming of scheduler load-balancing functions](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=b9e6e28663928cab836a19abbdec3d036a07db3b) | 多年来, 我们已经发展出了一个丰富多彩的调度器负载平衡函数名称动物园——两者都遵循随机, 独特的模式, 以及获得不再准确的历史性误称. 我们有 "newidle_balance()" 来重新平衡新空闲的任务, 有 "rebalance_domains()" 用来重新平衡域. 我们有一个 find_idlest_cpu()函数, 其目的不再是查找空闲的 cpu, 以及一个 find_businest_queue()函数, 其目的不再是寻找最繁忙的运行队列. 因此 Ingo 发送了一组补丁集, 对负载均衡中不当的函数名进行了修正, 并沿着 sched_balance_*() 命名空间组织函数. | v1 ☐☑✓ v6.10-rc1 | [LORE v1,0/13](https://lore.kernel.org/all/20240308111819.1101550-1-mingo@kernel.org) |
 
 
 ### 4.3.2 CFS Task Lists
@@ -1857,6 +1886,8 @@ static inline void calculate_imbalance(struct lb_env *env, struct sd_lb_stats *s
 [OSPM_19 的议题](http://retis.sssup.it/luca/ospm-summit/2019/Downloads/01_05-Rework_load_balance_OSPM_19.pdf)
 
 [LPC-2020 的议题](https://linuxplumbersconf.org/event/4/contributions/480).
+
+[Linux 5.5's Scheduler Sees A Load Balancing Rework For Better Perf But Risks Regressions](https://www.phoronix.com/news/Linux-5.5-Scheduler)
 
 2019 年的 [Vincent Guittot](https://www.youtube.com/watch?v=cfv63BMnIug) 的 [LWN: Reworking CFS load balancing](https://lwn.net/Articles/793427) 是近几年特别有亮点的补丁.
 
@@ -2673,7 +2704,6 @@ commit [6e5fb223e89d ("mm: sched: numa: Implement constant, per task Working Set
 | 2024/03/22 | Raghavendra K T <raghavendra.kt@amd.com> | [A Summary of VMA scanning improvements explored](https://lore.kernel.org/all/cover.1710829750.git.raghavendra.kt@amd.com) | NUMA Balancing 改进的第一个版本, 参考了 Ingo 和 PeterZ 的建议. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/cover.1710829750.git.raghavendra.kt@amd.com) |
 | 2023/05/03 | Raghavendra K T <raghavendra.kt@amd.com> | [sched/numa: Disjoint set vma scan improvements](https://lore.kernel.org/all/cover.1683033105.git.raghavendra.kt@amd.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/cover.1683033105.git.raghavendra.kt@amd.com) |
 | 2023/08/29 | Raghavendra K T <raghavendra.kt@amd.com> | [sched/numa: Enhance disjoint VMA scanning](https://lore.kernel.org/all/cover.1693287931.git.raghavendra.kt@amd.com) | 针对 NUMA 平衡增强 VMA 扫描的延续, 试图通过增强无条件 VMA 扫描逻辑来解决上述问题. | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/cover.1693287931.git.raghavendra.kt@amd.com) |
-| 2024/03/22 | Raghavendra K T <raghavendra.kt@amd.com> | [A Summary of VMA scanning improvements explored](https://lore.kernel.org/all/cover.1710829750.git.raghavendra.kt@amd.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/cover.1710829750.git.raghavendra.kt@amd.com) |
 
 
 ### 4.6.4 NUMA Balancing Placement And Migration
@@ -3396,7 +3426,7 @@ v4.13 引入 NUMA WAKE AFFINE 的时候测试发现, CPU 的空闲造成了 NAS 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
-| 2023/02/08 | Bharata B Rao <bharata@amd.com> | [Memory access profiler(IBS) driven NUMA balancing](https://lore.kernel.org/all/20230208073533.715-1-bharata@amd.com) | 一些硬件平台可以提供有关内存访问的信息, 这些信息可用于在 NUMA 系统上进行最佳页面和任务放置. AMD 处理器有一个称为基于指令的采样 (IBS) 的硬件设施, 可用于收集与指令获取和执行活动相关的特定度量. 此工具可用于基于统计采样执行内存访问分析. 这组补丁实现了基于硬件获得的访问信息进行驱动 NUMA 平衡. 这样, 就不再需要周期性地扫描地址空间并引入 NUMA FAULT 来构建任务到页面的访问关联. 因此, 这里采用的方法是用硬件提供的访问信息替换地址空间扫描加提示错误. 从硬件获得的访问样本作为 NUMA FAULT 的等价信息被反馈到 NUMA BALANCING. NUMA BALANCING 逻辑的其余部分 (收集 / 聚合共享 / 私有 / 本地 / 远程故障并根据故障执行页面 / 任务迁移) 将保留, 但访问替换故障除外. | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20230208073533.715-1-bharata@amd.com) |
+| 2023/02/08 | Bharata B Rao <bharata@amd.com> | [Memory access profiler(IBS) driven NUMA balancing](https://lore.kernel.org/all/20230208073533.715-1-bharata@amd.com) | 一些硬件平台可以提供有关内存访问的信息, 这些信息可用于在 NUMA 系统上进行最佳页面和任务放置. AMD 处理器有一个称为基于指令的采样 (IBS) 的硬件设施, 可用于收集与指令获取和执行活动相关的特定度量. 此工具可用于基于统计采样执行内存访问分析. 这组补丁实现了基于硬件获得的访问信息进行驱动 NUMA 平衡. 这样, 就不再需要周期性地扫描地址空间并引入 NUMA FAULT 来构建任务到页面的访问关联. 因此, 这里采用的方法是用硬件提供的访问信息替换地址空间扫描加提示错误. 从硬件获得的访问样本作为 NUMA FAULT 的等价信息被反馈到 NUMA BALANCING. NUMA BALANCING 逻辑的其余部分 (收集 / 聚合共享 / 私有 / 本地 / 远程故障并根据故障执行页面 / 任务迁移) 将保留, 但访问替换故障除外. [知乎-PMU 驱动的 NUMA Balancing](https://zhuanlan.zhihu.com/p/697689798). | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20230208073533.715-1-bharata@amd.com) |
 
 
 ### 4.6.7 学术研究
@@ -3790,6 +3820,7 @@ Chen Yu 新的思路是, 首先在 SMT 域中扫描一个空闲的同级节点. 
 | 2023/03/27 | Aaron Lu <aaron.lu@intel.com> | [sched/fair: Make tg->load_avg per node](https://lore.kernel.org/all/20230327053955.GA570404@ziqianlu-desk2) | 使用 sysbench 在一个 docker 实例中对 Postgres 进行基准测试, 并将 sysbench 的 nr_threads 设置为 nr_cpu 时, 可以观察到 update_cfs_group() 和 update_load_avg() 在一个 2sockets/112core/224cpu 的 Intel Sapphire Rapids 节点上显示了明显的 cpu 开销 (10% 和 7.8%), 而在另一个节点的 cpu 的热点通常较低 (4% 和 3%). 分析发现热点主要是访问 tg->load_avg, 其中 update_load_avg() 是写端, update_cfs_group() 是读端.<br> 为什么只有一个节点的 CPU 有更大的开销, 原因是: task_group 是根据需要从 slab 分配的, 无论哪个 CPU 进行分配, 分配的 tg 将位于该节点上, 访问 tg->load_avg 将对同一节点上的 CPU 有更低的成本, 而对远程节点的 CPU 有更高的成本.<br>Tim Chen 告诉我, PeterZ 曾经提到过一种解决类似问题的方法, 即为每个节点设置一个计数器, 所以对 tg->load_avg 也做同样的事情.<br> 优化后, 这两个节点上运行 5 分钟所看到的最坏的情况占比也才 2%.<br> 针对这个工作负载有另外一个发现: 这个工作负载存在有很多唤醒时的任务迁移, 这就是为什么 update_load_avg() 和 update_cfs_group() 显示出明显的成本. 在 N 个实例中运行这个工作负载, 其中 N >= 2, sysbench 的 nr_threads 设置为 1/N nr_cpu, 在唤醒时间上的任务迁移大大减少, 上面提到的两个函数的开销也下降了很多. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230327053955.GA570404@ziqianlu-desk2) |
 | 2023/05/16 | Chen Yu <yu.c.chen@intel.com> | [sched/fair: Introduce SIS_PAIR to wakeup task on local idle core first](https://lore.kernel.org/all/20230516011159.4552-1-yu.c.chen@intel.com) | 在 SMT 域中扫描一个空闲的同级节点. 在之前的上下文切换周期中, 如果唤醒器和唤醒器相互唤醒, 则它们可能共享资源, 并且可以将唤醒器放在唤醒器旁边的空闲兄弟节点上, 以避免 C2C 开销. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230516011159.4552-1-yu.c.chen@intel.com) |
 | 2023/09/12 | Aaron Lu <aaron.lu@intel.com> | [Reduce cost of accessing tg->load_avg](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1528c661c24b407e92194426b0adbb43de859ce0) | [New Scheduler Optimization Can Help Out PostgreSQL & More On Sapphire Rapids](https://www.phoronix.com/news/Linux-Sched-Postgres-SPR) | v2 ☐☑✓ | [LORE v2,0/1](https://lore.kernel.org/all/20230912065808.2530-1-aaron.lu@intel.com) |
+| 2023/11/21 | Chen Yu <yu.c.chen@intel.com> | [Introduce SIS_CACHE to choose previous CPU during task wakeup](https://lore.kernel.org/all/cover.1700548379.git.yu.c.chen@intel.com) | [Makes it easier for the wakee to choose previous CPU](https://lore.kernel.org/all/cover.1694397335.git.yu.c.chen@intel.com) 的新版本. 本系列旨在继续讨论如何使唤醒更容易地选择以前的 CPU. 当任务 p 被唤醒时, 调度程序会利用 select_idle_sbling() 为其查找空闲 CPU. 任务 P 的前一个 CPU 通常是首选, 因为它可以提高缓存的局部性. 然而, 在许多情况下, 前一个 CPU 已经被其他唤醒占用, 因此任务 P 必须找到另一个空闲 CPU. 禁止任务迁移可以使许多工作负载受益. 受 Mathieu 关于限制任务迁移率的建议 [sched/eevdf: Rate limit task migration](https://lore.kernel.org/lkml/20230905171105.1005672-2-mathieu.desnoyers@efficios.com) 的启发, 引入了 SIS_CACHE. 它考虑了任务的睡眠时间, 以便更好地安排任务. 根据任务的短暂睡眠历史, 将 P 的前一个 CPU 标记为缓存热. 稍后当 P 被唤醒时, 它可以在 select_idle_sbling() 中选择其上一个 CPU. 当其他任务被唤醒时, 跳过此缓存热空闲 CPU, 并在可能的情况下尝试下一个空闲 CPU. SIS_CACHE 的思想是优化空闲 CPU 扫描序列. 通过将高速缓存热 CPU 的扫描深度限制为 SIS_UTIL 扫描深度的 50%, 可以最大限度地减少额外的扫描时间. | v2 ☐☑✓ |[2023/09/11, LORE v1,0/2](https://lore.kernel.org/all/cover.1694397335.git.yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/all/cover.1700548379.git.yu.c.chen@intel.com) |
 
 
 ### 4.7.5 sync wakeup
@@ -4315,10 +4346,11 @@ ARM EAS 支持的主页: [Energy Aware Scheduling (EAS)](https://developer.arm.c
 
 [Energy Aware Scheduling (EAS) progress update](https://www.linaro.org/blog/energy-aware-scheduling-eas-progress-update)
 
+[Teaching the scheduler about power management](https://lwn.net/Articles/602479)
 
 | static_key | 描述 | COMMIT |
 |:----------:|:---:|:------:|
-| sched_asym_cpucapacity | Capacity Aware Scheduling 特性开关 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=df054e8445a4011e3d693c2268129c0456108663) || sched_energy_present | EAS 的特性开关. | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1f74de8798c93ce14801cc4e772603e51c841c33) |
+| sched_asym_cpucapacity | Capacity Aware Scheduling 特性开关 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=df054e8445a4011e3d693c2268129c0456108663) | sched_energy_present | EAS 的特性开关. | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=1f74de8798c93ce14801cc4e772603e51c841c33) |
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
@@ -4427,6 +4459,7 @@ Donnefort 称: 边距删除使内核能够充分利用能量模型, 任务更有
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2022/06/21 | Vincent Donnefort <vdonnefort@google.com> | [feec() energy margin removal](https://git.kernel.org/pub/scm/linux/kernel/git/tip/tip.git/log/?id=b812fc9768e0048582c8e18d7b66559c1758dde1) | feec() 将迁移任务以节省能源, 前提是它至少节省了系统消耗的总能源的 6%. 这种保守的方法对于终端来说是一个问题, 在这个系统中, 许多小任务会在总体上产生巨大的负载: 很少有任务可以迁移到较小的 CPU, 这会浪费大量的能量. 与其试图确定另一个裕度, 不如尝试删除它. | v11 ☐☑✓ | [LORE v11,0/7](https://lore.kernel.org/all/20220621090414.433602-1-vdonnefort@google.com) |
 | 2023/12/08 | Qais Yousef <qyousef@layalina.io> | [sched: cpufreq: Remove magic hardcoded numbers from margins](https://lore.kernel.org/all/20231208002342.367117-1-qyousef@layalina.io) | TODO | v2 ☐☑✓ | [LORE v1,0/7](https://lore.kernel.org/all/20230827233203.1315953-1-qyousef@layalina.io)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/8](https://lore.kernel.org/all/20231208002342.367117-1-qyousef@layalina.io) |
+| 2024/02/05 | Qais Yousef <qyousef@layalina.io> | [sched/fair: Remove hardcoded fits_capacity() margin](https://lore.kernel.org/all/20240205223344.2280519-1-qyousef@layalina.io) | 从 [LORE v2,0/8](https://lore.kernel.org/all/20231208002342.367117-1-qyousef@layalina.io) 中分离出来的一部分. 本系列仅关注 migration margin 和 fits_capacity(). 之前没有考虑不变性, 现在解决了这个问题. 补丁 1 和 2 添加了助手函数 approximate_util_avg() 和 approximate_runtime(), 用于在 time 和 util 之间进行转换. 补丁 3 的 COMMIT 详细介绍了补丁的思路. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240205223344.2280519-1-qyousef@layalina.io) |
 
 #### 7.2.3.4 feec improvement
 -------
@@ -4500,6 +4533,8 @@ EAS 原生的 overutilized 机制非常保守, 一旦发现某个 CPU 出现了 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/05/04 | Thara Gopinath <thara.gopinath@linaro.org> | [ANDROID: sched: Per-Sched-domain over utilization](https://github.com/aosp-mirror/kernel_common/commit/addef37808728c719d8c095a75bcf81befdacdaf) | per sched-domain 级别的 utilization. | v3 ☐☑✓ | [LORE](https://github.com/aosp-mirror/kernel_common/commit/addef37808728c719d8c095a75bcf81befdacdaf) |
+| 2024/03/07 | Shrikanth Hegde <sshegde@linux.ibm.com> | [sched/fair: Limit access to overutilized](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=4d0a63e5b841c759c9a306aff158420421ef016f) | 当在大型系统 (240 核心, SMT8) 上运行 ISV 工作负载时, 从性能配置文件中可以观察到, newidle_balance 和 enque_task_fair 正在消耗更多的周期. 通过 perf 热点分析, 大部分时间都花在了访问 root domain 的 rd->overutilized 字段上. 通过对 `stress-ng --wait` 进行一些更改, 模拟了类似的 perf 配置文件. newidle_balance 和 enqueue_task_fair 的消耗都接近 5-7%. EAS(能量感知调度器)引入 overutilized 机制是为了决策是否进行负载平衡. rd->overutilized 同时被多个 CPU 访问会导致缓存失效. 非 EAS 平台不需要更新 rd->overutilized. 另外由于 rd->overutilized 和 rd->overload 在同一 Cache Line, 因此也存在伪共享的可能. 补丁 1 [sched/fair: Add EAS checks before updating overutilized](https://lore.kernel.org/all/20240307085725.444486-2-sshegde@linux.ibm.com) 这有助于减少上述问题. 带上这个补丁后, ISV 工作负载中的问题也得到了解决, 吞吐量也得到了提高. 补丁 2 和 3 代码重构, 使用 helper 函数 is_rd_overutilized() , 而不再直接访问 rd->overutilized 字段. 因为观察到的大多数模式都是 eas && !overutilzed. | v6 ☐☑✓  v6.10-rc1 | [LORE](https://lore.kernel.org/all/20240326152616.380999-1-sshegde@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/3](https://lore.kernel.org/all/20240307085725.444486-1-sshegde@linux.ibm.com) |
+| 2024/03/25 | Shrikanth Hegde <sshegde@linux.ibm.com> | [sched: Minor changes for rd->overload access](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=4d0a63e5b841c759c9a306aff158420421ef016f) | 当在大型系统中运行工作负载时, 可以观察到对 rd->overload 的访问需要时间.<br>1. 补丁 1, 更新之前最好检查一下值, 因为值更改的频率较低.<br>补丁 2, 只有在必要时才会进行修补程序更新. CPU 总线流量有所减少. 工作负载性能没有显著提高. Qais 建议最好使用 helper 函数来访问 rd->overload. | v3 ☐☑✓ v6.10-rc1 | [LORE v3,0/2](https://lore.kernel.org/all/20240325054505.201995-1-sshegde@linux.ibm.com) |
 
 
 *	sched group energy
@@ -4798,8 +4833,6 @@ Misfit Task 对调度器 ** 负载均衡 ** 做了如下改造, 参见 [commit c
 | 2023/02/01 | Vincent Guittot <vincent.guittot@linaro.org> | [unlink misfit task from cpu overutilized](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=a2e90611b9f425adbbfcdaa5b5e49958ddf6f61b) | uclamp_min 造成的任务 misfit 并不意味着 cpu overutilized, 因为这仅仅是 uclamp_min 的约束, 具有小 util_avg 的任务可能不适合所在高 capacity 的 cpu. 允许 `task_fits_cpu()/asym_fits_cpu()/cpu_overutilized() -=> util_filts_cpu()` 返回 -1 来反映 CPU 不适合指定任务只是因为 uclamp_min, 所以我们可以使用这个状态来采取额外的操作, 以选择与 uclamp_min 匹配的最佳 CPU. 当 util_filts_cpu() 返回 -1 时, 不再认为 CPU 是 overutilized 的, 因此 select_idle_capacity() 和 find_energy_efficient_cpu() 将继续寻找一种可能的性能更好的 CPU, 它用 capacity_orig_of() - thermal_load_avg 代替容量反转检测来检测容量反转. | v5 ☐☑✓ | [LORE v5,0/2](https://lore.kernel.org/all/20230201143628.270912-1-vincent.guittot@linaro.org) |
 | 2023/12/09 | Qais Yousef <qyousef@layalina.io> | [sched: Generalize misfit load balance](https://lore.kernel.org/all/20231209011759.398021-1-qyousef@layalina.io) | 当前的 misfit 实现被认为是 MISFIT_PERF, 这意味着我们需要将任务移动到更好的 CPU 以满足其性能要求. 对于被 UCLAMP_MAX 所限制的(大)任务, 引入 MISFIT_POWER, 需要找到一个更好的位置来控制它对 POWER 的影响. 并且当我们有了一个 API 来注释延迟敏感任务, 预计将需要 MISFIT_LATENCY 负载均衡来帮助处理超额订阅情况, 以帮助更好地分配延迟敏感任务, 以帮助减少其唤醒延迟. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20231209011759.398021-1-qyousef@layalina.io) |
 
-
-
 *   Misfit vs NO_HZ
 
 [sched/fair: Kick nohz balance if rq->misfit_task_load](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5fbdfae5221a5208ed8e7653fc1c4b31de420f74)
@@ -4811,6 +4844,16 @@ Misfit Task 对调度器 ** 负载均衡 ** 做了如下改造, 参见 [commit c
 | 2021/03/11 | Valentin Schneider | [sched/fair: misfit task load-balance tweaks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4aed8aa41524a1fc6439171881c2bb7ace197528) | 优化 misfit task 的一些逻辑, 随后被分成两个 PART 进行合入. | v3 ☐  | [LORE v3,0/7](https://lore.kernel.org/lkml/20210311120527.167870-1-valentin.schneider@arm.com) |
 | 2021/04/07 | Valentin Schneider | [sched/fair: load-balance vs capacity margins](https://lore.kernel.org/all/20210407220628.3798191-1-valentin.schneider@arm.com/) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 1 | v3 ☐ 5.13-rc1 | [LORE v5,0/3](https://lore.kernel.org/all/20210407220628.3798191-1-valentin.schneider@arm.com) |
 | 2021/04/16 | Valentin Schneider | [sched/fair: (The return of) misfit task load-balance tweaks](https://lore.kernel.org/patchwork/cover/1414181) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 2 | v1 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1414181) |
+
+
+*	Check Affinity
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/08/20 | Qais Yousef <qyousef@layalina.io> | [sched/fair: Check a task has a fitting cpu when updating misfit](https://lore.kernel.org/all/20230820203429.568884-1-qyousef@layalina.io) | 如果一个 MISFIT 的任务与 affinity 并不是所有 CPU, 我们需要验证 CPU 是否适合它, 否则, 负载均衡器将不断触发, 导致 balance_interval 不必要地增加, 最终导致真正的不平衡需要很长时间才能解决, 因为这是不可能的不平衡状况. 在 Android 系统上这种现象非常普遍, 因为后台任务通常被限制在小核上. 同样, 如果我们不能适应最大的核心, 那么触发不匹配是毫无意义的, 因为这是我们在这个系统上所能得到的最好的结果. 为了加快搜索速度, 不要调用 task_fits_cpu(), 它会为同一任务重复调用 uclamp_eff_value(), 改为调用 util_filts_cpu(). 只有当我们看到一个 CPU 的 CAPACITY LEVEL 高于通过的 cpu_of(rq) 时, 才能这样做. | v1 ☐☑✓ | [2023/08/20, LORE](https://lore.kernel.org/all/20230820203429.568884-1-qyousef@layalina.io)<br>*-*-*-*-*-*-*-* <br>[2023/12/12, LORE v2](https://lore.kernel.org/lkml/20231212154056.626978-1-qyousef@layalina.io) |
+| 2024/03/24 | Qais Yousef <qyousef@layalina.io> | [sched: Don't trigger misfit if affinity is restricted](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=58eeb2d79b542c678c46e245dba6b66936368a99) | 讨论了如何处理热插拔操作, 以消除容量水平并导致不必要的 LB 再次触发. 我选择现在不处理它, 早期版本 [sched/fair: Check a task has a fitting cpu when updating misfit](https://lore.kernel.org/lkml/20230820203429.568884-1-qyousef@layalina.io) 中提供了一个有效的补丁, 但是作者并不像继续推动这种实现. 补丁 4 将确保 balance_interval 和 nr_failed 不会因不必要的 MISFIT 而不必要地进行增长. 6.9 合并窗口后, 动态能量模型系列将被合并, 这可能导致 CPU 的容量在运行时发生变化. 这意味着发布后续补丁来处理这种情况, 以确保在 EM 更新后最大允许容量是正确的. | v8 ☐☑✓ v6.10-rc1 | [2023/12/31, LORE v3,0/2](https://lore.kernel.org/lkml/20231231175218.510721-1-qyousef@layalina.io)<br>*-*-*-*-*-*-*-* <br>[2024/01/05, LORE v4,0/2](https://lore.kernel.org/lkml/20240105222014.1025040-1-qyousef@layalina.io)<br>*-*-*-*-*-*-*-* <br>[2024/02/05, LORE v5,0/2](https://lore.kernel.org/lkml/20240205021123.2225933-1-qyousef@layalina.io)[2024/02/20, LORE v6,0/4](https://lore.kernel.org/lkml/20240220225622.2626569-1-qyousef@layalina.io)<br>*-*-*-*-*-*-*-* <br>[2024/03/24, LORE v8,0/4](https://lore.kernel.org/all/20240324004552.999936-1-qyousef@layalina.io) |
+
+
 
 #### 7.2.4.4 Capacity Aware Sched Class
 -------
@@ -5021,6 +5064,13 @@ EAS 合入的时候, 使用 map_util_freq() 将 util 按照 schedutil 的调频�
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/06/14 | Lukasz Luba <lukasz.luba@arm.com> | [Add allowed CPU capacity knowledge to EAS](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=8f1b971b4750e83e8fbd2f91a9efd4a38ad0ae51) | TODO | v4 ☐☑✓ 5.14-rc1 | [LORE v4,0/3](https://lore.kernel.org/all/20210614185815.15136-1-lukasz.luba@arm.com) |
+
+尽管如此, 能效模型和 schedutil 之间依旧可能存在不匹配.
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/12/11 | Vincent Guittot <vincent.guittot@linaro.org> | [consolidate and cleanup CPU capacity](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=1f023007f5e782bda19ad9104830c404fd622c5d) | 整合调度器中如何使用最大 CAPACITY 以及我们如何计算某一利用率级别的频率的第一部分. 下一步将是在 CPU 的原始最大计算容量和永久应用上限(秒或更长时间)时当前可用的容量之间进行区分. 第一部分修复在计算利用率的频率时出现的一些不公平现象. `cpuinfo.max_freq` 可以在运行时更改, 这意味着该值可能与用于计算 CPU 容量的频率不同, 性能域的最后一项并不总是用于计算 CPU CAPACITY 的频点, 这可能导致目标频率与系统的其他部分(如时间表)不同, 并可能导致错误的能量估计. 新的 `get_capacity_ref_freq() -=> arch_scale_freq_ref()` 可用于返回一个固定且一致的频率参考, 该频率参考可在计算某个利用率级别的 CPU 频率时使用, 使用这个函数得到这个参考频率. | v7 ☐☑✓ v6.8-rc1 | [LORE v7,0/7](https://lore.kernel.org/all/20231211104855.558096-1-vincent.guittot@linaro.org) |
+| 2024/01/08 | Vincent Guittot <vincent.guittot@linaro.org> | [Rework system pressure interface to the scheduler](https://lore.kernel.org/all/20240108134843.429769-1-vincent.guittot@linaro.org) | 整合调度器中如何使用最大 CAPACITY 以及我们如何计算某一利用率级别的频率的第二部分. 在 [consolidate and cleanup CPU capacity](https://lore.kernel.org/all/20231211104855.558096-1-vincent.guittot@linaro.org) 中对 CPU 容量进行了整合和清理之后, 这个补丁集重新研究了调度器如何获取 CPU 的压力. 我们需要考虑 cpufreq 在数十毫秒或更长时间内对 CPU 计算能力施加的所有压力, 而不仅仅是 cpufreq cooling 设备 HW mitigiations 延迟. 我们将施加在 CPU 容量上的压力分为两部分: 1. 一个来自 cpufreq 和 freq_qos, 2. 一个来自 HW 高频抑制.<br>下一步将添加一个专用接口, 用于长期限制 CPU 容量(即几秒钟或更长时间), 如 cpufreq-sysfs 的 scaling_max_freq. | v3 ☐☑✓ | [LORE v3,0/5](https://lore.kernel.org/all/20240108134843.429769-1-vincent.guittot@linaro.org) |
 
 
 #### 7.2.5.4 Energy Model Management Framework 的改进与优化
@@ -5240,7 +5290,15 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 
 小米在邮件列表发布了 [Provide USF for the portable equipment.](https://lore.kernel.org/all/cover.1596612536.git.yangdongdong@xiaomi.com) 在启用 cpufreq 上的调整, 并按计划调整用户敏感系数. 它特别适用于在屏幕上显示更多电源保护和快速响应要求的移动设备.
 
-### 7.3.5 其他 governor
+
+### 7.3.5 CPU-DDR 联动调频
+-------
+
+| 日期 | 文档 | 描述 |
+|:---:|:---:|:----:|
+| 2023/06/07 | [JOSS: Joint Exploration of CPU-Memory DVFS and Task Scheduling for Energy Efficiency](https://arxiv.org/abs/2306.04615) | 提出了一种 CPU-MEMORY 联合调频的模型和调频策略. |
+
+### 7.3.6 其他 governor
 -------
 
 [Google's CPUFreq "Interactive" Governor Looks To Go Mainline](https://www.phoronix.com/news/CPUFreq-Interactive-Governor)
@@ -5530,6 +5588,7 @@ CONFIG_SCHED_CORE_CTL 的方案, 不光通过 do_isolation_work_cpu_stop() 支�
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/11/07 | Ankur Arora <ankur.a.arora@oracle.com> | [Make the kernel preemptible](https://lore.kernel.org/all/20231107215742.363031-1-ankur.a.arora@oracle.com) | [New Set Of 86 Patches Overhaul The Linux Kernel's Preemption Model](https://www.phoronix.com/news/Overhaul-Linux-Preemptible-RFC) | v1 ☐☑✓ | [LORE v1,0/86](https://lore.kernel.org/all/20231107215742.363031-1-ankur.a.arora@oracle.com) |
+| 2024/02/12 | Ankur Arora <ankur.a.arora@oracle.com> | [PREEMPT_AUTO: support lazy rescheduling](https://lore.kernel.org/all/20240213055554.1802415-1-ankur.a.arora@oracle.com) | 本系列增加了一个新的调度模型 PREEMPT_AUTO, 它与 PREEMPT_DYNAMIC 一样，允许在无 / 自愿 / 完全抢占模型之间进行动态切换. 然而, 与 PREEMPT_DYNAMIC 不同, 它不依赖于自愿模型的显式抢占点. 该系列基于托马斯在 [1](https://lore.kernel.org/lkml/87cyyfxd4k.ffs@tglx)、[2](https://lore.kernel.org/lkml/87led2wdj0.ffs@tglx) 和他的 [PoC](https://lore.kernel.org/lkml/87jzshhexi.ffs@tglx) 中概述的原始提议. 早期的 RFC 版本位于 [Make the kernel preemptible](https://lore.kernel.org/all/20231107215742.363031-1-ankur.a.arora@oracle.com).<br>PREEMPT_AUTO 的工作原理是始终启用 CONFIG_PREEMPTION(从而启用 PREEMPT_COUNT). 这意味着调度器总是可以安全地抢占. 这与 CONFIG_PREEMPT 相同. 有了这一点, 下一步是使重新调度策略取决于所选的调度模型. 目前, 调度程序使用一个需要重新调度的位(TIF_NEED_RESCHED) 来声明需要重新调度. PREEMPT_AUTO 通过添加一个额外的需求补救位 TIF_NEED_RESCHED_LAZY. | v1 ☐☑✓ | [LORE v1,0/30](https://lore.kernel.org/all/20240213055554.1802415-1-ankur.a.arora@oracle.com) |
 
 
 ## 8.2 NO_HZ
@@ -5758,6 +5817,10 @@ Linux 内核会将大量 (并且在不断增加中) 工作放置在内核线程�
 
 ## 8.7 [PREEMPT_RT](https://www.phoronix.com/search/PREEMPT_RT)
 -------
+
+| 编号 | 文档 | 描述 |
+|:---:|:---:|:----:|
+| 1 | [The state of realtime and embedded Linux](https://lwn.net/Articles/970555) | 2024 [Open Source Summit North America](https://events.linuxfoundation.org/open-source-summit-north-america) 关于实时内核的讨论. |
 
 标准的 Linux 内核中不可中断的系统调用、中断屏蔽等因素, 都会导致系统在时间上的不可预测性, 对硬实时限制没有保证. 目前, 针对 real-time Linux 的修改有两种成功的方案.
 
@@ -6031,7 +6094,7 @@ enqueue_task_fair()
 
 EEVDF 最终在 [v6.6-rc1 合入主线](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3ca9a836ff53db8eb76d559764c07fb3b015886a), EEVDF 取代了现有的 CFS 调度程序代码, 虽然最初可能会出现一些性能回归, 但开发人员将积极地解决这些问题. 参见  [EEVDF Scheduler Merged For Linux 6.6, Intel Hybrid Cluster Scheduling Re-Introduced](https://www.phoronix.com/news/Linux-6.6-EEVDF-Merged) 以及 [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d07f09a1f99cabbc86bc5c97d962eb8a466106b5).
 
-EEVDF 全称 "Earliest Eligible Virtual Deadline First" 调度算法, 它并不是什么新事物, 是在 1995 年由 Ion Stoica 和 Hussein Abdel-Wahab 在 1995 年的论文 [Earliest Eligible Virtual Deadline First A Flexible](https://people.eecs.berkeley.edu/~istoica/papers/eevdf-tr-95.pdf) 中描述过. 它的名字就暗示, 它是跟内核的 deadline scheduler 所使用的 Earliest Deadline First algorithm 很类似. 但是这里的差异是, EEVDF 不是一个 realtime 时调度程序, 所以工作方式不一样. 理解 EEVDF 需要掌握几个 (相对) 简单的概念.
+EEVDF 全称 "Earliest Eligible Virtual Deadline First" 调度算法, 它并不是什么新事物, 是在 1995 年由 Ion Stoica 和 Hussein Abdel-Wahab 在 1995 年的论文 [Earliest Eligible Virtual Deadline First A Flexible](https://people.eecs.berkeley.edu/~istoica/papers/eevdf-tr-95.pdf),[Earliest Eligible Virtual Deadline First : A Flexible and Accurate Mechanism for Proportional Share Resource Allocation, November 1995](https://dl.acm.org/doi/10.5555/890606) 中描述过. 它的名字就暗示, 它是跟内核的 deadline scheduler 所使用的 Earliest Deadline First algorithm 很类似. 但是这里的差异是, EEVDF 不是一个 realtime 时调度程序, 所以工作方式不一样. 理解 EEVDF 需要掌握几个 (相对) 简单的概念.
 
 
 EEVDF 跟 CFS 一样, EEVDF 追求在任务之间公平使用 CPU 时间. 试图把可用的 CPU 时间公平地分配给正在争夺它的那些进程. 例如, 如果有五个进程试图在一个 CPU 上运行, 那么每个进程应该得到 20% 的可用时间. 每个进程的 nice 值可以用来调整其公平时间的计算结果, nice 值较低 (因此优先级较高) 的进程有权获得更多的 CPU 时间, 而牺牲那些具有较高 nice 值的进程. 这些内容都是以前就有的概念.
@@ -6053,13 +6116,24 @@ EEVDF 调度器希望平滑而自然地处理延迟关键型任务. 延迟关键
 
 EEVDF 的核心理念就可以从它的名字中看出, 它将首先运行那些具有最早的 virtual deadline 的进程. 因此, 调度选择是结合了 fairness(用于计算合格时间的 lag 值) 以及每个进程当前有用的时间值来共同决定的.
 
+
+
+| 时间  | 作者  | 特性  | 描述  | 是否合入主线   | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2009/09/16 | Ingo Molnar <mingo@elte.hu> | [sched: Implement a gentler fair-sleepers feature](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=51e0304ce6e55a6e59658558916b4f74da085ff0) | 引入 GENTLE_FAIR_SLEEPERS sched_feature 只给睡眠的线程 50% 的 vruntime 补偿优待, 这使它们能够更快地奔跑, 但不会让他们窃取过多的补偿. | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=51e0304ce6e55a6e59658558916b4f74da085ff0) |
+| 2023/04/01 | Xi Wang <xii@google.com> | [Morphing CFS into FDL, The Fair Deadline Scheduling Class](https://lore.kernel.org/all/20230401230556.2781604-1-xii@google.com) | TODO | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20230401230556.2781604-1-xii@google.com) |
+| 2023/03/28 | Peter Zijlstra <peterz@infradead.org> | [sched: EEVDF using latency-nice](https://lore.kernel.org/all/20230328092622.062917921@infradead.org) | [EEVDF Scheduler Patches Updated For The Linux Kernel](https://www.phoronix.com/news/Linux-EEVDF-EO-March) | v1 ☐☑✓ | [LORE 00/10](https://lore.kernel.org/all/20230306132521.968182689@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/17](https://lore.kernel.org/all/20230328092622.062917921@infradead.org) |
+| 2023/07/19 | Peter Zijlstra <peterz@infradead.org> | [sched: EEVDF and latency-nice and/or slice-attr](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b41bbb33cf75d251a816768580819aec17be718d) | [Updated EEVDF Linux CPU Scheduler Patches Posted That Plan To Replace CFS](https://www.phoronix.com/news/EEVDF-Scheduler-Linux-EO-May) 以及 [EEVDF Scheduler May Be Ready For Landing With Linux 6.6](https://www.phoronix.com/news/Linux-6.6-EEVDF-Likely), [EEVDF Scheduler Merged For Linux 6.6, Intel Hybrid Cluster Scheduling Re-Introduced](https://www.phoronix.com/news/Linux-6.6-EEVDF-Merged) | v1 ☐☑✓ 6.6-rc1 | [LORE v1,0/15](https://lore.kernel.org/all/20230531115839.089944915@infradead.org), [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d07f09a1f99cabbc86bc5c97d962eb8a466106b5) |
+
+
 #### 8.9.2.2 公式推导与实现
 -------
 
 系统中所有进程的滞后值 lag 的和为 0;
 
-$\sum \limits_{0}^{n}lag_{i} = \sum \limits_{0}^{n}w_{i} \times (V - v_{i}) = 0$
+$\sum \limits_{0}^{n}lag_{i} = \sum \limits_{0}^{n}S - s_i = \sum \limits_{0}^{n}w_{i} \times (V - v_{i}) = 0$
 
+[Completing the EEVDF scheduler](https://lwn.net/Articles/969062) 中举了一个例子讲述了进程滞后值 lag 的计算;
 
 ##### 8.9.2.2.1 V 与 cfs_rq 的 avg_vruntime
 -------
@@ -6082,7 +6156,6 @@ $W = avg\_load_{cfs_rq}$
 V = \frac{\sum \limits_{0}^{n}w_{i} \times (v_{i} - v_{0})}{W} + v_{0} = \frac{avg\_vruntime_{cfs\_rq}}{avg\_load_{cfs\_rq}} + min\_vruntime_{cfs\_rq} = avg\_vruntime$
 
 接下来就是如何把这些值算出来:
-
 
 
 | cfs_rq |  描述 | 更新时机 | 用途 | 公式 |
@@ -6140,7 +6213,12 @@ $V = \frac{\sum \limits_{0}^{n}w_{i} \times v_{i}}{\sum \limits_{0}^{n}w_{i}} = 
 
 $lag_i = S - s_i = w_i \times (V - v_i) = w_i \times [\frac{\sum \limits_{0}^{n}w_{i} \times (v_{i} - v_{0})}{W} + v_{0} - v_i] = load\_weight_i \times (avg\_vruntime - vruntime_{se})$
 
-由于 `se->vlag` 是用了 load.weight 以及 avg_load 做了归一的, 因此 reweight_entity 的时候, 需要同步更新 se->vlag 和 se->deadline. 此时如果 se 不是就绪的 (!se->on_rq), 那么仅仅更新 se->vlag 即可, 因为进程后续 enqueue_entity() -=> place_entity(). 否则则不更新 se->vlag, 而是直接更新 se->deadline.
+那么记录 vlag 为进程不带加权的 lag 滞后值, 具体计算参见 [update_entity_lag()](https://elixir.bootlin.com/linux/v6.6/source/kernel/sched/fair.c#L715)
+
+$vlag_i = \frac{S - s_i}{w_i} = V - v_i = \frac{\sum \limits_{0}^{n}w_{i} \times (v_{i} - v_{0})}{W} + v_{0} - v_i = avg\_vruntime - vruntime_{se}) = \frac{avg\_vruntime_{cfs\_rq}}{avg\_load_{cfs\_rq}} + min\_vruntime_{cfs\_rq} - vruntime_{se}$
+
+
+可见 `se->vlag` 是用了 load.weight 以及 avg_load 做了归一的, 因此 reweight_entity 的时候, 需要同步更新 se->vlag 和 se->deadline. 此时如果 se 不是就绪的 (!se->on_rq), 那么仅仅更新 se->vlag 即可, 因为进程后续 enqueue_entity() -=> place_entity(). 否则则不更新 se->vlag, 而是直接更新 se->deadline.
 
 *	判断一个任务是不是 eligible
 
@@ -6159,21 +6237,69 @@ $lag_i = S - s_i = w_i \times (V - v_i) = w_i \times [\frac{\sum \limits_{0}^{n}
 
 $lag_i = w_i \times [\frac{\sum \limits_{0}^{n}w_{i} \times (v_{i} - v_{0})}{W} - (v_{i} - v_0)] > 0 \Rightarrow \frac{\sum \limits_{0}^{n}w_{i} \times (v_{i} - v_{0})}{W} - (v_{i} - v_0) > 0 \Rightarrow  \frac{\sum \limits_{0}^{n}w_{i} \times (v_{i} - v_{0})}{W} > (v_{i} - v_0) \Rightarrow \sum \limits_{0}^{n}w_{i} \times (v_{i} - v_{0}) > W \times (v_{i} - v_0)  \Rightarrow avg\_vruntime_{cfs\_rq} > avg\_load_{cfs\_rq} \times (vruntime_{se} - min\_vruntime_{cfs\_rq})$
 
-* 如何结合 latency_nice
 
-latency_nice 影响的就是 `se->slice`
+*	计算 deadline
+
+关于 EEVDF 的截止时间, 类似于实时调度里的概念, 就是最晚获得所有请求资源的时间点, 假设已知调度周期 T, 最大服务时间 r, 就是要求每个周期内都能拥有 r 的服务时间长度, 因此资源份额为 f = \frac{r}{T}, 反过来, 已知请求创建的时间点 t, 其请求长度为 r, 截止时间则就是 $t + \frac{r}{T}$. 即 $vd_i = ve_i + r_i / w_i$.
+
+那么实际时间的时候, 参见 [update_deadline()](https://elixir.bootlin.com/linux/v6.6/source/kernel/sched/fair.c#L1034).
+
+$deadline_{se} = vruntime_{se} + slice \times \frac{weight_0}{weight_{se}}$
+
+
+
+### 8.9.3 EEVDF 如何 PICK 任务
+-------
+
+[commit 147f3efaa241 ("sched/fair: Implement an EEVDF-like scheduling policy")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=147f3efaa24182a21706bca15eab2f3f4630b5fe)
+
+[commit 650cad561cce ("sched/eevdf: Also update slice on placement")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=650cad561cce04b62a8c8e0446b685ef171bc3bb)
+
+
+
+### 8.9.4 EEVDF 如何处理睡眠唤醒的任务
+-------
+
+
 
 | 时间  | 作者  | 特性  | 描述  | 是否合入主线   | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
-| 2009/09/16 | Ingo Molnar <mingo@elte.hu> | [sched: Implement a gentler fair-sleepers feature](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=51e0304ce6e55a6e59658558916b4f74da085ff0) | 引入 GENTLE_FAIR_SLEEPERS sched_feature 只给睡眠的线程 50% 的 vruntime 补偿优待, 这使它们能够更快地奔跑, 但不会让他们窃取过多的补偿. | v1 ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=51e0304ce6e55a6e59658558916b4f74da085ff0) |
-| 2023/04/01 | Xi Wang <xii@google.com> | [Morphing CFS into FDL, The Fair Deadline Scheduling Class](https://lore.kernel.org/all/20230401230556.2781604-1-xii@google.com) | TODO | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20230401230556.2781604-1-xii@google.com) |
-| 2023/03/28 | Peter Zijlstra <peterz@infradead.org> | [sched: EEVDF using latency-nice](https://lore.kernel.org/all/20230328092622.062917921@infradead.org) | [EEVDF Scheduler Patches Updated For The Linux Kernel](https://www.phoronix.com/news/Linux-EEVDF-EO-March) | v1 ☐☑✓ | [LORE 00/10](https://lore.kernel.org/all/20230306132521.968182689@infradead.org)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/17](https://lore.kernel.org/all/20230328092622.062917921@infradead.org) |
-| 2023/07/19 | Peter Zijlstra <peterz@infradead.org> | [sched: EEVDF and latency-nice and/or slice-attr](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b41bbb33cf75d251a816768580819aec17be718d) | [Updated EEVDF Linux CPU Scheduler Patches Posted That Plan To Replace CFS](https://www.phoronix.com/news/EEVDF-Scheduler-Linux-EO-May) 以及 [EEVDF Scheduler May Be Ready For Landing With Linux 6.6](https://www.phoronix.com/news/Linux-6.6-EEVDF-Likely), [EEVDF Scheduler Merged For Linux 6.6, Intel Hybrid Cluster Scheduling Re-Introduced](https://www.phoronix.com/news/Linux-6.6-EEVDF-Merged) | v1 ☐☑✓ 6.6-rc1 | [LORE v1,0/15](https://lore.kernel.org/all/20230531115839.089944915@infradead.org), [CGIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d07f09a1f99cabbc86bc5c97d962eb8a466106b5) |
 | 2023/10/23 | Daniel Jordan <daniel.m.jordan@oracle.com> | [sched/fair: Preserve PLACE_DEADLINE_INITIAL deadline](https://lore.kernel.org/all/20231023154319.102437-1-daniel.m.jordan@oracle.com) | TODO | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20231023154319.102437-1-daniel.m.jordan@oracle.com) |
 | 2023/09/15 | peterz@infradead.org <peterz@infradead.org> | [sched/eevdf: sched_attr::sched_runtime slice hint](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=650cad561cce04b62a8c8e0446b685ef171bc3bb) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20230915124354.416936110@noisy.programming.kicks-ass.net) |
 | 2023/11/04 | Yiwei Lin <s921975628@gmail.com> | [sched/fair: Track current se's EEVDF parameters](https://lore.kernel.org/all/20231104090054.124945-1-s921975628@gmail.com) | TODO | v4 ☐☑✓ | [LORE v4,0/1](https://lore.kernel.org/all/20231104090054.124945-1-s921975628@gmail.com) |
+| 2023/09/19 | Ingo Molnar <mingo@kernel.org> | [sched/fair: Do not wakeup-preempt same-prio SCHED_OTHER tasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=147f3efaa24182a21706bca15eab2f3f4630b5fe) | Mike 和其他人注意到, EEVDF 确实喜欢过多地安排时间--这确实会造成[许多基准测试/工作负载的性能](https://lore.kernel.org/all/202308101628.7af4631a-oliver.sang@intel.com) 的劣化. 特别是, 似乎导致过度调度的原因是, 当滞后 lag 与请求/切片的顺序相同(或更大)时, 放置不仅会导致任务被放置在当前任务的左边, 而且最后期限比当前任务小, 这会导致立即先发制人, 从另外一个角度上讲, 就是这些任务被过多的安排了时间片. Mike 建议, 只要它有资格运行, 我们就坚持选择 "current", 让它不间断地运行, 直到它与包持平. 引入 sched_feature RUN_TO_PARITY 的实现, 标记 current 的任务的 `curr->vlag = curr->deadline`, 只允许它用尽最初的请求来增强. | v1 ☐☑✓ 6.6-rc1 | [LORE](https://lore.kernel.org/all/ZQljoiSBhZLEFI/G@gmail.com) |
 | 2023/11/07 | Abel Wu <wuyun.abel@bytedance.com> | [sched/eevdf: Optimize reweight and pick](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ee4373dc902c0a403dd084b254ce70a78f95466f) | 1. 解决了重新加权时vruntime无法调整的问题 !0-tag 滞点.<br>2. 按照虚拟截止日期对任务时间线进行排序, 并将 min_vruntime 保留在增强树中, 这样实现了一种基于最后期限排序的最左侧缓存红黑树( deadline-sorted leftmost-cached rbtree). 通过在 best_left 上进行回退搜索, 可以避免在最坏的情况下会使成本翻倍的问题.<br>3. 充分利用缓存的最左边节点, 可以达成 O(1) 复杂度的 PICK TASK.<br>4. 最后一个补丁是 EEVDF 的统计维测补丁, 不用于 UPSTREAM. | v1 ☐☑✓ v6.8-rc1 | [LORE v1,0/4](https://lore.kernel.org/all/20231107090510.71322-1-wuyun.abel@bytedance.com) |
 | 2024/04/05 | Peter Zijlstra <peterz@infradead.org> | [sched/fair: Complete EEVDF](https://lore.kernel.org/all/20240405102754.435410987@infradead.org) | [New EEVDF Linux Scheduler Patches Make It Functionally "Complete"](https://www.phoronix.com/news/Linux-Completing-EEVDF-Sched) 以及 [Completing the EEVDF scheduler](https://lwn.net/Articles/969062). | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/20240405102754.435410987@infradead.org) |
+| 2024/01/11 | Ze Gao <zegao2021@gmail.com> | [sched/eevdf: Use tunable knob sysctl_sched_base_slice as explicit time quanta](https://lore.kernel.org/all/20240111115745.62813-2-zegao@tencent.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240111115745.62813-2-zegao@tencent.com) |
+| 2023/09/05 | Mathieu Desnoyers <mathieu.desnoyers@efficios.com> | [sched/eevdf: Rate limit task migration](https://lore.kernel.org/all/20230905171105.1005672-1-mathieu.desnoyers@efficios.com) | 实现任务迁移速率限制, 以加快触发频繁迁移的工作负载模式, 如 hackbbench. 第一个补丁 [sched: Rate limit migrations to 1 per 2ms per task](https://lore.kernel.org/lkml/20230905171105.1005672-2-mathieu.desnoyers@efficios.com) 实现了一个简单的速率限制, 即每 2ms 迁移一次. 第二个补丁 [sched: Implement adaptative rate limiting of task migrations](https://lore.kernel.org/lkml/20230905171105.1005672-3-mathieu.desnoyers@efficios.com) 实现了自适应任务迁移速率限制. | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20230905171105.1005672-1-mathieu.desnoyers@efficios.com) |
+| 2024/02/28 | Tobias Huschle <huschle@linux.ibm.com> | [sched/eevdf: avoid task starvation in cgroups](https://lore.kernel.org/all/20240228161023.14310-1-huschle@linux.ibm.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240228161023.14310-1-huschle@linux.ibm.com) |
+
+
+滞后计算仅与可运行的任务相关; 休眠很久的任务实际上并没有错过它的虚拟运行时间(因为它没有), 所以它不会累积巨大的滞后值. 但是, EEVDF 调度器实现的时候, 在任务进入睡眠状态时会保留任务的当前滞后值, 并在任务唤醒时从该值开始. 因此, 如果一个任务在它进入睡眠状态之前已经超出了它的分配范围, 那么当它醒来时, 它将为此付出代价.
+
+但是, 确实存在一点, 保留任务的滞后可能没有意义. 一个睡眠了一天的任务真的应该因为昨天被允许超出其分配而受到惩罚吗? 很明显, 任务的滞后迟早会恢复为零. 但何时应该发生这种情况尚不完全清楚. 正如 	Peter Zijlstra 在[补丁中](https://lwn.net/ml/linux-kernel/20240405110010.631664251@infradead.org) 指出的那样, 在睡眠时立即忘记延迟将使任务有可能通过在时间片结束时短暂睡眠来玩弄系统(当它们的延迟可能为负数时), 结果他们获得的 CPU 时间超过了他们的份额. 他总结说, 简单地随着时间的推移衰减滞后值也不会奏效, 因为滞后与虚拟运行时有关, 虚拟运行时以不同(且变化)的速率传递.
+
+> Extend / fix 86bfbb7ce4f6 ("sched/fair: Add lag based placement") by noting that lag is fundamentally a temporal measure. It should not be carried around indefinitely.
+>
+> 滞后基本上是一种时间度量. 它不应该无限期地传播下去.
+
+
+解决方案是减少睡眠任务在虚拟运行时上的滞后. 这个想法在 [sched/fair: Complete EEVDF](https://lore.kernel.org/all/20240405102754.435410987@infradead.org) 中的实现有点有趣. 在之前的实现中, 当任务处于休眠状态时, 通常会将其从运行队列中删除, 以便调度程序无需考虑它. [[RFC][PATCH 08/10] sched/fair: Implement delayed dequeue](https://lore.kernel.org/all/20240405110010.631664251@infradead.org) 实现时, 进入睡眠状态的不合格进程将保留在队列中, 但标记为 "延迟取消排队". 由于它不符合条件, 因此不会选择执行, 但其延迟会根据通过的虚拟运行时间而增加. 一旦延迟变为正值, 调度程序将注意到该任务并将其从运行队列中删除.
+
+这种实现的结果是, 短暂休眠的任务将无法无限制的传播其负滞后值, 但长时间休眠的任务最终将免除其滞后债务. 有趣的是, 正滞后值会无限期保留, 直到任务再次运行.
+
+
+### 8.9.5 如何结合 latency_nice
+-------
+
+latency_nice 影响的就是 `se->slice`.
+
+EEVDF 的基础实现中, 具有较短时间片的任务将具有更早的虚拟截止日期, 从而导致调度程序更快地选择它们. 但是, 在当前内核中, 该隐式优先级仅在调度程序查找要运行的新任务时生效. 如果具有短时间片的延迟敏感型任务被唤醒, 它可能仍必须等待当前任务耗尽其时间片(可能很长)才能运行. Peter Zijlstra 的补丁 [[RFC][PATCH 09/10] sched/eevdf: Allow shorter slices to wakeup-preempt](https://lore.kernel.org/all/20240405110010.788110341@infradead.org) 改变了这一点,引入 SCHED_FEAT(PREEMPT_SHORT) 允许一个任务抢占另一个任务, 如果它的虚拟截止日期更早. 此更改为短时间切片的任务提供了更一致的时间, 同时可能会略微减慢长时间运行的任务.
+
+然而, 这留下了一个悬而未决的问题: 如何指定一个给定的任务应该被赋予一个短的时间片? 在当前的内核中, 非实时进程无法告诉内核其时间片应该是什么, 因此补丁 [[RFC][PATCH 10/10] sched/eevdf: Use sched_attr::sched_runtime to set request/slice suggestion](https://lore.kernel.org/all/20240405110010.934104715@infradead.org) 增加了该功能. 具体来说, 任务可以使用 sched_setattr() 系统调用, 在 sched_attr 结构 sched_runtime 字段中传递所需的切片时间(以纳秒为单位). 在当前内核中, 此字段仅用于截止时间调度. 通过此功能, 任何任务都可以请求更短的时间片, 这将导致它更快地运行, 并且可能更频繁地运行. 但是, 如果请求的时间片太短, 则任务将发现自己经常被抢占, 并且总体运行速度会变慢.
+时间片的允许范围为 100μs 到 100ms. 出于好奇, Peter Zijlstra 在此补丁的更新日志中以一组令人印象深刻的 ASCII 艺术图的形式说明了各种时间片选择的结果.
+
+
 
 
 
@@ -6574,7 +6700,7 @@ CFS 调度器为用户和开发人员提供了非常多的调试接口和参数�
 BPF 钩子 (它已经成功地用于各种内核子系统) 为外部代码 (安全地) 更改一些内核决策提供了一种方法, BPF 工具使这变得非常容易, 部署 BPF 脚本的开发者已经非常习惯于为新的内核版本更新它们.
 
 
-#### 11.2.2.1 Facebook 的尝试
+#### 11.2.2.1 sched_ext: Facebook 的尝试
 -------
 
 [当 BPF 邂逅 CPU 调度器](https://www.ebpf.top/post/cfs_scheduler_bpf)
@@ -6595,11 +6721,13 @@ Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论
 
 Changwoo Min 和 Igalia 昨天在北美开源峰会上发表了关于为 Linux 游戏优化内核调度器的演讲, [Optimizing Scheduler for Linux Gaming - Changwoo Min, Igalia](https://ossna2024.sched.com/event/1aBOT/optimizing-scheduler-for-linux-gaming-changwoo-min-igalia?iframe=no&w=100%&sidebar=yes&bg=no), 提出延迟关键感知虚拟截止时间(LAVD) 调度器. 这个[使用 Rust 基于 sched_ext 编写](https://crates.io/crates/scx_lavd/versions)的基于截止日期的调度器已经显示出可喜的结果. 在 Igalia 在基于 Linux 6.9-rc1的内核上进行的测试中，LAVD调度器在平均FPS和1%的低帧速率下都显示出与EEVDF更好或相似的性能. 参见 phoronix 报道 [Rust-Written LAVD Kernel Scheduler Shows Promising Results For Linux Gaming](https://www.phoronix.com/news/LAVD-Scheduler-Linux-Gaming).
 
+随后作者发布了 sched_ext 的 v6 版本 [Another push for sched_ext](https://lwn.net/Articles/972710),  BPF 的工具集 `sched_ext/ravg[_impl].BPF.h` 和 `ravg.read.rs.h` 中的运行平均实现来跟踪负载度量. 以前, 用户空间部分迭代所有任务来计算负载度量并做出 LB 决策. 现在, 高级 LB 决策是通过简单地读取每个域的负载平均值来做出的, 而 Picking 迁移目标任务只访问推送域中固定数量的最近活动任务的负载度量. 这大大减少了 CPU 开销, 并使 rust 的可扩展性大大提高.
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/09/15 | Roman Gushchin <guro@fb.com> | [Scheduler BPF](https://www.phoronix.com/scan.php?page=news_item&px=Linux-BPF-Scheduler) | NA | RFC ☐ | [PatchWork rfc,0/6](https://patchwork.kernel.org/project/netdevbpf/cover/20210916162451.709260-1-guro@fb.com)<br>*-*-*-*-*-*-*-* <br>[LPC 2021](https://linuxplumbersconf.org/event/11/contributions/954)<br>*-*-*-*-*-*-*-* <br>[LKML](https://lkml.org/lkml/2021/9/16/1049), [LWN](https://lwn.net/Articles/869433), [LWN](https://lwn.net/Articles/873244) |
-| 2022/11/29 | Tejun Heo <tj@kernel.org> | [sched: Implement BPF extensible scheduler class](https://lore.kernel.org/all/20221130082313.3241517-1-tj@kernel.org) | 随后 FaceBook 进一步扩展, 引入 sched_ext 模块, 使用 eBPF 对调度器进行可编程重构. [Experimental Patches Allow eBPF To Extend The Linux Kernel's Scheduler](https://www.phoronix.com/news/RFC-eBPF-Linux-Scheduler), [The BPF extensible scheduler class](https://lwn.net/Articles/916291), [The extensible scheduler class](https://lwn.net/Articles/922405/), [Patches Updated For Hooking eBPF Programs Into The Linux Kernel Scheduler](https://www.phoronix.com/news/Linux-Scheduler-eBPF-v2-sched). 以及 [Extensible scheduler class rejected](https://lwn.net/Articles/939332) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221130082313.3241517-1-tj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/30](https://lore.kernel.org/lkml/20230128001639.3510083-1-tj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v5](https://lore.kernel.org/all/20231111024835.2164816-1-tj@kernel.org) |
+| 2022/11/29 | Tejun Heo <tj@kernel.org> | [sched: Implement BPF extensible scheduler class](https://lore.kernel.org/all/20221130082313.3241517-1-tj@kernel.org) | 随后 FaceBook 进一步扩展, 引入 sched_ext 模块, 使用 eBPF 对调度器进行可编程重构. [Experimental Patches Allow eBPF To Extend The Linux Kernel's Scheduler](https://www.phoronix.com/news/RFC-eBPF-Linux-Scheduler), [The BPF extensible scheduler class](https://lwn.net/Articles/916291), [The extensible scheduler class](https://lwn.net/Articles/922405/), [Patches Updated For Hooking eBPF Programs Into The Linux Kernel Scheduler](https://www.phoronix.com/news/Linux-Scheduler-eBPF-v2-sched). 以及 [Extensible scheduler class rejected](https://lwn.net/Articles/939332) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221130082313.3241517-1-tj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/30](https://lore.kernel.org/lkml/20230128001639.3510083-1-tj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v5](https://lore.kernel.org/all/20231111024835.2164816-1-tj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v6,00/39](https://lore.kernel.org/all/20240501151312.635565-1-tj@kernel.org) |
 
 
 #### 11.2.2.2 Google 的 ghOSt
@@ -6626,17 +6754,25 @@ Changwoo Min 和 Igalia 昨天在北美开源峰会上发表了关于为 Linux �
 
 William Lee Irwin III 最早提出了调度器模块化框架, 支持启动时配置 CPU 调度器.
 
-
 随后 CK(Con Kolivas) 在 2004 年 基于这个想法实现了 Pluggable CPU Scheduler Framework. 其最终版本停留在 [plugsched-6.5.1](https://sourceforge.net/projects/cpuse/files/PlugSched/v-6.5), 支持 Linux v2.6.22.
 
-[pluggable I/O schedulers, pluggable CPU schedulers](https://lwn.net/Articles/242894)
+[2004/11/03, LWN, Schedulers, pluggable and realtime](https://lwn.net/Articles/109458)
+
+[2007/07/25, LWN, pluggable I/O schedulers, pluggable CPU schedulers](https://lwn.net/Articles/242894)
+
+[2009/09/10, LWN, pluggable schedulers vs. tunable schedulers](https://lwn.net/Articles/351882)
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/09/10 | K Prateek Nayak <kprateek.nayak@amd.com> | [Pluggable cpu scheduler framework](https://lore.kernel.org/all/4183A602.7090403@kolivas.org) | TODO | v1 ☐☑✓ | [LORE v1,00/28](https://lore.kernel.org/all/4183A602.7090403@kolivas.org) |
+| 2004/10/31 | Con Kolivas <kernel@kolivas.org> | [Pluggable cpu scheduler framework](https://lore.kernel.org/all/4183A602.7090403@kolivas.org) | TODO | v1 ☐☑✓ | [LORE v1,00/28](https://lore.kernel.org/all/4183A602.7090403@kolivas.org) |
 
 
-#### 11.2.3.2 Runtime CPU scheduler customization framework
+#### 11.2.3.2 dynsched: scheduler switch at runtime
+-------
+
+[dynsched](https://sourceforge.net/projects/dynsched) 项目的目标是在运行时切换 CPU 调度程序, 它基于 Peter Williams 的 [plugsched](http://cpuse.sourceforge.net). 通过控制 procfs 节点 `/proc/dynsched` 来完成不同调度器之间切换, 当前支持以下调度程序实现: ingosched, nicksched, staircase, 暂不支持基于 spa 的调度器(如 spa_no_folds、zaphod 等), 我希望它们能很快完成, 就像 SMP 的支持一样. dynsched 项目是作者在康  Konstanz 计算机科学研究的一部分. 参见 [scheduler switch at runtime](https://lore.kernel.org/all/1141335697.4419.15.camel@linux.site) 和 [dynsched - different cpu schedulers per cpuset](https://lwn.net/Articles/211141)
+
+#### 11.2.3.3 Runtime CPU scheduler customization framework
 -------
 
 接着在 2009 年, IEEE Student Conference on Research and Development (SCOReD) 上发表的一篇 [Runtime CPU scheduler customization framework for a flexible mobile operating system](https://ieeexplore.ieee.org/document/5443304) 介绍了基于 Linux 内核的运行时 CPU 调度程序自定义 (RCSC) 框架, 该框架考虑了不同的应用程序要求, RCSC 框架允许开发人员自定义 CPU 调度程序以使用特定的调度策略运行, 并在运行时从用户空间评估新开发的调度策略. 因此, 可以手动或自动调整移动操作系统, 以适应特定应用程序的要求. 可同步参考作者 2010 年的毕业论文 [Runtime pluggable CPU scheduler for linux operating system](http://myto.upm.edu.my/find/Record/my-upm-ir.40934/Description#tabnav).
@@ -6653,7 +6789,9 @@ LPC-2016 的议题 [Patching of scheduler functions](http://blog.linuxplumbersco
 #### 11.2.4.2 PlugSched
 -------
 
-[Plugsched](https://gitee.com/anolis/plugsched) 是 OpenAnolos Linux 内核调度器子系统热升级的 SDK, 它可以实现在不重启系统、应用的情况下动态替换调度器子系统, 毫秒级 downtime. Plugsched 可以对生产环境中的内核调度特性动态地进行增、删、改, 以满足不同场景或应用的需求, 且支持回滚. 参见
+[Plugsched](https://gitee.com/anolis/plugsched) 是 OpenAnolos Linux 内核调度器子系统热升级的 SDK, 它可以实现在不重启系统、应用的情况下动态替换调度器子系统, 毫秒级 downtime. Plugsched 可以对生产环境中的内核调度特性动态地进行增、删、改, 以满足不同场景或应用的需求, 且支持回滚.
+
+阿里云基础软件/达摩操作系统实验室的论文发表的该项技术的论文 [Efficient Scheduler Live Update for Linux Kernel with Modularization](https://dl.acm.org/doi/10.1145/3582016.3582054) 被系统领域著名会议 28th Conference on Architectural Support for Programming Languages and Operating Systems (ASPLOS'23) 录用为长论文 (Full Paper).
 
 [龙蜥开源 Plugsched: 首次实现 Linux kernel 调度器热升级 | 龙蜥技术](https://openanolis.cn/blog/detail/532955762604705772).
 
@@ -6661,6 +6799,7 @@ LPC-2016 的议题 [Patching of scheduler functions](http://blog.linuxplumbersco
 
 B 站 Plugsched 介绍视频 [纯干货解读：Plugsched, 首次实现 Linux kernel 调度器热升级 | 龙蜥大讲堂 18 期](https://www.bilibili.com/video/BV1cW4y1y76c).
 
+YouTuBe 上 ASPLOS'23 关于 Plugsched 的介绍 [ASPLOS'23 - Session 7C - Efficient Scheduler Live Update for Linux Kernel with Modularization](https://www.youtube.com/watch?v=IiA4S6VUdzU).
 
 基于 Plugsched 实现的调度器热升级, 不修改现有内核代码, 就能获得较好的可修改能力, 天然支持线上的老内核版本. 如果提前在内核调度器代码的关键数据结构中加入 Reserve 字段, 可以额外获得修改数据结构的能力, 进一步提升可修改能力.
 
@@ -6755,6 +6894,7 @@ B 站 Plugsched 介绍视频 [纯干货解读：Plugsched, 首次实现 Linux ke
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/02/07 | 王贇 | [sched/numa: introduce numa locality](https://lore.kernel.org/patchwork/cover/1190383) | per-cgroup 的 NUMASTAT 功能 | [PatchWork v8](https://lore.kernel.org/patchwork/cover/1190383) |
 | 2021/09/05 | Yafang Shao | [sched: support schedstats for RT sched class](https://lore.kernel.org/patchwork/cover/1403138) | 我们希望使用 schedstats 工具测量生产环境中 RT 任务的延迟, 但目前只支持公平调度类的 schedstats.  将 sched_statistics 修改为独立于 task_struct 或 task_group 的调度统计数据, 从而完成了 RT 的 schedstats 支持 | v6 ☑ 5.16-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1403138)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3](http://patches.linaro.org/cover/502064)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/8](https://lore.kernel.org/all/20210905143547.4668-1-laoar.shao@gmail.com) |
+| 2024/05/08 | Ravi Bangoria <ravi.bangoria@amd.com> | [perf sched: Introduce schedstat tool](https://lore.kernel.org/all/20240508060427.417-1-ravi.bangoria@amd.com) | 现有的 "perf-shed" 非常详尽, 并提供了对调度程序行为的许多见解, 但它很快就无法用于长时间运行或调度程序密集型工作负载. 例如, "perf-shed record" 在 hackbeek 上有约 7.77% 的开销(25 个组, 每个组在 2 个套接字的 128 核 256 线程的第三代 EPYC 服务器上运行 700K 循环), [它生成了巨大的 56G 性能数据, 性能准备和写入磁盘需要约 137 分钟](https://youtu.be/lg-9aG2ajA0?t=283). 与 "perf sched record" 不同的是, "perf sched schedstat record" 挂接到一组调度程序跟踪点并在跟踪点命中时生成样本, 它在工作负载前后拍摄 / proc/schedstat 文件的快照, 即对工作负载运行没有干扰. 此外, 解析 / proc/schedstat、将其转换为 perf 示例和将这些示例保存到 perf.data 文件中. 结果 perf.data 文件要小得多. 因此, 总体而言, 与 "perf sched record" 相比, "perf sched schedstat record" 要轻得多. 我们在 AMD 内部一直在使用它的一种变体, 称为 [调度记分板 Scheduler Scoreboard](https://github.com/AMDESE/sched-scoreboard), 并发现它对分析任何调度程序代码更改的影响非常有用 [Re: [PATCH] sched/fair: no sync wakeup from interrupt context](https://lore.kernel.org/lkml/c50bdbfe-02ce-c1bc-c761-c95f8e216ca0@amd.com), [Re: [PATCH v3 6/7] sched: Implement shared runqueue in CFS]. 参见 phoronix 报道 [AMD Linux Engineers Introduce New "schedstat" Tool](https://www.phoronix.com/news/AMD-Linux-perf-schedstat-Tool). | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20240508060427.417-1-ravi.bangoria@amd.com) |
 
 
 ## 12.2 tracepoint
@@ -6788,6 +6928,7 @@ ARM & Linaro 的内核团队针对 Android/linux 等做了大量的调度的优�
 | 2023/08/01 | Ze Gao <zegao2021@gmail.com> | [add to report task state in symbolic chars from sched tracepoint](https://lore.kernel.org/all/20230801090124.8050-1-zegao@tencent.com) | TODO | v3 ☐☑✓ | [](https://lore.kernel.org/linux-trace-kernel/20230725072254.32045-1-zegao@tencent.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/linux-trace-kernel/20230726121618.19198-1-zegao@tencent.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/all/20230801090124.8050-1-zegao@tencent.com) |
 | 2023/10/09 | Jinyu Tang <tangjinyu@tinylab.org> | [Ftrace: make sched_wakeup can focus on the target process](https://lore.kernel.org/all/20231009153714.10743-1-tangjinyu@tinylab.org) | 此 Patch 只能让我们跟踪目标进程 sched-wakeup 时间, 其他进程 sched-wakeup 将被丢弃, 不会更改 tracing_max_latency. 补丁的评论区各路大神给出了已有可行的解决办法. 包括使用 [synthetic_events](https://lore.kernel.org/all/20231009122500.69854f94@gandalf.local.home) 以及 [rtla](https://bristot.me/linux-scheduling-latency-debug-and-analysis). | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20231009153714.10743-1-tangjinyu@tinylab.org) |
 | 2024/04/08 | Marco Elver <elver@google.com> | [tracing: Add new_exec tracepoint](https://lore.kernel.org/all/20240408090205.3714934-1-elver@google.com) | 添加 "new_exec" 跟踪点, 该跟踪点在不返回点之后但在当前任务采用其新的 exec 标识之前运行. 与跟踪点 "sched_process_exec" 不同, "new_exec" 跟踪点在刷新旧的 exec 之前运行, 即当任务仍处于原始状态 (如原始 MM) 时, 但当新的 exec 成功或崩溃时(但永远不会返回到原始 exec). 能够跟踪此事件在许多用例中都会有所帮助:<br>1. 在当前 MM 被替换之前, 允许跟踪 eBPF 程序访问 exec 上的原始 MM;<br>2. 计算原始任务中的 exec(通过 perf 事件);<br>3. 分析刷新时间("new_exec" 到 "sched_process_exec").<br>4. 跟踪输出示例("new_exec" 和 "sched_process_exec"). | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240408090205.3714934-1-elver@google.com) |
+| 2024/02/22 | John Stultz <jstultz@google.com> | [sched: Add trace_sched_waking() tracepoint to sched_ttwu_pending()](https://lore.kernel.org/all/20240222204917.1719153-1-jstultz@google.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240222204917.1719153-1-jstultz@google.com) |
 
 
 ## 12.3 debug 接口
@@ -6827,6 +6968,7 @@ ARM & Linaro 的内核团队针对 Android/linux 等做了大量的调度的优�
 | [unixbench/context1]() | NA | NA |
 | [os-scheduler-responsiveness-test](https://github.com/hamadmarri/os-scheduler-responsiveness-test) | os 调度程序响应能力测试. 这是一个 Python/Go 脚本, 用于测试操作系统调度程序的响应性或交互性. 交互式线程的睡眠时间多于运行时间 (即用户单击). 该脚本测量与 3 个不同任务的交互性 (对 10000 个数组进行排序, 读取文件并打印到控制台, 读取文件并将其写入另一个文件). 在每个过程中, 它休眠在 1s-3s 之间的随机时间. 同时, 你可以运行素数计算的 CPU 密集型程序, 这对于在繁重的任务运行期间测试交互性很有用. |
 | [jitterdebugger](https://github.com/igaw/jitterdebugger) | [foxhoundsk 的博客 jitterdebugger 介绍](https://hackmd.io/@foxhoundsk/jitterdebugger), 衡量调度器 [切换时延](https://source.android.com/docs/core/audio/latency/contrib?hl=en#schedLatency) 以及操作系统底噪抖动的工具.  |
+| [michaeljclark/cpipe](https://github.com/michaeljclark/cpipe) | [user-space concurrent pipe buffer scheduler interactions](https://lore.kernel.org/all/969ccc0f-d909-4b45-908e-e98279777733@metaparadigm.com), 实现了一个并发管道缓冲区的 benchmark, 设计用于单生产者单使用者或多生产者多使用者模式, 支持并发预写、并发预读和零复制操作, 用于 IO 缓冲区范围内的数组计算. |
 
 
 ### 12.4.2 调度器延迟分析

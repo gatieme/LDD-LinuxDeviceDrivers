@@ -203,6 +203,8 @@ cgit 上查看 MM 所有的 log 信息 :
 # 1 页表管理
 -------
 
+[The state of the page in 2024](https://lwn.net/Articles/973565)
+
 ## 1.1 多级页表
 -------
 
@@ -283,6 +285,7 @@ Linux 一开始是在一台 i386 上的机器开发的, i386 的硬件页表是 
 
 [带有"memory folios"的 Linux: 编译内核时性能提升了 7%](https://www.heikewan.com/item/27509944)
 
+[论好名字的重要性： Linux内核page到folio的变迁](https://blog.csdn.net/feelabclihu/article/details/131485936)
 
 最终该特性与 5.16 合入, [Memory Folios Merged For Linux 5.16](https://www.phoronix.com/scan.php?page=news_item&px=Memory-Folios-Lands-Linux-5.16), 代码仓库 [willy/pagecache.git](http://git.infradead.org/users/willy/pagecache.git), 合入链接 [GIT,PULL Memory folios for v5.1](https://patchwork.kernel.org/project/linux-mm/patch/YX4RkYNNZtO9WL0L@casper.infradead.org), [Merge tag'folio-5.16'of git://git.infradead.org/users/willy/pagecache](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49f8275c7d9247cf1dd4440fc8162f784252c849)
 
@@ -793,6 +796,7 @@ github 地址: [Mitosis Project](https://github.com/mitosis-project), [linux 内
 | 2020/04/28 | Matthew Wilcox <willy@infradead.org> | [Record the mm_struct in the page table pages](https://lore.kernel.org/patchwork/patch/1232723) | NA| v1 ☐ | [PatchWork 0/6](https://lore.kernel.org/patchwork/patch/1232723) |
 | 2022/02/14 | David Hildenbrand <david@redhat.com> | [mm: enforce pageblock_order < MAX_ORDER](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b3d40a2b6d10c9d0424d2b398bf962fb6adad87e) | 20220214174132.219303-1-david@redhat.com | v1 ☑✓ 5.18-rc1 | [LORE v1,0/2](https://lore.kernel.org/all/20220214174132.219303-1-david@redhat.com) |
 | 2024/04/10 | Li RongQing <lirongqing@baidu.com> | [x86/cpu: Take NUMA node into account when allocating per-CPU cpumasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e0a9ac192fd62322b932c6018db60217b3ad866d) | 由于大多数每个 CPU 的 cpumask 都是从它们自己的本地处理器内核访问的, 因此将它们本地分配给给定的 NUMA 节点是有意义的. 参见 phoronix 报道 [Linux 6.10 To Account For NUMA Node When Allocating Per-CPU Cpumasks](https://www.phoronix.com/news/Linux-Per-CPU-NUMA-Node-Cpumask). | v1 ☑✓ 5.18-rc1 | [LORE](https://lore.kernel.org/all/171272659069.10875.14275567183040175048.tip-bot2@tip-bot2) |
+| 2024/04/12 | Li RongQing <lirongqing@baidu.com> | [x86/sev: take NUMA node into account when allocating memory for per-CPU variables](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=90167e96588df747c9b47a04ebac59b71e3b413f) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240412030130.49704-1-lirongqing@baidu.com) |
 
 
 # 2 内存分配
@@ -1085,16 +1089,27 @@ build_zonelists() 的过程中, 如果[指定了 ZONELIST_ORDER_NODE](https://el
 
 NUMA 系统中 CPU 访问不同节点的内存速度很有大的差别. 位于本地 NUMA 节点 (或附近节点) 上的内存比远程节点上的内存访问速度更快. 因此如果能通过策略去控制优先在哪些节点上内存分配, 能有效地提升业务的性能.
 
+#### 2.2.3.1 NUMA multi-preference mempolicy
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2010/05/04 | Miao Xie <miaox@cn.fujitsu.com> | [NUMA API](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e1e71f9b6c8dd34be36573346ecbbb00f34a7a0a) | NA | v1 ☑✓ 2.6.7-rc1 | [LORE v1,0/2](https://lore.kernel.org/all/4BDFFCC8.4040205@cn.fujitsu.com) |
 | 2010/05/04 | Miao Xie <miaox@cn.fujitsu.com> | [mempolicy: restructure rebinding-mempolicy functions](https://lore.kernel.org/all/4BDFFCC8.4040205@cn.fujitsu.com) | 4BDFFCC8.4040205@cn.fujitsu.com | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/4BDFFCC8.4040205@cn.fujitsu.com) |
 | 2017/04/11 | Vlastimil Babka <vbabka@suse.cz> | [cpuset/mempolicies related fixes and cleanups](https://lore.kernel.org/all/20170411140609.3787-1-vbabka@suse.cz) | 20170411140609.3787-1-vbabka@suse.cz | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20170411140609.3787-1-vbabka@suse.cz) |
-| 2021/03/17 | Feng Tang <feng.tang@intel.com> | [Introduced multi-preference mempolicy](https://lore.kernel.org/all/1615952410-36895-1-git-send-email-feng.tang@intel.com) | 1615952410-36895-1-git-send-email-feng.tang@intel.com | v4 ☐☑✓ | [LORE v4,0/13](https://lore.kernel.org/all/1615952410-36895-1-git-send-email-feng.tang@intel.com) |
-| 2021/08/03 | Feng Tang <feng.tang@intel.com> | [Introduce multi-preference mempolicy](https://lore.kernel.org/patchwork/patch/1471473) | 参见 LWN 报道 [NUMA policy and memory types](https://lwn.net/Articles/862707).<br> 引入 MPOL_PREFERRED_MANY 的 policy, 该 mempolicy 模式可用于 set_mempolicy 或 mbind 接口.<br>1. 与 MPOL_PREFERRED 模式一样, 它允许应用程序为满足内存分配请求的节点设置首选项. 但是与 MPOL_PREFERRED 模式不同, 它需要一组节点.<br>2. 与 MPOL_BIND 接口一样, 它在一组节点上工作, 与 MPOL_BIND 不同, 如果首选节点不可用, 它不会导致 SIGSEGV 或调用 OOM killer. | v7 ☑ 5.15-rc1 | [LORE v4,00/13](https://lore.kernel.org/lkml/1615952410-36895-1-git-send-email-feng.tang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/5](https://patchwork.kernel.org/project/linux-mm/cover/1627970362-61305-1-git-send-email-feng.tang@intel.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/tools/perf/builtin-record.c?id=a38a59fdfa10be55d08e4530923d950e739ac6a2) |
+| 2021/08/03 | Feng Tang <feng.tang@intel.com> | [Introduce multi-preference mempolicy](https://lore.kernel.org/patchwork/patch/1471473) | 参见 LWN 报道 [NUMA policy and memory types](https://lwn.net/Articles/862707).<br> 引入 MPOL_PREFERRED_MANY 的 policy, 该 mempolicy 模式可用于 set_mempolicy 或 mbind 接口.<br>1. 与 MPOL_PREFERRED 模式一样, 它允许应用程序为满足内存分配请求的节点设置首选项. 但是与 MPOL_PREFERRED 模式不同, 它需要一组节点.<br>2. 与 MPOL_BIND 接口一样, 它在一组节点上工作, 与 MPOL_BIND 不同, 如果首选节点不可用, 它不会导致 SIGSEGV 或调用 OOM killer. | v7 ☑ 5.15-rc1 | [LORE v4,00/13](https://lore.kernel.org/all/1615952410-36895-1-git-send-email-feng.tang@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/5](https://patchwork.kernel.org/project/linux-mm/cover/1627970362-61305-1-git-send-email-feng.tang@intel.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/tools/perf/builtin-record.c?id=a38a59fdfa10be55d08e4530923d950e739ac6a2) |
 | 2021/11/01 | "Aneesh Kumar K.V" <aneesh.kumar@linux.ibm.com> | [mm: add new syscall set_mempolicy_home_node](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=21b084fdf2a49ca1634e8e360e9ab6f9ff0dee11) | 增加了 set_mempolicy_home_node() 来为用户空间的一段地址 [start, srart + len] 指定内存分配的主节点 home_node. 主节点 home_node 应与 MPOL_PREFERRED_MANY 或 MPOL_BIND 内存分配策略结合使用. 这些策略可以指定一组将用于新内存分配的节点, 但不能说明这些节点中的哪个节点 (如果有) 是首选节点. 如果设置了 home_node, 则分配内存时将优先在该节点上进行分配; 否则, 主节点 home_node 内存不足, 则将回退到有效策略允许的其他节点上分配, 首选最接近主节点的节点. 其目的是让应用程序能够更好地控制内存分配, 同时避免来自慢速节点的内存. 参见 LWN 报道 [Some upcoming memory-management patches](https://lwn.net/Articles/875587). | v1 ☑✓ 5.17-rc1 | [PatchWork v4,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211101050206.549050-1-aneesh.kumar@linux.ibm.com) |
 | 2022/04/12 | Wei Yang <richard.weiyang@gmail.com> | [mm/page_alloc: add same penalty is enough to get round-robin order](https://lore.kernel.org/all/20220412001319.7462-1-richard.weiyang@gmail.com) | 20220412001319.7462-1-richard.weiyang@gmail.com | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220412001319.7462-1-richard.weiyang@gmail.com) |
+
+
+#### 2.2.3.2 Weighted memory interleaving
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/11/22 | Gregory Price <gourry.memverge@gmail.com> | [mm/mempolicy: Make task->mempolicy externally modifiable via syscall and procfs](https://lore.kernel.org/all/20231122211200.31620-1-gregory.price@memverge.com) | 该补丁集允许其他特权进程修改当前任务的内存策略 task->mempolicy. 最终目标是使 mempolicy 更加灵活和可扩展, 例如添加交织权重 Weighted memory interleaving (由于热插拔事件, 可能需要在运行时更改). 通过对 mempolicy 进行外部修改, userland 守护进程可以对正在运行的任务进行运行时性能调整, 而无需使该软件具有 numa 意识. | v1 ☐☑✓ | [LORE v1,0/11](https://lore.kernel.org/all/20231122211200.31620-1-gregory.price@memverge.com) |
+| 2023/12/23 | Gregory Price <gourry.memverge@gmail.com> | [mempolicy2, mbind2, and weighted interleave](https://lore.kernel.org/all/20231223181101.1954-1-gregory.price@memverge.com) | 参照 LWN 报道 [Weighted memory interleaving and new system calls](https://lwn.net/Articles/969379). | v5 ☐☑✓ | [LORE v5,0/11](https://lore.kernel.org/all/20231223181101.1954-1-gregory.price@memverge.com) |
 
 
 ### 2.2.4 内存水线
@@ -4107,6 +4122,10 @@ Meta(原 Facebook) 博客 [Transparent memory offloading: more memory at a fract
 [LSF/MM 2019](https://lwn.net/Articles/lsfmm2019) 期间, 主动回收 IDLE 页面的议题引起了开发者的关注. 通过对业务持续一段时间的页面使用进行监测, 回收掉那些不常用的或者没必要的页面, 在满足业务需求的前提下, 可以节省大量的内存. 这可能比启发式的 kswapd 更有效. 这包括两部分的内容:
 
 
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2024/05/17 | [An update and future plans for DAMON](https://lwn.net/Articles/973702) | NA |
+
 后来还有一些类似的特性也达到了很好的效果.
 
 1.  intel 在对 NVDIMM/PMEM 进行支持的时候, 为了将热页面尽量使用快速的内存设备, 而冷页面尽量使用慢速的内存设备. 因此实现了冷热页跟踪机制. 完善了 idle page tracking 功能, 实现 per process 的粒度上跟踪内存的冷热. 在 reclaim 时将冷的匿名页面迁移到 PMEM 上 (只能迁移匿名页). 同时利用一个 userspace 的 daemon 和 idle page tracking, 来将热内存(在 PMEM 上的) 迁移到 DRA M 中. [ept-idle](https://github.com/intel/memory-optimizer/tree/master/kernel_module).
@@ -4198,6 +4217,15 @@ PowerPC 体系结构 (POWER10) 支持热/冷页面跟踪功能(Hot/Cold page tra
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/05/10 | Yuanchu Xie <yuanchu@google.com> | [mm: Working Set Reporting](https://lore.kernel.org/all/20230509185419.1088297-1-yuanchu@google.com) | balloon device 是在来宾虚拟机和主机之间共享内存的典型机制. 开发这种 [auto-ballon 能力](https://www.linux-kvm.org/page/Projects/auto-ballooning)的早期项目于 2013 年完成. 最近, 已经创建了额外的VIRTIO设备(VIRTIO -mem、VIRTIO -pmem), 为许多用例提供了[更多的工具](https://kvmforum2020.sched.com/event/eE4U/virtio-balloonpmemmem-managing-guest-memory-david-hildenbrand-michael-s-tsirkin-red-hat), 每种工具都有优点和缺点，它在多虚拟机场景中特别有用, 在这种场景中, 内存被过度使用, 并且随着系统上工作负载的变化, 需要动态更改虚拟机内存大小. balloon device 现在有许多特性来帮助在来宾和主机之间明智地共享内存资源 (例如, 免费页面提示、统计、免费页面报告). 对于在多虚拟机环境中负责优化内存资源的主控制器程序, 它必须使用这些工具来回答两个具体问题: 统一的工作集报告结构, 适用于服务器和客户端. 它涉及主机上的每个节点直方图、每个内存直方图和虚拟气球驱动程序扩展.<br> 有两种使用工作集报告的方法: 事件驱动和查询. 主机控制器可以接收来自 reclaim 的通知, 它会生成一个报告, 或者控制器可以直接查询直方图.<br>1. 补丁 1 引入了工作集报告机制和主机接口. 补丁 2 扩展了带有工作集报告的虚拟 balloon 驱动程序.<br> 最初的 RFC 以 MGLRU 为基础, 旨在作为讨论和改进的概念验证. tj 和作者的目标是支持活动 / 非活动 LRU 和来自用户空间的工作集估计. 作者正在编写演示脚本并获得一些数据. 参见 LWN 报道 [Memory overcommit in containerized environments](https://lwn.net/Articles/931658) 和 phoronix 报道 [Google's Working Set Reporting Feature Aims To Better Deal With Over-Committed VMs](https://www.phoronix.com/news/Working-Set-Reporting). | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20230509185419.1088297-1-yuanchu@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/6](https://lore.kernel.org/r/20230621180454.973862-1-yuanchu@google.com) |
+
+### 4.4.7 Working Set Control
+-------
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/11/30 | Alexey Avramov <hakavlad@inbox.lv> | [mm/vmscan: add sysctl knobs for protecting the working set](https://lore.kernel.org/all/20211130201652.2218636d@mail.inbox.lv) | 内核没有提供在内存压力下保护工作集的方法. 用户空间的正常操作需要一定数量的匿名和干净的文件页面. 首先, 用户空间需要共享库和可执行二进制文件的缓存. 如果干净文件页面的数量低于一定的水平, 那么就会发生抖动甚至是动态锁. 该补丁提供了 sysctl, 用于在内存压力下保护工作集 (匿名和干净的文件页面). vm.anon_min_kbytes sysctl 旋钮提供匿名页面的**硬**保护. 当前节点上的匿名页面数量低于 vm.anon_min_kbytes 时, 在任何情况下都不会被回收. 这个 sysctl 可用于防止匿名内存不足时的过多交换抖动(例如, 当内存将被 zram 模块的压缩数据过度填充时). 缺省值由 CONFIG_ANON_MIN_KBYTES 定义 (建议在 Kconfig 中为 0). vm.clean_low_kbytes 旋钮提供尽最大努力保护干净的文件页面. 当前节点上的文件页面清理量小于 vm 时, 不会在内存压力下进行回收. 除非我们威胁要 OOM. 使用此旋钮保护干净的文件页面, 可以在交换时使用. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20211130201652.2218636d@mail.inbox.lv) |
+
 
 
 # 5 Swappiness
@@ -5111,7 +5139,9 @@ THP 虽然实现了, 但是依旧存在着不少问题. 在 LSFMM 2015 进行了
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2015/10/06 | Kirill A. Shutemov"<kirill.shutemov@linux.intel.com> | [THP refcounting redesign](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ddc58f27f9ee) | NA | v12 ☑ 4.5-rc1 | [LWN RFC 00/10](https://lwn.net/Articles/601781)<br>*-*-*-*-*-*-*-* <br>[LORE RFC v2,00/19](https://lore.kernel.org/lkml/1415198994-15252-1-git-send-email-kirill.shutemov@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE RFC v12,00/37](https://lore.kernel.org/lkml/1444145044-72349-1-git-send-email-kirill.shutemov@linux.intel.com) |
-| 2016/05/06 | Andrea Arcangeli <aarcange@redhat.com> | [mm: thp: mapcount updates](https://lore.kernel.org/all/1462547040-1737-1-git-send-email-aarcange@redhat.com) | NA | v1 ☑ 4.6 | [LORE 0/3](https://lore.kernel.org/all/1462547040-1737-1-git-send-email-aarcange@redhat.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6d0a07edd17c) |
+| 2016/05/06 | Andrea Arcangeli <aarcange@redhat.com> | [mm: thp: mapcount updates](https://lore.kernel.org/all/1462547040-1737-1-git-send-email-aarcange@redhat.com) | NA | v1 ☑ 4.6 | [LORE 0/3](https://lore.kernel.org/all/1462547040-1737-1-git-send-email-aarcange@redhat.com), [关键 COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=6d0a07edd17c)|
+| 2024/03/28 | Barry Song <21cnbao@gmail.com> | [mm: add per-order mTHP alloc_success and alloc_fail counters](https://lore.kernel.org/all/20240328095139.143374-1-21cnbao@gmail.com) | 由于缺乏对系统操作的可见性, 盲目地用 mTHP 分析系统变得具有挑战性. 呈现 mTHP 分配的成功率似乎是迫切需要的. 最近, 我在调试没有这些数据的性能改进和回归时遇到了很大的困难. 对开发者来说, 了解 mTHP 在现实世界场景中的真正有效性至关重要, 尤其是在具有碎片内存的系统中. 这个 PATCHSET 引入 alloc_success 和 alloc_fail 计数器, 实现了每个 ORDER 的 mTHP 计数器统计的框架.  | v2 ☐☑✓ | [2024/03/26, LORE v1](https://lore.kernel.org/linux-mm/20240326030103.50678-1-21cnbao@gmail.com)<br>*-*-*-*-*-*-*-* <br>[2024/03/28, LORE v2](https://lore.kernel.org/all/20240328095139.143374-1-21cnbao@gmail.com) |
+
 
 ### 7.2.3 THP allocations latencies
 -------

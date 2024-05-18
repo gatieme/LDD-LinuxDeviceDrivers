@@ -91,7 +91,7 @@ Unikernel 是一种专门的操作系统, 其中应用程序直接与内核链�
 | 2015/04/16 | Toshiyuki Maeda | [Kernel Mode Linux : Execute user processes in kernel mode](http://web.yl.is.s.u-tokyo.ac.jp/~tosh/kml) | 内核直接执行用户态程序. | v1 ☐ [4.0](http://web.yl.is.s.u-tokyo.ac.jp/~tosh/kml/kml/for4.x) | [Patch](https://github.com/sonicyang/KML) |
 | 2018/11/23 | Hsuan-Chi Kuo <hckuo2@illinois.edu> | [Lupine: Linux in Unikernel Clothes](https://github.com/hckuo/Lupine-Linux) | 通过内核配置和 (KML) 间接清除系统调用的影响, 从而使得 Linux 的性能达到持平甚至优于 unikernel 的性能. | ☐ | [Github](https://github.com/hckuo/Lupine-Linux), [159_kuo_slides.pdf](https://www.eurosys2020.org/wp-content/uploads/2020/04/slides/159_kuo_slides.pdf) |
 | 2022/10/03 | Ali Raza <aliraza@bu.edu> | [Unikernel Linux (UKL)](https://lore.kernel.org/all/20221003222133.20948-1-aliraza@bu.edu) | 参见 [Experimental Patches Adapt Linux For A Unikernel Design](https://www.phoronix.com/news/Linux-Unikernel-RFC). | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/20221003222133.20948-1-aliraza@bu.edu), [Github](https://github.com/unikernelLinux/ukl) |
-
+| 2024/02/07 | Huaiyu Yan | [ndss2024_LDR: Secure and Efficient Linux Driver Runtime for Embedded TEE Systems](https://zhuanlan.zhihu.com/p/681195447) |  复用现有 LINUX 驱动, 在嵌入式TEE系统下更高效的 LKM runtime. | ☐ | [ndss-paper](https://www.ndss-symposium.org/ndss-paper/ldr-secure-and-efficient-linux-driver-runtime-for-embedded-tee-systems), [github, SparkYHY/Linux-Driver-Runtime](https://github.com/SparkYHY/Linux-Driver-Runtime) |
 
 # 3 RONX
 -------
@@ -487,6 +487,7 @@ x86 和 arm64 都支持直接访问用户空间中的事件计数器. 访问序�
 | 2022/10/21 | Shang XiaoJing <shangxiaojing@huawei.com> | [perf vendor events arm64: Fix incorrect Hisi hip08 L3 metrics](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e9229d5b6254a75291536f582652c599957344d2) | TODO | v2 ☑✓ 6.1-rc3 | [LORE v2,0/3](https://lore.kernel.org/all/20221021105035.10000-1-shangxiaojing@huawei.com) |
 | 2022/12/14 | Sandipan Das <sandipan.das@amd.com> | [perf vendor events amd: Add Zen 4 events and metrics](https://lore.kernel.org/all/20221214082652.419965-1-sandipan.das@amd.com) | [Linux 6.2 Adds AMD Zen 4 Pipeline Utilization Data To Help Find Performance Bottlenecks](https://www.phoronix.com/news/LInux-6.2-AMD-Zen-4-Events) | v2 ☐☑✓ 6.2-rc1 | [LORE v2,0/4](https://lore.kernel.org/all/20221214082652.419965-1-sandipan.das@amd.com)|
 | 2023/06/07 | kan.liang@linux.intel.com <kan.liang@linux.intel.com> | [New metricgroup output in perf stat default mode](https://lore.kernel.org/all/20230607162700.3234712-1-kan.liang@linux.intel.com) | 在默认模式下, metricgroup 的当前输出包括事件和度量, 这是不必要的, 并且使输出难以读取. 此外, 由于度量中的事件不同, 不同的 ARCH(甚至不同代的 ARCH)可能具有不同的输出格式. 该补丁提出了一种新的输出格式, 只输出每个度量的值和度量组名称. 它可以在 ARCH 和各代之间带来干净一致的输出格式. | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20230607162700.3234712-1-kan.liang@linux.intel.com) |
+| 2024/03/29 | weilin.wang@intel.com <weilin.wang@intel.com> | [TPEBS counting mode support](https://lore.kernel.org/all/20240329191224.1046866-1-weilin.wang@intel.com) | TODO | v6 ☐☑✓ | [LORE v6,0/5](https://lore.kernel.org/all/20240329191224.1046866-1-weilin.wang@intel.com) |
 
 
 
@@ -828,7 +829,10 @@ Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM F
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/10/19 | Jason A. Donenfeld <Jason@zx2c4.com> | [kbuild: treat char as always unsigned](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3bc753c06dd02a3517c9b498e3846ebfc94ac3ee) | [Linux 6.2 Looks To Enable"-funsigned-char"To Better Deal With Buggy Code](https://www.phoronix.com/news/Linux-6.2-funsigned-char) | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221019203034.3795710-1-Jason@zx2c4.com) |
 
+#### 13.10.2 arch 相关编译选项
+-------
 
+[graysky2/kernel_compiler_patch](https://github.com/graysky2/kernel_compiler_patch) 此补丁通过添加更多可在以下位置访问的微架构选项, 为内核构建添加了额外的优化 / 调优.
 
 ## 13.11 Reduce Memory Usage
 -------
@@ -1130,6 +1134,7 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 | 2024/02/27 | Daniel Almeida <daniel.almeida@collabora.com> | [Rewrite the VP9 codec library in Rust](https://lore.kernel.org/all/20240227215146.46487-1-daniel.almeida@collabora.com) | Collabora 的 Daniel Almeida 发布了 Linux 内核的 Video 4 Linux 2 (V4L2) 子系统中 VP9 编解码器库代码的重写. 在使用 Rust 而不是现有的 C 代码时, 这应该会产生更好的内存安全性, 并更好地抵御现有代码中的潜在问题. 参见 phoronix 报道 [Linux's V4L2 VP9 Codec Kernel Code Rewritten In Rust For Better Memory Safety](https://www.phoronix.com/news/VP9-Linux-Kernel-Rust-V4L2-RFC). | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/20240227215146.46487-1-daniel.almeida@collabora.com) |
 | 2024/03/27 | Wedson Almeida Filho <wedsonaf@gmail.com> | [In-place module initialisation](https://lore.kernel.org/all/20240327032337.188938-1-wedsonaf@gmail.com) | [Microsoft Engineer Sends Rust Linux Kernel Patches For In-Place Module Initialization](https://www.phoronix.com/news/Linux-Rust-In-Place-Module-Init) | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20240327032337.188938-1-wedsonaf@gmail.com) |
 | 2024/03/22 | Boqun Feng <boqun.feng@gmail.com> | [Memory model and atomic API in Rust](https://lore.kernel.org/all/20240322233838.868874-1-boqun.feng@gmail.com) | [A memory model for Rust code in the kernel](https://lwn.net/Articles/967049). | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240322233838.868874-1-boqun.feng@gmail.com) |
+| 2024/05/14 | Wedson Almeida Filho <wedsonaf@gmail.com> | [Rust abstractions for VFS](https://lore.kernel.org/all/20240514131711.379322-1-wedsonaf@gmail.com) | 参见 phoronix 报道 [Microsoft Engineer Ports EXT2 File-System Driver To Rust](https://www.phoronix.com/news/Rust-VFS-Linux-V2-Now-With-EXT2). | v2 ☐☑✓ | [LORE v2,0/30](https://lore.kernel.org/all/20240514131711.379322-1-wedsonaf@gmail.com) |
 
 
 ## 22.2 C++
@@ -1149,7 +1154,7 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/09/27 | Oracle | [bpftune For BPF-Based](https://lore.kernel.org/all/20220927131518.30000-1-ojeda@kernel.org) | [Oracle Developing"bpftune"For BPF-Based, Automatic Tuning Of Linux Systems](https://www.phoronix.com/news/Oracle-bpftune)<br>*-*-*-*-*-*-*-* <br>[https://blogs.oracle.com/linux/post/introducing-bpftune](https://blogs.oracle.com/linux/post/introducing-bpftune)<br>*-*-*-*-*-*-*-* <br>[]() | v10 ☐☑✓ | [GitHub](https://github.com/oracle-samples/bpftune) |
+| 2022/09/27 | Oracle | [bpftune For BPF-Based](https://lore.kernel.org/all/20220927131518.30000-1-ojeda@kernel.org) | [Oracle Developing"bpftune"For BPF-Based, Automatic Tuning Of Linux Systems](https://www.phoronix.com/news/Oracle-bpftune)<br>*-*-*-*-*-*-*-* <br>[https://blogs.oracle.com/linux/post/introducing-bpftune](https://blogs.oracle.com/linux/post/introducing-bpftune)<br>*-*-*-*-*-*-*-* <br>[bpftune - Using Reinforcement Learning in BPF](https://blogs.oracle.com/linux/post/bpftune-using-reinforcement-learning-in-bpf) | v10 ☐☑✓ | [GitHub](https://github.com/oracle-samples/bpftune) |
 | 2022/09/27 | Atune | NA | NA | NA | NA |
 | 2022/09/27 | Ktune | NA | NA | NA | NA |
 

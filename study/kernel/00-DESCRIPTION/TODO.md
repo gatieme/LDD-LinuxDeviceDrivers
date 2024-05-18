@@ -615,12 +615,57 @@ cba6167f0adb
 | 2023/10/25 | Steven Rostedt <rostedt@goodmis.org> | [sched: Extended Scheduler Time Slice](https://lore.kernel.org/all/20231025235413.597287e1@gandalf.local.home) | TODO | v2 ☐☑✓ | [LORE v1](https://lore.kernel.org/all/20231025054219.1acaa3dd@gandalf.local.home)[LORE v2](https://lore.kernel.org/all/20231025235413.597287e1@gandalf.local.home) |
 | 2023/10/31 | Keisuke Nishimura <keisuke.nishimura@inria.fr> | [sched/fair: Fix the decision for load balance](https://lore.kernel.org/all/20231031133821.1570861-1-keisuke.nishimura@inria.fr) | TODO | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20231031133821.1570861-1-keisuke.nishimura@inria.fr) |
 | 2024/03/04 | Christian Loehle <christian.loehle@arm.com> | [Introduce per-task io utilization boost](https://lore.kernel.org/all/20240304201625.100619-1-christian.loehle@arm.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20240304201625.100619-1-christian.loehle@arm.com) |
-| 2023/11/30 | Valentin Schneider <vschneid@redhat.com> | [sched/fair: Delay throttling to kernel exit](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com) |
-| 2024/03/24 | Qais Yousef <qyousef@layalina.io> | [sched: Don't trigger misfit if affinity is restricted](https://lore.kernel.org/all/20240324004552.999936-1-qyousef@layalina.io) | TODO | v8 ☐☑✓ | [LORE v8,0/4](https://lore.kernel.org/all/20240324004552.999936-1-qyousef@layalina.io) |
 | 2024/04/11 | Kyle Huey <me@kylehuey.com> | [Combine perf and bpf for fast eval of hw breakpoint conditions](https://lore.kernel.org/all/20240412015019.7060-1-khuey@kylehuey.com) | TODO | v6 ☐☑✓ | [LORE v6,0/7](https://lore.kernel.org/all/20240412015019.7060-1-khuey@kylehuey.com) |
 | 2024/04/07 | Ingo Molnar <mingo@kernel.org> | [sched: Split out kernel/sched/fair_balance.c, numa_balancing.c and syscalls.c, plus other updates](https://lore.kernel.org/all/20240407084319.1462211-1-mingo@kernel.org) | TODO | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20240407084319.1462211-1-mingo@kernel.org) |
 | 2023/05/09 | Kristina Martsenko <kristina.martsenko@arm.com> | [arm64: Support for Armv8.8 memcpy instructions in userspace](https://lore.kernel.org/all/20230509142235.3284028-1-kristina.martsenko@arm.com) | Armv8.8 扩展添加了执行 memcpy()、memset() 和 memmove() 操作 (FEAT_MOPS). 此系列增加了对的支持使用用户空间中的新指令. | v8 ☐☑✓ | [LORE v8,0/11](https://lore.kernel.org/all/20230509142235.3284028-1-kristina.martsenko@arm.com) |
 | 2023/09/15 | Kristina Martsenko <kristina.martsenko@arm.com> | [KVM: arm64: Support for Arm v8.8 memcpy instructions in KVM guests](https://lore.kernel.org/all/20230915124840.474888-1-kristina.martsenko@arm.com) | TODO | v8 ☐☑✓ | [LORE v8,0/3](https://lore.kernel.org/all/20230915124840.474888-1-kristina.martsenko@arm.com) |
+| 2024/02/01 | alexs@kernel.org <alexs@kernel.org> | [sched/fair: add SD_CLUSTER in comments](https://lore.kernel.org/all/20240201115447.522627-1-alexs@kernel.org) | TODO | v3 ☐☑✓ | [LORE v3,0/4](https://lore.kernel.org/all/20240201115447.522627-1-alexs@kernel.org) |
+| 2024/01/14 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: Fix frequency selection for non invariant case](https://lore.kernel.org/all/20240114183600.135316-1-vincent.guittot@linaro.org) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240114183600.135316-1-vincent.guittot@linaro.org) |
+| 2024/01/11 | Ze Gao <zegao2021@gmail.com> | [sched/eevdf: Use tunable knob sysctl_sched_base_slice as explicit time quanta](https://lore.kernel.org/all/20240111115745.62813-2-zegao@tencent.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240111115745.62813-2-zegao@tencent.com) |
+| 2024/03/15 | Swapnil Sapkal <swapnil.sapkal@amd.com> | [Fix lb_imbalance reporting in /proc/schedstat](https://lore.kernel.org/all/20240315135501.1778620-1-swapnil.sapkal@amd.com) | TODO | v2 ☐☑✓ | [LORE v2,0/1](https://lore.kernel.org/all/20240315135501.1778620-1-swapnil.sapkal@amd.com) |
+| 2024/04/03 | Jinjie Ruan via <qemu-devel@nongnu.org> | [target/arm: Implement FEAT_NMI and FEAT_GICv3_NMI](https://lore.kernel.org/all/20240403101611.3204086-1-ruanjinjie@huawei.com) | TODO | v3 ☐☑✓ | [LORE v3,0/23](https://lore.kernel.org/all/20240403101611.3204086-1-ruanjinjie@huawei.com) |
+| 2024/02/22 | zhaoyang.huang <zhaoyang.huang@unisoc.com> | [sched: introduce helper function to calculate distribution over sched class](https://lore.kernel.org/all/20240222092220.642294-1-zhaoyang.huang@unisoc.com) | TODO | v2 ☐☑✓ | [LORE v2,0/2](https://lore.kernel.org/all/20240222092220.642294-1-zhaoyang.huang@unisoc.com) |
+| 2024/05/03 | Andrii Nakryiko <andrii@kernel.org> | [ioctl()-based API to query VMAs from /proc/<pid>/maps](https://lore.kernel.org/all/20240504003006.3303334-1-andrii@kernel.org) | TODO | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20240504003006.3303334-1-andrii@kernel.org) |
+| 2024/02/25 | Frederic Weisbecker <frederic@kernel.org> | [timers/nohz cleanups and hotplug reorganization](https://lore.kernel.org/all/20240225225508.11587-1-frederic@kernel.org) | TODO | v3 ☐☑✓ | [LORE v3,0/16](https://lore.kernel.org/all/20240225225508.11587-1-frederic@kernel.org) |
+| 2024/02/14 | David Hildenbrand <david@redhat.com> | [mm/memory: optimize unmap/zap with PTE-mapped THP](https://lore.kernel.org/all/20240214204435.167852-1-david@redhat.com) | TODO | v3 ☐☑✓ | [LORE v3,0/10](https://lore.kernel.org/all/20240214204435.167852-1-david@redhat.com) |
+| 2024/03/29 | Baolin Wang <baolin.wang@linux.alibaba.com> | [support multi-size THP numa balancing](https://lore.kernel.org/all/cover.1711683069.git.baolin.wang@linux.alibaba.com) | 这个补丁试图支持 mTHP-numa 平衡, 作为一个简单的解决方案, mTHP 的 numa 平衡算法将遵循 THP 策略作为基本支持. 请在每个补丁中找到详细信息. | v2 ☐☑✓ | [LORE v2,0/2](https://lore.kernel.org/all/cover.1711683069.git.baolin.wang@linux.alibaba.com) |
+| 2024/03/29 | weilin.wang@intel.com <weilin.wang@intel.com> | [TPEBS counting mode support](https://lore.kernel.org/all/20240329191224.1046866-1-weilin.wang@intel.com) | TODO | v6 ☐☑✓ | [LORE v6,0/5](https://lore.kernel.org/all/20240329191224.1046866-1-weilin.wang@intel.com) |
+| 2024/04/30 | Vitalii Bursov <vitaly@bursov.com> | [sched/fair: allow disabling sched_balance_newidle with sched_relax_domain_level](https://lore.kernel.org/all/cover.1714488502.git.vitaly@bursov.com) | TODO | v4 ☐☑✓ | [LORE v4,0/3](https://lore.kernel.org/all/cover.1714488502.git.vitaly@bursov.com) |
+| 2024/02/29 | Thomas Gleixner <tglx@linutronix.de> | [x86/idle: Cure RCU violations and cleanups](https://lore.kernel.org/all/20240229141407.283316443@linutronix.de) | TODO | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20240229141407.283316443@linutronix.de) |
+| 2023/12/08 | Qais Yousef <qyousef@layalina.io> | [sched: cpufreq: Remove uclamp max-aggregation](https://lore.kernel.org/all/20231208015242.385103-1-qyousef@layalina.io) | TODO | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20231208015242.385103-1-qyousef@layalina.io) |
+| 2024/03/25 | Shrikanth Hegde <sshegde@linux.ibm.com> | [sched/fair: Simplify continue_balancing for newidle](https://lore.kernel.org/all/20240325153926.274284-1-sshegde@linux.ibm.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240325153926.274284-1-sshegde@linux.ibm.com) |
+| 2021/11/12 | Vincent Guittot <vincent.guittot@linaro.org> | [avoid spurious blocked load update](https://lore.kernel.org/all/20211112095857.7016-1-vincent.guittot@linaro.org) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20211112095857.7016-1-vincent.guittot@linaro.org) |
+| 2024/03/27 | Bharata B Rao <bharata@amd.com> | [Hot page promotion optimization for large address space](https://lore.kernel.org/all/20240327160237.2355-1-bharata@amd.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20240327160237.2355-1-bharata@amd.com) |
+| 2024/05/06 | Qais Yousef <qyousef@layalina.io> | [sched: Consolidate cpufreq updates](https://lore.kernel.org/all/20240505233103.168766-1-qyousef@layalina.io) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240505233103.168766-1-qyousef@layalina.io) |
+| 2023/09/11 | Chen Yu <yu.c.chen@intel.com> | [Makes it easier for the wakee to choose previous CPU](https://lore.kernel.org/all/cover.1694397335.git.yu.c.chen@intel.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/cover.1694397335.git.yu.c.chen@intel.com) |
+| 2024/03/28 | mingyang.cui <mingyang.cui@horizon.ai> | [sched/fair: Fix forked task check in vruntime_normalized](https://lore.kernel.org/all/20240328062757.29803-1-mingyang.cui@horizon.ai) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240328062757.29803-1-mingyang.cui@horizon.ai) |
+| 2024/04/02 | Tio Zhang <tiozhang@didiglobal.com> | [sched: make softirq cputime accounting separately in irqtime](https://lore.kernel.org/all/20240402112415.GA17946@didi-ThinkCentre-M930t-N000) | 我们现在在延迟统计中只能获得 IRQ/SOFTIRQ 的总延迟, 但单独获得 SOFTIRQ 延迟和 IRQ 延迟将有助于用户以更方便的方式减少此类延迟. 对于 IRQ 延迟, 我们可以调整 IRQ-CPU 相关性或使用线程 IRQ.
+对于 SOFTIRQ 延迟, 我们可以调整 rps/xps 或使用 NAPI 的内核线程. 因此, 这个补丁集试图使 SOFTIRQ 延迟在延迟统计中可观察到, 并在 taskstats 中可用. 补丁集同步更新了 `tools/accounting/getdelays.c` 同样为了向后兼容性, 我们不想改变原始 IRQ/SOFTIRQ 延迟的含义, 相反, 我们可以通过原始 IRQ/OFTIRQ 的延迟减去该补丁添加的 SOFTIREQ 延迟来获得真实的 IRQ(中断) 延迟. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240402112415.GA17946@didi-ThinkCentre-M930t-N000) |
+| 2024/02/28 | Tobias Huschle <huschle@linux.ibm.com> | [sched/eevdf: sched feature to dismiss lag on wakeup](https://lore.kernel.org/all/20240228161018.14253-1-huschle@linux.ibm.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240228161018.14253-1-huschle@linux.ibm.com) |
+| 2024/03/29 | Chunxin Zang <spring.cxz@gmail.com> | [sched/fair: Reset vlag in dequeue when PLAGE_LAG is disabled](https://lore.kernel.org/all/20240329091933.340739-1-spring.cxz@gmail.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240329091933.340739-1-spring.cxz@gmail.com) |
+| 2024/04/03 | Pierre Gondois <pierre.gondois@arm.com> | [sched/fair|isolation: Correctly clear nohz.[nr_cpus|idle_cpus_mask] for isolated CPUs](https://lore.kernel.org/all/20240403150543.2793354-1-pierre.gondois@arm.com) | TODO | v1 ☐☑✓ | [LORE v1,0/7](https://lore.kernel.org/all/20240403150543.2793354-1-pierre.gondois@arm.com) |
 
 
-lag_i = S - s_i = w_i \times (V - v_i) = w_i \times [\frac{\sum \limits_{0}^{n}w_{i} \times (v_{i} - v_{0})}{W} + v_{0} - v_i] = w_i \times [\frac{\sum \limits_{0}^{n}w_{i} \times (v_{i} - v_{0})}{W} - (v_{i} - v_0)] > 0
+
+[udev-hid-bpf To Help Enable HID-BPF Use Rather Than Kernel Drivers To Fix HID Hardware](https://www.phoronix.com/news/udev-hid-bpf)
+[Hutterer: udev-hid-bpf: quickstart tooling to fix your HID devices with eBPF](https://lwn.net/Articles/970702)
+[Cleaning up after BPF exceptions](https://lwn.net/Articles/969185)
+[Better linked-list traversal in BPF](https://lwn.net/Articles/964381)
+[A proposal for shared memory in BPF programs](https://lwn.net/Articles/961941)
+[Sleepable BPF programs](https://lwn.net/Articles/825415)
+
+
+[Wattch: a framework for architectural-level power analysis and optimizations](https://ieeexplore.ieee.org/document/854380)
+
+
+
+
+
+[Intel Talks Up 2024 Xeon Sierra Forest & Granite Rapids At Hot Chips](https://www.phoronix.com/review/intel-hotchips-2023)
+
+
+
+
+| 日期 | LWN | 翻译 |
+|:---:|:----:|:---:|
+| 2007/04/17 | [An update and future plans for DAMON](https://lwn.net/Articles/973702) | NA |
