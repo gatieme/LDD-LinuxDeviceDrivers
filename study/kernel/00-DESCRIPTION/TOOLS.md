@@ -86,6 +86,7 @@ systrace, perfetto, drgn, systemtep
 
 [LWN/A kernel debugger in Python: drgn(https://lwn.net/Articles/789641)
 [LWN: 想用python命令来调试kernel吗？drgn就是了！](https://blog.csdn.net/Linux_Everything/article/details/93270705)
+[pf-kernel/crush](https://codeberg.org/pf-kernel/crush) crush 是一种实验性尝试, 至少部分地使用 Python 和更现代的 drgn 后端重写 crash util.
 
 *   ControlFlag
 

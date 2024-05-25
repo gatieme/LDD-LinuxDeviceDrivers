@@ -28,11 +28,11 @@
 
 此调度策略包含除上述实时进程之外的其他进程, 亦称普通进程. 采用分时策略, 根据动态优
 
-先级 (可用 **nice()** API 设置), 分配 CPU 运算资源.  ** 注意: 这类进程比上述两类实时进程优先级低, 换言之, 在有实时进程存在时, 实时进程优先调度 **.
+先级 (可用 **nice()** API 设置), 分配 CPU 运算资源.  **注意: 这类进程比上述两类实时进程优先级低, 换言之, 在有实时进程存在时, 实时进程优先调度**.
 
 Linux 除了实现上述策略, 还额外支持以下策略:
 
-- **SCHED\_IDLE** 优先级最低, ** 在系统空闲时才跑这类进程 **(如利用闲散计算机资源跑地外文明搜索, 蛋白质结构分析等任务, 是此调度策略的适用者)
+- **SCHED\_IDLE** 优先级最低, **在系统空闲时才跑这类进程**(如利用闲散计算机资源跑地外文明搜索, 蛋白质结构分析等任务, 是此调度策略的适用者)
 
 - **SCHED\_BATCH** 是 SCHED\_OTHER 策略的分化, 与 SCHED\_OTHER 策略一样, 但针对吞吐量优化
 
@@ -67,7 +67,7 @@ git log --oneline v5.15...v5.16 | grep -E "Merge tag | Linux"  | grep -E "sched|
 | 6.3 | NA | [Linux 6.3 Scheduler Updates Bring Fixes & Minor Optimizations](https://www.phoronix.com/news/Linux-6.3-Scheduler), [scheduler changes for v6.3](https://lore.kernel.org/lkml/Y%2FNttaqRZ+zaHIjo@gmail.com) |
 | 6.4 | NA | NA |
 | 6.5 | NA | [Linux 6.5 To Enhance Load Balancing For Intel Hybrid CPUs](https://www.phoronix.com/news/Linux-6.5-Intel-Hybrid-Sched), [Scheduler changes for v6.5](https://lore.kernel.org/lkml/ZJq3HtUKZp2uMWLu@gmail.com) |
-
+| 6.10 | NA | [Linux 6.10 Scheduler Changes Bring More Refinements](https://phoronix.com/news/Linux-6.10-Scheduler), [[GIT PULL] Scheduler changes for v6.10](https://lore.kernel.org/lkml/ZkG0nxxBPB%2F03Q%2Fl@gmail.com) |
 
 cgit 上查看 sched 所有的 log 信息 :
 
@@ -359,6 +359,18 @@ SCHED_IDLE 跟 SCHED_BATCH 一样, 是 CFS 中的一个策略, SCHED\_IDLE 的�
 | 2022/10/27 | Chuyi Zhou <zhouchuyi@bytedance.com> | [sched/fair: favor non-idle group in tick preemption](https://lore.kernel.org/all/20221027081630.34081-1-zhouchuyi@bytedance.com) | [commit 304000390f88 ("sched: Cgroup SCHED_IDLE support")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=304000390f88d049c85e9a0958ac5567f38816ee) 在支持了 group 级别的 SCHED_IDLE 时, 在 check_preempt_wakeup() 路径下, 实现了 SCHED_IDLE 的感知, 总是 [倾向于抢占空闲的 group sched_entity 而不是非空闲 group sched_entity 组](https://elixir.bootlin.com/linux/v5.15/source/kernel/sched/fair.c#L7125), 反之不允许抢占. 但是 check_preempt_tick() 中却没有感知 SCHED_IDLE, 类似地非空闲的 sched_entity 相对于空闲 sched_entity 应该更具有竞争优势. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221027081630.34081-1-zhouchuyi@bytedance.com) |
 
 
+#### 1.1.5.5 Idle Injection Framework
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:-----------:|:---:|
+| 2018/06/12 | Daniel Lezcano <daniel.lezcano@linaro.org> | [powercap/drivers/idle_injection: Add an idle injection framework](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=88763a5cf80ca59a7c3bea32681ce8f697d9995f) | 最初, 通过添加一个插入空闲周期的新策略, 对 ARM 的 cpu_cooling 设备进行了更改. intel_powerclamp 驱动程序执行类似的操作. 与其在 cpuColing 设备中私下实现空闲注入, 不如在专用框架中移动空闲注入代码, 并让其他框架有机会利用它. 该框架依赖于 smpboot kthreads, 该线程通过其主循环处理热插拔和 [un] 驻车的公共代码. 此代码之前曾使用 CPU 冷却设备进行过测试, 并经历了多次迭代. 它现在导致拆分代码和 API 在头文件中导出. 它在 CPU 冷却设备上测试成功. | v6 ☐☑✓ v4.19-rc1 | [LORE](https://lore.kernel.org/all/1528804816-32636-1-git-send-email-daniel.lezcano@linaro.org) |
+| 2022/11/07 | Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com> | [Per CPU idle injection](https://lore.kernel.org/all/20221108030342.1127216-1-srinivas.pandruvada@linux.intel.com) | TODO | v1 ☐☑✓  | [LORE v1,0/4](https://lore.kernel.org/all/20221108030342.1127216-1-srinivas.pandruvada@linux.intel.com) |
+| 2023/02/01 | Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com> | [Use idle_inject framework for intel_powerclamp](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=acbc661032b8aa0e8359ac77074769ade34a176c) | TODO | v5 ☐☑✓ v6.3-rc1 | [LORE v5,0/4](https://lore.kernel.org/all/20230201182854.2158535-1-srinivas.pandruvada@linux.intel.com) |
+| 2023/01/17 | Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com> | [thermal/idle_inject: Support 100% idle injection](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c7cd6f04c0dfb6d44337f92b4c32126d20339873) | TODO | v1 ☐☑✓ v6.3-rc1 | [LORE](https://lore.kernel.org/all/20230117182240.2817822-1-srinivas.pandruvada@linux.intel.com) |
+
+
 
 ### 1.1.6 吭哧吭哧跑计算 SCHED\_BATCH
 -------
@@ -448,9 +460,10 @@ RT_RUNTIME_SHARE 这个机制本身是为了解决不同 CPU 上, 以及不同�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2016/11/07 | Daniel Bristot de Oliveira <bristot@redhat.com> | [sched/rt: RT_RUNTIME_GREED sched feature](https://lore.kernel.org/patchwork/patch/732374) | 限制 RT_RUNTIME_SHARE 的生效场景, 开启了 RT_RUNTIME_GREED 的情况下, RT_RUNTIME_SHARE 将尽量的绿色无害. 即当发现当前 RT 可以窃取时间, 但是有其他 CFS 进程已经在等待的时候, 那么他将主动放弃窃取的机会, 让位给 CFS 进程运行 | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/patch/732374) |
+| 2016/11/07 | Daniel Bristot de Oliveira <bristot@redhat.com> | [sched/rt: RT_RUNTIME_GREED sched feature](https://lore.kernel.org/patchwork/patch/732374) | 限制 RT_RUNTIME_SHARE 的生效场景, 开启了 RT_RUNTIME_GREED 的情况下, RT_RUNTIME_SHARE 将尽量的绿色无害. 即当发现当前 RT 可以窃取时间, 但是有其他 CFS 进程已经在等待的时候, 那么他将主动放弃窃取的机会, 让位给 CFS 进程运行. | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/patch/732374) |
 | 2016/11/15 | Daniel Bristot de Oliveira <bristot@redhat.com> | [sched/rt: disable RT_RUNTIME_SHARE by default and document it](https://lore.kernel.org/patchwork/cover/735472) | RT_RUNTIME_GREED 无法合入主线后, 作者尝试默认关掉 RT_RUNTIME_SHARE | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/patch/735472) |
 | 2020/09/21 | Daniel Bristot de Oliveira <bristot@redhat.com> | [sched/rt: Disable RT_RUNTIME_SHARE by default](https://lore.kernel.org/patchwork/patch/1309182) | 最后一次尝试默认关掉 RT_RUNTIME_SHARE, 终于被主线接受 | RFC ☑ 5.10-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1309182)<br>*-*-*-*-*-*-*-* <br>[commit 2586af1ac187](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2586af1ac187f6b3a50930a4e33497074e81762d) |
+| 2024/04/10 | Atul Pant <quic_atulpant@quicinc.com> | [Disable RT-throttling for idle-inject threads](https://lore.kernel.org/all/20240410045417.3048209-1-quic_atulpant@quicinc.com) | 作者正试图通过在 CPU 上使用空闲注入来实现一种散热解决方案. 然而, 作者在当前的空闲注入框架中面临一些限制. 作者希望开始在 CPU 上无限期地注入空闲周期(直到 CPU 的温度/功率降至阈值以下). 这将允许将热 CPU 保持在睡眠状态, 直到我们看到温度 / 功率的提高. 如果我们将空闲持续时间设置为一个大值或具有 100% 的空闲注入率, 则空闲注入 RT 线程会受到 RT 节流的影响. 这导致 CPU 退出睡眠状态并消耗一些电力. 为了解决这一限制, 我们提出了一种解决方案, 在空闲注入线程运行时禁用 RT 节流. 我们通过不计算空闲注入线程的运行时来实现这一点. | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20240410045417.3048209-1-quic_atulpant@quicinc.com) |
 
 
 
@@ -6544,12 +6557,12 @@ c. 在多个进程之间共享 (例如进程会话).
 ## 10.3 IPC
 -------
 
-### 10.3.1 Continuation
+### 10.3.1 Continuation/Activation
 -------
 
 [User-level Real-Time Network System on Microkernel-based Operating Systems]()
 
-早在 1991 年, Richard P. Draves 等开发者就使用 Continuation 机制优化了内部线程和进程间 RPC, 从而改进 Mach 3.0 操作系统的性能. 与以前版本的 Mach 3.0 相比, 我们的新系统每线程占用的空间减少了 85%. 跨地址空间远程过程调用的执行速度提高了 14%. 异常处理运行速度提高了 60% 以上. 参见 ACM 论文 [Using Continuations to Implement Thread Management and Communication in Operating Systems](https://dl.acm.org/doi/10.1145/121132.121155) 以及 [User-level Real-Time Network System on Microkernel-based Operating Systems](https://keio.pure.elsevier.com/en/publications/user-level-real-time-network-system-on-microkernel-based-operatin/fingerprints). 随后 IOS XNU-Drawin 的内核集成了 Mach 3.0, 从而继承了这一功能.
+早在 1991 年, Richard P. Draves 等开发者就使用 Continuation 机制优化了内部线程和进程间 RPC, 从而改进 Mach 3.0 操作系统的性能. 与以前版本的 Mach 3.0 相比, 新系统每线程占用的空间减少了 85%. 跨地址空间远程过程调用的执行速度提高了 14%. 异常处理运行速度提高了 60% 以上. 参见 ACM 论文 [Using Continuations to Implement Thread Management and Communication in Operating Systems](https://dl.acm.org/doi/10.1145/121132.121155) 以及 [User-level Real-Time Network System on Microkernel-based Operating Systems](https://keio.pure.elsevier.com/en/publications/user-level-real-time-network-system-on-microkernel-based-operatin/fingerprints). 随后 IOS XNU-Drawin 的内核集成了 Mach 3.0, 从而继承了这一功能.
 
 以一个 client 向 server IPC 请求数据为例, 当前 linix 上传统的 IPC 需要经历 3 次切换 (包括进程 / 线程切换以及线程的栈切换).
 
@@ -6816,10 +6829,12 @@ YouTuBe 上 ASPLOS'23 关于 Plugsched 的介绍 [ASPLOS'23 - Session 7C - Effic
 | 调度器 | 描述 |
 |:-----:|:----:|
 | [CacULE CPU Scheduler](https://github.com/hamadmarri/cacule-cpu-scheduler) | 是基于交互性评分机制 (CacULE Interactivity Score) 的 CFS 补丁集. 交互性分数的灵感来自 FreeBSD 的 ULE 调度器, 可以增强系统响应能力 / 延迟. ARCHLINUX 的开发者 ptr1337, 同样移植了 [CacULE Scheduler](https://github.com/ptr1337/linux-cacule), [CachyOS/linux-cachyos](https://github.com/CachyOS/linux-cachyos). 使用 calc_interactivity(), calc_cache_score(), calc_starve_score() 分别计算任务的交互性评分 (Interactivity Score), 缓存亲和性评分 (Cache Score) 以及饥饿评分 (Starve Score), 然后将 CFS 的选取下一个任务机制 pick_next_task_fair 更改为 ULE 的评分机制, 以便选取要运行的下一个任务. |
-| [Task Type(TT) CPU Scheduler](https://github.com/hamadmarri/TT-CPU-Scheduler) | 根据任务的行为检测并识别任务类型, 并根据其类型控制调度. 基于任务类型的好处是允许调度程序进行更多控制, 并选择接下来在 CPU 中运行的最佳任务. 当前有 5 种类型: 实时 (REALTIME), 交互 (INTERACTIVE), 无类型 (NO_TYPE), 计算密集型 (CPU_BOUND), 批处理 (BATCH). 调度器通过 detect_type() 周期性地探测应用的 task_type. |
 | [Baby-CPU-Scheduler](https://github.com/hamadmarri/Baby-CPU-Scheduler) | 一个非常基本, 轻量级但性能非常高的调度器 Basic Scheduler (BS). 可以将其用作 Linux 上的基本调度程序进行学习 |
+| [Task Type(TT) CPU Scheduler](https://github.com/hamadmarri/TT-CPU-Scheduler) | 根据任务的行为检测并识别任务类型, 并根据其类型控制调度. 基于任务类型的好处是允许调度程序进行更多控制, 并选择接下来在 CPU 中运行的最佳任务. 当前有 5 种类型: 实时 (REALTIME), 交互 (INTERACTIVE), 无类型 (NO_TYPE), 计算密集型 (CPU_BOUND), 批处理 (BATCH). 调度器通过 detect_type() 周期性地探测应用的 task_type. |
+| [ECHO(Enhanced CPU Handling Orchestrator) CPU Scheduler](https://github.com/hamadmarri/ECHO-CPU-Scheduler) | 该策略是 SRTF(Shortest Remaining Task Next) 和 RR(Round Robin) 的混合.<br>1. 任务的 estimation 使用了 SRTF, 使用了滑动平均来计算虚拟运行时间, 其中虚拟运行时计算是从 CFS 移植的 (它计算基于任务优先级调整). PICK 时每次选择具有最小估计虚拟运行时的下一个任务<br>2. CPU 上的所有任务都有一个共享配额(默认 35us), 每个任务在每个周期都将获得 `shared_quota/nr_tasks` 的时间片. 一个正在运行的任务的最小切片是 7us, 除非唤醒的任务必须在当前任务之前运行，然后它会抢占它.<br>3. 负载均衡器与 TT 调度器一样, 有微小的变化. CPU0 负责在其他 CPU 之间移动任务, 此外, 默认情况下会启用候选平衡器. 几个调度器的性能对比参见 [hamadmarri/benchmarks](https://github.com/hamadmarri/benchmarks). |
 | [BORE/Burst-Oriented Response Enhancer (BORE) CPU Scheduler](https://github.com/firelzrd/bore-scheduler) | BORE(面向突发的响应增强器) 是 CFS(完全公平调度程序) 的增强版本, CFS 是 Linux 中默认的 CPU 调度程序, 旨在保持 CFS 的高吞吐量性能, 同时在尽可能宽的负载情况下提供对用户输入的更高响应能力. 为了实现这一目标, BORE 为每个单独的任务引入了一个称为 "突发性" 的灵活性维度, 部分偏离了 CFS 固有的 "完全公平" 原则. 延迟是指任务在显式放弃后通过进入睡眠、IO 等待或屈服而消耗的累积 CPU 时间得出的分数. 该分数代表了广泛的时间特征, 从纳秒到数百秒不等, 在不同的任务中有所不同. 参见 [foxhoundsk 的博客](https://hackmd.io/@foxhoundsk/bore-sched) |
 | [MuQss/Multiple run-queues for BFS](https://lore.kernel.org/all/1355591803.23863.3.camel@findus-T530) | [两个非常有意思的适合桌面使用的 Linux task 调度器: BFS 和 MuqSS](https://blog.csdn.net/juS3Ve/article/details/102380529)<br>[操作系统调度算法 5——MuQss, 多队列跳表调度器](https://zhuanlan.zhihu.com/p/373693657), [ckolivas/linux](https://github.com/ckolivas/linux), [CK 的博客](http://ck-hack.blogspot.com). [细说 CFS 与 MuQSS 以及 load-balance](https://blog.csdn.net/qq_23662505/article/details/120220689), [MuQSS_调度器 - The_MuQSS_CPU_scheduler](https://github.com/jiebaomaster/linux-kernel-doc-translate/blob/master/lwn/MuQSS_调度器 - The_MuQSS_CPU_scheduler.md) |
+
 
 
 
@@ -7038,7 +7053,19 @@ ECRTS 2020(32nd Euromicro Conference on Real-Time Systems) 上 Daniel 等人发�
 ### 12.4.6 Scheduler Behavioural Analysis
 -------
 
-| 5 | [SystraceParser](https://github.com/Binse-Park/SystraceParser) | [Scheduler Behavioural Testing](https://www.youtube.com/watch?v=I_MZ9XS3_zc&t=7s) |
+| 编号 | 工具 | 描述 | 链接 |
+|:---:|:----:|:---:|:---:|
+| 1 | [SystraceParser](https://github.com/Binse-Park/SystraceParser) | [Scheduler Behavioural Testing](https://www.youtube.com/watch?v=I_MZ9XS3_zc&t=7s) | NA |
+
+
+## 12.5 功耗
+-------
+
+| 编号 | 工具 | 描述 | 链接 |
+|:---:|:----:|:---:|:---:|
+| 1 | Turbostat | [tools/power/x86/turbostat](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/tools/power/x86/turbostat) | [Turbostat Gains New Features & New Hardware Support With Linux 6.10](https://www.phoronix.com/news/Linux-6.10-Turbostat) |
+
+
 
 ** 引用: **
 

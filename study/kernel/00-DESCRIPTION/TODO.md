@@ -665,7 +665,7 @@ cba6167f0adb
 
 
 
+[uksmd](https://codeberg.org/pf-kernel/uksmd) 提供了一个 Userspace KSM helper daemon, [CachyOS](https://github.com/CachyOS/uksmd) 将其用在了自己的发行版中. 守护进程会定期检查用户空间任务列表, 并通知 ksmd kthread 设置相关进程 mm_struct 的 MM_VM_MERGE_ANY 标记, 以自动合并具有相同内容的内存页. 仅处理长期任务. 该机制依赖于 v6.4 [mm: process/cgroup ksm support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=07115fcc15b4aa5c268fb80b82ad15868a82a285) 以及 [pf-kernel/linux](https://codeberg.org/pf-kernel/linux) 内核提供的 `process_ksm_{enable,disable,status}()` 系统调用;
 
-| 日期 | LWN | 翻译 |
-|:---:|:----:|:---:|
-| 2007/04/17 | [An update and future plans for DAMON](https://lwn.net/Articles/973702) | NA |
+
+
