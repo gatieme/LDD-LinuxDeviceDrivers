@@ -136,9 +136,9 @@ cgit 上查看 MM 所有的 log 信息 :
 
 | 日期 | 官网 | LKML | LWN |
 |:---:|:----:|:----:|:---:|
-| NA | NA | NA | [The 2019 LSFMM Summit](https://lwn.net/Articles/lsfmm2019) |
 | NA | NA | NA | [The 2018 LSFMM Summit](https://lwn.net/Articles/lsfmm2018) |
-
+| NA | NA | NA | [The 2019 LSFMM Summit](https://lwn.net/Articles/lsfmm2019) |
+| NA | NA | NA | [The 2024 LSFMM Summit](https://lwn.net/Archives/ConferenceIndex/#Storage_Filesystem_Memory-Management_and_BPF_Summit-2024), [LWN, 2024/05/28, LSFMMBPF-2024, The state of the memory-management community in 2024](https://lwn.net/Articles/974939) |
 
 ## 0.5 社区的内存管理领域的开发者
 -------
@@ -292,6 +292,7 @@ Linux 一开始是在一台 i386 上的机器开发的, i386 的硬件页表是 
 
 内存管理(memory management) 一般是以 page 为单位进行的, 一个 page 通常包含 4,096 个字节, 也可能更大. 内核已经将 page 的概念扩展到所谓的 compound page(复合页), 即一组组物理连续的单独 page 的组合. 这又使得 "page" 的定义变得有些模糊了. Matthew Wilcox 提出了 "page folio" 的概念, 它实际上仍然是一个 page structure, 只是保证了它一定不是 tail page. 任何接受 folio page 参数的函数都会是对整个 compound page 进行操作(如果传入的确实是一个 compound page 的话), 这样就不会有任何歧义. 从而可以使内核里的内存管理子系统更加清晰; 也就是说, 如果某个函数被改为只接受 folio page 作为参数的话, 很明确, 它们不适用于对 tail page 的操作. 通过 folio 结构来管理内存. 它提供了一些具有自身价值的基础设施, 将内核的文本缩减了约 6kB.
 
+[LWN, 2024/05/27, LSFMMBPF-2024, Fleshing out memory descriptors](https://lwn.net/Articles/974937).
 
 
 #### 1.4.1.1 Memory folios core @5.16
@@ -362,6 +363,8 @@ Linux 一开始是在一台 i386 上的机器开发的, i386 的硬件页表是 
 | 2023/07/17 | Ryan Roberts <ryan.roberts@arm.com> | [Optimize large folio interaction with deferred split](https://patchwork.kernel.org/project/linux-mm/cover/20230717143110.260162-1-ryan.roberts@arm.com/) | 766526 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20230717143110.260162-1-ryan.roberts@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/r/20230719135450.545227-1-ryan.roberts@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/3](https://lore.kernel.org/r/20230727141837.3386072-1-ryan.roberts@arm.com) |
 | 2023/07/28 | Yin, Fengwei <fengwei.yin@intel.com> | [support large folio for mlock](https://patchwork.kernel.org/project/linux-mm/cover/20230728070929.2487065-1-fengwei.yin@intel.com/) | 770426 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20230728070929.2487065-1-fengwei.yin@intel.com) |
 | 2023/08/21 | Matthew Wilcox <willy@infradead.org> | [Convert perf ringbuffer to folios](https://patchwork.kernel.org/project/linux-mm/cover/20230821202016.2910321-1-willy@infradead.org/) | 777998 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20230821202016.2910321-1-willy@infradead.org) |
+| 2024/05/15 | Daniel Gomez <da.gomez@samsung.com> | [[LSF/MM/BPF RFC] shmem/tmpfs: add large folios support](https://lore.kernel.org/all/20240515055719.32577-1-da.gomez@samsung.com) | [Large-folio support for shmem and tmpfs](https://lwn.net/Articles/974630) | v1 ☐☑✓ | [LORE v1,0/12](https://lore.kernel.org/all/20240515055719.32577-1-da.gomez@samsung.com) |
+| 2024/05/06 | Baolin Wang <baolin.wang@linux.alibaba.com> | [add mTHP support for anonymous shmem](https://lore.kernel.org/all/cover.1714978902.git.baolin.wang@linux.alibaba.com) | TODO | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/cover.1714978902.git.baolin.wang@linux.alibaba.com) |
 
 
 
@@ -606,8 +609,10 @@ Linux 进程使用不同的虚拟地址空间. 因此, 管理该地址空间状�
 
 在 2022 年 5 月份的 Linux 存储、文件系统、内存管理和 BPF 峰会上对此进行了讨论. 当时, Aziz 正在提议一个新的系统调用(mshare()) 来实现 PTE 页表的共享. 参见 [LWN 报道 --Sharing page tables with mshare()](https://lwn.net/Articles/895217).
 
-随后经过讨论, v2 补丁集已更改此接口, 现在不需要新的系统调用. 而是提供了一个内核虚拟文件系统(msharefs), 参见 [LWN 报道 --Sharing page tables with msharefs](https://lwn.net/Articles/901059). 它应该安装在 /sys/fs/mshare 上. 通过在 `/sys/fs/mshare` 下创建一个文件, 然后使用 mmap() 将该文件映射到进程的地址空间. 传递给 mmap() 的大小将决定生成的内存共享区域的大小.
+随后经过讨论, v2 补丁集已更改此接口, 现在不需要新的系统调用. 而是提供了一个内核虚拟文件系统(msharefs), 参见 [LWN 报道 --Sharing page tables with msharefs](https://lwn.net/Articles/901059). 它应该安装在 `/sys/fs/mshare` 上. 通过在 `/sys/fs/mshare` 下创建一个文件, 然后使用 mmap() 将该文件映射到进程的地址空间. 传递给 mmap() 的大小将决定生成的内存共享区域的大小.
 
+
+参见 [LWN, 2024/05/22, LSFMMBPF-2024, Merging msharefs](https://lwn.net/Articles/974512)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -707,6 +712,19 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/02/02 | Breno Leitao <leitao@debian.org> | [cpu/bugs: Disable CPU mitigations at compilation time](https://lore.kernel.org/all/20230202180858.1539234-1-leitao@debian.org) | 目前, 无法在构建时禁用 CPU 漏洞缓解措施. 需要通过内核参数禁用缓解, 例如 "mitigations=off".  此补丁创建了一种在编译期间禁用缓解的简单方法(CONFIG_DEFAULT_CPU_MITIGATIONS_OFF), 因此, 不安全的内核用户在启动不安全内核时不需要处理内核参数. 参见 phoronix 报道 [Proposed Linux Patch Would Allow Disabling CPU Security Mitigations At Build-Time](https://www.phoronix.com/news/Linux-Default-Mitigations-Off). | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230202180858.1539234-1-leitao@debian.org) |
 
+#### 1.8.4.1 KAISER & KPTI
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2017/11/27 | Ingo Molnar <mingo@kernel.org> | [KAISER: unmap most of the kernel from userspace page tables](https://lore.kernel.org/all/20171127132037.tqmnwchnmxp67n35@gmail.com) | [KAISER: hiding the kernel from user space](https://lwn.net/Articles/738975). | v3 ☐☑✓ | [LORE v3,00/30](https://lore.kernel.org/all/20171110193058.BECA7D88@viggo.jf.intel.com) |
+| 2017/11/27 | Ingo Molnar <mingo@kernel.org> | [x86/mm: Add KAISER support](https://lore.kernel.org/all/20171127104923.14378-1-mingo@kernel.org) | TODO | v1 ☐☑✓ | [LORE v1,0/24](https://lore.kernel.org/all/20171127104923.14378-1-mingo@kernel.org) |
+| 2017/12/04 | Thomas Gleixner <tglx@linutronix.de> | [x86/kpti: Kernel Page Table Isolation (was KAISER)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a4b51ef6552c704764684cef7e753162dc87c5fa) | 参见 LWN 报道 [LWN, 2017/12/20, The current state of kernel page-table isolation](https://lwn.net/Articles/741878). | v1 ☐☑✓ v4.15-rc6 | [LORE v1,0/60](https://lore.kernel.org/all/20171204140706.296109558@linutronix.de) |
+| 2017/12/06 | Will Deacon <will.deacon@arm.com> | [arm64: Unmap the kernel whilst running in userspace (KAISER)](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=6aef0fdd35ead88cd651391dcc03562938a7612c) | TODO | v2 ☐☑✓ v4.16-rc1 | [2017/11/30, LORE v2,0/18](https://lore.kernel.org/all/1512059986-21325-1-git-send-email-will.deacon@arm.com)<br>*-*-*-*-*-*-*-* <br>[2017/12/06, LORE v3,0/20](https://lore.kernel.org/all/1512563739-25239-1-git-send-email-will.deacon@arm.com)<br>*-*-*-*-*-*-*-* <br>[arm64 meltdown patches](https://lore.kernel.org/all/20180403110923.43575-1-mark.rutland@arm.com)  |
+| 2019/05/13 | Alexandre Chartre <alexandre.chartre@oracle.com> | [KVM Address Space Isolation](https://lore.kernel.org/all/1557758315-12667-1-git-send-email-alexandre.chartre@oracle.com) | [Generalized address-space isolation](https://lwn.net/Articles/886494) | v1 ☐☑✓ | [2019/05/13, LORE v1,0/27](https://lore.kernel.org/all/1557758315-12667-1-git-send-email-alexandre.chartre@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2019/07/11, LORE v2,00/27](https://lore.kernel.org/lkml/1562855138-19507-1-git-send-email-alexandre.chartre@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2020/02/26, LORE v3,0/7](https://lore.kernel.org/lkml/1582734120-26757-1-git-send-email-alexandre.chartre@oracle.com) |
+| 2022/02/22 | Junaid Shahid <junaids@google.com> | [Address Space Isolation for KVM](https://lore.kernel.org/all/20220223052223.1202152-1-junaids@google.com) | 该补丁系列是 KVM 地址空间隔离端到端实施的概念验证 RFC. 它与 Alexandre Chartre 的高级设计, 但底层实现有所不同. 其中还包括一些内存管理变更, 以帮助区分敏感和非敏感内存, 并将非敏感内存映射到 ASI 受限地址空间. 本 RFC 旨在展示 KVM 的完整 ASI 实现, 而不一定是对最终可能合并的内容的直接建议. 最终合并的直接建议. 尤其是, 这些补丁尚未在 ASI 的基础上实现 KPTI, 尽管该框架的通用性足以支持 KPTI. 同样, 这些补丁也不包括非敏感数据结构注释, 这些数据结构在我们的测试工作负载执行过程中不会被频繁访问. 工作负载, 但该框架的设计可以轻松添加新的非敏感型内存注释. 参见 LWN 报道 [Generalized address-space isolation](https://lwn.net/Articles/886494) 以及 [LWN, 2024/05/21, LSFMMBPF-2024, Another try for address-space isolation](https://lwn.net/Articles/974390). | v1 ☐☑✓ | [LORE v1,0/47](https://lore.kernel.org/all/20220223052223.1202152-1-junaids@google.com) |
+
+
 
 ### 1.8.5 SandBox Mode
 -------
@@ -791,12 +809,15 @@ github 地址: [Mitosis Project](https://github.com/mitosis-project), [linux 内
 ## 1.x 其他页面页表相关
 -------
 
+【】（）
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/04/28 | Matthew Wilcox <willy@infradead.org> | [Record the mm_struct in the page table pages](https://lore.kernel.org/patchwork/patch/1232723) | NA| v1 ☐ | [PatchWork 0/6](https://lore.kernel.org/patchwork/patch/1232723) |
 | 2022/02/14 | David Hildenbrand <david@redhat.com> | [mm: enforce pageblock_order < MAX_ORDER](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b3d40a2b6d10c9d0424d2b398bf962fb6adad87e) | 20220214174132.219303-1-david@redhat.com | v1 ☑✓ 5.18-rc1 | [LORE v1,0/2](https://lore.kernel.org/all/20220214174132.219303-1-david@redhat.com) |
 | 2024/04/10 | Li RongQing <lirongqing@baidu.com> | [x86/cpu: Take NUMA node into account when allocating per-CPU cpumasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e0a9ac192fd62322b932c6018db60217b3ad866d) | 由于大多数每个 CPU 的 cpumask 都是从它们自己的本地处理器内核访问的, 因此将它们本地分配给给定的 NUMA 节点是有意义的. 参见 phoronix 报道 [Linux 6.10 To Account For NUMA Node When Allocating Per-CPU Cpumasks](https://www.phoronix.com/news/Linux-Per-CPU-NUMA-Node-Cpumask). | v1 ☑✓ 5.18-rc1 | [LORE](https://lore.kernel.org/all/171272659069.10875.14275567183040175048.tip-bot2@tip-bot2) |
 | 2024/04/12 | Li RongQing <lirongqing@baidu.com> | [x86/sev: take NUMA node into account when allocating memory for per-CPU variables](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=90167e96588df747c9b47a04ebac59b71e3b413f) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240412030130.49704-1-lirongqing@baidu.com) |
+| 2024/04/12 | Li RongQing <lirongqing@baidu.com> | [page-flags.rst](https://lore.kernel.org/all/ZkOu4yXP-sGGtwc4@casper.infradead.org/) | [LWN, 2024/05/22, LSFMMBPF-2024, Documenting page flags by committee](https://lwn.net/Articles/974515). | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/ZkOu4yXP-sGGtwc4@casper.infradead.org) |
 
 
 # 2 内存分配
@@ -1714,6 +1735,10 @@ Date:   Wed Sep 11 14:20:35 2013 -0700
 
 [The trouble with MAX_ORDER](https://lwn.net/Articles/956321)
 
+[LWN, 2019/05/27, Memory: the flat, the discontiguous, and the sparse](https://lwn.net/Articles/789304)
+
+[LWN, 2024/05/22, LSFMMBPF-2024, The path to deprecating SPARSEMEM](https://lwn.net/Articles/974517)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/05 | Zi Yan <zi.yan@sent.com> | [Make MAX_ORDER adjustable as a kernel boot time parameter.](https://lore.kernel.org/patchwork/patch/1472787) | 这个补丁集增加了启动参数添加可调的 MAX_ORDER 的支持, 以便用户可以更改从伙伴系统获得的页面的最大大小.<br> 它还消除了基于 SECTION_SIZE_BITS 对 MAX_ORDER 的限制, 这样当设置了 SPARSEMEM_VMEMMAP 时, 伙伴系统分配器可以跨内存段合并 pfn. | RFC ☐ v5.14-rc4-mmotm-2021-08-02-18-51 | [PatchWork RFC,00/15](https://patchwork.kernel.org/project/linux-mm/cover/20210805190253.2795604-1-zi.yan@sent.com) |
@@ -2173,7 +2198,11 @@ gpu 和高吞吐量设备在 TLB 丢失和随后的页表遍行情况下, 与 CP
 
 [一张图读懂内存反碎片化(OPPO ColorOS 内存反碎片化引擎)](https://blog.csdn.net/21cnbao/article/details/105172435)
 
-## 3.1 关于碎片化
+## 3.1 关于碎片化的定义和测量
+-------
+
+
+### 3.1.1 何为碎片化
 -------
 
 内存按 chunk 分配, 每个程序保留的 chunk 的大小和时间都不同. 一个程序可以多次请求和释放 `memory chunk`. 程序一开始时, 空闲内存有很多并且连续, 随后大的连续的内存区域碎片化, 变成更小的连续区域, 最终程序无法获取大的连续的 memory chunk.
@@ -2192,7 +2221,15 @@ gpu 和高吞吐量设备在 TLB 丢失和随后的页表遍行情况下, 与 CP
 
 *   [Linux Kernel vs. Memory Fragmentation (Part II)](https://en.pingcap.com/blog/linux-kernel-vs-memory-fragmentation-2)
 
-前面讲了运行较长时间的系统存在的内存碎片化问题, Linux 内核也不能幸免, 因此有开发者陆续提出若干种方法.
+
+### 3.1.2 碎片化的衡量
+-------
+
+Mel Gorman 在实现内存规整的时候, 提出了一个碎片索引, 并通过 debugfs 提供给开发者. 参见 [2010/05/25, v2.6.35-rc1, commit f1a5ab121057 ("mm: export fragmentation index via debugfs")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f1a5ab1210579e2d3ac8c0c227645823af5aafb0)
+
+
+[LWN, 2024/05/28, LSFMMBPF-2024, Measuring memory fragmentation](https://lwn.net/Articles/974943) 关于如何衡量内存碎片进行了讨论.
+
 
 
 
@@ -2265,7 +2302,7 @@ gpu 和高吞吐量设备在 TLB 丢失和随后的页表遍行情况下, 与 CP
 至此不再通过 RECLAIM_MODE_COMPACTION 判断是否在进行回收规整, 开启了 CONFIG_COMPACTION 的情况下, 就默认使能. 参见 should_continue_reclaim()-=>in_reclaim_compaction().
 
 
-## 3.3 通过迁移类型分组来实现反碎片
+## 3.3 通过迁移类型分组来实现抗碎片化
 -------
 
 也称为: 基于页面可移动性的页面聚类(Page Clustering by Page Mobility)
@@ -2360,7 +2397,7 @@ v2.6.24 实现迁移类型 MIGRATETYPE 的时候, 在从伙伴系统中内存分
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2010/04/20 | Mel Gorman <mel@csn.ul.ie> | [Memory Compaction](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4f92e2586b43a2402e116055d4edda704f911b5b) | 内存规整, 参见 [LWN: Memory compaction](https://lwn.net/Articles/368869) | v8 ☑ 2.6.35-rc1 | [PatchWork v8](https://lore.kernel.org/lkml/1271797276-31358-1-git-send-email-mel@csn.ul.ie) |
+| 2010/04/20 | Mel Gorman <mel@csn.ul.ie> | [Memory Compaction](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4f92e2586b43a2402e116055d4edda704f911b5b) | 内存规整, 参见 [LWN: Memory compaction](https://lwn.net/Articles/368869) | v8 ☑ 2.6.35-rc1 | [2010/03/12, LORE v4, 00/11](https://lore.kernel.org/lkml/1268412087-13536-1-git-send-email-mel@csn.ul.ie/)<br>*-*-*-*-*-*-*-* <br>[2010/04/20, LORE v8](https://lore.kernel.org/lkml/1271797276-31358-1-git-send-email-mel@csn.ul.ie) |
 | 2010/11/22 | Mel Gorman <mel@csn.ul.ie> | [Use memory compaction instead of lumpy reclaim during high-order allocations V2](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f3a310bc4e5ce7e55e1c8e25c31e63af017f3e50) | 在分配大内存时, 不再使用成块回收 (lumpy reclaim) 策略, 而是使用内存规整(memory compaction) | v2 ☑ 2.6.38-rc1 | [2010/11/11 LORE RFC v1,0/3](https://lore.kernel.org/all/1289502424-12661-1-git-send-email-mel@csn.ul.ie)<br>*-*-*-*-*-*-*-* <br>[2010/11/22 LORE v2,0/7](https://lore.kernel.org/lkml/1290440635-30071-1-git-send-email-mel@csn.ul.ie) |
 | 2012/04/11 | Mel Gorman <mel@csn.ul.ie> | [Removal of lumpy reclaim V2](https://lore.kernel.org/patchwork/patch/296609) | 移除成块回收(lumpy reclaim) 的代码. | v2 ☑ [3.5-rc1](https://kernelnewbies.org/Linux_3.5#Memory_Management) | [PatchWork v2](https://lore.kernel.org/patchwork/patch/296609) |
 | 2012/09/21 | Mel Gorman <mgorman@suse.de> | [Reduce compaction scanning and lock contention](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=62997027ca5b3d4618198ed8b1aba40b61b1137b) | 进一步优化内存规整的扫描耗时和锁开销. | v1 ☑✓ 3.7-rc1 | [LORE 0/6](https://lore.kernel.org/all/1348149875-29678-1-git-send-email-mgorman@suse.de)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/9](https://lore.kernel.org/all/1348224383-1499-1-git-send-email-mgorman@suse.de) |
@@ -2532,7 +2569,7 @@ v3.6 [commit 7db8889ab05b ("mm: have order> 0 compaction start off where it left
 
 
 
-## 3.5 抗碎片化优化
+## 3.5 其他抗碎片化优化
 -------
 
 
@@ -4225,7 +4262,7 @@ PowerPC 体系结构 (POWER10) 支持热/冷页面跟踪功能(Hot/Cold page tra
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2023/05/10 | Yuanchu Xie <yuanchu@google.com> | [mm: Working Set Reporting](https://lore.kernel.org/all/20230509185419.1088297-1-yuanchu@google.com) | balloon device 是在来宾虚拟机和主机之间共享内存的典型机制. 开发这种 [auto-ballon 能力](https://www.linux-kvm.org/page/Projects/auto-ballooning)的早期项目于 2013 年完成. 最近, 已经创建了额外的VIRTIO设备(VIRTIO -mem、VIRTIO -pmem), 为许多用例提供了[更多的工具](https://kvmforum2020.sched.com/event/eE4U/virtio-balloonpmemmem-managing-guest-memory-david-hildenbrand-michael-s-tsirkin-red-hat), 每种工具都有优点和缺点，它在多虚拟机场景中特别有用, 在这种场景中, 内存被过度使用, 并且随着系统上工作负载的变化, 需要动态更改虚拟机内存大小. balloon device 现在有许多特性来帮助在来宾和主机之间明智地共享内存资源 (例如, 免费页面提示、统计、免费页面报告). 对于在多虚拟机环境中负责优化内存资源的主控制器程序, 它必须使用这些工具来回答两个具体问题: 统一的工作集报告结构, 适用于服务器和客户端. 它涉及主机上的每个节点直方图、每个内存直方图和虚拟气球驱动程序扩展.<br> 有两种使用工作集报告的方法: 事件驱动和查询. 主机控制器可以接收来自 reclaim 的通知, 它会生成一个报告, 或者控制器可以直接查询直方图.<br>1. 补丁 1 引入了工作集报告机制和主机接口. 补丁 2 扩展了带有工作集报告的虚拟 balloon 驱动程序.<br> 最初的 RFC 以 MGLRU 为基础, 旨在作为讨论和改进的概念验证. tj 和作者的目标是支持活动 / 非活动 LRU 和来自用户空间的工作集估计. 作者正在编写演示脚本并获得一些数据. 参见 LWN 报道 [Memory overcommit in containerized environments](https://lwn.net/Articles/931658) 和 phoronix 报道 [Google's Working Set Reporting Feature Aims To Better Deal With Over-Committed VMs](https://www.phoronix.com/news/Working-Set-Reporting). | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20230509185419.1088297-1-yuanchu@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/6](https://lore.kernel.org/r/20230621180454.973862-1-yuanchu@google.com) |
+| 2023/05/10 | Yuanchu Xie <yuanchu@google.com> | [mm: Working Set Reporting](https://lore.kernel.org/all/20230509185419.1088297-1-yuanchu@google.com) | balloon device 是在来宾虚拟机和主机之间共享内存的典型机制. 开发这种 [auto-ballon 能力](https://www.linux-kvm.org/page/Projects/auto-ballooning)的早期项目于 2013 年完成. 最近, 已经创建了额外的VIRTIO设备(VIRTIO -mem、VIRTIO -pmem), 为许多用例提供了[更多的工具](https://kvmforum2020.sched.com/event/eE4U/virtio-balloonpmemmem-managing-guest-memory-david-hildenbrand-michael-s-tsirkin-red-hat), 每种工具都有优点和缺点, 它在多虚拟机场景中特别有用, 在这种场景中, 内存被过度使用, 并且随着系统上工作负载的变化, 需要动态更改虚拟机内存大小. balloon device 现在有许多特性来帮助在来宾和主机之间明智地共享内存资源 (例如, 免费页面提示、统计、免费页面报告). 对于在多虚拟机环境中负责优化内存资源的主控制器程序, 它必须使用这些工具来回答两个具体问题: 统一的工作集报告结构, 适用于服务器和客户端. 它涉及主机上的每个节点直方图、每个内存直方图和虚拟气球驱动程序扩展.<br> 有两种使用工作集报告的方法: 事件驱动和查询. 主机控制器可以接收来自 reclaim 的通知, 它会生成一个报告, 或者控制器可以直接查询直方图.<br>1. 补丁 1 引入了工作集报告机制和主机接口. 补丁 2 扩展了带有工作集报告的虚拟 balloon 驱动程序.<br> 最初的 RFC 以 MGLRU 为基础, 旨在作为讨论和改进的概念验证. tj 和作者的目标是支持活动 / 非活动 LRU 和来自用户空间的工作集估计. 作者正在编写演示脚本并获得一些数据. 参见 LWN 报道 [Memory overcommit in containerized environments](https://lwn.net/Articles/931658) 和 phoronix 报道 [Google's Working Set Reporting Feature Aims To Better Deal With Over-Committed VMs](https://www.phoronix.com/news/Working-Set-Reporting). | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20230509185419.1088297-1-yuanchu@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/6](https://lore.kernel.org/r/20230621180454.973862-1-yuanchu@google.com) |
 
 ### 4.4.7 Working Set Control
 -------
@@ -4243,6 +4280,11 @@ PowerPC 体系结构 (POWER10) 支持热/冷页面跟踪功能(Hot/Cold page tra
 
 # 5 Swappiness
 -------
+
+[Toward a swap abstraction layer](https://lwn.net/Articles/932077)
+
+[A new swap abstraction layer for the kernel](https://lwn.net/Articles/974587)
+
 
 
 ## 5.1 Swappiness 倾向
@@ -4274,9 +4316,6 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 | 2022/02/17 | Peter Xu <peterx@redhat.com> | [mm: Rework zap ptes on swap entries](https://patchwork.kernel.org/project/linux-mm/cover/20220217060746.71256-1-peterx@redhat.com/) | 615245 | v5 ☐☑ | [LORE v5,0/4](https://lore.kernel.org/r/20220217060746.71256-1-peterx@redhat.com) |
 
 
-
-
-
 ## 5.2 MEMCG Swap
 -------
 
@@ -4304,8 +4343,7 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/12/16 | NeilBrown <neilb@suse.de> | [Repair SWAP-over-NFS](https://patchwork.kernel.org/project/linux-mm/cover/163969801519.20885.3977673503103544412.stgit@noble.brown) | NA | v2 ☐ | [PatchWork 00/18,V2](https://patchwork.kernel.org/project/linux-mm/cover/163969801519.20885.3977673503103544412.stgit@noble.brown) |
 
-## 5.5 [Toward a swap abstraction layer](https://lwn.net/Articles/932077)
--------
+
 
 
 
@@ -4663,7 +4701,10 @@ LWN 上 Mel 写的关于 Huge Page 的连载.
 -------
 
 
-### 7.1.1 引入 HugeTLB
+### 7.1.1 HugeTLB FrameWork
+-------
+
+#### 7.1.1.1 引入 HugeTLB
 -------
 
 
@@ -4703,7 +4744,18 @@ HugeTLBFS 则用于向用户提供一套基于文件系统的巨页使用界面,
 
 4.  提供了 `/proc/sys/vm/nr_hugepages` sysctl 接口 [查看](https://elixir.bootlin.com/linux/v2.6.6/source/kernel/sysctl.c#L734) 和[配置](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L183)当前内核中 HugeTLB 大页数目 [max_huge_pages](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L16). 在配置的过程中内核会通过 [`alloc_fresh_huge_page()`](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L159) 和 [`enqueue_huge_page(page)`](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L163) 扩展页面数, 已经通过 [`try_to_free_low()`](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L132) 和 [`update_and_free_page()`](https://elixir.bootlin.com/linux/v2.6.6/source/mm/hugetlb.c#L176) 释放那些不需要的页面. 从而动态地提供大页的数量.
 
-其次看 HugeTLBFS 模块:
+
+#### 7.1.1.2 Unify HugeTLB
+-------
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/05/17 | Christophe Leroy <christophe.leroy@csgroup.eu> | [Reimplement huge pages without hugepd on powerpc (8xx, e500, book3s/64)](https://lore.kernel.org/all/cover.1715971869.git.christophe.leroy@csgroup.eu) | 在 powerpc 8xx 上重新实现大页, 与大多数架构不同, POWERPC 8xx 硬件要求所有页面都采用两级页表拓扑结构, 因此, PMD-contig 方法 是不可行的. 可能的页面大小为 4k、16k、512k 和 8M. 第一层(PGD/PMD)每个条目覆盖 4M。对于 8M 页, 两个 PMD 条目 必须指向单个条目二级页表。到目前为止 使用 hugepd。本系列将其改为使用标准页表 在这两个页表中, 每个条目都要复制 1024 次 由该 8M 页面的两个相关 PMD 条目引用. | v2 ☐☑✓ | [LORE v2,0/20](https://lore.kernel.org/all/cover.1715971869.git.christophe.leroy@csgroup.eu) |
+| 2023/06/28 | Peter Xu <peterx@redhat.com> | [mm/gup: Unify hugetlb, speed up thp](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=de4ec376df7bd2db4aa887b350a681686ea54064) | Hugetlb 有一个特殊的慢 GUP 路径, follow_page_mask() 实际上与 faultin_page() 一起被完全跳过. 这不仅令人困惑, 而且复制了通用 GUP 已经具备的许多逻辑, 使 hugetlb 有点特别. 这个补丁程序集试图消这块的逻辑, 首先修改慢速 GUP 代码, 以便能够用当前的 follow_page 和 faultin_page 例程正确处理 hugetlb 页面然后在最后一个补丁程序中删除特殊路径, 然后 hugetlb GUP 也将始终通过 faultin_page() 执行通用例程. 参见 [LWN, 2024/05/22, LSFMMBPF-2024, Toward the unification of hugetlbfs](https://lwn.net/Articles/974491). | v4 ☐☑✓ v6.6-rc1 | [LORE v4,0/8](https://lore.kernel.org/all/20230628215310.73782-1-peterx@redhat.com) |
+| 2024/03/21 | peterx@redhat.com <peterx@redhat.com> | [mm/gup: Unify hugetlb, part 2](https://lore.kernel.org/all/20240321220802.679544-1-peterx@redhat.com) | 在之前的重构工作之后, 该系列删除了 HugeTLB 慢速 GUP 路径, 因此慢速 GUP 现在使用完全相同的路径来处理包括 HugeTLB 在内的各种情况, 从长远来看, 我们可能希望移除 huge_pte_offset() 的大部分调用站点(如果不是全部的话). 如果能从拱形 hugetlb API 中完全删除该 API, 那将是最理想的结果. 本系列是将 hugetlb 特定代码合并到通用毫米路径的一小步.  从这个角度看, 本系列删除了对 huge_pte_offset() 的引用. 这样做的一个目的是, 我们可以重新考虑合并 HugeTLB 功能, 如高粒度映射(HGM). 这在过去是不被接受的, 因为它可能会增加大量 HugeTLB 专用代码, 通过合并代码集, HGM 等功能有望与 THP、传统(PMD+)或现代(连续 PTE)共享一些代码. 参见 [LWN, 2024/05/22, LSFMMBPF-2024, Toward the unification of hugetlbfs](https://lwn.net/Articles/974491). | v3 ☐☑✓ | [LORE v3,0/12](https://lore.kernel.org/all/20240321220802.679544-1-peterx@redhat.com) |
+
 
 ### 7.1.2 HugeTLB Pool
 -------
@@ -4727,7 +4779,10 @@ commit [e4e574b767ba ("hugetlb: Try to grow hugetlb pool for MAP_SHARED mappings
 | 2007/12/17 | Nishanth Aravamudan <nacc@us.ibm.com> | [hugetlb: introduce nr_overcommit_hugepages sysctl](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d5dbac87b4343d98ae509fb787efb77f8ddc484b) | 1. 移除了 [Revert"hugetlb: Add hugetlb_dynamic_pool sysctl"](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=368d2c6358c3c62b3820a8a73f9fe9c8b540cdea)<br>2. 引入了 [nr_overcommit_hugepages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d1c3fb1f8f29c41b0d098d7cfb3c32939043631f) sysctl.<br>3. [Documentation: update hugetlb information](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=d5dbac87b4343d98ae509fb787efb77f8ddc484b) 更新了 hugetlb 的文档, 至此 hugetlb 的功能已经趋于完善. | v1 ☑ 2.6.24-rc6 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/d5dbac87b4343d98ae509fb787efb77f8ddc484b) |
 
 
-### 7.1.2 SHM_HUGETLB
+### 7.1.3 SHM_HUGETLB & MAP_HUGETLB
+-------
+
+#### 7.1.3.1 SHM_HUGETLB
 -------
 
 
@@ -4739,7 +4794,7 @@ commit [e4e574b767ba ("hugetlb: Try to grow hugetlb pool for MAP_SHARED mappings
 | 2002/10/30 | Rohit Seth | [hugetlbpage documentation update](https://github.com/gatieme/linux-history/commit/a2f6cc8614e920b7b86782ac8391a15165631157) | 更新 hugetlb 的文档, 同时增加了 SHM_HUGETLB 的测试用例 `Documentation/vm/hugetlbpage.txt`, 该用例随后被重命名为 [`Documentation/vm/hugepage-shm.c`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=70bace8c1edefa700c7f7af522c5374ef63860ae), 最终被[移动到了 selftests 路径下](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=f0f57b2b1488). | v1 ☑ 2.5.64 | [HISTORY COMMIT](https://github.com/gatieme/linux-history/commit/a2f6cc8614e920b7b86782ac8391a15165631157) |
 
 
-### 7.1.3 MAP_HUGETLB
+#### 7.1.3.2 MAP_HUGETLB
 -------
 
 
@@ -5148,6 +5203,7 @@ THP 虽然实现了, 但是依旧存在着不少问题. 在 LSFMM 2015 进行了
 
 [THP 和 mapcount 之间的恩恩怨怨](https://richardweiyang-2.gitbook.io/kernel-exploring/00-index/02-thp_mapcount).
 
+[Facing down mapcount madness](https://lwn.net/Articles/974223)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -5209,7 +5265,7 @@ Andrea 建议将工作放入工作队列中.
 -------
 
 
-[[LSF/MM/BPF TOPIC] TAO: THP Allocator Optimizations](https://lore.kernel.org/all/20240229183436.4110845-1-yuzhao@google.com) 致力于使透明大页面的分配尽可能高效. 参见 LWN 相关报道 [Formalizing policy zones for memory](https://lwn.net/Articles/964239).
+[[LSF/MM/BPF TOPIC] TAO: THP Allocator Optimizations](https://lore.kernel.org/all/20240229183436.4110845-1-yuzhao@google.com) 致力于使透明大页面的分配尽可能高效. 参见 LWN 相关报道 [Formalizing policy zones for memory](https://lwn.net/Articles/964239) 以及 [Allocator optimizations for transparent huge pages](https://lwn.net/Articles/974636).
 
 ZONE_NOSPLIT 将防止大页面的拆分, 其中连续的页面块不能拆分到给定大小以下, 它的存在是为了帮助系统维护大块内存(用于透明的大页面等), 这将使内核不必在以后重新组装它们, 而不必经历持续的压缩过程.
 
@@ -5226,6 +5282,16 @@ ZONE_NOMERGE 具有最小块大小属性, 但也不允许将页面块合并为�
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2024/02/29 | Yu Zhao <yuzhao@google.com> | [TAO: THP Allocator Optimizations](https://lore.kernel.org/all/20240229183436.4110845-1-yuzhao@google.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240229183436.4110845-1-yuzhao@google.com) |
+
+
+#### 7.2.3.4 Reliable Huge Page Allocator
+-------
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/04/18 | Johannes Weiner <hannes@cmpxchg.org> | [mm: reliable huge page allocator](https://lore.kernel.org/all/20230418191313.268131-1-hannes@cmpxchg.org) | [Two talks on multi-size transparent huge page performance](https://lwn.net/Articles/974826) | v1 ☐☑✓ | [LORE v1,0/26](https://lore.kernel.org/all/20230418191313.268131-1-hannes@cmpxchg.org) |
+
 
 
 ### 7.2.4 improve THP collapse rate
@@ -5900,6 +5966,9 @@ Dirty COW(CVE-2016-5195) 是近几年影响比较严重的问题, 参见 [Dirty 
 
 [Stabilizing per-VMA locking](https://lwn.net/Articles/937943)
 
+[LWN, 2024/05/22, LSFMMBPF-2024, Faster page faults with RCU-protected VMA walks](https://lwn.net/Articles/974392)
+
+[LWN, 2024/05/22, LSFMMBPF-2024, The interaction between memory reclaim and RCU](https://lwn.net/Articles/974487), [[LSF/MM/BPF TOPIC] Measuring limits and enhancing buffered IO](https://lore.kernel.org/all/Zdkxfspq3urnrM6I@bombadil.infradead.org/)
 
 2022 年, LSF/MM 在 [SPF](https://lore.kernel.org/all/20220128131006.67712-1-michel@lespinasse.org) 讨论中讨论了 Per-VMA locks 的想法, 该想法的结论是: 可以 rw_semaphore 放入 VMA 本身; 这将产生使用 VMA 作为一种锁范围的效果.
 
@@ -5943,15 +6012,15 @@ VMA 的读锁定是使用两个序列号完成的: 一个在 vm_area_struct 中,
 
 [Maple Tree"RFC"Patches Sent Out As New Data Structure To Help With Linux Performance](https://www.phoronix.com/scan.php?page=news_item&px=Maple-Tree-Linux-RFC)
 
+[LWN, 2024/05/28, LSFMMBPF-2024, The next steps for the maple tree](https://lwn.net/Articles/974860)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/08/22 | Liam Howlett <liam.howlett@oracle.com> | [Introducing the Maple Tree](https://lore.kernel.org/patchwork/patch/1477973) | Maple Tree 是一种基于 RCU 安全范围的 B 树, 旨在高效使用现代处理器缓存. 在内核中有许多地方, 基于范围的非重叠树是有益的, 尤其是具有简单接口的树. Maple Tree 的第一个用户是 vm_area_struct, 当前替换了三个结构: 增强 rbtree、vma 缓存和 mm_struct 中的 vma linked 链表. 长期目标是减少或消除 mmap_sem 争用. | v9 ☐ | [2021/08/17 PatchWork v2,00/61](https://patchwork.kernel.org/project/linux-mm/cover/20210817154651.1570984-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/05 PatchWork v3](https://patchwork.kernel.org/project/linux-mm/cover/20211005012959.1110504-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/01 PatchWork v4,00/66](https://patchwork.kernel.org/project/linux-mm/cover/20211201142918.921493-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/02/02 PatchWork v5,00/70](https://patchwork.kernel.org/project/linux-mm/cover/20220202024137.2516438-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/04/04 LORE v7,00/70](https://lore.kernel.org/r/20220404143501.2016403-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/04/26 LORE v8,0/70](https://lore.kernel.org/r/20220426150616.3937571-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v9,0/69](https://lore.kernel.org/r/20220504010716.661115-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/06/21 LORE v10,0/69](https://lore.kernel.org/all/20220621204632.3370049-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/07/17 LORE v11,0/69](https://lore.kernel.org/r/20220717024615.2106835-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/08/22 ORE v13,0/70](https://lore.kernel.org/r/20220822150128.1562046-1-Liam.Howlett@oracle.com) |
-| 2022/05/04 | Liam Howlett <Liam.Howlett@Oracle.com> | [Prepare for maple tree](https://patchwork.kernel.org/project/linux-mm/cover/20220504002554.654642-1-Liam.Howlett@oracle.com/) | 638130 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220504002554.654642-1-Liam.Howlett@oracle.com) |
-| 2022/10/11 | Liam Howlett <Liam.Howlett@Oracle.com> | [mm/mmap: Preallocate maple nodes for brk vma expansion](https://patchwork.kernel.org/project/linux-mm/patch/20221011160624.1253454-1-Liam.Howlett@oracle.com/) | 684552 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221011160624.1253454-1-Liam.Howlett@oracle.com) |
+| 2022/08/22 | Liam Howlett <liam.howlett@oracle.com> | [Introducing the Maple Tree](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c154124fe925a451e471233aa7d1ab9a91f0a5ad) | Maple Tree 是一种基于 RCU 安全范围的 B 树, 旨在高效使用现代处理器缓存. 在内核中有许多地方, 基于范围的非重叠树是有益的, 尤其是具有简单接口的树. Maple Tree 的第一个用户是 vm_area_struct, 当前替换了三个结构: 增强 rbtree、vma 缓存和 mm_struct 中的 vma linked 链表. 长期目标是减少或消除 mmap_sem 争用. | v9 ☐☑ v6.1-rc1 | [2021/08/17 PatchWork v2,00/61](https://patchwork.kernel.org/project/linux-mm/cover/20210817154651.1570984-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/10/05 PatchWork v3](https://patchwork.kernel.org/project/linux-mm/cover/20211005012959.1110504-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2021/12/01 PatchWork v4,00/66](https://patchwork.kernel.org/project/linux-mm/cover/20211201142918.921493-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/02/02 PatchWork v5,00/70](https://patchwork.kernel.org/project/linux-mm/cover/20220202024137.2516438-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/04/04 LORE v7,00/70](https://lore.kernel.org/r/20220404143501.2016403-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/04/26 LORE v8,0/70](https://lore.kernel.org/r/20220426150616.3937571-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[LORE v9,0/69](https://lore.kernel.org/r/20220504010716.661115-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/06/21 LORE v10,0/69](https://lore.kernel.org/all/20220621204632.3370049-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/07/17 LORE v11,0/69](https://lore.kernel.org/r/20220717024615.2106835-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/08/22 ORE v13,0/70](https://lore.kernel.org/r/20220822150128.1562046-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2022/09/06 LORE v14,00/70](https://lore.kernel.org/all/20220906194824.2110408-1-Liam.Howlett@oracle.com) |
+| 2022/10/11 | Liam Howlett <Liam.Howlett@Oracle.com> | [mm/mmap: Preallocate maple nodes for brk vma expansion](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=28c5609fb236807910ca347ad3e26c4567998526) | 684552 | v1 ☐☑ v6.1-rc1 | [LORE v1,0/1](https://lore.kernel.org/r/20221011160624.1253454-1-Liam.Howlett@oracle.com) |
 | 2022/10/28 | Liam Howlett <Liam.Howlett@Oracle.com> | [[v2] maple_tree: Reorganize testing to restore module testing](https://patchwork.kernel.org/project/linux-mm/patch/20221028180415.3074673-1-Liam.Howlett@oracle.com/) | 689987 | v2 ☐☑ | [LORE v2,0/1](https://lore.kernel.org/r/20221028180415.3074673-1-Liam.Howlett@oracle.com) |
-| 2023/06/12 | Liam R. Howlett <Liam.Howlett@Oracle.com> | [Reduce preallocations for maple tree](https://patchwork.kernel.org/project/linux-mm/cover/20230612203953.2093911-1-Liam.Howlett@oracle.com/) | 756451 | v2 ☐☑ | [LORE v2,0/16](https://lore.kernel.org/r/20230612203953.2093911-1-Liam.Howlett@oracle.com) |
-| 2023/06/15 | Peng Zhang <zhangpeng.00@bytedance.com> | [Improve the validation for maple tree and some cleanup](https://patchwork.kernel.org/project/linux-mm/cover/20230615130859.21858-1-zhangpeng.00@bytedance.com/) | 757486 | v1 ☐☑ | [LORE v1,0/8](https://lore.kernel.org/r/20230615130859.21858-1-zhangpeng.00@bytedance.com) |
-| 2023/07/24 | Liam R. Howlett <Liam.Howlett@Oracle.com> | [Reduce preallocations for maple tree](https://patchwork.kernel.org/project/linux-mm/cover/20230724183157.3939892-1-Liam.Howlett@oracle.com/) | 768999 | v3 ☐☑ | [LORE v3,0/15](https://lore.kernel.org/r/20230724183157.3939892-1-Liam.Howlett@oracle.com) |
+| 2023/06/12 | Liam R. Howlett <Liam.Howlett@Oracle.com> | [Reduce preallocations for maple tree](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=6935e052557caaa8e1ee0a7d85faeb55853d2e0e) | 最初的预分配工作在测试过程中没有发现性能下降 但最近一些用户(包括 [1] 列表中和 [android] 列表外的用户 列表)报告说, 预分配最坏情况下的节点数 造成了一些性能下降. 本补丁集从几个方面解决了 分配数量的问题. 在 munmap() 期间, 大多数 munmap() 操作都会移除单个 VMA, 因此 利用枫树可以将单个指针放在 范围 0 - 0 的单个指针而无需分配. 这可以通过更改 从 0 开始. 重新为 mas_preallocate() 引入入口参数, 以便更智能地猜测节点数. 这样就能更智能地猜测节点数. 实现更智能的节点数猜测, 尽管还有更多工作要做. 还有更多工作要做. 在开发此补丁集 v2 的过程中, 我还注意到 为重新平衡分配的节点数超出了可能需要的数量. 可能需要的数量.  补丁 0008 解决了这个问题. | v2 ☐☑ v6.6-rc1 | [2023/06/12, LORE v2,0/16](https://lore.kernel.org/r/20230612203953.2093911-1-Liam.Howlett@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2023/07/24, LORE v3,00/15](https://lore.kernel.org/all/20230724183157.3939892-1-Liam.Howlett@oracle.com) |
+| 2023/06/15 | Peng Zhang <zhangpeng.00@bytedance.com> | [Improve the validation for maple tree and some cleanup](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=6783bd4b5f72b483cf492dc09500548b495670b5) | 757486 | v1 ☐☑ v6.6-rc1 | [LORE v1,0/8](https://lore.kernel.org/r/20230615130859.21858-1-zhangpeng.00@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/8](https://lore.kernel.org/all/20230711035444.526-1-zhangpeng.00@bytedance.com) |
 
 
 #### 8.2.5.6 Mitigate vmap lock contention
@@ -6116,6 +6185,8 @@ RMAP 反向映射是一种物理地址反向映射虚拟地址的方法.
 [KS2012: The memcg/mm minisummit](https://lwn.net/Articles/516439)
 
 [Controlling memory use in containers](https://lwn.net/Articles/243795)
+
+[The twilight of the version-1 memory controller](https://lwn.net/Articles/974575)
 
 **2.6.25(2008 年 4 月发布)**
 
@@ -6554,10 +6625,7 @@ zone->lru_锁是一个竞争激烈的锁, 因此 2012 年左右 Konstantin Khleb
 
 还有一种情形, 旨在提高内存使用效率.. 比如大量内容相同的页面 (全 0 页面) 在池子里可以只保留一份; 或者, tmem 可以考虑对这些页面进行压缩, 从而增加有效内存的使用.
 
-
-
 Linux 内核 从 3.X 系列开始陆续加入 tmem 相关的基础设施支持, 并逐步加入了关于内存压缩的功能. 进一步讨论内核中的实现前, 需要对这一问题再进一步细化, 以方便讨论细节.
-
 
 
 前文说了内核需要通过 API 访问 tmem, 那么进一步, 可以细化为两个问题.
@@ -6567,8 +6635,7 @@ Linux 内核 从 3.X 系列开始陆续加入 tmem 相关的基础设施支持, 
 2.  tmem 如何管理其池子中的内存. 针对前述三种情形, 有不同的策略. Linux 现在的主要解决方案是针对内存压缩, 提高内存使用效率.
 
 
-
-针对这两个问题, 可以把内核对于 tmem 的支持分别分为 ** 前端 ** 和 ** 后端 **. 前端是内核与 tmem 通讯的接口; 而后端则实现 tmem 的管理策略.
+针对这两个问题, 可以把内核对于 tmem 的支持分别分为 **前端** 和 **后端**. 前端是内核与 tmem 通讯的接口; 而后端则实现 tmem 的管理策略.
 
 
 ## 11.1 tmem 前端
@@ -6756,8 +6823,9 @@ FRONTSWAP 对应的另一个后端叫 [ZSWAP](https://lwn.net/Articles/537422). 
 
 [LWN: LSFMM-2022/CXL 1: Management and tiering](https://lwn.net/Articles/894598)
 
-
 [CXL For Linux 6.9 Adds Error Injection, Native Memory Performance Enumeration](https://www.phoronix.com/news/Linux-6.9-CXL)
+
+[Two sessions on CXL memory](https://lwn.net/Articles/974518)
 
 ### 12.1.2 多级内存(Top-tier memory management)/ 内存分级(memory tiering) 支持
 -------
@@ -6800,6 +6868,8 @@ Intel 的吴峰光 [PMEM NUMA node and hotness accounting/migration](https://lor
 [Two memory-tiering patch sets](https://lwn.net/Articles/898766)
 
 [Explicit Memory Tiers May Be Ready For Linux 6.1](https://www.phoronix.com/news/Linux-6.1-Improve-Memory-Tiers)
+
+[LSFMMBPF24, Better support for locally-attached-memory tiering](https://lwn.net/Articles/974126)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -7935,12 +8005,10 @@ ZONE_MOVABLE 一个 pseudo zone, 它实际是从内核划分的某个 zone 中�
 
 [Code tagging and memory-allocation profiling](https://lwn.net/Articles/932402)
 
-[A framework for code tagging](https://lwn.net/Articles/906660)
-
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/08/30 | Suren Baghdasaryan <surenb@google.com> | [Code tagging framework and applications](https://lore.kernel.org/all/20220830214919.53220-1-surenb@google.com) | TODO | v1 ☐☑✓ | [LORE v1,0/30](https://lore.kernel.org/all/20220830214919.53220-1-surenb@google.com) |
-| 2023/05/01 | Suren Baghdasaryan <surenb@google.com> | [Memory allocation profiling](https://patchwork.kernel.org/project/linux-mm/cover/20230501165450.15352-1-surenb@google.com/) | 744181 | v1 ☐☑ | [LORE v1,0/40](https://lore.kernel.org/r/20230501165450.15352-1-surenb@google.com) |
+| 2022/08/30 | Suren Baghdasaryan <surenb@google.com> | [Code tagging framework and applications](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9f0ee883ec7fa10f4e0a9f46e6b0eb4dd106ec93) | 分配剖析工作会跟踪内核中的所有内存分配, 并将其映射回执行分配的代码. 它可以用来查看内存的使用情况, 并追踪内存泄漏. 反过来, 剖析也依赖于代码标记, 即在代码中插入特殊结构, 以便识别位置. 参见 LWN 报道 [LWN, 2022/09/01, A framework for code tagging](https://lwn.net/Articles/906660) | v1 ☐☑✓ v6.10-rc1 | [LORE v1,0/30](https://lore.kernel.org/all/20220830214919.53220-1-surenb@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,00/37](https://lore.kernel.org/all/20240321163705.3067592-1-surenb@google.com) |
+| 2023/05/01 | Suren Baghdasaryan <surenb@google.com> | [Memory allocation profiling]https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ebdf9ad4ca9897768bcb7dad6581369693c81fe0) | 主题是减少 [Code tagging framework and applications](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=9f0ee883ec7fa10f4e0a9f46e6b0eb4dd106ec93) 分析机制的内存和性能开销. 如果启用它, 它会消耗系统总内存的 0.2% 左右. 事实证明, 几乎所有的开销都存在于用于将后退指针从内存页保存到标识分配代码的标记的 page_ext 结构中. 该指针用于在释放页面时递减关联的计数器. 在性能方面, 分配分析使页面分配速度降低 40%, 对 slab 分配的影响较小, 为 7%. 减少开销的一种方法是打包代码标签引用, 其中内核中有 4-5,000 个. 其实没有必要对每个指针使用 64 位指针. 相反, 引用可以变小, 并可能打包到页面标志中, 从而消除对 page_ext 结构的需求并减少分配开销. 另一方面, 这种方法会给可加载模块带来复杂性. 参见 LWN 报道 [LWN, LSFMMBPF-2024, 2024/05/21, Memory-allocation profiling for the kernel](https://lwn.net/Articles/974380). [微信公众号-kernel工匠-探索kernel前沿技术：内存分配分析器](https://mp.weixin.qq.com/s/QeoidzA5biHzKi69U9KKnA) | v1 ☐☑ v6.10-rc1 | [LORE v1,0/40](https://lore.kernel.org/r/20230501165450.15352-1-surenb@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/36](https://lore.kernel.org/all/20240221194052.927623-1-surenb@google.com) |
 
 
 ## 14.17 RSS

@@ -135,6 +135,7 @@ v5.7 引入了拆分锁检测的支持, 这依赖于 x86_64 intel CPU 遇到拆�
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/10/06 | Xin Li <xin3.li@intel.com> | [Enable LKGS instruction](https://lore.kernel.org/all/20221006154041.13001-1-xin3.li@intel.com) | [Intel Preps The Linux Kernel For LKGS - Part Of FRED](https://www.phoronix.com/news/Intel-LKGS-Linux-Patches) | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20221006154041.13001-1-xin3.li@intel.com) |
 | 2022/12/19 | Xin Li <xin3.li@intel.com> | [x86: enable FRED for x86-64](https://lore.kernel.org/all/20221220063658.19271-1-xin3.li@intel.com) | [Intel Sends Out Initial Linux Kernel Patches For FRED](https://www.phoronix.com/news/Intel-FRED-Linux-Patches) 和 [Intel FRED Merged For Linux 6.9 As An Important Improvement With Future CPUs](https://www.phoronix.com/news/Intel-FRED-Merged-Linux-6.9). | v1 ☐☑✓ | [LORE v1,0/32](https://lore.kernel.org/all/20221220063658.19271-1-xin3.li@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v13,0/35](https://lore.kernel.org/all/20231205105030.8698-1-xin3.li@intel.com) |
+| 2024/05/29 | Jacob Pan <jacob.jun.pan@linux.intel.com> | [Add support for NMI source reporting](https://lore.kernel.org/all/20240529203325.3039243-1-jacob.jun.pan@linux.intel.com) | 参见 phoronix 报道 [Intel Improving NMI Source Reporting On Linux With FRED](https://www.phoronix.com/news/Intel-Linux-NMI-Source-Report). | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20240529203325.3039243-1-jacob.jun.pan@linux.intel.com) |
 
 
 
@@ -238,7 +239,7 @@ ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如
 | 2022/08/25 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched/fair: Avoid unnecessary migrations within SMT domains](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=046a5a95c3b0425cfe79e43021d8ee90c1c4f8c9) | 参见 phoronix 报道 [Linux 6.5 To Boast Improved Handling For Intel Hybrid CPUs With Hyper Threading](https://www.phoronix.com/news/Linux-6.4-Avoid-Unnecessary-SMT). | v1 ☐☑✓ | [2022/08/25 LORE v1,0/4](https://lore.kernel.org/all/20220825225529.26465-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2022/11/22 LORE v2,0/7](https://lore.kernel.org/lkml/20221122203532.15013-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2023/02/07 LORE v3,0/10](https://lore.kernel.org/all/20230207045838.11243-1-ricardo.neri-calderon@linux.intel.com) |
 
 
-#### 1.4.1.3 Intel Thread Director (ITD)
+#### 1.4.1.4 Intel Thread Director (ITD)
 -------
 
 [Intel 支持混合内核架构的硬件线程调度器是怎么工作的？](https://mp.weixin.qq.com/s/9Zl-h61hm0kDhq68bsBEJQ)
@@ -254,7 +255,8 @@ ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如
 随后发布了 v2, 参见 phoronix 报道 [Intel Advances Linux"IPC Classes"Design To Improve Load Balancing For Hybrid CPUs](https://www.phoronix.com/news/Intel-IPC-Classes-Post-RFC).
 
 
-*       混合拓扑结构支持
+##### 1.4.1.4.1 Hardware Feedback Interface 支持
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -262,7 +264,6 @@ ASYM_PACKING 用于平衡物理核心与 SMT 之间的负载均衡处理 (例如
 | 2022/09/09 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [sched: Introduce classes of tasks for load balance](https://lore.kernel.org/all/20220909231205.14009-1-ricardo.neri-calderon@linux.intel.com) | 实现 Thread-Director, 根据应用程序的类型 classes 实现选核和负载均衡. | v1 ☐☑✓ | [LORE v1,00/23](https://lore.kernel.org/all/20220909231205.14009-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/22](https://lore.kernel.org/all/20221128132100.30253-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/24](https://lore.kernel.org/all/20230207051105.11575-1-ricardo.neri-calderon@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,00/24](https://lore.kernel.org/all/20230613042422.5344-1-ricardo.neri-calderon@linux.intel.com) |
 | 2024/01/31 | Stanislaw Gruszka <stanislaw.gruszka@linux.intel.com> | [thermal/netlink/intel_hfi: Enable HFI feature only when required](https://lore.kernel.org/all/20240131120535.933424-1-stanislaw.gruszka@linux.intel.com) | 该补丁集仅在有用户空间实体侦听热网络链接事件时才启用 HFI. 引入了一个 netlink 通知, 它与 netlink_has_listners()检查一起, 允许驱动程序根据实际用户空间消费者的存在发送 netlink 多播事件. 此功能通过允许在不需要时禁用功能来优化资源使用. 然后在 intel_hif 驱动程序中实现通知机制, 用于动态禁用硬件反馈接口 (HFI). 通过实现 netlink 通知回调, 驱动程序现在可以根据实际需求启用或禁用 HFI, 特别是当用户空间应用程序(如英特尔速度选择或英特尔低功耗守护进程) 利用与性能和能效功能相关的事件时. 在有 Intel HFI 但没有安装用户空间组件的机器上, 我们可以节省大量的 CPU 周期. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240131120535.933424-1-stanislaw.gruszka@linux.intel.com) |
 | 2024/02/02 | Ricardo Neri <ricardo.neri-calderon@linux.intel.com> | [thermal: intel: hfi: Prework for the virtualization of HFI](https://lore.kernel.org/all/20240203040515.23947-1-ricardo.neri-calderon@linux.intel.com) | 用于 [支持 IPC 类任务的调度](https://lore.kernel.org/all/20230613042422.5344-1-ricardo.neri-calderon@linux.intel.com) 的基础 <br>1. 重新组织 HFI 驱动程序的部分, 以便于实现虚拟 HFI 表.<br>2. 引入了 ITD 类的概念并启用了 ITD.<br>3. 增加了对重置当前任务的 ITD 分类历史的支持, 以便在上下文切换期间使用. HFI 的虚拟化要求在系统中无条件启用 HFI 和 ITD. 这与 Stanislaw 的补丁集 [thermal/netlink/intel_hfi: Enable HFI feature only when required](https://lore.kernel.org/all/20240131120535.933424-1-stanislaw.gruszka@linux.intel.com) 存在冲突. | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20240203040515.23947-1-ricardo.neri-calderon@linux.intel.com) |
-| 2024/02/03 | Zhao Liu <zhao1.liu@linux.intel.com> | [Intel Thread Director Virtualization](https://lore.kernel.org/all/20240203091214.411862-1-zhao1.liu@linux.intel.com) | 以虚拟化硬件反馈接口 (HFI) 和英特尔线程控制器(ITD), 从而为使用 ITD 进行调度的虚拟机带来好处. 他的实验表明, 在某些工作负载和配置中, 性能提高了 14%. [Intel Thread Director Virtualization Patches Boost Some Workloads By ~14%](https://www.phoronix.com/news/Intel-Thread-Director-Virt) | v1 ☐☑✓ | [LORE v1,0/26](https://lore.kernel.org/all/20240203091214.411862-1-zhao1.liu@linux.intel.com)|
 | 2024/02/23 | Stanislaw Gruszka <stanislaw.gruszka@linux.intel.com> | [thermal/netlink/intel_hfi: Enable HFI feature only when required](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=b33f3d2677b8ddd7a3aba2b02497422a1d2c2a01) | 英特尔 HFI 驱动程序可以在需要时启用它, 从而"节省大量 CPU 周期". 仅在有用户空间使用者处于活动状态时启用它. 如果英特尔 Speed Select 或英特尔低功耗守护程序正在运行, 英特尔 HFI 接口将被激活, 但如果不是, 它将被禁用, 从而显然可以节省大量 CPU 资源. 参见 phoronix 报道 [英特尔 HFI 驱动程序可以“节省大量 CPU 周期”，只需在需要时才启用自身](https://www.phoronix.com/news/Intel-HFI-Enable-Disable) 以及 [](https://www.phoronix.com/news/Intel-HFI-Efficient-Linux-6.10) | v4 ☐☑✓ v6.10-rc1 | [LORE v4,0/3](https://lore.kernel.org/all/20240223155942.60813-1-stanislaw.gruszka@linux.intel.com) |
 
 
@@ -284,14 +285,38 @@ hfi_update_work_fn
 ```
 
 
-#### 1.4.1.2 编译器支持
+##### 1.4.1.4.2 Intel Thread Director (ITD) 支持
+-------
+
+
+为了更好的发挥这种混合架构的优势, Intel 提供了一项名为 [Thread Director 的技术](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/2), 专利分析 [The Alder Lake hardware scheduler – A brief overview](https://coreteks.tech/articles/index.php/2021/07/02/the-alder-lake-hardware-scheduler-a-brief-overview/)
+
+1.  首席按通过机器学习算法对进程在 P-core/E-core 的性能和功耗进行分析和建模, 识别进程特征, 从而可以预测出不同类型进程或者进程某段时期在 P/E core 上的能效关系.
+
+2.  硬件将进程的运行能效换算后, 直接填写到内存中. 当进程在 P/E core 上运行时负责某种规则时(比如进程行为特征发生变化, 即能效发生变化), 直接通知 OS/Kernel 调度器进行决策, 以达到最好的能效.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/02/03 | Zhao Liu <zhao1.liu@linux.intel.com> | [Intel Thread Director Virtualization](https://lore.kernel.org/all/20240203091214.411862-1-zhao1.liu@linux.intel.com) | 以虚拟化硬件反馈接口 (HFI) 和英特尔线程控制器(ITD), 从而为使用 ITD 进行调度的虚拟机带来好处. 他的实验表明, 在某些工作负载和配置中, 性能提高了 14%. [Intel Thread Director Virtualization Patches Boost Some Workloads By ~14%](https://www.phoronix.com/news/Intel-Thread-Director-Virt) | v1 ☐☑✓ | [LORE v1,0/26](https://lore.kernel.org/all/20240203091214.411862-1-zhao1.liu@linux.intel.com)|
+
+##### 1.4.1.4.3 Intel Low Power Mode Daemon(LPMD) 支持
+-------
+
+
+英特尔低功耗模式守护程序 LPMD, 用于优化 Linux 下现代酷睿混合 CPU 的主动空闲电源, 这些 CPU 具有 E 和 P 内核的组合. Intel LPMD 支持多种低功耗状态, 可以根据 EPP/EPB/ITMT 设置、IRQ 迁移和任务迁移定义多种状态. 还可以根据不同的利用率阈值选择不同的低功耗状态. 根据检测到的 CPU 拓扑或用户配置文件选择最节能的 CPU. 根据系统利用率等信息, 将在适用时将系统置于低功耗模式, 比如使用最节能的 E 核, 并在不需要时禁用 P 的内核.
+
+2024/06/12 LPMD 发布 0.0.4, 增强了其硬件反馈接口(HFI)监视器, 支持对来自被禁止的 CPU 的提示进行 HFI 监视, 支持多种低功耗状态, 支持工作负载类型提示, 并支持在低功耗模式转换期间更改能效偏好(EPP). 参见 )
+ 报道 [Intel Low Power Mode Daemon v0.0.4 Released To Optimize Hybrid CPUs On Linux](https://www.phoronix.com/news/Intel-LPMD-Low-Power-0.0.4).
+
+
+#### 1.4.1.5 编译器支持
 -------
 
 
 [Intel Updates Alder Lake Tuning For GCC, Reaffirms No Official AVX-512](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Alder-Lake-Tuning-GCC)
 
 
-#### 1.4.1.3 性能评测
+#### 1.4.1.6 性能评测
 -------
 
 [Intel Core I9-12900K VS I5-12600K](https://openbenchmarking.org/vs/Processor/Intel%20Core%20i5-12600K,Intel%20Core%20i9-12900K)
@@ -308,14 +333,7 @@ Intel Alder Lake CPU 支持 AVX 512
 
 [An Important Note On The Alder Lake Mobile Power/Performance With Linux 5.19](https://www.phoronix.com/scan.php?page=article&item=linux-519-alderlakep) 针对 AdlerLake 笔记本测试了 v5.18 和 v5.19 电源管理等带来的能效差异.
 
-#### 1.4.1.4 调度器优化
--------
 
-为了更好的发挥这种混合架构的优势, Intel 提供了一项名为 [Thread Director 的技术](https://www.anandtech.com/show/16881/a-deep-dive-into-intels-alder-lake-microarchitectures/2), 专利分析 [The Alder Lake hardware scheduler – A brief overview](https://coreteks.tech/articles/index.php/2021/07/02/the-alder-lake-hardware-scheduler-a-brief-overview/)
-
-1.  首席按通过机器学习算法对进程在 P-core/E-core 的性能和功耗进行分析和建模, 识别进程特征, 从而可以预测出不同类型进程或者进程某段时期在 P/E core 上的能效关系.
-
-2.  硬件将进程的运行能效换算后, 直接填写到内存中. 当进程在 P/E core 上运行时负责某种规则时(比如进程行为特征发生变化, 即能效发生变化), 直接通知 OS/Kernel 调度器进行决策, 以达到最好的能效.
 
 ### 1.4.2 AMD's version of big.LITTLE
 -------
@@ -334,7 +352,7 @@ AMD 关于大小核的专利 [US20210173715A1: METHOD OF TASK TRANSITION BETWEEN
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2024/05/07 | Perry Yuan <perry.yuan@amd.com> | [AMD Pstate Driver Fixes and Improvements](https://lore.kernel.org/all/cover.1715065568.git.perry.yuan@amd.com) | 参见 phoronix 报道 [AMD Posts Patches For Improving Heterogeneous Core Type CPUs On Linux](https://www.phoronix.com/news/AMD-Heterogeneous-P-State-Linux). | v1 ☐☑✓ | [LORE v1,0/11](https://lore.kernel.org/all/cover.1715065568.git.perry.yuan@amd.com) |
+| 2024/05/07 | Perry Yuan <perry.yuan@amd.com> | [AMD Pstate Driver Fixes and Improvements](https://lore.kernel.org/all/cover.1715065568.git.perry.yuan@amd.com) | 参见 phoronix 报道 [AMD Posts Patches For Improving Heterogeneous Core Type CPUs On Linux](https://www.phoronix.com/news/AMD-Heterogeneous-P-State-Linux) 和 [AMD P-State Linux Patches Updated For Heterogeneous CPUs](https://www.phoronix.com/news/AMD-P-State-Hetero-v3). | v1 ☐☑✓ | [2024/05/07, LORE v1,0/11](https://lore.kernel.org/all/cover.1715065568.git.perry.yuan@amd.com)<br>*-*-*-*-*-*-*-* <br>[2024/06/11, LORE v3,0/10](https://lore.kernel.org/all/cover.1718095377.git.perry.yuan@amd.com) |
 
 ### 1.4.3 ARM big.LITTLE & DynamIQ
 -------
@@ -821,8 +839,7 @@ ARM v8.2 引入了 [UAO](https://community.arm.com/arm-community-blogs/b/archite
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2022/05/04 | Hector Martin <marcan@marcan.st> | [Apple SoC cpufreq driver](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20220504075153.185208-1-marcan@marcan.st/) | 638189 | v2 ☐☑ | [LORE v2,0/4](https://lore.kernel.org/r/20220504075153.185208-1-marcan@marcan.st) |
 
-
-
+Apple Silicon 不支持像插入 U 盘并重新启动到 Linux 安装程序这样简单的事情. 想要在 M1 或更高版本的 Mac 上安装 Linux 的用户必须在 macOS 中开始安装, 调整磁盘大小以便有空间容纳 Asahi, 然后重新启动到 macOS 恢复 (recoveryOS) 以完成安装. Asahi Linux 通常与 macOS 一起安装, 因此用户可以选择启动到任一操作系统, 但用户可以完全摆脱 macOS 分区. 作为该过程的一部分, Asahi 将用于系统恢复的 macOS 内核替换为 Asahi 的 m1n1 引导加载程序, 用于 Apple 硬件. 这意味着安装程序(用 Python 编写)需要两个 macOS 二进制文件来执行安装: macOS 的 Python 解释器和 libffi, recoveryOS 中的 Python 使用它从 macOS 内核中提取固件供 Linux 使用. 不幸的是, 它需要 Xcode 为 macOS 构建这些二进制文件, 因此不可能在 Linux 上构建二进制文件, 这意味着要发布预构建的二进制文件. 这方面 Fedora 已经批准了这些二进制程序的构建于发布. 参见 [LWN, 2024/05/29, FESCo-2024, Fedora approves shipping pre-built macOS binaries](https://lwn.net/Articles/975445).
 
 ## 2.8 clocksource
 -------
@@ -1085,12 +1102,27 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 | 2018/07/16 | Paul E. McKenney <paulmck@linux.vnet.ibm.com> | [Updates to the formal memory model](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=71b7ff5ebc9b1d5aa95eb48d6388234f1304fd19) | NA | v1 ☑✓ 4.19-rc1 | [LORE v1,0/14](https://lore.kernel.org/all/20180716180540.GA14222@linux.vnet.ibm.com) |
 
 
-### 6.5.3 内存一致性问题(memory consistency)
+### 6.5.2 内存一致性问题(memory consistency)
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2024/04/10 | Zayd Qumsieh <zayd_qumsieh@apple.com> | [tso: aarch64: Expose TSO for virtualized linux on Apple Silicon](https://lore.kernel.org/all/20240410211652.16640-1-zayd_qumsieh@apple.com) | x86 CPU 使用 TSO 内存模型. Apple Silicon CPU 能够选择性地使用 TSO 内存模型. 这可以通过设置 ACTLR 来完成. TSOEN 位为 1. 此功能对 x86 仿真器非常有用, 因为它消除了仿真器插入内存屏障以遵守的需要. 通过 TSO 存储器模型. 此补丁系列将添加 ACTLR. TSOEN 支持 Apple Silicon 机器上的虚拟化 linux. 用户空间将能够使用 prctl 将 CPU 的内存模型从默认的 ARM64 内存模型更改为 TSO 内存模型. 可以使用一个简单的测试来确定 TSO 内存模型是否正在使用中. 这必须在 Apple Silicon MacOS Sonoma 14.4 版或更高版本上完成, 因为早期版本不支持修改 TSOEN 位. 用例程序参见 [TSOEnabler](https://github.com/saagarjha/TSOEnabler/blob/master/testtso/main.c), 如果 TSO 正在使用, 此程序将无限期挂起, 如果不使用, 则几乎立即崩溃. 参见 LWN 报道 [Support for the TSO memory model on Arm CPUs](https://lwn.net/Articles/970907) | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240410211652.16640-1-zayd_qumsieh@apple.com) |
+
+
+### 6.5.3 Concurrent Code Verification
+-------
+
+
+| 编号 |  作者 | 工具 | 描述 | 链接 |
+|:---:|:-----:|:----:|:---:|:----:
+| 1 | paulmckrcu | [litmus](https://github.com/paulmckrcu/litmus) | Automatically generated litmus tests for validation LISA-language Linux-kernel memory models | [github/paulmckrcu/litmus](https://github.com/paulmckrcu/litmus) |
+| 2 | herd | [herd/herdtools7](https://github.com/herd/herdtools7) | 一个用于测试弱内存模型的工具套件. HERD7: 用于弱内存模型的通用模拟器, litmus7: 运行 litmus 测试(作为 Power、ARM、AArch64 或 X86 的汇编程序提供)来测试执行机器的内存模型, DIY7: 根据简明规范制作石蕊测试 | [官网](http://diy.inria.fr) |
+| 3 | Hernan Ponce de Leon 等 | [Dat3M](https://github.com/hernanponcedeleon/Dat3M) | Memory Model Aware Verification, Dartagnan is a tool to check state reachability under weak memory models. | [github/hernanponcedeleon/Dat3M](https://github.com/hernanponcedeleon/Dat3M) |
+| 4 | MPI-SWS(Max Planck Institute for Software Systems) | [GenMC](https://github.com/MPI-SWS/genmc) | A Model Checker for Weak Memory Models | [官网](https://plv.mpi-sws.org/genmc), [论文引用详情](https://ouci.dntb.gov.ua/en/works/4ryroeM7), [github/MPI-SWS/genmc](https://github.com/MPI-SWS/genmc) |
+| 5 | MPI-SWS(Max Planck Institute for Software Systems) | [Kater](https://github.com/MPI-SWS/kater) | Automating Weak Memory Model Metatheory and Consistency Checking | [MPI-SWS/kater](https://github.com/MPI-SWS/kater) |
+| 6 | NVlabs | [NVlabs/mixedproxy](https://github.com/NVlabs/mixedproxy) | Mixed-Proxy Extensions for the NVIDIA PTX Memory Consistency Model | [NVlabs/mixedproxy](https://github.com/NVlabs/mixedproxy) |
+| 7 | [Open, Safe and Scalable System Software Concurrency](https://github.com/open-s4c) | [vsyncer](https://github.com/open-s4c/vsyncer) | vsyncer: is a toolkit to verify and optimize concurrent C/C++ programs on WMMs, which employs state-of-the-art model checkers Dartagnan and GenMC. | [open-s4c](https://github.com/open-s4c) |
 
 
 ## 6.6 objtool
@@ -1105,11 +1137,18 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 ## 6.7 指令转译
 -------
 
+### 6.7.1 Apple Rosetta
+-------
+
 Rosetta 是一个转译过程, 允许用户在 Apple Silicon 上运行包含 x86_64 指令的应用程序. 在 macOS 中, 这允许为基于英特尔的 Mac 电脑构建的应用程序在 Apple Silicon 上无缝运行; Rosetta 可以在 ARM Linux 虚拟机中为英特尔 Linux 应用程序提供同样的功能.
 
 [macOS 13 Adding Ability To Use Rosetta In ARM Linux VMs For Speedy x86_64 Linux Binaries](https://www.phoronix.com/scan.php?page=news_item&px=macOS-13-Rosetta-Linux-Binaries)
 
 
+### 6.7.2 FEX 2406
+-------
+
+FEX 是在 ARM64/AArch64 Linux 上开发用户模式 x86/x86_64 二进制仿真的开源项目之一. FEX 2406 于 2024/6/13 发布新版本, 附带了许多[即时 JIT 优化](https://fex-emu.com/FEX-2406)、大大改进的寄存器分配器以及各种其他性能优化, 带来了 2% 到 12% 的性能提升. FEX 2406 还增加了对 32 位 OpenGL thunking 的支持, 作为提高其 x86 32 位游戏/应用程序兼容性的一部分. [FEX 2406 Brings JIT Optimizations For Running x86_64 Binaries On AArch64](https://www.phoronix.com/news/FEX-2406-Released).
 
 
 
@@ -1221,7 +1260,7 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 | 2022/03/25 | Mario Limonciello <mario.limonciello@amd.com> | [Improve usability for amd-pstate](https://lore.kernel.org/all/20220325054228.5247-1-mario.limonciello@amd.com) | TODO | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20220325054228.5247-1-mario.limonciello@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/linux-pm/20220414164801.1051-1-mario.limonciello@amd.com) |
 | 2023/01/13 | Wyes Karny <wyes.karny@amd.com> | [amd_pstate: Add guided autonomous mode support](https://lore.kernel.org/all/20230113052141.2874296-1-wyes.karny@amd.com) | [AMD Updates P-State"Guided Autonomous Mode"Support For Linux](https://www.phoronix.com/news/AMD-Guided-Auto-Mode-v2) | v2 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20230113052141.2874296-1-wyes.karny@amd.com) |
 | 2024/01/30 | Perry Yuan <perry.yuan@amd.com> | [enable x86_energy_perf_policy for AMD CPU](https://lore.kernel.org/all/cover.1706583551.git.perry.yuan@amd.com) | 对 AMD 处理器上 x86_energy_perf_policy 实用程序的支持, 这些处理器使用 CPPC(Collaborative Processor Performance Control) 接口进行频率缩放, 并使用 AMD_state 驱动程序模块. AMD 处理器已经支持各种能源性能偏好 EPP(Energy Performance Preference) 配置文件. 有了这个实用程序, 用户现在可以使用提供的命令在这些 EPP 配置文件之间无缝切换. 并使用此工具检查 CPPC 的功能. 此增强旨在提高 AMD 处理器的电源效率和性能管理, 为用户提供对系统能源性能行为的更多控制. 参见 [Linux's x86_energy_perf_policy Utility Being Extended To AMD CPUs](https://www.phoronix.com/news/AMD-x86_energy_perf_policy) | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/cover.1706583551.git.perry.yuan@amd.com) |
-| 2024/04/28 | Xiaojian Du <Xiaojian.Du@amd.com> | [x86/cpufeatures: Add AMD FAST CPPC feature flag](https://lore.kernel.org/all/20240428091133.592333-1-Xiaojian.Du@amd.com) | 一些 AMD Zen 4 处理器支持新功能 FAST CPPC, 由于内部架构增强, 该功能允许更快的 CPPC 循环. 这种更快循环的目标是在相同的功耗下获得更高的性能. 参见 phoronix 报道 [AMD Enabling "Fast CPPC" For Even Greater Linux Performance & Power Efficiency On Some CPUs](https://www.phoronix.com/news/AMD-Fast-CPPC-Linux-Patches). | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20240428091133.592333-1-Xiaojian.Du@amd.com) |
+| 2024/04/28 | Xiaojian Du <Xiaojian.Du@amd.com> | [x86/cpufeatures: Add AMD FAST CPPC feature flag](https://lore.kernel.org/all/20240428091133.592333-1-Xiaojian.Du@amd.com) | 一些 AMD Zen 4 处理器支持新功能 FAST CPPC, 由于内部架构增强, 该功能允许更快的 CPPC 循环. 这种更快循环的目标是在相同的功耗下获得更高的性能. 参见 phoronix 报道 [AMD Enabling "Fast CPPC" For Even Greater Linux Performance & Power Efficiency On Some CPUs](https://www.phoronix.com/news/AMD-Fast-CPPC-Linux-Patches). | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20240428091133.592333-1-Xiaojian.Du@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,1/2](https://lore.kernel.org/linux-pm/e717feea3df0a178a9951491040a76c79a00556c.1716649578.git.Xiaojian.Du@amd.com) |
 
 
 #### 6.12.2.2 AMD P-State Preferred Core
@@ -1265,7 +1304,7 @@ AMD-pstate 驱动程序利用 ITMT 体系结构提供的功能和数据结构, �
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2023/08/29 | Tony Luck <tony.luck@intel.com> | [Add support for Sub-NUMA cluster (SNC) systems](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com) | [Intel Fixing Up Sub-NUMA Clustering For Linux So That It Behaves With RDT](https://www.phoronix.com/news/Intel-SNT-RDT-Fixing-Up) | v5 ☐☑✓ | [LORE v5,0/8](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com) |
+| 2023/08/29 | Tony Luck <tony.luck@intel.com> | [Add support for Sub-NUMA cluster (SNC) systems](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com) | Add support for Sub-NUMA cluster (SNC) systems](https://lore.kernel.org/all/20240528222006.58283-1-tony.luck@intel.com) | 英特尔推出了一个大型的 Linux 内核补丁系列, 以改进 Sub-NUMA 集群 "SNC" 支持, 使其在现代英特尔硬件上与英特尔资源总监技术(RDT) 配合良好. SNC 将 CPU 内核/缓存/内存拆分为多个 NUMA 域有助于提高 NUMA 感知工作负载的性能. 参见 phoronix 报道 [Intel Fixing Up Sub-NUMA Clustering For Linux So That It Behaves With RDT](https://www.phoronix.com/news/Intel-SNT-RDT-Fixing-Up) 和 | v5 ☐☑✓ | [LORE v5,0/8](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v19,0/20](https://lore.kernel.org/all/20240528222006.58283-1-tony.luck@intel.com) |
 | 2023/12/07 | Tony Luck <tony.luck@intel.com> | [x86/resctrl: mba_MBps enhancements](https://lore.kernel.org/all/20231207195613.153980-1-tony.luck@intel.com) | TODO | v6 ☐☑✓ | [LORE v6,0/3](https://lore.kernel.org/all/20231207195613.153980-1-tony.luck@intel.com) |
 | 2024/02/13 | James Morse <james.morse@arm.com> | [x86/resctrl: monitored closid+rmid together, separate arch/fs locking](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/log/?id=fb700810d30b9eb333a7bf447012e1158e35c62f) | [Improved Memory Bandwidth Throttling Behavior For Linux 6.9](https://www.phoronix.com/news/Linux-69-RAM-Bandwidth-Throttle) | v9 ☐☑✓ 6.9-rc1 | [LORE v9,0/24](https://lore.kernel.org/all/20240213184438.16675-1-james.morse@arm.com) |
 | 2024/03/21 | James Morse <james.morse@arm.com> | [x86/resctrl: Move the resctrl filesystem code to /fs/resctrl](https://lore.kernel.org/all/20240321165106.31602-1-james.morse@arm.com) | TODO | v1 ☐☑✓ | [LORE v1,0/31](https://lore.kernel.org/all/20240321165106.31602-1-james.morse@arm.com) |

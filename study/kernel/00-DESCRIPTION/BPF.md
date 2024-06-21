@@ -73,6 +73,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 [bpftrace Cheat Sheet](https://www.brendangregg.com/BPF/bpftrace-cheat-sheet.html)
 
 [Standardizing BPF](https://lwn.net/Articles/926882)
+[Standardizing the BPF ISA](https://lwn.net/Articles/975830)
 
 [摩斯电码博客-eBPF 学习](https://cnblogs.com/pengdonglin137/p/16808698.html)
 
@@ -87,6 +88,15 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 
 ## 2.1 编译器
+-------
+
+### 2.1.1. LLVM Support eBPF
+-------
+
+[LWN, 2024/05/27, LSFMMBPF-2024, LLVM improvements for BPF verification](https://lwn.net/Articles/974945).
+
+
+### 2.1.2 GCC Support eBPF
 -------
 
 自 2019 年 5 月以来, Oracle 一直计划在 GCC 10 中引入 eBPF 后端, 以使 GNU 编译器成为通用内核虚拟机. Oracle 为 GCC 引入 eBPF 支持的倾向是该公司在 Linux 上改进 DTrace 的努力的一部分. 作为编译目标, eBPF 因内核验证器施加的限制而不同, 并且由于架构的安全驱动设计. 目前, 只要违反 eBPF 限制, 后端就会发出错误. 这增加了内核验证器可以接受结果对象的机会, 从而缩短了开发周期. 参见 [](https://www.phoronix.com/scan.php?page=news_item&px=GCC-10-eBPF-Port-Lands).
@@ -106,11 +116,17 @@ GCC 的支持 eBPF 经过了 3 个阶段.
 | 2020/09/25 | [BPF in GCC](https://lwn.net/Articles/831402) | [LWN：GCC 也支持 BPF 了！](https://blog.csdn.net/Linux_Everything/article/details/108806492) |
 
 
-[GCC-DOC 3.19.14 eBPF Options](https://gcc.gnu.org/onlinedocs/gcc/eBPF-pthttps://lwn.net/Articles/800606/ions.html)
+[GCC-DOC 3.19.14 eBPF Options](https://gcc.gnu.org/onlinedocs/gcc/eBPF-ptions.html)
+
+
+[LWN, 2019/09/17, LPC-2019, Compiling to BPF with GCC](https://lwn.net/Articles/800606)
+[LWN, 2023/10/06,  2023 GNU Tools Cauldron, The challenge of compiling for verified architectures](https://lwn.net/Articles/946254)
+[LWN, 2024/05/28, LSFMMBPF-2024, Supporting BPF in GCC](https://lwn.net/Articles/975412)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/08/14 | "Jose E. Marchesi" <jose.marchesi-AT-oracle.com> | [eBPF support for GCC](https://lwn.net/Articles/796317) | GCC 支持 eBPF | v1 ☐ | [LWN](https://lwn.net/Articles/796317/) |
+
 
 ## 2.2 加载器
 -------

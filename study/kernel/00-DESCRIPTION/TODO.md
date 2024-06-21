@@ -120,7 +120,7 @@ khugepage_code 将选择命中率最高的节点作为首选节点, 并尝试在
 | 2022/12/08 | Peter Xu <peterx@redhat.com> | [mm/uffd: Always wr-protect pte in pte|pmd_mkuffd_wp()](https://patchwork.kernel.org/project/linux-mm/patch/20221208194628.766316-1-peterx@redhat.com/) | 703082 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221208194628.766316-1-peterx@redhat.com) |
 | 2022/12/09 | Xander <xandermoerkerken@gmail.com> | [Added ability to vmalloc executable memory](https://patchwork.kernel.org/project/linux-mm/patch/20221209131052.64235-1-xander.moerkerken@omron.com/) | 703287 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221209131052.64235-1-xander.moerkerken@omron.com) |
 | 2022/12/09 | Nhat Pham <nphamcs@gmail.com> | [[v3,2/4] workingset: refactor LRU refault to expose refault recency check](https://patchwork.kernel.org/project/linux-mm/patch/20221209172922.3143160-1-nphamcs@gmail.com/) | 703468 | v3 ☐☑ | [LORE v3,0/4](https://lore.kernel.org/r/20221209172922.3143160-1-nphamcs@gmail.com) |
-| 2022/12/12 | David Hildenbrand <david@redhat.com> | [[mm-stable] mm/gup_test: free memory allocated via kvcalloc() using kvfree()](https://patchwork.kernel.org/project/linux-mm/patch/20221212182018.264900-1-david@redhat.com/) | 703907 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221212182018.264900-1-david@redhat.com) |
+| 2022/12/12 | David Hildenbrand <david@redhat.com> | [[mm-stable] mm/GUP_test: free memory allocated via kvcalloc() using kvfree()](https://patchwork.kernel.org/project/linux-mm/patch/20221212182018.264900-1-david@redhat.com/) | 703907 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20221212182018.264900-1-david@redhat.com) |
 | 2022/12/12 | Jason A. Donenfeld <Jason@zx2c4.com> | [mm: add VM_DROPPABLE for designating always lazily freeable mappings](https://patchwork.kernel.org/project/linux-mm/patch/20221212185347.1286824-2-Jason@zx2c4.com/) | 703918 | v12 ☐☑ | [LORE v12,0/6](https://lore.kernel.org/r/20221212185347.1286824-2-Jason@zx2c4.com)[LORE v14,0/7](https://lore.kernel.org/r/20230101162910.710293-3-Jason@zx2c4.com) |
 | 2022/12/12 | Mike Kravetz <mike.kravetz@oracle.com> | [[1/2] hugetlb: really allocate vma lock for all sharable vmas](https://patchwork.kernel.org/project/linux-mm/patch/20221212235042.178355-1-mike.kravetz@oracle.com/) | 703972 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20221212235042.178355-1-mike.kravetz@oracle.com) |
 | 2022/12/13 | Kefeng Wang <wangkefeng.wang@huawei.com> | [[-next,v3] mm: hwposion: support recovery from ksm_might_need_to_copy()](https://patchwork.kernel.org/project/linux-mm/patch/20221213030557.143432-1-wangkefeng.wang@huawei.com/) | 703997 | v3 ☐☑ | [LORE v3,0/1](https://lore.kernel.org/r/20221213030557.143432-1-wangkefeng.wang@huawei.com) |
@@ -188,8 +188,8 @@ https://www.latexlive.com
 | 2023/02/06 | Sergey Senozhatsky <senozhatsky@chromium.org> | [zsmalloc: fine-grained fullness grouping](https://patchwork.kernel.org/project/linux-mm/cover/20230206092559.2722946-1-senozhatsky@chromium.org/) | 719058 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20230206092559.2722946-1-senozhatsky@chromium.org) |
 | 2023/02/06 | Charan Teja Kalla <quic_charante@quicinc.com> | [mm: shmem: support POSIX_FADV_[WILL|DONT]NEED for shmem files](https://patchwork.kernel.org/project/linux-mm/cover/cover.1675690847.git.quic_charante@quicinc.com/) | 719143 | v6 ☐☑ | [LORE v6,0/2](https://lore.kernel.org/r/cover.1675690847.git.quic_charante@quicinc.com) |
 | 2023/02/11 | Matthew Wilcox <willy@infradead.org> | [New arch interfaces for manipulating multiple pages](https://patchwork.kernel.org/project/linux-mm/cover/20230211033948.891959-1-willy@infradead.org/) | 720910 | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20230211033948.891959-1-willy@infradead.org) |
-| 2023/02/13 | Deepak Gupta <debug@rivosinc.com> | [[v1,RFC,Zisslpcfi,05/20] mmap : Introducing new protection "PROT_SHADOWSTACK" for mmap](https://patchwork.kernel.org/project/linux-mm/patch/20230213045351.3945824-6-debug@rivosinc.com/) | 721169 | v1 ☐☑ | [LORE v1,0/20](https://lore.kernel.org/r/20230213045351.3945824-6-debug@rivosinc.com) |
-| 2023/02/13 | Deepak Gupta <debug@rivosinc.com> | [[v1,RFC,Zisslpcfi,05/20] mmap : Introducing new protection "PROT_SHADOWSTACK" for mmap](https://patchwork.kernel.org/project/linux-mm/patch/20230213045351.3945824-6-debug@rivosinc.com/) | 721169 | v1 ☐☑ | [LORE v1,0/20](https://lore.kernel.org/r/20230213045351.3945824-6-debug@rivosinc.com) |
+| 2023/02/13 | Deepak GUPta <debug@rivosinc.com> | [[v1,RFC,Zisslpcfi,05/20] mmap : Introducing new protection "PROT_SHADOWSTACK" for mmap](https://patchwork.kernel.org/project/linux-mm/patch/20230213045351.3945824-6-debug@rivosinc.com/) | 721169 | v1 ☐☑ | [LORE v1,0/20](https://lore.kernel.org/r/20230213045351.3945824-6-debug@rivosinc.com) |
+| 2023/02/13 | Deepak GUPta <debug@rivosinc.com> | [[v1,RFC,Zisslpcfi,05/20] mmap : Introducing new protection "PROT_SHADOWSTACK" for mmap](https://patchwork.kernel.org/project/linux-mm/patch/20230213045351.3945824-6-debug@rivosinc.com/) | 721169 | v1 ☐☑ | [LORE v1,0/20](https://lore.kernel.org/r/20230213045351.3945824-6-debug@rivosinc.com) |
 | 2023/02/17 | Alexander Halbuer <halbuer@sra.uni-hannover.de> | [mm, page_alloc: batch cma update on pcp buffer refill](https://patchwork.kernel.org/project/linux-mm/patch/20230217120504.87043-1-halbuer@sra.uni-hannover.de/) | 722919 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230217120504.87043-1-halbuer@sra.uni-hannover.de) |
 
 
@@ -490,7 +490,7 @@ BPF verifiery 已经做了很多工作来尽量确保加载进 kernel 的 BPF pr
 | 2023/05/15 | Jeff Xu <jeffxu@chromium.org> | [Memory Mapping (VMA) protection using PKU - set 1](https://patchwork.kernel.org/project/linux-mm/cover/20230515130553.2311248-1-jeffxu@chromium.org/) | 747576 | v1 ☐☑ | [LORE v1,0/6](https://lore.kernel.org/r/20230515130553.2311248-1-jeffxu@chromium.org)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/6](https://lore.kernel.org/r/20230519011915.846407-1-jeffxu@chromium.org)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/6](https://lore.kernel.org/r/20230519011915.846407-1-jeffxu@chromium.org) |
  |
 | 2023/05/19 | Joel Fernandes <joel@joelfernandes.org> | [Optimize mremap during mutual alignment within PMD](https://patchwork.kernel.org/project/linux-mm/cover/20230519190934.339332-1-joel@joelfernandes.org/) | 749361 | v2 ☐☑ | [LORE v2,0/4](https://lore.kernel.org/r/20230519190934.339332-1-joel@joelfernandes.org)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/6](https://lore.kernel.org/r/20230524153239.3036507-1-joel@joelfernandes.org) |
-| 2023/06/13 | Peter Xu <peterx@redhat.com> | [mm/gup: Unify hugetlb, speed up thp](https://patchwork.kernel.org/project/linux-mm/cover/20230613215346.1022773-1-peterx@redhat.com/) | 756868 | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20230613215346.1022773-1-peterx@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/8](https://lore.kernel.org/r/20230619231044.112894-1-peterx@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/8](https://lore.kernel.org/r/20230628215310.73782-1-peterx@redhat.com |
+| 2023/06/13 | Peter Xu <peterx@redhat.com> | [mm/GUP: Unify hugetlb, speed up thp](https://patchwork.kernel.org/project/linux-mm/cover/20230613215346.1022773-1-peterx@redhat.com/) | 756868 | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20230613215346.1022773-1-peterx@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/8](https://lore.kernel.org/r/20230619231044.112894-1-peterx@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/8](https://lore.kernel.org/r/20230628215310.73782-1-peterx@redhat.com |
 | 2023/06/16 | Huang, Ying <ying.huang@intel.com> | [memory tiering: calculate abstract distance based on ACPI HMAT](https://patchwork.kernel.org/project/linux-mm/cover/20230616070538.190042-1-ying.huang@intel.com/) | 757742 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20230616070538.190042-1-ying.huang@intel.com) |
 | 2023/06/16 | Mike Rapoport <rppt@kernel.org> | [mm: jit/text allocator](https://patchwork.kernel.org/project/linux-mm/cover/20230616085038.4121892-1-rppt@kernel.org/) | 757762 | v2 ☐☑ | [LORE v2,0/12](https://lore.kernel.org/r/20230616085038.4121892-1-rppt@kernel.org) |
 | 2023/06/16 | Aneesh Kumar K.V <aneesh.kumar@linux.ibm.com> | [Add support for DAX vmemmap optimization for ppc64](https://patchwork.kernel.org/project/linux-mm/cover/20230616110826.344417-1-aneesh.kumar@linux.ibm.com/) | 757832 | v2 ☐☑ | [LORE v2,0/16](https://lore.kernel.org/r/20230616110826.344417-1-aneesh.kumar@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/13](https://lore.kernel.org/r/20230710160842.56300-1-aneesh.kumar@linux.ibm.com) |
@@ -645,6 +645,7 @@ cba6167f0adb
 | 2024/03/29 | Chunxin Zang <spring.cxz@gmail.com> | [sched/fair: Reset vlag in dequeue when PLAGE_LAG is disabled](https://lore.kernel.org/all/20240329091933.340739-1-spring.cxz@gmail.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240329091933.340739-1-spring.cxz@gmail.com) |
 | 2024/04/03 | Pierre Gondois <pierre.gondois@arm.com> | [sched/fair|isolation: Correctly clear nohz.[nr_cpus|idle_cpus_mask] for isolated CPUs](https://lore.kernel.org/all/20240403150543.2793354-1-pierre.gondois@arm.com) | TODO | v1 ☐☑✓ | [LORE v1,0/7](https://lore.kernel.org/all/20240403150543.2793354-1-pierre.gondois@arm.com) |
 
+[Dropping the page cache for filesystems](https://lwn.net/Articles/977486)
 
 
 [udev-hid-bpf To Help Enable HID-BPF Use Rather Than Kernel Drivers To Fix HID Hardware](https://www.phoronix.com/news/udev-hid-bpf)
@@ -653,19 +654,84 @@ cba6167f0adb
 [Better linked-list traversal in BPF](https://lwn.net/Articles/964381)
 [A proposal for shared memory in BPF programs](https://lwn.net/Articles/961941)
 [Sleepable BPF programs](https://lwn.net/Articles/825415)
-
+[A plan to make BPF kfuncs polymorphic](https://lwn.net/Articles/974102)
+[Recent improvements to BPF's struct_ops mechanism](https://lwn.net/Articles/974848)
+[An instruction-level BPF memory model](https://lwn.net/Articles/976071/)
+[Comparing BPF performance between implementations](https://lwn.net/Articles/976317)
 
 [Wattch: a framework for architectural-level power analysis and optimizations](https://ieeexplore.ieee.org/document/854380)
 
 
-
+[Dynamically sizing the kernel stack](https://lwn.net/Articles/974367)
 
 
 [Intel Talks Up 2024 Xeon Sierra Forest & Granite Rapids At Hot Chips](https://www.phoronix.com/review/intel-hotchips-2023)
 
 
-
-[uksmd](https://codeberg.org/pf-kernel/uksmd) 提供了一个 Userspace KSM helper daemon, [CachyOS](https://github.com/CachyOS/uksmd) 将其用在了自己的发行版中. 守护进程会定期检查用户空间任务列表, 并通知 ksmd kthread 设置相关进程 mm_struct 的 MM_VM_MERGE_ANY 标记, 以自动合并具有相同内容的内存页. 仅处理长期任务. 该机制依赖于 v6.4 [mm: process/cgroup ksm support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=07115fcc15b4aa5c268fb80b82ad15868a82a285) 以及 [pf-kernel/linux](https://codeberg.org/pf-kernel/linux) 内核提供的 `process_ksm_{enable,disable,status}()` 系统调用;
-
+[Memory Sealing"mseal"System Call Merged For Linux 6.10](https://www.phoronix.com/news/Linux-6.10-Merges-mseal)
 
 
+
+
+| 2024/05/27 | Tero Kristo <tero.kristo@linux.intel.com> | [Intel Performance Limit Reasons support](https://lore.kernel.org/all/20240527133400.483634-1-tero.kristo@linux.intel.com) | 英特尔性能限制原因可以报告为什么性能 / 功耗在芯片级别或芯片内的单个 CPU 内核受到限制. 今天, 随着 Linux 内核邮件列表的一组新补丁的发布, 英特尔 PLR 硬件性能事件报告正在连接中. 这些信息通过 DebugFS 传达到用户空间, 供管理员直接访问, 或者供其他应用程序了解为什么他们的 CPU 性能可能受到限制. 对于英特尔性能限制原因提出的 Linux 补丁, 信息通过 `/sys/kernel/debug/tpmi-*/plr/domain*/status` 上报. 但是, 与 DebugFS 一样, `/sys/kernel/debug/` 的访问通常需要 ROOT 权限. 该组补丁提供了一个 INTEL_PLR_TPMI 的 Kconfig 选项, 用于控制此英特尔 PLR 驱动程序. 参见 phoronix 报道 [Intel Performance Limit Reasons For Linux To Report Why Your CPU Is Downclocking](https://www.phoronix.com/news/Intel-Perf-Limit-Reasons-Linux) | v2 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20240527133400.483634-1-tero.kristo@linux.intel.com) |
+| 2024/02/26 | Lai Jiangshan <jiangshanlai@gmail.com> | [KVM: x86/PVM: Introduce a new hypervisor](https://lore.kernel.org/all/20240226143630.33643-1-jiangshanlai@gmail.com) | TODO | v1 ☐☑✓ | [LORE v1,0/73](https://lore.kernel.org/all/20240226143630.33643-1-jiangshanlai@gmail.com) |
+| 2020/05/04 | Alexandre Chartre <alexandre.chartre@oracle.com> | [ASI - Part I (ASI Infrastructure and PTI)](https://lore.kernel.org/all/20200504144939.11318-1-alexandre.chartre@oracle.com) | TODO | v4 ☐☑✓ | [LORE v4,0/7](https://lore.kernel.org/all/20200504144939.11318-1-alexandre.chartre@oracle.com) |
+| 2024/02/14 | Ard Biesheuvel <ardb+git@google.com> | [arm64: Add support for LPA2 and WXN at stage 1](https://lore.kernel.org/all/20240214122845.2033971-45-ardb+git@google.com) | TODO | v8 ☐☑✓ | [LORE v7,00/50](https://lore.kernel.org/all/20240123145258.1462979-52-ardb+git@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v8,0/43](https://lore.kernel.org/all/20240214122845.2033971-45-ardb+git@google.com) |
+
+
+
+
+
+
+
+[WeWe-RSS](https://help.railway.app/templates/we-we-rss-d75eade8)
+[免费部署wewe-rss服务](https://stupidjoey.net/posts/deploy_wewe_rss/)
+[一键部署属于自己的微信公众号RSS(wewe-rss)](https://foxistudy.com/posts/wewe-rss/)
+
+
+
+
+
+
+
+
+[专利号-WO2021US19353-Apple-ON-DEMAND MEMORY ALLOCATION](https://xueshu.baidu.com/usercenter/paper/show?paperid=102r0eg05d3q02p0mh7c0v60eu667084)
+
+公开了与动态分配和映射私有内存的请求电路的技术方案. 这种硬件电路可以接收私有地址并将该私有地址转换为虚拟地址. 在一些实施例中, 私有存储器分配电路被配置成生成页表信息, 如果页表信息尚未设置, 则映射所请求的私有内存页. 在各种实施例中，这可以有利地允许动态私有内存分配, 例如, 有效地为具有不同类型工作负载的图形着色器分配内存. 与传统技术相比, 公开的页表信息缓存技术可以提高性能. 此外, 公开的实施例可以促进跨设备(例如图形处理器)的内存整合.
+
+[The Forward Slice Core Microarchitecture](https://dl.acm.org/doi/10.1145/3410463.3414629)
+
+
+
+[RL-CoPref: a reinforcement learning-based coordinated prefetching controller for multiple prefetchers](https://link.springer.com/article/10.1007/s11227-024-05938-9)
+
+
+
+
+
+
+
+
+
+[eas_overview_and_integration_guide_r1p6.pdf](https://developer.arm.com/-/media/Arm%20Developer%20Community/PDF/Open%20Source/energy-aware-scheduling/eas_overview_and_integration_guide_r1p6.pdf)
+
+
+
+
+
+[能量感知调度¶](https://www.kernel.org/doc/html/latest/translations/zh_CN/scheduler/sched-energy.html)
+
+
+
+[Capturing stack traces asynchronously with BPF](https://lwn.net/Articles/978736)
+
+
+| 编号 |  作者 | 工具 | 描述 | 链接 |
+|:---:|:-----:|:----:|:---:|:----:
+| 1 | paulmckrcu | [litmus](https://github.com/paulmckrcu/litmus) | Automatically generated litmus tests for validation LISA-language Linux-kernel memory models | [github/paulmckrcu/litmus](https://github.com/paulmckrcu/litmus) |
+| 2 | herd | [herd/herdtools7](https://github.com/herd/herdtools7) | 一个用于测试弱内存模型的工具套件. HERD7: 用于弱内存模型的通用模拟器, litmus7: 运行 litmus 测试(作为 Power、ARM、AArch64 或 X86 的汇编程序提供)来测试执行机器的内存模型, DIY7: 根据简明规范制作石蕊测试 | [官网](http://diy.inria.fr) |
+| 3 | Hernan Ponce de Leon 等 | [Dat3M](https://github.com/hernanponcedeleon/Dat3M) | Memory Model Aware Verification, Dartagnan is a tool to check state reachability under weak memory models. | [github/hernanponcedeleon/Dat3M](https://github.com/hernanponcedeleon/Dat3M) |
+| 4 | MPI-SWS(Max Planck Institute for Software Systems) | [GenMC](https://github.com/MPI-SWS/genmc) | A Model Checker for Weak Memory Models | [官网](https://plv.mpi-sws.org/genmc), [论文引用详情](https://ouci.dntb.gov.ua/en/works/4ryroeM7), [github/MPI-SWS/genmc](https://github.com/MPI-SWS/genmc) |
+| 5 | MPI-SWS(Max Planck Institute for Software Systems) | [Kater](https://github.com/MPI-SWS/kater) | Automating Weak Memory Model Metatheory and Consistency Checking | [MPI-SWS/kater](https://github.com/MPI-SWS/kater) |
+| 6 | NVlabs | [NVlabs/mixedproxy](https://github.com/NVlabs/mixedproxy) | Mixed-Proxy Extensions for the NVIDIA PTX Memory Consistency Model | [NVlabs/mixedproxy](https://github.com/NVlabs/mixedproxy) |
+| 7 | [Open, Safe and Scalable System Software Concurrency](https://github.com/open-s4c) | [vsyncer](https://github.com/open-s4c/vsyncer) | vsyncer: is a toolkit to verify and optimize concurrent C/C++ programs on WMMs, which employs state-of-the-art model checkers Dartagnan and GenMC. | [](https://github.com/open-s4c)

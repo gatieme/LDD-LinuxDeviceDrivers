@@ -118,6 +118,7 @@ https://github.com/schwabe/tglx-history
 
 [Linux kernel “historical” git repository with full history](https://stackoverflow.com/questions/3264283/linux-kernel-historical-git-repository-with-full-history)
 
+[BitKeeper, Linux, and licensing disputes: How Linus wrote Git in 14 days (Graphite blog)](https://lwn.net/Articles/974914)
 
 <br>
 

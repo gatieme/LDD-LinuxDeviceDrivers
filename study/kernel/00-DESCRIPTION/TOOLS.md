@@ -240,6 +240,17 @@ Arch Linux 在 2022 年 5 月份开始了也提供了他们的 [debuginfod 调�
 [Intel Makes Continuous Profiler Open-Source To Help Improve CPU Performance](https://www.phoronix.com/news/Intel-Continuous-Profiler-OSS)
 
 
+
+# 6 测试
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/02/28 | Helen Koike <helen.koike@collabora.com> | [kci-gitlab: Introducing GitLab-CI Pipeline for Kernel Testing](https://lore.kernel.org/all/20240228225527.1052240-1-helen.koike@collabora.com) | [GitLab CI for the kernel](https://lwn.net/Articles/972713). | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240228225527.1052240-1-helen.koike@collabora.com) |
+
+
+
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

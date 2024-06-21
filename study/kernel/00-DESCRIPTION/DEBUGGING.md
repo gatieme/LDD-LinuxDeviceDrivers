@@ -75,6 +75,7 @@ blogexcerpt: FZF 是目前最快的模糊搜索工具. 使用 golang 编写. 结
 | 2018/11/23 | Shile Zhang <shile.zhang@linux.alibaba.com> | [Speed booting by sorting ORC unwind tables at build time](https://lore.kernel.org/patchwork/cover/1162315) | ORC unwind 有两个表, .orc_unwind_ip 和. orc_unwind 二分搜索需要排序. 在构建时对其进行排序可以节省更多 CPU 周期有助于加快内核引导. 添加 ORC 表排序在一个独立的线程有助于避免更多的链接. | RFC v6 ☐ | [PatchWork v6](https://lore.kernel.org/patchwork/cover/1162315) |
 | 2021/08/12 | Shile Zhang <shile.zhang@linux.alibaba.com> | [arm64: Reorganize the unwinder and implement stack trace reliability checks](https://lwn.net/Articles/866194) | 使所有堆栈遍历函数都使用 arch_stack_walk().<br> 目前, ARM64 代码中有多个函数使用 start_backtrace() 和 unwind_frame() 遍历堆栈. 将它们全部转换为使用 arch_stack_walk(). 这使得维护更容易. | RFC v8 ☐ | [PatchWork RFC,v8,0/4](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210812190603.25326-1-madvenka@linux.microsoft.com) |
 
+虽然不省略帧指针对性能有已知的影响, 因此之前各发行版都默认不开启栈帧, 但是 2022 年各大发行版,  Fedora/Ubuntu 24.04 LTS 等均启用了帧指针以实现更好的调试/分析. 为了两全其美, 2024 年 Red Hat 开发 eu-stracktrace 作为一种新的分析方法, 而无需依赖帧指针. 参见 phoronix 报道 [phoronix, 2024/06/11, Red Hat Developing "eu-stacktrace" For Profiling Without Frame Pointers](https://www.phoronix.com/news/Red-Hat-eu-stacktrace), [redhat 博客--Get system-wide profiles of binaries without frame pointers](https://developers.redhat.com/articles/2024/06/11/get-system-wide-profiles-binaries-without-frame-pointers#), 以及 [elfutils, eu-stacktrace development branch](https://sourceware.org/cgit/elfutils/tree/README.eu-stacktrace?h=users/serhei/eu-stacktrace).
 
 # 2 unikernel
 -------
@@ -324,14 +325,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2022/02/07 | John Ogness <john.ogness@linutronix.de> | [implement threaded console printing](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) | 参见 phoronix 报道 [Linux Gets Patches For Threaded Console Printing](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Threaded-Console-Print) 和 [Patches Updated For Linux To Enjoy Consoles Running At Full-Speed](https://www.phoronix.com/scan.php?page=news_item&px=Printk-v3-Consoles-Full-Speed) | v1 ☐ | [LORE v1,0/13](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) |
 | 2023/03/02 | John Ogness <john.ogness@linutronix.de> | [threaded/atomic console support](https://lore.kernel.org/all/87wn3zsz5x.fsf@jogness.linutronix.de) | TODO | v1 ☐☑✓ | [LORE v1,0/18](https://lore.kernel.org/all/87wn3zsz5x.fsf@jogness.linutronix.de) |
 | 2024/02/18 | John Ogness <john.ogness@linutronix.de> | [wire up write_atomic() printing](https://lore.kernel.org/all/20240218185726.1994771-1-john.ogness@linutronix.de) | TODO | v2 ☐☑✓ | [LORE v2,0/26](https://lore.kernel.org/all/20240218185726.1994771-1-john.ogness@linutronix.de) |
-
-
-## 9.3 A new approach printk
--------
-
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/06/04 | John Ogness <john.ogness@linutronix.de> | [add threaded printing + the rest](https://lore.kernel.org/all/20240603232453.33992-1-john.ogness@linutronix.de) | [Updated Printk Rework Patches - Necessary Step For Mainlining Linux Real-Time "RT"](https://www.phoronix.com/news/Printk-Rework-v2-Linux) | v2 ☐☑✓ | [LORE v2,0/18](https://lore.kernel.org/all/20240603232453.33992-1-john.ogness@linutronix.de) |
 | 2022/09/11 | Thomas Gleixner <tglx@linutronix.de> | [printk: A new approach - WIP](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |  | v1 ☐☑✓ | [LORE v1,0/29](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |
 | 2023/09/16 | John Ogness <john.ogness@linutronix.de> | [provide nbcon base](https://lore.kernel.org/all/20230916192007.608398-1-john.ogness@linutronix.de) | [NBCON Console Patches Updated For Eventually Unblocking Real-Time Linux Kernel](https://www.phoronix.com/news/Linux-NCON-Consoles-v5) | v5 ☐☑✓ | [LORE v5,0/8](https://lore.kernel.org/all/20230916192007.608398-1-john.ogness@linutronix.de) |
 
@@ -361,7 +355,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 
 `struct scripting_ops` 封装了 perf 支持的高级语言解析框架. 可通过 script_spec_register() 注册, 当前支持 perl, python.
 
-支持对 Python 使用 Linux perf 进行性能分析 [The challenge of compiling for verified architectures](https://lwn.net/Articles/946254).
+支持对 Python 使用 Linux perf 进行性能分析 [Python support for the Linux perf profiler](https://docs.python.org/3/howto/perf_profiling.html).
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -395,7 +389,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2017/10/12 | Will Deacon <will.deacon@arm.com> | [Add support for the ARMv8.2 Statistical Profiling Extension](https://lore.kernel.org/lkml/1507811438-2267-1-git-send-email-will.deacon@arm.com) | perf PMU 驱动支持 SPE | v1 ☑ 4.15-rc1 | [PatchWork v6 0/7](https://lore.kernel.org/lkml/1507811438-2267-1-git-send-email-will.deacon@arm.com) |
 | 2018/01/14 | Kim Phillips <kim.phillips@arm.com> | [perf tools: Add ARM Statistical Profiling Extensions (SPE) support](https://lore.kernel.org/lkml/1507811438-2267-1-git-send-email-will.deacon@arm.com) | perf tools 支持 SPE. 这个版本实现的功能还比较简单, 直接把 SPE 的 format 数据导出到了用户态, 由 perf 直接解析, 并没有提供更进一步的 profiling 的功能. | v1 ☑ 4.16-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/cover/1128886) |
-| 2020/05/30 | Leo Yan <leo.yan@linaro.org> | [perf arm-spe: Add support for synthetic events](https://lore.kernel.org/lkml/20200530122442.490-1-leo.yan@linaro.org) | 支持将 SPE 的事件进行分类解析, 可以显示热点以及汇编等信息. | v1 ☑ 5.8-rc1 | [PatchWork v8 0/3](https://lore.kernel.org/lkml/20200530122442.490-1-leo.yan@linaro.org) |
+| 2020/05/30 | Leo Yan <leo.yan@linaro.org> | [perf arm-spe: Add support for synthetic events](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a54ca194981be3707213437a67792b88e08264fe) | 支持将 SPE 的事件进行分类解析, 可以显示热点以及汇编等信息. | v1 ☑ 5.8-rc1 | [PatchWork v8 0/3](https://lore.kernel.org/lkml/20200530122442.490-1-leo.yan@linaro.org) |
 | 2020/11/06 | Leo Yan <leo.yan@linaro.org> | [perf mem/c2c: Support AUX trace](https://lore.kernel.org/lkml/20201106094853.21082-1-leo.yan@linaro.org) | NA. | v1 ☑ 5.8-rc1 | [PatchWork v4 0/9](https://lore.kernel.org/lkml/20201106094853.21082-1-leo.yan@linaro.org) |
 | 2021/02/12 | James Clark <james.clark@arm.com> | [perf arm-spe: Enable sample type PERF_SAMPLE_DATA_SRC](https://lore.kernel.org/all/20210211133856.2137-1-james.clark@arm.com) | 在 perf 数据中为 Arm SPE 支持解析 PERF_SAMPLE_DATA_SRC 数据, 当输出跟踪数据时, 它告诉 perf 它在内存事件中包含数据源. | v1 ☑ 5.8-rc1 | [PatchWork v2 1/6](https://lore.kernel.org/all/20210211133856.2137-1-james.clark@arm.com/) |
 | 2020/12/13 |  Leo Yan <leo.yan@linaro.org>| [perf c2c: Sort cacheline with all loads](https://lore.kernel.org/all/20201213133850.10070-1-leo.yan@linaro.org) | 实现类似 x86 下 c2c 的功能, 由于 ARM SPE 中没有默认实现类似 X86 hitM 的 data_src, 因此不能有效地判断伪共享. 当前实现方案是将所有的 load 操作排序, 方便开发人员针对伪共享进行分析. | v1 ☐ | [PatchWork v2 00/11](https://lohttps://lore.kernel.org/all/20201213133850.10070-1-leo.yan@linaro.org) |
@@ -1135,7 +1129,7 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 | 2024/03/27 | Wedson Almeida Filho <wedsonaf@gmail.com> | [In-place module initialisation](https://lore.kernel.org/all/20240327032337.188938-1-wedsonaf@gmail.com) | [Microsoft Engineer Sends Rust Linux Kernel Patches For In-Place Module Initialization](https://www.phoronix.com/news/Linux-Rust-In-Place-Module-Init) | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20240327032337.188938-1-wedsonaf@gmail.com) |
 | 2024/03/22 | Boqun Feng <boqun.feng@gmail.com> | [Memory model and atomic API in Rust](https://lore.kernel.org/all/20240322233838.868874-1-boqun.feng@gmail.com) | [A memory model for Rust code in the kernel](https://lwn.net/Articles/967049). | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240322233838.868874-1-boqun.feng@gmail.com) |
 | 2024/05/14 | Wedson Almeida Filho <wedsonaf@gmail.com> | [Rust abstractions for VFS](https://lore.kernel.org/all/20240514131711.379322-1-wedsonaf@gmail.com) | 参见 phoronix 报道 [Microsoft Engineer Ports EXT2 File-System Driver To Rust](https://www.phoronix.com/news/Rust-VFS-Linux-V2-Now-With-EXT2). | v2 ☐☑✓ | [LORE v2,0/30](https://lore.kernel.org/all/20240514131711.379322-1-wedsonaf@gmail.com) |
-| 2024/05/20 | Danilo Krummrich <dakr@redhat.com> | [DRM Rust abstractions and Nova](https://lore.kernel.org/all/20240520172059.181256-1-dakr@redhat.com) | [RFC Patches Posted For Rust-Written NVIDIA "Nova" GPU Driver](https://www.phoronix.com/news/RFC-Rust-Nova-NVIDIA-Driver) | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20240520172059.181256-1-dakr@redhat.com) |
+| 2024/05/20 | Danilo Krummrich <dakr@redhat.com> | [DRM Rust abstractions and Nova](https://lore.kernel.org/all/20240520172059.181256-1-dakr@redhat.com) | [RFC Patches Posted For Rust-Written NVIDIA "Nova" GPU Driver](https://www.phoronix.com/news/RFC-Rust-Nova-NVIDIA-Driver). | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20240520172059.181256-1-dakr@redhat.com) |
 
 
 ## 22.2 C++
