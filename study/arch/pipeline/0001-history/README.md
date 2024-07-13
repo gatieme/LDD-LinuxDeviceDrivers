@@ -280,7 +280,8 @@ XOR a, b
 | 22 | [8086架构/流水线及其优化](https://stkeke.blog.csdn.net/article/details/85230687) | NA |
 | 23 | [Intel X86-64 处理器架构演进](https://zhuanlan.zhihu.com/p/515658946) | NA |
 | 24 | [TALK 笔记-处理器体系结构, 历史及演进](https://www.douban.com/note/797605944) | NA |
-| 25 | [微电之窗 | 详谈CPU处理器架构演进 (Intel)](https://mp.weixin.qq.com/s?__biz=Mzg3MTIyMTU3OA==&mid=2247509982&idx=2&sn=84a1fd3c140b147a53dee7a7e3329017) |
+| 25 | [微电之窗 | 详谈CPU处理器架构演进 (Intel)](https://mp.weixin.qq.com/s?__biz=Mzg3MTIyMTU3OA==&mid=2247509982&idx=2&sn=84a1fd3c140b147a53dee7a7e3329017) | NA |
+
 
 <br>
 

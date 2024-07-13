@@ -219,6 +219,9 @@ Linux 一开始是在一台 i386 上的机器开发的, i386 的硬件页表是 
 
 关于四级页表演进的细节, 可看我以前文章: [Linux 内核 4 级页表的演进](https://link.zhihu.com/?target=http%3A//larmbr.com/2014/01/19/the-evolution-of-4-level-page-talbe-in-linux)
 
+
+自从英特尔开始为 Linux 内核提供 5 级分页支持以来, 已经过去了将近十年, 以允许更大的虚拟和物理地址空间以及扩展的内存大小. 2017 年, Linux 4.12 中上游了 5 级分页内核侧位, 自 2019 年起在 Linux 5.5 中默认启用. 一段时间以来, 英特尔 CPU(自 Ice Lake 以来)也支持 5 级分页, 自 Zen 4 以来也支持 AMD CPU. Linux 内核可能会无条件地启用对 x86_64 内核构建的 5 级分页支持. 参见 phoronix 报道 [Linux Looking To Make 5-Level Paging Support Unconditional For x86_64 Kernel Builds](https://www.phoronix.com/news/Linux-Unconditional-5-Level-x86).
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2017/03/13 | "Kirill A. Shutemov" <kirill.shutemov@linux.intel.com> | [x86: 5-level paging enabling for v4.12, Part 1](https://lore.kernel.org/patchwork/patch/769534) | NA| v1 ☑ 4.12-rc1 | [PatchWork 0/6](https://lore.kernel.org/patchwork/patch/769534) |
@@ -4195,7 +4198,7 @@ Meta(原 Facebook) 博客 [Transparent memory offloading: more memory at a fract
 *   process_mrelease
 
 
-华为终端手机上实现了一个名为 [xreclaimer(Fast process memory reclaimer)](https://github.com/gatieme/MobileModels/blob/huawei/noh-mate40/mm/xreclaimer) 快速回收进程内存的方案, 在进程退出时快速回收.
+华为终端手机上实现了一个名为 [xreclaimer(Fast process memory reclaimer)](https://github.com/gatieme/MobileModels/blob/huawei/noh-mate40/mm/xreclaimer) 快速回收进程内存的方案, 在进程退出时快速回收. 通过 `/proc/sys/kernel/boost_sigkill_free` 动态开关.
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -4314,6 +4317,7 @@ swappiness 参数值可设置范围在 `0~100` 之间.
 列表的相对值是通过查看我们已经旋转回活动列表而不是驱逐的页面的部分来确定的. %[0] 指定对匿名页 LRUs 施加多大压力, 而 %[1] 确定对文件 LRUs 施加多大压力. | v12 ☑ [2.6.28-rc1](https://kernelnewbies.org/Linux_2_6_28#Various_core) | [PatchWork v2](https://lore.kernel.org/patchwork/patch/118966), [关键 commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4f98a2fee8acdb4ac84545df98cccecfd130f8db) |
 | 2021/07/27 | Rik van Riel <riel@redhat.com> | [mm: Enable suspend-only swap spaces](https://lore.kernel.org/patchwork/patch/1468228) | 引入一个新的 SWAP_FLAG_HIBERNATE_ONLY 添加一个交换区域, 但是不允许进行通用交换, 只能在 SUSPEND/HIBERNATE 时挂起到磁盘时使用. 目前不能在不启用特定区域的通用交换的情况下启用休眠, 对此的一种半变通方法是将对 swapon() 的调用延迟到尝试休眠之前, 然后在休眠完成之后调用 swapoff(). 这有点笨拙, 而且在保持交换脱离 hibernate 区域方面也不起作用. 目前 SWAP_FLAG_HIBERNATE_ONLY 设置的交换区域将不会出现在 SwapTotal 和 SwapFree 下的 /proc/meminfo 中, 因为它们不能作为常规交换使用, 但是这些区域仍然出现在 /proc/swap 中. | v4 ☐ | [PatchWork v4](https://lore.kernel.org/patchwork/patch/1468228) |
 | 2022/02/17 | Peter Xu <peterx@redhat.com> | [mm: Rework zap ptes on swap entries](https://patchwork.kernel.org/project/linux-mm/cover/20220217060746.71256-1-peterx@redhat.com/) | 615245 | v5 ☐☑ | [LORE v5,0/4](https://lore.kernel.org/r/20220217060746.71256-1-peterx@redhat.com) |
+| 2024/01/03 | Dan Schatzberg <schatzberg.dan@gmail.com> | [Add swappiness argument to memory.reclaim](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=49003d83c7dabf67036c4523d9907b16fde9cb24) | 向 `memory.reclaim` 添加 `swappiness=` 参数支持. 这实际上允许对交换行为进行更精细的控制，而不会覆盖全局交换设置.<br>允许主动回收器向 memory.reclaim 提交额外的 swappiness=[val] 参数. 这将覆盖该回收尝试的全局或每个 memcg 交换设置. 如果 `echo "2M swappiness=0" > /sys/fs/cgroup/memory.reclaim` 将在 Root CGROUP 上执行回收, 交换设置为 0(无交换), 而不考虑 `vm.swappiness` 设置. 用户空间主动回收器使用 memory.reclaim 接口来触发回收. memory.reclaim 接口不允许在主动回收期间以任何方式影响文件与匿名的平衡. 唯一的方法是调整 vm.swappiness 设置. 参见 phoronix 报道 [Linux 6.11 To Offer More Fine-Tuned Control Over Swappiness](https://www.phoronix.com/news/Linux-6.11-Fine-Swappiness). | v6 ☐☑✓ | [LORE v6,0/2](https://lore.kernel.org/all/20240103164841.2800183-1-schatzberg.dan@gmail.com) |
 
 
 ## 5.2 MEMCG Swap

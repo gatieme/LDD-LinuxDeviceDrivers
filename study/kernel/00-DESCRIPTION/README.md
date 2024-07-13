@@ -296,6 +296,8 @@ Linux 内核特性演进史
 
 [Linux 内核学习资料：200 + 篇经典内核文章，100 + 篇内核论文，50 + 内核项目，500 + 道内核面试题，80 + 内核讲解视频](https://github.com/0voice/linux_kernel_wiki)
 
+[新版图书--《操作系统：原理与实现》--银杏树](https://ipads.se.sjtu.edu.cn/ospi)
+
 # 3 内容目录
 -------
 

@@ -60,6 +60,43 @@ Rentable Unit 根据任务调度 P 核和 E 核, 确保所有核心都处于活�
 它会尝试预测任务在 P/E 核上的完成时间然后试图分割任务以更小粒度跨核调度, 调度会更复杂, 上下文切换会更多, 优化目标可能会倾向吞吐量所以 P 核上高优任务延迟可能会被影响: P 核高优任务可能分一部分扔去 E 核, 而 E 核低优任务可能分一部分拿来 P 核跑.
 
 
+
+# 2 ON-DEMAND MEMORY ALLOCATION
+-------
+
+
+Apple [专利号-WO2021US19353-Apple-ON-DEMAND MEMORY ALLOCATION](https://xueshu.baidu.com/usercenter/paper/show?paperid=102r0eg05d3q02p0mh7c0v60eu667084) 公开了与动态分配和映射私有内存的请求电路的技术方案. 这种硬件电路可以接收私有地址并将该私有地址转换为虚拟地址. 在一些实施例中, 私有存储器分配电路被配置成生成页表信息, 如果页表信息尚未设置, 则映射所请求的私有内存页. 在各种实施例中, 这可以有利地允许动态私有内存分配, 例如, 有效地为具有不同类型工作负载的图形着色器分配内存. 与传统技术相比, 公开的页表信息缓存技术可以提高性能. 此外, 公开的实施例可以促进跨设备(例如图形处理器)的内存整合.
+
+
+
+# 3 一些微架构的探索
+-------
+
+[The Forward Slice Core Microarchitecture](https://dl.acm.org/doi/10.1145/3410463.3414629)
+
+[RL-CoPref: a reinforcement learning-based coordinated prefetching controller for multiple prefetchers](https://link.springer.com/article/10.1007/s11227-024-05938-9)
+
+提出一个新的微架构 morphcore, 结合乱序执行和高度线程化 SMT, 以便在单个内核中执行 SMT 顺序执行执行. [MorphCore：一种高效节能且高并行性性能和高吞吐量的线程级并行TLP的微架构](https://zhuanlan.zhihu.com/p/45692673) 全面描述需要实现 morphcore 的微体系结构和模式之间切换的策略.
+
+
+关于 flow computing,
+[知乎 - 三姨君 - 号称提升 100 倍的 CPU 设计，真相究竟是什么](https://zhuanlan.zhihu.com/p/703697115)
+[知乎 - 毕杰 EETOP 创始人 - 初创公司爆炸性声明：可将任何 CPU 架构性能提升 100 倍！自称 CPU 2.0 时代即将到来！](https://zhuanlan.zhihu.com/p/703140692)
+[知乎 - 降伏其芯 - 解密初创公司 flow computing CPU 架构性能提升 100 倍背后的技术原理](https://zhuanlan.zhihu.com/p/703736037)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <br>
 
 *   本作品/博文 ( [AderStep-紫夜阑珊-青伶巷草 Copyright ©2013-2017](http://blog.csdn.net/gatieme) ), 由 [成坚(gatieme)](http://blog.csdn.net/gatieme) 创作.

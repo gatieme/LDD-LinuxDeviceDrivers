@@ -109,7 +109,7 @@
 | 6.7 | NA | NA | NA |
 | 6.8 | [The first half of the 6.8 merge window](https://lwn.net/Articles/957188), [The rest of the 6.8 merge window](https://lwn.net/Articles/958178) | NA | NA |
 | 6.9 | [The first half of the 6.9 merge window](https://lwn.net/Articles/965141), [Kernel prepatch 6.9-rc1](https://lwn.net/Articles/966525), [The rest of the 6.9 merge window](https://lwn.net/Articles/965541) | NA | NA |
-| 6.10 | [The first half of the 6.10 merge window](https://lwn.net/Articles/973687)<br>*-*-*-*-*-*-*-* <br>[The rest of the 6.10 merge window](https://lwn.net/Articles/974869)<br>*-*-*-*-*-*-*-* <br>[Kernel prepatch 6.10-rc2](https://lwn.net/Articles/976498). | NA | [Linux 6.10-rc1 Kernel Released With Many New Features](https://www.phoronix.com/news/Linux-6.10-rc1) |
+| 6.10 | [The first half of the 6.10 merge window](https://lwn.net/Articles/973687)<br>*-*-*-*-*-*-*-* <br>[The rest of the 6.10 merge window](https://lwn.net/Articles/974869)<br>*-*-*-*-*-*-*-* <br>[Kernel prepatch 6.10-rc2](https://lwn.net/Articles/976498). | NA | [Linux 6.10-rc1 Kernel Released With Many New Features](https://www.phoronix.com/news/Linux-6.10-rc1), [Linux 6.10-rc5 Released With This Kernel Cycle Looking Good So Far](https://www.phoronix.com/news/Linux-6.10-rc5) |
 
 
 年终盘点

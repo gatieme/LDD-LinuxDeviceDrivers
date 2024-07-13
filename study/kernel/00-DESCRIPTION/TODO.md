@@ -637,7 +637,6 @@ cba6167f0adb
 | 2021/11/12 | Vincent Guittot <vincent.guittot@linaro.org> | [avoid spurious blocked load update](https://lore.kernel.org/all/20211112095857.7016-1-vincent.guittot@linaro.org) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20211112095857.7016-1-vincent.guittot@linaro.org) |
 | 2024/03/27 | Bharata B Rao <bharata@amd.com> | [Hot page promotion optimization for large address space](https://lore.kernel.org/all/20240327160237.2355-1-bharata@amd.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20240327160237.2355-1-bharata@amd.com) |
 | 2024/05/06 | Qais Yousef <qyousef@layalina.io> | [sched: Consolidate cpufreq updates](https://lore.kernel.org/all/20240505233103.168766-1-qyousef@layalina.io) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240505233103.168766-1-qyousef@layalina.io) |
-| 2023/09/11 | Chen Yu <yu.c.chen@intel.com> | [Makes it easier for the wakee to choose previous CPU](https://lore.kernel.org/all/cover.1694397335.git.yu.c.chen@intel.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/cover.1694397335.git.yu.c.chen@intel.com) |
 | 2024/03/28 | mingyang.cui <mingyang.cui@horizon.ai> | [sched/fair: Fix forked task check in vruntime_normalized](https://lore.kernel.org/all/20240328062757.29803-1-mingyang.cui@horizon.ai) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240328062757.29803-1-mingyang.cui@horizon.ai) |
 | 2024/04/02 | Tio Zhang <tiozhang@didiglobal.com> | [sched: make softirq cputime accounting separately in irqtime](https://lore.kernel.org/all/20240402112415.GA17946@didi-ThinkCentre-M930t-N000) | 我们现在在延迟统计中只能获得 IRQ/SOFTIRQ 的总延迟, 但单独获得 SOFTIRQ 延迟和 IRQ 延迟将有助于用户以更方便的方式减少此类延迟. 对于 IRQ 延迟, 我们可以调整 IRQ-CPU 相关性或使用线程 IRQ.
 对于 SOFTIRQ 延迟, 我们可以调整 rps/xps 或使用 NAPI 的内核线程. 因此, 这个补丁集试图使 SOFTIRQ 延迟在延迟统计中可观察到, 并在 taskstats 中可用. 补丁集同步更新了 `tools/accounting/getdelays.c` 同样为了向后兼容性, 我们不想改变原始 IRQ/SOFTIRQ 延迟的含义, 相反, 我们可以通过原始 IRQ/OFTIRQ 的延迟减去该补丁添加的 SOFTIREQ 延迟来获得真实的 IRQ(中断) 延迟. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240402112415.GA17946@didi-ThinkCentre-M930t-N000) |
@@ -658,6 +657,17 @@ cba6167f0adb
 [Recent improvements to BPF's struct_ops mechanism](https://lwn.net/Articles/974848)
 [An instruction-level BPF memory model](https://lwn.net/Articles/976071/)
 [Comparing BPF performance between implementations](https://lwn.net/Articles/976317)
+[Securing BPF programs before and after verification](https://lwn.net/Articles/977394)
+[Simplifying the BPF verifier](https://lwn.net/Articles/977815)
+[Nested bottom-half locking for realtime kernels](https://lwn.net/Articles/978189)
+[Static keys for BPF](https://lwn.net/Articles/977993)
+[BPF tracing performance](https://lwn.net/Articles/978335)
+[Capturing stack traces asynchronously with BPF](https://lwn.net/Articles/978736)
+[Updates to pahole](https://lwn.net/Articles/978727)
+[Eliminating indirect calls for security modules](https://lwn.net/Articles/979683)
+[A capability set for user namespaces](https://lwn.net/Articles/978846)
+
+[OS2ATC-PPT](https://cloud.tsinghua.edu.cn/d/8e6c77ad1ad548acb909/)
 
 [Wattch: a framework for architectural-level power analysis and optimizations](https://ieeexplore.ieee.org/document/854380)
 
@@ -677,6 +687,7 @@ cba6167f0adb
 | 2024/02/26 | Lai Jiangshan <jiangshanlai@gmail.com> | [KVM: x86/PVM: Introduce a new hypervisor](https://lore.kernel.org/all/20240226143630.33643-1-jiangshanlai@gmail.com) | TODO | v1 ☐☑✓ | [LORE v1,0/73](https://lore.kernel.org/all/20240226143630.33643-1-jiangshanlai@gmail.com) |
 | 2020/05/04 | Alexandre Chartre <alexandre.chartre@oracle.com> | [ASI - Part I (ASI Infrastructure and PTI)](https://lore.kernel.org/all/20200504144939.11318-1-alexandre.chartre@oracle.com) | TODO | v4 ☐☑✓ | [LORE v4,0/7](https://lore.kernel.org/all/20200504144939.11318-1-alexandre.chartre@oracle.com) |
 | 2024/02/14 | Ard Biesheuvel <ardb+git@google.com> | [arm64: Add support for LPA2 and WXN at stage 1](https://lore.kernel.org/all/20240214122845.2033971-45-ardb+git@google.com) | TODO | v8 ☐☑✓ | [LORE v7,00/50](https://lore.kernel.org/all/20240123145258.1462979-52-ardb+git@google.com)<br>*-*-*-*-*-*-*-*<br>[LORE v8,0/43](https://lore.kernel.org/all/20240214122845.2033971-45-ardb+git@google.com) |
+| 2024/07/02 | Huisong Li <lihuisong@huawei.com> | [power: introduce PM QoS interface](https://lore.kernel.org/all/20240702035010.4874-1-lihuisong@huawei.com) | TODO | v5 ☐☑✓ | [LORE v5,0/2](https://lore.kernel.org/all/20240702035010.4874-1-lihuisong@huawei.com) |
 
 
 
@@ -685,25 +696,14 @@ cba6167f0adb
 
 
 [WeWe-RSS](https://help.railway.app/templates/we-we-rss-d75eade8)
-[免费部署wewe-rss服务](https://stupidjoey.net/posts/deploy_wewe_rss/)
-[一键部署属于自己的微信公众号RSS(wewe-rss)](https://foxistudy.com/posts/wewe-rss/)
+[免费部署 wewe-rss 服务](https://stupidjoey.net/posts/deploy_wewe_rss/)
+[一键部署属于自己的微信公众号 RSS(wewe-rss)](https://foxistudy.com/posts/wewe-rss/)
+
+[鄙人使用 huggingface 和 railway 搭建的公众号订阅](https://huggingface.co/spaces/gatieme/wewe-rss)
 
 
 
 
-
-
-
-
-[专利号-WO2021US19353-Apple-ON-DEMAND MEMORY ALLOCATION](https://xueshu.baidu.com/usercenter/paper/show?paperid=102r0eg05d3q02p0mh7c0v60eu667084)
-
-公开了与动态分配和映射私有内存的请求电路的技术方案. 这种硬件电路可以接收私有地址并将该私有地址转换为虚拟地址. 在一些实施例中, 私有存储器分配电路被配置成生成页表信息, 如果页表信息尚未设置, 则映射所请求的私有内存页. 在各种实施例中，这可以有利地允许动态私有内存分配, 例如, 有效地为具有不同类型工作负载的图形着色器分配内存. 与传统技术相比, 公开的页表信息缓存技术可以提高性能. 此外, 公开的实施例可以促进跨设备(例如图形处理器)的内存整合.
-
-[The Forward Slice Core Microarchitecture](https://dl.acm.org/doi/10.1145/3410463.3414629)
-
-
-
-[RL-CoPref: a reinforcement learning-based coordinated prefetching controller for multiple prefetchers](https://link.springer.com/article/10.1007/s11227-024-05938-9)
 
 
 
@@ -719,19 +719,42 @@ cba6167f0adb
 
 
 
-[能量感知调度¶](https://www.kernel.org/doc/html/latest/translations/zh_CN/scheduler/sched-energy.html)
+[能量感知调度 ¶](https://www.kernel.org/doc/html/latest/translations/zh_CN/scheduler/sched-energy.html)
 
 
 
-[Capturing stack traces asynchronously with BPF](https://lwn.net/Articles/978736)
+[Amazon Exploring MM-Local Memory Allocations To Help With Current/Future Speculation Attacks](https://www.phoronix.com/news/Linux-MM-Local-Kernel-Allocs)
 
 
-| 编号 |  作者 | 工具 | 描述 | 链接 |
-|:---:|:-----:|:----:|:---:|:----:
-| 1 | paulmckrcu | [litmus](https://github.com/paulmckrcu/litmus) | Automatically generated litmus tests for validation LISA-language Linux-kernel memory models | [github/paulmckrcu/litmus](https://github.com/paulmckrcu/litmus) |
-| 2 | herd | [herd/herdtools7](https://github.com/herd/herdtools7) | 一个用于测试弱内存模型的工具套件. HERD7: 用于弱内存模型的通用模拟器, litmus7: 运行 litmus 测试(作为 Power、ARM、AArch64 或 X86 的汇编程序提供)来测试执行机器的内存模型, DIY7: 根据简明规范制作石蕊测试 | [官网](http://diy.inria.fr) |
-| 3 | Hernan Ponce de Leon 等 | [Dat3M](https://github.com/hernanponcedeleon/Dat3M) | Memory Model Aware Verification, Dartagnan is a tool to check state reachability under weak memory models. | [github/hernanponcedeleon/Dat3M](https://github.com/hernanponcedeleon/Dat3M) |
-| 4 | MPI-SWS(Max Planck Institute for Software Systems) | [GenMC](https://github.com/MPI-SWS/genmc) | A Model Checker for Weak Memory Models | [官网](https://plv.mpi-sws.org/genmc), [论文引用详情](https://ouci.dntb.gov.ua/en/works/4ryroeM7), [github/MPI-SWS/genmc](https://github.com/MPI-SWS/genmc) |
-| 5 | MPI-SWS(Max Planck Institute for Software Systems) | [Kater](https://github.com/MPI-SWS/kater) | Automating Weak Memory Model Metatheory and Consistency Checking | [MPI-SWS/kater](https://github.com/MPI-SWS/kater) |
-| 6 | NVlabs | [NVlabs/mixedproxy](https://github.com/NVlabs/mixedproxy) | Mixed-Proxy Extensions for the NVIDIA PTX Memory Consistency Model | [NVlabs/mixedproxy](https://github.com/NVlabs/mixedproxy) |
-| 7 | [Open, Safe and Scalable System Software Concurrency](https://github.com/open-s4c) | [vsyncer](https://github.com/open-s4c/vsyncer) | vsyncer: is a toolkit to verify and optimize concurrent C/C++ programs on WMMs, which employs state-of-the-art model checkers Dartagnan and GenMC. | [](https://github.com/open-s4c)
+update_curr_rt
+-=> trace_android_vh_sched_stat_runtime_rt(curr, delta_exec);
+	-=> register_trace_android_vh_sched_stat_runtime_rt(fbg_update_rt_util_hook, NULL);
+		-=> fbg_update_task_util(tsk, runtime, true);
+			-=> update_frame_group_util(tsk, runtime, wallclock, default_part, grp);
+				-=> sf_composition_update_cpufreq(tsk);		// sf_composition_group
+				-=> default_group_update_cpufreq();		// game_frame_boost_group
+				-=> inputmethod_update_cpufreq(tsk);		// default_frame_boost_group
+
+
+
+update_curr_{fair|rt}
+update_util_before_window_rollover
+fbg_android_rvh_cpufreq_transition //REGISTER_TRACE_RVH(trace_android_rvh_cpufreq_transition, cpufreq_transition_handler);
+
+-=> fbg_update_task_util
+
+
+
+
+[AMD's AOMP 19.0-2 Compiler Brings Zero-Copy For CPU-GPU Unified Shared Memory](https://www.phoronix.com/news/AMD-AOMP-19.0-2-Compiler)
+
+
+HUAWEI P10 Plus, Vicky, Android 7.0, EMUI 5.1
+
+| Model | Description | Open Source |
+|:-----:|:-----------:|:-----------:|
+| Vicky | HUAWEI P10 Plus, Vicky, Android 7.0, EMUI 5.1 | [LINK](https://download-c1.huawei.com/download/downloadCenter?downloadId=4217C26E864DD3F2F7EF57943CCF4179&version=B7B24D5019E86B029000B1F8D06787F5&siteCode=worldwide) |
+
+
+
+[issue: introduce scheduler BPF](https://gitee.com/openeuler/kernel/issues/I5F6X6), [Introduce programmable base on bpf for scheduler](https://gitee.com/openeuler/kernel/issues/I8OIT1), [pulls/4053, sched: basic infrastructure for scheduler bpf](https://gitee.com/openeuler/kernel/pulls/4053)
