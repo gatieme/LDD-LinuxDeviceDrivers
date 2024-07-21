@@ -80,10 +80,11 @@
 -------
 
 
-| 分支 | 描述 | 内核 |
+| 内核 | 描述 | 网站 |
 |:---:|:---:|:----:|
 | [L4Linux](https://www.l4linux.org) | L4Linux 是[基于 Fiasco 微内核的跟普通 Linux 二进制完全兼容的 Linux 内核](https://blog.csdn.net/gracioushe/article/details/6023340). L4Linux 是运行 Fiasco 用户空间的一个进程, 由很多线程组成, 而 Native Linux 则是运行在内核空间, 如果不考虑 kernel thread 的话, 那么 Native Linux 就相当于一个运行在内核空间的大进程, 它实现了从处理器调度、内存管理到设备管理等所有一个操作系统的必备的功能. 参见 [Adam 的 diploma thesis](https://os.inf.tu-dresden.de/papers_ps/adam-diplom.pdf) | NA |
 | [darwin-xnu](https://github.com/apple/darwin-xnu) | 苹果的微内核 | [opensource](https://opensource.apple.com/source/xnu), [cbowser/xnu](https://fergofrog.com/code/cbowser/xnu) |
+| HongMeng kernel (HM) | HUAWEI 自研的 HM 微内核 | 由一个最小核心内核和一组最低特权操作系统服务组成, 它可以运行 AOSP 和 OpenHarmony 等复杂框架. HM 已在新兴场景(包括智能路由器、智能汽车和智能手机)的数千万台设备上部署在生产中, 通常比 Linux 同类产品具有更高的性能和安全性. 参见 OSDI-2024 的论文 [Microkernel Goes General: Performance and Compatibility in the HongMeng Production Microkernel](https://www.usenix.org/conference/osdi24/presentation/chen-haibo). |
 
 
 # 5 Linux Version
@@ -110,7 +111,7 @@
 | 6.8 | [The first half of the 6.8 merge window](https://lwn.net/Articles/957188), [The rest of the 6.8 merge window](https://lwn.net/Articles/958178) | NA | NA |
 | 6.9 | [The first half of the 6.9 merge window](https://lwn.net/Articles/965141), [Kernel prepatch 6.9-rc1](https://lwn.net/Articles/966525), [The rest of the 6.9 merge window](https://lwn.net/Articles/965541) | NA | NA |
 | 6.10 | [The first half of the 6.10 merge window](https://lwn.net/Articles/973687)<br>*-*-*-*-*-*-*-* <br>[The rest of the 6.10 merge window](https://lwn.net/Articles/974869)<br>*-*-*-*-*-*-*-* <br>[Kernel prepatch 6.10-rc2](https://lwn.net/Articles/976498). | NA | [Linux 6.10-rc1 Kernel Released With Many New Features](https://www.phoronix.com/news/Linux-6.10-rc1), [Linux 6.10-rc5 Released With This Kernel Cycle Looking Good So Far](https://www.phoronix.com/news/Linux-6.10-rc5) |
-
+| 6.11 | [The first half of the 6.11 merge window](https://lwn.net/Articles/982034) | NA | NA |
 
 年终盘点
 

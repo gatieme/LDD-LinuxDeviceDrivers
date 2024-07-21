@@ -509,7 +509,10 @@ bperf 试图通过允许多个 "周期" 或 "指令" 的 perf_event (在不同�
 
 | 2021/07/20 | kan.liang@linux.intel.com <kan.liang@linux.intel.com> | [perf: Save PMU specific data in task_struct](https://lore.kernel.org/all/1626788420-121610-1-git-send-email-kan.liang@linux.intel.com) | 某些特定于 PMU 的数据必须在上下文切换期间保存 / 恢复, 例如 LBR 调用堆栈数据. 目前, 数据保存在事件上下文结构中, 但仅针对每个流程的事件. 对于系统范围的事件, 由于上下文切换后缺少 LBR 调用堆栈数据, 与按进程模式相比, LBR 调用栈总是更短. | v6 ☐☑✓ | [LORE v6,0/6](https://lore.kernel.org/all/1626788420-121610-1-git-send-email-kan.liang@linux.intel.com) |
 
+## 11.11 WindowsPerf
+-------
 
+[技术分享 | 发布WindowsPerf：用于Windows on Arm的开源性能分析工具](https://mp.weixin.qq.com/s?__biz=MzIwOTYyMjQzOQ==&mid=2247507803&idx=1&sn=16ad97e99a0cb77bad2d9e460a166e85&chksm=97739b93a0041285052512b86886f5b613cf8bb2924f3a8d7b3007325e780c66f70beb7d2037&scene=27)
 
 # 12 KPROBE
 -------
@@ -778,6 +781,7 @@ Mesa CI 开始使用 Mold 作为其 x86_64 和 AArch64 上的默认链接器, �
 
 [Mold Linker Performance Remains Very Compelling In 2024 Over GNU Gold/ld, LLVM lld](https://www.phoronix.com/news/Mold-Linker-2024-Performance).
 
+Mold 链接器中添加了一个新的 "--separate-debug-file" 选项, 以实现"更快"的性能. 将包含调试信息的 Clang 链接可以下降到不到半秒, 而目前只有六秒半. [Mold Linker Gains New Option To Deliver "Massively Faster" Performance](https://www.phoronix.com/news/Mold-Separate-Debug-File).
 
 ### 13.8.2 dynamic linking
 -------
@@ -849,12 +853,24 @@ Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM F
 | 2023/04/28 | Hou Wenlong <houwenlong.hwl@antgroup.com> | [x86/pie: Make kernel image's virtual address flexible](https://lore.kernel.org/all/cover.1682673542.git.houwenlong.hwl@antgroup.com) | 这些补丁允许 x86_64 上将内核构建为位置独立可执行文件(PIE). PIE 内核可以被重新定位在虚拟地址空间的顶部 2G 之下. 这个补丁集提供了一个例子, 允许内核映像在地址空间的顶部 512G 中重新定位. PIE 内核的最终目的是提高内核的安全性, 以及内核映像的虚拟地址的可扩展性, 甚至可以在地址空间的下半部分. 内核可以容纳更多的位置, 这意味着攻击者可以更难猜测. 参见 phoronix 报道 [New Patches Aim To Tackle Linux x86_64 PIE Support](https://www.phoronix.com/news/Linux-x86_64-PIE-2023). | v1 ☐☑✓ | [LORE v1,0/43](https://lore.kernel.org/all/cover.1682673542.git.houwenlong.hwl@antgroup.com) |
 
 
-## 13.13 Scope Guard
+## 13.13 语言/编译器级新特性支持
+
+### 13.13.1 Scope Guard
 -------
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/06/12 | Peter Zijlstra <peterz@infradead.org> | [Scope-based Resource Management](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7170509cadbb76e5fa7d7b090d2cbdb93d56a2de) | [Scope-based resource management for the kernel](https://lwn.net/Articles/934679) 以及 [Scope-Based Resource Management Infrastructure Merged For Linux 6.5](https://www.phoronix.com/news/Linux-6.5-Scope-Resource-Manage). | v3 ☐☑✓ 6.6-rc1 | [LORE v3,0/57](https://lore.kernel.org/all/20230612090713.652690195@infradead.org) |
+
+### 13.13.2 变长数组 (flexible array) 与 `__counted_by`
+-------
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/07/20 | Gustavo A. R. Silva <gustavo@embeddedor.com> | [cxgb3/l2t: Fix undefined behaviour](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=76497732932f15e7323dc805e8ea8dc11bb587cf) | Silva 提出了一系列旨在提高灵活数组使用安全性的措施, 包括:<br>引入 `__counted_by` 宏来注解结构体中的变长数组, 以帮助编译器进行边界检查.<br>提升编译器警告级别, 以捕捉零长度数组的使用, 尤其是那些可能被误解为灵活数组的情况.<br>集成测试到自动测试机器人中, 以捕获对类型转换的不当使用, 类似于在 atomic_t 转换为 recount_t 时所做的. 参见 [LWN, 2022/09/22, Safer flexible arrays for the kernel](https://lwn.net/Articles/908817) 和 [How to use the new counted_by attribute in C (and Linux)](https://people.kernel.org/gustavoars/how-to-use-the-new-counted_by-attribute-in-c-and-linux). | v1 ☐☑✓ v5.2-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=76497732932f15e7323dc805e8ea8dc11bb587cf) |
+| 2023/05/17 | Kees Cook <keescook@chromium.org> | [Compiler Attributes: Add `__counted_by` macro](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=dd06e72e68bcb4070ef211be100d2896e236c8fb) | 引入一个新的编译器属性宏 `__counted_by`. 这个宏的目的是为了标注结构体中变长数组 (flexible array members) 成员的运行时大小信息, 这将有助于在未来的 GCC 和 Clang 编译器中利用新的 element_count 属性(这个新属性在 [Clang 17](https://reviews.llvm.org/D148381) 以及 [GCC 15](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=108896) 中支持.), 它将允许像 CONFIG_UBSAN_BOUNDS 和 CONFIG_FORTIFY_SOURCE 这样的内核特性在运行时对未知大小的变长数组进行边界检查.<br>尽管这个属性还在开发阶段, Kees Cook 建议内核可以开始使用一个宏来提前进行注解, 即便将来可能需要更改实际属性的名字. 考虑到 element_count 属性有可能在未来更名为 `counted_by`, Kees Cook 提议使用 `__counted_by` 作为宏名, 这在结构体定义中更加清晰和简洁. 这个宏在 `include/linux/compiler_attributes.h` 中定义, 其作用是在编译器支持 `__element_count__` 属性时, 为指定的变长数组成员添加 `__element_count__` 属性, 否则不做任何事情. 这样可以确保代码向前兼容, 同时为将来编译器支持新属性时的静态分析和运行时安全检查做好准备. 参见 [LWN, 2023/07/03, Documenting counted-by relationships in kernel data structures](https://lwn.net/Articles/936728). | v2 ☐☑✓ v6.5-rc1 | [LORE](https://lore.kernel.org/all/20230517190841.gonna.796-kees@kernel.org) |
+
 
 
 ## 13.14 Compiler
@@ -1126,6 +1142,8 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 [Arm Helping With AArch64 Rust Linux Kernel Enablement](https://www.phoronix.com/news/AArch64-Rust-Linux-Kernel)
 
 
+[Linux 6.11 Adds Support For Rust-Based Block Drivers & Atomic Writes](https://www.phoronix.com/news/Linux-6.11-Block-IO_uring)
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/09/27 | Miguel Ojeda <ojeda@kernel.org> | [Rust support](https://lore.kernel.org/all/20220927131518.30000-1-ojeda@kernel.org) | TODO| v10 ☐☑✓ | [LORE 00/13](https://lore.kernel.org/all/20210414184604.23473-1-ojeda@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v10,0/27](https://lore.kernel.org/all/20220927131518.30000-1-ojeda@kernel.org) |
@@ -1134,6 +1152,7 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 | 2024/03/22 | Boqun Feng <boqun.feng@gmail.com> | [Memory model and atomic API in Rust](https://lore.kernel.org/all/20240322233838.868874-1-boqun.feng@gmail.com) | [A memory model for Rust code in the kernel](https://lwn.net/Articles/967049). | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240322233838.868874-1-boqun.feng@gmail.com) |
 | 2024/05/14 | Wedson Almeida Filho <wedsonaf@gmail.com> | [Rust abstractions for VFS](https://lore.kernel.org/all/20240514131711.379322-1-wedsonaf@gmail.com) | 参见 phoronix 报道 [Microsoft Engineer Ports EXT2 File-System Driver To Rust](https://www.phoronix.com/news/Rust-VFS-Linux-V2-Now-With-EXT2) 以及 [Rust for filesystems](https://lwn.net/Articles/978738). | v2 ☐☑✓ | [LORE v2,0/30](https://lore.kernel.org/all/20240514131711.379322-1-wedsonaf@gmail.com) |
 | 2024/05/20 | Danilo Krummrich <dakr@redhat.com> | [DRM Rust abstractions and Nova](https://lore.kernel.org/all/20240520172059.181256-1-dakr@redhat.com) | [RFC Patches Posted For Rust-Written NVIDIA"Nova"GPU Driver](https://www.phoronix.com/news/RFC-Rust-Nova-NVIDIA-Driver). | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20240520172059.181256-1-dakr@redhat.com) |
+| 2024/07/17 | Benno Lossin <benno.lossin@proton.me> | [Introduce the Rust Safety Standard](https://lore.kernel.org/all/20240717221133.459589-1-benno.lossin@proton.me) | [Rust Safety Standard Proposed For The Linux Kernel](https://www.phoronix.com/news/Rust-Safety-Standard-Linux-RFC). | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20240717221133.459589-1-benno.lossin@proton.me) |
 
 
 

@@ -468,7 +468,7 @@ SGX 旨在以硬件安全为强制性保障, 不依赖于固件和软件的安�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/11/10 | Brijesh Singh <brijesh.singh@amd.com> | [Add AMD Secure Nested Paging (SEV-SNP) Guest Support](https://patchwork.kernel.org/project/linux-mm/cover/20211110220731.2396491-1-brijesh.singh@amd.com) | Guest 支持 AMD SEV SNP.  | v7 ☐ | [Patchwork v7,00/45](https://patchwork.kernel.org/project/linux-mm/cover/20211110220731.2396491-1-brijesh.singh@amd.com) |
-| 2022/09/29 | Quan Nguyen <quan@os.amperecomputing.com> | [Add Ampere's Altra SMPro MFD and its child drivers](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4e6104b1e70020ad500f0fab7238898dd2ea2a38) | [Hardware Monitoring Driver Updates Land In Linux 6.2](https://www.phoronix.com/news/Linux-6.2-HWMON) | v9 ☐☑✓ 6.2 | [LORE v9,0/9](https://lore.kernel.org/all/20220929094321.770125-1-quan@os.amperecomputing.com) |
+| 2022/09/29 | Quan Nguyen <quan@os.amperecomputing.com> | [Add Ampere's Altra SMPro MFD and its child drivers](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=4e6104b1e70020ad500f0fab7238898dd2ea2a38) | [Hardware Monitoring Driver Updates Land In Linux 6.2](https://www.phoronix.com/news/Linux-6.2-HWMON) 和 [Hardware Monitoring Improvements Submitted For Linux 6.11](https://www.phoronix.com/news/Linux-6.11-HWMON). | v9 ☐☑✓ 6.2 | [LORE v9,0/9](https://lore.kernel.org/all/20220929094321.770125-1-quan@os.amperecomputing.com) |
 
 ## 1.9 Software Defined Silicon
 -------
@@ -715,6 +715,14 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | 2021/10/27 | Mark Brown <broonie@kernel.org> | [arm64/sme: Initial support for the Scalable Matrix Extension](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211027184424.166237-1-broonie@kernel.org) | SME 指令的支持. v7 版本前 6 个 [prepare 的补丁](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-AArch64)先合入了 [5.17-rc1](https://lore.kernel.org/lkml/20220106185501.1480075-1-catalin.marinas@arm.com) | v5 ☐ | [LORE v3,00/42](https://lore.kernel.org/all/20211019172247.3045838-1-broonie@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2021/10/27 Patchwork v5,00/38](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211027184424.166237-1-broonie@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2021/12/10 Patchwork v7,00/37](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20211210184133.320748-1-broonie@kernel.org) |
 | 2023/01/16 | Mark Brown <broonie@kernel.org> | [arm64/sme: Support SME 2 and SME 2.1](https://lore.kernel.org/all/20221208-arm64-sme2-v4-0-f2fa0aef982f@kernel.org) | Arm 最近发布了 SME 扩展的版本 2 和 2.1. SME 2 引入的特征之一是一些新的体系结构状态, 即 ZT0 寄存器. 本系列增加了对这一功能以及新 SME 版本的所有其他功能的支持. | v4 ☐☑✓ | [LORE v4,0/21](https://lore.kernel.org/all/20221208-arm64-sme2-v4-0-f2fa0aef982f@kernel.org) |
 
+
+### 2.3.4 FEAT_MOPS
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/05/09 | Kristina Martsenko <kristina.martsenko@arm.com> | [arm64: Support for Armv8.8 memcpy instructions in userspace](https://lore.kernel.org/all/20230509142235.3284028-1-kristina.martsenko@arm.com) | Armv8.8 扩展添加了执行 memcpy()、memset() 和 memmove() 等操作 (FEAT_MOPS). 这个补丁集增加了对的支持使用用户空间中的新指令. | v8 ☐☑✓ | [LORE v8,0/11](https://lore.kernel.org/all/20230509142235.3284028-1-kristina.martsenko@arm.com) |
+| 2023/09/15 | Kristina Martsenko <kristina.martsenko@arm.com> | [KVM: arm64: Support for Arm v8.8 memcpy instructions in KVM guests](https://lore.kernel.org/all/20230915124840.474888-1-kristina.martsenko@arm.com) | TODO | v8 ☐☑✓ | [LORE v8,0/3](https://lore.kernel.org/all/20230915124840.474888-1-kristina.martsenko@arm.com) |
 
 ## 2.4 pseudo-NMI
 -------
@@ -1320,13 +1328,22 @@ AMD-pstate 驱动程序利用 ITMT 体系结构提供的功能和数据结构, �
 ## 6.14 Cache 带宽管控
 -------
 
+
+### 6.14.1 Intel RDT
+-------
+
+[`intel-cmt-cat`](https://github.com/intel/intel-cmt-cat)
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2023/08/29 | Tony Luck <tony.luck@intel.com> | [Add support for Sub-NUMA cluster (SNC) systems](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com) | Add support for Sub-NUMA cluster (SNC) systems](https://lore.kernel.org/all/20240528222006.58283-1-tony.luck@intel.com) | 英特尔推出了一个大型的 Linux 内核补丁系列, 以改进 Sub-NUMA 集群 "SNC" 支持, 使其在现代英特尔硬件上与英特尔资源总监技术(RDT) 配合良好. SNC 将 CPU 内核/缓存/内存拆分为多个 NUMA 域有助于提高 NUMA 感知工作负载的性能. 参见 phoronix 报道 [Intel Fixing Up Sub-NUMA Clustering For Linux So That It Behaves With RDT](https://www.phoronix.com/news/Intel-SNT-RDT-Fixing-Up) 和 | v5 ☐☑✓ | [LORE v5,0/8](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v19,0/20](https://lore.kernel.org/all/20240528222006.58283-1-tony.luck@intel.com) |
+| 2023/08/29 | Tony Luck <tony.luck@intel.com> | [Add support for Sub-NUMA cluster (SNC) systems](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com) | Add support for Sub-NUMA cluster (SNC) systems](https://lore.kernel.org/all/20240528222006.58283-1-tony.luck@intel.com) | 英特尔推出了一个大型的 Linux 内核补丁系列, 以改进 Sub-NUMA 集群 "SNC" 支持, 使其在现代英特尔硬件上与英特尔资源总监技术(RDT) 配合良好. SNC 将 CPU 内核/缓存/内存拆分为多个 NUMA 域有助于提高 NUMA 感知工作负载的性能. 参见 phoronix 报道 [Intel Fixing Up Sub-NUMA Clustering For Linux So That It Behaves With RDT](https://www.phoronix.com/news/Intel-SNT-RDT-Fixing-Up) 和 [Intel Sub-NUMA Clustering Will Stop Clashing With Resource Director On Linux 6.11+](https://www.phoronix.com/news/Intel-SNC-RDT-Behaves-Linux-611). | v5 ☐☑✓ | [LORE v5,0/8](https://lore.kernel.org/all/20230829234426.64421-1-tony.luck@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v19,0/20](https://lore.kernel.org/all/20240528222006.58283-1-tony.luck@intel.com) |
 | 2023/12/07 | Tony Luck <tony.luck@intel.com> | [x86/resctrl: mba_MBps enhancements](https://lore.kernel.org/all/20231207195613.153980-1-tony.luck@intel.com) | TODO | v6 ☐☑✓ | [LORE v6,0/3](https://lore.kernel.org/all/20231207195613.153980-1-tony.luck@intel.com) |
 | 2024/02/13 | James Morse <james.morse@arm.com> | [x86/resctrl: monitored closid+rmid together, separate arch/fs locking](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/log/?id=fb700810d30b9eb333a7bf447012e1158e35c62f) | [Improved Memory Bandwidth Throttling Behavior For Linux 6.9](https://www.phoronix.com/news/Linux-69-RAM-Bandwidth-Throttle) | v9 ☐☑✓ 6.9-rc1 | [LORE v9,0/24](https://lore.kernel.org/all/20240213184438.16675-1-james.morse@arm.com) |
 | 2024/03/21 | James Morse <james.morse@arm.com> | [x86/resctrl: Move the resctrl filesystem code to /fs/resctrl](https://lore.kernel.org/all/20240321165106.31602-1-james.morse@arm.com) | TODO | v1 ☐☑✓ | [LORE v1,0/31](https://lore.kernel.org/all/20240321165106.31602-1-james.morse@arm.com) |
 
+
+### 6.14.2 ARM MPAM
+-------
 
 
 <br>

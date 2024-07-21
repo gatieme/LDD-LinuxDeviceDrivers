@@ -7383,7 +7383,7 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 
 2.  足够轻量, 以便它可以在线使用;
 
-DAMON 利用两个核心机制 : ** 基于区域的采样 ** 和 ** 自适应区域调整 **, 允许用户将跟踪开销限制在有界范围内, 而与目标工作负载的大小和复杂性无关, 同时保留结果的质量.
+DAMON 利用两个核心机制 : **基于区域的采样** 和 **自适应区域调整**, 允许用户将跟踪开销限制在有界范围内, 而与目标工作负载的大小和复杂性无关, 同时保留结果的质量.
 
 | 机制 | 设计初衷 | 描述 |
 |:---:|:-------:|:----:|
@@ -7431,6 +7431,7 @@ SeongJae Park 发布了 DAMON 2022 年度总结 [Looking back DAMON development 
 | 2022/04/29 | SeongJae Park <sj@kernel.org> | [mm/damon: Support online tuning](https://patchwork.kernel.org/project/linux-mm/cover/20220429160606.127307-1-sj@kernel.org/) | 637059 | v1 ☐☑ | [LORE v1,0/14](https://lore.kernel.org/r/20220429160606.127307-1-sj@kernel.org) |
 | 2022/05/07 | Gautam Menghani <gautammenghani201@gmail.com> | [Add documentation for Enum value'NR_DAMON_OPS'in](https://patchwork.kernel.org/project/linux-mm/patch/20220507165620.110706-1-gautammenghani201@gmail.com/) | 639422 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20220507165620.110706-1-gautammenghani201@gmail.com) |
 | 2022/10/19 | SeongJae Park <sj@kernel.org> | [efficiently expose damos action tried regions information](https://patchwork.kernel.org/project/linux-mm/cover/20221019001317.104270-1-sj@kernel.org/) | 686501 | v1 ☐☑ | [LORE v1,0/18](https://lore.kernel.org/r/20221019001317.104270-1-sj@kernel.org) |
+| 2024/06/14 | Honggyu Kim <honggyu.kim@sk.com> | [DAMON based tiered memory management for CXL memory](https://lore.kernel.org/all/20240614030010.751-1-honggyu.kim@sk.com) | TODO | v6 ☐☑✓ | [LORE v6,0/7](https://lore.kernel.org/all/20240614030010.751-1-honggyu.kim@sk.com) |
 
 
 ### 13.6.3 DAMON Interface

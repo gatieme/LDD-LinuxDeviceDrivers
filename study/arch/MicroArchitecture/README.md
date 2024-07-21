@@ -33,8 +33,13 @@ blogexcerpt: 虚拟化 & KVM 子系统
 <br>
 
 
+# 1 SMT(Simultaneous Multithreading)
+-------
 
-# 1 Rentable Units
+1995 年 [Proceedings of the 22rd Annual International Symposium on Computer Architecture, Santa Margherita Ligure, Italy, June 1995.](https://dada.cs.washington.edu/smt/papers/isca95abstract.html) 的论文 [Simultaneous Multithreading: Maximizing On-Chip Parallelism](https://dada.cs.washington.edu/smt/papers/isca95abstract.html) 首次提出同步多线程 SMT 的设计.
+
+
+# 2 Rentable Units
 -------
 
 
@@ -61,7 +66,7 @@ Rentable Unit 根据任务调度 P 核和 E 核, 确保所有核心都处于活�
 
 
 
-# 2 ON-DEMAND MEMORY ALLOCATION
+# 3 ON-DEMAND MEMORY ALLOCATION
 -------
 
 
@@ -69,7 +74,7 @@ Apple [专利号-WO2021US19353-Apple-ON-DEMAND MEMORY ALLOCATION](https://xueshu
 
 
 
-# 3 一些微架构的探索
+# 4 一些微架构的探索
 -------
 
 [The Forward Slice Core Microarchitecture](https://dl.acm.org/doi/10.1145/3410463.3414629)
@@ -86,11 +91,34 @@ Apple [专利号-WO2021US19353-Apple-ON-DEMAND MEMORY ALLOCATION](https://xueshu
 
 
 
+# 5 业界比赛/会议
+-------
+
+## 5.1 竞赛
+-------
+
+| 竞赛 | 描述 |
+|:---:|:----:|
+| [Data Prefetching Championship](https://dpc3.compas.cs.stonybrook.edu) | 数据预取锦标赛, 目标是在一个通用框架中比较不同的数据预取算法. L1、L2 和 L3 数据缓存的预取器必须在竞争规则中指定的固定存储预算内实施. 参赛作品将根据组委会提供的框架在一系列基准上的表现进行评估. [3rd 属于](https://dpc3.compas.cs.stonybrook.edu) |
+| [Instruction Prefetching Championship (IPC1)](https://research.ece.ncsu.edu/ipc/welcome) | 指令预取算法竞赛, 目标是在一个通用框架中比较不同的指令预取算法. L1 指令缓存的预取器必须在竞争规则中指定的固定存储预算内实现. 参赛作品将根据组委会提供的框架在一系列基准上的表现进行评估. |
 
 
 
+## 5.2 会议
+-------
 
 
+| 竞赛 | 描述 |
+|:---:|:----:|
+| [International Symposium on Computer Architecture (ISCA)](https://dblp.uni-trier.de/db/conf/isca/index.html) | NA |
+| International Symposium on Microarchitecture (MICRO) | NA |
+| International Symposium on High-Performance Computer Architecture (HPCA) | NA |
+| International Conference on Architectural Support for Programming Languages and Operating Systems (ASPLOS) | NA |
+| ACM Transactions on Computer Systems (TOCS) | NA |
+| ACM Transactions on Architecture and Code Optimization (TACO) | NA |
+| IEEE Transactions on Computers (TC) | NA |
+| IEEE Transactions on Parallel and Distributed Systems (TPDS) | NA |
+| IEEE Micro Magzine (IEEE Micro) | NA |
 
 
 
