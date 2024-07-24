@@ -883,6 +883,13 @@ Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM F
 
 
 
+## 13.15 Package BUILD
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/07/20 | Thomas Weißschuh <linux@weissschuh.net> | [kbuild: add script and target to generate pacman package](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=c8578539debaedfbb4671e1954be8ebbd1307c6f) | 旨在在 Linux 内核构建过程中添加生成 Arch Linux 及其衍生系统所使用的 pacman 包的目标和脚本. [Upstream Linux 6.11 Makes It Easy To Build A Pacman Kernel Package For Arch Linux](https://www.phoronix.com/news/Linux-6.11-Pacman-Arch-Linux). | v7 ☐☑✓ v6.11-rc1 | [LORE](https://lore.kernel.org/all/20240720-kbuild-pacman-pkg-v7-1-74a79b4401d2@weissschuh.net) |
+
 # 14 FTRACE
 -------
 

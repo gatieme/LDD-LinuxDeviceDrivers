@@ -753,5 +753,7 @@ HUAWEI P10 Plus, Vicky, Android 7.0, EMUI 5.1
 [New Power Sequencing Driver Subsystem Merged For Linux 6.11](https://www.phoronix.com/news/Linux-6.11-Power-Sequencing)
 
 
-Silva 提出了一系列旨在提高灵活数组使用安全性的措施, 包括:<br>引入 `__counted_by` 宏来注解结构体中的变长数组, 以帮助编译器进行边界检查.<br>
-提升编译器警告级别, 以捕捉零长度数组的使用, 尤其是那些可能被误解为灵活数组的情况.<br>集成测试到自动测试机器人中, 以捕获对类型转换的不当使用, 类似于在 atomic_t 转换为 recount_t 时所做的.
+
+
+
+
