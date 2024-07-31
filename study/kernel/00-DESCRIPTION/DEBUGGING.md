@@ -258,9 +258,13 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 
 [A vDSO implementation of getrandom()](https://lwn.net/Articles/919008)
 
+[Linux 6.11 Lands Support For getrandom() In The vDSO](https://www.phoronix.com/news/Linux-6.11-Lands-getrandom-vDSO)
+
+[What became of getrandom() in the vDSO](https://lwn.net/Articles/983186)
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/07/29 | Jason A. Donenfeld <Jason@zx2c4.com> | [random: implement getrandom() in vDSO](https://lore.kernel.org/all/20220729145525.1729066-1-Jason@zx2c4.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220729145525.1729066-1-Jason@zx2c4.com)<br>*-*-*-*-*-*-*-* <br>[2023/01/01 LORE v14,0/7](https://lore.kernel.org/all/20230101162910.710293-1-Jason@zx2c4.com) |
+| 2022/07/29 | Jason A. Donenfeld <Jason@zx2c4.com> | [random: implement getrandom() in vDSO](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ad8070cb1b4bd40aa19a5e3f7c24d7f62c71b382) | TODO | v1 ☐☑✓ v6.11-rc1 | [LORE](https://lore.kernel.org/all/20220729145525.1729066-1-Jason@zx2c4.com)<br>*-*-*-*-*-*-*-* <br>[2023/01/01 LORE v14,0/7](https://lore.kernel.org/all/20230101162910.710293-1-Jason@zx2c4.com) |
 
 
 # 9 PRINTK
@@ -1160,6 +1164,9 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 | 2024/05/14 | Wedson Almeida Filho <wedsonaf@gmail.com> | [Rust abstractions for VFS](https://lore.kernel.org/all/20240514131711.379322-1-wedsonaf@gmail.com) | 参见 phoronix 报道 [Microsoft Engineer Ports EXT2 File-System Driver To Rust](https://www.phoronix.com/news/Rust-VFS-Linux-V2-Now-With-EXT2) 以及 [Rust for filesystems](https://lwn.net/Articles/978738). | v2 ☐☑✓ | [LORE v2,0/30](https://lore.kernel.org/all/20240514131711.379322-1-wedsonaf@gmail.com) |
 | 2024/05/20 | Danilo Krummrich <dakr@redhat.com> | [DRM Rust abstractions and Nova](https://lore.kernel.org/all/20240520172059.181256-1-dakr@redhat.com) | [RFC Patches Posted For Rust-Written NVIDIA"Nova"GPU Driver](https://www.phoronix.com/news/RFC-Rust-Nova-NVIDIA-Driver). | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20240520172059.181256-1-dakr@redhat.com) |
 | 2024/07/17 | Benno Lossin <benno.lossin@proton.me> | [Introduce the Rust Safety Standard](https://lore.kernel.org/all/20240717221133.459589-1-benno.lossin@proton.me) | [Rust Safety Standard Proposed For The Linux Kernel](https://www.phoronix.com/news/Rust-Safety-Standard-Linux-RFC). | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20240717221133.459589-1-benno.lossin@proton.me) |
+| 2024/07/01 | Miguel Ojeda <ojeda@kernel.org> | [Support several Rust toolchain versions](https://lore.kernel.org/all/20240701183625.665574-1-ojeda@kernel.org) |
+几乎每一个 Linux 内核周期都会引入新的补丁, 这些补丁通常会提升内核支持的 Rust 语言版本, 以便达到一个合适的最低版本要求. Miguel Ojeda 发布的这组组补丁, 旨在使 Rust 内核代码能够支持多个版本的 Rust 编译器("rustc"), 然后只需要指定一个安全的最低 Rust 版本要求. 参见 [The Linux Kernel Matures To Having A Minimum Rust Toolchain Version](https://www.phoronix.com/news/Linux-Patches-Multiple-Rust-Ver). | v1 ☐☑✓ | [LORE v1,0/13](https://lore.kernel.org/all/20240701183625.665574-1-ojeda@kernel.org) |
+| 2024/07/24 | Miguel Ojeda <ojeda@kernel.org> | [Rust: support `CPU_MITIGATIONS` and enable `objtool`](https://lore.kernel.org/all/20240724161501.1319115-1-ojeda@kernel.org) | 关于在 Rust 内核代码中实现各种 CPU 安全缓解措施的最新补丁, 作为其中的一部分, 同时为 Rust 启用了 objtool 支持. 重点是根据编译器的 Retpolines、Rethunk 和直线推测 (SLS) 处理来传递相关的编译器标志以构建 Rust 代码. 通过这些补丁, 适当的标志将被传递给 Rust 编译器, 以便在需要编译器端操作的安全缓解措施中提供足够的保护. | v2 ☐☑✓ |[LORE v2,0/6](https://lore.kernel.org/all/20240724161501.1319115-1-ojeda@kernel.org) |
 
 
 

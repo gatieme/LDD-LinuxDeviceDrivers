@@ -1053,6 +1053,8 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 
 [kernel cxl.git](https://git.kernel.org/pub/scm/linux/kernel/git/cxl/cxl.git)
 
+[The Current State Of CXL Support On Linux](https://www.phoronix.com/news/Linux-6.11-CXL)
+
 #### 6.3.2.1 CXL Support
 -------
 

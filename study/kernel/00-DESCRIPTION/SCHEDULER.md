@@ -927,6 +927,8 @@ Chang 的 patch set 采用了与之前不同的方法: 允许 cgroup 将一些�
 
 [CPU 负载均衡之 WALT 学习](https://blog.csdn.net/xiaoqiaoq0/article/details/107135747)
 
+[when_walt_load_update_happened](https://github.com/Rust401/OS-kernel-dev-config/blob/main/notes/walt/when_walt_load_update_happened.md)
+
 WALT 以一个窗口 walt_ravg_window 内 TASK/RQ 的平均执行速率作为其 utilization. 通过窗口内每个周期对进程的运行时间 delta 按照 capacity_curr_of 进行缩放得到 scale\_exec\_time, 然后窗口内所有 scale\_exec\_time 累计求和, 即可得到窗口内 TASK/RQ 的负载信息. 即:
 
 $scale\_exec\_time=delta \times \frac{capacity\_curr\_of}{1024}$
@@ -1069,14 +1071,14 @@ $load = \displaystyle \sum^{n}_{i = 0}{{L_i}{y^i}} = L_0+L_1y+L_2y^2+L_3y^3.....
 
 *   32 个 period 之前负载对当前 period 的影响力降到原来一半. 也就是说 $y^{32} = 0.5$, 即 $y \approx 0.97857206$
 
-*   period [超过 $32^63-1$ 之后, 就会将 load 衰减为 0](https://elixir.bootlin.com/linux/v4.12/source/kernel/sched/fair.c#L2738), 也就是只会统计前 64*63-1 个 perod 的 load.
+*   period [超过 $32^63-1$ 之后, 就会将 load 衰减为 0](https://elixir.bootlin.com/linux/v4.12/source/kernel/sched/fair.c#L2738), 也就是只会统计前 `64*63-1` 个 perod 的 load.
 
 
 很明显这是一个无穷级数, 那么一个 entity, 从创建开始如果一直运行, 那么 $L_i$ 一直为 1, 那么就成为一个等比数列求和 (公比为衰减因子 y).
 
 $Sum_n = L_i{\frac{1-q^n}{1-q}}$
 
-该公式的图像参见 [函数图像绘制工具](https://zh.numberempire.com/graphingcalculator.php?functions=y%3D1024*(1-0.9785%5Ex)%2F(1-0.9785)&xmin=0&xmax=603.054551&ymin=0&ymax=47628&var=x).
+该公式的图像参见 [函数图像绘制工具](https://zh.numberempire.com/graphingcalculator.php?functions=y%3D1024*(1-0.9785%5Ex)%2F(1-0.9785)&xmin=0&xmax=603.054551&ymin=0&ymax=47628&var=x) 以及 [desmos.com/calculator](https://www.desmos.com/calculator?lang=zh-CN).
 
 对于一个无穷递降数列, 数列的公比 y < 1, 因此无穷级数是收敛的, 当上式得 n 趋向于正无穷大时, 分子括号中的值趋近于 1, 取极限即得无穷递减数列求和公式.
 
@@ -1603,7 +1605,7 @@ rebalance_domains()
             -=> activate_task(rq, p, 0);
 ```
 
-### 4.3.1.3 新的命名方式
+#### 4.3.1.3 新的命名方式
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1996,7 +1998,7 @@ CPU 负载均衡器在不同的域之间进行平衡, 以分散负载, 并努力
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2020/03/11 | Valentin Schneider <valentin.schneider@arm.com> | [sched: Streamline select_task_rq() & select_task_rq_fair()](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=36c5bdc4387056af3840adb4478c752faeb9d15e) | 选核流程上的重构和优化, 当然除此之外还做了其他操作, 比如清理了 sd->flags 信息, 甚至 sysfs 接口都变成只读了. 只合入了补丁集的前 4 个补丁. | v3 ☑ 5.8-rc1 | [LORE v2,0/9](https://lore.kernel.org/lkml/20200311181601.18314-1-valentin.schneider@arm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/9](https://lore.kernel.org/all/20200415210512.805-1-valentin.schneider@arm.com) |
 
-#### 4.3.3.3 power aware scheduling
+#### 4.3.3.4 power aware scheduling
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -4544,7 +4546,8 @@ c27c56105dca ANDROID: Add find_best_target to minimise energy calculation overhe
 #### 7.2.3.6 energy-aware load-balancing decisions
 -------
 
-*	sched domain overutilized
+##### 7.2.3.6.1 sched domain overutilized
+-------
 
 EAS 按照能效进行选核等操作也是有一定开销的, 因此调度器 更倾向于在系统负载不高仍有余力时使用 EAS 按照能效进行调度, 而当系统负载已经很高时, 不再使用 EAS, 而是回退到原生 SMP NICE 的情况. 这就需要一种标记系统是否过载的方法.
 
@@ -4573,7 +4576,8 @@ EAS 原生的 overutilized 机制非常保守, 一旦发现某个 CPU 出现了 
 | 2024/03/25 | Shrikanth Hegde <sshegde@linux.ibm.com> | [sched: Minor changes for rd->overload access](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log?id=4d0a63e5b841c759c9a306aff158420421ef016f) | 当在大型系统中运行工作负载时, 可以观察到对 rd->overload 的访问需要时间.<br>1. 补丁 1, 更新之前最好检查一下值, 因为值更改的频率较低.<br>补丁 2, 只有在必要时才会进行修补程序更新. CPU 总线流量有所减少. 工作负载性能没有显著提高. Qais 建议最好使用 helper 函数来访问 rd->overload. | v3 ☐☑✓ v6.10-rc1 | [LORE v3,0/2](https://lore.kernel.org/all/20240325054505.201995-1-sshegde@linux.ibm.com) |
 
 
-*	sched group energy
+##### 7.2.3.6.2 sched group energy
+-------
 
 AOSP 4.14
 
@@ -4597,7 +4601,8 @@ b523403113a5 ANDROID: sched: Enable idle balance to pull single task towards cpu
 ac3ecee61d29 ANDROID: sched: Prevent unnecessary active balance of single task in sched group
 ```
 
-* 可运行提升 (runnable boosting)
+##### 7.2.3.6.3 可运行提升 (runnable boosting)
+-------
 
 在 EAS 平衡器中实现可运行提升 (runnable boosting) 功能: 考虑频率中的 CPU 争用、EAS 最大效用和负载平衡最繁忙的 CPU 选择. 将 CPU runnable_avg 纳入 CPU 利用率的考虑范畴, 以此来考虑以下方面的 CPU 争用:
 
@@ -4655,6 +4660,15 @@ load_balance()
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/05/15 | Dietmar Eggemann <dietmar.eggemann@arm.com> | [sched: Consider CPU contention in frequency, EAS max util & load-balance busiest CPU selection](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7d0583cf9ec7bf8e5897dc7d3a7059e8fae5464a) | 参见 [Linux 6.5 To Enhance Load Balancing For Intel Hybrid CPUs](https://www.phoronix.com/news/Linux-6.5-Intel-Hybrid-Sched). | v3 ☐☑✓ | [LORE v3,0/2](https://lore.kernel.org/all/20230515115735.296329-1-dietmar.eggemann@arm.com) |
 
+
+
+##### 7.2.3.6.4 Check nr_balance_failed
+-------
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/12/06 | Pierre Gondois <pierre.gondois@arm.com> | [sched/fair: Use all little CPUs for CPU-bound workload](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=3af7524b14198f5159a86692d57a9f28ec9375ce) | 旨在改进 Linux 内核调度器的行为, 确保在处理 CPU 密集型工作负载时能更有效地利用所有小核心 (little CPUs).<br> 背景: 在具有非对称 CPU 容量的 n CPU 平台上运行 n 个 CPU 密集型任务时, 如果系统不是 DynamIQ 系统(即, 调度域在 PKG 级别上没有设置 SD_SHARE_PKG_RESOURCES 标志), 可能会导致任务分配不是最优的, 如两个任务运行在一个大核心上, 而一个小核心则完全空闲.<br> 使用的测试平台是 Juno-r2, 具有 2 个大核心(CPU 1-2) 和 4 个小核心 (CPU 0,3-5), 它们的最大容量分别是 1024 和 383. 运行 6 个 CPU 密集型任务. 在最初的 100 毫秒内, 除了一个保持空闲的小核心和一个承载两个任务的大核心外, 每个任务都绑定到一个 CPU 上. 100 毫秒后, 移除 CPU 亲和性限制.<br> 补丁前的行为: 在测试的第二步, 调度器从空闲的小核心运行时, 会将调度域标记为 "有备用容量" 或 "过载", 导致最繁忙的运行队列(runqueue) 是承载两个任务的大核心的运行队列, 而空闲的小核心由于容量太小而无法吸引这些任务.<br> 补丁后的行为: 随着调度失败尝试次数的增加(nr_balance_failed), 补丁使得将大任务迁移到空闲的小核心变得更加容易. 这种机制也适用于 "migrate_load" 迁移类型.<br>在测试工作负载中, 补丁能够将大核心在第二步的负载时间从大约 19.3 秒减少到 18 秒, 性能提升了 6.7%.<br>在 detach_tasks 函数中, 将判断迁移任务的条件从简单的 `util > env->imbalance` 改为 `shr_bound(util, env->sd->nr_balance_failed) > env->imbalance`, 这允许在多次平衡尝试失败后, 更容易地迁移任务. | v3 ☐☑✓ v6.8-rc1 | [LORE](https://lore.kernel.org/all/20231206090043.634697-1-pierre.gondois@arm.com) |
 
 
 #### 7.2.3.x EAS timeline
@@ -4882,7 +4896,7 @@ Misfit Task 对调度器 ** 负载均衡 ** 做了如下改造, 参见 [commit c
 | 2021/04/16 | Valentin Schneider | [sched/fair: (The return of) misfit task load-balance tweaks](https://lore.kernel.org/patchwork/cover/1414181) | misfit task load-balance tweaks 的补丁被拆分重构, 这个是 Part 2 | v1 ☐ 5.10-rc4 | [PatchWork](https://lore.kernel.org/patchwork/cover/1414181) |
 
 
-*	Check Affinity
+*  Check Affinity
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
@@ -6370,7 +6384,7 @@ $deadline_{se} = vruntime_{se} + slice \times \frac{weight_0}{weight_{se}}$
 | 2023/11/04 | Yiwei Lin <s921975628@gmail.com> | [sched/fair: Track current se's EEVDF parameters](https://lore.kernel.org/all/20231104090054.124945-1-s921975628@gmail.com) | TODO | v4 ☐☑✓ | [LORE v4,0/1](https://lore.kernel.org/all/20231104090054.124945-1-s921975628@gmail.com) |
 | 2023/09/19 | Ingo Molnar <mingo@kernel.org> | [sched/fair: Do not wakeup-preempt same-prio SCHED_OTHER tasks](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=147f3efaa24182a21706bca15eab2f3f4630b5fe) | Mike 和其他人注意到, EEVDF 确实喜欢过多地安排时间--这确实会造成[许多基准测试/工作负载的性能](https://lore.kernel.org/all/202308101628.7af4631a-oliver.sang@intel.com) 的劣化. 特别是, 似乎导致过度调度的原因是, 当滞后 lag 与请求/切片的顺序相同(或更大)时, 放置不仅会导致任务被放置在当前任务的左边, 而且最后期限比当前任务小, 这会导致立即先发制人, 从另外一个角度上讲, 就是这些任务被过多的安排了时间片. Mike 建议, 只要它有资格运行, 我们就坚持选择 "current", 让它不间断地运行, 直到它与包持平. 引入 sched_feature RUN_TO_PARITY 的实现, 标记 current 的任务的 `curr->vlag = curr->deadline`, 只允许它用尽最初的请求来增强. | v1 ☐☑✓ 6.6-rc1 | [LORE](https://lore.kernel.org/all/ZQljoiSBhZLEFI/G@gmail.com) |
 | 2023/11/07 | Abel Wu <wuyun.abel@bytedance.com> | [sched/eevdf: Optimize reweight and pick](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=ee4373dc902c0a403dd084b254ce70a78f95466f) | 1. 解决了重新加权时vruntime无法调整的问题 !0-tag 滞点.<br>2. 按照虚拟截止日期对任务时间线进行排序, 并将 min_vruntime 保留在增强树中, 这样实现了一种基于最后期限排序的最左侧缓存红黑树( deadline-sorted leftmost-cached rbtree). 通过在 best_left 上进行回退搜索, 可以避免在最坏的情况下会使成本翻倍的问题.<br>3. 充分利用缓存的最左边节点, 可以达成 O(1) 复杂度的 PICK TASK.<br>4. 最后一个补丁是 EEVDF 的统计维测补丁, 不用于 UPSTREAM. | v1 ☐☑✓ v6.8-rc1 | [LORE v1,0/4](https://lore.kernel.org/all/20231107090510.71322-1-wuyun.abel@bytedance.com) |
-| 2024/04/05 | Peter Zijlstra <peterz@infradead.org> | [sched/fair: Complete EEVDF](https://lore.kernel.org/all/20240405102754.435410987@infradead.org) | [New EEVDF Linux Scheduler Patches Make It Functionally "Complete"](https://www.phoronix.com/news/Linux-Completing-EEVDF-Sched) 以及 [Completing the EEVDF scheduler](https://lwn.net/Articles/969062). | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/20240405102754.435410987@infradead.org) |
+| 2024/04/05 | Peter Zijlstra <peterz@infradead.org> | [sched/fair: Complete EEVDF](https://lore.kernel.org/all/20240405102754.435410987@infradead.org) | 这是 EEVDF 补丁集的最终版本. 补丁集中包含了大量错误修复以及一些新的特性, 具体包括:<br>1. 分割大型的延迟卸载(delay-dequeue)补丁: 补丁集中的一个大型补丁被拆分成了多个较小的补丁, 以便更好地理解和维护.<br>2. CFS 带宽测试与修复: CFS (Completely Fair Scheduler) 带宽相关的功能进行了测试并修复了一些问题.<br>3. PLACE_REL_DEADLINE: 引入了一个新特性, 可以在任务迁移时保留相对截止时间.<br>4. SCHED_BATCH 等同于 RESPECT_SLICE: SCHED_BATCH 任务现在等同于 RESPECT_SLICE, 这意味着批处理任务将受到切片限制.<br>5. min_slice 在控制组层级传播: 最小切片(min_slice)的设置现在会在控制组(cgroup)层级中向上传播.<br>6. CLOCK_THREAD_DVFS_ID: 引入了一个新的线程时钟标识符(CLOCK_THREAD_DVFS_ID), 这可能与动态电压和频率缩放(DVFS)相关. 参见 [New EEVDF Linux Scheduler Patches Make It Functionally "Complete"](https://www.phoronix.com/news/Linux-Completing-EEVDF-Sched) 以及 [Completing the EEVDF scheduler](https://lwn.net/Articles/969062), [phoronix, 2024/07/27, EEVDF Scheduler On The Verge Of Being "Complete"](https://www.phoronix.com/news/Linux-Completing-EEVDF). | v1 ☐☑✓ | [2024/04/05, LORE v1,0/10](https://lore.kernel.org/all/20240405102754.435410987@infradead.org)<br>*-*-*-*-*-*-*-* <br>[2024/07/27, LORE 02,00/24](https://lore.kernel.org/all/20240727102732.960974693@infradead.org) |
 | 2024/01/11 | Ze Gao <zegao2021@gmail.com> | [sched/eevdf: Use tunable knob sysctl_sched_base_slice as explicit time quanta](https://lore.kernel.org/all/20240111115745.62813-2-zegao@tencent.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240111115745.62813-2-zegao@tencent.com) |
 | 2023/09/05 | Mathieu Desnoyers <mathieu.desnoyers@efficios.com> | [sched/eevdf: Rate limit task migration](https://lore.kernel.org/all/20230905171105.1005672-1-mathieu.desnoyers@efficios.com) | 实现任务迁移速率限制, 以加快触发频繁迁移的工作负载模式, 如 hackbbench. 第一个补丁 [sched: Rate limit migrations to 1 per 2ms per task](https://lore.kernel.org/lkml/20230905171105.1005672-2-mathieu.desnoyers@efficios.com) 实现了一个简单的速率限制, 即每 2ms 迁移一次. 第二个补丁 [sched: Implement adaptative rate limiting of task migrations](https://lore.kernel.org/lkml/20230905171105.1005672-3-mathieu.desnoyers@efficios.com) 实现了自适应任务迁移速率限制. | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20230905171105.1005672-1-mathieu.desnoyers@efficios.com) |
 | 2024/02/28 | Tobias Huschle <huschle@linux.ibm.com> | [sched/eevdf: avoid task starvation in cgroups](https://lore.kernel.org/all/20240228161023.14310-1-huschle@linux.ibm.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240228161023.14310-1-huschle@linux.ibm.com) |
@@ -6881,6 +6895,8 @@ LSFMMBPF 2024 上对 sched_ext 进行了讨论 [LWN, 2024/05/23, LSFMMBPF-2024, 
 [OPPO-内核工匠, 内核调度客制化利器: SCHED_EXT](https://blog.csdn.net/feelabclihu/article/details/139364772), [公众号发文](https://mp.weixin.qq.com/s/89PuLJDE4aE1c3cWG6ZL8g).
 
 尽管其他内核开发人员也提出了一些反对意见, 但是 Linus Torvalds 作为 Linux 内核的终身 "BDFL"(仁慈的独裁者), 认为 sched_ext V6 的代码已经准备好了, 在 Linux 内核主线更能体现其价值, 不应该拖延 sched_ext 的合入. 因此 Linus Torvalds 在邮件列表 [Re: [PATCHSET v6] sched: Implement BPF extensible scheduler class](https://lore.kernel.org/lkml/CAHk-=wg8APE61e5Ddq5mwH55Eh0ZLDV4Tr+c6_gFS7g2AxnuHQ@mail.gmail.com) 宣布他打算合并 Linux 6.11 的 sched_ext 补丁. 参见 phoronix 报道 [phoronix, 2024/06/11, Linus Torvalds Throws Down The Hammer: Extensible Scheduler "sched_ext" In Linux 6.11](https://www.phoronix.com/news/Linux-6.11-Extensible-Scheduler) 和 LWN 报道 [LWN, 2024/06/11, Extensible scheduler class to be merged for 6.11](https://lwn.net/Articles/978007) 以及 [Linus 强势拍板合入: BPF 赋能调度器终成正果](https://mp.weixin.qq.com/s/dWPWuDtxQBM9Z_GXwKe0kQ).
+
+因此, 按照要求, 早在 2024/07/15, Linux 6.11 合并窗口一打开, Tejun Heo 就提交了 sched_ext 的 Pull Request [sched_ext: Initial pull request for v6.11](https://lore.kernel.org/lkml/ZpWjbCQPtuUcvo8r@slm.duckdns.org/). sched_ext 已经演变成近 14k 行新代码, 包括测试和相关基础设施. 但是 Reviewer 指出不少代码需要改进, Qais Yousef 更是提出了一些担忧, 因此最终 6.11-rc1 发布的时候, sched_ext 并没有被合并. 参见 [phoronix, 2024/07/28, Linus Torvalds Doesn't Merge sched_ext For The Linux 6.11 Merge Window](https://www.phoronix.com/news/Linux-6.11-No-sched_ext).
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |

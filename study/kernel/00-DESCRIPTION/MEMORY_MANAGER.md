@@ -367,7 +367,8 @@ Linux 一开始是在一台 i386 上的机器开发的, i386 的硬件页表是 
 | 2023/07/28 | Yin, Fengwei <fengwei.yin@intel.com> | [support large folio for mlock](https://patchwork.kernel.org/project/linux-mm/cover/20230728070929.2487065-1-fengwei.yin@intel.com/) | 770426 | v1 ☐☑ | [LORE v1,0/3](https://lore.kernel.org/r/20230728070929.2487065-1-fengwei.yin@intel.com) |
 | 2023/08/21 | Matthew Wilcox <willy@infradead.org> | [Convert perf ringbuffer to folios](https://patchwork.kernel.org/project/linux-mm/cover/20230821202016.2910321-1-willy@infradead.org/) | 777998 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20230821202016.2910321-1-willy@infradead.org) |
 | 2024/05/15 | Daniel Gomez <da.gomez@samsung.com> | [[LSF/MM/BPF RFC] shmem/tmpfs: add large folios support](https://lore.kernel.org/all/20240515055719.32577-1-da.gomez@samsung.com) | [Large-folio support for shmem and tmpfs](https://lwn.net/Articles/974630) | v1 ☐☑✓ | [LORE v1,0/12](https://lore.kernel.org/all/20240515055719.32577-1-da.gomez@samsung.com) |
-| 2024/05/06 | Baolin Wang <baolin.wang@linux.alibaba.com> | [add mTHP support for anonymous shmem](https://lore.kernel.org/all/cover.1714978902.git.baolin.wang@linux.alibaba.com) | TODO | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/cover.1714978902.git.baolin.wang@linux.alibaba.com) |
+| 2024/05/06 | Baolin Wang <baolin.wang@linux.alibaba.com> | [add mTHP support for anonymous shmem](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=66f44583f9b617d74ffa2487e75a9c3adf344ddb) | 这个补丁集的目标是为匿名共享内存 (shmem) 添加多尺寸透明巨大页 (mTHP) 的支持. Baolin Wang 提出, 根据两周一次的 MM 会议讨论, mTHP 控制应该覆盖所有的共享内存(shmem), 不仅仅是匿名共享内存. 虽然补丁集将逐步添加支持, 但首先从支持匿名共享内存开始.<br>背景: Baolin Wang 指出, 匿名页面已经可以通过 [commit 19eaf44954df ("mm: thp: support allocation of anonymous multi-size THP")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=19eaf44954df64f9bc8dec398219e15ad0811497) 支持多尺寸透明巨大页 (mTHP) 分配, 这允许用户通过位于 `/sys/kernel/mm/transparent_hugepage/hugepage-XXkb/enabled` 的 sysfs 接口来配置透明巨大页(THP). 然而, 匿名共享内存 (shmem) 会忽略通过 sysfs 接口配置的匿名 mTHP 规则, 并且只能使用 PMD 映射的 THP. Baolin Wang 强调这种行为并不合理, 因为许多应用程序 (尤其是在数据库使用场景中) 通过 mmap(MAP_SHARED | MAP_ANONYMOUS) 实现匿名页面共享, 因此用户期望对所有匿名页面应用统一的 mTHP 策略, 包括匿名共享页面, 以享受 mTHP 的好处, 例如更低的延迟、更小的内存膨胀以及在 ARM 架构上减少 TLB 缺失等.<br>策略: <br>1. 该补丁集引入了一个新的 sysfs 接口 `/sys/kernel/mm/transparent_hugepage/hugepage-XXkb/shmem_enabled`, 它几乎与顶级的 `/sys/kernel/mm/transparent_hugepage/shmem_enabled` 具有相同的值, 增加了 "inherit" 选项并去掉了测试选项 "force" 和 "deny". 默认情况下, 所有大小都将设置为 "never", 除了 PMD 大小, 这将设置为 "inherit". 这样可以确保与现有的匿名共享内存启用设置的向后兼容性.<br>2. 修改了匿名共享内存的分配逻辑, 以便支持多尺寸透明巨大页.<br>3. 添加了针对匿名共享内存的 mTHP 计数器. | v1 ☐☑✓ v6.11-rc1 | [LORE v1,0/8](https://lore.kernel.org/all/cover.1714978902.git.baolin.wang@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[2024/06/11, LORE v5, 0/6](https://lore.kernel.org/all/cover.1718090413.git.baolin.wang@linux.alibaba.com) |
+| 2024/06/28 | Bang Li <libang.li@antgroup.com> | [support "THPeligible" semantics for mTHP with anonymous shmem](https://lore.kernel.org/all/20240628104926.34209-1-libang.li@antgroup.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240628104926.34209-1-libang.li@antgroup.com) |
 
 
 
@@ -5354,15 +5355,17 @@ David Rientjes 率先提出了这种想法 [Hugepage collapse in process context
 | 2019/08/22 | Yang Shi <yang.shi@linux.alibaba.com> | [Make deferred split shrinker memcg aware](https://lore.kernel.org/patchwork/patch/869414) | 目前, THP 延迟分割收缩器不了解 memcg, 这可能会导致某些配置过早地处罚 OOM.<br> 通过引入每个 memcg 延迟拆分队列, 转换延迟拆分收缩器 memcg aware. THP 应位于每个节点或每个 memcg 延迟拆分队列上(如果它属于 memcg). 当页面迁移到另一个 memcg 时, 它也将迁移到目标 memcg 的延迟分割队列.<br> 对于每个 memcg 列表, 重复使用第二个尾页的延迟列表, 因为同一个 THP 不能位于多个延迟拆分队列上.<br> 使延迟分割收缩器不依赖于 memcg kmem, 因为它不是 slab. 过上述更改, 即使禁用了 memcg kmem(配置 cgroup.memory=nokmem), 测试也不会触发 OOM. | v6 ☑ 5.4-rc1 | [PatchWork v6,0/4](https://patchwork.kernel.org/project/linux-mm/cover/1566496227-84952-1-git-send-email-yang.shi@linux.alibaba.com) |
 | 2018/01/03 | Michal Hocko <mhocko@kernel.org> | [unclutter thp migration](https://lore.kernel.org/patchwork/patch/869414) | THP 迁移以令人惊讶的语义侵入了通用迁移. 迁移分配回调应该检查 THP 是否可以立即迁移, 如果不是这样, 则分配一个简单的页面进行迁移. 取消映射和移动, 然后通过将 THP 拆分为小页面, 同时将标题页面移动到新分配的 order-0 页面来修复此问题. 剩余页面通过拆分页面移动到 LRU 列表. 如果 THP 分配失败, 也会发生同样的情况. 这真的很难看而且容易出错. | v1 ☐ | [PatchWork 0/3](https://lore.kernel.org/patchwork/patch/869414) |
 | 2020/11/19 | Zi Yan <ziy@nvidia.com> | [Split huge pages to any lower order pages and selftests.](https://patchwork.kernel.org/project/linux-mm/cover/20201119160605.1272425-1-zi.yan@sent.com) | NA | v1 ☐ | [PatchWork 0/7](https://patchwork.kernel.org/project/linux-mm/cover/20201119160605.1272425-1-zi.yan@sent.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/5](https://lore.kernel.org/r/20220321142128.2471199-1-zi.yan@sent.com) |
-
-
-#### 7.2.5.2 splitting test
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2016/01/15 | Kirill A. Shutemov <kirill.shutemov@linux.intel.com> | [thp: add debugfs handle to split all huge pages](https://www.spinics.net/lists/linux-mm/msg99353.html) | 将 1 写入 "split_huge_pages" 接口将尝试查找并拆分系统中的所有 THP. 这对于调试非常有用. | v1 ☑ 4.5-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=49071d436b51b58aeaf7abcd1877f38ca0146e31) |
 | 2020/11/19 | Zi Yan <ziy@nvidia.com> | [mm: huge_memory: a new debugfs interface for splitting THP tests.](https://patchwork.kernel.org/project/linux-mm/cover/20201119160605.1272425-1-zi.yan@sent.com) | 提供了一个直接的用户接口来拆分 THP. 使用  `<debugfs>/split` 接受一个新命令来执行此操作. 通过将 "<pid>,<vaddr_start>,<vaddr_end>" 写入 "<debugfs>/split_huge_pages"将 分割具有给定 pid 的进程中给定虚拟地址范围内的 thp. 用于测试拆分页面功能. 此外, 还向 `tools/testing/selftests/vm` 添加了一个自检程序, 通过拆分 PMD THP 和 PTE 映射 THP 来利用该接口. 这不会改变旧的行为, 即向接口写入 1 仍然会拆分系统中的所有 THP. | v8 ☑ 5.13-rc1 | [PatchWork v8,1/2](https://patchwork.kernel.org/project/linux-mm/patch/20210331235309.332292-1-zi.yan@sent.com), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=fa6c02315f745f00b62c634b220c3fb5c3310258) |
+
+
+#### 7.2.5.2 Reclaim THP
+-------
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/05/01 | Lance Yang <ioworker0@gmail.com> | [Reclaim lazyfree THP without splitting](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=735ecdfaf4e802209caf34b7ac45adf448c54ccc) | 该补丁集旨在改进内核处理透明巨大页 (THP) 的 lazyfree 机制. 添加了支持在不需要先分割大型 folio 的情况下回收被标记为 lazyfree 的 PMD 映射 THP 的能力. 当用户不再需要这些页面时, 他们会使用 madvise(MADV_FREE) 标记这些页面为 lazyfree. 之后, 用户通常不会再写入这些内存. 在内存回收期间, 如果检测到大型 folio 和其 PMD 都仍然被标记为干净, 并且没有意外的引用(如 GUP), 那么就可以懒惰地丢弃这些内存, 从而提高内存回收的效率. Lance Yang 在 Intel i5 CPU 上测试了回收 1 GiB 的 lazyfree THP 的性能, 使用 mem_cgroup_force_empty() 函数进行回收, 使用新的补丁集可以显著降低回收所需的时间, 从原来的 0.683426 秒减少到了 0.049197 秒, 减少了大约 92.80%. | v4 ☐☑✓ v6.11-rc1 | [LORE v4,0/3](https://lore.kernel.org/all/20240501042700.83974-1-ioworker0@gmail.com) |
 
 
 

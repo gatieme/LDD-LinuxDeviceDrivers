@@ -111,7 +111,7 @@
 | 6.8 | [The first half of the 6.8 merge window](https://lwn.net/Articles/957188), [The rest of the 6.8 merge window](https://lwn.net/Articles/958178) | NA | NA |
 | 6.9 | [The first half of the 6.9 merge window](https://lwn.net/Articles/965141), [Kernel prepatch 6.9-rc1](https://lwn.net/Articles/966525), [The rest of the 6.9 merge window](https://lwn.net/Articles/965541) | NA | NA |
 | 6.10 | [The first half of the 6.10 merge window](https://lwn.net/Articles/973687)<br>*-*-*-*-*-*-*-* <br>[The rest of the 6.10 merge window](https://lwn.net/Articles/974869)<br>*-*-*-*-*-*-*-* <br>[Kernel prepatch 6.10-rc2](https://lwn.net/Articles/976498). | NA | [Linux 6.10-rc1 Kernel Released With Many New Features](https://www.phoronix.com/news/Linux-6.10-rc1), [Linux 6.10-rc5 Released With This Kernel Cycle Looking Good So Far](https://www.phoronix.com/news/Linux-6.10-rc5) |
-| 6.11 | [The first half of the 6.11 merge window](https://lwn.net/Articles/982034) | NA | NA |
+| 6.11 | [The first half of the 6.11 merge window](https://lwn.net/Articles/982034), [LWN, 2024/07/28, Kernel prepatch 6.11-rc1](https://lwn.net/Articles/983760), [LWN, 2024/07/29, The rest of the 6.11 merge window](https://lwn.net/Articles/982605/) | NA | NA |
 
 年终盘点
 
