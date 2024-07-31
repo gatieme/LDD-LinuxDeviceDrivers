@@ -430,6 +430,11 @@ Lockdep 跟踪锁的获取顺序, 以检测死锁, 以及 IRQ 和 IRQ 启用/禁
 
 代理执行(proxy execution) 被视为一种"更好"的优先级继承机制, 持有锁的小任务可以使用(继承)在同一互斥体上阻止的其他关键任务的调度上下文(属性)来运行它(避免优先级反转). 使用代理执行时, 被阻塞的关键任务不会像在常规的那样从运行队列中删除. 并且如果它是队列中优先级最高的任务, 则可以选择由调度程序以通常的方式运行. 于是, 当发生优先级反转的情况时, 持锁的任务将继承被阻塞的关键任务的上下文信息. 被阻塞的任务也会迁移到持有锁的任务的运行队列中, 从而将其利用率信息带过来, 这将导致 CPU 频率增加, 从而可以更好地帮助持锁任务尽快完成工作并释放锁.
 
+
+#### 11.1.2.1 代理执行(proxy execution) 的发展历程
+-------
+
+
 代理执行(proxy execution) 并不是一个很新颖的概念, 它早就存在于学术界和邮件列表的讨论中.
 
 早在 2010 年 [20th Euromicro Conference on Real-Time Systems (ECRTS2010)](http://www.artist-embedded.org/artist/Overview,1909.html), Peter Zijlstra 与 Thomas Gleixner 等进行 preemption rt 专题演讲, 讨论到优先级继承(priority inheritance) 时, 就提到了代理执行(proxy execution), 当时在 Doug Niehaus 的堪萨斯大学实时项目中就已经存在代理执行, 但不幸的是, 它缺乏 SMP 支持, 因此并没有得到广泛的推广, 但是这项技术得到了 Thomas 的赞誉. 参见当时 LWN 的报道 [Realtime Linux: academia v. reality](https://lwn.net/Articles/397422), 以及学术界的论文 [A Flexible Scheduling Framework Supporting Multiple Programming Models with Arbitrary Semantics in Linux](https://static.lwn.net/images/conf/rtlws11/papers/proc/p38.pdf)
@@ -444,14 +449,31 @@ Peter Zijlstra 在 [RT-Summit 2017](https://wiki.linuxfoundation.org/realtime/ev
 
 又来到 2023 年, Google 的 John Stultz 继续接受了这项工作. 参见 LWN 报道 [Addressing priority inversion with proxy execution](https://lwn.net/Articles/934114) 以及作者的 github 代码分支 [johnstultz-work/linux-dev/proxy-exec-v4-6.4-rc3](https://github.com/johnstultz-work/linux-dev/commits/proxy-exec-v4-6.4-rc3).
 
+#### 11.1.2.2 代理执行(proxy execution) 的原理
+-------
+
+Proxy Execution 是一种通用形式的优先级继承机制, 它旨在解决在多处理器系统中出现的优先级反转问题. 传统的优先级继承机制在实时任务之间工作良好, 但在复杂的工作负载中, 尤其是在涉及完全公平调度器 (CFS) 或 SCHED_DEADLINE 任务时, 传统的优先级继承机制可能会失效. 这是因为这些任务的调度不仅取决于优先级, 还取决于其他因素, 如任务的运行时间、截止时间等.
+
+| 实现思想 | 具体实现 |
+|:-------:|:------:|
+| Proxy Execution 的核心思想是, 当一个任务因为持有互斥锁而阻止另一个更高优先级的任务运行时, 持有锁的任务将 "代表" 被阻塞的任务运行. 这样做的目的是确保高优先级的任务不会被低优先级的任务长时间阻塞. | 通过保持被阻塞任务在就绪队列上、跟踪阻塞状态、选择持有互斥锁的任务作为代理、分离调度和执行上下文等方式实现了优先级继承. 这些变化旨在解决传统优先级继承机制在复杂场景下的局限性, 尤其是涉及多处理器系统中的 CFS 和 SCHED_DEADLINE 任务. |
+
+| 编号 | 目标 | 描述 | 实现细节 |
+|:---:|:----:|:---:|:----:|
+| 1 | 保持阻塞任务在就绪队列上 | 阻塞等待互斥锁的任务不会被从就绪队列中移除.<br> 这样, 当选择下一个任务运行时, 即使任务被阻塞, 它仍然可以被选中. | NA |
+| 2 | 跟踪阻塞任务的状态 | 任务结构中增加额外的状态来跟踪哪个互斥锁被阻塞, 以及哪个任务持有该锁.<br> 当一个任务被选中运行时, 如果它是被阻塞的, 那么系统会查找该任务被阻塞的互斥锁, 并找到持有该锁的任务. | 1. 任务状态更新: 更新了 task_struct 结构, 引入了新的字段来跟踪阻塞状态和阻塞原因.<br>2. 修改了互斥锁的数据结构以支持手递 (handoff) 模式而不是乐观自旋(optimistic spinning). |
+| 3 | 选择互斥锁持有者作为代理 | 当一个被阻塞的任务被选中时, 实际上会运行持有相应互斥锁的任务.<br> 持有锁的任务现在继承了被阻塞任务的调度属性, 从而代表被阻塞的任务运行. | 1. 重构了调度器逻辑, 包括 pick_next_task() 函数, 使其能够选择合适的任务运行, 即使该任务被阻塞.<br>2. 引入了新的函数如 find_proxy_task() 来寻找合适的代理任务. [PATCH v7, 11/23] sched: Add a initial sketch of the find_proxy_task() function](https://lore.kernel.org/all/20231220001856.3710363-12-jstultz@google.com), [PATCH v7, 13/23, sched: Start blocked_on chain processing in find_proxy_task()](https://lore.kernel.org/all/20231220001856.3710363-14-jstultz@google.com) 以及 [PATCH v7, 16/23, sched: Add deactivated (sleeping) owner handling to find_proxy_task()](https://lore.kernel.org/all/20231220001856.3710363-17-jstultz@google.com)<br>3. 为了解决 RT 和 DL 负载平衡问题, 引入了链级平衡处理. |
+| 4 | 调度器上下文和执行上下文的分离 | 调度器需要跟踪两个概念: "scheduler context"(即选择的任务和用于调度决策的状态)和 "execution context"(实际正在运行的任务). 这种分离允许持有锁的任务代表被阻塞的任务运行. | [PATCH v7 08/23, sched: Split scheduler and execution contexts](https://lore.kernel.org/all/20231220001856.3710363-9-jstultz@google.com) 将调度上下文定义为 task_struct 中选定要运行的任务的所有调度器状态, 将执行上下文定义为实际运行任务所需的所有状态 通过在逻辑上拆分这些任务, 以便我们可以使用所选要调度的任务的调度上下文, 但实际运行时使用不同任务的执行上下文. 为此, 引入 rq_selectd() 宏指向调度程序从运行队列中选择的 task_struct, 并将用于调度程序状态, 并保留 rq->curr 以指示实际运行的任务的执行上下文. |
+| 5 | 处理复杂的边缘情况 | 比如互斥锁持有者自身也可能被阻塞, 或者在不同的 CPU 上运行, 或处于迁移状态等.<br> 为了处理这些复杂情况, Proxy Execution 引入了额外的逻辑来处理这些边缘情况. | 比如:<br>1. 当一个被阻塞的任务最终获得所需的资源时, 它需要被迁移到适当的 CPU 上. 优化了返回迁移逻辑, 例如避免在不适当的时间迁移任务. |
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2018/10/09 | Juri Lelli <juri.lelli@redhat.com> | [Towards implementing proxy execution](https://lore.kernel.org/all/20181009092434.26221-1-juri.lelli@redhat.com) | TODO | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20181009092434.26221-1-juri.lelli@redhat.com) |
 | 2020/12/18 | ValenƟn Schneider <valentin.schneider@arm.com> | [Looking forward on proxy execution](https://lpc.events/event/7/contributions/758) | TODO | v1 ☐☑✓ | [GitLab, linux-arm RFC v3,00/08](https://gitlab.arm.com/linux-arm/linux-vs/-/tree/mainline/sched/proxy-rfc-v3/) |
 | 2022/10/03 | Connor O'Brien <connoro@google.com> | [Reviving the Proxy Execution Series](https://lore.kernel.org/all/20221003214501.2050087-1-connoro@google.com) | TODO | v1 ☐☑✓ | [2022/10/03 LORE v1,0/11](https://lore.kernel.org/all/20221003214501.2050087-1-connoro@google.com)<br>*-*-*-*-*-*-*-* <br>[2023/03/20 LORE v2,0/12](https://lore.kernel.org/all/20230320233720.3488453-1-jstultz@google.com)<br>*-*-*-*-*-*-*-* <br>[2023/04/11 LORE v3,00/14](https://lore.kernel.org/all/20230411042511.1606592-1-jstultz@google.com) |
 | 2023/06/01 | John Stultz <jstultz@google.com> | [Generalized Priority Inheritance via Proxy Execution](https://lore.kernel.org/all/20230601055846.2349566-1-jstultz@google.com) | TODO | v3 ☐☑✓ | [LORE v4,0/13](https://lore.kernel.org/all/20230601055846.2349566-1-jstultz@google.com) |
-| 2023/12/19 | John Stultz <jstultz@google.com> | [Proxy Execution: A generalized form of Priority Inheritance v7](https://lore.kernel.org/all/20231220001856.3710363-1-jstultz@google.com) | TODO | v7 ☐☑✓ | [2023/12/19, LORE v7,0/23](https://lore.kernel.org/all/20231220001856.3710363-1-jstultz@google.com)<br>*-*-*-*-*-*-*-* <br>[2024/02/24, LORE v8,0/7](https://lore.kernel.org/all/20240224001153.2584030-1-jstultz@google.com)<br>*-*-*-*-*-*-*-* <br>[2024/04/01, LORE v9,0/7](https://lore.kernel.org/all/20240401234439.834544-1-jstultz@google.com) |
-| 2024/05/06 | John Stultz <jstultz@google.com> | [Preparatory changes for Proxy Execution v10/v11](https://lore.kernel.org/all/20240507045450.895430-1-jstultz@google.com) | TODO | v10 ☐☑✓ | [LORE v10,0/7](https://lore.kernel.org/all/20240507045450.895430-1-jstultz@google.com)<br>*-*-*-*-*-*-*-* <br>[2024/07/09, LORE v11,0/7](https://lore.kernel.org/all/20240709203213.799070-1-jstultz@google.com) |
+| 2023/12/19 | John Stultz <jstultz@google.com> | [Proxy Execution: A generalized form of Priority Inheritance v7](https://lore.kernel.org/all/20231220001856.3710363-1-jstultz@google.com) | TODO | v7 ☐☑✓ | [2023/12/19, LORE v7,0/23](https://lore.kernel.org/all/20231220001856.3710363-1-jstultz@google.com) |
+| 2024/05/06 | John Stultz <jstultz@google.com> | [Preparatory changes for Proxy Execution](https://lore.kernel.org/all/20240507045450.895430-1-jstultz@google.com) | Proxy Execution 是一种通用的优先级继承机制的实现方法, 用于解决优先级反转问题和其他类似的问题. 这些预备补丁的目的是为后续更复杂的 Proxy Execution 相关补丁打下基础.<br>在发送第 7 版 Proxy Execution 补丁集时, John Stultz 收到了反馈, 指出补丁集变得过于庞大难以审查. 因此, 根据 Qais Yousef 的建议, 他决定将补丁集分为两部分：一部分是预备性的更改, 另一部分是更复杂的功能实现. | v10 ☐☑✓ | [2024/02/24, LORE v8,0/7](https://lore.kernel.org/all/20240224001153.2584030-1-jstultz@google.com)<br>*-*-*-*-*-*-*-* <br>[2024/04/01, LORE v9,0/7](https://lore.kernel.org/all/20240401234439.834544-1-jstultz@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v10,0/7](https://lore.kernel.org/all/20240507045450.895430-1-jstultz@google.com)<br>*-*-*-*-*-*-*-* <br>[2024/07/09, LORE v11,0/7](https://lore.kernel.org/all/20240709203213.799070-1-jstultz@google.com) |
 | 2024/02/02 | Metin Kaya <metin.kaya@arm.com> | [sched: Add trace events for Proxy Execution (PE)](https://lore.kernel.org/all/20240202083338.1328060-1-metin.kaya@arm.com) | 添加 `sched_[start，finish]_task_selection` 跟踪事件以测量 PE 补丁在任务选择中的延迟. 此外, 在 PE 中引入有趣事件的跟踪事件:<br>1. sched_pe_enque_sleeping_task: 一个任务在睡眠任务(互斥体所有者)的等待队列中排队.<br>2. sched_pe_cross_mote_cpu: 依赖链跨远程 cpu.<br>3. sched_pe_task_is_migration: 互斥所有者任务迁移. 可以通过以下命令测试新的跟踪事件: `perf record -e sched:sched_start_task_selection -e sched:sched_finish_task_selection -e sched:sched_pe_enque_sleeping_task -e sched:sched_pe_cross_mote_cpu -e sched:sched_pe_task_is_migration`. 此补丁基于 John 的 [Proxy Execution v7 补丁系列](https://lore.kernel.org/linux-kernel/CANDhNCrHd+5twWVNqBAhVLfhMhkiO0KjxXBmwVgaCD4kAyFyWw@mail.gmail.com). | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240202083338.1328060-1-metin.kaya@arm.com) |
 
 
