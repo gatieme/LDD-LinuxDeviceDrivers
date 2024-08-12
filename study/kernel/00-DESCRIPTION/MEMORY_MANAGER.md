@@ -315,6 +315,7 @@ Linux 一开始是在一台 i386 上的机器开发的, i386 的硬件页表是 
 
 [Folio Improvements For Linux 5.17, Large Folio Patches Posted](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-Folios)
 
+[LWN, 2024/07/24, Large folios, swap, and FS-Cache](https://lwn.net/Articles/982887/)
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|

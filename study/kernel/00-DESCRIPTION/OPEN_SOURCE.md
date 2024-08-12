@@ -205,7 +205,7 @@ OSDI 的全称是 USENIX Symposium on Operating Systems Design and Implementatio
 | 日期 | 官网 | 链接 | GOOGLE 文档 |
 |:---:|:----:|:---:|:-----------:|
 | 2023/04/17-2023/04/19 | [5th OSPM Summit](https://retis.santannapisa.it/luca/ospm-summit/2023) | [LWN 汇总](https://lwn.net/Archives/ConferenceIndex/#OS-Directed_Power-Management_Summit-2023)<br>[LWN-Reports from OSPM 2023, part 1](https://lwn.net/Articles/934142)<br>[LWN-Reports from OSPM 2023, part 2](https://lwn.net/Articles/934459)<br>[LWN-Reports from OSPM 2023, part 3](https://lwn.net/Articles/935180) | [OSPM23 - topics - Google 云端硬盘](https://docs.google.com/spreadsheets/u/0/d/10AJFQporrCPH9Gn6-MaRotdfO4Hm4LG6dVAoDrQdj5A/htmlview?pli=1#gid=1185197977) |
-| 2024/05/30-2024/05/21 | [6th OSPM Summit](https://retis.sssup.it/ospm-summit/2024) | [LWN 汇总]()<br>[LORE](https://lore.kernel.org/all/ZbJHfiWnujLz2Pfm@localhost.localdomain) | [OSPM24 - topics - Google 云端硬盘](https://docs.google.com/spreadsheets/d/13lOYsbNWhQU7pNbyHI97fC7GT0Eu8aMbU9ATvPJfV0A/edit?usp=sharing) |
+| 2024/05/30-2024/05/21 | [6th OSPM Summit](https://retis.sssup.it/ospm-summit/2024) | [LWN, 2024/07/11, Reports from OSPM 2024, part 1](https://lwn.net/Articles/981371)<br>[LORE](https://lore.kernel.org/all/ZbJHfiWnujLz2Pfm@localhost.localdomain) | [OSPM24 - topics - Google 云端硬盘](https://docs.google.com/spreadsheets/d/13lOYsbNWhQU7pNbyHI97fC7GT0Eu8aMbU9ATvPJfV0A/edit?usp=sharing) |
 
 ## 6.7 [KernelPodCast](https://kernelpodcast.org)
 -------

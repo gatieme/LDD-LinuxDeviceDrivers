@@ -659,6 +659,21 @@ cba6167f0adb
 [Updates to pahole](https://lwn.net/Articles/978727)
 [Eliminating indirect calls for security modules](https://lwn.net/Articles/979683)
 [A capability set for user namespaces](https://lwn.net/Articles/978846)
+[A look inside the BPF verifier](https://lwn.net/Articles/982077)
+[CRIB: checkpoint/restore in BPF](https://lwn.net/Articles/984313)
+
+[Direct-to-device networking](https://lwn.net/Articles/979549)
+
+
+[FetchBPF: Customizable Prefetching Policies in Linux with eBPF](https://www.usenix.org/conference/atc24/presentation/cao)
+[DINT: Fast In-Kernel Distributed Transactions with eBPF](https://www.usenix.org/conference/nsdi24/presentation/zhou-yang)
+[Fast (Trapless) Kernel Probes Everywhere](https://atcosdi24.sched.com/event/1fLcd/fast-trapless-kernel-probes-everywhere), https://www.usenix.org/conference/atc24/presentation/jia
+
+
+[Identifying On-/Off-CPU Bottlenecks Together with Blocked Samples](https://www.usenix.org/conference/osdi24/presentation/ahn)
+[wPerf: Generic Off-CPU Analysis to Identify Bottleneck Waiting Events](https://www.usenix.org/conference/osdi18/presentation/zhou)
+
+[Harvesting Memory-bound CPU Stall Cycles in Software with MSH](https://www.usenix.org/conference/osdi24/presentation/luo)
 
 [OS2ATC-PPT](https://cloud.tsinghua.edu.cn/d/8e6c77ad1ad548acb909/)
 
@@ -754,30 +769,5 @@ HUAWEI P10 Plus, Vicky, Android 7.0, EMUI 5.1
 
 
 
-
-
-Proxy Execution 是一种通用形式的优先级继承机制, 它旨在解决在多处理器系统中出现的优先级反转问题. 传统的优先级继承机制在实时任务之间工作良好, 但在复杂的工作负载中, 尤其是在涉及完全公平调度器 (CFS) 或 SCHED_DEADLINE 任务时, 传统的优先级继承机制可能会失效. 这是因为这些任务的调度不仅取决于优先级, 还取决于其他因素, 如任务的运行时间、截止时间等.
-
-实现思想
-Proxy Execution 的核心思想是, 当一个任务因为持有互斥锁而阻止另一个更高优先级的任务运行时, 持有锁的任务将 "代表" 被阻塞的任务运行. 这样做的目的是确保高优先级的任务不会被低优先级的任务长时间阻塞.
-
-具体实现
-
-通过保持被阻塞任务在就绪队列上、跟踪阻塞状态、选择持有互斥锁的任务作为代理、分离调度和执行上下文等方式实现了优先级继承. 这些变化旨在解决传统优先级继承机制在复杂场景下的局限性, 尤其是涉及多处理器系统中的 CFS 和 SCHED_DEADLINE 任务.
-
-| 编号 | 目标 | 描述 | 实现细节 |
-|:---:|:----:|:---:|:----:|
-| 1 | 保持阻塞任务在就绪队列上 | 阻塞等待互斥锁的任务不会被从就绪队列中移除.<br> 这样, 当选择下一个任务运行时, 即使任务被阻塞, 它仍然可以被选中. |
-| 2 | 跟踪阻塞任务的状态 | 任务结构中增加额外的状态来跟踪哪个互斥锁被阻塞, 以及哪个任务持有该锁.<br> 当一个任务被选中运行时, 如果它是被阻塞的, 那么系统会查找该任务被阻塞的互斥锁, 并找到持有该锁的任务. | 1. 任务状态更新: 更新了 task_struct 结构, 引入了新的字段来跟踪阻塞状态和阻塞原因.<br>2. 修改了互斥锁的数据结构以支持手递 (handoff) 模式而不是乐观自旋(optimistic spinning). |
-| 3 | 选择互斥锁持有者作为代理 | 当一个被阻塞的任务被选中时, 实际上会运行持有相应互斥锁的任务.<br> 持有锁的任务现在继承了被阻塞任务的调度属性, 从而代表被阻塞的任务运行. | 1. 重构了调度器逻辑, 包括 pick_next_task() 函数, 使其能够选择合适的任务运行, 即使该任务被阻塞.<br>2. 引入了新的函数如 find_proxy_task() 来寻找合适的代理任务. [PATCH v7, 11/23] sched: Add a initial sketch of the find_proxy_task() function](https://lore.kernel.org/all/20231220001856.3710363-12-jstultz@google.com), [PATCH v7, 13/23, sched: Start blocked_on chain processing in find_proxy_task()](https://lore.kernel.org/all/20231220001856.3710363-14-jstultz@google.com) 以及 [PATCH v7, 16/23, sched: Add deactivated (sleeping) owner handling to find_proxy_task()](https://lore.kernel.org/all/20231220001856.3710363-17-jstultz@google.com)<br>3. 为了解决 RT 和 DL 负载平衡问题, 引入了链级平衡处理. |
-| 4 | 调度器上下文和执行上下文的分离 | 调度器需要跟踪两个概念: "scheduler context"(即选择的任务和用于调度决策的状态)和 "execution context"(实际正在运行的任务). 这种分离允许持有锁的任务代表被阻塞的任务运行. | [PATCH v7 08/23, sched: Split scheduler and execution contexts](https://lore.kernel.org/all/20231220001856.3710363-9-jstultz@google.com) 将调度上下文定义为 task_struct 中选定要运行的任务的所有调度器状态, 将执行上下文定义为实际运行任务所需的所有状态 通过在逻辑上拆分这些任务, 以便我们可以使用所选要调度的任务的调度上下文, 但实际运行时使用不同任务的执行上下文. 为此, 引入 rq_selectd() 宏指向调度程序从运行队列中选择的 task_struct, 并将用于调度程序状态, 并保留 rq->curr 以指示实际运行的任务的执行上下文. |
-| 5 | 处理复杂的边缘情况 | 比如互斥锁持有者自身也可能被阻塞, 或者在不同的 CPU 上运行, 或处于迁移状态等.<br> 为了处理这些复杂情况, Proxy Execution 引入了额外的逻辑来处理这些边缘情况. | 比如:<br>1. 当一个被阻塞的任务最终获得所需的资源时, 它需要被迁移到适当的 CPU 上. 优化了返回迁移逻辑, 例如避免在不适当的时间迁移任务. |
-
-
-测试案例:
-为了验证负载平衡不变性, 引入了一个名为 sched_football 的测试案例.
-这个测试案例模拟了锁链上的任务调度, 以验证 Proxy Execution 是否正确处理了 RT 和 DL 负载平衡.
-总结
-
-
-
+这个补丁系列是关于为 Rust 语言在 Linux 内核中添加通用的内核分配器(Allocator)支持. 以下是补丁系列的主要变更和目的:<br>1. 添加通用内核分配器支持: 目前主线上, Rust 在 Linux 内核中的内存分配仅限于 kmalloc. 这个补丁系列扩展了这一功能, 允许使用更多的内存分配器以及分配策略.<br>2. 自定义 Allocator trait: 为了避免向内核添加不稳定的 Rust 特性, 补丁系列没有扩展 Rust 的 alloc crate 中的 Allocator trait, 也没有扩展 BoxExt 和 VecExt 扩展. 而是引入了特定的 Allocator trait, 并由 Kmalloc、Vmalloc 和 KVmalloc 分配器实现, 这些分配器也是在这个系列中实现的. 为了使用新的分配器, 补丁系列添加了自定义的 `Box<T, A>` 和 `Vec<T, A>`` 类型(其中 A 是特定的分配器), 这些类型依赖于特定的分配器.<br>3. 移除对 alloc crate 的依赖: 通过这个系列的更改, 内核构建完全移除了对 Rust 的 alloc crate 的依赖.
+定义内核专用类型: 定义了内核专用的 Box<T, A> 和 Vec<T, A> 类型, .

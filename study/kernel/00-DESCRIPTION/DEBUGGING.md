@@ -249,6 +249,8 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 
 [getrandom() In The vDSO Aims For Linux 6.11 To Provide Faster Yet Secure User-Space RNG](https://www.phoronix.com/news/getrandom-vDSO-RNG-Linux-6.11)
 
+[Glibc Patch Being Reviewed For getrandom vDSO Support](https://www.phoronix.com/news/Glibc-Review-getrandom-vDSO)
+
 ## 8.2 getrandom vDSO
 -------
 
@@ -349,7 +351,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2022/07/25 | Albert Huang <huangjie.albert@bytedance.com> | [faster kexec reboot](https://lore.kernel.org/all/20220725083904.56552-1-huangjie.albert@bytedance.com) | TODO | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20220725083904.56552-1-huangjie.albert@bytedance.com) |
 
 
-# 11 perf
+# 11 PERF
 -------
 
 ## 11.1 perf-user
@@ -385,10 +387,18 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2022/06/16 | Namhyung Kim <namhyung@kernel.org> | [perf/core: Add a new read format to get a number of lost samples](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=119a784c81270eb88e573174ed2209225d646656) | 有时候用户想知道样本的准确数量, 即使存在一定数量的样本丢失. 当因为环缓冲区冲突造成的事件丢失使用 PERF_RECORD_LOST 标记记录, 虽然很难知道每个事件丢失的次数, 但是聊胜于无. 因此定义 PERF_FORMAT_LOST, 通过 event->lost_samples 记录丢失的次数, 以便从用户空间获取到它. | v4 ☑✓ 6.0-rc1 | [LORE](https://lore.kernel.org/all/20220616180623.1358843-1-namhyung@kernel.org) |
 | 2022/08/16 | Namhyung Kim <namhyung@kernel.org> | [perf tools: Support reading PERF_FORMAT_LOST (v2)](https://lore.kernel.org/all/20220816221747.275828-1-namhyung@kernel.org) | TODO | v2 ☐☑✓ | [LORE 0/4](https://lore.kernel.org/lkml/20220815190106.1293082-1-namhyung@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/4](https://lore.kernel.org/all/20220816221747.275828-1-namhyung@kernel.org) |
 
-## 11.2 ARM SPE
+## 11.2 高精度采样
 -------
 
+## 11.2.1 x86 PEBS
+-------
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/07/20 | weilin.wang@intel.com <weilin.wang@intel.com> | [TPEBS counting mode support](https://lore.kernel.org/all/20240720062102.444578-1-weilin.wang@intel.com) | 支持 TPEBS 在 perf 计数模式下的使用, TPEBS(Timed Process Event-Based Sampling) 是 Intel 提供的一种处理器机制, 用于在性能分析中更准确地测量事件的退休延迟 (retire latency). 补丁集实现了在 Linux 的 perf 工具中, 当使用 TPEBS 功能时, 可以在计数模式下收集事件的退休延迟值. 关于 TPEBS 参见 [Timed Process Event Based Sampling (TPEBS)](https://www.intel.com/content/www/us/en/developer/articles/technical/timed-process-event-based-sampling-tpebs.html). | v18 ☐☑✓ | [LORE v18,0/8](https://lore.kernel.org/all/20240720062102.444578-1-weilin.wang@intel.com) |
+
+## 11.2.2 ARM SPE
+-------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -809,6 +819,9 @@ Mold 链接器中添加了一个新的 "--separate-debug-file" 选项, 以实现
 
 ["CC_OPTIMIZE_FOR_PERFORMANCE_O3" Performance Tunable Dropped In Linux 6.0](https://www.phoronix.com/news/Linux-6.0-Drops-O3-Kconfig)
 
+[Canonical Evaluating -O3 Optimized Packages For Ubuntu Linux](https://www.phoronix.com/news/Ubuntu-Evaluating-O3-Optimized)
+[Trying Out The Ubuntu "-O3" Optimized Build For Greater Performance](https://www.phoronix.com/review/ubuntu-o3-experiment)
+
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/06/21 | Miko Larsson <mikoxyzzz@gmail.com> | [Kconfig: -O3 enablement](https://lore.kernel.org/all/20220621133526.29662-1-mikoxyzzz@gmail.com) | 允许所有架构支持 -O3 编译. | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20220621133526.29662-1-mikoxyzzz@gmail.com) |
@@ -1152,8 +1165,9 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 
 [Arm Helping With AArch64 Rust Linux Kernel Enablement](https://www.phoronix.com/news/AArch64-Rust-Linux-Kernel)
 
-
 [Linux 6.11 Adds Support For Rust-Based Block Drivers & Atomic Writes](https://www.phoronix.com/news/Linux-6.11-Block-IO_uring)
+
+[An Empirical Study of Rust-for-Linux: The Success, Dissatisfaction, and Compromise](https://www.usenix.org/conference/atc24/presentation/li-hongyu)
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
@@ -1164,9 +1178,10 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 | 2024/05/14 | Wedson Almeida Filho <wedsonaf@gmail.com> | [Rust abstractions for VFS](https://lore.kernel.org/all/20240514131711.379322-1-wedsonaf@gmail.com) | 参见 phoronix 报道 [Microsoft Engineer Ports EXT2 File-System Driver To Rust](https://www.phoronix.com/news/Rust-VFS-Linux-V2-Now-With-EXT2) 以及 [Rust for filesystems](https://lwn.net/Articles/978738). | v2 ☐☑✓ | [LORE v2,0/30](https://lore.kernel.org/all/20240514131711.379322-1-wedsonaf@gmail.com) |
 | 2024/05/20 | Danilo Krummrich <dakr@redhat.com> | [DRM Rust abstractions and Nova](https://lore.kernel.org/all/20240520172059.181256-1-dakr@redhat.com) | [RFC Patches Posted For Rust-Written NVIDIA"Nova"GPU Driver](https://www.phoronix.com/news/RFC-Rust-Nova-NVIDIA-Driver). | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20240520172059.181256-1-dakr@redhat.com) |
 | 2024/07/17 | Benno Lossin <benno.lossin@proton.me> | [Introduce the Rust Safety Standard](https://lore.kernel.org/all/20240717221133.459589-1-benno.lossin@proton.me) | [Rust Safety Standard Proposed For The Linux Kernel](https://www.phoronix.com/news/Rust-Safety-Standard-Linux-RFC). | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20240717221133.459589-1-benno.lossin@proton.me) |
-| 2024/07/01 | Miguel Ojeda <ojeda@kernel.org> | [Support several Rust toolchain versions](https://lore.kernel.org/all/20240701183625.665574-1-ojeda@kernel.org) |
-几乎每一个 Linux 内核周期都会引入新的补丁, 这些补丁通常会提升内核支持的 Rust 语言版本, 以便达到一个合适的最低版本要求. Miguel Ojeda 发布的这组组补丁, 旨在使 Rust 内核代码能够支持多个版本的 Rust 编译器("rustc"), 然后只需要指定一个安全的最低 Rust 版本要求. 参见 [The Linux Kernel Matures To Having A Minimum Rust Toolchain Version](https://www.phoronix.com/news/Linux-Patches-Multiple-Rust-Ver). | v1 ☐☑✓ | [LORE v1,0/13](https://lore.kernel.org/all/20240701183625.665574-1-ojeda@kernel.org) |
+| 2024/07/01 | Miguel Ojeda <ojeda@kernel.org> | [Support several Rust toolchain versions](https://lore.kernel.org/all/20240701183625.665574-1-ojeda@kernel.org) | 几乎每一个 Linux 内核周期都会引入新的补丁, 这些补丁通常会提升内核支持的 Rust 语言版本, 以便达到一个合适的最低版本要求. Miguel Ojeda 发布的这组组补丁, 旨在使 Rust 内核代码能够支持多个版本的 Rust 编译器("rustc"), 然后只需要指定一个安全的最低 Rust 版本要求. 参见 [The Linux Kernel Matures To Having A Minimum Rust Toolchain Version](https://www.phoronix.com/news/Linux-Patches-Multiple-Rust-Ver). | v1 ☐☑✓ | [LORE v1,0/13](https://lore.kernel.org/all/20240701183625.665574-1-ojeda@kernel.org) |
 | 2024/07/24 | Miguel Ojeda <ojeda@kernel.org> | [Rust: support `CPU_MITIGATIONS` and enable `objtool`](https://lore.kernel.org/all/20240724161501.1319115-1-ojeda@kernel.org) | 关于在 Rust 内核代码中实现各种 CPU 安全缓解措施的最新补丁, 作为其中的一部分, 同时为 Rust 启用了 objtool 支持. 重点是根据编译器的 Retpolines、Rethunk 和直线推测 (SLS) 处理来传递相关的编译器标志以构建 Rust 代码. 通过这些补丁, 适当的标志将被传递给 Rust 编译器, 以便在需要编译器端操作的安全缓解措施中提供足够的保护. | v2 ☐☑✓ |[LORE v2,0/6](https://lore.kernel.org/all/20240724161501.1319115-1-ojeda@kernel.org) |
+几乎每一个 Linux 内核周期都会引入新的补丁, 这些补丁通常会提升内核支持的 Rust 语言版本, 以便达到一个合适的最低版本要求. Miguel Ojeda 发布的这组组补丁, 旨在使 Rust 内核代码能够支持多个版本的 Rust 编译器("rustc"), 然后只需要指定一个安全的最低 Rust 版本要求. 参见 [The Linux Kernel Matures To Having A Minimum Rust Toolchain Version](https://www.phoronix.com/news/Linux-Patches-Multiple-Rust-Ver). | v1 ☐☑✓ | [LORE v1,0/13](https://lore.kernel.org/all/20240701183625.665574-1-ojeda@kernel.org) |
+| 2024/08/05 | Danilo Krummrich <dakr@kernel.org> | [Generic `Allocator` support for Rust](https://lore.kernel.org/all/20240805152004.5039-1-dakr@kernel.org) | 这个补丁系列是关于为 Rust 语言在 Linux 内核中添加通用的内核分配器(Allocator)支持. 以下是补丁系列的主要变更和目的:<br>1. 添加通用内核分配器支持: 目前主线上, Rust 在 Linux 内核中的内存分配仅限于 kmalloc. 这个补丁系列扩展了这一功能, 允许使用更多的内存分配器以及分配策略.<br>2. 自定义 Allocator trait: 为了避免向内核添加不稳定的 Rust 特性, 补丁系列没有扩展 Rust 的 alloc crate 中的 Allocator trait, 也没有扩展 BoxExt 和 VecExt 扩展. 而是引入了特定的 Allocator trait, 并由 Kmalloc、Vmalloc 和 KVmalloc 分配器实现, 这些分配器也是在这个系列中实现的.<br>3. 定义内核专用类型, 移除对 alloc crate 的依赖:: 为了使用新的分配器, 补丁系列添加了自定义的 `Box<T, A>` 和 `Vec<T, A>` 类型(其中 A 是特定的分配器), 这些类型依赖于特定的分配器. | v1 ☐☑✓ | [2024/08/05, LORE v4,00/28](https://lore.kernel.org/all/20240805152004.5039-1-dakr@kernel.org) |
 
 
 

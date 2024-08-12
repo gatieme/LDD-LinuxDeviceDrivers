@@ -4713,6 +4713,9 @@ CAS 特性是通过 STATIC_KEY sched_asym_cpucapacity 控制的.
 
 EAS 特性是通过 STATIC_KEY sched_energy_present 控制的.
 
+[Linux内核 算力感知调度](https://mp.weixin.qq.com/s/6-UPioWDvED0lQMAmF9Vfw)
+[cpu算力归一化](https://zhuanlan.zhihu.com/p/707011550)
+
 #### 7.2.4.1 Capacity Asymmetry Detection
 -------
 
@@ -5040,6 +5043,9 @@ DTB 中通过 OPP 字段标记 CPU 的电压及频率信息, 参见 [Documentati
 
 CPU 的 capacity 通过 capacity-dmips-mhz 来标记. CPU 的 power Energy Model 则提供了两种方式来注册, 一种是通过 dynamic-power-coefficient, 再结合电压和频率进行计算, 一种是不提供 dynamic-power-coefficient, 那么就要求在 OPP 表中通过 opp-microwatt 显式设置功耗数据.
 
+> dmips-mhz
+> dmips 是 Dhrystone Million Instructions Per Second 的缩写. 它是一个测量 CPU 运行一个叫 Dhrystone (整数运算)的测试程序时表现出来的相对性能高低的一个单位. Dhrystone 并不包括浮点运算, 其输出结果为每秒钟运行 Dhrystone 的次数, 即每秒钟迭代主循环的次数. Dhrystone的重要性在于其能作为处理器整数计算性能的指标.
+
 | DTB 结构 | DTB 字段 | 描述 |
 |:-------:|:--------:|:---:|
 | cpu-map | clutser, core, thread | 标记 CPU 的 topology 信息. |
@@ -5354,6 +5360,7 @@ CPUFreq 驱动是处理和平台相关的逻辑, Governor 中实现了具体的�
 | 2021/08/12 | Viresh Kumar <viresh.kumar@linaro.org> | [Add callback to register with energy model](https://lore.kernel.org/patchwork/cover/1424708) | 当前许多 cpufreq 驱动程序向每个策略的注册了能耗模型, 并通过相同的操作 dev_pm_opp_of_register_em() 来完成. 但是随着  thermal-cooling 的完善, 可以在 cpufreq 层次通过新的回调 register_em 来完成这个工作. | v3 ☐ | [PatchWork V3,0/9](https://patchwork.kernel.org/project/linux-arm-kernel/cover/cover.1628742634.git.viresh.kumar@linaro.org) |
 | 2021/09/08| Viresh Kumar <viresh.kumar@linaro.org> | [Inefficient OPPs](https://patchwork.kernel.org/project/linux-pm/cover/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) | schedutil 中增加了对低能效 (inefficient) OPP 的感知, 引入 CPUFREQ_RELATION_E 标记来使得 CPUFREQ 只使用和引用有效的频点.<br>Arm 的 Power 团队在为谷歌的 Pixel4 开发一个实验性内核, 以评估和改进现实生活中 Android 设备上的主线性能和能耗. 发现 SD855 SoC 有几个效率低下的 OPP. 这些 OPP 尽管频率较低, 但功耗却较高, 任务这种频率下工作, 性能不光下降了, 功耗也很高. 通过将它们从 EAS 能效模型中移除, 使得最高效的 CPU 在任务分配上更有吸引力, 有助于减少中、大型 CPU 的运行时间, 同时提高了集群的空闲时间. 由于集群之间存在巨大的能源成本差异, 因此增加空闲时间对该平台来说至关重要. | v7 ☑ 5.16-rc1 | [PatchWork v7,0/9](https://patchwork.kernel.org/project/linux-pm/cover/1631109930-290049-1-git-send-email-vincent.donnefort@arm.com) |
 | 2023/07/24 | Jie Zhan <zhanjie9@hisilicon.com> | [cpufreq: Support per-policy performance boost](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=218a06a79d9a98a96ef46bb003d4d8adb0962056) | 通过添加 "local_boost" sysfs 接口启用按策略提升. 与全局升压开关相同, 将 1/0 写入 "local_boost" 可分别启用 / 禁用 cpufreq 策略上的升压.<br> 全局和本地增压控制的用户视图应为:<br>1. 启用全局增强最初会对所有策略启用本地增强, 然后可以对每个策略单独启用或禁用本地增强, 前提是平台确实支持.<br>2. 禁用全局 boost 会使启用本地 boost 成为非法, 而将 0 写入 "local_boost" 是可以的, 但不会生效. [Per-Policy CPU Performance Boosting Proposed For Linux](https://www.phoronix.com/news/Linux-Per-Policy-CPU-Perf-Boost) | v1 ☐☑✓ 6.6-rc1 | [LORE](https://lore.kernel.org/all/20230724075827.4160512-1-zhanjie9@hisilicon.com) |
+| 2024/07/28 | Qais Yousef <qyousef@layalina.io> | [cpufreq: sched/schedutil: Remove LATENCY_MULTIPLIER](https://lore.kernel.org/all/20240728192659.58115-1-qyousef@layalina.io) | 1. 移除 LATENCY_MULTIPLIER: 旧版内核中存在一个称为 LATENCY_MULTIPLIER 的常量, 其值为 1000. 这个常量被用来放大频率转换延迟(transition latency), 以计算频率请求的速率限制(rate_limit_us). 但是, 由于现代硬件的快速响应能力, 这种放大已不再必要, 且可能导致不必要的延迟.<br>2. 更新 transition_delay_us 的计算方式: 补丁提出了一个新算法来计算 transition_delay_us, 即频率转换延迟的 1.5 倍. 这样做的目的是为了给硬件处理频率转换请求留出一定的余地, 但同时又避免了过大的延迟.<br>3. 考虑现代硬件的响应时间: 补丁指出, 现代硬件的响应时间通常很短, 例如在 M1 Mac Mini 上, 频率转换延迟仅为 50 到 56 微秒. 然而, 由于之前的 LATENCY_MULTIPLIER, 实际设置的 rate_limit_us 为 50 至 56 毫秒, 这被限制为 2 毫秒. 因此, 这个补丁旨在更好地反映现代硬件的能力.<br>4. 考虑突发负载的需求: 补丁提到现代工作负载经常需要系统能够快速响应负载的变化, 例如任务的睡眠/唤醒、迁移, 或者由于 uclamp 导致的突然提升或限制. 因此, 2 毫秒的延迟可能不再是最佳选择, 尤其是考虑到 2 毫秒大约是 120 Hz 显示刷新率周期的四分之一. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240728192659.58115-1-qyousef@layalina.io) |
 
 
 #### 7.3.3.2 各个手机厂商基于 schedutil 的进一步优化和改进
@@ -7247,9 +7254,10 @@ ECRTS 2020(32nd Euromicro Conference on Real-Time Systems) 上 Daniel 等人发�
 ## 12.5 功耗
 -------
 
+
 | 编号 | 工具 | 描述 | 链接 |
 |:---:|:----:|:---:|:---:|
-| 1 | Turbostat | [tools/power/x86/turbostat](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/tools/power/x86/turbostat) | [Turbostat Gains New Features & New Hardware Support With Linux 6.10](https://www.phoronix.com/news/Linux-6.10-Turbostat) |
+| 1 | Turbostat | [tools/power/x86/turbostat](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/tools/power/x86/turbostat) | [Turbostat Gains New Features & New Hardware Support With Linux 6.10](https://www.phoronix.com/news/Linux-6.10-Turbostat), [Linux's Turbostat Utility Can Now Be Used For Reading Intel PMT Counters](https://www.phoronix.com/news/Linux-6.11-Turbostat-PMT) |
 
 
 
