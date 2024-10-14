@@ -197,7 +197,7 @@ Intel Architecture Day 2021, 官宣了自己的服务于终端和桌面场景的
 | 2021/12/16 | Srinivas Pandruvada <srinivas.pandruvada@linux.intel.com> | [cpufreq: intel_pstate: Update EPP for AlderLake mobile](https://www.phoronix.com/scan.php?page=news_item&px=Linux-5.17-P-State-ADL-Mobile) | 修正 AlderLake 的 EPP. | v1 ☑ 5.17-rc1 | [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b6e6f8beec98ba7541213c506fe908517fdc52b8) |
 | 2022/04/15 | Zhang Rui <rui.zhang@intel.com> | [intel_idle: add AlderLake support](https://lore.kernel.org/all/20220415093951.2677170-1-rui.zhang@intel.com) | 参见 [phoronix 报道](https://www.phoronix.com/scan.php?page=news_item&px=Intel-Idle-Alder-Lake) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220415093951.2677170-1-rui.zhang@intel.com) |
 | 2022/10/24 | Rafael J. Wysocki <rjw@rjwysocki.net> | [cpufreq: intel_pstate: Make HWP calibration work on all hybrid platforms](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f5c8cf2a4992dd929fa0c2f25c09ee69b8dcbce1) | 修复硬件 P-State(HWP) 校准程序在 Intel 混合 CPU 平台的一些问题.<br>1. 以前进行这项工作的尝试是基于使用 CPPC, 但事实证明, CPPC 信息对于此目的来说不够可靠, 唯一的方法是对 P 核和 E 核使用硬编码的比例因子(幸运的是, 这与非混合情况下相同). 幸运的是, 迄今为止, P-core 的相同缩放因子适用于所有混合平台. 这个补丁集的第一个补丁通过避免在一个 CPU 上读取的 MSR 值将用于另一个 CPU 的性能扩展的情况, 确保所有 CPU 都将使用来自 MSR 的正确信息. 第二个补丁完善了 hybrid_get_cpu_scaling() 的实现, 用已知的缩放因子作为 cpu->pstate.scaling. | v1 ☑✓ 6.1-rc3 | [LORE v1,0/2](https://lore.kernel.org/all/2258064.ElGaqSPkdT@kreacher) |
-| 2024/04/25 | Rafael J. Wysocki <rjw@rjwysocki.net> | [x86/intel_pstate: Set asymmetric CPU capacity on hybrid systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=64a0c5de40d3648a2fc5ff58348c1ff973976da1) | 这个补丁集是为调度器提供基于英特尔硬件的 x86 混合系统上的非对称 CPU 容量信息. 不对称的 CPU 容量信息在混合系统中很重要, 因为它允许以一致的方式计算系统中所有 CPU 的任务利用率, 而不管它们的容量如何. 这反过来又允许 schedutil-cpufreq 调控器在任务在不同容量的 CPU 之间迁移的情况下一致地设置 CPU 性能级别. 它还应该有助于改善混合系统上的任务布局和负载平衡决策, 这是 EAS 的关键. intel_pstate 使用 MSR_HWP_CAPABILITIES 的 HWP_HIGHEST_PERF 值，通过之前引入的 arch_set_cpu_capacity() 在没有 SMT 的混合系统上设置不对称的 CPU 容量信息. 如果给定系统是混合和非 SMT, 则在初始化所有在线 CPU 并找到具有最大 HWP_HIGHEST_PERF 值的 CPU 后, 新代码将禁用调度器中的 ITMT 支持 (因为它可能会妨碍调度器中的非对称 CPU 容量代码, 该代码通过设置非对称 CPU 容量自动启用). 接下来, 它通过将其 HWP_HIGHEST_PERF 和 SCHED_CAPACITY_SCALE 的乘积除以最大 HWP_HIGHEST_PERF 来计算每个(在线)CPU 的容量. 参见 phoronix 报道 [New Intel P-State Linux Driver Patches To Better Handle Hybrid Core CPUs](https://phoronix.com/news/Intel-P-State-Asymmetic-Hybrid), [Intel P-State Patches Further Tune Linux For Better Scheduling On Hybrid CPUs](https://www.phoronix.com/news/Intel-P-State-Asymmetric-Cap) 和 [New Intel Linux Patches Continue Working To Improve Hybrid CPU Task Placement](https://www.phoronix.com/news/Intel-Linux-Mid-2024-Hybrid). | v1 ☐☑✓ v6.11-rc1 | [2024/04/25, LORE v1,0/3](https://lore.kernel.org/all/7663799.EvYhyI6sBW@kreacher)<br>*-*-*-*-*-*-*-* <br>[2024/08/02, LORE v1,0/3](https://lore.kernel.org/all/4908113.GXAFRqVoOG@rjwysocki.net) |
+| 2024/04/25 | Rafael J. Wysocki <rjw@rjwysocki.net> | [x86/intel_pstate: Set asymmetric CPU capacity on hybrid systems](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=929ebc93ccaa8d183a2ba9f1cf769d1bfb847cca) | 这个补丁集是为调度器提供基于英特尔硬件的 x86 混合系统上的非对称 CPU 容量信息. 不对称的 CPU 容量信息在混合系统中很重要, 因为它允许以一致的方式计算系统中所有 CPU 的任务利用率, 而不管它们的容量如何. 这反过来又允许 schedutil-cpufreq 调控器在任务在不同容量的 CPU 之间迁移的情况下一致地设置 CPU 性能级别. 它还应该有助于改善混合系统上的任务布局和负载平衡决策, 这是 EAS 的关键. intel_pstate 使用 MSR_HWP_CAPABILITIES 的 HWP_HIGHEST_PERF 值，通过之前引入的 arch_set_cpu_capacity() 在没有 SMT 的混合系统上设置不对称的 CPU 容量信息. 如果给定系统是混合和非 SMT, 则在初始化所有在线 CPU 并找到具有最大 HWP_HIGHEST_PERF 值的 CPU 后, 新代码将禁用调度器中的 ITMT 支持 (因为它可能会妨碍调度器中的非对称 CPU 容量代码, 该代码通过设置非对称 CPU 容量自动启用). 接下来, 它通过将其 HWP_HIGHEST_PERF 和 SCHED_CAPACITY_SCALE 的乘积除以最大 HWP_HIGHEST_PERF 来计算每个(在线)CPU 的容量. 参见 phoronix 报道 [New Intel P-State Linux Driver Patches To Better Handle Hybrid Core CPUs](https://phoronix.com/news/Intel-P-State-Asymmetic-Hybrid), [Intel P-State Patches Further Tune Linux For Better Scheduling On Hybrid CPUs](https://www.phoronix.com/news/Intel-P-State-Asymmetric-Cap), [New Intel Linux Patches Continue Working To Improve Hybrid CPU Task Placement](https://www.phoronix.com/news/Intel-Linux-Mid-2024-Hybrid), [Linux 6.12 To Enhance The Hybrid P/E Core Experience On Intel Lunar Lake](https://www.phoronix.com/news/Linux-6.12-Hybrid-No-SMT-Cap). | v1 ☐☑✓ v6.11-rc1 | [2024/04/25, LORE v1,0/3](https://lore.kernel.org/all/7663799.EvYhyI6sBW@kreacher)<br>*-*-*-*-*-*-*-* <br>[2024/08/02, LORE v1,0/3](https://lore.kernel.org/all/4908113.GXAFRqVoOG@rjwysocki.net)<br>*-*-*-*-*-*-*-* <br>[2024/08/25, LORE v1,0/3](https://lore.kernel.org/all/7663799.EvYhyI6sBW@kreacher)<br>*-*-*-*-*-*-*-* <br>[2024/08/12, LORE, v2,0/3](https://lore.kernel.org/all/4941491.31r3eYUQgx@rjwysocki.net)<br>*-*-*-*-*-*-*-* <br>[2024/08/28, LORE v3,0/2](https://lore.kernel.org/all/3310447.aeNJFYEL58@rjwysocki.net) |
 
 
 
@@ -307,8 +307,10 @@ hfi_update_work_fn
 
 英特尔低功耗模式守护程序 LPMD, 用于优化 Linux 下现代酷睿混合 CPU 的主动空闲电源, 这些 CPU 具有 E 和 P 内核的组合. Intel LPMD 支持多种低功耗状态, 可以根据 EPP/EPB/ITMT 设置、IRQ 迁移和任务迁移定义多种状态. 还可以根据不同的利用率阈值选择不同的低功耗状态. 根据检测到的 CPU 拓扑或用户配置文件选择最节能的 CPU. 根据系统利用率等信息, 将在适用时将系统置于低功耗模式, 比如使用最节能的 E 核, 并在不需要时禁用 P 的内核.
 
-2024/06/12 LPMD 发布 0.0.4, 增强了其硬件反馈接口 (HFI) 监视器, 支持对来自被禁止的 CPU 的提示进行 HFI 监视, 支持多种低功耗状态, 支持工作负载类型提示, 并支持在低功耗模式转换期间更改能效偏好(EPP). 参见 )
- 报道 [Intel Low Power Mode Daemon v0.0.4 Released To Optimize Hybrid CPUs On Linux](https://www.phoronix.com/news/Intel-LPMD-Low-Power-0.0.4).
+2024/06/12 LPMD 发布 v0.0.4, 增强了其硬件反馈接口 (HFI) 监视器, 支持对来自被禁止的 CPU 的提示进行 HFI 监视, 支持多种低功耗状态, 支持工作负载类型提示, 并支持在低功耗模式转换期间更改能效偏好(EPP). 参见 phoronix 报道 [phoronix, 2024/06/12, Intel Low Power Mode Daemon v0.0.4 Released To Optimize Hybrid CPUs On Linux](https://www.phoronix.com/news/Intel-LPMD-Low-Power-0.0.4)
+
+
+2024/09/24 LPMD 发布 v0.0.7, 更改之一是新的 "--ignore-platform-check" 选项, 允许覆盖平台检查, 以便守护程序在未经验证的硬件平台上启动. 此新版本中还有 Autotool 构建系统改进和各种修复. 参见 phoronix 报道 [phoronix, 2024/09/24, Intel's LPMD "Low Power Mode Daemon" Now Identifies As The "Energy Optimizer"](https://www.phoronix.com/news/Intel-LPMD-v0.0.7).
 
 
 #### 1.4.1.5 编译器支持
@@ -346,7 +348,7 @@ AMD 关于大小核的专利 [US20210173715A1: METHOD OF TASK TRANSITION BETWEEN
 
 [效仿 Arm, AMD 也在做大小核芯片](https://mp.weixin.qq.com/s/ckDRWep-ih287wIsjddRrw).
 
-[AMD “big.LITTLE” aka heterogeneous computing in Ryzen 8000 series](https://videocardz.com/newz/amd-patents-a-task-transition-method-between-big-and-little-processors).
+[AMD "big.LITTLE" aka heterogeneous computing in Ryzen 8000 series](https://videocardz.com/newz/amd-patents-a-task-transition-method-between-big-and-little-processors).
 
 [AMD reportedly working on its heterogeneous CPU design](https://technosports.co.in/2021/06/14/amd-reportedly-working-on-its-heterogeneous-cpu-design).
 
@@ -355,6 +357,7 @@ AMD 关于大小核的专利 [US20210173715A1: METHOD OF TASK TRANSITION BETWEEN
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2024/05/07 | Perry Yuan <perry.yuan@amd.com> | [AMD Pstate Driver Fixes and Improvements](https://lore.kernel.org/all/cover.1715065568.git.perry.yuan@amd.com) | 参见 phoronix 报道 [AMD Posts Patches For Improving Heterogeneous Core Type CPUs On Linux](https://www.phoronix.com/news/AMD-Heterogeneous-P-State-Linux) 和 [AMD P-State Linux Patches Updated For Heterogeneous CPUs](https://www.phoronix.com/news/AMD-P-State-Hetero-v3), [Testing The AMD Heterogeneous Core Topology Linux Patches On Ryzen AI 300 Series](https://www.phoronix.com/news/Ryzen-AI-Heterogeneous-Core-Top). | v1 ☐☑✓ | [2024/05/07, LORE v1,0/11](https://lore.kernel.org/all/cover.1715065568.git.perry.yuan@amd.com)<br>*-*-*-*-*-*-*-* <br>[2024/06/11, LORE v3,0/10](https://lore.kernel.org/all/cover.1718095377.git.perry.yuan@amd.com) |
+| 2024/10/03 | Mario Limonciello <superm1@kernel.org> | [Detect max performance values for heterogeneous AMD designs](https://lore.kernel.org/all/20241003213759.3038862-1-superm1@kernel.org) | [New AMD Linux Patches Aim To Further Boost Performance For Heterogeneous CPU Designs](https://www.phoronix.com/news/AMD-Linux-Hetero-Max-Detect). | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20241003213759.3038862-1-superm1@kernel.org) |
 
 
 ### 1.4.3 ARM big.LITTLE & DynamIQ
@@ -725,6 +728,19 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/05/09 | Kristina Martsenko <kristina.martsenko@arm.com> | [arm64: Support for Armv8.8 memcpy instructions in userspace](https://lore.kernel.org/all/20230509142235.3284028-1-kristina.martsenko@arm.com) | Armv8.8 扩展添加了执行 memcpy()、memset() 和 memmove() 等操作 (FEAT_MOPS). 这个补丁集增加了对的支持使用用户空间中的新指令. | v8 ☐☑✓ | [LORE v8,0/11](https://lore.kernel.org/all/20230509142235.3284028-1-kristina.martsenko@arm.com) |
 | 2023/09/15 | Kristina Martsenko <kristina.martsenko@arm.com> | [KVM: arm64: Support for Arm v8.8 memcpy instructions in KVM guests](https://lore.kernel.org/all/20230915124840.474888-1-kristina.martsenko@arm.com) | TODO | v8 ☐☑✓ | [LORE v8,0/3](https://lore.kernel.org/all/20230915124840.474888-1-kristina.martsenko@arm.com) |
+
+
+### 2.3.5 GLIBC 优化
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/09/09 | Wilco Dijkstra <wilco.dijkstra@arm.com> | [AArch64: Optimize memset](https://sourceware.org/git/?p=glibc.git;a=commit;h=cec3aef32412779e207f825db0d057ebb4628ae8) | 这个补丁通过 AArch64 的 GNU C 库中 memset 进行优化, 使得 memset 性能提高 ~24%. 通过避免分支和使用重叠的 store 来改进小型 memset. 对超过 128 字节的副本使用 DC ZVA. 删除 64 和 128 以外的 ZVA 大小的不必要代码. 在 Neoverse N1 上, 随机 memset 基准测试的性能提高了 24%. 参见 [phoronix, 2024/09/10, GNU C Library Tuning For AArch64 Helps Memset Performance By ~24%](https://www.phoronix.com/news/Glibc-AArch64-memset-Optimize). | v1 ☐☑✓ | [COMMIT](https://sourceware.org/git/?p=glibc.git;a=commitdiff;h=cec3aef32412779e207f825db0d057ebb4628ae8) |
+
+
+
+
 
 ## 2.4 pseudo-NMI
 -------
@@ -1169,6 +1185,10 @@ Rosetta 是一个转译过程, 允许用户在 Apple Silicon 上运行包含 x86
 
 [FEX 2407](https://fex-emu.com/FEX-2406) 于 2024/07/04 发布, 实现了 AVX/AVX2 的支持. 为了在 ARM 上实现高效的 AVX 仿真, 需要 256 位 SVE. 对于其他硬件, 256 位指令被分解为两个 128 位指令. 这条路径不太理想, 但至少允许支持 AVX 的软件运行. 参见 phoronix 报道 [FEX 2407 Emulator For x86_64 Binaries On ARM Now Handles AVX/AVX2](https://www.phoronix.com/news/FEX-Emulator-2407).
 
+[FEX 2408](https://fex-emu.com/FEX-2408) 提供了更好的 x87 浮点性能, 用于增强在此模拟器上运行的旧游戏. 参见 [phoronix, 2024/08/13, FEX 2408 Emulator For x86_64 Binaries On AArch64 Teases More Performance](https://www.phoronix.com/news/FEX-2408-Released).
+
+Fedora 42 通过 FEX 支持了 64 位 ARM64 的机器上的直接无缝运行 x86/x86_64 程序, 参见 [phoronix, 2024/09/12, Fedora 42 On 64-bit ARM Might Make It Seamless To Run x86/x86_64 Programs](https://www.phoronix.com/news/Fedora-42-FEX-AArch64-Proposal).
+
 
 ### 6.7.3 Box64
 -------
@@ -1301,6 +1321,8 @@ openEuler 提供了 [openEuler/prefetch_tuning](https://gitee.com/openeuler/pref
 [AMD P-State Preferred Core Support For Linux Tried A 13th Time](https://www.phoronix.com/news/AMD-P-State-Preferred-Core-13)
 
 [AMD P-State Preferred Core Support Coming With Linux 6.9](https://www.phoronix.com/news/Linux-6.9-AMD-P-State-Preferred)
+
+[AMD Preferred Core Fix Lands Ahead Of Linux 6.11-rc6](https://www.phoronix.com/news/AMD-PM-Linux-6.11-rc6)
 
 
 磁芯频率受半导体工艺变化的影响. 并非所有内核都能够达到最大频率, 具体取决于基础架构限制. 因此, AMD 重新定义了硬件最大频率的概念. 这意味着一小部分内核可以达到最大频率. 为了找到给定场景的最佳进程调度策略, 操作系统需要通过 CPPC 接口的最高性能功能寄存器来了解平台通知的核心排序.

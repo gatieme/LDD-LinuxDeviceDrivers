@@ -661,6 +661,8 @@ cba6167f0adb
 [A capability set for user namespaces](https://lwn.net/Articles/978846)
 [A look inside the BPF verifier](https://lwn.net/Articles/982077)
 [CRIB: checkpoint/restore in BPF](https://lwn.net/Articles/984313)
+[Modernizing BPF for the next 10 years](https://lwn.net/Articles/977013/)
+[HIVE: A Hardware-assisted Isolated Execution Environment for eBPF on AArch64](https://www.usenix.org/conference/usenixsecurity24/presentation/zhang-peihua)
 
 [Direct-to-device networking](https://lwn.net/Articles/979549)
 
@@ -764,10 +766,31 @@ HUAWEI P10 Plus, Vicky, Android 7.0, EMUI 5.1
 
 
 
-
 [New Power Sequencing Driver Subsystem Merged For Linux 6.11](https://www.phoronix.com/news/Linux-6.11-Power-Sequencing)
 
 
 
-这个补丁系列是关于为 Rust 语言在 Linux 内核中添加通用的内核分配器(Allocator)支持. 以下是补丁系列的主要变更和目的:<br>1. 添加通用内核分配器支持: 目前主线上, Rust 在 Linux 内核中的内存分配仅限于 kmalloc. 这个补丁系列扩展了这一功能, 允许使用更多的内存分配器以及分配策略.<br>2. 自定义 Allocator trait: 为了避免向内核添加不稳定的 Rust 特性, 补丁系列没有扩展 Rust 的 alloc crate 中的 Allocator trait, 也没有扩展 BoxExt 和 VecExt 扩展. 而是引入了特定的 Allocator trait, 并由 Kmalloc、Vmalloc 和 KVmalloc 分配器实现, 这些分配器也是在这个系列中实现的. 为了使用新的分配器, 补丁系列添加了自定义的 `Box<T, A>` 和 `Vec<T, A>`` 类型(其中 A 是特定的分配器), 这些类型依赖于特定的分配器.<br>3. 移除对 alloc crate 的依赖: 通过这个系列的更改, 内核构建完全移除了对 Rust 的 alloc crate 的依赖.
-定义内核专用类型: 定义了内核专用的 Box<T, A> 和 Vec<T, A> 类型, .
+
+
+
+
+[Ghidra Software Reverse Engineering Framework](https://github.com/NationalSecurityAgency/ghidra)
+
+
+
+| 2024/08/26 | NeilBrown <neilb@suse.de> | [block: change wait on bd_claiming to use a var_waitqueue, not a bit_waitqueue](https://lore.kernel.org/all/20240826063659.15327-2-neilb@suse.de) | TODO | v1 ☐☑✓ | [LORE v1,0/7](https://lore.kernel.org/all/20240826063659.15327-2-neilb@suse.de) |
+
+
+
+https://lore.kernel.org/all/20240830130309.2141697-1-vincent.guittot@linaro.org/
+
+
+
+[](https://www.phoronix.com/news/AMD-Linux-Hetero-Max-Detect)
+
+
+| 编号 | 调度器 | 语言 | 用途 |
+|:---:|:-----:|:----:|:---:|
+|  1  | scx_lavd | 程序专注于交互性, 具体来说, 就是始终如一地从游戏中获得更高的帧速率. |
+|  2  | scx_rustland | RUST | 将调度事件转发到用户空间, 在那里做出决策. 还包含 scx_rusty 用于复杂 CPU 拓扑上的负载平衡, 以及, 一个 scx_layered 分区计划程序. |
+|  3  |

@@ -625,6 +625,8 @@ Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标�
 [WASM 原生时代已经到来 | 解读 WebAssembly 的 2022](https://csdnnews.blog.csdn.net/article/details/128739217)
 
 [Wasmer 4.3 Released: WebAssembly Runtime 25% Faster On Cold Startups](https://www.phoronix.com/news/Wasmer-4.3-Released)
+[Wasmer 4.4 Released To Continue Pushing Universal Apps With WebAssembly](https://www.phoronix.com/news/Wasmer-4.4-Released)
+
 
 # 10 云原生
 -------

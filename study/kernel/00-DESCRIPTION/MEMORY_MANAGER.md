@@ -810,11 +810,10 @@ github 地址: [Mitosis Project](https://github.com/mitosis-project), [linux 内
 | 2021 | [Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; asplos21_vmitosis.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/8/asplos21_vmitosis.pdf)<br>[Fast Local Page-Tables for Virtualized NUMA Servers with vMitosis; April, 2021; vmitosis_ext_abstract.pdf](https://research.vmware.com/files/attachments/0/0/0/0/1/3/1/vmitosis_ext_abstract.pdf) |
 
 
-
 ## 1.x 其他页面页表相关
 -------
 
-【】（）
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -5674,8 +5673,10 @@ mcpage 有成本. 除了 THP 没有带来 TLB 的好处之外, 与 4K 基本页�
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2024/03/11 | Maíra Canal <mcanal@igalia.com> | [drm/v3d: Enable Super Pages](https://lore.kernel.org/all/20240311100959.205545-1-mcanal@igalia.com) | [Raspberry Pi V3D Graphics Driver Preps For Super Pages To Boost Performance](https://www.phoronix.com/news/Raspberry-Pi-V3D-Super-Pages) | v3 ☐☑✓ | [LORE v3,0/5](https://lore.kernel.org/all/20240311100959.205545-1-mcanal@igalia.com) |
 
+## 7.5 PAGE_SIZE
+-------
 
-
+[AmpereOne Performance On Linux 6.11 Kernel, 4K vs. 64K Page Size Comparison](https://www.phoronix.com/review/ampereone-64k-linux611)
 
 # 8 进程虚拟地址空间(VMA)
 -------
@@ -7273,6 +7274,7 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2021/08/05 | Mel Gorman <mgorman@techsingularity.net> | [Protect vmstats on PREEMPT_RT](https://lore.kernel.org/patchwork/patch/1472709) | NA | v2 ☐ | [PatchWork 0/1,v2](https://patchwork.kernel.org/project/linux-mm/cover/20210723100034.13353-1-mgorman@techsingularity.net) |
 | 2021/12/22 | Shakeel Butt <shakeelb@google.com> | [memcg: add per-memcg vmalloc stat](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4e5aa1f4c2b489bc6f3ab5ca54747b18a847289d) | NA | v1 ☑✓ 5.17-rc1 | [PatchWork v1](https://patchwork.kernel.org/project/linux-mm/patch/20211221215336.1922823-1-shakeelb@google.com)<br>*-*-*-*-*-*-*-* <br>[PatchWork v2](https://patchwork.kernel.org/project/linux-mm/patch/20211222052457.1960701-1-shakeelb@google.com) |
+| 2024/07/30 | Pasha Tatashin <pasha.tatashin@soleen.com> | [Kernel stack usage histogram](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=fbe76a6557a83af5ef3819fd7b7ffd0a5d3b4e51) | 这个补丁集的目标是为 Linux 内核提供一个内核栈使用情况的直方图统计. 参见 [phoronix, 2024/09/24, Linux 6.12 Adds A Kernel Stack Usage Histogram To Help With Optimizations](https://www.phoronix.com/news/Linux-Kernel-Stack-Histogram). | v5 ☐☑✓ v6.12-rc1 | [2024/05/30, LORE v3](https://lore.kernel.org/all/20240530170259.852088-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[2024/07/18, LORE v4](https://lore.kernel.org/all/20240718202611.1695164-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[2024/07/30, LORE v5,0/3](https://lore.kernel.org/all/20240730150158.832783-1-pasha.tatashin@soleen.com) |
 
 
 ### 13.4.6 meminfo
