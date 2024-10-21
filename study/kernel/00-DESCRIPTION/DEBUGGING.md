@@ -339,10 +339,9 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2022/02/07 | John Ogness <john.ogness@linutronix.de> | [implement threaded console printing](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) | 参见 phoronix 报道 [Linux Gets Patches For Threaded Console Printing](https://www.phoronix.com/scan.php?page=news_item&px=Linux-Threaded-Console-Print) 和 [Patches Updated For Linux To Enjoy Consoles Running At Full-Speed](https://www.phoronix.com/scan.php?page=news_item&px=Printk-v3-Consoles-Full-Speed) | v1 ☐ | [LORE v1,0/13](https://lore.kernel.org/all/20220207194323.273637-1-john.ogness@linutronix.de) |
 | 2023/03/02 | John Ogness <john.ogness@linutronix.de> | [threaded/atomic console support](https://lore.kernel.org/all/87wn3zsz5x.fsf@jogness.linutronix.de) | TODO | v1 ☐☑✓ | [LORE v1,0/18](https://lore.kernel.org/all/87wn3zsz5x.fsf@jogness.linutronix.de) |
 | 2024/02/18 | John Ogness <john.ogness@linutronix.de> | [wire up write_atomic() printing](https://lore.kernel.org/all/20240218185726.1994771-1-john.ogness@linutronix.de) | TODO | v2 ☐☑✓ | [LORE v2,0/26](https://lore.kernel.org/all/20240218185726.1994771-1-john.ogness@linutronix.de) |
-| 2024/06/04 | John Ogness <john.ogness@linutronix.de> | [add threaded printing + the rest](https://lore.kernel.org/all/20240603232453.33992-1-john.ogness@linutronix.de) | [Updated Printk Rework Patches - Necessary Step For Mainlining Linux Real-Time"RT"](https://www.phoronix.com/news/Printk-Rework-v2-Linux) | v2 ☐☑✓ | [LORE v2,0/18](https://lore.kernel.org/all/20240603232453.33992-1-john.ogness@linutronix.de) |
+| 2024/06/04 | John Ogness <john.ogness@linutronix.de> | [add threaded printing + the rest](https://lore.kernel.org/all/20240603232453.33992-1-john.ogness@linutronix.de) | [Updated Printk Rework Patches - Necessary Step For Mainlining Linux Real-Time"RT"](https://www.phoronix.com/news/Printk-Rework-v2-Linux) | v2 ☐☑✓ | [LORE v2,0/18](https://lore.kernel.org/all/20240603232453.33992-1-john.ogness@linutronix.de)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/17](https://lore.kernel.org/all/20240904120536.115780-1-john.ogness@linutronix.de) |
 | 2022/09/11 | Thomas Gleixner <tglx@linutronix.de> | [printk: A new approach - WIP](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |  | v1 ☐☑✓ | [LORE v1,0/29](https://lore.kernel.org/all/20220910221947.171557773@linutronix.de) |
 | 2023/09/16 | John Ogness <john.ogness@linutronix.de> | [provide nbcon base](https://lore.kernel.org/all/20230916192007.608398-1-john.ogness@linutronix.de) | [NBCON Console Patches Updated For Eventually Unblocking Real-Time Linux Kernel](https://www.phoronix.com/news/Linux-NCON-Consoles-v5) | v5 ☐☑✓ | [LORE v5,0/8](https://lore.kernel.org/all/20230916192007.608398-1-john.ogness@linutronix.de) |
-
 
 
 
@@ -926,7 +925,7 @@ Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM F
 | 编号 | 应用 | 功能 |
 |:---:|:----:|:---:|
 | 1 | [Cling](https://github.com/vgvassilev/cling) | 用于这个基于 LLVM/Clang 构建的开源交互式 C++ 解释器. Cling 是作为 LLVM/Clang 的扩展实现的, 以用作利用读取 - 求值 - 打印循环 (REPL) 概念的中间人, 并依赖于实时 (JIT) 编译. [Cling 1.0 发布用于交互式 C++ 解释器](https://www.phoronix.com/news/Cling-1.0-Released) |
-
+| 2 | [](https://www.phoronix.com/news/AMD-AOCC-5.0-Compiler) | AMD 基于 LLVM/Clang/Flang 编译器的下游版本, 提供了一些 AMD 处理器编译优化的支持. 参见 [phoronix, 2024/10/11, AMD AOCC 5.0 Compiler Released With Zen 5 Support, New Optimizations](https://www.phoronix.com/news/AMD-AOCC-5.0-Compiler). |
 
 
 ## 13.15 Package BUILD

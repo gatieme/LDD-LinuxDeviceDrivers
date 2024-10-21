@@ -529,7 +529,6 @@ raw_tracepoint 相比 tracepoint
 
 [How to use libbpf-tools with ubuntu 18.04 4.15 kernel](https://www.gitmemory.com/issue/iovisor/bcc/3232/761744003)
 
-
 ## 8.2 perf
 -------
 
@@ -603,11 +602,15 @@ glcc 则实现了 eBPF 驱动和 libbpf 的支持, 允许 eBPF 程序无需修�
 ## 8.7 continuous profiling
 -------
 
+[Building a Continuous Profiler Part 1: An Intro to App Profiling](https://blog.px.dev/cpu-profiling)
+[Building a Continuous Profiler Part 2: A Simple eBPF-Based Profiler](https://blog.px.dev/cpu-profiling-2)
+[Building a Continuous Profiler Part 3: Optimizing for Prod Systems](https://blog.px.dev/cpu-profiling-3)
+
 | 博客 | 描述 |
 |:---:|:----:|
 | [Introduction to Parca - Part 1](https://www.polarsignals.com/blog/posts/2023/01/19/introduction-to-parca-agent) | Parca 是一个基于 eBPF 在线采样工具. |
-| [grafana/phlare](https://github.com/grafana/phlare) |
-
+| [grafana/phlare](https://github.com/grafana/phlare) | 一个水平可扩展, 高可用, 多租户的持续性能分析聚合系统. 它已被 Grafana LAB 收购, 未来的 |
+| [maxgio92/yap](https://github.com/maxgio92/yap) | 一个基于 Go 和 eBPF 的低开销的采样 CPU Profiler, 它不需要在被分析的二进制文件中进行任何插装. [Unleashing the power of frame pointers pt.1 - The execution environment](https://blog.maxgio.me/posts/unleashing-power-frame-pointers-execution-environment), [Unleashing the power of frame pointers for profiling pt.2 - Writing a simple profiler](https://blog.maxgio.me/posts/unleashing-power-frame-pointers-writing-simple-continuous-profiler) |
 
 # 9 WASM(WebAssembly)
 -------
@@ -637,6 +640,8 @@ Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标�
 
 # X 学习参考
 -------
+
+[zoidyzoidzoid/awesome-ebpf](https://github.com/zoidyzoidzoid/awesome-ebpf)
 
 ## X.1 业界工具
 -------

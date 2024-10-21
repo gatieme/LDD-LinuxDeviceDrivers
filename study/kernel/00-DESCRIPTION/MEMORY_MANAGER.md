@@ -747,6 +747,14 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 | 2023/07/14 | GONG, Ruiqi <gongruiqi@huaweicloud.com> | [Randomized slab caches for kmalloc()](https://lore.kernel.org/all/20230714064422.3305234-1-gongruiqi@huaweicloud.com) | TODO | v5 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230714064422.3305234-1-gongruiqi@huaweicloud.com) |
 | 2024/03/05 | Kees Cook <keescook@chromium.org> | [slab: Introduce dedicated bucket allocator](https://lore.kernel.org/all/20240305100933.it.923-kees@kernel.org) | [Hardening the kernel against heap-spraying attacks](https://lwn.net/Articles/965837) | v2 ☐☑✓ | [LORE v2,0/9](https://lore.kernel.org/all/20240305100933.it.923-kees@kernel.org) |
 
+### 1.8.7 GCS(Guarded Control Stack)
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/10/01 | Mark Brown <broonie@kernel.org> | [arm64/gcs: Provide support for GCS in userspace](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bb9ae1a66c85eeb626864efd812c62026e126ec0) | [phoronix, 2024/10/08, Arm's Guarded Control Stack "GCS" Support Looks Like It Will Be Ready For Linux 6.13](https://www.phoronix.com/news/Arm-GCS-Prep-Linux-6.13) | v13 ☐☑✓ | [LORE v13,0/40](https://lore.kernel.org/all/20241001-arm64-gcs-v13-0-222b78d87eee@kernel.org) |
+
+
 
 
 ## 1.9 page attributes
@@ -5677,6 +5685,8 @@ mcpage 有成本. 除了 THP 没有带来 TLB 的好处之外, 与 4K 基本页�
 -------
 
 [AmpereOne Performance On Linux 6.11 Kernel, 4K vs. 64K Page Size Comparison](https://www.phoronix.com/review/ampereone-64k-linux611)
+
+[Google Making Progress On 16KB Page Size For Android](https://www.phoronix.com/news/Android-16KB-Page-Size-Progress)
 
 # 8 进程虚拟地址空间(VMA)
 -------
