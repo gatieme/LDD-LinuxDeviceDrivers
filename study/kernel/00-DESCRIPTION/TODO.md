@@ -786,7 +786,6 @@ https://lore.kernel.org/all/20240830130309.2141697-1-vincent.guittot@linaro.org/
 
 
 
-[](https://www.phoronix.com/news/AMD-Linux-Hetero-Max-Detect)
 
 
 | 编号 | 调度器 | 语言 | 用途 |
@@ -794,3 +793,7 @@ https://lore.kernel.org/all/20240830130309.2141697-1-vincent.guittot@linaro.org/
 |  1  | scx_lavd | 程序专注于交互性, 具体来说, 就是始终如一地从游戏中获得更高的帧速率. |
 |  2  | scx_rustland | RUST | 将调度事件转发到用户空间, 在那里做出决策. 还包含 scx_rusty 用于复杂 CPU 拓扑上的负载平衡, 以及, 一个 scx_layered 分区计划程序. |
 |  3  |
+
+
+
+主要目的是为 sched_ext 调度扩展模块中的默认空闲 CPU 选择策略引入 LLC(Last Level Cache) 意识. 这使得使用内置策略的调度器在具有多个 LLC 的系统中(如 NUMA 系统或基于芯片的架构)做出更明智的空闲 CPU 选择决策, 使得任务能够更好地保持在相同的 LLC 域内, 有效改善缓存局部性, 从而提高性能. LLC 意识目前仅应用于那些可以在系统中所有 CPU 上运行的任务. 如果任务的亲和性 (affinity) 被用户空间修改, 那么用户空间需要负责选择合适的优化调度域. 通过这些改动, sched_ext 调度器在处理多 LLC 系统时, 能够更有效地管理缓存资源， 进而提高整体的系统性能.

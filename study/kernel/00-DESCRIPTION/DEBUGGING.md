@@ -658,9 +658,9 @@ bperf 试图通过允许多个 "周期" 或 "指令" 的 perf_event (在不同�
 ### 13.2.3 BOLT'ing
 -------
 
-[[RFC] BOLT: A Framework for Binary Analysis, Transformation, and Optimization](https://discourse.llvm.org/t/rfc-bolt-a-framework-for-binary-analysis-transformation-and-optimization/56722)
+[[RFC] BOLT: A Framework for Binary Analysis, Transformation, and Optimization](https://discourse.llvm.org/t/rfc-bolt-a-framework-for-binary-analysis-transformation-and-optimization/56722).
 
-[BOLT: A Practical Binary Optimizer for Data Centers and Beyond](https://arxiv.org/pdf/1807.06735.pdf)
+BOLT 论文 [BOLT: A Practical Binary Optimizer for Data Centers and Beyond](https://arxiv.org/pdf/1807.06735.pdf).
 
 几年来, Facebook 的工程师们一直在研究 [BOLT](https://www.phoronix.com/scan.php?page=news_item&px=Facebook-BOLT-Optimize-Binaries), 以此加速 Linux/ELF 二进制文件.
 
@@ -676,8 +676,18 @@ LLVM BOLT 优化 GNOME 的 Pango 净改进 ~6%, 参见 phoronix 报道 [LLVM BOL
 
 ARM 的编译器工程师利用 BOLT 来创建二进制分析工具, 以审查安全强化选项的正确性. 该工具旨在验证堆栈保护器、堆栈冲突保护、分支保护、控制流保护等功能. 二进制分析工具将验证整个程序的强化功能, 并且比今天使用的有限安全强化测试要详细得多. 参见 phoronix 报道 [LLVM's BOLT Being Adapted To Analyze Security Hardening Of Binaries](https://www.phoronix.com/news/LLVM-BOLT-Security-Hardening).
 
+除了基于 Arch Linux 的 CachyOS 和 Intel 的 Clear Linux 之类的发行版之外, 没有太多发行版以提升系统性能的名义广泛依赖激进的编译器优化. 不过最近有人建议 Fedora 使用配置文件引导优化 (PGO) 和链接后优化, 例如 LLVM BOLT 来开发更多软件包, 参见邮件列表讨论 [2024/10/14, Expand usage of Profile-Guided Optimization (PGO) and LLVM BOLT across Fedora packages](https://discussion.fedoraproject.org/t/expand-usage-of-profile-guided-optimization-pgo-and-llvm-bolt-across-fedora-packages/133724) 和 [Expand usage of Profile-Guided Optimization (PGO) and LLVM BOLT across Fedora packages](https://lists.fedoraproject.org/archives/list/devel@lists.fedoraproject.org/thread/TB7CTGA3BYMFAB36CGVSW5P6ICIPFM6V), 以及 phoronix 报道 [phoronix, 2024/10/22, Suggestion Raised For Using PGO + LLVM BOLT To Optimize More Fedora Packages](https://www.phoronix.com/news/Fedora-Idea-More-PGO-LLVM-BOLT).
 
-### 13.2.4 Propeller
+LPC 2024 [`Toolchains Track`  领域](https://lpc.events/event/18/sessions/180) 来自 Meta 的 Maksim Panchenko (Meta) 介绍了其是使用 BOLT 优化内核的工作, 议题 [BOLT - Binary Optimizer for Linux Kernel](https://lpc.events/event/18/contributions/1921). 在简要对链接后时间优化做了简介后, 讲解了 BOLT 要成为优化内核的实用工具所面临的挑战. 同时还介绍 BOLT "深度扫描"反汇编的工具, 该工具可以揭示 Linux 内核的相关信息, 否则 objdump 等经典反汇编程序无法获得这些信息, 例如静态调用/密钥. 参见 LWN 报道 [LWN, 2024/10/25, Kernel optimization with BOLT](https://lwn.net/Articles993828).
+
+### 13.2.4 AutoFDO
+-------
+
+
+LPC 2024 [`Toolchains Track`  领域](https://lpc.events/event/18/sessions/180) 来自 Google 的 Maksim Panchenko (Meta) 介绍了 [Optimizing the Linux kernel with AutoFDO including ThinLTO and Propeller](https://lpc.events/event/18/contributions/1922). 自动反馈导向优化(AutoFDO), 它可以与 Propeller 优化器一起使用, 以使用从实际工作负载收集的配置文件信息生成性能更好的内核. 这些工具与 BOLT 链接后优化器之间存在相当多的重叠.
+
+
+#### 13.2.4.1 Propeller
 -------
 
 [Propeller: A Profile Guided, Relinking Optimizer for Warehouse Scale Applications](https://github.com/google/llvm-propeller)
@@ -685,7 +695,8 @@ ARM 的编译器工程师利用 BOLT 来创建二进制分析工具, 以审查�
 [[RFC] Propeller: A frame work for Post Link Optimizations](https://discourse.llvm.org/t/rfc-propeller-a-frame-work-for-post-link-optimizations/53161)
 
 
-### 13.2.5 Thin Layout Optimizer
+
+#### 13.2.4.2 Thin Layout Optimizer
 -------
 
 Thin-Layout-Optimizer 是一种新的代码布局优化器, 主要强调易用性和易采用性, 同时与 BOLT/Propeller 相比在性能上保持竞争力. 与 BOLT/Propeller 一样, Thin-Layout-Optimizer 在使用 Linux perf 和 LBR 生成的配置文件上运行. Thin-Layout-Optimizer 不会反汇编二进制文件, 而是通过类似于 Propeller 的链接器脚本重新排序的部分. 然而, 与 Propeller 不同的是, 它不需要基本块部分, 并且适用于任何部分粒度. 有效的粒度是函数节 (-ffunction-sections), 它几乎得到普遍支持, 并为重新排序优化提供了合理的基础. 此外, 它不需要对链接器命令进行任何更改, 而是通过使用环境变量透明地运行. 最后, 它可以透明地扩展到任意数量的包, 并且几乎不需要增量更改. 参见 phoronix 报道 [Intel's Newest Software Effort For Achieving Greater Performance: Thin Layout Optimizer](https://www.phoronix.com/news/Intel-Thin-Layout-Optimizer).

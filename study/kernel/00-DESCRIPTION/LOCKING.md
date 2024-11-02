@@ -320,6 +320,15 @@ Google 的 Joel Fernandes 等发现 RCU 并没有很好的节能, 在 Android �
 
 [内核工匠-futex问答](https://blog.csdn.net/feelabclihu/article/details/127020166)
 
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/10/25 | Peter Zijlstra <peterz@infradead.org> | [futex: The remaining futex2 bits](https://lore.kernel.org/all/20241025090347.244183920@infradead.org) | [FUTEX2 NUMA & Small Futexes Revived For Linux](https://www.phoronix.com/news/FUTEX2-NUMA-Small-Futex). | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20241025090347.244183920@infradead.org) |
+
+
+
+
+
 # 7 Semaphores
 -------
 
