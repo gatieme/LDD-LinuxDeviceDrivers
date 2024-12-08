@@ -257,6 +257,11 @@ Linux 一开始是在一台 i386 上的机器开发的, i386 的硬件页表是 
 
 有个硬件机构叫 TLB, 用来缓存页表查寻结果, 根据程序局部性, 即将访问的数据或代码很可能与刚访问过的在一个页面, 有了 TLB 缓存, 页表查找很多时候就大大加快了. 但是, 内核在切换进程时, 需要切换页表, 同时 TLB 缓存也失效了, 需要冲刷掉. 内核引入的一个优化是, 当切换到内核线程时, 由于内核线程不使用用户态空间, 因此切换用户态的页表是不必要, 自然也不需要冲刷 TLB. 所以引入了 Lazy-TLB 模式, 以提高效率. 关于细节, 可参考[kernel 3.10 内核源码分析 --TLB 相关 --TLB 概念、flush、TLB lazy 模式](https://www.cnblogs.com/sky-heaven/p/5133747.html)
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/05/31 | Byungchul Park <byungchul@sk.com> | [LUF(Lazy Unmap Flush) reducing tlb numbers over 90%](https://lore.kernel.org/all/20240531092001.30428-1-byungchul@sk.com) | 这组补丁的主要目的是实现一种名为 LUF(Lazy Unmap Flush)的机制, 以大幅减少 TLB(Translation Lookaside Buffer)刷新的数量, 特别是在处理内存迁移时.  实现 LUF 机制, 延迟 TLB 刷新直到实际需要, 从而减少 TLB 射杀的次数; 优化内存迁移过程中的性能, 特别是在处理大量内存页时; 为 x86、ARM64 和 RISC-V 架构提供支持; 添加自测试用例, 确保 LUF 机制的正确性和有效性; 通过这些改动, 内存管理和性能得到了显著提升, 特别是在处理内存迁移和 TLB shootdown 时. | v11 ☐☑✓ | [LORE v11,0/12](https://lore.kernel.org/all/20240531092001.30428-1-byungchul@sk.com) |
+
+
 
 ### 1.3.2 avoid unnecessary TLB flushes
 -------
@@ -753,6 +758,14 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2024/10/01 | Mark Brown <broonie@kernel.org> | [arm64/gcs: Provide support for GCS in userspace](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bb9ae1a66c85eeb626864efd812c62026e126ec0) | [phoronix, 2024/10/08, Arm's Guarded Control Stack "GCS" Support Looks Like It Will Be Ready For Linux 6.13](https://www.phoronix.com/news/Arm-GCS-Prep-Linux-6.13) | v13 ☐☑✓ | [LORE v13,0/40](https://lore.kernel.org/all/20241001-arm64-gcs-v13-0-222b78d87eee@kernel.org) |
+
+
+### 1.8.8 Lightweight Guard Pages
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/10/17 | Lorenzo Stoakes <lorenzo.stoakes@oracle.com> | [implement lightweight guard pages](https://lore.kernel.org/all/cover.1729196871.git.lorenzo.stoakes@oracle.com) | 用户空间库函数(如分配器和线程实现)通常需要内存区域充当'保护页'——当访问这些映射时, 会导致向访问进程发送致命信号.<br>当前实现这些的方法是通过 PROT_NONE mmap() 映射, 它提供了所需的语义, 但每个此类区域都会产生 VMA 的开销. 对于大量进程和线程, 这可能会迅速增加并导致严重的内存损失. 它还具有阻止可能被允许的合并的额外问题. 这个系列实现了不同的方法 - Vlasimil Babka 提出的方法, 将它们放在映射所需范围的页表中, 而不是不是在 VMA 层定位保护页. 对此代码的原型版本的早期测试表明，内存映射调用的速度提高了 5 倍(结合使用 process_madvise())，并且在完全空闲的 Android 系统和未优化代码上减少了 13% 的 VMA.<br>1. 引入 PTE 标记： 使用 PTE 标记(PTE markers)来实现守护页机制, 而不是传统的 PROT_NONE 映射. 添加了一个新的 PTE 标记 PTE_MARKER_GUARD, 用于表示守护页.<br>2. 扩展通用页面遍历机制: 扩展通用页面遍历机制, 允许安装 PTE(页面表项), 但仅限于内存管理逻辑, 以防止滥用.<br>3. 确保内存管理操作不会移除守护页标记: 确保 MADV_DONTNEED 等操作不会移除守护页标记. 确保 fork 操作不会移除守护页标记, 除非指定了 VM_WIPEONFORK. [phoronix, 2024/10/20, Lightweight Guard Pages For Linux Showing 5x Speed-Up For Memory Mapping Invocations](https://www.phoronix.com/news/Linux-Lightweight-Guard-Pages) | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/cover.1729196871.git.lorenzo.stoakes@oracle.com) |
 
 
 

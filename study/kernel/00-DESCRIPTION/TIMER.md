@@ -64,8 +64,15 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 2023/06/06 | Thomas Gleixner <tglx@linutronix.de> | [posix-timers: Cure inconsistencies and the SIG_IGN mess](https://lore.kernel.org/all/20230606132949.068951363@linutronix.de) | TODO | v1 ☐☑✓ | [LORE v1,0/45](https://lore.kernel.org/all/20230606132949.068951363@linutronix.de)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/50](https://lore.kernel.org/lkml/20240410164558.316665885@linutronix.de) |
 
 
+[hrtimers: Consolidate hrtimer initialization - Part 1](https://lore.kernel.org/all/20241031-hrtimer_setup_p1_v2-v2-0-23400656575a@linutronix.de)
 
-
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/10/28 | Nam Cao <namcao@linutronix.de> | [hrtimers: Switch to new hrtimer interface functions (1/5)](https://lore.kernel.org/all/cover.1729864615.git.namcao@linutronix.de) | TODO | v1 ☐☑✓ | [LORE v1,0/21](https://lore.kernel.org/all/cover.1729864615.git.namcao@linutronix.de) |
+| 2024/10/28 | Nam Cao <namcao@linutronix.de> | [hrtimers: Switch to new hrtimer interface functions (2/5)](https://lore.kernel.org/all/cover.1729864823.git.namcao@linutronix.de) | TODO | v1 ☐☑✓ | [LORE v1,0/31](https://lore.kernel.org/all/cover.1729864823.git.namcao@linutronix.de) |
+| 2024/10/28 | Nam Cao <namcao@linutronix.de> | [hrtimers: Switch to new hrtimer interface functions (3/5)](https://lore.kernel.org/all/cover.1729865232.git.namcao@linutronix.de) | TODO | v1 ☐☑✓ | [LORE v1,0/24](https://lore.kernel.org/all/cover.1729865232.git.namcao@linutronix.de) |
+| 2024/10/28 | Nam Cao <namcao@linutronix.de> | [hrtimers: Switch to new hrtimer interface functions (4/5)](https://lore.kernel.org/all/cover.1729865485.git.namcao@linutronix.de) | TODO | v1 ☐☑✓ | [LORE v1,0/44](https://lore.kernel.org/all/cover.1729865485.git.namcao@linutronix.de) |
+| 2024/10/28 | Nam Cao <namcao@linutronix.de> | [hrtimers: Switch to new hrtimer interface functions (5/5)](https://lore.kernel.org/all/cover.1729865740.git.namcao@linutronix.de) | TODO | v1 ☐☑✓ | [LORE v1,0/12](https://lore.kernel.org/all/cover.1729865740.git.namcao@linutronix.de) |
 
 
 

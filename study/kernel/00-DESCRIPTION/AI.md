@@ -167,6 +167,8 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 [29 种本地部署大模型和调用的工具平台分类与总结](https://blog.csdn.net/l35633/article/details/138379452)
 
+[phoronix, 2024/12/07, Llamafile 0.8.17 Brings New Web UI For This Easy-To-Distribute AI LLM Framework](https://www.phoronix.com/news/Llamafile-7-Released)
+
 | 编号 | 推理框架 | 团队 | 介绍 |
 |:---:|:-------:|:---:|:---:|
 | 1 | [vLLM](https://github.com/vllm-project/vllm) | UC Berkeley | vLLM 是一个开源的大模型推理加速框架, 通过 PagedAttention 高效地管理 attention 中缓存的张量, 实现了比 HuggingFace Transformers 高 14-24 倍的吞吐量. PagedAttention 是 vLLM 的核心技术, 它解决了 LLM 服务中内存的瓶颈问题. 传统的注意力算法在自回归解码过程中, 需要将所有输入 Token 的注意力键和值张量存储在 GPU 内存中, 以生成下一个 Token. 这些缓存的键和值张量通常被称为 KV 缓存. [vLLM(二) 架构概览](https://zhuanlan.zhihu.com/p/681716326) |
@@ -190,8 +192,19 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 
 
+### 4.2.1 KV Cache 压缩
+-------
 
+[SnapKV: LLM在生成内容之前就知道您在寻找什么](https://blog.csdn.net/qq_36931982/article/details/139118015)
 
+[MiniCache 和 PyramidInfer 等 6 种优化 LLM KV Cache 的最新工作](https://www.51cto.com/aigc/913.html)
+
+[PyramidKV学习资料汇总 - 动态KV缓存压缩技术](https://blog.csdn.net/m0_56734068/article/details/142382328)
+
+[大模型推理加速：KV Cache Sparsity(稀疏化)方法](https://zhuanlan.zhihu.com/p/701580870)
+
+[聊聊大模型推理中的 KVCache 之异构缓存](https://zhuanlan.zhihu.com/p/714288577)
+[聊聊大模型推理中的 KVCache 压缩](https://zhuanlan.zhihu.com/p/708946312)
 
 
 # 5 分析工具
@@ -202,7 +215,7 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 |  1  | [Interactive Tools for machine learning, deep learning, and math](https://github.com/Machine-Learning-Tokyo/Interactive_Tools) | 用于机器学习、深度学习和数学运算的交互式工具. |
 |  2  | [Visual Guides to understand the basics of Large Language Models](https://towardsdatascience.com/visual-guides-to-understand-the-basics-of-large-language-models-0715701bdd20) | 一系列工具与文章的汇编, 直观易懂地解读复杂的 AI 概念. 译文 [深入浅出：大语言模型的视觉解析 [译]](https://baoyu.io/translations/llm/visual-guides-to-understand-the-basics-of-large-language-models). |
 
-## 5.1  Tokenizer
+## 5.1 Tokenizer
 -------
 
 ### 5.1.1 Token 计算器
@@ -294,8 +307,9 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 | 2024/01/16 | 多模态 | [A Survey of Resource-efficient LLM and Multimodal Foundation Models](https://arxiv.org/abs/2401.08092) | Mengwei Xu | [UbiquitousLearning](https://github.com/UbiquitousLearning/Efficient_Foundation_Model_Survey) | 一篇关于资源高效的大模型和多模态基础模型的综述论文. 论文涵盖了算法和系统两个方面的创新, 包括了高校的模型架构, 训练算法, 推理算法和模型压缩等内容. |
 | 2024/04/18 | 效率提升 | [The Efficiency Spectrum of Large Language Models: An Algorithmic Survey](https://arxiv.org/abs/2312.00678) | Tianyu Ding | [tding1](https://github.com/tding1/Efficient-LLM-Survey) | 一篇关于提供大语言模型效率的综合性调查论文, 全面回顾了旨在提高 LLM 效率的算法, 涵盖了扩展定律, 数据利用, 架构创新, 训练和调优策略以及推理计划等. |
 | 2024/05/23 | LLMs | [Efficient Large Language Models: A Survey](https://arxiv.org/abs/2312.03863) | Zhongwei Wan | [AIoT-MLSys-Lab](https://github.com/AIoT-MLSys-Lab/Efficient-LLMs-Survey) | 本文对高效 LLMs 研究的发展进行了系统而全面的回顾, 并将文献整理成由三个主要类别组成的分类法, 从模型中心、数据中心和框架中心的角度涵盖了不同但相互关联的高效 LLMs 主题, 并且从以模型为中心和以数据为中心的角度, 回顾了 LLMs 的算法层面和系统层面的高效技术. 详细介绍了每个分类下的具体技术, 如: 量化, 剪枝, 知识蒸馏, 数据选择, 提示工程等<br>1. [知乎--黄浴--高效大语言模型：综述](https://zhuanlan.zhihu.com/p/671710012)<br>2. [知乎--磐石--大模型高效推理 I 推理技术框架总结](https://zhuanlan.zhihu.com/p/696850285)<br>3. [知乎--享享学AI--大模型LLM微调技术方法汇总！](https://zhuanlan.zhihu.com/p/673675939) |
-| [A Survey on Efficient Inference for Large Language Models](https://arxiv.org/abs/2404.14294) | NA | []() | 1. [如何加速大模型推理？万字综述全面解析大语言模型高效推理技术 ](https://www.sohu.com/a/790365299_121119001)<br>2. [知乎--罗清雨--大语言模型高效推理综述](https://zhuanlan.zhihu.com/p/707685591)
-[Comprehensive Study on Performance Evaluation and Optimization of Model Compression: Bridging Traditional Deep Learning and Large Language Models](https://arxiv.org/abs/2407.15904)
+| 2024/04/22 | 综述 | [A Survey on Efficient Inference for Large Language Models](https://arxiv.org/abs/2404.14294) | Zixuan Zhou | 1. [如何加速大模型推理？万字综述全面解析大语言模型高效推理技术 ](https://www.sohu.com/a/790365299_121119001)<br>2. [知乎--罗清雨--大语言模型高效推理综述](https://zhuanlan.zhihu.com/p/707685591) |
+| 2023/06/23 | 多模态 | [A Survey on Multimodal Large Language Models](https://arxiv.org/abs/2306.13549) | Shukang Yin | [BradyFU](https://github.com/BradyFU/Awesome-Multimodal-Large-Language-Models) | 本综述中主要介绍了多模态幻觉、多模态上下文学习(Multimodal InContext Learning，M-ICL)、多模态思维链(Multimodal Chain of Thought，M-CoT)和 LLM 辅助的视觉推理(LLM-Aided Visual Reasoning，LAVR)等. |
+| 2024/07/26 | [Comprehensive Study on Performance Evaluation and Optimization of Model Compression: Bridging Traditional Deep Learning and Large Language Models](https://arxiv.org/abs/2407.15904) | Aayush Saxena |
 [Mobile Edge Intelligence for Large Language Models: A Contemporary Survey](https://arxiv.org/abs/2407.18921)
 [Edge Intelligence: Architectures, Challenges, and Applications](https://arxiv.org/abs/2003.12172)
 [A Survey on Model Compression for Large Language Models](https://arxiv.org/abs/2308.07633)
@@ -322,7 +336,7 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 |:---:|:----:|:------:|:---:|:------:|:----:|
 | 2024/09/23 | 日常论文精选 | [metame-ai/awesome-llm-plaza](https://github.com/metame-ai/awesome-llm-plaza) | [metame-ai](https://github.com/metame-ai/awesome-llm-plaza) | [awesome-llm-plaza](https://github.com/metame-ai/awesome-llm-plaza) | 日常论文精选 |
 | 2024/10/25 | 日常论文精选 | [xianshang33/llm-paper-daily](https://github.com/xianshang33/llm-paper-daily) | [xianshang33](https://github.com/xianshang33/llm-paper-daily) | [xianshang33/llm-paper-daily](https://github.com/xianshang33/llm-paper-daily) | 日常论文精选 |
-
+| 2024/11/25 | 日常论文速递 | NA | NA | [叶子的技术碎碎念-每周AI论文速递](http://leafw.cn) | NA |
 
 
 

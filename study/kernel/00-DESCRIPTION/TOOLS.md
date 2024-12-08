@@ -104,7 +104,9 @@ Intel 发布的 ControlFlag 用机器学习来发现代码中的错误, 支持 C
 
 *  Dtrace
 
-[Oracle Releases DTrace 2.0.0-1.14 For Linux Systems](https://www.phoronix.com/news/D-Trace-2.0.0-1.14)
+[phoronix, 2024/04/08, Oracle Releases DTrace 2.0.0-1.14 For Linux Systems](https://www.phoronix.com/news/D-Trace-2.0.0-1.14)
+
+[phoronix, 2024/10/23, Gentoo Linux Touts DTrace 2.0 Support](https://www.phoronix.com/news/Gentoo-Linux-DTrace-2.0), [DTrace 2.0 for Gentoo](https://www.gentoo.org/news/2024/10/23/DTrace-for-Gentoo.html), [DTrace-WIKI](https://wiki.gentoo.org/wiki/DTrace)
 
 
 ## 2.2 call kernel func from userspace

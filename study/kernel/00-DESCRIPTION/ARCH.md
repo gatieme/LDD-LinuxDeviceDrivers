@@ -316,6 +316,8 @@ hfi_update_work_fn
 | 2024/06/12 | v0.0.4 | 增强了其硬件反馈接口 (HFI) 监视器, 支持对来自被禁止的 CPU 的提示进行 HFI 监视, 支持多种低功耗状态, 支持工作负载类型提示, 并支持在低功耗模式转换期间更改能效偏好(EPP). | [phoronix, 2024/06/12, Intel Low Power Mode Daemon v0.0.4 Released To Optimize Hybrid CPUs On Linux](https://www.phoronix.com/news/Intel-LPMD-Low-Power-0.0.4). |
 | 2024/09/24 | v0.0.7 | 更改之一是新的 "--ignore-platform-check" 选项, 允许覆盖平台检查, 以便守护程序在未经验证的硬件平台上启动. 此新版本中还有 Autotool 构建系统改进和各种修复. | [phoronix, 2024/09/24, Intel's LPMD "Low Power Mode Daemon" Now Identifies As The "Energy Optimizer"](https://www.phoronix.com/news/Intel-LPMD-v0.0.7). |
 | 2024/10/16 | v0.0.8 | 引入工作负载类型代理支持, 支持特定于型号/SKU 的配置文件、英特尔 Meteor Lake P 配置文件和其他更改, 添加对 AC/DC 状态的检测, 还原时遵循电源配置文件守护程序默认 EPP, 引入 MeteorLake-P 平台特定的配置文件. | [phoronix, 2024/10/16, Intel Low Power Mode Daemon v0.0.8 Brings New Features](https://www.phoronix.com/news/Intel-Low-Power-LPMD-0.0.8) |
+| 2024/10/15 | Yicong Yang <yangyicong@huawei.com> | [Support SMT control on arm64](https://lore.kernel.org/all/20241015021841.35713-1-yangyicong@huawei.com) | TODO | v6 ☐☑✓ | [LORE v6,0/4](https://lore.kernel.org/all/20241015021841.35713-1-yangyicong@huawei.com) |
+
 
 #### 1.4.1.5 编译器支持
 -------
@@ -362,6 +364,8 @@ AMD 关于大小核的专利 [US20210173715A1: METHOD OF TASK TRANSITION BETWEEN
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2024/05/07 | Perry Yuan <perry.yuan@amd.com> | [AMD Pstate Driver Fixes and Improvements](https://lore.kernel.org/all/cover.1715065568.git.perry.yuan@amd.com) | 参见 phoronix 报道 [AMD Posts Patches For Improving Heterogeneous Core Type CPUs On Linux](https://www.phoronix.com/news/AMD-Heterogeneous-P-State-Linux) 和 [AMD P-State Linux Patches Updated For Heterogeneous CPUs](https://www.phoronix.com/news/AMD-P-State-Hetero-v3), [Testing The AMD Heterogeneous Core Topology Linux Patches On Ryzen AI 300 Series](https://www.phoronix.com/news/Ryzen-AI-Heterogeneous-Core-Top). | v1 ☐☑✓ | [2024/05/07, LORE v1,0/11](https://lore.kernel.org/all/cover.1715065568.git.perry.yuan@amd.com)<br>*-*-*-*-*-*-*-* <br>[2024/06/11, LORE v3,0/10](https://lore.kernel.org/all/cover.1718095377.git.perry.yuan@amd.com) |
 | 2024/10/03 | Mario Limonciello <superm1@kernel.org> | [Detect max performance values for heterogeneous AMD designs](https://lore.kernel.org/all/20241003213759.3038862-1-superm1@kernel.org) | [New AMD Linux Patches Aim To Further Boost Performance For Heterogeneous CPU Designs](https://www.phoronix.com/news/AMD-Linux-Hetero-Max-Detect). | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20241003213759.3038862-1-superm1@kernel.org) |
+| 2024/10/25 | Mario Limonciello <mario.limonciello@amd.com> | [x86 Heterogeneous design identification](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=3eef25ab0d89cb1e55699a4d242c5afe17dbbd07) | AMD 异构设计中使用异构核心拓扑来识别提升系数(boost numerator). AMD 的异构设计包括两种类型的内核: 性能内核(Performance Cores) 和 效率内核(Efficiency Cores). 每种内核类型有不同的最高性能值, 这些值由平台配置, 驱动程序（如 amd_pstate）需要识别内核类型, 以便正确设置提升系数, 从而计算最大频率.<br>具体改动<br>1. 识别异构核心: 使用 X86_FEATURE_AMD_HETEROGENEOUS_CORES 特性来识别系统是否支持异构核心. 这通过读取 CPUID 叶子 Fn_0x80000026 来实现.<br>2. 设置提升系数: 对于性能内核, 使用固定的缩放因子 196. 对于效率内核, 使用 CPUID 报告的最高性能值作为缩放因子. 参见 phoronix 报道 [phoronix, 2024/11/03, AMD Heterogeneous CPU Design Topology Patches Coming For Linux 6.13](https://www.phoronix.com/news/AMD-Hetero-Topo-Linux-6.13) | v4 ☐☑✓ v6.13-rc1 | [LORE v4,0/5](https://lore.kernel.org/all/20241025171459.1093-1-mario.limonciello@amd.com) |
+
 
 
 ### 1.4.3 ARM big.LITTLE & DynamIQ
@@ -633,6 +637,7 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | 2020/02/23 | Andrea Arcangeli <aarcange@redhat.com> | [arm64: tlb: skip tlbi broadcast v2](https://lore.kernel.org/all/20200223192520.20808-1-aarcange@redhat.com) |20200223192520.20808-1-aarcange@redhat.com | v1 ☐ | [LORE](https://lore.kernel.org/all/20200223192520.20808-1-aarcange@redhat.com) |
 | 2022/09/13 | Joe Damato <jdamato@fastly.com> | [mm: Track per-task tlb events](https://lore.kernel.org/all/1663120270-2673-1-git-send-email-jdamato@fastly.com) | 通过检查 `/proc/interrupts`, 可以在每个 CPU 的基础上测量 TLB shootdown 事件. 如果 CONFIG_DEBUG_TLBFLUSH 被启用, 关于 TLB 事件的进一步信息可以从 `/proc/vmstat` 中获取, 但是这些信息是系统范围的. 这些信息是有用的, 但是在一个有许多任务的繁忙系统上, 很难消除 TLB shootdown 事件的来源的模糊性. 这组补丁跟踪每个任务的这些信息可以使开发人员修复或调整用户空间分配器, 以减少 IPI 的数量并提高应用程序性能. 为 task_struct 和 signal_struct 添加了两个新字段, 以帮助跟踪 TLB 事件:<br>1. ngtlbflush: 生成 TLB flush 的数量.<br>2. nrtlbflush: 收到 TLB flush 的数量.<br> 这些统计数据被导出到 `/proc/[pid]/stat` 中, 与类似的指标 (如 min_flt 和 maj_flt) 一起进行分析. | v1 ☐☑✓ | [LORE v1,0/1](https://lore.kernel.org/all/1663120270-2673-1-git-send-email-jdamato@fastly.com) |
 | 2023/03/12 | Yair Podemsky <ypodemsk@redhat.com> | [send tlb_remove_table_smp_sync IPI only to necessary CPUs](https://lore.kernel.org/all/20230312080945.14171-1-ypodemsk@redhat.com) | 目前, tlb_remove_table_smp_sync() 将 IPI 被不分青红皂白地发送到所有 CPU, 这会导致不必要的工作和延迟, 在实时用例和隔离的 CPU 中尤为值得注意, 此补丁将限制此 IPI 仅发送到引用受影响 mm 的 cpu, 并且当前在内核空间中.  | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230312080945.14171-1-ypodemsk@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/3](https://lore.kernel.org/r/20230404134224.137038-1-ypodemsk@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/2](https://lore.kernel.org/r/20230620144618.125703-1-ypodemsk@redhat.com) |
+| 2024/05/31 | Byungchul Park <byungchul@sk.com> | [LUF(Lazy Unmap Flush) reducing tlb numbers over 90%](https://lore.kernel.org/all/20240531092001.30428-1-byungchul@sk.com) | 这组补丁的主要目的是实现一种名为 LUF(Lazy Unmap Flush)的机制, 以大幅减少 TLB(Translation Lookaside Buffer)刷新的数量, 特别是在处理内存迁移时.  实现 LUF 机制, 延迟 TLB 刷新直到实际需要, 从而减少 TLB 射杀的次数; 优化内存迁移过程中的性能, 特别是在处理大量内存页时; 为 x86、ARM64 和 RISC-V 架构提供支持; 添加自测试用例, 确保 LUF 机制的正确性和有效性; 通过这些改动, 内存管理和性能得到了显著提升, 特别是在处理内存迁移和 TLB shootdown 时. | v11 ☐☑✓ | [LORE v11,0/12](https://lore.kernel.org/all/20240531092001.30428-1-byungchul@sk.com) |
 
 
 > 注: x86 由于没有 tlb IS 方案, 因此只能采用 IPI 的方式来完成 TLB shootdown.
@@ -1202,6 +1207,17 @@ Box64 v0.3 现在作为此用户空间 x86_64 模拟器的最新功能版本提�
 [Box64 v0.3 Brings Support For Emulating x86_64 Binaries With AVX/AVX2 On ARM](https://www.phoronix.com/news/Box64-0.3-Released).
 
 
+### 6.7.4 Loongson Binary Translation Slated(LBT)
+-------
+
+Loongson 二进制翻译(LBT) 旨在通帮助加速和更高效地处理 LoongArch 上的 ARM / x86 / MIPS 二进制翻译. Loongson Binary Translation(LBT) 是 LoongArch ISA 的一部分, 目前有 x86、ARM 和 MIPS 的扩展. 这种加速二进制转换的方法公开了四个额外的暂存寄存器、x86/ARM eflags 和一个 x87 FPU 堆栈指针. 通过这个 Linux 内核端的补丁, 支持保存/恢复这些暂存寄存器以供 LBT 使用、异常处理和维护 sigcontext.
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:-----:|:----:|:----:|:----:|:------------:|:----:|
+| 2024/11/09 |  Qi Hu <huqi@loongson.cn> | [LoongArch: Add Loongson Binary Translation (LBT) extension support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bd3c5798484aa9a08302a844d7a75a2ee3b53d05)| 参见 [phoronix, 2023/07/25, Loongson Binary Translation Slated For Linux 6.6 - Helping MIPS / x86 / ARM On LoongArch](https://www.phoronix.com/news/LoongArch-LBT-Linux-6.6) 以及 [phoronix, 2024/09/13, LoongArch KVM To Speed-Up ARM/x86 Binary Translation](https://www.phoronix.com/news/Linux-6.12-LoongArch-KVM). | v ☐☑✓ | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=bd3c5798484aa9a08302a844d7a75a2ee3b53d05)|
+
+
 
 ## 6.8 原子操作
 -------
@@ -1374,6 +1390,19 @@ AMD-pstate 驱动程序利用 ITMT 体系结构提供的功能和数据结构, �
 
 ### 6.14.2 ARM MPAM
 -------
+
+
+
+
+# 7 GPU
+-------
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2023/08/29 | Yogesh Mohan Marmithu | [user queue patches for review](https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/29010) | AMD RadeonSI 驱动程序的用户队列允许将作业直接提交到 GPU 硬件, 而无需使用 ioctl 命令通过 AMDGPU 内核驱动程序提交作业, 这可以通过直接向 GPU 硬件提交作业来避免因一些内核驱动程的开销所造成的延迟. 参见 [AMD User Queue Mesa Support Merged For Linux - Submitting Work Directly To The GPU](https://www.phoronix.com/news/Mesa-25.0-AMDGPU-User-Queue) | v5 ☐☑✓ | [LORE v5,0/8](https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/29010) |
+| 2024/12/01 | Yonatan Maman <ymaman@nvidia.com> | [GPU Direct RDMA (P2P DMA) for Device Private Pages](https://lore.kernel.org/all/20241201103659.420677-1-ymaman@nvidia.com) | 参见 phoronix 报道 [phoronix, 2024/12/01, NVIDIA's New Linux Patches For GPU Direct RDMA For Device-Private Pages](https://www.phoronix.com/news/NVIDIA-Linux-P2P-DMA-RDMA-Priv) | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20241201103659.420677-1-ymaman@nvidia.com) |
+
 
 
 <br>
