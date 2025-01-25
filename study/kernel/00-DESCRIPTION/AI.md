@@ -133,6 +133,19 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 [群魔乱舞：MoE大模型详解](https://www.zhihu.com/tardis/bd/art/677638939)
 
+[【论文阅读】MOE，《OUTRAGEOUSLY LARGE NEURAL NETWORKS: THE SPARSELY-GATED MIXTURE-OF-EXPERTS LAYER》](https://blog.csdn.net/bylander/article/details/138139345)
+
+[【论文速读】MOD，《Mixture-of-Depths: Dynamically allocating compute in transformer-based language models》](https://blog.csdn.net/bylander/article/details/139536003)
+
+[Mixture of Depths论文解读](https://zhuanlan.zhihu.com/p/691324301)
+
+[OLMoE](https://github.com/allenai/OLMoE)
+
+### 2.2.2 稀疏化训练
+-------
+
+[【ICDE 2022】阿里发布稀疏模型训练框架HybridBackend，单位成本下训练吞吐提升至5倍](https://blog.csdn.net/weixin_48534929/article/details/124661176)
+
 
 ## 2.3 模型压缩和量化
 -------
@@ -188,9 +201,11 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 -------
 
 
-[LLM推理加速技术简介](https://zhuanlan.zhihu.com/p/691360124)
+[知乎--LLM推理加速技术简介](https://zhuanlan.zhihu.com/p/691360124)
 
+[bilibili--如何将大模型与小模型结合？这8种常用策略必看！附17篇案例论文和代码](https://www.bilibili.com/opus/887920175625535524)
 
+[知乎--刀刀宁聊大模型推理--笔记：学习推理加速半年之总结与迷思](https://zhuanlan.zhihu.com/p/704938096)
 
 ### 4.2.1 KV Cache 压缩
 -------
@@ -206,6 +221,44 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 [聊聊大模型推理中的 KVCache 之异构缓存](https://zhuanlan.zhihu.com/p/714288577)
 [聊聊大模型推理中的 KVCache 压缩](https://zhuanlan.zhihu.com/p/708946312)
 
+
+### 4.2.2 稀疏感知推理加速
+-------
+
+[论文笔记：DejaVu、LLM in Flash、PowerInfer](https://zhuanlan.zhihu.com/p/675585887)
+
+[苹果极致LLM端侧方案：LLM in a flash](https://zhuanlan.zhihu.com/p/673775476)
+
+### 4.2.3 首 Token 时延优化
+-------
+
+[[Prefill优化][万字]🔥原理&图解vLLM Automatic Prefix Cache(RadixAttention): 首Token时延优化](https://zhuanlan.zhihu.com/p/693556044)
+
+### 4.2.4 投机执行
+-------
+
+[论文导读 | 投机解码加速模型推理](https://zhuanlan.zhihu.com/p/698333087)
+
+[大模型推理妙招—投机采样(Speculative Decoding)](https://zhuanlan.zhihu.com/p/651359908)
+
+[最全LLM自投机算法汇总](https://zhuanlan.zhihu.com/p/706111755)
+
+[LLM推理提速2.8倍，CMU清华姚班校友提出「投机式推理」引擎SpecInfer，小模型撬动大模型高效推理](https://www.jiqizhixin.com/articles/2023-05-30-3)
+
+
+## 4.3 算子库
+-------
+
+
+PaddlePaddle/Anakin
+
+Tencent/ncnn
+
+Tencent/FeatherCNN
+
+dmlc/tvm
+
+ARM-software/ComputeLibrary
 
 # 5 分析工具
 -------
@@ -292,6 +345,11 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 | [HqWu-HITCS/Awesome-Chinese-LLM](https://github.com/HqWu-HITCS/Awesome-Chinese-LLM) | 整理开源的中文大语言模型, 主要关注规模较小, 可私有化部署, 训练成本较低的模型. 包括底座模型, 垂直领域微调以及应用, 数据集合教程等内容 |
 | [km1994/nlp_paper_study](https://github.com/km1994/nlp_paper_study) | 该仓库主要记录 NLP 算法工程师相关的顶会论文研读笔记. |
 | [NexaAI/Awesome-LLMs-on-device](https://github.com/NexaAI/Awesome-LLMs-on-device) | 汇总了端侧 AI 的相关架构和优化技术, 包括前言的论文研究. |
+| [wdndev/llm_interview_note](https://github.com/wdndev/llm_interview_note) | 主要记录大语言大模型(LLMs) 算法(应用)工程师相关的知识及面试题. |
+| [冬于的博客-Transformer/BERT/实战](https://ifwind.github.io/2021/08/31/Transformer-BERT-实战) | 通过大量图讲述 Transformer 架构 |
+| [浅显易懂地介绍 llm.c [译]](https://baoyu.io/translations/llm/explaining-llm-c-in-layman-terms) | [Explainable Language Models: Existing and Novel Approaches](https://twitter.com/karpathy/status/1778153659106533806) 的译文, 参见 [karpathy/llm.c](https://github.com/karpathy/llm.c). |
+| [DefTruth/Awesome-LLM-Inference](https://github.com/DefTruth/Awesome-LLM-Inference) | 收集了大量 LLM 推理相关的论文和仓库, 涵盖了并行计算, 量化压缩, 注意力机制优化, 上下文管理等. |
+| [SylphAI-Inc/llm-engineer-handbook](https://github.com/SylphAI-Inc/llm-engineer-handbook) | NA |
 
 
 ## 6.2 Survey

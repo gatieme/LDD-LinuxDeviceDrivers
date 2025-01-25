@@ -441,7 +441,7 @@ raw_tracepoint 相比 tracepoint
 | 2021/06/19 | Alan Maguire <alan.maguire@oracle.com> | [libbpf: BTF dumper support for typed data](https://lore.kernel.org/patchwork/cover/1448989) | 引入 btf_dump__dump_type_data, 可以用来输出结构体的信息. | v5 ☐ | [PatchWork v5,bpf-next,0/3](https://lore.kernel.org/patchwork/cover/1448989) |
 
 
-## 3.1 5 function call
+## 3.1 function call
 -------
 
 [Calling kernel functions from BPF](https://lwn.net/Articles/856005)
@@ -654,7 +654,7 @@ Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标�
 | [apache/skywalking-rover](https://github.com/apache/skywalking-rover) | |
 | [GroundCover](https://github.com/groundcover-com) | [GroundCover](https://www.groundcover.com) 轻松、大规模地监控 K8s 应用 |
 | [Exein-io/pulsar](https://github.com/Exein-io/pulsar) | [Tracing the Linux kernel using Exein Pulsar: a 5 Minute Tutorial](https://blog.exein.io/pulsar-tutorial)
-| [ebpf-for-windows](https://github.com/microsoft/ebpf-for-windows) | [eBPF programming on Windows](https://blog.subcom.tech/ebpf-programming-on-windows). |
+| [ebpf-for-windows](https://github.com/microsoft/ebpf-for-windows) | [eBPF programming on Windows](https://blog.subcom.tech/ebpf-programming-on-windows)<br>*-*-*-*-*-*-*-*<br>[eBPF Is Coming for Windows](https://thenewstack.io/ebpf-is-coming-for-windows). |
 | [redcanaryco/ebpfmon](https://github.com/redcanaryco/ebpfmon) | [eBPFmon: A new tool for exploring and interacting with eBPF applications](https://redcanary.com/blog/ebpfmon) |
 | [TrailOfBits](https://github.com/trailofbits) | [Trail of Bits 开发了一套开源库, 旨在简化 eBPF 应用程序的创建和部署. 这些库有助于高效的进程和网络事件监控、函数跟踪、内核调试符号解析和 eBPF 代码生成. 参见 [Use our suite of eBPF libraries](https://blog.trailofbits.com/2023/08/09/use-our-suite-of-ebpf-libraries). |
 | [Netflix/bpftop](https://github.com/Netflix/bpftop) | [bpftop blog](https://netflixtechblog.com/announcing-bpftop-streamlining-ebpf-performance-optimization-6a727c1ae2e5)

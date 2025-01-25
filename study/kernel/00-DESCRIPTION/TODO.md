@@ -795,11 +795,6 @@ https://lore.kernel.org/all/20240830130309.2141697-1-vincent.guittot@linaro.org/
 |  3  |
 
 
-| 2024/10/31 | Tianchen Ding <dtcccc@linux.alibaba.com> | [sched/eevdf: Force propagating min_slice of cfs_rq when a task changing slice](https://lore.kernel.org/all/20241031094822.30531-1-dtcccc@linux.alibaba.com) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20241031094822.30531-1-dtcccc@linux.alibaba.com) |
-
-
-
-
-这组补丁的主要目的是让 x86 架构下的模块使用大页(large pages)来分配可执行内存(ROX pages), 以提高性能和减少 TLB(Translation Lookaside Buffer)的压力. 为 x86 架构引入对大页(通常是 2MB 或 4KB 的页面)的支持, 用于模块的文本段(代码段)分配. 修复与 kmemleak 交互的问题，并改进了与 CFI（Control Flow Integrity）配置的兼容性.
-添加了一个新的 Kconfig 选项 ARCH_HAS_EXECMEM_ROX，确保架构实现 execmem_fill_trapping_insns() 回调，并且整个物理内存映射在直接映射中。
-具体改动
+即使系统 overutilized, 也要继续通过 feec() 寻找能效最优的 CPU. 否则, 回退到调度器的默认性能和传播模式(performance and spread mode).
+当工作队列的工作人员醒来进行短暂的后台工作（如vmstat更新）时，系统可能会在短时间内过度使用。
+继续寻找节能的CPU将防止破坏任务的电源包装。

@@ -137,6 +137,9 @@ https://lwn.net/Articles/422487/
 # 4 KDUMP
 -------
 
+## 4.1 KDUMP
+-------
+
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
@@ -144,8 +147,15 @@ https://lwn.net/Articles/422487/
 | 2022/08/28 | Baoquan He <bhe@redhat.com> | [arm64, kdump: enforce to take 4G as the crashkernel low memory end](https://patchwork.kernel.org/project/linux-mm/cover/20220828005545.94389-1-bhe@redhat.com/) | 671768 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20220828005545.94389-1-bhe@redhat.com) |
 | 2024/03/05 | Steven Rostedt <rostedt@goodmis.org> | [tracing: Persistent traces across a reboot or crash](https://lore.kernel.org/all/20240306015910.766510873@goodmis.org) | [Experimental Linux Patches Allow Kernel Tracing To Work Past Reboots/Crashes](https://www.phoronix.com/news/Linux-Tracing-Post-Reboots). | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20240306015910.766510873@goodmis.org) |
 
-
 [crash extension modules](https://crash-utility.github.io/extensions.html)
+
+## 4.2 QR Code
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/08/22 | Jocelyn Falempe <jfalempe@redhat.com> | [drm/panic: Add a QR code panic screen](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cb5164ac43d0fc37ac6b45cabbc4d244068289ef) | 参见 phoronix 报道 [phoronix, 2024/08/29, Linux 6.12 To Optionally Display A QR Code During Kernel Panics](https://www.phoronix.com/news/Linux-6.12-DRM-Panic-QR-Code). | v7 ☐☑✓ v6.12-rc1 | [LORE v7,0/4](https://lore.kernel.org/all/20240822073852.562286-1-jfalempe@redhat.com) |
+
 
 
 # 5 REFCOUNT
@@ -271,6 +281,8 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 [What became of getrandom() in the vDSO](https://lwn.net/Articles/983186)
 
 [phoronix, 2024/09/23, vDSO getrandom() Ported To Five More CPU Architectures With Linux 6.12](https://www.phoronix.com/news/Linux-6.12-Random)
+
+[phoronix, 2024/11/13, GNU C Library Merges Support for getrandom vDSO](https://www.phoronix.com/news/glibc-getrandom-vDSO-Merged), [glic, linux: Add support for getrandom vDSO](https://sourceware.org/git/?p=glibc.git;a=commit;h=461cab1de747f3842f27a5d24977d78d561d45f9)
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
@@ -608,6 +620,8 @@ bperf 试图通过允许多个 "周期" 或 "指令" 的 perf_event (在不同�
 ### 13.2.1 PGO
 -------
 
+[LLVM Instrumentation 程序探测](https://zhuanlan.zhihu.com/p/514796016)
+
 2020 年 GNU Tools Cauldron 大会受到了疫情影响取消, 在 8 月份的 LPC2020 会议上, 组委会特别增加了一个 GNU Tools 分会场来讨论工具链相关的议题. 来自微软的 Ian Bearman 展示了他的团队使用 Profile Guided Optimization(PGO) 和 Link-time Optimization(LTO) 来优化 Linux 内核取得的一些成果. 参见 [Exploring Profile Guided Optimization of the Linux Kernel](https://lpc.events/event/7/contributions/771/), [微软技术团队：用这种方式编译 Linux，可直接改善系统性能](https://zhuanlan.zhihu.com/p/235032245)[Profile-guided optimization for the kernel](https://lwn.net/Articles/830300)
 
 
@@ -625,6 +639,8 @@ bperf 试图通过允许多个 "周期" 或 "指令" 的 perf_event (在不同�
 [Rethinking Compiler Optimizations for the Linux Kernel:An Explorative Stud](https://yaoguopku.github.io/papers/Yuan-APSys-15.pdf)
 
 [Experiences in Profile-Guided Operating System Kernel Optimization](https://yaoguopku.github.io/papers/Yuan-ApSys-14.pdf)
+
+Canonical 的工程师一直在探索利用 Profile Guided Optimizations(PGO) 来提升系统的性能, 并得到了 5-7% 的性能提升. 对于 Linux 发行版来说, Profile Guided Optimizations 和相关的基于配置文件的优化在总体上要困难得多, 因为需要代表实际使用的准确配置文件. 如果没有准确的配置文件，PGO 和相关技术(如 AutoFDO)对编译器做出智能优化决策的用处就不大. Sergio Durigan Junior 最近一直在探索 RISC-V 的 PGO 优化, 同时使用 QEMU 仿真并从 AMD Ryzen 硬件运行. Sergio 探索了使用 QEMU 在 RISC-V-on-x86_64 仿真环境中构建 OpenSSL、GDB、Emacs 和 Python 的 PGO 性能优势, 因为这就是 RISC-V 包的 Ubuntu 构建场的设置方式. 基于 perf 的配置文件生成基于 QEMU 流程本身, 并了解使用 PGO 可以带来什么样的构建速度改进. 参见 phoronix 报道 [phoronix， 2024/11/18, Ubuntu Praises 5~7% PGO Compiler Optimization Performance Benefits](https://www.phoronix.com/news/Ubuntu-PGO-Praises-Performance)
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
@@ -850,10 +866,11 @@ Mesa CI 开始使用 Mold 作为其 x86_64 和 AArch64 上的默认链接器, �
 
 [Mold 2.0 High Speed Linker Released: Moves From AGPL To MIT License](https://www.phoronix.com/news/Mold-2.0-Linker).
 
+[Mold 2.35 Released With Big Endian ARM64 Support](https://www.phoronix.com/news/Mold-2.35-Released)
+
 [Mold Linker Performance Remains Very Compelling In 2024 Over GNU Gold/ld, LLVM lld](https://www.phoronix.com/news/Mold-Linker-2024-Performance).
 
 Mold 链接器中添加了一个新的 "--separate-debug-file" 选项, 以实现"更快"的性能. 将包含调试信息的 Clang 链接可以下降到不到半秒, 而目前只有六秒半. [Mold Linker Gains New Option To Deliver "Massively Faster" Performance](https://www.phoronix.com/news/Mold-Separate-Debug-File).
-
 
 Rui Ueyama 是 Mold 高性能链接器的首席开发人员, 以前是 LLVM LLD 链接器的负责人, 他在开发 Mold 链接器时, 发现 Linux 内核的某些区域成为链接器的瓶颈, 于是在社区写了一篇详细的邮件 [Wislist for Linux from the mold linker's POV](https://lore.kernel.org/lkml/CACKH++baPUaoQQhL0+qcc_DzX7kGcmAOizgfaCQ8gG=oBKDDYw@mail.gmail.com), 重点介绍了 Linux 内核中观察到的一些性能瓶颈. 并希望社区各领域开发人员可以进行优化. 参见 phoronix 报道 [phoronix, 2024/11/28, Linux Kernel Performance Bottlenecks Spotted By Mold Developer](https://www.phoronix.com/news/Linux-Kernel-Bottlenecks-Mold).
 
@@ -1097,6 +1114,14 @@ User Events 于 [5.18-rc1](https://kernelnewbies.org/Linux_5.18#User_events) 合
 | 2022/01/18 | Beau Belgrave <beaub@linux.microsoft.com> | [user_events: Enable user processes to create and write to trace events](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=864ea0e10cc90416a01b46f0d47a6f26dc020820) | Linux 已经有一种方法允许使用内核跟踪工具 (uprobes) 跟踪用户空间进程. 此版本添加了一个新的 ABI, 允许进程创建和写入与内核跟踪级别事件隔离的跟踪事件. 这样可以更快地跟踪用户模式数据, 并打开托管代码以参与跟踪事件, 其中存根位置为 dynamic.<br> 进程通常只希望仅在有用时才进行跟踪. 进程可以将描述事件格式的事件注册到内核. 内核将创建事件. 然后, 该进程将从映射的 tracefs 文件中接收页面映射中的一个字节, 它可以检查该文件. 特权任务可以启用该事件, 这会将映射的字节更改为 true. 然后, 进程可以开始将事件写入跟踪 buffer. 参见 [User events — but not quite yet](https://lwn.net/Articles/889607). | v10 ☑✓ [5.18-rc1](https://kernelnewbies.org/Linux_5.18#User_events) | [LORE v10,0/12](https://lore.kernel.org/all/20220118204326.2169-1-beaub@linux.microsoft.com) |
 | 2023/03/28 | Beau Belgrave <beaub@linux.microsoft.com> | [tracing/user_events: Remote write ABI](https://lore.kernel.org/all/20230328235219.203-1-beaub@linux.microsoft.com) | 之前的 API 使用起来并不方便, 因此进行了重构. 参见 [User trace events, one year later](https://lwn.net/Articles/927595). 当前正在使用一个需要 mmap() 的共享页面. 删除共享页面实现并移动到用户注册地址实现. 在这个新模型中, 从用户程序注册事件期间指定了 3 个新值. 第一个是启用或禁用事件时要更新的地址. 第二个是要设置 / 清除的位, 以反映正在启用的事件. 第三个是指定地址的值的大小. 这允许在用户程序中使用本地 32/64 位值来支持内核跟踪程序和用户跟踪程序. 例如, 当事件启用时, 为内核跟踪程序设置第 31 位允许用户跟踪程序使用其他位作为引用计数或其他标志. 内核端原子地更新位, 用户程序也需要原子地更新这些值. 用户提供的地址必须在自然边界上对齐, 这允许单页检查, 并防止奇怪的行为, 如跨 2 页而不是单页的启用值. 当遇到页面错误时, 它们将通过工作队列异步完成. 如果页面错误返回, 则再次尝试写更新. 如果页面不能故障进入, 那么我们将登录并等待下一次事件被启用 / 禁用. 这是为了防止由于不良用户进程在注册地址后取消映射或更改保护值而导致的无限循环. | v10 ☐☑✓ | [LORE v10,0/12](https://lore.kernel.org/all/20230328235219.203-1-beaub@linux.microsoft.com)|
 
+
+## 14.9 function graph
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/09/14 | Donglin Peng <dolinux.peng@gmail.com> | [function_graph: Support recording and printing the function return address](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=21e92806d39c68af2accd1fb238c2daecfcf9fbd) | [公众号-dolinux-巧用function graph的trace输出格式](https://mp.weixin.qq.com/s/QHDl9GazamSpaQWkx5mV7w). | v2 ☐☑✓ v6.13-rc1 | [LORE](https://lore.kernel.org/all/20240915032912.1118397-1-dolinux.peng@gmail.com) |
 
 
 # 15 kptr_restrict

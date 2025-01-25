@@ -752,20 +752,12 @@ MTE 实现了锁和密钥访问内存. 这样在内存访问期间, 可以在内
 | 2023/07/14 | GONG, Ruiqi <gongruiqi@huaweicloud.com> | [Randomized slab caches for kmalloc()](https://lore.kernel.org/all/20230714064422.3305234-1-gongruiqi@huaweicloud.com) | TODO | v5 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230714064422.3305234-1-gongruiqi@huaweicloud.com) |
 | 2024/03/05 | Kees Cook <keescook@chromium.org> | [slab: Introduce dedicated bucket allocator](https://lore.kernel.org/all/20240305100933.it.923-kees@kernel.org) | [Hardening the kernel against heap-spraying attacks](https://lwn.net/Articles/965837) | v2 ☐☑✓ | [LORE v2,0/9](https://lore.kernel.org/all/20240305100933.it.923-kees@kernel.org) |
 
-### 1.8.7 GCS(Guarded Control Stack)
--------
-
-| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2024/10/01 | Mark Brown <broonie@kernel.org> | [arm64/gcs: Provide support for GCS in userspace](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bb9ae1a66c85eeb626864efd812c62026e126ec0) | [phoronix, 2024/10/08, Arm's Guarded Control Stack "GCS" Support Looks Like It Will Be Ready For Linux 6.13](https://www.phoronix.com/news/Arm-GCS-Prep-Linux-6.13) | v13 ☐☑✓ | [LORE v13,0/40](https://lore.kernel.org/all/20241001-arm64-gcs-v13-0-222b78d87eee@kernel.org) |
-
-
 ### 1.8.8 Lightweight Guard Pages
 -------
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2024/10/17 | Lorenzo Stoakes <lorenzo.stoakes@oracle.com> | [implement lightweight guard pages](https://lore.kernel.org/all/cover.1729196871.git.lorenzo.stoakes@oracle.com) | 用户空间库函数(如分配器和线程实现)通常需要内存区域充当'保护页'——当访问这些映射时, 会导致向访问进程发送致命信号.<br>当前实现这些的方法是通过 PROT_NONE mmap() 映射, 它提供了所需的语义, 但每个此类区域都会产生 VMA 的开销. 对于大量进程和线程, 这可能会迅速增加并导致严重的内存损失. 它还具有阻止可能被允许的合并的额外问题. 这个系列实现了不同的方法 - Vlasimil Babka 提出的方法, 将它们放在映射所需范围的页表中, 而不是不是在 VMA 层定位保护页. 对此代码的原型版本的早期测试表明，内存映射调用的速度提高了 5 倍(结合使用 process_madvise())，并且在完全空闲的 Android 系统和未优化代码上减少了 13% 的 VMA.<br>1. 引入 PTE 标记： 使用 PTE 标记(PTE markers)来实现守护页机制, 而不是传统的 PROT_NONE 映射. 添加了一个新的 PTE 标记 PTE_MARKER_GUARD, 用于表示守护页.<br>2. 扩展通用页面遍历机制: 扩展通用页面遍历机制, 允许安装 PTE(页面表项), 但仅限于内存管理逻辑, 以防止滥用.<br>3. 确保内存管理操作不会移除守护页标记: 确保 MADV_DONTNEED 等操作不会移除守护页标记. 确保 fork 操作不会移除守护页标记, 除非指定了 VM_WIPEONFORK. [phoronix, 2024/10/20, Lightweight Guard Pages For Linux Showing 5x Speed-Up For Memory Mapping Invocations](https://www.phoronix.com/news/Linux-Lightweight-Guard-Pages) | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/cover.1729196871.git.lorenzo.stoakes@oracle.com) |
+| 2024/10/17 | Lorenzo Stoakes <lorenzo.stoakes@oracle.com> | [implement lightweight guard pages](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=876320d71f515407b81eb08a1d019f19f34907d7) | 用户空间库函数(如分配器和线程实现)通常需要内存区域充当'保护页'——当访问这些映射时, 会导致向访问进程发送致命信号.<br>当前实现这些的方法是通过 PROT_NONE mmap() 映射, 它提供了所需的语义, 但每个此类区域都会产生 VMA 的开销. 对于大量进程和线程, 这可能会迅速增加并导致严重的内存损失. 它还具有阻止可能被允许的合并的额外问题. 这个系列实现了不同的方法 - Vlasimil Babka 提出的方法, 将它们放在映射所需范围的页表中, 而不是不是在 VMA 层定位保护页. 对此代码的原型版本的早期测试表明，内存映射调用的速度提高了 5 倍(结合使用 process_madvise())，并且在完全空闲的 Android 系统和未优化代码上减少了 13% 的 VMA.<br>1. 引入 PTE 标记： 使用 PTE 标记(PTE markers)来实现守护页机制, 而不是传统的 PROT_NONE 映射. 添加了一个新的 PTE 标记 PTE_MARKER_GUARD, 用于表示守护页.<br>2. 扩展通用页面遍历机制: 扩展通用页面遍历机制, 允许安装 PTE(页面表项), 但仅限于内存管理逻辑, 以防止滥用.<br>3. 确保内存管理操作不会移除守护页标记: 确保 MADV_DONTNEED 等操作不会移除守护页标记. 确保 fork 操作不会移除守护页标记, 除非指定了 VM_WIPEONFORK. [phoronix, 2024/10/20, Lightweight Guard Pages For Linux Showing 5x Speed-Up For Memory Mapping Invocations](https://www.phoronix.com/news/Linux-Lightweight-Guard-Pages) 和 [phoronix, 2024/11/20, Linux 6.13 "MM" Patches Bring Some Enticing Performance Optimizations](https://www.phoronix.com/news/Linux-6.13-MM-Patches) | v1 ☐☑✓ v6.13-rc1 | [LORE v1,0/4](https://lore.kernel.org/all/cover.1729196871.git.lorenzo.stoakes@oracle.com) |
 
 
 
@@ -1883,6 +1875,7 @@ SLUB 在解决了上述的问题之上, 提供与 SLAB 完全一样的接口, �
 | 2021/10/12 | Vlastimil Babka <vbabka@suse.cz> | [mm, slub: change percpu partial accounting from objects to pages](https://patchwork.kernel.org/project/linux-mm/patch/20211012134651.11258-1-vbabka@suse.cz) | NA | v3 ☑ 2.6.22-rc1 | [PatchWork v6](https://lore.kernel.org/patchwork/patch/262225) |
 | 2022/11/21 | Vlastimil Babka <vbabka@suse.cz> | [Introduce CONFIG_SLUB_TINY and deprecate SLOB](https://patchwork.kernel.org/project/linux-mm/cover/20221121171202.22080-1-vbabka@suse.cz/)| 697743 | v1 ☐☑ | [LORE v1,0/12](https://lore.kernel.org/r/20221121171202.22080-1-vbabka@suse.cz) |
 | 2023/08/08 | Vlastimil Babka <vbabka@suse.cz> | [SLUB percpu array caches and maple tree nodes](https://patchwork.kernel.org/project/linux-mm/cover/20230808095342.12637-7-vbabka@suse.cz/) | 773975 | v1 ☐☑ | [LORE v1,0/5](https://lore.kernel.org/r/20230808095342.12637-7-vbabka@suse.cz)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/7](https://lore.kernel.org/r/20230810163627.6206-9-vbabka@suse.cz) |
+| 2024/10/01 | Christoph Lameter <cl@gentwo.org> | [SLUB: Add support for per object memory policies](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=f7c80fad6c2b64cf73361772dbd30493879e85f4) | 该补丁的主要目的是在 ARM 架构上增强 SLUB(Small Low-overhead User-friendly Buffer)分配器对 NUMA(Non-Uniform Memory Access)内存策略的支持, 特别是在基于嵌入式设备的新 NUMA 互连技术下, 确保每个 slab 对象能够根据内存策略进行精确放置.<br>SLAB 和 SLUB 内存策略差异: 旧的 SLAB 分配器支持按每个分配基础设置内存策略. SLUB 分配器则是在页框/大页级别应用内存策略, 以避免在关键代码路径中检查内存策略, 从而提高 kmalloc 等函数的性能.<br>2. 现有问题: 在 Intel、AMD 和 PowerPC 上, 由于互连技术成熟, 即使小对象未最优放置, 也能通过智能缓存最小化延迟. 然而, 在 ARM 架构中, 新的 NUMA 互连技术更多基于嵌入式设备, 标准构建模块/网格上的远程内容缓存效果不佳. 因此, ARM 架构需要每个 slab 对象根据内存策略单独放置.<br>引入新的内核参数 slab_strict_numa: 当设置此参数时, 激活一个静态分支，使分配器热路径评估当前的内存分配策略. 每个对象将被正确放置, 尽管这会增加额外的处理开销, 但 SLUB 不再依赖页面分配器在大页级别应用内存策略.<br>在 Ampere Altra 2P 系统(ARM Neoverse N1 处理器)上运行 memcached 时, 由于准确放置了小内核对象, 性能提升了 3.6%. 参见 [phoronix, 2024/11/27, Linux 6.13 Adding "slab_strict_numa" SLAB Option For Helping ARM Performance](https://www.phoronix.com/news/Linux-6.13-SLAB-Strict-NUMA) | v3 ☐☑✓ v6.13-rc1 | [LORE](https://lore.kernel.org/all/20241001-strict_numa-v3-1-ee31405056ee@gentwo.org) |
 
 
 
@@ -2402,11 +2395,11 @@ v2.6.24 实现迁移类型 MIGRATETYPE 的时候, 在从伙伴系统中内存分
 
 **2.6.35(2010 年 8 月发布)**
 
-2.2 中讲到页面迁移类型(聚类), 它把相当可移动性的页面聚集在一起: 可移动的在一起, 可回收的在一起, 不可移动的也在一起. ** 它作为去碎片化的基础.** 然后, 利用 ** 成块回收 **, 在回收时, 把可回收的一起回收, 把可移动的一起移动, 从而能空出大量连续物理页面. 这个 ** 作为去碎片化的策略.**
+2.2 中讲到页面迁移类型(聚类), 它把相当可移动性的页面聚集在一起: 可移动的在一起, 可回收的在一起, 不可移动的也在一起. **它作为去碎片化的基础**. 然后, 利用 **成块回收**, 在回收时, 把可回收的一起回收, 把可移动的一起移动, 从而能空出大量连续物理页面. 这个 **作为去碎片化的策略**.
 
 
 
-2.6.35 里, Mel Gorman 又实现了一种新的 ** 去碎片化的策略 ** 叫[** 内存紧致化或者内存规整 **](https://lwn.net/Articles/368869). 不同于 ** 成块回收 ** 回收相临页面, ** 内存规整 ** 则是更彻底, 它在回收页面时被触发, 它会在一个 zone 里扫描, 把已分配的页记录下来, 然后把所有这些页移动到 zone 的一端, 这样这把一个可能已经七零八落的 zone 给紧致化成一段完全未分配的区间和一段已经分配的区间, 这样就又腾出大块连续的物理页面了.
+2.6.35 里, Mel Gorman 又实现了一种新的 ** 去碎片化的策略 ** 叫[ 内存紧致化或者内存规整](https://lwn.net/Articles/368869). 不同于 ** 成块回收 ** 回收相临页面, ** 内存规整 ** 则是更彻底, 它在回收页面时被触发, 它会在一个 zone 里扫描, 把已分配的页记录下来, 然后把所有这些页移动到 zone 的一端, 这样这把一个可能已经七零八落的 zone 给紧致化成一段完全未分配的区间和一段已经分配的区间, 这样就又腾出大块连续的物理页面了.
 
 它后来替代了成块回收, 使得后者在 3.5 中被移除.
 
@@ -3451,7 +3444,7 @@ LRU 组织形式的变更和 LRU lock 的变更是无法割裂开的. 每次 LRU
 
 3.  对于匿名页, 当第一次被读入时, 将置于 active list 链表尾(对匿名页的优待是因为替换它出去要写入交换设备, 不能直接丢弃, 代价更大); 如果它被再次访问, 就把它提升到 active list 链表头.
 
-4.  在需要换页时, MM 会从 active 链表尾开始扫描, 把足够量页面降级到 inactive 链表头, 同样, 默认文件缓存页会受到优待(用户可通过 **_swappiness_** 这个用户接口设置权重).
+4.  在需要换页时, MM 会从 active 链表尾开始扫描, 把足够量页面降级到 inactive 链表头, 同样, 默认文件缓存页会受到优待(用户可通过 `_swappiness_` 这个用户接口设置权重).
 
 如上, 上述两个链表按照使用的热度构成了四个层级:
 
@@ -3563,6 +3556,7 @@ hakavlad 提供了简单的 shell 脚本和 oneshot systemd 服务 [hakavlad/mg-
 | 2023/01/18 | T.J. Alumbaugh <talumbau@google.com> | [mm: multi-gen LRU: improve](https://patchwork.kernel.org/project/linux-mm/cover/20230118001827.1040870-1-talumbau@google.com/) | 712983 | v1 ☐☑ | [LORE v1,0/7](https://lore.kernel.org/r/20230118001827.1040870-1-talumbau@google.com) |
 | 2023/02/13 | Yu Zhao <yuzhao@google.com> | [[mm-unstable,v1] mm: multi-gen LRU: avoid futile retries](https://patchwork.kernel.org/project/linux-mm/patch/20230213075322.1416966-1-yuzhao@google.com/) | 721184 | v1 ☐☑ | [LORE v1,0/1](https://lore.kernel.org/r/20230213075322.1416966-1-yuzhao@google.com) |
 | 2023/07/25 | Kairui Song <ryncsn@gmail.com> | [Refault distance checking for MGLRU](https://patchwork.kernel.org/project/linux-mm/cover/20230725185733.43929-1-ryncsn@gmail.com/) | 769444 | v1 ☐☑ | [LORE v1,0/4](https://lore.kernel.org/r/20230725185733.43929-1-ryncsn@gmail.com) |
+| 2024/12/05 | Yu Zhao <yuzhao@google.com> | [mm/mglru: performance optimizations](https://lore.kernel.org/all/20241206003126.1338283-1-yuzhao@google.com) | 这组补丁的主要目的是优化内存管理子系统中的多代 LRU(MGLRU)算法, 以提升某些特定测试用例的性能表现.<br>该补丁集旨在通过改进 MGLRU 的工作集清理、去激活、老化反馈、类型选择、重试检测和工作集保护机制, 来优化内存管理的行为, 特别是在客户端和服务器设备上的 Android、FIO、memcached、多个虚拟机(VMs)和 MongoDB 等负载场景中表现出色. 参见 [phoronix, 2024/12/06, MGLRU Sees New Performance Optimizations For Linux](https://www.phoronix.com/news/MGLRU-New-Performance-Opts) | v2 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20241206003126.1338283-1-yuzhao@google.com) |
 
 
 ### 4.2.8 工作集大小的探测(Better LRU list balancing)
@@ -5207,6 +5201,7 @@ hugetlb 的使用依赖于用户主动预留并使用, 适用于用户明确需�
 | 2020/09/28 | Zi Yan <ziy@nvidia.com> | [1GB PUD THP support on x86_64](https://lkml.org/lkml/2020/9/28/973) | X86_64 支持 PUD 级别 (1G) 的匿名大页 | RFC,v2 ☐ | [2020/09/02 PatchWork RFC,00/16](https://patchwork.kernel.org/project/linux-mm/cover/20200902180628.4052244-1-zi.yan@sent.com)<br>*-*-*-*-*-*-*-* <br>[2020/09/28 PatchWork v2 00/30](https://patchwork.kernel.org/project/linux-mm/cover/20200928175428.4110504-1-zi.yan@sent.com) |
 | 2021/05/10 | Muchun Song <songmuchun@bytedance.com> | [Overhaul multi-page lookups for THP](https://lore.kernel.org/patchwork/patch/1337675) | 提升大量页面查找时的效率 | v4 ☑ [5.12-rc1](https://kernelnewbies.org/Linux_5.12#Memory_management) | [PatchWork RFC](https://patchwork.kernel.org/project/linux-mm/cover/20201112212641.27837-1-willy@infradead.org) |
 | 2021/05/10 | Ankur Arora <ankur.a.arora@oracle.com> | [Use uncached stores while clearing huge pages](https://patchwork.kernel.org/project/linux-mm/cover/20211020170305.376118-1-ankur.a.arora@oracle.com) | 本系列增加了对大页的非缓存页面清除的支持. [清除大页内存](https://patchwork.kernel.org/project/linux-mm/patch/20211020170305.376118-11-ankur.a.arora@oracle.com)时, 使用基于 [MOVNTI 指令](https://www.felixcloutier.com/x86/movnti) 的 [uncached clear page 接口](https://patchwork.kernel.org/project/linux-mm/patch/20211020170305.376118-4-ankur.a.arora@oracle.com).<br> 其动机是加快大型预分配虚拟机的创建, 并支持巨大的页面.<br> 支持非缓存页面清除有两种帮助:<br>1. 对于小于 LLC 大小的数据块, 未缓存的存储通常比缓存的存储慢, 而对于较大的数据块, 则更快. 2. 避免用无用的零替换潜在有用的缓存行.<br> 性能测试: 虚拟机创建 (对于预分配 2MB 后台页面的虚拟机) 在运行时有了显著的改进. | v2 ☐ | [PatchWork v2,00/14](https://patchwork.kernel.org/project/linux-mm/cover/20211020170305.376118-1-ankur.a.arora@oracle.com) |
+| 2024/10/24 | Vlastimil Babka <vbabka@suse.cz> | [mm, mmap: limit THP aligment of anonymous mappings to PMD-aligned sizes](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d4148aeab412432bf928f311eca8a2ba52bb05df) | 该补丁的主要目的是修正由于匿名映射(anonymous mappings)在特定条件下对齐到透明大页(THP, Transparent Huge Pages)边界而导致的性能退化问题. 通过这些改动, 匿名映射的行为变得更加合理, 特别是在处理不同大小的内存分配时, 能够在保持性能的同时避免不必要的性能损失. 补丁背景: 自从提交 efa7df3e3bb5 ("mm: align larger anonymous mappings on THP boundaries") 引入后, 当使用 mmap() 映射匿名内存且没有指定具体的地址提示时, 如果映射大小至少为 PMD_SIZE, 则会将其对齐到 PMD 边界, 以使它可以受益于 THP 支持.<br>发现的问题: 然而, 这一改动导致某些工作负载显著退化. 例如, 在 SPEC 基准测试中, cactusBSSN 测试用例出现了高达 600% 的性能下降. 原因是该基准测试创建了许多 4632KB 大小的映射, 这些映射原本可以合并成一个大的 THP 区域, 但现在却被分割成了多个区域, 每个区域都对齐到 PMD 边界, 并且之间有空隙. 这种布局导致了 TLB 或缓存别名问题, 从而影响了内存访问模式, 最终导致性能下降.<br>为了修复这个问题, 同时仍然尝试从 THP 友好的匿名映射对齐中获益, 补丁添加了一个条件: 只有当映射的大小是 PMD size 的倍数时, 才会将匿名映射对齐到 PMD 边界. 对于许多非标准大小的映射(如 cactusBSSN 创建的那些), 它们将不再被强制对齐, 并且会自然地合并在一起, 而不是分散成多个带有间隙的区域.<br>性能改进: 通过这项修改, 那些创建了许多非 PMD 对齐大小映射的工作负载(如 cactusBSSN 和 darktable)应该能够恢复其预期的性能表现, 避免因不必要的内存对齐而引起的性能损失.这个补丁的主要工作是: 修复了由于匿名映射对齐到 THP 边界而导致的性能退化问题. 通过限制 THP 对齐的应用场景, 确保只有在映射大小为 PMD size 的倍数时才进行对齐, 从而避免不必要的内存布局碎片化. 恢复了受影响工作负载(如 cactusBSSN 和 darktable)的预期性能表现. 参见 phoronix 报道 [phoronix, 2024/11/08, Intel Spots A 3888.9% Performance Improvement In The Linux Kernel From One Line Of Code](https://www.phoronix.com/news/Intel-Linux-3888.9-Performance) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20241024151228.101841-2-vbabka@suse.cz) |
 
 THP 虽然实现了, 但是依旧存在着不少问题. 在 LSFMM 2015 进行了讨论, 参见 [Improving huge page handling](https://lwn.net/Articles/636162)
 
@@ -5700,6 +5695,9 @@ mcpage 有成本. 除了 THP 没有带来 TLB 的好处之外, 与 4K 基本页�
 [AmpereOne Performance On Linux 6.11 Kernel, 4K vs. 64K Page Size Comparison](https://www.phoronix.com/review/ampereone-64k-linux611)
 
 [Google Making Progress On 16KB Page Size For Android](https://www.phoronix.com/news/Android-16KB-Page-Size-Progress)
+
+[phoronix, 2024/12/05, Linux Patches Would Allow RISC-V To Use A 64K Page Size](https://www.phoronix.com/news/Linux-RFC-v2-64K-Risc-V-PS)
+
 
 # 8 进程虚拟地址空间(VMA)
 -------
@@ -7560,6 +7558,13 @@ CSDN 宣传博客 [内存不超过 5M, datop 在识别冷热内存及跨 numa �
 | 2021/12/09 | Xin Hao <xhao@linux.alibaba.com> | [`#85` Introduce Data Access MONitor (DAMON)](https://gitee.com/anolis/cloud-kernel/pulls/85/commits) | 支持 NUMA 的能力, 同时改进了 tracepoint, 方便 dattop 解析. | [openanolis, devel-5.10, PR #85](https://gitee.com/anolis/cloud-kernel/pulls/85/commits) | [GITEE,PR](https://gitee.com/anolis/cloud-kernel/pulls/85/commits) |
 
 
+## 13.7 Page Detective
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/11/16 | Pasha Tatashin <pasha.tatashin@soleen.com> | [Page Detective](https://lore.kernel.org/all/20241116175922.3265872-1-pasha.tatashin@soleen.com) | 参见 [Google Engineer Proposes "Page Detective" As New Kernel Debugging Tool](https://www.phoronix.com/news/Linux-Page-Detective-RFC) | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/20241116175922.3265872-1-pasha.tatashin@soleen.com) |
+
 
 # 14 杂项
 -------
@@ -7801,11 +7806,23 @@ OS 判断如果是在用户态触发这个硬件内存错误时, 处理方式是
 ### 14.7.4 Shadow stacks
 -------
 
+#### 14.7.4.1 Shadow stacks
+-------
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
 | 2022/01/30 | Edgecombe, Rick P <rick.p.edgecombe@intel.com> | [Shadow stacks for userspace](https://patchwork.kernel.org/project/linux-mm/cover/20220130211838.8382-1-rick.p.edgecombe@intel.com) | [User-space shadow stacks (maybe) for 6.4](https://lwn.net/Articles/926649), [Intel Shadow Stack Finally Merged For Linux 6.6](https://www.phoronix.com/news/Intel-Shadow-Stack-Linux-6.6). | v1 ☐☑ | [PatchWork v1,0/35](https://lore.kernel.org/r/20220130211838.8382-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/39](https://lore.kernel.org/r/20220929222936.14584-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/37](https://lore.kernel.org/r/20221104223604.29615-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/39](https://lore.kernel.org/r/20221203003606.6838-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/39](https://lore.kernel.org/r/20230119212317.8324-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v6,0/41](https://lore.kernel.org/r/20230218211433.26859-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v7,0/41](https://lore.kernel.org/r/20230227222957.24501-1-rick.p.edgecombe@intel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,0/40](https://lore.kernel.org/r/20230319001535.23210-1-rick.p.edgecombe@intel.com) |
-| 2023/07/16 | Mark Brown <broonie@kernel.org> | [arm64/gcs: Provide support for GCS in userspace](https://lore.kernel.org/all/20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org) | 影子堆栈的 64 位 Arm 实现称为"受保护的控制堆栈"("guarded control stack/GCS), 参见 LWN 报道 [Shadow stacks for 64-bit Arm systems](https://lwn.net/Articles/940403). | v1 ☐☑✓ | [LORE v1,0/35](https://lore.kernel.org/all/20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/36](https://lore.kernel.org/all/20230731-arm64-gcs-v3-0-cddf9f980d98@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/36](https://lore.kernel.org/r/20230807-arm64-gcs-v4-0-68cfa37f9069@kernel.org) |
 | 2024/03/15 | H.J. Lu <hjl.tools@gmail.com> | [x86/shstk: Enable shadow stack for x32](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=2883f01ec37dd8668e7222dfdb5980c86fdfe277) | [Linux Enabling Shadow Stack Support For x32](https://www.phoronix.com/news/Linux-x32-Shadow-Stacks) | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240315140433.1966543-1-hjl.tools@gmail.com) |
+
+
+#### 14.7.4.2 GCS(Guarded Control Stack)
+-------
+
+GCC 通过 "-mbranch-protection=gcs" 选项, 支持生成 Arm Guarded Control Stack 兼容的代码. 此分支保护选项与早期 Arm 处理器也可以设置为 Branch Target Identification "BTI" 的选项相同. 参见 phoronix 报道 [phoronix, 2024/11/15, GCC 15 Adds Option For Arm Guarded Control Stack "GCS" Code Generation](https://www.phoronix.com/news/GCC-15-Arm-GCS-Code-Generation).
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/10/01 | Mark Brown <broonie@kernel.org> | [arm64/gcs: Provide support for GCS in userspace](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=bb9ae1a66c85eeb626864efd812c62026e126ec0) | 影子堆栈的 64 位 Arm 实现称为"受保护的控制堆栈"("guarded control stack/GCS), 参见 LWN 报道 [Shadow stacks for 64-bit Arm systems](https://lwn.net/Articles/940403) 和 [phoronix, 2024/10/08, Arm's Guarded Control Stack "GCS" Support Looks Like It Will Be Ready For Linux 6.13](https://www.phoronix.com/news/Arm-GCS-Prep-Linux-6.13) | v13 ☐☑✓ | [LORE v1,0/35](https://lore.kernel.org/all/20230716-arm64-gcs-v1-0-bf567f93bba6@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/36](https://lore.kernel.org/all/20230731-arm64-gcs-v3-0-cddf9f980d98@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/36](https://lore.kernel.org/r/20230807-arm64-gcs-v4-0-68cfa37f9069@kernel.org)<br>*-*-*-*-*-*-*-* <br>[LORE v13,0/40](https://lore.kernel.org/all/20241001-arm64-gcs-v13-0-222b78d87eee@kernel.org) |
 
 
 

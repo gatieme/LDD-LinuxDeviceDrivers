@@ -112,6 +112,9 @@
 | 6.9 | [The first half of the 6.9 merge window](https://lwn.net/Articles/965141), [Kernel prepatch 6.9-rc1](https://lwn.net/Articles/966525), [The rest of the 6.9 merge window](https://lwn.net/Articles/965541) | NA | NA |
 | 6.10 | [The first half of the 6.10 merge window](https://lwn.net/Articles/973687)<br>*-*-*-*-*-*-*-* <br>[The rest of the 6.10 merge window](https://lwn.net/Articles/974869)<br>*-*-*-*-*-*-*-* <br>[Kernel prepatch 6.10-rc2](https://lwn.net/Articles/976498). | NA | [Linux 6.10-rc1 Kernel Released With Many New Features](https://www.phoronix.com/news/Linux-6.10-rc1), [Linux 6.10-rc5 Released With This Kernel Cycle Looking Good So Far](https://www.phoronix.com/news/Linux-6.10-rc5) |
 | 6.11 | [The first half of the 6.11 merge window](https://lwn.net/Articles/982034), [LWN, 2024/07/28, Kernel prepatch 6.11-rc1](https://lwn.net/Articles/983760), [LWN, 2024/07/29, The rest of the 6.11 merge window](https://lwn.net/Articles/982605), [LWN, 2024/08/11, Kernel prepatch 6.11-rc3](https://lwn.net/Articles/985233) | NA | NA |
+| 6.12 | NA | NA | [phoronix, 2024/11/17, Linux 6.12 Released With Real-Time Capabilities, Sched_Ext, More AMD RDNA4 & More](https://www.phoronix.com/news/Linux-6.12-Released) |
+| 6.13 | NA | MA | [phoronix, 2024/12/06, Linux 6.13 Features: AutoFDO+Propeller Optimizations, Many AMD Additions & SDUC + NVMe 2.1 Support](https://www.phoronix.com/review/linux-613-features) |
+
 
 年终盘点
 
