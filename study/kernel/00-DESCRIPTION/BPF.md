@@ -501,6 +501,8 @@ raw_tracepoint 相比 tracepoint
 # 5 网络场景
 -------
 
+[phoronix, 2025/03/06, Meta's eBPF-Powered Strobelight Software Reduced CPU Cycles By 20%](https://www.phoronix.com/news/Meta-eBPF-Strobelight-20p).
+
 
 # 6 安全场景
 -------
@@ -629,6 +631,7 @@ Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标�
 
 [Wasmer 4.3 Released: WebAssembly Runtime 25% Faster On Cold Startups](https://www.phoronix.com/news/Wasmer-4.3-Released)
 [Wasmer 4.4 Released To Continue Pushing Universal Apps With WebAssembly](https://www.phoronix.com/news/Wasmer-4.4-Released)
+[Wasmer 6.0 Wires Up Support For Multiple Heterogeneous Backends](https://www.phoronix.com/news/Wasmer-6.0-Alpha-1)
 
 
 # 10 云原生

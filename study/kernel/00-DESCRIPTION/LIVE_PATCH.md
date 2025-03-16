@@ -25,6 +25,9 @@ https://www.infoworld.com/article/2851028/four-ways-linux-is-headed-for-no-downt
 
 第 1 节内容参照 [History of Linux Kernel Live Patching](https://www.howtoforge.com/history-of-linux-kernel-live-patching)
 
+## 1.1 LLpatch @Google
+-------
+
 Google 设计了一套新的用户空间实时补丁创建工具, [LLpatch](https://github.com/google/LLpatch), 基于 llvm-diff 生成 LLVM-IR 完成 ELF 分析和操作, 因此不需要感知特性架构的二进制差异行为. 参见 [announcing LLpatch: arch-independent live-patch creation](https://lore.kernel.org/live-patching/CABFpvm2o+d0e-dfmCx7H6=8i3QQS_xyGFt4i3zn8G=Myr_miag@mail.gmail.com).
 
 
@@ -36,8 +39,7 @@ Google 设计了一套新的用户空间实时补丁创建工具, [LLpatch](http
 | 2014/12/16 | Seth Jennings <sjenning@redhat.com> | [Kernel Live Patching](https://lore.kernel.org/patchwork/cover/527257) | 内核热补丁的基础框架 | v7 ☑ 4.0-rc1 | [PatchWork v7](https://lore.kernel.org/patchwork/cover/527257), [LKML](https://www.lkml.org/lkml/2017/2/13/831)<br>*-*-*-*-*-*-*-* <br>[PatchWork v6](https://lore.kernel.org/patchwork/cover/525706/) |
 
 
-
-## 1.1 2001–2010: The Patent Trail(专利追溯)
+## 1.2 2001–2010: The Patent Trail(专利追溯)
 -------
 
 如果您使用热修补或实时系统更新等关键字浏览专利档案, 您将挖掘许多应用程序和拒绝, 表明更新计算机系统而不停止它的想法并不是什么新鲜事. 追踪从一般到具体的重要日期如下 : 
@@ -48,8 +50,10 @@ Google 设计了一套新的用户空间实时补丁创建工具, [LLpatch](http
 2010年 : 微软的专利最终获准上诉. 
 关于这些的有趣之处在于, 他们共同希望通过软件更新来纠正系统核心软件或硬件中的故障, 而不会影响系统的持续运行并且不会改变硬件. 听起来很熟悉？(线索 : 熔化, 幽灵. )
 
-## 1.2 2009年 : KSplice 的诞生
+## 1.3 KSplice @ Oracle
 -------
+
+### 1.3.1 2009年 : Oracle KSplice 的诞生
 
 Jeff Arnold 是一名麻省理工学院的学生, 正在照看他们的一台[服务器](http://news.mit.edu/2014/bringing-the-world-reboot-less-updates-0124). 它需要一个安全补丁, 但他推迟了它, 因为重新启动会给他的用户带来不便. 在系统更新之前, 它被黑了. 耻辱和(具有讽刺意味的)不便使杰夫在没有延迟而不重新启动系统更新的问题上找到了他的硕士论文的主题.
 
@@ -57,12 +61,11 @@ Jeff Arnold 是一名麻省理工学院的学生, 正在照看他们的一台[�
 
 Jeff Arnold 与其他三名学生同事一起研究了如何更新 Linux 服务器内核的问题, 没有延迟, 也没有中断系统的进程. 该解决方案采用名为 Ksplice 的软件形式, 其技术基础在2009年的学术论文中提出. 该文章的标题包括"重新启动"这个词, 现在熟悉的"不间断更新"的Linux简写, 但是 2005 年首次由微软创造, 用于 Windows 驱动程序更新. 
 
-image.png
 补丁和不打补丁进行了二进制的比较, 找出不同的函数, 源代码patch守护程序提取出不同的函数. 内核源码优化这些不同的单元)
 
-毕业后, 杰夫和他的麻省理工学院同事创办了 Ksplice Inc., 并于 2009 年 5 月获得麻省理工学院 10 万美元创业大赛奖. 该公司于 2010 年推出了商业服务; 事情进展顺利. 
+毕业后, 杰夫和他的麻省理工学院同事创办了 Ksplice Inc., 并于 2009 年 5 月获得麻省理工学院 10 万美元创业大赛奖. 该公司于 2010 年推出了商业服务; 事情进展顺利.
 
-Ksplice 在替换新内核时, 不需要预先修改;只需要一个diff文件, 列出内核即将接受的修改即可. Ksplice公司免费提供软件, 但技术支持是需要收费的, 这个特性是如此的优秀, 以至于这家新创的公司短时间内就积累了大量的用户. 
+Ksplice 在替换新内核时, 不需要预先修改;只需要一个diff文件, 列出内核即将接受的修改即可. Ksplice公司免费提供软件, 但技术支持是需要收费的, 这个特性是如此的优秀, 以至于这家新创的公司短时间内就积累了大量的用户.
 
 参见:
 
@@ -72,9 +75,7 @@ Ksplice 在替换新内核时, 不需要预先修改;只需要一个diff文件, 
 
 [Jeff Arnold 的 Ksplice 的补丁提交历史](https://lore.kernel.org/patchwork/project/lkml/list/?series=&submitter=9109&state=*&q=&archive=both&delegate=)
 
-
-
-## 1.3 2011-2016 Oracle  
+### 1.3.2 2011-2016 Oracle
 -------
 
 
@@ -91,11 +92,12 @@ Ksplice Inc. 在收购前后拥有着大量热补丁技术方面的专利, 而�
 
 [Ksplice](http://ksplice.oracle.com/legacy)
 
+在 2011 年和 2014 年之间, SUSE 和 Red Hat 分开工作(并且不了解彼此的目标)来发布他们自己的实时内核更新解决方案, 他们分别在 Kgraft 和 Kpatch 中进行了这些解决方案.
+
 
 ## 1.4 百家争鸣
 -------
 
-在 2011 年和 2014 年之间, SUSE 和 Red Hat 分开工作(并且不了解彼此的目标)来发布他们自己的实时内核更新解决方案, 他们分别在 Kgraft 和 Kpatch 中进行了这些解决方案.
 
 
 ### 1.4.1 Kpatch @ Redhat
@@ -104,7 +106,7 @@ Ksplice Inc. 在收购前后拥有着大量热补丁技术方面的专利, 而�
 2014 年 Red Hat 分享了他们的 Kpatch 代码, 并将其集成为 Red Hat Enterprise Linux 的支持功能. 
 
 
-### 1.4.1 Kgraft @ Suse
+### 1.4.2 Kgraft @ Suse
 -------
 
 [kGraft — live kernel patching from SUSE](https://lwn.net/Articles/584016)
@@ -122,12 +124,33 @@ https://git.kernel.org/pub/scm/linux/kernel/git/jirislaby/kgraft.git/
 | 2015/05/04 | Jiri Slaby <jslaby@suse.cz> | [kGraft on the top of KLP](https://lore.kernel.org/all/1430742009-5895-1-git-send-email-jslaby@suse.cz) | TODO | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/1430742009-5895-1-git-send-email-jslaby@suse.cz) |
 
 
-### 1.4.2 KernelCare @ CloudLinux
+### 1.4.3 KernelCare @ CloudLinux
 -------
 
 由于主要供应商争相成为第一个推出可行的实时补丁解决方案, CloudLinux 是基于 Linux 的网络托管操作系统的主要参与者, 在 3 月成功测试后, 于 2014年5 月推出了KernelCare. 
 
 他们通过在大多数Linux平台上提供最广泛的功能集来为市场感到惊讶, 并在 Linux 内核开发和客户支持方面享有盛誉. 另一个令人震惊的是负担能力, 吸引了网站托管商, 他们发现 KernelCare 的每服务器成本比主要竞争对手的每站点成本更易于管理和扩展. 
+
+
+### 1.4.4 livepatchs 的工具链
+-------
+
+#### 1.4.4.1 Elivepatch @ Gentoo
+-------
+
+[phoronix, 2018/11/22, Elivepatch Progressing For Live Kernel Patching On Gentoo, Rolling To Other Distros](https://www.phoronix.com/news/Elivepatch-2018-Progress).
+
+[github/elivepatch](https://github.com/elivepatch).
+
+#### 1.4.4.2 linux-livepatching @ Debian
+-------
+
+#### 1.4.4.3 TuxTape @ GEICO
+-------
+
+TuxTape 是一个用于创建、构建和部署 Linux 内核 livepatchs 的工具链. 该工具包还包含 CVE 安全扫描程序和 CVE 优先级排序程序等组件. TuxTape 是用 Rust 编写的.
+
+GEICO 的 Grayson Guarino 和 Chris Townsend 在 2025/02/02 布鲁塞尔举行的 FOSDEM 2025 上的介绍了 TuxTape. 参加 [TuxTape: A Kernel Livepatching Solution](https://fosdem.org/2025/schedule/event/fosdem-2025-5689-tuxtape-a-kernel-livepatching-solution). 随后进行了 phoronix 报道 [phoronix, 2025/02/03, GEICO Insurance Company Developing TuxTape - A New Linux Kernel Livepatching Solution](https://www.phoronix.com/news/GEICO-TuxTape-Linux-Livepatch).
 
 
 ## 1.5 Kgraft + Kpatch 的混合体 Livepatch

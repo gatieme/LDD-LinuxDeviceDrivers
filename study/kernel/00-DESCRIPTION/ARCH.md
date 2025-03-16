@@ -628,6 +628,8 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 
 2.  IPI 的方式, 需要先由软件 (内核) 识别到哪些 CPU 中包含了这些需要 flush 的 TLB entry, 然后由本地 CPU 通过 IPI 请求的方式, 通知对应的 CPU 进行 shootdown 操作. 这种方式由硬件软件交互完成, 在 CPU 核数比较多, 且 shootdown 请求比较多的时候, 可能造成 TLB entry shootdown 广播风暴, 硬件 (NM) 处理不过来, 造成性能下降. 此时对于单个 task 的 TLB entry 来说, 残留的 CPU 往往是明确且有限的, 通过 IPI 的方式, 给硬件压力反而会小很多, 这时采用 IPI 的方式性能反而会好.
 
+#### 2.2.3.1 TLB Shootdown 于 TLB IPIs Invalid
+-------
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -642,9 +644,6 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | 2023/03/12 | Yair Podemsky <ypodemsk@redhat.com> | [send tlb_remove_table_smp_sync IPI only to necessary CPUs](https://lore.kernel.org/all/20230312080945.14171-1-ypodemsk@redhat.com) | 目前, tlb_remove_table_smp_sync() 将 IPI 被不分青红皂白地发送到所有 CPU, 这会导致不必要的工作和延迟, 在实时用例和隔离的 CPU 中尤为值得注意, 此补丁将限制此 IPI 仅发送到引用受影响 mm 的 cpu, 并且当前在内核空间中.  | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230312080945.14171-1-ypodemsk@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/3](https://lore.kernel.org/r/20230404134224.137038-1-ypodemsk@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/2](https://lore.kernel.org/r/20230620144618.125703-1-ypodemsk@redhat.com) |
 | 2024/05/31 | Byungchul Park <byungchul@sk.com> | [LUF(Lazy Unmap Flush) reducing tlb numbers over 90%](https://lore.kernel.org/all/20240531092001.30428-1-byungchul@sk.com) | 这组补丁的主要目的是实现一种名为 LUF(Lazy Unmap Flush)的机制, 以大幅减少 TLB(Translation Lookaside Buffer)刷新的数量, 特别是在处理内存迁移时.  实现 LUF 机制, 延迟 TLB 刷新直到实际需要, 从而减少 TLB 射杀的次数; 优化内存迁移过程中的性能, 特别是在处理大量内存页时; 为 x86、ARM64 和 RISC-V 架构提供支持; 添加自测试用例, 确保 LUF 机制的正确性和有效性; 通过这些改动, 内存管理和性能得到了显著提升, 特别是在处理内存迁移和 TLB shootdown 时. | v11 ☐☑✓ | [LORE v11,0/12](https://lore.kernel.org/all/20240531092001.30428-1-byungchul@sk.com) |
 
-
-> 注: x86 由于没有 tlb IS 方案, 因此只能采用 IPI 的方式来完成 TLB shootdown.
-
 目前 ARM64 中 TLUSH TLB 的接口:
 
 | 接口 | 描述 |
@@ -654,6 +653,21 @@ TLB entry shootdown 常常或多或少的带来一些性能问题.
 | flush_tlb_range | 无效掉用户态地址 start ~ end 区间内的所有 tlb entry |
 | flush_tlb_kernel_range | 无效掉内核态 start ~ end 区间内的所有 TLB entry |
 | local_flush_tlb_all | 无效掉本 CPU 上所有的 TLB entry. 无需使用 TLB.IS |
+
+
+#### 2.2.3.2 TLB broadcast invalidation
+-------
+
+
+> ~~注: x86 由于没有 tlb IS 方案, 因此只能采用 IPI 的方式来完成 TLB shootdown.~~
+> 自 AMD Zen 3 起, AMD 开始支持 INVLPGBS 指令进行 TLLB 失效的广播工作.
+
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/12/21 | Rik van Riel <riel@surriel.com> | [AMD broadcast TLB invalidation](https://lore.kernel.org/all/20241222040717.3096835-1-riel@surriel.com) | GCC 支持 Zen 3 的补丁对 INVLPGB 和 TLBSYNC 指令进行了支持, 参见 phoronix 报道 [phoronix, 2020/10/19, AMD Sends Out Patches Adding "Znver3" Support To GNU Binutils With New Instructions](https://www.phoronix.com/news/Znver3-Binutils-Support). 随后 Linux 内核开始支持使用 AMD INVLPGB 指令进行广播 TLB 失效. 参见 phoronix 报道 [phoronix, 2024/12/22, Linux Kernel Patches To Use AMD INVLPGB Instruction Show Huge Speed-Up](https://www.phoronix.com/news/AMD-INVLPGB-Linux-Benefits) 和 phoronix 报道 [phoronix, 2025/02/05, AMD Broadcast TLB Invalidation Patches For Linux Updated, Intel RAR Eyed Next](https://www.phoronix.com/news/AMD-INVLPGB-Linux-v8), [phoronix, 2025/03/03, AMD Broadcast TLB Invalidation "INVLPGB" Support Appears Ready For The Linux Kernel](https://www.phoronix.com/news/AMD-INVLPGB-Ready-For-Linux) . | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/20241222040717.3096835-1-riel@surriel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v8,00/12](https://lore.kernel.org/lkml/20250205014033.3626204-1-riel@surriel.com)<br>*-*-*-*-*-*-*-* <br>[LORE v14,0/13](https://lore.kernel.org/all/20250226030129.530345-1-riel@surriel.com) |
+
 
 ### 2.2.4 BATCHED_UNMAP_TLB_FLUSH
 -------
@@ -952,6 +966,8 @@ SLS 被认为是 Spectre 漏洞的变体, 但二者的攻击范围略有不同, 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/11/21 | Breno Leitao <leitao@debian.org> | [x86/bugs: Add a separate config for each mitigation](https://lore.kernel.org/all/20231121160740.1249350-1-leitao@debian.org) | CONFIG_SPECULATION_MITIGATIONS 相关的 MITIGATION 特性进行了细粒度控制. <br>1. 用户可以只选择对其工作负载很重要的缓解措施. <br>2. 用户和开发人员可以选择禁用破坏程序集代码生成、使其难以读取的缓解措施.<br>3. 可读性更强, 所有特性都整改为带明显的 MITIGATION 前缀. 参见 [Linux 6.9 Making It Easier Managing Security Mitigation Options](https://www.phoronix.com/news/Linux-6.9-CONFIG-MITIGATIONS). | v6 ☐☑✓ | [LORE v6,0/13](https://lore.kernel.org/all/20231121160740.1249350-1-leitao@debian.org) |
+| 2025/02/24 | Luis Gerhorst <luis.gerhorst@fau.de> | [bpf: Mitigate Spectre v1 using speculation barriers](https://lore.kernel.org/all/20250224203619.594724-1-luis.gerhorst@fau.de) | [phoronix, 2025/02/26, Spectre Mitigations Being Worked On For BPF Programs](https://www.phoronix.com/news/Speculation-Barriers-BPF) | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20250224203619.594724-1-luis.gerhorst@fau.de)|
+
 
 # 5 benchmark
 -------
@@ -1201,6 +1217,7 @@ Rosetta 是一个转译过程, 允许用户在 Apple Silicon 上运行包含 x86
 
 Fedora 42 通过 FEX 支持了 64 位 ARM64 的机器上的直接无缝运行 x86/x86_64 程序, 参见 [phoronix, 2024/09/12, Fedora 42 On 64-bit ARM Might Make It Seamless To Run x86/x86_64 Programs](https://www.phoronix.com/news/Fedora-42-FEX-AArch64-Proposal).
 
+FEX 2503 还引入了 Tracy 后端, 以帮助跟踪和分析性能问题. 参见 [phoronix, 2025/03/06, FEX 2503 Brings Fixes & Multi-Block By Default For x86_64 Linux Binaries On ARM64](https://www.phoronix.com/NEWS/FEX-Emu-2503-released).
 
 ### 6.7.3 Box64
 -------
@@ -1391,6 +1408,7 @@ AMD-pstate 驱动程序利用 ITMT 体系结构提供的功能和数据结构, �
 | 2023/12/07 | Tony Luck <tony.luck@intel.com> | [x86/resctrl: mba_MBps enhancements](https://lore.kernel.org/all/20231207195613.153980-1-tony.luck@intel.com) | TODO | v6 ☐☑✓ | [LORE v6,0/3](https://lore.kernel.org/all/20231207195613.153980-1-tony.luck@intel.com) |
 | 2024/02/13 | James Morse <james.morse@arm.com> | [x86/resctrl: monitored closid+rmid together, separate arch/fs locking](https://git.kernel.org/pub/scm/linux/kernel/git/history/history.git/log/?id=fb700810d30b9eb333a7bf447012e1158e35c62f) | [Improved Memory Bandwidth Throttling Behavior For Linux 6.9](https://www.phoronix.com/news/Linux-69-RAM-Bandwidth-Throttle) | v9 ☐☑✓ 6.9-rc1 | [LORE v9,0/24](https://lore.kernel.org/all/20240213184438.16675-1-james.morse@arm.com) |
 | 2024/03/21 | James Morse <james.morse@arm.com> | [x86/resctrl: Move the resctrl filesystem code to /fs/resctrl](https://lore.kernel.org/all/20240321165106.31602-1-james.morse@arm.com) | TODO | v1 ☐☑✓ | [LORE v1,0/31](https://lore.kernel.org/all/20240321165106.31602-1-james.morse@arm.com) |
+| 2024/12/06 | Tony Luck <tony.luck@intel.com> | [x86/resctrl: mba_MBps enhancement](https://lore.kernel.org/all/20241206163148.83828-1-tony.luck@intel.com) | [phoronix, 2025/01/21, Linux 6.14 Resource Control To Allow Total Memory Bandwidth Monitoring](https://www.phoronix.com/news/Linux-6.14-resctrl-Total-RAM-BW) | v11 ☐☑✓ | [LORE v11,0/8](https://lore.kernel.org/all/20241206163148.83828-1-tony.luck@intel.com) |
 
 
 ### 6.14.2 ARM MPAM
@@ -1408,6 +1426,9 @@ AMD-pstate 驱动程序利用 ITMT 体系结构提供的功能和数据结构, �
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/08/29 | Yogesh Mohan Marmithu | [user queue patches for review](https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/29010) | AMD RadeonSI 驱动程序的用户队列允许将作业直接提交到 GPU 硬件, 而无需使用 ioctl 命令通过 AMDGPU 内核驱动程序提交作业, 这可以通过直接向 GPU 硬件提交作业来避免因一些内核驱动程的开销所造成的延迟. 参见 [AMD User Queue Mesa Support Merged For Linux - Submitting Work Directly To The GPU](https://www.phoronix.com/news/Mesa-25.0-AMDGPU-User-Queue) | v5 ☐☑✓ | [LORE v5,0/8](https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/29010) |
 | 2024/12/01 | Yonatan Maman <ymaman@nvidia.com> | [GPU Direct RDMA (P2P DMA) for Device Private Pages](https://lore.kernel.org/all/20241201103659.420677-1-ymaman@nvidia.com) | 参见 phoronix 报道 [phoronix, 2024/12/01, NVIDIA's New Linux Patches For GPU Direct RDMA For Device-Private Pages](https://www.phoronix.com/news/NVIDIA-Linux-P2P-DMA-RDMA-Priv) | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20241201103659.420677-1-ymaman@nvidia.com) |
+| 2025/01/31 | Pierre-Eric Pelloux-Prayer <pierre-eric.pelloux-prayer@amd.com> | [Improve gpu_scheduler trace events + uAPI](https://lore.kernel.org/all/20250131110328.706695-1-pierre-eric.pelloux-prayer@amd.com) | TODO | v7 ☐☑✓ | [LORE v7,0/7](https://lore.kernel.org/all/20250131110328.706695-1-pierre-eric.pelloux-prayer@amd.com) |
+| 2024/11/28 | Raag Jadav <raag.jadav@intel.com> | [Introduce DRM device wedged event](https://lore.kernel.org/all/20241128153707.1294347-1-raag.jadav@intel.com) | [phoronix, 2025/02/20, Linux Finally Introducing A Standardized Way Of Informing User-Space Over Hung GPUs](https://www.phoronix.com/news/Linux-6.14-Wedged-GPUs-User), [phoronix, 2025/03/01, Linux's New Way Of Informing User-Space Over Hung GPUs May Become More Useful](https://www.phoronix.com/news/Extending-Linux-GPU-Wedge-Event). | v10 ☐☑✓ | [LORE v10,0/4](https://lore.kernel.org/all/20241128153707.1294347-1-raag.jadav@intel.com) |
+| 2025/03/07 | Matthew Auld | [drm/xe/uapi: Use hint for guc to set GT frequency](https://lists.freedesktop.org/archives/intel-xe/2025-January/066028.html) | [phoronix, 2025/03/07, Intel Xe Driver Introducing SVM, EU Stall Sampling & Other New Features For Linux 6.15](https://www.phoronix.com/news/Intel-Xe-SVM-For-Linux-6.15). | v5 ☐☑✓ | [LORE v5](https://lists.freedesktop.org/archives/intel-xe/2025-January/066028.html) |
 
 
 

@@ -87,6 +87,8 @@ Unikernel 是一种专门的操作系统, 其中应用程序直接与内核链�
 
 [An overview of approaches-PROJECTS/Open source work on unikernels](http://unikernel.org/projects)
 
+[Unikernels: The Next Stage of Linux’s Dominance](https://www.cs.bu.edu/~jappavoo/Resources/Papers/unikernel-hotos19.pdf)
+
 
 *   KML(Kernel Mode Linux : Execute user processes in kernel mode)
 
@@ -129,9 +131,7 @@ https://lwn.net/Articles/422487/
 | 2018/11/07 | Ard Biesheuvel <ardb@kernel.org> | [arm64: mm: apply r/o permissions of VM areas to its linear alias as well](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c55191e96caa9d787e8f682c5e525b7f8172a3b4) | 引入 RODATA_FULL,  | v1 ☑ 5.0-rc1 | [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=c55191e96caa9d787e8f682c5e525b7f8172a3b4) |
 | 2021/11/22 | Jinbum Park <jinb.park7@gmail.com> | [arm64: enable CONFIG_DEBUG_RODATA by default](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1457014259-32015-1-git-send-email-ard.biesheuvel@linaro.org) | 当启用 RODATA_FULL 时, 内核线性映射将被分割为最小的粒度, 这可能会导致 TLB 压力. 这个补丁使用了一种在 pte 上应用 PTE_CONT 的方法. | v3 ☐ | [PatchWork](https://patchwork.kernel.org/project/linux-arm-kernel/patch/1457014259-32015-1-git-send-email-ard.biesheuvel@linaro.org), [commit](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=40982fd6b975de4a51ce5147bc1d698c3b075634) |
 | 2024/10/23 | Mike Rapoport <rppt@kernel.org> | [x86/module: use large ROX pages for text allocations](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=5185e7f9f3bd754ab60680814afd714e2673ef88) | 这组补丁的主要目的是让 x86 架构下的模块使用大页(large pages)来分配可执行内存(ROX pages), 以提高性能和减少 TLB(Translation Lookaside Buffer)的压力. 为 x86 架构引入对大页(通常是 2MB 或 4KB 的页面)的支持, 用于模块的文本段(代码段)分配. 修复与 kmemleak 交互的问题，并改进了与 CFI(Control Flow Integrity）配置的兼容性. 添加了一个新的 Kconfig 选项 ARCH_HAS_EXECMEM_ROX, 确保架构实现 execmem_fill_trapping_insns() 回调, 并且整个物理内存映射在直接映射中. 参见 phoronix 报道 [phoronix, 2024/11/27, Microsoft Makes An Interesting Improvement To Kernel Modules With Linux 6.13](https://www.phoronix.com/news/Linux-6.13-Modules). | v7 ☐☑✓ | [LORE v7,0/8](https://lore.kernel.org/all/20241023162711.2579610-1-rppt@kernel.org) |
-
-
-
+| 2025/01/26 | Mike Rapoport <rppt@kernel.org> | [x86/module: rework ROX cache to avoid writable copy](https://lore.kernel.org/all/20250126074733.1384926-1-rppt@kernel.org) | 参见 phoronix 报道 [Linux 6.15 Looks Like It May Try Again With EXECMEM_ROX Support](https://www.phoronix.com/news/Linux-EXECMEM_ROX-Preps-Again) | v3 ☐☑✓ | [LORE v3,0/9](https://lore.kernel.org/all/20250126074733.1384926-1-rppt@kernel.org) |
 
 
 # 4 KDUMP
@@ -370,6 +370,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2020/05/07 | Anthony Yznaga <anthony.yznaga@oracle.com> | [PKRAM: Preserved-over-Kexec RAM](https://lore.kernel.org/patchwork/cover/856356) | NA | v11 ☑ 4.15-rc2 | [PatchWork RFC,00/43](https://lore.kernel.org/patchwork/cover/1237362) |
 | 2021/09/16 | Pavel Tatashin <pasha.tatashin@soleen.com> | [arm64: MMU enabled kexec relocation](https://patchwork.kernel.org/project/linux-mm/cover/20210802215408.804942-1-pasha.tatashin@soleen.com) | 在 kexec 重定位期间启用 MMU, 以提高重启性能.<br> 如果 kexec 功能用于快速的系统更新, 并且停机时间最少, 那么重新定位 kernel + initramfs 将占用重新引导的很大一部分时间.<br> 重定位慢的原因是它在没有 MMU 的情况下进行, 因此不能从 D-Cache 中受益. | v16 ☐ | [2021/08/02 PatchWork v16,00/15](https://patchwork.kernel.org/project/linux-mm/cover/20210802215408.804942-1-pasha.tatashin@soleen.com)<br>*-*-*-*-*-*-*-* <br>[2021/09/16 PatchWork v17,00/15](https://patchwork.kernel.org/project/linux-mm/cover/20210916231325.125533-1-pasha.tatashin@soleen.com) |
 | 2022/07/25 | Albert Huang <huangjie.albert@bytedance.com> | [faster kexec reboot](https://lore.kernel.org/all/20220725083904.56552-1-huangjie.albert@bytedance.com) | TODO | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20220725083904.56552-1-huangjie.albert@bytedance.com) |
+| 2024/11/27 | David Woodhouse <dwmw2@infradead.org> | [x86/kexec: Add exception handling for relocate_kernel and further yak-shaving](https://lore.kernel.org/all/20241127190343.44916-1-dwmw2@infradead.org) | [phoronix, 2025/01/22, Linux 6.14 Working To Make It Less Painful Debugging Early Boot Issues](https://www.phoronix.com/news/Linux-6.14-Early-Boot-Debugging) | v4 ☐☑✓ | [LORE v4,0/20](https://lore.kernel.org/all/20241127190343.44916-1-dwmw2@infradead.org) |
 
 
 # 11 PERF
@@ -392,6 +393,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 | 2019/09/18 | Yafang Shao <laoar.shao@gmail.com> | [introduce new perf-script page-reclaim](https://lore.kernel.org/patchwork/cover/1128886) | 为 perf 引入了一个新的 python 脚本 page-reclaim.py 页面回收脚本, 用于报告页面回收详细信息.<br> 此脚本目前的用途如下: <br>1. 识别由直接回收引起的延迟峰值 <br>2. 延迟峰值与 pageout 是否相关 <br>3. 请求页面回收的原因, 即是否是内存碎片 <br>4. 页面回收效率等. 将来, 我们还可以将其增强以分析 memcg 回收. | v1 ☐ | [PatchWork 0/2](https://lore.kernel.org/lkml/1568817522-8754-1-git-send-email-laoar.shao@gmail.com) |
 | 2020/04/09 | Andreas Gerstmayr <agerstmayr@redhat.com> | [perf script: Add flamegraph.py script](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=5287f926920688e1151741d49da37a533ccf1960) | 这个脚本与 d3-flame-graph 协同工作, 从 perf 生成火焰图. 它支持两种输出格式：JSON 和 HTML(默认). HTML 格式将在 `/usr/share/d3-flame-graph/d3-flamegraph-base.html` 中查找一个独立的 d3-flame-graph template, 并填充收集的堆栈. | v1 ☑✓ 5.8-rc1 | [LORE](https://lore.kernel.org/lkml/20200320151355.66302-1-agerstmayr@redhat.com) |
 | 2022/12/06 | Petar Gligoric <petar.gligor@gmail.com> | [perf: introduce perf based task analyzer](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=e8478b84d6ba9ccfac15dfce103062c4fa7ded2f) | 此补丁系列引入了任务分析器, 并添加了输出 csv 文件的功能, 以便在第三方脚本 (例如 pandas 和 friends) 中进行进一步分析. 任务分析器根据 sched:sched_switch 事件解析记录的性能数据文件. 它为每个任务的用户输出有用的信息, 用户可以根据自己的喜好和需要修改输出. | v2 ☑✓ 6.2-rc1 | [LORE v2,0/3](https://lore.kernel.org/all/20221206154406.41941-1-petar.gligor@gmail.com) |
+| 2025/03/13 | Gautam Menghani <gautam@linux.ibm.com> | [Introduce a C extension module to allow libperf usage from python](https://lore.kernel.org/all/20250313075126.547881-1-gautam@linux.ibm.com) | IBM 的一组补丁将为 Linux 内核的 libperf 代码引入一个 C 扩展模块, 以允许从 Python 编程语言使用. 参见 [phoronix, 2025/03/13, Proposed Patches Would Allow Using Linux Kernel's libperf From Python  ](https://www.phoronix.com/news/Linux-libperf-Python-RFC) | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20250313075126.547881-1-gautam@linux.ibm.com) |
 
 
 ### 11.1.2 show-lost-events
@@ -640,11 +642,14 @@ bperf 试图通过允许多个 "周期" 或 "指令" 的 perf_event (在不同�
 
 [Experiences in Profile-Guided Operating System Kernel Optimization](https://yaoguopku.github.io/papers/Yuan-ApSys-14.pdf)
 
-Canonical 的工程师一直在探索利用 Profile Guided Optimizations(PGO) 来提升系统的性能, 并得到了 5-7% 的性能提升. 对于 Linux 发行版来说, Profile Guided Optimizations 和相关的基于配置文件的优化在总体上要困难得多, 因为需要代表实际使用的准确配置文件. 如果没有准确的配置文件，PGO 和相关技术(如 AutoFDO)对编译器做出智能优化决策的用处就不大. Sergio Durigan Junior 最近一直在探索 RISC-V 的 PGO 优化, 同时使用 QEMU 仿真并从 AMD Ryzen 硬件运行. Sergio 探索了使用 QEMU 在 RISC-V-on-x86_64 仿真环境中构建 OpenSSL、GDB、Emacs 和 Python 的 PGO 性能优势, 因为这就是 RISC-V 包的 Ubuntu 构建场的设置方式. 基于 perf 的配置文件生成基于 QEMU 流程本身, 并了解使用 PGO 可以带来什么样的构建速度改进. 参见 phoronix 报道 [phoronix， 2024/11/18, Ubuntu Praises 5~7% PGO Compiler Optimization Performance Benefits](https://www.phoronix.com/news/Ubuntu-PGO-Praises-Performance)
+Canonical 的工程师一直在探索利用 Profile Guided Optimizations(PGO) 来提升系统的性能, 并得到了 5-7% 的性能提升. 对于 Linux 发行版来说, Profile Guided Optimizations 和相关的基于配置文件的优化在总体上要困难得多, 因为需要代表实际使用的准确配置文件. 如果没有准确的配置文件，PGO 和相关技术(如 AutoFDO)对编译器做出智能优化决策的用处就不大. Sergio Durigan Junior 最近一直在探索 RISC-V 的 PGO 优化, 同时使用 QEMU 仿真并从 AMD Ryzen 硬件运行. Sergio 探索了使用 QEMU 在 RISC-V-on-x86_64 仿真环境中构建 OpenSSL、GDB、Emacs 和 Python 的 PGO 性能优势, 因为这就是 RISC-V 包的 Ubuntu 构建场的设置方式. 基于 perf 的配置文件生成基于 QEMU 流程本身, 并了解使用 PGO 可以带来什么样的构建速度改进. 参见 phoronix 报道 [phoronix， 2024/11/18, Ubuntu Praises 5~7% PGO Compiler Optimization Performance Benefits](https://www.phoronix.com/news/Ubuntu-PGO-Praises-Performance).
+
+
+虽然 Linux 内核本身通常不被视为典型高性能计算(HPC)工作负载的瓶颈, 但对于那些寻求最大性能潜力的人来说, 使用配置文件引导优化(PGO)优化 Linux 内核可能是值得的. Alex Domingo 和布鲁塞尔自由大学的 HPC 团队在 FOSDEM 2025 上介绍了 [Linux 内核优化对 HPC 工作负载性能的影响, Effect of kernel optimizations on HPC workloads performance, 2025/02/02](https://fosdem.org/2025/schedule/event/fosdem-2025-6520-effect-of-kernel-optimizations-on-hpc-workloads-performance), 在启用 PGO 的情况下编译的 HPC 软件的性能提高了约 3%. 参见 phoronix 报道 [phoronix, 2025/02/04, Optimizing The Linux Kernel With PGO Can Yield ~3% Benefit For HPC Workloads](https://www.phoronix.com/news/PGO-Optimizations-HPC-3p).
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2024/07/28 | Rong Xu <xur@google.com> | [Add AutoFDO and Propeller support for Clang build](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=dbefa1f31a91670c9e7dac9b559625336206466f) | 此补丁系列旨在将 AutoFDO 和 Propeller 支持集成到 Linux 内核中. AutoFDO 是一种按配置优化技术, 它利用硬件采样来增强二进制性能. 与基于仪器的 FDO(iFDO) 不同, AutoFDO 提供了用户友好且简单的申请流程. 虽然 iFDO 通常会产生卓越的配置文件质量和性能, 但作者的研究结果表明, AutoFDO 实现了显着的有效性, 使性能接近基准应用的 iHDO.<br>Propeller 是一种配置文件引导的链路后优化器, 可提高使用 LLVM 编译的大规模应用程序的性能. 它通过基于额外一轮运行时配置文件重新链接二进制文件来运行, 从而实现在编译时无法实现的精确优化. 与 AutoFDO 类似, Propeller 也利用硬件采样来收集配置文件并应用链接后优化, 以提高基准测试的性能, 使其高于 AutoFDO.<br>数据表明m使用 AutoFDO 和 Propeller 后，性能有了显著提高，在微基准测试中提高了 10%，在大型仓库规模基准测试中提高了 5%。这为将它们作为上游内核中的受支持功能提供了强有力的理由. [phoronix, 2024/07/30, Google's AutoFDO & Propeller For The Linux Kernel Helps With Up To 5~10% Faster Performance](https://www.phoronix.com/news/AutoFDO-Propeller-Kernel), [phoronix, 2024/10/03, Google Updates Patches For AutoFDO+Propeller Optimized Linux Kernel](https://www.phoronix.com/news/Linux-AutoFDO-Prop-v2), [phoronix, 2024/11/30, Clang AutoFDO & Propeller Optimization Support Sent In For Linux 6.13: 5~10% More Performance](https://www.phoronix.com/news/Kbuild-Clang-AutoFDO-Linux-6.13) 和 [phoronix, 2024/11/30, Clang AutoFDO + Propeller Optimization Support Merged For Linux 6.13](https://www.phoronix.com/news/AutoFDO-Propeller-Linux-6.13). | v1 ☐☑✓ v6.13-rc1 | [2024/07/28, LORE v1,0/6](https://lore.kernel.org/all/20240728203001.2551083-1-xur@google.com)<br>*-*-*-*-*-*-*-* <br>[2024/10/02, LORE v2,0/6](https://lore.kernel.org/all/20241002233409.2857999-1-xur@google.com)<br>*-*-*-*-*-*-*-* <br>[2024/10/10, LORE v3,0/6](https://lore.kernel.org/all/20241010192400.451187-1-xur@google.com) |
+| 2024/07/28 | Rong Xu <xur@google.com> | [Add AutoFDO and Propeller support for Clang build](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=dbefa1f31a91670c9e7dac9b559625336206466f) | 此补丁系列旨在将 AutoFDO 和 Propeller 支持集成到 Linux 内核中. AutoFDO 是一种按配置优化技术, 它利用硬件采样来增强二进制性能. 与基于仪器的 FDO(iFDO) 不同, AutoFDO 提供了用户友好且简单的申请流程. 虽然 iFDO 通常会产生卓越的配置文件质量和性能, 但作者的研究结果表明, AutoFDO 实现了显着的有效性, 使性能接近基准应用的 iHDO.<br>Propeller 是一种配置文件引导的链路后优化器, 可提高使用 LLVM 编译的大规模应用程序的性能. 它通过基于额外一轮运行时配置文件重新链接二进制文件来运行, 从而实现在编译时无法实现的精确优化. 与 AutoFDO 类似, Propeller 也利用硬件采样来收集配置文件并应用链接后优化, 以提高基准测试的性能, 使其高于 AutoFDO.<br>数据表明m使用 AutoFDO 和 Propeller 后，性能有了显著提高，在微基准测试中提高了 10%，在大型仓库规模基准测试中提高了 5%。这为将它们作为上游内核中的受支持功能提供了强有力的理由. [phoronix, 2024/07/30, Google's AutoFDO & Propeller For The Linux Kernel Helps With Up To 5~10% Faster Performance](https://www.phoronix.com/news/AutoFDO-Propeller-Kernel), [phoronix, 2024/10/03, Google Updates Patches For AutoFDO+Propeller Optimized Linux Kernel](https://www.phoronix.com/news/Linux-AutoFDO-Prop-v2), [phoronix, 2024/11/30, Clang AutoFDO & Propeller Optimization Support Sent In For Linux 6.13: 5~10% More Performance](https://www.phoronix.com/news/Kbuild-Clang-AutoFDO-Linux-6.13), [phoronix, 2024/11/30, Clang AutoFDO + Propeller Optimization Support Merged For Linux 6.13](https://www.phoronix.com/news/AutoFDO-Propeller-Linux-6.13) 和 [phoronix, 2025/02/02, Arch Linux Powered CachyOS Updated With Propeller-Optimized Kernel](https://www.phoronix.com/news/CachyOS-February-2025-Released) . | v1 ☐☑✓ v6.13-rc1 | [2024/07/28, LORE v1,0/6](https://lore.kernel.org/all/20240728203001.2551083-1-xur@google.com)<br>*-*-*-*-*-*-*-* <br>[2024/10/02, LORE v2,0/6](https://lore.kernel.org/all/20241002233409.2857999-1-xur@google.com)<br>*-*-*-*-*-*-*-* <br>[2024/10/10, LORE v3,0/6](https://lore.kernel.org/all/20241010192400.451187-1-xur@google.com) |
 
 
 
@@ -896,8 +901,8 @@ Rui Ueyama 是 Mold 高性能链接器的首席开发人员, 以前是 LLVM LLD 
 
 ["CC_OPTIMIZE_FOR_PERFORMANCE_O3" Performance Tunable Dropped In Linux 6.0](https://www.phoronix.com/news/Linux-6.0-Drops-O3-Kconfig)
 
-[Canonical Evaluating -O3 Optimized Packages For Ubuntu Linux](https://www.phoronix.com/news/Ubuntu-Evaluating-O3-Optimized)
-[Trying Out The Ubuntu "-O3" Optimized Build For Greater Performance](https://www.phoronix.com/review/ubuntu-o3-experiment)
+Canonical 工程师一直在探索默认使用 `-O3` 编译器优化级别来构建 Ubuntu 包, 参见 [Canonical Evaluating -O3 Optimized Packages For Ubuntu Linux](https://www.phoronix.com/news/Ubuntu-Evaluating-O3-Optimized) 和 [Trying Out The Ubuntu "-O3" Optimized Build For Greater Performance](https://www.phoronix.com/review/ubuntu-o3-experiment). 不过随后他们现在已经决定恢复更改并回到 `-O2`, 原因是他们发现一些工作负载得到了改进, 整体系统性能略有下降, 二进制文件大小增加了. 所以 -O3 目前在 Ubuntu 打包世界中没有得到回报. 参见 [Ubuntu To Revert "-O3" Optimizations, Continues Quest For Easier ARM64 Installations](https://www.phoronix.com/news/Ubuntu-No-O3-Easier-ARM64)
+
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
@@ -911,6 +916,7 @@ Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM F
 
 | 2022/10/17 | Masahiro Yamada <masahiroy@kernel.org> | [Remove Intel compiler support](https://lore.kernel.org/all/20221016182349.49308-1-masahiroy@kernel.org) | TODO | v3 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221016182349.49308-1-masahiroy@kernel.org) |
 
+GCC "-fschedule-insns" 选项允许对指令进行重新排序, 以在所需数据不可用时消除执行停顿. 这种早期调度选项对于浮点性能较慢或内存加载指令昂贵的系统可能有益. 在即将到来的 GCC 15 版本中, AArch64 将在 -O3 优化级别和更高级别启用这种早期调度优化. 参见 [phoronix, 2025/03/07, GCC 15 Now Enables AArch64 Early Scheduling For -O3/-Ofast Modes](https://www.phoronix.com/news/GCC-15-AArch64-Early-Sched).
 
 一个编译器以及交叉编译器的集合网站: [mirrors.edge.kernel.org](https://mirrors.edge.kernel.org/pub/tools).
 
@@ -929,6 +935,19 @@ Intel 编译器随后也切到 LLVM 框架, 参见 [Intel Fully Embracing LLVM F
 -------
 
 [graysky2/kernel_compiler_patch](https://github.com/graysky2/kernel_compiler_patch) 此补丁通过添加更多可在以下位置访问的微架构选项, 为内核构建添加了额外的优化 / 调优.
+
+
+#### 13.10.3 Clang's "-Wthread-safety"
+-------
+
+[Clang Thread Safety Checks Begin Uncovering Bugs In The Linux Kernel](https://www.phoronix.com/news/Linux-Clang-Thread-Safety)
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2025/02/06 | Marco Elver <elver@google.com> | [Compiler-Based Capability- and Locking-Analysis](https://lore.kernel.org/all/20250206181711.1902989-1-elver@google.com) | TODO | v1 ☐☑✓ | [LORE v1,0/24](https://lore.kernel.org/all/20250206181711.1902989-1-elver@google.com) |
+| 2025/02/06 | Bart Van Assche <bvanassche@acm.org> | [Compile-time thread-safety checking](https://lore.kernel.org/all/20250206175114.1974171-1-bvanassche@acm.org) | TODO | v1 ☐☑✓ | [LORE v1,0/33](https://lore.kernel.org/all/20250206175114.1974171-1-bvanassche@acm.org) |
+
+
 
 ## 13.11 Reduce Memory Usage
 -------
@@ -1188,6 +1207,7 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 
 
 
+
 # 18 LIB 与 数据结构
 -------
 
@@ -1248,11 +1268,17 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 ## 21.1 RUST 支持
 -------
 
+
+### 21.1.1 Rust For Linux Kernel
+-------
+
 [Arm Helping With AArch64 Rust Linux Kernel Enablement](https://www.phoronix.com/news/AArch64-Rust-Linux-Kernel)
 
 [Linux 6.11 Adds Support For Rust-Based Block Drivers & Atomic Writes](https://www.phoronix.com/news/Linux-6.11-Block-IO_uring)
 
 [An Empirical Study of Rust-for-Linux: The Success, Dissatisfaction, and Compromise](https://www.usenix.org/conference/atc24/presentation/li-hongyu)
+
+[](https://www.uwsg.indiana.edu/hypermail/linux/kernel/2501.0/02022.html)
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
@@ -1272,8 +1298,19 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 | 2024/07/25 | Miguel Ojeda <ojeda@kernel.org> | [Rust: support `CPU_MITIGATIONS` and enable `objtool`](https://lore.kernel.org/all/20240725183325.122827-1-ojeda@kernel.org) | 参见 phoronix 报道 [phoronix, 2024/11/11, Linux 6.13 Rust Support Allowing For In-Place Modules](https://www.phoronix.com/news/Linux-6.13-Rust-InPlaceModule) | v3 ☐☑✓ | [LORE v3,0/6](https://lore.kernel.org/all/20240725183325.122827-1-ojeda@kernel.org) |
 | 2024/10/22 | Danilo Krummrich <dakr@kernel.org> | [Device / Driver PCI / Platform Rust abstractions](https://lore.kernel.org/all/20241022213221.2383-1-dakr@kernel.org) | 参见 phoronix 报道 [phoronix, 2024/11/11, Linux 6.13 Rust Support Allowing For In-Place Modules](https://www.phoronix.com/news/Linux-6.13-Rust-InPlaceModule) | v3 ☐☑✓ | [LORE v3,0/16](https://lore.kernel.org/all/20241022213221.2383-1-dakr@kernel.org) |
 | 2024/09/15 | Alice Ryhl <aliceryhl@google.com> | [File abstractions needed by Rust Binder](https://lore.kernel.org/all/20240915-alice-file-v10-0-88484f7a3dcf@google.com) | 参见 phoronix 报道 [phoronix, 2024/11/16, Linux 6.13 Introducing New Rust File Abstractions](https://www.phoronix.com/news/Linux-6.13-Rust-File-Abstract) | v10 ☐☑✓ | [LORE v10,0/8](https://lore.kernel.org/all/20240915-alice-file-v10-0-88484f7a3dcf@google.com) |
+| 2024/09/15 | Alice Ryhl <aliceryhl@google.com> | [Implement DWARF modversions](https://www.uwsg.indiana.edu/hypermail/linux/kernel/2501.0/02022.html) | 参见 [phoronix, 2025/02/01, gendwarfksyms Tool Added To Linux 6.14 To Help With Rust Push](https://www.phoronix.com/news/Linux-6.14-gendwarfksyms). | NA | [LORE v10,0/8](https://www.uwsg.indiana.edu/hypermail/linux/kernel/2501.0/02022.html) |
 
 
+
+### 21.1.1 Rust Driver
+-------
+
+
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2024/05/20 | Danilo Krummrich <dakr@redhat.com> | [DRM Rust abstractions and Nova](https://gitlab.freedesktop.org/drm/nova/-/tree/nova-next) | 参见 [phoronix, 2025/03/10, The New Rust-Written NVIDIA "NOVA" Driver Submitted Ahead Of Linux 6.15](https://www.phoronix.com/news/NOVA-Driver-For-Linux-6.15), [phoronix, 2025/01/31, "NOVA-Core" Patches Propose Building New NVIDIA Driver Piece-By-Piece In The Linux Kernel](https://www.phoronix.com/news/NOVA-Core-Patches), [phoronix, 2024/05/20, RFC Patches Posted For Rust-Written NVIDIA "Nova" GPU Driver](https://www.phoronix.com/news/RFC-Rust-Nova-NVIDIA-Driver) | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20240520172059.181256-1-dakr@redhat.com) |
 
 ## 22.2 C++
 -------
@@ -1293,10 +1330,10 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/09/27 | Oracle | [bpftune For BPF-Based](https://lore.kernel.org/all/20220927131518.30000-1-ojeda@kernel.org) | [Oracle Developing"bpftune"For BPF-Based, Automatic Tuning Of Linux Systems](https://www.phoronix.com/news/Oracle-bpftune)<br>*-*-*-*-*-*-*-* <br>[https://blogs.oracle.com/linux/post/introducing-bpftune](https://blogs.oracle.com/linux/post/introducing-bpftune)<br>*-*-*-*-*-*-*-* <br>[bpftune - Using Reinforcement Learning in BPF](https://blogs.oracle.com/linux/post/bpftune-using-reinforcement-learning-in-bpf) | v10 ☐☑✓ | [GitHub](https://github.com/oracle-samples/bpftune) |
-| 2022/09/27 | openEuler | Atune | A-Tune 是一款基于 AI 的操作系统性能调优引擎。A-Tune 利用 AI 技术, 使操作系统 "懂" 业务, 简化 IT 系统调优工作的同时，让应用程序发挥出色性能. | NA | [Gitee/openeuler/A-Tune](https://gitee.com/openeuler/A-Tune) |
+| 2022/09/27 | openEuler | Atune | A-Tune 是一款基于 AI 的操作系统性能调优引擎. A-Tune 利用 AI 技术, 使操作系统 "懂" 业务, 简化 IT 系统调优工作的同时，让应用程序发挥出色性能. | NA | [Gitee/openeuler/A-Tune](https://gitee.com/openeuler/A-Tune) |
 | 2022/09/27 | openEuler | [native-turbo](https://gitee.com/openeuler/native-turbo) | Native-Turbo 是操作系统原生性能加速框架; 通过微架构优化和软硬件协同等技术, 提升大型应用性能; Native-Turbo 包含微架构优化技术, 基础库优化, 系统调用优化, 中断聚合, 软硬件协同等技术; 其中微架构优化技术主要有: 动态库拼接, exec 原生大页, 消除 PLT 跳转, 热点 Section 在线重排等. | NA | [Gitee/openeuler/native-turbo](https://gitee.com/openeuler/native-turbo) |
 | 2022/09/27 | Ktune | NA | NA | NA | NA |
-| 2020/01/01 | RedHat | [tuned](https://github.com/redhat-performance/tuned) | NA | NA | [GitHub/redhat-performance/tuned](https://github.com/redhat-performance/tuned), [Fedora 41 To Replace Power-Profiles-Daemon With "Tuned"](https://www.phoronix.com/news/Fedora-41-Goes-Tuned-PPD) |
+| 2020/01/01 | RedHat | [tuned](https://github.com/redhat-performance/tuned) | NA | NA | [GitHub/redhat-performance/tuned](https://github.com/redhat-performance/tuned), [phoronix, Fedora 41 To Replace Power-Profiles-Daemon With "Tuned"](https://www.phoronix.com/news/Fedora-41-Goes-Tuned-PPD), [phoronix, Red Hat Releases Tuned 2.25 Daemon For Linux Adaptive Performance Tuning & Monitoring](https://www.phoronix.com/news/Red-Hat-Tuned-2.25), [phoronix, 2025/01/23, Red Hat Preparing Tuned 2.25 Daemon For Linux Monitoring & Adaptive Performance Tuning](https://www.phoronix.com/news/Red-Hat-Tuned-2.25-RC). |
 
 # 24 ELF
 -------
