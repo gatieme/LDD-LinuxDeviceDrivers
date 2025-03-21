@@ -1121,6 +1121,10 @@ https://blogs.vmware.com/vsphere/2021/10/introducing-project-capitola.html
 
 [Memory-management changes for CXL](https://lwn.net/Articles/931416)
 
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2025/01/07 | Robert Richter <rrichter@amd.com> | [cxl: Add address translation support and enable AMD Zen5 platforms](https://lore.kernel.org/all/20250107141015.3367194-1-rrichter@amd.com) | [phoronix, 2025/01/16, CXL Address Translation Support For AMD Zen 5 Sees Linux Patches](https://www.phoronix.com/news/AMD-Zen5-CXL-Translation-v1) | v1 ☐☑✓ | [LORE v1,0/29](https://lore.kernel.org/all/20250107141015.3367194-1-rrichter@amd.com) |
+
 
 #### 6.3.2.3 CXL Devices
 -------
@@ -1383,6 +1387,7 @@ AMD-pstate 驱动程序利用 ITMT 体系结构提供的功能和数据结构, �
 | 2023/08/15 | Meng Li <li.meng@amd.com> | [amd-pstate preferred core](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=dfddf34a3f0d45483f5b3e46c2e7bda173796f1b) | [AMD Pstate Preferred Core](https://lore.kernel.org/all/20230815061546.3556083-1-li.meng@amd.com) 以及 [AMD P-State Preferred Core Submitted For Linux 6.9 While Intel Meteor Lake Gets Tuned](https://www.phoronix.com/news/AMD-P-State-Preferred-Core-69) | v2 ☐☑✓ 6.9-rc1 | [LORE v2,0/7](https://lore.kernel.org/all/20230815061546.3556083-1-li.meng@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v13,0/7](https://lore.kernel.org/all/20240112092531.789841-1-li.meng@amd.com)<br>*-*-*-*-*-*-*-* <br>[LORE v14,0/7](https://lore.kernel.org/lkml/20240119090502.3869695-1-li.meng@amd.com) |
 | 2024/03/18 | Perry Yuan <perry.yuan@amd.com> | [AMD Pstate Driver Core Performance Boost](https://lore.kernel.org/all/cover.1710754236.git.perry.yuan@amd.com) | 该补丁集系列为 AMD pstate 驱动程序增加了核心性能提升 (core performance boost) 功能, 包括被动, 引导和主动模式支持. 用户可以使用新的 sysfs 条目: "/sys/devices/system/cpu/amd_pstate/cpb_boost" 更改核心频率 boost 控制. 由于与支持所有模式的新 cpb_boost 的功能冲突, 传统的 boost 接口已被删除. 参见 [AMD Posts Updated Linux Patches For P-State Core Performance Boost](https://www.phoronix.com/news/AMD-Core-Performance-Boost-6). [AMD Core Performance Boost For Linux Getting Per-CPU Core Controls](https://www.phoronix.com/news/AMD-Core-Perf-Boost-Per-CPU), [AMD P-State Core Performance Boost To Be Merged For Linux 6.11](https://www.phoronix.com/news/AMD-Core-Perf-Boost-Linux-6.11). | v6 ☐☑✓ | [LORE v6,0/6](https://lore.kernel.org/all/cover.1710754236.git.perry.yuan@amd.com)<br>*-*-*-*-*-*-*-* <br>[AMD Pstate Driver Core Performance Boost](https://lore.kernel.org/linux-pm/cover.1714989803.git.perry.yuan@amd.com) |
 | 2024/03/08 | Sibi Sankar <quic_sibis@quicinc.com> | [cpufreq: scmi: Add boost frequency support](https://lore.kernel.org/all/20240308104410.385631-1-quic_sibis@quicinc.com) | [ARM SCMI CPUFreq Driver Enabling Boost Support By Default With Linux 6.9](https://www.phoronix.com/news/ARM-SCMI-CPUFreq-Boost-Linux-69). | v3 ☐☑✓ | [LORE v3,0/2](https://lore.kernel.org/all/20240308104410.385631-1-quic_sibis@quicinc.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/2](https://www.phoronix.com/news/Linux-69-RAM-Bandwidth-Throttle) |
+| 2024/12/23 | K Prateek Nayak <kprateek.nayak@amd.com> | [x86, sched: Dynamic ITMT core ranking support and some yak shaving](https://lore.kernel.org/all/20241223043407.1611-1-kprateek.nayak@amd.com) | [phoronix, 2025/01/15, Linux 6.14 To Bring An Important Improvement For AMD Preferred Core](https://www.phoronix.com/news/AMD-Preferred-Core-Better-6.14) | v2 ☐☑✓ | [LORE v2,0/8](https://lore.kernel.org/all/20241223043407.1611-1-kprateek.nayak@amd.com) |
 
 
 ## 6.13 Device

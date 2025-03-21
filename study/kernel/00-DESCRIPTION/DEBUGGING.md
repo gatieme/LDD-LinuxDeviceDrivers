@@ -1311,6 +1311,8 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2024/05/20 | Danilo Krummrich <dakr@redhat.com> | [DRM Rust abstractions and Nova](https://gitlab.freedesktop.org/drm/nova/-/tree/nova-next) | 参见 [phoronix, 2025/03/10, The New Rust-Written NVIDIA "NOVA" Driver Submitted Ahead Of Linux 6.15](https://www.phoronix.com/news/NOVA-Driver-For-Linux-6.15), [phoronix, 2025/01/31, "NOVA-Core" Patches Propose Building New NVIDIA Driver Piece-By-Piece In The Linux Kernel](https://www.phoronix.com/news/NOVA-Core-Patches), [phoronix, 2024/05/20, RFC Patches Posted For Rust-Written NVIDIA "Nova" GPU Driver](https://www.phoronix.com/news/RFC-Rust-Nova-NVIDIA-Driver) | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20240520172059.181256-1-dakr@redhat.com) |
+| 2025/03/13 | Rahul Rameshbabu <sergeantsagara@protonmail.com> | [Initial work for Rust abstraction for HID device driver development](https://lore.kernel.org/all/20250313160220.6410-2-sergeantsagara@protonmail.com) | [phoronix, 2025/03/16, Linux Kernel's Rust Support Being Expanded To HID Drivers](https://www.phoronix.com/news/Linux-Rust-HID-Drivers-Patches) | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20250313160220.6410-2-sergeantsagara@protonmail.com) |
+
 
 ## 22.2 C++
 -------

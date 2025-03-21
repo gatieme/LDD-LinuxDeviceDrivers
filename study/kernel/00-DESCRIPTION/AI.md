@@ -167,11 +167,11 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 
 
-# 4 推理框架
+# 3 推理框架
 -------
 
 
-## 4.1 推理框架汇总
+## 3.1 推理框架汇总
 -------
 
 [大模型推理框架概述](https://zhuanlan.zhihu.com/p/659792625)
@@ -181,6 +181,10 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 [29 种本地部署大模型和调用的工具平台分类与总结](https://blog.csdn.net/l35633/article/details/138379452)
 
 [phoronix, 2024/12/07, Llamafile 0.8.17 Brings New Web UI For This Easy-To-Distribute AI LLM Framework](https://www.phoronix.com/news/Llamafile-7-Released)
+
+
+### 3.1.1 推理引擎框架
+-------
 
 | 编号 | 推理框架 | 团队 | 介绍 |
 |:---:|:-------:|:---:|:---:|
@@ -196,8 +200,34 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 | 10 | MLC LLM | NA | MLC LLM 是一种通用部署解决方案. 可在客户端 (边缘计算), 例如 Android 或 iPhone 平台上, 本地部署 LLM. [MLC LLM：将 LLMs 部署到消费类硬件的优势、挑战以及解决方案](https://blog.csdn.net/FrenzyTechAI/article/details/132340135) |
 | 11 | [PaddlePaddle/Anakin](https://github.com/PaddlePaddle/Anakin) | BaiDu | 一个高性能的跨平台推理引擎, 可以在 x86 CPU, ARM, NVIDIA GPU, AMD GPU, 比特大陆以及寒武纪等设备上运行. |
 | 12 | [mllm](https://github.com/UbiquitousLearning/mllm) | [UbiquitousLearning](https://ubiquitouslearning.github.io/mllm_website) | 一个快速轻量级的多模态 LLM 推理引擎, 适用于移动和边缘设备, C/C++ 实现, 无任何其他依赖, 并针对多模态比如 fuyu-8B 进行了优化, 支持 ARM NEON 和 x86 AVX2 加速, 以及 4BIT 和 8BIT 整数量化. |
+| 13 | [XiaoMi/Mace](https://github.com/XiaoMi/mace) | 小米 | MACE (Mobile AI Compute Engine) 是一个针对移动异构计算平台优化的深度学习推理框架. 它专注于以下目标: 性能、功耗、响应性、内存使用和库体积、模型保护以及平台覆盖. MACE 支持 TensorFlow、Caffe和ONNX等多种模型格式, 并提供了丰富的示例和文档. |
+| 14 | [Google-AI-Edge/litert](https://github.com/google-ai-edge/LiteRT) | Google Ai Edge | LiteRT(原名 TensorFlow-Lite) 是 Google 开源的高性能端侧 AI 运行时 |
+| 15 | [AliBaBa/MNN](https://github.com/alibaba/MNN) | AliBaBa | MNN 是一个高效轻量级的深度学习框架, 在阿里巴巴的关键业务场景中得到广泛应用. 它支持深度学习模型的推理和训练, 在设备上具有业界领先的性能. MNN 还提供了一系列工具, 包括模型转换、压缩、表达式计算等功能. |
+| 16 | [Tencent/TNN](https://github.com/Tencent/TNN) | Tencent | TNN 是由腾讯优图实验室和广影实验室开发的一个跨平台、高性能的深度学习推理框架. 它具有跨平台能力、高性能、模型压缩和代码裁剪等多项优秀特性. TNN 在原有的 ncnn 和 Rapidnet 框架基础上, 进一步加强了对移动设备的支持和性能优化, 同时也借鉴了业界主流开源框架的高性能和良好扩展性特点, 扩展了对X86和NV GPU的支持. TNN已经被应用于腾讯移动QQ、微视、Pitu等多个应用中. |
+| 17 | [Paddle-Lite](https://github.com/PaddlePaddle/Paddle-Lite) | [PaddlePaddle](https://www.paddlepaddle.org.cn/lite) | Paddle Lite 面向端侧场景的轻量化推理引擎 Paddle Lite, 可以实现飞桨模型在 x86/ARM 平台下多种 OS 内的高效部署, 同时支持在 10 种以上的 GPU/NPU 异构后端上进行推理加速和混合调度. 是一个高性能、轻量级、灵活性强且易于扩展的深度学习推理框架, 定位于支持包括移动端、嵌入式以及边缘端在内的多种硬件平台. 它提供了简单易用的部署流程,支持多种硬件平台和多种编程语言,并且具有优秀的加速、优化策略及实现. |
+| 18 | [uTensor]() | NA | NA |
+| 19 | Core ML | Apple | NA |
+| 20 | MediaPipe | Google |
 
-## 4.2 推理加速
+### 3.1.2 推理加速库
+-------
+
+
+| 编号 | 加速框架 | 团队 | 介绍 |
+|:---:|:-------:|:---:|:---:|
+| 1 | [ARM-software/CMSIS-NN](https://github.com/ARM-software/CMSIS-NN) | ARM | CMSIS-NN 是一个高性能的神经网络内核软件库, 旨在最大化 Arm Cortex-M 处理器上神经网络的性能并最小化内存占用. 它遵循 TensorFlow Lite for Microcontrollers 的 INT8 和 INT16 量化规范, 与 TensorFlow Lite 参考内核完全一致. 该库提供了针对不同 Arm 处理器架构的优化实现, 包括纯 C、 DSP 扩展和 MVE 扩展等. |
+| 2 | [SNPE](https://www.qualcomm.com/developer?redirect=qdn) | Qualcomm Snapdragon | SNPE 是 Qualcomm Snapdragon Neural Processing Engine 的简称. SNPE 是神经网络在骁龙平台上推理的开发套件, 方便开发者在使用高通芯片的设备上加速AI应用. 支持的模型框架: TensorFlow, CAFFE, ONNX, TensorFlowLite. 比如 [SNPE_Tutorial](https://github.com/gesanqiu/SNPE_Tutorial) |
+| 3 | [PX4/eigen](https://github.com/PX4/eigen) | PX4 | Eigen 是一个 C++ 模板库, 用于线性代数: 矩阵、向量、数值求解器和相关算法. 它提供了一个高效、灵活和易于使用的接口,适用于各种应用程序.|
+| 4 | [Google/XNNPACK](https://github.com/google/XNNPACK) | Google | XNNPACK 是一个针对 ARM、x86、WebAssembly 和 RISC-V 平台的高度优化的神经网络推理解决方案. 它不是直接面向深度学习从业者和研究人员使用的, 而是为诸如 TensorFlow Lite、TensorFlow.js、PyTorch、ONNX Runtime 和 MediaPipe 等高级机器学习框架提供低级性能原语,以加速它们的推理性能. |
+| 5 | [OpenBLAS](https://github.com/OpenMathLib/OpenBLAS) | OpenBLAS | 开源的 CPU 线性代数库，支持多线程和 SIMD 加速, 广泛应用于科学计算和深度学习框架(如 PyTorch). |
+| 6 | [Intel MKL(Math Kernel Library)]() | NA | 针对 Intel CPU 优化的数学计算库, 支持矩阵运算、FFT 等. 在 Intel 平台上性能优于 Eigen. |
+| 7 | [Arm Compute Library](https://github.com/ARM-software/ComputeLibrary) | ARM | Arm CPU/GPU 的加速库, 支持图像处理和机器学习算子. 针对 Cortex-A/Cortex-M 优化, 兼容 CMSIS-NN46. |
+| 8 | [CuPy](https://github.com/cupy/cupy) | NA | 基于 NVIDIA GPU 的数值计算库，语法兼容 NumPy. 替代部分 Eigen 功能, 适合 GPU 加速场景. |
+| 9 | [neon](https://github.com/NervanaSystems/neon) | Intel | neon 是英特尔公司开源的深度学习框架, 致力于在各种硬件上提供最佳性能. 它设计简单易用, 并且具有可扩展性. |
+| 10 | [lapack](https://github.com/Reference-LAPACK/lapack) | NA | LAPACK 是一个用于解决常见数值线性代数问题的 Fortran 子程序库. 它是一个免费提供的软件包, 可以包含在商业软件包中. LAPACK 包含了 Fortran 源代码、测试程序、基本线性代数子程序(BLAS)的 Fortran 参考实现, 以及 CBLAS 和 LAPACKE 的 C 接口. |
+| 11 | [Tencent/ncnn](https://github.com/Tencent/ncnn) | Tencent | ncnn 是一个为手机端极致优化的高性能神经网络前向计算框架. 它从设计之初就深入考虑了手机端的部署和使用. ncnn 无第三方依赖、跨平台, 在手机端 CPU 上的速度快于目前所有已知的开源框架. 开发者可以轻松将深度学习算法移植到手机端高效执行, 开发出人工智能 APP, 将 AI 带到用户的指尖. ncnn 目前已在腾讯多款应用中使用, 如 QQ、Qzone、微信、天天 P 图等. |
+
+## 3.2 推理加速
 -------
 
 
@@ -207,7 +237,9 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 [知乎--刀刀宁聊大模型推理--笔记：学习推理加速半年之总结与迷思](https://zhuanlan.zhihu.com/p/704938096)
 
-### 4.2.1 KV Cache 压缩
+[知乎-锦年-全面解析 LLM 推理优化：技术、应用与挑战](https://zhuanlan.zhihu.com/p/18736565021)
+
+### 3.2.1 KV Cache 压缩
 -------
 
 [SnapKV: LLM在生成内容之前就知道您在寻找什么](https://blog.csdn.net/qq_36931982/article/details/139118015)
@@ -219,22 +251,23 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 [大模型推理加速：KV Cache Sparsity(稀疏化)方法](https://zhuanlan.zhihu.com/p/701580870)
 
 [聊聊大模型推理中的 KVCache 之异构缓存](https://zhuanlan.zhihu.com/p/714288577)
+
 [聊聊大模型推理中的 KVCache 压缩](https://zhuanlan.zhihu.com/p/708946312)
 
 
-### 4.2.2 稀疏感知推理加速
+### 3.2.2 稀疏感知推理加速
 -------
 
 [论文笔记：DejaVu、LLM in Flash、PowerInfer](https://zhuanlan.zhihu.com/p/675585887)
 
 [苹果极致LLM端侧方案：LLM in a flash](https://zhuanlan.zhihu.com/p/673775476)
 
-### 4.2.3 首 Token 时延优化
+### 3.2.3 首 Token 时延优化
 -------
 
 [[Prefill优化][万字]🔥原理&图解vLLM Automatic Prefix Cache(RadixAttention): 首Token时延优化](https://zhuanlan.zhihu.com/p/693556044)
 
-### 4.2.4 投机执行
+### 3.2.4 投机执行
 -------
 
 [论文导读 | 投机解码加速模型推理](https://zhuanlan.zhihu.com/p/698333087)
@@ -245,8 +278,26 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 [LLM推理提速2.8倍，CMU清华姚班校友提出「投机式推理」引擎SpecInfer，小模型撬动大模型高效推理](https://www.jiqizhixin.com/articles/2023-05-30-3)
 
+[知乎-LLM推理加速新范式！推测解码（Speculative Decoding）最新综述](https://zhuanlan.zhihu.com/p/678404136)
 
-## 4.3 算子库
+[知乎-投机采样（Speculative Decoding），另一个提高LLM推理速度的神器（三）](https://zhuanlan.zhihu.com/p/681401656)
+
+[知乎-刀刀宁-聊聊大模型推理服务之投机推理](https://zhuanlan.zhihu.com/p/699166575)
+
+[知乎-hemingkx-推测解码（Speculative Decoding）哪家强？-- 最新评测基准Spec-Bench分享](https://zhuanlan.zhihu.com/p/683995502)
+
+| 编号 | 算法 | 描述 |
+|:---:|:---:|:----:|
+| NA | NA | NA |
+
+
+### 3.2.5 分布式推理
+-------
+
+
+
+
+## 3.3 算子库
 -------
 
 
@@ -260,7 +311,7 @@ dmlc/tvm
 
 ARM-software/ComputeLibrary
 
-# 5 分析工具
+# 4 分析工具
 -------
 
 | 编号 | 内容 | 详情 |
@@ -268,10 +319,10 @@ ARM-software/ComputeLibrary
 |  1  | [Interactive Tools for machine learning, deep learning, and math](https://github.com/Machine-Learning-Tokyo/Interactive_Tools) | 用于机器学习、深度学习和数学运算的交互式工具. |
 |  2  | [Visual Guides to understand the basics of Large Language Models](https://towardsdatascience.com/visual-guides-to-understand-the-basics-of-large-language-models-0715701bdd20) | 一系列工具与文章的汇编, 直观易懂地解读复杂的 AI 概念. 译文 [深入浅出：大语言模型的视觉解析 [译]](https://baoyu.io/translations/llm/visual-guides-to-understand-the-basics-of-large-language-models). |
 
-## 5.1 Tokenizer
+## 4.1 Tokenizer
 -------
 
-### 5.1.1 Token 计算器
+### 4.1.1 Token 计算器
 -------
 
 | 编号 | 工具 | 团队 | 详情 |
@@ -279,7 +330,7 @@ ARM-software/ComputeLibrary
 |  1  | 灵积 Token 计算器 | 阿里 | [阿里 / DashScope 模型服务灵积 / Token 计算器](https://dashscope.console.aliyun.com/tokenizer) |
 |  2  | OpenAI/Token 计算器 | OpenAI | [OpenAI/Token 计算器](https://platform.openai.com/tokenizer) |
 
-### 5.1.2 Tokenizer
+### 4.1.2 Tokenizer
 -------
 
 [大模型分词：sentencepiece vs titoken](https://zhuanlan.zhihu.com/p/691609961)
@@ -298,7 +349,7 @@ ARM-software/ComputeLibrary
 |  6  | [OpenNMT/Tokenizer](https://github.com/OpenNMT/Tokenizer) | 一个快速, 通用, 可定制的文本分词器, 支持 C++/Python, 依赖最小. 提供了多种功能, 包括可逆分词, 子词分词, 高级文本分段, 大小写管理以及保护序列等. |
 
 
-## 5.2 Transformer
+## 4.2 Transformer
 -------
 
 | 编号 | 工具 | 团队 | 详情 |
@@ -312,7 +363,7 @@ ARM-software/ComputeLibrary
 |  7  | [hahnyuan/LLM-Viewer](https://github.com/hahnyuan/LLM-Viewer) | 一个可视化语言与学习模型 LLMs 并分析在不同硬件平台上性能的工具. 可以进行网络级分析, 考虑峰值内存消耗和总推理时间成本等因素. 使用 LLM-Viewer, 可以获取 LLM 推理和性能优化的宝贵见解. 可以在 Web 浏览器或者命令行(CLI) 工具中使用. 在线体验地址 [LLM-Viewer Web](http://llm-viewer.com). 参见论文 [LLM Inference Unveiled: Survey and Roofline Model Insights](https://arxiv.org/abs/2402.16363). |
 
 
-## 5.3 评测平台
+## 4.3 评测平台
 -------
 
 | 编号 | 工具 | 团队 | 详情 |
@@ -321,11 +372,11 @@ ARM-software/ComputeLibrary
 
 
 
-# 6 基础理论
+# 5 基础理论
 -------
 
 
-## 6.1 基础理论汇总
+## 5.1 基础理论汇总
 -------
 
 
@@ -352,7 +403,7 @@ ARM-software/ComputeLibrary
 | [SylphAI-Inc/llm-engineer-handbook](https://github.com/SylphAI-Inc/llm-engineer-handbook) | NA |
 
 
-## 6.2 Survey
+## 5.2 Survey
 -------
 
 
@@ -367,7 +418,10 @@ ARM-software/ComputeLibrary
 | 2024/05/23 | LLMs | [Efficient Large Language Models: A Survey](https://arxiv.org/abs/2312.03863) | Zhongwei Wan | [AIoT-MLSys-Lab](https://github.com/AIoT-MLSys-Lab/Efficient-LLMs-Survey) | 本文对高效 LLMs 研究的发展进行了系统而全面的回顾, 并将文献整理成由三个主要类别组成的分类法, 从模型中心、数据中心和框架中心的角度涵盖了不同但相互关联的高效 LLMs 主题, 并且从以模型为中心和以数据为中心的角度, 回顾了 LLMs 的算法层面和系统层面的高效技术. 详细介绍了每个分类下的具体技术, 如: 量化, 剪枝, 知识蒸馏, 数据选择, 提示工程等<br>1. [知乎--黄浴--高效大语言模型：综述](https://zhuanlan.zhihu.com/p/671710012)<br>2. [知乎--磐石--大模型高效推理 I 推理技术框架总结](https://zhuanlan.zhihu.com/p/696850285)<br>3. [知乎--享享学AI--大模型LLM微调技术方法汇总！](https://zhuanlan.zhihu.com/p/673675939) |
 | 2024/04/22 | 综述 | [A Survey on Efficient Inference for Large Language Models](https://arxiv.org/abs/2404.14294) | Zixuan Zhou | 1. [如何加速大模型推理？万字综述全面解析大语言模型高效推理技术 ](https://www.sohu.com/a/790365299_121119001)<br>2. [知乎--罗清雨--大语言模型高效推理综述](https://zhuanlan.zhihu.com/p/707685591) |
 | 2023/06/23 | 多模态 | [A Survey on Multimodal Large Language Models](https://arxiv.org/abs/2306.13549) | Shukang Yin | [BradyFU](https://github.com/BradyFU/Awesome-Multimodal-Large-Language-Models) | 本综述中主要介绍了多模态幻觉、多模态上下文学习(Multimodal InContext Learning，M-ICL)、多模态思维链(Multimodal Chain of Thought，M-CoT)和 LLM 辅助的视觉推理(LLM-Aided Visual Reasoning，LAVR)等. |
-| 2024/07/26 | [Comprehensive Study on Performance Evaluation and Optimization of Model Compression: Bridging Traditional Deep Learning and Large Language Models](https://arxiv.org/abs/2407.15904) | Aayush Saxena |
+| 2024/07/26 | 模型压缩 | [Comprehensive Study on Performance Evaluation and Optimization of Model Compression: Bridging Traditional Deep Learning and Large Language Models](https://arxiv.org/abs/2407.15904) | Aayush Saxena | 近年来, 深度学习模型在大多数行业都取得了巨大成功. 这些模型的发展还导致模型大小和能源需求增加, 使其难以在低计算设备上的生产环境中进行部署. 全球互联设备数量的增加保证了压缩模型可以轻松部署在本地设备上, 但计算容量和电源可访问性较低. 不同的研究人员提出了广泛的解决方案来减小此类模型的大小和复杂性, 其中突出的是权重量化、参数修剪、网络修剪、低秩表示、权重共享、神经架构搜索、知识蒸馏等. 在这项研究工作中, 我们调查了使用量化和修剪技术进行压缩的各种训练有素的深度学习模型的性能影响. 我们在图像分类、对象检测、语言模型和基于生成模型的问题陈述中使用的常用深度学习模型上实施了量化和剪枝压缩技术. 我们还探讨了各种大型语言模型在量化和低秩适应后的性能. 我们对所有相关问题陈述使用了标准评估指标(模型的大小、准确性和推理时间), 并通过讨论挑战和未来的工作来总结本文. |
+| 2024/06/04 | 投机 | [Unlocking Efficiency in Large Language Model Inference:A Comprehensive Survey of Speculative Decoding](https://arxiv.org/abs/2401.07851) | Heming Xia | [hemingkx/SpeculativeDecodingPapers](https://github.com/hemingkx/SpeculativeDecodingPapers) | [COLING 2025 Tutorial:Speculative Decoding for Efficient LLM Inference](https://speculative-decoding.github.io), [知乎-LLM推理加速新范式！推测解码（Speculative Decoding）最新综述](https://zhuanlan.zhihu.com/p/678404136) |
+
+
 [Mobile Edge Intelligence for Large Language Models: A Contemporary Survey](https://arxiv.org/abs/2407.18921)
 [Edge Intelligence: Architectures, Challenges, and Applications](https://arxiv.org/abs/2003.12172)
 [A Survey on Model Compression for Large Language Models](https://arxiv.org/abs/2308.07633)
@@ -386,7 +440,7 @@ ARM-software/ComputeLibrary
 [Deja Vu: Contextual Sparsity for Efficient LLMs at Inference Time](https://arxiv.org/abs/2310.17157)
 
 
-## 6.3 paper plaza
+## 5.3 paper plaza
 -------
 
 

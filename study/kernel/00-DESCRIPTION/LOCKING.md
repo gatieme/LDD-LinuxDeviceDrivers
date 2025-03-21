@@ -523,7 +523,8 @@ Paul McKenney's parallel programming book, [LWN](https://lwn.net/Articles/421425
 | [ChunelFeng/CGraph](https://github.com/ChunelFeng/CGraph) | ChunelFeng 的图化调度并行框架, 轻量, 快捷, 暂不支持异构 |
 | [AthrunArthur/functionflow](https://github.com/AthrunArthur/functionflow) | 基于 C++11 的 FunctionFlow 并行编程库. |
 | [symphony09/ograph](https://github.com/symphony09/ograph) | OGraph 是一个用 Go 实现的图流程执行框架. 可以通过构建Pipeline(流水线), 来控制依赖元素依次顺序执行、非依赖元素并发执行的调度功能. 此外, OGraph 还提供了丰富的重试, 超时限制. 执行追踪等开箱即用的特征. OGraph 受启发于另一个 C++项目 CGraph. 但 OGraph 并不等于 Go 版本的 CGraph. 和 CGraph 一样, OGraph 也提供基本的构图和调度执行能力, 但有以下几点关键不同:<br>1. 用 Go 实现, 使用协程而非线程进行调度, 更轻量灵活<br>2. 支持通过 Wrapper 来自定义循环、执行条件判断、错误处理等逻辑, 并可以随意组合<br>3. 支持导出图结构, 再在别处导入执行<br>4. 灵活的虚节点设置, 用以简化依赖关系, 以及延迟到运行时决定实际执行的节点. 实现多态. |
-| [google-ai-edge/mediapipe](https://github.com/google-ai-edge/mediapipe) |
+| [google-ai-edge/mediapipe](https://github.com/google-ai-edge/mediapipe) | NA |
+| [uxlfoundation/oneTBB](https://github.com/uxlfoundation/oneTBB) | oneTBB(Intel oneAPI Threading Building Blocks) 是一个灵活的 C++ 库, 可以简化向复杂应用程序添加并行性的工作.<br>该库允许您轻松编写充分利用多核性能的并行程序。此类程序是可移植的、可组合的, 并且具有面向未来的可扩展性. oneTBB 为您提供函数、接口和类来并行化和扩展代码. 您所要做的就是使用模板. |
 
 
 ### 12.2.2 WorkQueue

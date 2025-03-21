@@ -81,12 +81,15 @@ systrace, perfetto, drgn, systemtep
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/05/29 | Sandoval @ Facebook | [A kernel debugger in Python: drgn](https://lwn.net/Articles/789641) | 一款 kernel 调试器, 可以利用 Python 脚本来访问正在运行的 kernel 里的数据结构<br>Drgn 在 [LSFMM2019](https://lwn.net/Articles/lsfmm2019) 被公开, LWN 随即进行了报道  [A kernel debugger in Python: drgn](https://lwn.net/Articles/789641), 随后 [2021 年报道](https://lwn.net/Articles/878309/)了 [drgn: How the Linux Kernel Team at Meta Debugs the Kernel at Scale (Meta)](https://developers.facebook.com/blog/post/2021/12/09/drgn-how-linux-kernel-team-meta-debugs-kernel-scale), Meta 的内核团队使用了 Drgn 跟踪内核中出现的问题, 并贡献了非常分布的用例集合. | ☐ | [Github](https://github.com/osandov/drgn), [User Guide](https://drgn.readthedocs.io/en/latest/user_guide.html), [BPF drgn tools](https://www.kernel.org/doc/html/latest/bpf/drgn.html) |
 | 2021/11/21 | David Woodhouse <dwmw2@infradead.org> | [Microsoft-Performance-Tools-Linux-Android](https://www.phoronix.com/scan.php?page=news_item&px=MS-Performance-Tools-Linux) | Microsoft [发布了](https://devblogs.microsoft.com/performance-diagnostics/new-tools-for-analyzing-android-linux-and-chromium-browser-performance)一款 Linux/Android 的性能分析工具 [Performance Tools For Linux/Android](https://github.com/microsoft/Microsoft-Performance-Tools-Linux-Android), 一组跟踪处理工具, 它提供了许多强大的功能、功能、方法和生态系统, 这些功能、功能、方法和生态系统在过去 15 年多的时间里一直用于通过不断发展和更新的工具集来推动系统的性能. 支持通过 LTTng、perf 和 Perfetto 对系统进行分析. | v1 ☐ | [LWN](https://github.com/microsoft/Microsoft-Performance-Tools-Linux-Android) |
+| 2025/01/13 | Oracle OLED | [phoronix, 2025/01/13, Oracle OLED Wants To Help Improve The Debugability Of The Linux Kernel](https://www.phoronix.com/news/Oracle-Linux-OLED-Debug) | 甲骨文公司推出 Oracle Linux 增强诊断(OLED) 作为其最新项目, 旨在增强 Linux 内核的可调试性. Oracle Linux 增强诊断是 Oracle 内部开发的一组工具, 最初是针对 Oracle Linux 开发的, 可帮助增强调试体验, 尤其是在云环境中. | v1 ☐ | [Introducing Oracle Linux Enhanced Diagnostics](https://blogs.oracle.com/linux/post/oracle-linux-enhanced-diagnostics) |
+
 
 *   DRGN
 
 [LWN/A kernel debugger in Python: drgn(https://lwn.net/Articles/789641)
 [LWN: 想用python命令来调试kernel吗？drgn就是了！](https://blog.csdn.net/Linux_Everything/article/details/93270705)
 [pf-kernel/crush](https://codeberg.org/pf-kernel/crush) crush 是一种实验性尝试, 至少部分地使用 Python 和更现代的 drgn 后端重写 crash util.
+[phoronix, 2025/01/18, Linux 6.14 To Perform Better With The Drgn Debugger Via Faster /proc/kcore Reads](https://www.phoronix.com/news/Linux-6.14-Faster-kcore-Reads)
 
 *   ControlFlag
 
