@@ -7557,12 +7557,13 @@ PLRUS 这一机制旨在解决与 MGLRU 工作类似的问题, MGLRU 也试图�
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2023/08/01 | Sudarshan Rajagopalan <quic_sudaraja@quicinc.com> | [vmrd: dynamic guest VM memory resizing daemon](https://patchwork.kernel.org/project/linux-mm/cover/cover.1690836010.git.quic_sudaraja@quicinc.com/) | 771831 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/cover.1690836010.git.quic_sudaraja@quicinc.com) |
 
-#### 13.6.4.5 Auto Tune
+#### 13.6.4.5 DAMON Auto Tune
 -------
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2025/02/12 | SeongJae Park <sj@kernel.org> | [mm/damon: auto-tune aggregation interval](https://lore.kernel.org/all/20250213014438.145611-1-sj@kernel.org) | 为 Linux 内核中的 DAMON(Data Access MONitor)子系统引入自动调节聚合间隔的功能. 以下是该补丁集的主要内容和目标:<br>1. 背景与问题描述: DAMON监控每个内存元素(称为 damon_region)的访问频率, 并通过用户指定的时间间隔(称为"采样间隔")检查这些元素是否被访问. 检查结果会汇总到一个计数器(nr_accesses)中, 该计数器会在另一个用户指定的时间间隔(称为"聚合间隔")后重置. 聚合间隔类似于相机的曝光时间, 如果设置得太短, 则捕获的访问事件数量较少, 导致快照缺乏有用信息; 如果设置得太长, 则会导致过多的事件被汇总在一起, 使得快照难以分析.<br>2. 现有问题: 合适的聚合间隔长度依赖于具体的工作负载和系统状态, 手动调整这一参数既耗时又重复. 不必要地缩短采样间隔也会增加监控开销.<br>3. 解决方案: 引入一种自动化机制, 使用反馈循环根据观察到的访问事件数量自动调整聚合间隔, 类似于自动曝光的相机. 自动化过程还会同时调整采样间隔, 以保持两者之间的比例不变. 用户可以设置这个比例或区分度(discernment).<br> 该补丁集的目标是通过自动化的方式优化 DAMON 的监控效率, 减少用户手动调整参数的需求, 提高系统操作效率. 它提供了一种智能的方法来动态调整监控参数, 确保能够有效地捕捉内存访问模式而不至于造成不必要的性能开销. 这将特别有助于那些需要持续监控内存访问模式并据此做出决策的应用场景. | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20250213014438.145611-1-sj@kernel.org) |
+| 2025/03/19 | SeongJae Park <sj@kernel.org> | [mm/damon: let DAMON-based memory tiering self-tuned and just works](https://lore.kernel.org/all/20250320053937.57734-1-sj@kernel.org) | 参见 [phoronix, 2025/03/20, DAMON Self-Tuned Memory Tiering Shows Nice Improvement For Linux Servers](https://www.phoronix.com/news/DAMON-Self-Tuned-Memory-Tiering) | v1 ☐☑✓ | [LORE v1,0/4](https://lore.kernel.org/all/20250320053937.57734-1-sj@kernel.org) |
 
 
 ### 13.6.5 业界的使用

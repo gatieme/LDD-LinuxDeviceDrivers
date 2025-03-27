@@ -852,3 +852,8 @@ https://lore.kernel.org/all/20240830130309.2141697-1-vincent.guittot@linaro.org/
 https://www.phoronix.com/news/Schedutil-30p-Speedometer-Boost
 
 [Linux 6.14 Resource Control To Allow Total Memory Bandwidth Monitoring](https://www.phoronix.com/news/Linux-6.14-resctrl-Total-RAM-BW)
+
+
+[phoronix, 2025/03/20, Google Developing "Live Update Orchestrator" As New Means Of Live Linux Kernel Updates](https://www.phoronix.com/news/Google-Live-Update-Orchestrator)
+
+
