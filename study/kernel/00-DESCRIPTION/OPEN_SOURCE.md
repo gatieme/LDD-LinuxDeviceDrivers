@@ -122,6 +122,7 @@
 |:---:|:-------:|
 | 2022 | [为了忘却的纪念——2022 Linux 内核十大技术革新功能](https://blog.csdn.net/csdnnews/article/details/128731761) |
 | 2023 | [熠熠生辉 | 2023 年 Linux 内核十大技术革新功能](https://blog.csdn.net/csdnnews/article/details/135493424) |
+| 2024 | [2024年Linux内核十大技术革新盘点｜年终盘点](https://blog.csdn.net/csdnnews/article/details/145127830)<br>*-*-*-*-*-*-*-* <br>[phoronix, 2025/01/01, The Most Popular Linux & Open-Source News Of 2024](https://www.phoronix.com/news/Linux-Open-Source-News-2024)
 
 # 6 业界会议
 -------

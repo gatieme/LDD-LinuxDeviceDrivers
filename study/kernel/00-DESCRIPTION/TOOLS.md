@@ -112,6 +112,10 @@ Intel 发布的 ControlFlag 用机器学习来发现代码中的错误, 支持 C
 [phoronix, 2024/10/23, Gentoo Linux Touts DTrace 2.0 Support](https://www.phoronix.com/news/Gentoo-Linux-DTrace-2.0), [DTrace 2.0 for Gentoo](https://www.gentoo.org/news/2024/10/23/DTrace-for-Gentoo.html), [DTrace-WIKI](https://wiki.gentoo.org/wiki/DTrace)
 
 
+* kLLDB
+
+[djolertrk/kLLDB](https://github.com/djolertrk/kLLDB)
+
 ## 2.2 call kernel func from userspace
 -------
 

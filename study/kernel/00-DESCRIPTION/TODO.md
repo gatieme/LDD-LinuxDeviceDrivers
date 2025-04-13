@@ -631,7 +631,7 @@ cba6167f0adb
 | 2024/03/25 | Shrikanth Hegde <sshegde@linux.ibm.com> | [sched/fair: Simplify continue_balancing for newidle](https://lore.kernel.org/all/20240325153926.274284-1-sshegde@linux.ibm.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240325153926.274284-1-sshegde@linux.ibm.com) |
 | 2021/11/12 | Vincent Guittot <vincent.guittot@linaro.org> | [avoid spurious blocked load update](https://lore.kernel.org/all/20211112095857.7016-1-vincent.guittot@linaro.org) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20211112095857.7016-1-vincent.guittot@linaro.org) |
 | 2024/03/27 | Bharata B Rao <bharata@amd.com> | [Hot page promotion optimization for large address space](https://lore.kernel.org/all/20240327160237.2355-1-bharata@amd.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20240327160237.2355-1-bharata@amd.com) |
-| 2024/05/06 | Qais Yousef <qyousef@layalina.io> | [sched: Consolidate cpufreq updates](https://lore.kernel.org/all/20240505233103.168766-1-qyousef@layalina.io) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240505233103.168766-1-qyousef@layalina.io) |
+| 2024/05/06 | Qais Yousef <qyousef@layalina.io> | [sched: Consolidate cpufreq updates](https://lore.kernel.org/all/20240505233103.168766-1-qyousef@layalina.io) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240505233103.168766-1-qyousef@layalina.io)<br>*-*-*-*-*-*-*-* <br>[LORE v8](https://lore.kernel.org/all/20250209235204.110989-1-qyousef@layalina.io) |
 | 2024/03/28 | mingyang.cui <mingyang.cui@horizon.ai> | [sched/fair: Fix forked task check in vruntime_normalized](https://lore.kernel.org/all/20240328062757.29803-1-mingyang.cui@horizon.ai) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240328062757.29803-1-mingyang.cui@horizon.ai) |
 | 2024/04/02 | Tio Zhang <tiozhang@didiglobal.com> | [sched: make softirq cputime accounting separately in irqtime](https://lore.kernel.org/all/20240402112415.GA17946@didi-ThinkCentre-M930t-N000) | 我们现在在延迟统计中只能获得 IRQ/SOFTIRQ 的总延迟, 但单独获得 SOFTIRQ 延迟和 IRQ 延迟将有助于用户以更方便的方式减少此类延迟. 对于 IRQ 延迟, 我们可以调整 IRQ-CPU 相关性或使用线程 IRQ. 对于 SOFTIRQ 延迟, 我们可以调整 rps/xps 或使用 NAPI 的内核线程. 因此, 这个补丁集试图使 SOFTIRQ 延迟在延迟统计中可观察到, 并在 taskstats 中可用. 补丁集同步更新了 `tools/accounting/getdelays.c` 同样为了向后兼容性, 我们不想改变原始 IRQ/SOFTIRQ 延迟的含义, 相反, 我们可以通过原始 IRQ/OFTIRQ 的延迟减去该补丁添加的 SOFTIREQ 延迟来获得真实的 IRQ(中断) 延迟. | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20240402112415.GA17946@didi-ThinkCentre-M930t-N000) |
 | 2024/03/29 | Chunxin Zang <spring.cxz@gmail.com> | [sched/fair: Reset vlag in dequeue when PLAGE_LAG is disabled](https://lore.kernel.org/all/20240329091933.340739-1-spring.cxz@gmail.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240329091933.340739-1-spring.cxz@gmail.com) |
@@ -809,19 +809,17 @@ https://lore.kernel.org/all/20240830130309.2141697-1-vincent.guittot@linaro.org/
 | 2024/11/09 | Tejun Heo <tj@kernel.org> | [sched_ext: Rename dispatch and consume kfuncs](https://lore.kernel.org/all/20241109194853.580310-1-tj@kernel.org) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20241109194853.580310-1-tj@kernel.org) |
 | 2024/11/19 | K Prateek Nayak <kprateek.nayak@amd.com> | [sched/fair: Idle load balancer fixes for fallouts from IPI optimization to TIF_POLLING CPUs](https://lore.kernel.org/all/20241119054432.6405-1-kprateek.nayak@amd.com) | TODO | v5 ☐☑✓ | [LORE v5,0/4](https://lore.kernel.org/all/20241119054432.6405-1-kprateek.nayak@amd.com) |
 | 2024/11/29 | Rafael J. Wysocki <rjw@rjwysocki.net> | [cpufreq: intel_pstate: Enable EAS on hybrid platforms without SMT](https://lore.kernel.org/all/5861970.DvuYhMxLoT@rjwysocki.net) | TODO | v21 ☐☑✓ | [LORE v21,0/9](https://lore.kernel.org/all/5861970.DvuYhMxLoT@rjwysocki.net) |
-| 2024/11/22 | Swapnil Sapkal <swapnil.sapkal@amd.com> | [perf sched: Introduce stats tool](https://lore.kernel.org/all/20241122084452.1064968-1-swapnil.sapkal@amd.com) | TODO | v2 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20241122084452.1064968-1-swapnil.sapkal@amd.com) |
 | 2025/01/09 | Changwoo Min <changwoo@igalia.com> | [sched_ext: Support high-performance monotonically non-decreasing clock](https://lore.kernel.org/all/20250109131456.7055-1-changwoo@igalia.com) | TODO | v8 ☐☑✓ | [LORE v8,0/6](https://lore.kernel.org/all/20250109131456.7055-1-changwoo@igalia.com) |
 | 2024/12/02 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: Fix statistics with delayed dequeue](https://lore.kernel.org/all/20241202174606.4074512-1-vincent.guittot@linaro.org) | TODO | v3 ☐☑✓ | [LORE v3,0/11](https://lore.kernel.org/all/20241202174606.4074512-1-vincent.guittot@linaro.org) |
-| 2024/12/23 | K Prateek Nayak <kprateek.nayak@amd.com> | [x86, sched: Dynamic ITMT core ranking support and some yak shaving](https://lore.kernel.org/all/20241223043407.1611-1-kprateek.nayak@amd.com) | TODO | v2 ☐☑✓ | [LORE v2,0/8](https://lore.kernel.org/all/20241223043407.1611-1-kprateek.nayak@amd.com) |
 | 2024/12/12 | Vineeth Pillai (Google) <vineeth@bitbyteword.org> | [sched/dlserver: flag to represent active status of dlserver](https://lore.kernel.org/all/20241213032244.877029-1-vineeth@bitbyteword.org) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20241213032244.877029-1-vineeth@bitbyteword.org) |
 | 2024/12/20 | Swapnil Sapkal <swapnil.sapkal@amd.com> | [Fixes and improvements in /proc/schedstat](https://lore.kernel.org/all/20241220063224.17767-1-swapnil.sapkal@amd.com) | TODO | v2 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20241220063224.17767-1-swapnil.sapkal@amd.com) |
 | 2025/01/13 | Chuyi Zhou <zhouchuyi@bytedance.com> | [Take the scheduling domain into account in numa balancin](https://lore.kernel.org/all/20250113073050.2811925-1-zhouchuyi@bytedance.com) | TODO | v3 ☐☑✓ | [LORE v3,0/3](https://lore.kernel.org/all/20250113073050.2811925-1-zhouchuyi@bytedance.com) |
 | 2025/01/06 | wujing <realwujing@qq.com> | [sched/fair: Correct CPU selection from isolated domain](https://lore.kernel.org/all/tencent_160A5B6C838FD9A915A67E67914350EB1806@qq.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/tencent_160A5B6C838FD9A915A67E67914350EB1806@qq.com)|
 | 2025/01/04 | Andrea Righi <arighi@nvidia.com> | [sched_ext: idle: small CPU iteration refactoring](https://lore.kernel.org/all/20250104090009.331193-1-arighi@nvidia.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250104090009.331193-1-arighi@nvidia.com) |
 | 2025/01/08 | Honglei Wang <jameshongleiwang@126.com> | [sched_ext: switch class when preempted by higher priority scheduler](https://lore.kernel.org/all/20250108023328.37675-1-jameshongleiwang@126.com) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250108023328.37675-1-jameshongleiwang@126.com) |
-| 2024/12/16 | Michal Koutný <mkoutny@suse.com> | [Add kernel cmdline option for rt_group_sched](https://lore.kernel.org/all/20241216201305.19761-1-mkoutny@suse.com) | TODO | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20241216201305.19761-1-mkoutny@suse.com) |
+| 2024/12/16 | Michal Koutný <mkoutny@suse.com> | [Add kernel cmdline option for rt_group_sched](https://lore.kernel.org/all/20241216201305.19761-1-mkoutny@suse.com) | TODO | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20241216201305.19761-1-mkoutny@suse.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/9](https://lore.kernel.org/all/20250210151239.50055-1-mkoutny@suse.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/10](https://lore.kernel.org/all/20250310170442.504716-1-mkoutny@suse.com/) |
 | 2025/01/14 | Florian Schmaus <flo@geekplace.eu> | [sched: provide sched_set_batch()](https://lore.kernel.org/all/20250114130513.498482-3-flo@geekplace.eu) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20250114130513.498482-3-flo@geekplace.eu) |
-| 2024/12/04 | Tobias Huschle <huschle@linux.ibm.com> | [sched/fair: introduce new scheduler group type group_parked](https://lore.kernel.org/all/20241204112149.25872-1-huschle@linux.ibm.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20241204112149.25872-1-huschle@linux.ibm.com) |
+| 2024/12/04 | Tobias Huschle <huschle@linux.ibm.com> | [sched/fair: introduce new scheduler group type group_parked](https://lore.kernel.org/all/20241204112149.25872-1-huschle@linux.ibm.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20241204112149.25872-1-huschle@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/all/20250217113252.21796-1-huschle@linux.ibm.com) |
 | 2025/01/13 | I Hsin Cheng <richard120310@gmail.com> | [sched/fair: Refactor can_migrate_task() to elimate looping](https://lore.kernel.org/all/20250113041249.6847-1-richard120310@gmail.com) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250113041249.6847-1-richard120310@gmail.com) |
 | 2025/01/16 | Phil Auld <pauld@redhat.com> | [sched: Mention autogroup disabled behavior](https://lore.kernel.org/all/20250116124654.2365691-1-pauld@redhat.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250116124654.2365691-1-pauld@redhat.com) |
 | 2024/11/13 | Juri Lelli <juri.lelli@redhat.com> | [Fix DEADLINE bandwidth accounting in root domain changes and hotplug](https://lore.kernel.org/all/20241113125724.450249-1-juri.lelli@redhat.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20241113125724.450249-1-juri.lelli@redhat.com) |
@@ -829,13 +827,18 @@ https://lore.kernel.org/all/20240830130309.2141697-1-vincent.guittot@linaro.org/
 | 2025/01/26 | Changwoo Min <changwoo@igalia.com> | [sched_ext: Implement core event counters](https://lore.kernel.org/all/20250126101614.232388-1-changwoo@igalia.com) | TODO | v2 ☐☑✓ | [LORE v2,0/11](https://lore.kernel.org/all/20250126101614.232388-1-changwoo@igalia.com) |
 | 2025/01/25 | Andrea Righi <arighi@nvidia.com> | [sched_ext: Move built-in idle CPU selection policy to a separate file](https://lore.kernel.org/all/20250125213911.283318-1-arighi@nvidia.com) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250125213911.283318-1-arighi@nvidia.com) |
 | 2024/12/19 | Pierre Gondois <pierre.gondois@arm.com> | [sched/fair: Decrease util_est in presence of idle time](https://lore.kernel.org/all/20241219091207.2001051-1-pierre.gondois@arm.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20241219091207.2001051-1-pierre.gondois@arm.com) |
-| 2025/01/16 | Phil Auld <pauld@redhat.com> | [sched: Mention autogroup disabled behavior](https://lore.kernel.org/all/20250116124654.2365691-1-pauld@redhat.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250116124654.2365691-1-pauld@redhat.com) |
-| 2024/12/23 | Hao Jia <jiahao.kernel@gmail.com> | [sched/core: Prioritize migrating eligible tasks in sched_balance_rq()](https://lore.kernel.org/all/20241223091446.90208-1-jiahao.kernel@gmail.com) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20241223091446.90208-1-jiahao.kernel@gmail.com) |
 | 2025/02/04 | Changwoo Min <changwoo@igalia.com> | [sched_ext: Implement core event counters](https://lore.kernel.org/all/20250204052057.67776-1-changwoo@igalia.com) | TODO | v4 ☐☑✓ | [LORE v4,0/7](https://lore.kernel.org/all/20250204052057.67776-1-changwoo@igalia.com) |
 | 2025/01/29 | Christian Loehle <christian.loehle@arm.com> | [sched/debug: Print slice length for fair tasks](https://lore.kernel.org/all/453349b1-1637-42f5-a7b2-2385392b5956@arm.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/453349b1-1637-42f5-a7b2-2385392b5956@arm.com) |
 | 2025/01/28 | Fernand Sieber <sieberf@amazon.com> | [sched: Add core cookie update tracepoint](https://lore.kernel.org/all/20250128113410.263994-1-sieberf@amazon.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250128113410.263994-1-sieberf@amazon.com) |
+| 2025/01/29 | Christian Loehle <christian.loehle@arm.com> | [sched/debug: Print slice length for fair tasks](https://lore.kernel.org/all/453349b1-1637-42f5-a7b2-2385392b5956@arm.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/453349b1-1637-42f5-a7b2-2385392b5956@arm.com) |
+| 2025/02/07 | Changwoo Min <changwoo@igalia.com> | [sched_ext: Add a core event and update scx schedulers](https://lore.kernel.org/all/20250207031338.393045-1-changwoo@igalia.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20250207031338.393045-1-changwoo@igalia.com) |
+| 2025/01/21 | zihan zhou <15645113830zzh@gmail.com> | [sched: Cancel the slice protection of the idle entity](https://lore.kernel.org/all/20250121030628.113497-1-15645113830zzh@gmail.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250121030628.113497-1-15645113830zzh@gmail.com) |
+| 2025/02/21 | Abel Wu <wuyun.abel@bytedance.com> | [Fix SCHED_IDLE behavior on wakeup preemption](https://lore.kernel.org/all/20250221111226.64455-1-wuyun.abel@bytedance.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20250221111226.64455-1-wuyun.abel@bytedance.com) |
+| 2025/02/07 | Tejun Heo <tj@kernel.org> | [sched_ext: Event counter updates](https://lore.kernel.org/all/20250208084229.1274399-1-tj@kernel.org) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250208084229.1274399-1-tj@kernel.org) |
+| 2025/02/20 | Jemmy Wong <jemmywong512@gmail.com> | [sched: Refine scheduler naming for clarity and specificity](https://lore.kernel.org/all/20250219182020.393006-1-jemmywong512@gmail.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20250219182020.393006-1-jemmywong512@gmail.com) |
 
 
+Event counter updates
 
 
 [成大资工 - WIKI](https://wiki.csie.ncku.edu.tw/User/OscarShiang)
@@ -854,6 +857,30 @@ https://www.phoronix.com/news/Schedutil-30p-Speedometer-Boost
 [Linux 6.14 Resource Control To Allow Total Memory Bandwidth Monitoring](https://www.phoronix.com/news/Linux-6.14-resctrl-Total-RAM-BW)
 
 
-[phoronix, 2025/03/20, Google Developing "Live Update Orchestrator" As New Means Of Live Linux Kernel Updates](https://www.phoronix.com/news/Google-Live-Update-Orchestrator)
 
 
+
+成坚 	410881199005133515
+王盼盼   410881199101013601
+范小香	410827195708153524
+成梽  	33010820200707137X
+
+https://www.phoronix.com/news/cpufreq_ext-RFC#google_vignette
+
+
+
+
+
+
+
+用例范围
+https://xarjbochz9n.feishu.cn/wiki/I03BwQQMDi5fMSkLRc0cW5iJnAf?open_in_browser=true
+
+
+整理好的所有164条测试样例。
+https://xarjbochz9n.feishu.cn/wiki/WBX8wziSMiVBxFkKNVXcGjEsnqb?from=from_copylink
+
+
+
+
+在 OSPM'25 上, 不少开发者建议使用推送任务机制来进行 idle balance 和 newidle balance. 借鉴了 [sched/fair: Rework EAS to handle more cases](https://lore.kernel.org/all/20240830130309.2141697-1-vincent.guittot@linaro.org) 的思路, 实现了一套统一的 CFS 任务推送框架, 并已针对 !EAS 场景进行了实现.<br>1. 该系列实现了 [Valentin 的想法](https://lore.kernel.org/lkml/xhsmh1putoxbz.mognet@vschneid-thinkpadt14sgen2i.remote.csb), 即在存在可推送任务的情况下, CPU 会将自身设置为每个 LLC 的"过载掩码(overloaded mask)".<br>2. NUMA 间的新空闲平衡机制对此做了优化, 会先遍历本地 LLC 上 overloaded mask 中的 CPU 集合, 然后遍历同一 NUMA 节点中其他 LLC 上 overloaded mask 中的 CPU 集合, 目的是将单个任务拉向自身, 而非执行全面的负载均衡.<br>3. 这实现了 [David Vernet 的 SAHRED_RUNQ 原型](https://lore.kernel.org/lkml/20231212003141.216236-1-void@manifault.com/) 中的一些想法, 不过, 与每个 LLC/每个分片使用一个单独的 SHARED_RUNQ 不同, 这里过载掩码用作指示符, 表明每个 CPU 的 rq 中包含可迁移到即将空闲的 CPU 的可推送任务. 这样做的代价是维护过载的 cpumask, 但避免了为每个 SHARED_RUNQ 设置锁.<br>4. 推送回调函数本身已进行了修改, 会尝试将可推送任务列表中的任务推送到"nohz.idle_cpus_mask"掩码中的某个 CPU 上, 从而减轻空闲平衡的负载.

@@ -633,6 +633,8 @@ Wasmtime 完全开源, 使用 Rust 编程语言, 是的, 并且符合 WASI 标�
 [Wasmer 4.4 Released To Continue Pushing Universal Apps With WebAssembly](https://www.phoronix.com/news/Wasmer-4.4-Released)
 [Wasmer 6.0 Wires Up Support For Multiple Heterogeneous Backends](https://www.phoronix.com/news/Wasmer-6.0-Alpha-1)
 
+[phoronix, 2025/03/26, Microsoft Announces Open-Source "Hyperlight Wasm" Project](https://www.phoronix.com/news/Microsoft-Hyperlight-Wasm)
+
 
 # 10 云原生
 -------
