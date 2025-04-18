@@ -824,10 +824,8 @@ https://lore.kernel.org/all/20240830130309.2141697-1-vincent.guittot@linaro.org/
 | 2025/01/16 | Phil Auld <pauld@redhat.com> | [sched: Mention autogroup disabled behavior](https://lore.kernel.org/all/20250116124654.2365691-1-pauld@redhat.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250116124654.2365691-1-pauld@redhat.com) |
 | 2024/11/13 | Juri Lelli <juri.lelli@redhat.com> | [Fix DEADLINE bandwidth accounting in root domain changes and hotplug](https://lore.kernel.org/all/20241113125724.450249-1-juri.lelli@redhat.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20241113125724.450249-1-juri.lelli@redhat.com) |
 | 2024/12/23 | Hao Jia <jiahao.kernel@gmail.com> | [sched/core: Prioritize migrating eligible tasks in sched_balance_rq()](https://lore.kernel.org/all/20241223091446.90208-1-jiahao.kernel@gmail.com) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20241223091446.90208-1-jiahao.kernel@gmail.com) |
-| 2025/01/26 | Changwoo Min <changwoo@igalia.com> | [sched_ext: Implement core event counters](https://lore.kernel.org/all/20250126101614.232388-1-changwoo@igalia.com) | TODO | v2 ☐☑✓ | [LORE v2,0/11](https://lore.kernel.org/all/20250126101614.232388-1-changwoo@igalia.com) |
 | 2025/01/25 | Andrea Righi <arighi@nvidia.com> | [sched_ext: Move built-in idle CPU selection policy to a separate file](https://lore.kernel.org/all/20250125213911.283318-1-arighi@nvidia.com) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250125213911.283318-1-arighi@nvidia.com) |
 | 2024/12/19 | Pierre Gondois <pierre.gondois@arm.com> | [sched/fair: Decrease util_est in presence of idle time](https://lore.kernel.org/all/20241219091207.2001051-1-pierre.gondois@arm.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20241219091207.2001051-1-pierre.gondois@arm.com) |
-| 2025/02/04 | Changwoo Min <changwoo@igalia.com> | [sched_ext: Implement core event counters](https://lore.kernel.org/all/20250204052057.67776-1-changwoo@igalia.com) | TODO | v4 ☐☑✓ | [LORE v4,0/7](https://lore.kernel.org/all/20250204052057.67776-1-changwoo@igalia.com) |
 | 2025/01/29 | Christian Loehle <christian.loehle@arm.com> | [sched/debug: Print slice length for fair tasks](https://lore.kernel.org/all/453349b1-1637-42f5-a7b2-2385392b5956@arm.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/453349b1-1637-42f5-a7b2-2385392b5956@arm.com) |
 | 2025/01/28 | Fernand Sieber <sieberf@amazon.com> | [sched: Add core cookie update tracepoint](https://lore.kernel.org/all/20250128113410.263994-1-sieberf@amazon.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250128113410.263994-1-sieberf@amazon.com) |
 | 2025/01/29 | Christian Loehle <christian.loehle@arm.com> | [sched/debug: Print slice length for fair tasks](https://lore.kernel.org/all/453349b1-1637-42f5-a7b2-2385392b5956@arm.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/453349b1-1637-42f5-a7b2-2385392b5956@arm.com) |
@@ -867,8 +865,9 @@ https://www.phoronix.com/news/Schedutil-30p-Speedometer-Boost
 
 https://www.phoronix.com/news/cpufreq_ext-RFC#google_vignette
 
-
-
+https://www.github-zh.com/
+[A new type of spinlock for the BPF subsystem](https://mp.weixin.qq.com/s/6pEk4PBnf6WXNdj4zmIeBA)
+[LWN：GCC BPF 支持的进展！](https://mp.weixin.qq.com/s/hlXtGhkIhIhpgPQTnolVXg)
 
 
 
@@ -877,10 +876,11 @@ https://www.phoronix.com/news/cpufreq_ext-RFC#google_vignette
 https://xarjbochz9n.feishu.cn/wiki/I03BwQQMDi5fMSkLRc0cW5iJnAf?open_in_browser=true
 
 
-整理好的所有164条测试样例。
+整理好的所有 164 条测试样例。
 https://xarjbochz9n.feishu.cn/wiki/WBX8wziSMiVBxFkKNVXcGjEsnqb?from=from_copylink
 
 
 
 
-在 OSPM'25 上, 不少开发者建议使用推送任务机制来进行 idle balance 和 newidle balance. 借鉴了 [sched/fair: Rework EAS to handle more cases](https://lore.kernel.org/all/20240830130309.2141697-1-vincent.guittot@linaro.org) 的思路, 实现了一套统一的 CFS 任务推送框架, 并已针对 !EAS 场景进行了实现.<br>1. 该系列实现了 [Valentin 的想法](https://lore.kernel.org/lkml/xhsmh1putoxbz.mognet@vschneid-thinkpadt14sgen2i.remote.csb), 即在存在可推送任务的情况下, CPU 会将自身设置为每个 LLC 的"过载掩码(overloaded mask)".<br>2. NUMA 间的新空闲平衡机制对此做了优化, 会先遍历本地 LLC 上 overloaded mask 中的 CPU 集合, 然后遍历同一 NUMA 节点中其他 LLC 上 overloaded mask 中的 CPU 集合, 目的是将单个任务拉向自身, 而非执行全面的负载均衡.<br>3. 这实现了 [David Vernet 的 SAHRED_RUNQ 原型](https://lore.kernel.org/lkml/20231212003141.216236-1-void@manifault.com/) 中的一些想法, 不过, 与每个 LLC/每个分片使用一个单独的 SHARED_RUNQ 不同, 这里过载掩码用作指示符, 表明每个 CPU 的 rq 中包含可迁移到即将空闲的 CPU 的可推送任务. 这样做的代价是维护过载的 cpumask, 但避免了为每个 SHARED_RUNQ 设置锁.<br>4. 推送回调函数本身已进行了修改, 会尝试将可推送任务列表中的任务推送到"nohz.idle_cpus_mask"掩码中的某个 CPU 上, 从而减轻空闲平衡的负载.
+
+H100 > A100 > A800 > H20danshi1

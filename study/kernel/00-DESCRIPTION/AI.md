@@ -89,9 +89,12 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 | 编号 | 结构 | 描述 |
 |:---:|:---:|:----:|
-|  1  | Mamba | 线性复杂度的新星 <br>Mamba 利用结构化空间状态对偶 (SSD/Structured Space-State Duality) 构建了一个稳健的理论框架, 使得原本为 Transformer 开发的算法和系统优化技术能够迁移应用于 SSM. Mamba 架构以其线性增长的低计算开销和硬件感知型算法, 在处理长序列数据方面表现出色, 显著提升了计算速度和性能. 与 Transformer 相比, Mamba 的计算开销随序列长度线性增长, 这使得它能够处理更长的文本序列, 同时大幅降低计算成本.<br> 在 A100 GPU 上, Mamba 使用扫描进行循环计算, 能够将计算速度提升 3 倍. 不过, Mamba 架构也存在一些问题, 如记忆丢失、难以泛化到不同任务、在复杂模式方面的表现不及基于 Transformer 的语言模型等. |
-|  2  | RWKV | RNN 变体的新突破 <br>RWKV 是循环神经网络 (RNN) 的一个创新变体. 它的架构由一系列堆叠的残差块组成, 每个残差块包含具有循环结构的时间混合(time-mixing)和通道混合(channel-mixing) 子块. RWKV 采用了动态状态演化(Dynamic State Evolution), 具备恒定的显存占用、恒定的推理生成速度以及 "无限" 的上下文长度, 完全不含自注意力机制.<br>然而, RWKV 基底模型对提示词(prompt)的格式非常敏感, 提示词的格式对生成结果有较大影响. 并且由于架构设计的原因, RWKV 模型在需要回顾的任务上表现较弱. |
-|  3  | Hyena | 高效低复杂度的全新尝试<br>Hyena 由两个高效的二次基元递归定义的算子, 交织隐式参数化的长卷积和数据控制的门控组成, 构建了一个高效、灵活且计算复杂度低的注意力替代算法. Hyena 的时间复杂度为 O(n*log(n)), 远低于 Transformer 的 O(n²).<br>在实际应用中, Hyena 能够显著缩小与注意力机制的差距. 当序列长度为 64K 时, Hyena 算子的速度是高度优化注意力的 100 倍. 不过, Hyena 运算不支持 Mas, ，这使得使用 Hyena 架构进行生成式预训练建模时不够灵活. |
+|  1  | Transformer | NA |
+|  2  | Mamba | 线性复杂度的新星 <br>Mamba 利用结构化空间状态对偶 (SSD/Structured Space-State Duality) 构建了一个稳健的理论框架, 使得原本为 Transformer 开发的算法和系统优化技术能够迁移应用于 SSM. Mamba 架构以其线性增长的低计算开销和硬件感知型算法, 在处理长序列数据方面表现出色, 显著提升了计算速度和性能. 与 Transformer 相比, Mamba 的计算开销随序列长度线性增长, 这使得它能够处理更长的文本序列, 同时大幅降低计算成本.<br> 在 A100 GPU 上, Mamba 使用扫描进行循环计算, 能够将计算速度提升 3 倍. 不过, Mamba 架构也存在一些问题, 如记忆丢失、难以泛化到不同任务、在复杂模式方面的表现不及基于 Transformer 的语言模型等. |
+|  3  | RWKV | RNN 变体的新突破 <br>RWKV 是循环神经网络 (RNN) 的一个创新变体. 它的架构由一系列堆叠的残差块组成, 每个残差块包含具有循环结构的时间混合(time-mixing)和通道混合(channel-mixing) 子块. RWKV 采用了动态状态演化(Dynamic State Evolution), 具备恒定的显存占用、恒定的推理生成速度以及 "无限" 的上下文长度, 完全不含自注意力机制.<br>然而, RWKV 基底模型对提示词(prompt)的格式非常敏感, 提示词的格式对生成结果有较大影响. 并且由于架构设计的原因, RWKV 模型在需要回顾的任务上表现较弱. |
+|  4  | Hyena | 高效低复杂度的全新尝试<br>Hyena 由两个高效的二次基元递归定义的算子, 交织隐式参数化的长卷积和数据控制的门控组成, 构建了一个高效、灵活且计算复杂度低的注意力替代算法. Hyena 的时间复杂度为 O(n*log(n)), 远低于 Transformer 的 O(n²).<br>在实际应用中, Hyena 能够显著缩小与注意力机制的差距. 当序列长度为 64K 时, Hyena 算子的速度是高度优化注意力的 100 倍. 不过, Hyena 运算不支持 Mas, ，这使得使用 Hyena 架构进行生成式预训练建模时不够灵活. |
+|  5  | Difussion | Difussion Language Model  |
+
 
 ### 2.1.1 Transformer
 -------
@@ -137,7 +140,33 @@ blogexcerpt: 虚拟化 & KVM 子系统
 |  5  | Qwen2-1.5B | NA | NA | NA |
 
 
-## 2.1.2 Mamba
+### 2.1.2 Mamba
+-------
+
+
+### 2.1.3 RWKV
+-------
+
+
+### 2.1.4 Hyena
+-------
+
+
+### 2.1.5 Difussion
+-------
+
+
+[Diffusion LLMs (dLLMs): Introducing a New Generation of LLMs](https://markovate.com/diffusion-llms/)
+
+| 编号 | 日期 | 模型 | 团队 | 详情 |
+|:---:|:---:|:----:|:---:|:--:|
+|  1  | 2025/02/14 | [LLaDA-8B](https://ml-gsai.github.io/LLaDA-demo) | ml-gsai | 参见论文 [Large Language Diffusion Models](Large Language Diffusion Models](https://arxiv.org/abs/2502.09992), [论文 | 2025 | 论文综述：大型语言扩散模型(LLDM)](https://mp.weixin.qq.com/s/W8lLo6BI1xKkj_1HfiH5pg) |
+|  2  | 2025/03/02 | [Mercury](https://www.inceptionlabs.ai/introducing-mercury) | Inception Labs | NA |
+|  3  | 2025/03/06 | GIDD | NA | [Generalized Interpolating Discrete Diffusion](https://arxiv.org/abs/2503.04482), [AI自我纠错，Diffusion超越自回归！质量提升55%，已达理论证据下界](https://mp.weixin.qq.com/s/pu2NmYixfwZq94qFDBZ_YQ) |
+|  4  | 2025/03/12 | [BD3-LMs](https://m-arriola.com/bd3lms/) | Cornell Tech | 论文 [Block Diffusion: Interpolating Between Autoregressive and Diffusion Language Models](https://arxiv.org/abs/2503.09573), [爆火Block Diffusion引发LLM架构变革？自回归+扩散模型完美结合 | ICLR 2025](https://zhuanlan.zhihu.com/p/32576344984) |
+|  5  | 2025/04/02 | [Dream-7B](https://hkunlp.github.io/blog/2025/dream/) | University of Hong Kong<br>Huawei Noah’s Ark Lab | 参见 GitHub [HKUNLP/Dream](https://github.com/HKUNLP/Dream) |
+|  6  | 2025/04/12 | D1 | UCLA<BR>Meta AI | [dllm-reasoning/d1](https://github.com/dllm-reasoning/d1), 参见论文 [d1: Scaling Reasoning in Diffusion Large Language Models via Reinforcement Learning](https://dllm-reasoning.github.io/) |
+|  7  | 2024/10/24 | [SMDM](https://github.com/ML-GSAI/SMDM) | ML-GSAI | [Scaling up Masked Diffusion Models on Text](https://arxiv.org/abs/2410.18514) |
 
 
 ## 2.2 稠密模型与稀疏模型
@@ -331,7 +360,7 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 | 1 | [b4rtaz/distributed-llama](https://github.com/b4rtaz/distributed-llama) | Bart Tadych(b4rtaz) | Distributed Llama 是一个开源项目, 旨在通过张量并行化技术在多台设备上分布式运行大型语言模型 (LLM). 它可以在普通的 CPU 设备上运行 LLM, 通过分布工作负载来提高推理速度, 并将 RAM 使用量分散到多个节点上, 以加速大型语言模型(LLM) 的推理. 该项目支持 Linux、macOS 和 Windows 操作系统, 并针对 ARM 和 x86_64 AVX2 CPU 进行了优化.<br> 主要功能点:<br>1. 支持多个设备组成集群, 利用张量并行和高速以太网同步, 提高推理性能 <br>2. 支持多种 Llama 模型, 包括 Llama 3.1 405B、Llama 3.3 70B 等 <br>3. 提供简单的命令行工具, 可以快速启动根节点和工作节点 <br>4. 支持 API 服务器, 方便集成到其他应用程序中 |
 | 2 | [exo-explore/exo](https://github.com/exo-explore/exo) | exo 实验室 | exo 是一个可以在家中使用普通设备运行自己的 AI 集群的项目 <br> 主要功能点:<br>1. 支持多种模型, 包括 LLaMA、Mistral、LlaVA、Qwen 和 Deepseek 等 <br>2. 动态模型分区, 可根据当前网络拓扑和设备资源自动优化模型分布 <br>3. 自动发现设备, 无需手动配置 <br>4. 提供与 ChatGPT 兼容的 API<br>5. 采用对等连接架构, 设备之间地位平等. |
 | 3 | [NVIDIA Dynamo](https://developer.nvidia.cn/dynamo) | NVIDIA | NVIDIA Dynamo 是一个开源、低延迟的模块化推理框架, 用于在分布式环境中服务生成式 AI 模型. 它通过智能资源调度和请求路由、优化的内存管理和无缝的数据传输, 实现跨大型 GPU 集群的推理工作负载无缝扩展. NVIDIA Dynamo 支持所有主要的 AI 推理后端, 并提供专门针对大语言模型 (LLM) 的优化, 例如分解服务. |
-
+| 4 | [prima.cpp](https://github.com/Lizonghang/prima.cpp) | NA | `prima.cpp` 是 `llama.cpp`(一个性能优异的大模型推理框架)的分布式实现, 它允许您在日常设备上运行 70B 级 LLM--💻 笔记本电脑，🖥️ 台式机，📱 手机和平板电脑(GPU或没有GPU), 都很好. 参见论文 [PRIMA.CPP: Speeding Up 70B-Scale LLM Inference on Low-Resource Everyday Home Clusters](https://arxiv.org/pdf/2504.08791) |
 
 #### 3.2.6.2 异构推理
 -------
@@ -405,8 +434,11 @@ ARM-software/ComputeLibrary
 |  7  | [hahnyuan/LLM-Viewer](https://github.com/hahnyuan/LLM-Viewer) | hahnyuan | 一个可视化语言与学习模型 LLMs 并分析在不同硬件平台上性能的工具. 可以进行网络级分析, 考虑峰值内存消耗和总推理时间成本等因素. 使用 LLM-Viewer, 可以获取 LLM 推理和性能优化的宝贵见解. 可以在 Web 浏览器或者命令行(CLI) 工具中使用. 在线体验地址 [LLM-Viewer Web](http://llm-viewer.com). 参见论文 [LLM Inference Unveiled: Survey and Roofline Model Insights](https://arxiv.org/abs/2402.16363). |
 |  8  | [A collection of my study notes for learners](https://www.k-a.in/notes.html) | k-a.in | Transformer/MoE Visualized |
 |  9  | [CNN Explainer](https://poloclub.github.io/cnn-explainer) | poloclub | CNN Explainer: 卷积神经网络可视化, 可交互有细节, 卷积激活池化一目了然, 该项目用 TensorFlow.js 加载一个 10 层的预训练模型, 相当于在浏览器上跑一个 CNN 模型, 可以了解 CNN 的处理过程. 这个网页工具还可以实现交互,  只要点击其中任何一个格子—CNN 中的 "神经元", 就能显示它的输入、经过的变化, 甚至连每一次卷积运算都能看得清清楚楚. [poloclub/cnn-explainer](https://github.com/poloclub/cnn-explainer), 参见论文 [CNN Explainer: Learning Convolutional Neural Networks with Interactive Visualization](https://arxiv.org/abs/2004.15004) |
-| 10  | [PyTorch 可视化工具介绍](https://zhuanlan.zhihu.com/p/658596017) | NA | NA | PyTorch 可视化工具介绍. |
+| 10  | [PyTorch 可视化工具介绍](https://zhuanlan.zhihu.com/p/658596017) | NA | PyTorch 可视化工具介绍. |
 | 11  | [attentionmech/mav](https://github.com/attentionmech/mav) | attentionmech | 一款可视化大模型内部工作原理的工具, 帮助用户更好的理解和分析模型在生成文本时的内部魔偶快, 包括注意力分布, 预测概率等. 参见 [知识图谱 + 知识库 RAG 项目 Yuxi-Know 及大模型推理内部可视化工具 OpenMAV 实现拆解](https://zhuanlan.zhihu.com/p/1893668626810270690) |
+| 12  | Logit Lens | NA | [2023/03/14, Eliciting Latent Predictions from Transformers with the Tuned Lens](https://arxiv.org/abs/2303.08112), [AlignmentResearch/tuned-lens](https://github.com/AlignmentResearch/tuned-lens) 和 [2025/02/24, LogitLens4LLMs: Extending Logit Lens Analysis to Modern Large Language Models](https://arxiv.org/abs/2503.11667), [zhenyu-02/LogitLens4LLMs](https://github.com/zhenyu-02/LogitLens4LLMs), 其他 [SullivanCastro/Logit-Lens](https://github.com/SullivanCastro/Logit-Lens), [arnab-api/Logit-Lens-Interpreting-GPT-2](https://github.com/arnab-api/Logit-Lens-Interpreting-GPT-2), [msakarvadia/Attentionlens](https://github.com/msakarvadia/Attentionlens) |
+| 13  | [](https://github.com/ZongqianLi/ReasonGraph) | NA | [ReasonGraph: Visualisation of Reasoning Paths](https://arxiv.org/abs/2503.03979) |
+
 
 ## 4.3 评测平台
 -------
