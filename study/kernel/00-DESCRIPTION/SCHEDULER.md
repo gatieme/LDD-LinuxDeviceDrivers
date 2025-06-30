@@ -507,6 +507,7 @@ SCHED_DEADLINE server  最终于 v6.12 合入, Linux 6.12 调度的 Merge Reques
 | 2024/03/12 | Joel Fernandes (Google) <joel@joelfernandes.org> | [Fair scheduling deadline server fixes](https://lore.kernel.org/all/20240313012451.1693807-1-joel@joelfernandes.org) | 截止日期服务器 [SCHED_DEADLINE server infrastructure](https://lore.kernel.org/all/cover.1699095159.git.bristot@kernel.org) 允许 RT 任务在系统上安全运行, 而不是由于 RT 节流, 浪费了 RT 任务可能无法在空闲系统上执行的 CPU. 以下是我们在测试 ChromeOS 的截止日期服务器时发现的修补程序. 当我发现我的单元测试正在崩溃时, 它像滚雪球一样从 10 个补丁增加到 15 个补丁, 然后我们也看到了与 dl_timer 相关的领域中的一些崩溃! 所有这些都是固定的. 在其他几个修复程序中, 还有一个对核心调度的修复程序. 感谢您的全面审查. 我把所有的补丁都放在 Daniel 和 Peter 的补丁之上, 因为我会让他们把它压缩掉, 并适当地归因于贡献者. | v2 ☐☑✓ | [LORE 00/10](https://lore.kernel.org/all/20240216183108.1564958-1-joel@joelfernandes.org)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/15](https://lore.kernel.org/all/20240313012451.1693807-1-joel@joelfernandes.org) |
 | 2023/06/08 | Daniel Bristot de Oliveira <bristot@kernel.org> | [SCHED_DEADLINE server infrastructure](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=cea5a3472ac43f18590e1bd6b842f808347a810c) | 使用 deadline 服务器为公平任务提供服务. 此补丁集添加并使能了一个 fair_server deadline 实体, 它充当了 CFS 调度实体的容器, 可用于解决优先级较高时的饥饿问题. | v3 ☐☑✓ v6.12-rc1 | [LORE v6,0/6](https://lore.kernel.org/all/cover.1712337227.git.bristot@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2024/05/27, LORE v9,0/9](https://lore.kernel.org/all/cover.1716811043.git.bristot@kernel.org) |
 | 2025/03/14 | Joel Fernandes <joelagnelf@nvidia.com> | [Add a deadline server for sched_ext tasks](https://lore.kernel.org/all/20250315022158.2354454-1-joelagnelf@nvidia.com) | sched_ext 任务因 RT 占用而处于饥饿状态, 尤其是在 RT 节流被 deadline 服务器取代后, 它只能促进 CFS 任务的运行. 社区中的一些用户曾报告过 RT 拖延 sched_ext 任务的问题. 因此, 应同时添加一个 sched_ext 截止日期服务器, 这样 sched_ext 任务也会得到提升, 而不会陷入饥饿状态.<br>我们还提供了一个 kselftest 来验证饥饿问题是否已得到解决. | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20250315022158.2354454-1-joelagnelf@nvidia.com) |
+| 2025/05/20 | Peter Zijlstra <peterz@infradead.org> | [sched: Try and address some recent-ish regressions](https://lore.kernel.org/all/20250520094538.086709102@infradead.org) | 邮件主题为尝试修复近期调度器性能退化问题. Peter Zijlstra 表示, 由于 6. 11 版本后出现性能下降, 他基于 Chris提供的 schbench 工具进行了复现实验, 发现性能下降与 DELAY_DEQUEUE 补丁及 dl_server 默认启用相关. 测试主要在 Intel SKL 和 SPR 架构上进行, 结果显示启用 TTWU_QUEUE_DELAYED 可改善性能, 而 TTWU_QUEUE_DEFAULT 效果不稳定. 邮件附带 5 个 RFC 补丁, 初步修复性能问题, 但部分内容仍需完善, 如 ttwu_stat() 统计机制尚未实现. 整体目标是将 TTWU_QUEUE_DELAYED 设为默认, 但进一步评估仍需更多测试数据支持.  | v1 ☐☑✓ | [2025/05/20, LORE v1, 0/5](https://lore.kernel.org/all/20250520094538.086709102@infradead.org) |
 
 
 ## 1.4 其他一些调度类的尝试
@@ -858,11 +859,9 @@ Chang 的 patch set 采用了与之前不同的方法: 允许 cgroup 将一些�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/12/12 | Peng Zhang <zhangpeng.00@bytedance.com> | [sched: Throttling through task work for cfs bandwidth](https://lore.kernel.org/all/20221212061321.36422-1-zhangpeng.00@bytedance.com) | 若任务占用资源并在内核空间中被限制, 则可能会导致阻塞, 从而造成或者加剧优先级翻转的问题. 这组补丁试图通过在任务返回到用户模式时使用 task_work 来限制任务来解决此问题.<br> 这个补丁使用 task_work 在任务返回到用户空间时将 throttle 的任务出队, 然后在 unthrottle 时再将其入列. 当前能正常工作, 但目前的实现并没有考虑到所有的细节, 比如竞争条件、负载跟踪等. 作者认为这种解决方案的最大缺点是, 在解锁过程中可能有太多的任务需要排队, 从而导致巨大的开销和延迟. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221212061321.36422-1-zhangpeng.00@bytedance.com) |
-20220526103929.14976-1-zhouchengming@bytedance.com) |
-| 2023/10/30 | Valentin Schneider <vschneid@redhat.com> | [sched/fair: Make the BW replenish timer expire in hardirq context for PREEMPT_RT](https://lore.kernel.org/all/20231030145104.4107573-1-vschneid@redhat.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20231030145104.4107573-1-vschneid@redhat.com) |
 | 2024/02/02 | Valentin Schneider <vschneid@redhat.com> | [sched/fair: Defer CFS throttle to user entry](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com) | Peter 之前再 [Re: [PATCH] sched/fair: Make the BW replenish timer expire in hardirq context for PREEMPT_RT](https://lore.kernel.org/all/20231031160120.GE15024@noisy.programming.kicks-ass.net) 提到 , 对 CFS 任务进行 BW throttle 的时候, 并不在更新运行时统计信息发现 cfs_rq 已经耗尽其配额时, 立即执行 throttle, 而是等待任务即将返回到用户空间时再进行 throttle, 这是非常安全的, 在 PREEMPT_RT 的内核上可以有效地防止内核态优先级翻转, 因为如果它在用户空间中, 则无法持有任何内核内锁. | v1 ☐☑✓ | [2023/11/30, LORE v1,0/2](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2024/02/02, LORE v2,0/5](https://lore.kernel.org/all/20240202080920.3337862-1-vschneid@redhat.com)[2024/07/11, LORE V3,00/10](https://lore.kernel.org/all/20240711130004.2157737-1-vschneid@redhat.com/) |
-| 2025/03/17 | Aaron Lu <ziqianlu@bytedance.com> | [Defer throttle when task exits to user](https://lore.kernel.org/all/20250313072030.1032893-1-ziqianlu@bytedance.com) | [Valentin Schneider 工作 "sched/fair: Defer CFS throttle to user entry"](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com) 的续作. <br>1. 核心思想: 当一个任务的 CFS 配额耗尽时, 不是立即将其节流, 而是延迟到任务退出到用户空间时再进行节流. 这样可以避免任务在内核空间中被阻塞, 从而减少任务挂起的风险.<br>实现方式: 在 CFS 节流路径中, 为每个任务添加一个任务工作(task work), 以便在任务返回用户空间时执行节流操作.<nr>在任务返回用户空间时, 任务工作会将任务从运行队列中移除, 并将其添加到 CFS 运行队列的 limbo 列表中, 以便后续恢复.<br>在 CFS 解除节流路径中, 将 limbo 列表中的任务重新加入运行队列. | v1 ☐☑✓ | [2025/03/17, LORE v1,0/7](https://lore.kernel.org/all/20250313072030.1032893-1-ziqianlu@bytedance.com))<br>*-*-*-*-*-*-*-* <br>[2025/04/09, LORE v2,0/7](https://lore.kernel.org/lkml/20250409120746.635476-1-ziqianlu@bytedance.com) |
 | 2025/02/20 | K Prateek Nayak <kprateek.nayak@amd.com> | [sched/fair: Defer CFS throttling to exit to user mode](https://lore.kernel.org/all/20250220093257.9380-1-kprateek.nayak@amd.com) | TODO | v1 ☐☑✓ | [LORE v1,0/22](https://lore.kernel.org/all/20250220093257.9380-1-kprateek.nayak@amd.com) |
+| 2025/03/17 | Aaron Lu <ziqianlu@bytedance.com> | [Defer throttle when task exits to user](https://lore.kernel.org/all/20250313072030.1032893-1-ziqianlu@bytedance.com) | [Valentin Schneider 工作 "sched/fair: Defer CFS throttle to user entry"](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com) 的续作. <br>1. 核心思想: 当一个任务的 CFS 配额耗尽时, 不是立即将其节流, 而是延迟到任务退出到用户空间时再进行节流. 这样可以避免任务在内核空间中被阻塞, 从而减少任务挂起的风险.<br>实现方式: 在 CFS 节流路径中, 为每个任务添加一个任务工作(task work), 以便在任务返回用户空间时执行节流操作.<nr>在任务返回用户空间时, 任务工作会将任务从运行队列中移除, 并将其添加到 CFS 运行队列的 limbo 列表中, 以便后续恢复.<br>在 CFS 解除节流路径中, 将 limbo 列表中的任务重新加入运行队列. | v1 ☐☑✓ | [2025/03/17, LORE v1,0/7](https://lore.kernel.org/all/20250313072030.1032893-1-ziqianlu@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2025/04/09, LORE v2,0/7](https://lore.kernel.org/lkml/20250409120746.635476-1-ziqianlu@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2025/05/20, LORE v3, 0/7](https://lore.kernel.org/all/20250520104110.3673059-1-ziqianlu@bytedance.com) |
 
 
 ### 2.1.4 leaf_cfs_rq
@@ -881,6 +880,11 @@ Chang 的 patch set 采用了与之前不同的方法: 允许 cgroup 将一些�
 **2.6.25(2008 年 4 月发布)**
 
 该功能同普通进程的组调度功能一样, 只不过是针对实时进程的.
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2025/06/05 | Yuri Andriaccio <yurand2000@gmail.com> | [Hierarchical Constant Bandwidth Server](https://lore.kernel.org/all/20250605071412.139240-1-yurand2000@gmail.com) | 介绍了一个实现分层常量带宽服务器(HCBS)的补丁集 RFC, 旨在替代现有的 `RT_GROUP_SCHED` 机制, 使其更具鲁棒性和理论基础. 该补丁集已在 OSPM25 会议上展示, 相关机制详见[LWN 文章](https://lwn.net/Articles/1021332). <br>补丁内容包括代码重构、单层与多层调度支持、cgroup v2 支持, 并移除了 cgroup v1 的相关代码. 通过为每个 CPU 创建本地运行队列和 dl_server, 实现对 SCHED_FIFO/SCHED_RR 任务的带宽预留, 用户可通过 cgroup 接口配置 `rt_period_us` 和 `rt_runtime_us`. <br>测试代码已提供, 支持在 QEMU 或完整发行版中运行, 验证调度器的功能与时序保障. 作者表示后续将提交支持任务迁移、每 CPU 独立带宽、容量感知调度等特性. <br>该补丁集目前以打基础为主, 邀请社区反馈以指导后续开发. | v1 ☐☑✓ | [2025/06/05, LORE v1, 0/9](https://lore.kernel.org/all/20250605071412.139240-1-yurand2000@gmail.com) |
+
 
 
 ## 2.3 组调度带宽控制 (CFS bandwidth control)
@@ -2130,7 +2134,8 @@ update_blocked_averages() 在多个场景都被发现成为非常严重的性能
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2025/03/25 | Peter Zijlstra <peterz@infradead.org> | [sched: Cache aware load-balancing](https://lore.kernel.org/all/20250325120952.GJ36322@noisy.programming.kicks-ass.net) | 这个补丁旨在实现调度器中的缓存感知负载均衡功能. 以下是该补丁的主要内容和目标:<br>1. 缓存亲和性建模: 补丁尝试对缓存亲和性进行建模, 特别是针对 LLC(Last Level Cache) 层面. 虽然目前主要关注于 LLC, 但理论上也可以扩展到处理 L2 等其他缓存域的情况.<br>2. 选择最佳 CPU: 它计算在同一个 LLC 内的最近运行时间最长的 CPU, 并在唤醒路径中使用这个 CPU 来引导任务分配, 同时在 task_hot() 函数中限制从这个 CPU 迁移任务, 以保持缓存亲和性.<br>3. 潜在的扩展能力: 补丁中提到一个 XXX 标记, 表明未来可能需要考虑如何在一个节点内找到最佳的 LLC(与 NUMA_BALANCING 的交互), 这意味着该补丁有进一步发展的空间.<br>这个补丁的目标是通过改进 Linux 内核的调度器, 使其能够更加智能地考虑缓存的影响, 从而提高系统性能。具体来说, 就是通过优化任务到 CPU 的分配策略来减少由于频繁跨缓存域迁移导致的性能损失. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250325120952.GJ36322@noisy.programming.kicks-ass.net) |
+| 2025/03/25 | Peter Zijlstra <peterz@infradead.org> | [sched: Cache aware load-balancing](https://lore.kernel.org/all/20250325120952.GJ36322@noisy.programming.kicks-ass.net) | 这个补丁旨在实现调度器中的缓存感知负载均衡功能. 以下是该补丁的主要内容和目标:<br>1. 缓存亲和性建模: 补丁尝试对缓存亲和性进行建模, 特别是针对 LLC(Last Level Cache) 层面. 虽然目前主要关注于 LLC, 但理论上也可以扩展到处理 L2 等其他缓存域的情况.<br>2. 选择最佳 CPU: 它计算在同一个 LLC 内的最近运行时间最长的 CPU, 并在唤醒路径中使用这个 CPU 来引导任务分配, 同时在 task_hot() 函数中限制从这个 CPU 迁移任务, 以保持缓存亲和性.<br>3. 潜在的扩展能力: 补丁中提到一个 XXX 标记, 表明未来可能需要考虑如何在一个节点内找到最佳的 LLC(与 NUMA_BALANCING 的交互), 这意味着该补丁有进一步发展的空间.<br>这个补丁的目标是通过改进 Linux 内核的调度器, 使其能够更加智能地考虑缓存的影响, 从而提高系统性能。具体来说, 就是通过优化任务到 CPU 的分配策略来减少由于频繁跨缓存域迁移导致的性能损失. | v1 ☐☑✓ | [2025/03/25, LORE](https://lore.kernel.org/all/20250325120952.GJ36322@noisy.programming.kicks-ass.net) |
+| 2025/04/21 | Chen Yu <yu.c.chen@intel.com> | [sched: Introduce Cache aware scheduling](https://lore.kernel.org/all/cover.1745199017.git.yu.c.chen@intel.com) | 该邮件由 Chen Yu 提交, 提出并更新了" Cache-aware scheduling" ( 缓存感知调度) 的 RFC 补丁集( 共 5 个补丁) , 旨在提升系统性能. 该调度机制通过将资源共享的进程集中调度到同一缓存域中, 提高缓存局部性, 减少缓存缺失. 补丁集修复了前一版本中的问题, 优化了任务迁移逻辑, 避免在缓存域过载时的性能下降, 并新增 ftrace 事件以辅助性能分析. 参见 [phoronix, 2025/04/21, Intel Posts Newest Code For Cache Aware Scheduling On Linux](https://www.phoronix.com/news/Linux-RFC-Cache-Aware-Sched), [lwn, 2025/04/29, Cache awareness for the CPU scheduler](https://lwn.net/Articles/1018334)  | v1 ☐☑✓ | [2025/04/21, LORE v1, 0/5](https://lore.kernel.org/all/cover.1745199017.git.yu.c.chen@intel.com) |
 
 ### 4.3.8 Predict load based
 -------
@@ -2826,6 +2831,7 @@ commit [6e5fb223e89d ("mm: sched: numa: Implement constant, per task Working Set
 | 2024/03/22 | Raghavendra K T <raghavendra.kt@amd.com> | [A Summary of VMA scanning improvements explored](https://lore.kernel.org/all/cover.1710829750.git.raghavendra.kt@amd.com) | NUMA Balancing 改进的第一个版本, 参考了 Ingo 和 PeterZ 的建议. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/cover.1710829750.git.raghavendra.kt@amd.com) |
 | 2023/05/03 | Raghavendra K T <raghavendra.kt@amd.com> | [sched/numa: Disjoint set vma scan improvements](https://lore.kernel.org/all/cover.1683033105.git.raghavendra.kt@amd.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/cover.1683033105.git.raghavendra.kt@amd.com) |
 | 2023/08/29 | Raghavendra K T <raghavendra.kt@amd.com> | [sched/numa: Enhance disjoint VMA scanning](https://lore.kernel.org/all/cover.1693287931.git.raghavendra.kt@amd.com) | 针对 NUMA 平衡增强 VMA 扫描的延续, 试图通过增强无条件 VMA 扫描逻辑来解决上述问题. | v1 ☐☑✓ | [LORE v1,0/6](https://lore.kernel.org/all/cover.1693287931.git.raghavendra.kt@amd.com) |
+| 2025/04/23 | Libo Chen <libo.chen@oracle.com> | [sched/numa: Skip VMA scanning on memory pinned to one NUMA node via cpuset.mems](https://lore.kernel.org/all/20250424024523.2298272-1-libo.chen@oracle.com) | Libo Chen 提交了一组补丁( v5) , 旨在优化 NUMA 调度中的 VMA 扫描行为. 若内存通过 `cpuset. mems` 被固定在某一 NUMA 节点, 则跳过 NUMA 平衡的 VMA 扫描, 以提升性能. 补丁同时添加了跟踪点, 用于记录因 `cpuset` 内存固定而跳过 NUMA 平衡的事件. 该优化保持了与现有 VMA 跳过机制的一致性, 并在多个版本迭代中完善了错误处理和日志格式, 如修复指针安全问题、添加 `BUILD_BUG_ON( ) `等. 目前尚未提供基准测试结果, 但计划运行更多负载测试以评估性能提升.  | v5 ☐☑✓ | [2025/04/23, LORE v5, 0/2](https://lore.kernel.org/all/20250424024523.2298272-1-libo.chen@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2025/04/24, LORE v5, 0/2](https://lore.kernel.org/lkml/20250424024523.2298272-1-libo.chen@oracle.com) |
 
 
 ### 4.6.4 NUMA Balancing Placement And Migration
@@ -2941,13 +2947,14 @@ pseudo-interleaving 中 active_nodes 引入的目标是为了让共享页面在�
 | 2016/01/25 | Rik van Riel <riel@redhat.com> | [sched,numa,mm: spread memory according to CPU and memory use](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=4142c3ebb685bb338b7d96090d8f90ff49065ff6) | 不再使用硬阈值 3/16, 6/16 来识别 active_nodes, 引入 ACTIVE_NODE_FRACTION 阈值来判别 active_nodes. 实现了一种更加渐进式的 NUMA 页面迁移策略. | v1 ☑ 4.6-rc1 | [LORE](https://lore.kernel.org/all/20160125170739.2fc9a641@annuminas.surriel.com) |
 
 
-#### 4.6.4.4 Task Placement 优化
+#### 4.6.4.4 Page Placement 优化
 -------
 
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2024/03/29 | Baolin Wang <baolin.wang@linux.alibaba.com> | [support multi-size THP numa balancing](https://lore.kernel.org/all/cover.1711683069.git.baolin.wang@linux.alibaba.com) | 这个补丁试图支持 THP 页面 的 NUMA Balancing.<br>问题背景: 当前的匿名页面分配已经支持多尺寸 THP, 但是 NUMA 平衡仍然禁止 mTHP 迁移, 即使它是独占映射, 这被认为是不合理的.<br>mTHP 扫描: 以前的提交(commit 859d4adc3415)跳过了共享 CoW 页面的 NUMA 页面迁移, 以避免共享数据段迁移. 另一个 commit 80d47f5de5e3, 它使用 page_count() 来避免 GUP 页面迁移, 这也会跳过 mTHP 的 NUMA 扫描, 理论上可以使用 folio_maybe_dma_pinned() 来检测 GUP(get_user_pages)问题, 尽管存在 GUP 竞争, 但似乎已经被之前的提交解决.<br>mTHP 迁移: 大尺寸的 folio(包括 THP)比 4K 基本页面更容易受到线程间虚假共享问题的影响, 导致页面在 NUMA 平衡过程中来回移动. 作为支持 mTHP NUMA 平衡的第一步, 可以采用 PMD(Page Middle Directories) 映射 THP 的策略, 使用 should_numa_migrate_memory() 中的两阶段过滤器来检查 mTHP 是否在线程间高度竞争, 以避免一定程度的虚假共享.<br>性能数据: 补丁提供了在不同 mTHP 尺寸(16K、64K、128K)下, 补丁版本与基础版本在 autonuma 基准测试中的表现对比. 数据显示补丁版本在某些测试场景下性能有显著提升. | v2 ☐☑✓ | [2024/03/26, LORE,0/2](https://lore.kernel.org/all/cover.1711453317.git.baolin.wang@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[2024/04/01, LORE v2,0/2](https://lore.kernel.org/all/cover.1711683069.git.baolin.wang@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[2024/04/03, LORE v3,0/2](https://lore.kernel.org/all/cover.1712132950.git.baolin.wang@linux.alibaba.com) |
+| 2025/05/21 | Bharata B Rao <bharata@amd.com> | [Batch migration for NUMA balancing](https://lore.kernel.org/all/20250521080238.209678-1-bharata@amd.com) | 邮件提出了一项将 NUMA 平衡迁移改为批量处理的 RFC 补丁, 旨在通过收集需迁移的 folio 并在 task_work 上下文中批量迁移, 提升性能. 当前使用 Gregory 提供的 `migrate_misplaced_folio_batch()` API 实现异步批量迁移.<br>讨论重点包括: <br>1. 是否应隔离待迁移 folio? 当前通过 `folio-> lru` 链接隔离, 但存在长期隔离风险, 也可改用 PFN 延迟隔离; <br>2. 如何记录迁移目标节点( target_nid)? 当前复用 `last_cpupid` 字段, 但需各子系统自行维护;<br>3. 批量大小控制: 目前为固定阈值, 未来可考虑 sysctl 配置或自动调节. <br>该补丁尚处于早期阶段, 供社区讨论. 作者建议未来可引入专门迁移线程统一处理来自不同热页检测机制(如 kpromoted、kmmscand、MGLRU 等) 的迁移请求. | v0 ☐☑✓ | [2025/05/21, LORE v0, 0/2](https://lore.kernel.org/all/20250521080238.209678-1-bharata@amd.com) |
 
 
 
@@ -3547,6 +3554,17 @@ v4.13 引入 NUMA WAKE AFFINE 的时候测试发现, CPU 的空闲造成了 NAS 
 #### 4.6.5.6 NUMA Blancing VS BALANCE_FORK 的决策分歧
 -------
 
+#### 4.6.5.7 NUMA Blancing VS LLCs 的决策分歧
+-------
+
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2025/05/28 | Jianyong Wu <wujianyong@hygon.cn> | [sched/fair: allow imbalance between LLCs under NUMA](https://lore.kernel.org/all/20250528070949.723754-1-wujianyong@hygon.cn) | 这个补丁旨在解决 NUMA 多 LLC 架构下的任务迁移震荡问题. 在具有多个 LLC 的 NUMA 节点上, 负载均衡器会破坏任务间的通信亲和性, 导致任务在 LLC 间反复迁移(ping-pong 现象), 显著影响性能. <br>该补丁通过允许 NUMA 节点内部 LLC 之间的适度负载不平衡, 优先维持任务通信亲和性. 实测结果显示, 在一个虚拟机环境中, 未打补丁时 200 秒内发生 3000 多次 LLC 迁移, 而应用补丁后迁移次数降至 10 次以内, 显著抑制了 LLC 震荡. <br>补丁修改了 `calculate_imbalance()` 负载失衡的计算逻辑, 判断当前调度域是否为NUMA 节点下的 LLC 层级, 并据此放宽负载不平衡阈值. 根据 LLC 的权重计算允许的不平衡任务数, 如果当前计算的不平衡数小于等于允许的不平衡数, 则将不平衡数设置为0, 表示不需要迁移任务. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250528070949.723754-1-wujianyong@hygon.cn) |
+
+
+
+
 
 
 ### 4.6.6 硬件辅助 NUMA FAULT
@@ -3995,6 +4013,9 @@ Oracle 数据库具有类似的虚拟化功能, 称为 Oracle Multitenant, 其�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2019/06/26 | subhra mazumdar <subhra.mazumdar@oracle.com> | [Scheduler Soft Affinity](https://lore.kernel.org/lkml/20190626224718.21973-1-subhra.mazumdar@oracle.com) | 为任务提供 "软亲和力" 的概念, 向调度程序指定在调度任务时首选一组 CPU, 但如果它们不全都繁忙, 则使用其他 CPU. | RFC ☐ | [LORE RFC,0/3](https://lore.kernel.org/lkml/20190626224718.21973-1-subhra.mazumdar@oracle.com) |
+| 2025/05/02 | chris hyser <chris.hyser@oracle.com> | [sched/numa, mm/numa: Soft Affinity via numa_preferred_nid.](https://lore.kernel.org/all/20250502190059.4121320-1-chris.hyser@oracle.com) | 本补丁集合旨在实现一种称为 **Soft Affinity** 的机制, 通过用户空间接口(prctl)允许用户程序或管理员设置任务(进程/线程)的首选 NUMA 节点(numa_preferred_nid), 并利用当前的 **Auto NUMA Balancing(自动 NUMA 平衡)机制** 来倾向将任务调度到该节点、并优先在该节点分配内存. 该功能是对之前被拒绝的"Soft Affinity"提议的重新实现, 其核心思想是:<br>1. 允许用户设置一个"偏好"节点(numa_preferred_nid);<br>2. 不强行绑定任务到该节点(不破坏调度灵活性);<br>3. 利用已有 NUMA 平衡机制, 引导任务和其访问频繁的内存尽量处于同一 NUMA 节点, 以优化性能;<br>4. 特别适用于有 **RDMA 内存缓冲区** 或 **内存锁定(pinned)区域** 的高性能场景. | v2 ☐☑✓ | [2025/05/02, LORE v2, 0/2](https://lore.kernel.org/all/20250502190059.4121320-1-chris.hyser@oracle.com) |
+
+
 
 
 
@@ -6078,6 +6099,7 @@ Linux 内核会将大量 (并且在不断增加中) 工作放置在内核线程�
 |:-----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/09/17 | Peter Zijlstra | [sched: Remove FIFO priorities from modules](https://lore.kernel.org/patchwork/cover/1229354) | 显示驱动中 RT/FIFO 线程的优先级设定  | v1 ☑ 5.9-rc1 | [PatchWork](https://lwn.net/Articles/1307272) |
 | 2020/09/17 | Dietmar Eggemann | [sched: Task priority related cleanups](https://lore.kernel.org/patchwork/cover/1372514) | 清理了优先级设置过程中一些老旧的接口. | v1 ☐ 5.12-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1372514) |
+| 2020/04/22 | Peter Zijlstra <peterz@infradead.org> | [sched: Remove FIFO priorities from modules](https://lore.kernel.org/all/20200422112719.826676174@infradead.org) | 移除 Linux 内核中模块设置特定 FIFO 优先级的能力. 作者表示, 由于内核无法合理判断各任务应使用的优先级, 允许设置具体 FIFO 优先级不仅无用, 甚至可能带来负面影响. 该系列补丁旨在彻底移除这一功能, 以避免开发者随意设定优先级带来的潜在问题. 此改动提议得到了社区对调度策略简化与优化的进一步讨论. | v1 ☐☑✓ | [2020/04/22, LORE v1, 00/23](https://lore.kernel.org/all/20200422112719.826676174@infradead.org) |
 
 
 
@@ -6527,6 +6549,11 @@ $deadline_{se} = vruntime_{se} + slice \times \frac{weight_0}{weight_{se}}$
 
 [commit 650cad561cce ("sched/eevdf: Also update slice on placement")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=650cad561cce04b62a8c8e0446b685ef171bc3bb)
 
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2025/04/18 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: Increase max lag clamping](https://lore.kernel.org/all/20250418151225.3006867-1-vincent.guittot@linaro.org) | 这个补丁旨在修正 `sched_entity` 的滞后(lag) 限制问题. 当前 lag 上限为 `TICK_NSEC` 或任务时间片的两倍, 但该限制在任务设置了较大自定义时间片(如 100ms) 时显得不足, 导致其他任务可能在等待时积累正 lag, 从而在出队时被不当地截断. <br>补丁将 lag 的上限改为统一使用系统允许的最大时间片( `SCHED_SLICE_MAX`) , 并定义了最小时间片( `SCHED_SLICE_MIN`) 用于约束设置. 此举确保了调度公平性, 避免因 lag 截断造成信息丢失. <br>代码修改包括更新 `update_entity_lag( ) ` 中的 lag 限制逻辑, 并在 `__setparam_fair( ) ` 中使用统一的宏定义. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250418151225.3006867-1-vincent.guittot@linaro.org) |
+| 2025/06/13 | Vincent Guittot <vincent.guittot@linaro.org> | [sched/fair: Manage lag and run to parity with different slices](https://lore.kernel.org/all/20250613140514.2781138-1-vincent.guittot@linaro.org) | 旨在改进 Linux 调度器(sched/fair) 中任务 lag 的管理和公平性机制. 核心内容包括:<br>补丁2: 基于 Peter Zijlstra 的建议, 通过追踪入队任务的最大 slice 来限制出队任务的 lag.<br>补丁3: 修改当前任务 slice 的保护机制, 考虑短 slice 任务等待运行的情况. <br>补丁4: 扩展 slice 保护机制至 NO_RUN_TO_PARITY 场景, 确保定期设置 resched, 且运行任务至少运行 0. 7ms, 除非触发 PREEMPT_SHORT. | v1 ☐☑✓ | [2025/06/13, LORE v1, 0/4](https://lore.kernel.org/all/20250613140514.2781138-1-vincent.guittot@linaro.org) |
+| 2025/06/19 | Huang Shijie <shijie@os.amperecomputing.com> | [sched/fair: set the se->vlag strictly following the paper](https://lore.kernel.org/all/20250619031942.25474-1-shijie@os.amperecomputing.com) | 修正 `se-> vlag` 的计算逻辑, 使其严格符合论文中的规定: `-r_max <  lag <  max( r_max,  q) `. 当前代码中, `vlag` 被限制在 `[-max(r_max,  q), max(r_max,  q)] `, 偏离了原始设计. <br>为此, 补丁引入了 `limit_hi`、`limit_lo` 和 `r_max` 变量, 分别表示上限、下限与最大延迟基准值, 从而实现更精确的 `vlag` 限制. 修改后, `vlag` 被正确限制在 `[ -limit_lo, limit_hi] ` 范围内. <br>该修改提升了调度器公平性计算的准确性, 并通过了相关测试. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250619031942.25474-1-shijie@os.amperecomputing.com) |
 
 
 ### 8.9.4 EEVDF 如何处理睡眠唤醒的任务
@@ -6585,8 +6612,17 @@ EEVDF 的基础实现中, 具有较短时间片的任务将具有更早的虚拟
 
 | 时间  | 作者  | 特性  | 描述  | 是否合入主线   | 链接 |
 |:-----:|:----:|:----:|:----:|:------------:|:----:|
-| 2024/11/13 | Prakash Sangappa <prakash.sangappa@oracle.com> | [Scheduler time slice extension](https://lore.kernel.org/all/20241113000126.967713-1-prakash.sangappa@oracle.com) | 这组补丁的主要目的是为 Linux 内核调度器引入一个机制, 允许用户线程请求额外的执行时间, 以完成关键区段的执行, 从而提高性能.<br>1. 引入每线程的用户-内核共享结构:<br> 引入一个每线程的用户-内核共享结构, 该结构在用户空间和内核之间共享, 允许用户线程设置标志请求额外的执行时间, 内核可以访问并处理这些请求.<br>2. 实现调度器时间扩展机制: 实现调度器时间扩展机制, 允许用户线程请求额外的 50 微秒执行时间. 内核会启动一个定时器, 在定时器到期时抢占线程, 如果线程仍在运行.<br>3. 指示是否授予调度器抢占延迟请求: 在共享结构中添加标志, 指示内核是否授予了用户线程的抢占延迟请求. 用户线程可以通过检查这些标志来确定请求是否被授予.<br>4. 添加调度器抢占延迟授予统计信息: 添加统计信息，记录调度器授予的抢占延迟请求次数，以便进行性能分析和调试. | v1 ☐☑✓ | [2024/11/13, LORE v1,0/4](https://lore.kernel.org/all/20241113000126.967713-1-prakash.sangappa@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2025/02/15, LORE v1,0/2](https://lore.kernel.org/all/20250215005414.224409-1-prakash.sangappa@oracle.com) |
+| 2024/11/13 | Prakash Sangappa <prakash.sangappa@oracle.com> | [Scheduler time slice extension](https://lore.kernel.org/all/20241113000126.967713-1-prakash.sangappa@oracle.com) | 这组补丁的主要目的是为 Linux 内核调度器引入一个机制, 允许用户线程请求额外的执行时间, 以完成关键区段的执行, 从而提高性能.<br>1. 引入每线程的用户-内核共享结构:<br> 引入一个每线程的用户-内核共享结构, 该结构在用户空间和内核之间共享, 允许用户线程设置标志请求额外的执行时间, 内核可以访问并处理这些请求.<br>2. 实现调度器时间扩展机制: 实现调度器时间扩展机制, 允许用户线程请求额外的 50 微秒执行时间. 内核会启动一个定时器, 在定时器到期时抢占线程, 如果线程仍在运行.<br>3. 指示是否授予调度器抢占延迟请求: 在共享结构中添加标志, 指示内核是否授予了用户线程的抢占延迟请求. 用户线程可以通过检查这些标志来确定请求是否被授予.<br>4. 添加调度器抢占延迟授予统计信息: 添加统计信息，记录调度器授予的抢占延迟请求次数，以便进行性能分析和调试. | v1 ☐☑✓ | [2024/11/13, LORE v1, 0/4](https://lore.kernel.org/all/20241113000126.967713-1-prakash.sangappa@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2025/02/15, LORE v1, 0/2](https://lore.kernel.org/all/20250215005414.224409-1-prakash.sangappa@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2025/04/18, LORE v2, 0/3](https://lore.kernel.org/all/20250418193410.2010058-1-prakash.sangappa@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2025/05/02, LORE v3, 0/4](https://lore.kernel.org/all/20250502015955.3146733-1-prakash.sangappa@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2025/05/13, LORE v4, 0/6](https://lore.kernel.org/all/20250513214554.4160454-1-prakash.sangappa@oracle.com)<br>*-*-*-*-*-*-*-* <br>[2025/06/03, LORE v5, 0/6](lore.kernel.org/all/20250603233654.1838967-1-prakash.sangappa@oracle.com) |
 | 2025/01/31 | Steven Rostedt <rostedt@goodmis.org> | [sched: Extended Scheduler Time Slice](https://lore.kernel.org/all/20250131225837.972218232@goodmis.org) | 这是为了改进 user space implemented spin locks 或任务处于任何关键临界区. 它还可以扩展到虚拟机及 guest spin locks. 当任务在用户态处于关键临界区的时候, 要求调度器引入一个机制, 允许用户线程请求额外的执行时间, 以完成关键区段的执行, 从而提高性能.<br>这与 PREEMPT_LAZY 配合使用, 任务可以通过 rseq 结构告诉内核, 它正处于一个关键部分(如持有一个 user space spin locks)将很快离开, 并要求内核在此刻不要抢先执行.<br>这将在 struct rseq 中添加一个名为 cr_counter 的新字段, 其工作原理是, 在进入临界区段之前, 用户空间线程会将 cr_counter 增加 2. 如果任务时间耗尽且 NEED_RESCHED_LAZY 被设置, 那么在返回用户空间的途中, 内核将允许用户空间继续运行. 目前, 内核会让用户空间多运行一个 tick. 当内核允许线程有一些延长时间时, 它将设置 rseq cr_counter 的第 0 位, 以通知用户线程它获得了延长时间, 并应在离开临界区后立即调用系统调用.<br>当用户线程离开临界区段时, 它会将计数器递减 2. 如果计数器等于 1, 那么它就知道内核 就知道内核延长了它的时间片, 然后它将调用系统调用, 让内核调度它. 如果设置了 NEED_RESCHED, 那么 rseq 将被忽略, 内核将进行调度. 测试用例 [code/extend-sched.c](https://rostedt.org/code/extend-sched.c). | v1 ☐☑✓ | [LORE POC(https://lore.kernel.org/all/20231025054219.1acaa3dd@gandalf.local.home)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/2](https://lore.kernel.org/all/20250131225837.972218232@goodmis.org) |
+
+
+### 8.9.7 EEVDF DEBUG
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2025/04/23 | Dhaval Giani (AMD) <dhaval@gianis.ca> | [sched/eevdf: Introduce functional invariants for EEVDF](https://lore.kernel.org/all/20250422-b4-eevdf-tests-v1-post-v1-0-35d158254c72@gianis.ca) | 为 Linux 调度器中的 EEVDF( Earliest Eligible Virtual Deadline First) 算法引入功能不变性测试. 主要测试两个基于论文的引理: <br>1.  被选中运行的任务应具有正的 lag, 即若任务可运行, 则其 lag 应为正; <br>2. 所有任务的 lag 总和为零. <br>测试通过新增 debugfs 目录提供触发接口, 用于开发调试, 不适用于生产环境.更新内容包括: 增加任务数调节参数、去除递归计算、使用函数检测溢出等. | v1 ☐☑✓ | [2025/04/23, LORE v1, 0/3](https://lore.kernel.org/all/20250422-b4-eevdf-tests-v1-post-v1-0-35d158254c72@gianis.ca) |
+
 
 
 ## 8.10 混部场景
@@ -7046,6 +7082,14 @@ BPF 钩子 (它已经成功地用于各种内核子系统) 为外部代码 (安�
 [当 BPF 邂逅 CPU 调度器](https://www.ebpf.top/post/cfs_scheduler_bpf)
 
 [foxhoundsk 的博客 Scheduler BPF](https://hackmd.io/@foxhoundsk/sched-bpf)
+[sched-ext 研究](https://hackmd.io/@vax-r/sched_ext_exp)
+
+[Linux CPU 调度器之我见](https://zhui.dev/2022-11/linux-cpu-schedulers)
+[Pluggable CPU schedulers](https://en.opensuse.org/Pluggable_CPU_schedulers)
+
+[A Minimal Scheduler with eBPF, sched_ext and C](https://mostlynerdless.de/blog/2024/10/25/a-minimal-scheduler-with-ebpf-sched_ext-and-c)
+[eBPF Tutorial: Introduction to the BPF Scheduler](https://eunomia.dev/tutorials/44-scx-simple/)
+
 
 Roman Gushchin 在邮件列表发起了 BPF 对调度器的潜在应用的讨论, 它提交的 patchset 旨在为调度器提供一些非常基本的 BPF 基础设施, 以便向调度器添加新的 BPF 钩子、一组最小的有用助手以及相应的 libbpf 更改等等. 他们在 CFS 中使用 BPF 的第一次实验看起来非常有希望. 虽然还处于非常早期的阶段, 但在 Facebook 的主网页工作量已经获得了不错的延迟和约 1% 的 RPS. 参见 [LWN: Controlling the CPU scheduler with BPF](https://lwn.net/Articles/873244), 以及 [Early Patches Bring BPF To The Linux Scheduler](https://www.phoronix.com/scan.php?page=news_item&px=Linux-BPF-Scheduler).
 
@@ -7099,6 +7143,8 @@ LSFMMBPF 2024 上对 sched_ext 进行了讨论 [LWN, 2024/05/23, LSFMMBPF-2024, 
 | 2024/08/26 | Tejun Heo <tj@kernel.org> | [sched_ext: Add cgroup support](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a4103eacc2ab408bb65e9902f0857b219fb489de) | TODO | v2 ☐☑✓ v6.12-rc1 | [2024/08/08, LORE v1, 0/7](https://lore.kernel.org/all/20240808002550.731248-1-tj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2024/08/26, LORE v2, 0/5](https://lore.kernel.org/all/20240826225822.791578-1-tj@kernel.org) |
 | 2024/09/03 | Tejun Heo <tj@kernel.org> | [sched_ext: Apply pick_next_task() updates and remove switch_class()](https://lore.kernel.org/all/20240904080326.1132275-1-tj@kernel.org) | 这个补丁系列针对 Linux 内核调度器(scheduler)的扩展(sched_ext)进行了更新, 以适应内核主分支中对 pick_next_task() 函数的更新, 并移除了 switch_class() 函数. 以下是补丁系列的主要工作内容:<br>1. 更新 pick_next_task(): 补丁系列替换了 pick_next_task_scx() 函数, 引入了新的 pick_task_scx() 函数. 新函数不需要当前任务已经被排入队列, 并且能够不依赖于当前任务的状态来确定是选择当前任务还是本地直接队列(DSQ)顶部的任务. 统一常规和核心调度器的任务选择路径: 通过这次更新, 常规和基于核心的调度器的任务选择路径被统一, 简化了代码结构.<br>2. 移除 switch_class(): 在更新后, sched_class->switch_class() 不再被使用, 并从代码中移除. 这意味着调度器扩展不再需要这个接口.<br>3. 对 BPF 调度器的影响: 这次更改对基于 BPF(Berkeley Packet Filter)的调度器造成了两个微妙的 API 变化, 但这些变化是期望的, 并且现有的所有调度器都应该能够适应这些变化. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240904080326.1132275-1-tj@kernel.org) |
 | 2025/04/05 | Andrea Righi <arighi@nvidia.com> | [sched_ext: Enhance built-in idle selection with allowed CPUs](https://lore.kernel.org/all/20250405134041.13778-1-arighi@nvidia.com) | 许多 scx 调度程序实现了自己的硬性或软性亲和性规则, 以支持拓扑特性, 例如异构架构(例如 big.LITTLE、P 核/E 核), 或者根据特定属性对任务进行分类(例如，仅在 CPU 的子集上运行某些任务). 目前, 尚无机制能够将内置的空闲 CPU 选择策略应用于任意的 CPU 子集. 因此, 调度器通常会实现自己的空闲 CPU 选择策略, 这些策略通常彼此相似, 从而导致了大量的代码重复. 为解决此问题, 扩展内置的空闲 CPU 选择策略, 引入 allowed CPUs 概念.<br>基于这一概念, BPF 调度器可以将内置的空闲 CPU 选择策略应用于允许的 CPU 子集, 从而在使用内置策略的拓扑优化的同时实现自己的硬/软亲和性规则, 避免了不同调度器之间的代码重复.<br>为实现此功能, 引入一个新的辅助 kfunc 函数 scx_bpf_select_cpu_and(), 该函数接受一个允许的 CPU 集合的 cpumask: `s32 scx_bpf_select_cpu_and(struct task_struct *p, s32 prev_cpu, u64 wake_flags, const struct cpumask *cpus_allowed, u64 flags);`<br>在使用 virtme-ng 模拟的 4 插槽/每个插槽 4 核的系统上, 运行经过修改的 scx_bpfland 版本, 该版本使用新的辅助函数 scx_bpf_select_cpu_and() 并将允许域设置为 0xff00 时的负载分布情况, 通过 scx_bpf_select_cpu_dfl() 函数, 任务将在所有可用的 CPU 上均匀分布. | v7 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250405134041.13778-1-arighi@nvidia.com) |
+| 2025/05/21 | Andrea Righi <arighi@nvidia.com> | [sched_ext: Unify idle CPU selection kfuncs](https://lore.kernel.org/all/20250521073548.140307-1-arighi@nvidia.com) | 邮件提出了一项针对 Linux 调度器扩展( sched_ext) 的补丁, 旨在统一空闲 CPU 选择的内核函数.  Andrea Righi 将 `scx_bpf_select_cpu_dfl()` 和 `scx_bpf_select_cpu_and() ` 合并, 使其可在相同上下文中调用, 并更新了相关的 kselftest 测试用例以反映这一变更. 补丁修改了 6 个文件, 新增 234 行代码, 删除 190 行, 移除了旧的测试文件并新增了新的测试实现. 该改进有助于简化调度器扩展中的 CPU 选择逻辑并提升一致性.  | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250521073548.140307-1-arighi@nvidia.com) |
+| 2025/06/23 | Henry Huang <henry.hj@antgroup.com> | [include SCX_OPS_TRACK_MIGRATION](https://lore.kernel.org/all/20250623043220.63793-1-henry.hj@antgroup.com) | 新增 `SCX_OPS_TRACK_MIGRATION` 标志以支持跟踪任务迁移. 当前通过 fentry 在 `enqueue_task_scx` 和 `dequeue_task_scx` 中实现任务迁移跟踪存在限制, 如无法修改 `p-> scx.` 缺少编译优化支持、开销较高等问题. 新标志启用后, 无论任务是否正在迁移, 均会调用 runnable/quiescent 回调. v2 版本根据 `task_on_rq_migrating( p) ` 判断是否设置 `DEQUEUE_MIGRATING` 和 `ENQUEUE_MIGRATING` 标志. | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250623043220.63793-1-henry.hj@antgroup.com) |
 
 
 ##### 11.2.2.1.2 WAKE/LLC/NUMA 感知与支持
@@ -7124,14 +7170,27 @@ LSFMMBPF 2024 上对 sched_ext 进行了讨论 [LWN, 2024/05/23, LSFMMBPF-2024, 
 | 2024/08/30 | Tejun Heo <tj@kernel.org> | [sched_ext: Implement `scx_bpf_dispatch[_vtime]_from_dsq()`](https://lore.kernel.org/all/20240830110415.116090-1-tj@kernel.org) | 这个补丁集通过增加 `scx_bpf_dispatch[_vtime]_from_dsq()` 函数, 提升了 Linux 内核调度器在处理延迟队列 (Delayed Scheduling Queues, DSQ)  时的灵活性. 这项改动使得开发者能够在更广泛的上下文中灵活地控制任务的调度, 特别是在不持有 rq 锁的情况下. 这对于需要高度定制化调度策略的场景特别有用, 例如在使用 BPF 程序进行复杂调度逻辑的实现时, 允许将任务从一个队列移动到另一个队列以优化资源使用或响应特定的系统状态变化. 背景: 在当前的内核调度器中, 一旦一个任务被放入 DSQ(延迟调度队列), 可以对该任务执行的操作是有限的. 内置的本地和全局 DSQ 中的任务会被自动执行, 除了从队列中移除之外, 唯一能对用户 DSQ 中的任务进行的操作就是通过 scx_bpf_consume() 将第一个任务移到调度的本地 DSQ 中. 这种操作的局限性有时会造成不便, 并且已经收到了多个功能请求来改善这一情况. 这个补丁集实现了一个新的函数 `scx_bpf_dispatch[_vtime]_from_dsq()`, 可以在 DSQ 迭代期间调用, 并且可以将任务移动到任何 DSQ 中, 包括本地 DSQ、全局 DSQ 和用户 DSQ. 这个函数可以在 ops.dispatch() 以及其他不持有 rq 锁的 BPF 上下文中调用, 包括 BPF 定时器和系统调用 (SYSCALL) 程序. 主要功能点:<br>1. 增加调度灵活性: 新函数 `scx_bpf_dispatch[_vtime]_from_dsq()` 允许在 DSQ 迭代过程中将任务从一个 DSQ 移动到另一个 DSQ, 提供了更多的灵活性.<br>2. 适用范围广泛: 可以在多种 BPF 上下文中调用, 包括 BPF 定时器和系统调用程序, 增强了调度策略的可编程性和适应性.<br>3. 不持有 rq 锁: 这些函数可以在不持有 rq 锁的情况下调用, 这意味着它们可以在更广泛的上下文中使用, 提高了调度的灵活性. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240830110415.116090-1-tj@kernel.org) |
 | 2024/09/24 | Tejun Heo <tj@kernel.org> | [sched_ext: Split %SCX_DSQ_GLOBAL per-node](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=6f34d8d382d64e7d8e77f5a9ddfd06f4c04937b0) | 这组补丁的主要目的是解决在 BPF 调度器的绕过模式 (bypass mode) 中出现的活锁(livelock)问题. 具体来说, 它将全局调度队列(DSQ)按 NUMA 节点拆分, 以减少跨节点的缓存行访问和调度, 从而提高系统的稳定性和性能. | v1 ☐☑✓ v6.13-rc1 | [LORE](https://lore.kernel.org/all/20240925000622.1972325-1-tj@kernel.org) |
 | 2024/11/05 | Tejun Heo <tj@kernel.org> | [sched_ext: Avoid live-locking bypass mode switching](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=efe231d9debf6db812bebb262407c95b21cdb8a2) | TODO | v1 ☐☑✓ v6.13-rc1 | [LORE v1,0/2](https://lore.kernel.org/all/ZyqSm4B4NuzuHEbp@slm.duckdns.org) |
+| 2025/06/04 | Andrea Righi <arighi@nvidia.com> | [sched_ext: Improve code modularization](https://lore.kernel.org/all/20250604143547.708202-1-arighi@nvidia.com) |旨在改进 Linux 调度器扩展(sched_ext) 的代码模块化. 尽管当前调度器代码将多个调度类集中在一个 `.c` 文件中, 补丁系列尝试通过将内部函数标记为 `static`、在头文件中声明共享符号等方式, 使代码结构更清晰、更易维护. <br>补丁内容包括: 移除 `scx_bpf_cpu_node() ` 中不必要的 `#ifdef`、将 `ext_idle. c` 中的本地函数设为 `static`、将 `scx_rq_bypassing( ) ` 设为内联函数、以及使 `scx_locked_rq( ) ` 可共享. <br>该系列是代码清理的第一步, 后续仍有改进空间, 但当前改动较小以减少对开发流程的影响. 目标是为 sched_ext 提供更良好的代码结构和可维护性. | v1 ☐☑✓ | [2025/06/04, LORE v1, 0/4](https://lore.kernel.org/all/20250604143547.708202-1-arighi@nvidia.com) |
+| 2025/06/10 | liuwenfang <liuwenfang@honor.com> | [sched_ext: introduce cpu tick](https://lore.kernel.org/all/2d771c1f293845e09edf73f5db5b2837@honor.com) | 邮件提出了一项针对 Linux 调度器扩展(sched_ext) 的补丁, 新增 `cpu_tick` 回调机制. 其核心目的是在 CPU 非空闲时, 定期通知 BPF 调度器检查本地调度队列(dsq) 中是否存在长时间可运行的 scx 任务, 以便采取策略(如迁移任务) 提升调度性能. 当前场景下, 若某个 CPU 正运行 RT 任务, scx任务可能被饿死 100ms, 引入 `cpu_tick` 可帮助调度器更及时响应并优化调度决策. 补丁在 `ext. c` 中增加了 15 行代码, 定义并实现了 `cpu_tick` 操作.| v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/2d771c1f293845e09edf73f5db5b2837@honor.com) |
 
-##### 11.2.2.1.4 sched_ext debug
+
+##### 11.2.2.1.4 scx_sched
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2025/04/23 | Tejun Heo <tj@kernel.org> | [sched_ext: Introduce scx_sched](https://lore.kernel.org/all/20250423234542.1890867-1-tj@kernel.org) | 为支持多个分层调度器做准备. 该补丁集将原本全局的调度状态封装进新的结构体 `scx_sched`, 以支持未来多调度器实例的管理. 目前仅支持系统范围的根调度器( `scx_root`), 后续补丁将逐步引入多调度器支持, 并逐一更新相关代码. <br>补丁内容主要包括: 将全局变量移入 `scx_sched` 结构、优化内存分配、内联函数重构、事件统计结构迁移等. 尽管代码变动较大, 但均为内部结构调整, 预期不会带来用户可见的变化. <br>补丁集可通过指定 Git 分支获取, 共修改 2 个文件, 新增 491 行, 删除 398 行. | v1 ☐☑✓ | [2025/04/23, LORE v1, 00/12](https://lore.kernel.org/all/20250423234542.1890867-1-tj@kernel.org)<br>*-*-*-*-*-*-*-* <br>[2025/04/25, LORE v2, 00/12](https://lore.kernel.org/all/20250425215840.2334972-1-tj@kernel.org/) |
+
+
+
+##### 11.2.2.1.5 sched_ext debug
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2025/02/04 | Changwoo Min <changwoo@igalia.com> | [sched_ext: Implement core event counters]https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=2494e555fbaadf1b02eb89f3bee0cec95516f6c2) | TODO | v4 ☐☑✓ | [2025/01/26, LORE v2,0/11](https://lore.kernel.org/all/20250126101614.232388-1-changwoo@igalia.com)<br>*-*-*-*-*-*-*-* <br>[2025/02/04, LORE v4,0/7](https://lore.kernel.org/all/20250204052057.67776-1-changwoo@igalia.com) |
 | 2025/03/04 | Changwoo Min <changwoo@igalia.com> | [sched_ext: Add trace point to sched_ext core events](https://lore.kernel.org/all/20250304104900.154618-1-changwoo@igalia.com) | TODO | v4 ☐☑✓ | [LORE v4,0/2](https://lore.kernel.org/all/20250304104900.154618-1-changwoo@igalia.com) |
+| 2025/04/19 | Andrea Righi <arighi@nvidia.com> | [sched_ext: Introduce rq lock tracking](https://lore.kernel.org/all/20250419123536.154469-1-arighi@nvidia.com) | TODO | v1 ☐☑✓ | [2025/04/19, LORE v1, 0/2](https://lore.kernel.org/all/20250419123536.154469-1-arighi@nvidia.com)<br>*-*-*-*-*-*-*-* <br>[2025/04/20, LORE v2, 0/2](https://lore.kernel.org/lkml/20250420193106.42533-1-arighi@nvidia.com)<br>*-*-*-*-*-*-*-* <br>[2025/04/22, LORE v3,0/2](https://lore.kernel.org/all/20250422082907.110167-1-arighi@nvidia.com/) |
 
 
 #### 11.2.2.2 Google 的 ghOSt
@@ -7160,7 +7219,7 @@ LSFMMBPF 2024 上对 sched_ext 进行了讨论 [LWN, 2024/05/23, LSFMMBPF-2024, 
 
 openEuler 5.10 内核集成了基于 eBPF 的可编程调度的功能, [issue: introduce scheduler BPF](https://gitee.com/openeuler/kernel/issues/I5F6X6), [Introduce programmable base on bpf for scheduler](https://gitee.com/openeuler/kernel/issues/I8OIT1), [pulls/4053, sched: basic infrastructure for scheduler bpf](https://gitee.com/openeuler/kernel/pulls/4053)
 
-#### 11.2.2.5
+#### 11.2.2.5 OPPO 可编程内核技术
 -------
 
 [OPPO在CLK大会上公布可编程内核技术，引领安卓流畅体验升级](https://blog.csdn.net/feelabclihu/article/details/134194329)
@@ -7324,6 +7383,7 @@ YouTuBe 上 ASPLOS'23 关于 Plugsched 的介绍 [ASPLOS'23 - Session 7C - Effic
 | 2020/02/07 | 王贇 | [sched/numa: introduce numa locality](https://lore.kernel.org/patchwork/cover/1190383) | per-cgroup 的 NUMASTAT 功能 | [PatchWork v8](https://lore.kernel.org/patchwork/cover/1190383) |
 | 2021/09/05 | Yafang Shao | [sched: support schedstats for RT sched class](https://lore.kernel.org/patchwork/cover/1403138) | 我们希望使用 schedstats 工具测量生产环境中 RT 任务的延迟, 但目前只支持公平调度类的 schedstats.  将 sched_statistics 修改为独立于 task_struct 或 task_group 的调度统计数据, 从而完成了 RT 的 schedstats 支持 | v6 ☑ 5.16-rc1 | [PatchWork v2](https://lore.kernel.org/patchwork/cover/1403138)<br>*-*-*-*-*-*-*-* <br>[PatchWork v3](http://patches.linaro.org/cover/502064)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/8](https://lore.kernel.org/all/20210905143547.4668-1-laoar.shao@gmail.com) |
 | 2024/05/08 | Ravi Bangoria <ravi.bangoria@amd.com> | [perf sched: Introduce schedstat tool](https://lore.kernel.org/all/20240508060427.417-1-ravi.bangoria@amd.com) | 现有的 "perf-shed" 非常详尽, 并提供了对调度程序行为的许多见解, 但它很快就无法用于长时间运行或调度程序密集型工作负载. 例如, "perf-shed record" 在 hackbeek 上有约 7.77% 的开销(25 个组, 每个组在 2 个套接字的 128 核 256 线程的第三代 EPYC 服务器上运行 700K 循环), [它生成了巨大的 56G 性能数据, 性能准备和写入磁盘需要约 137 分钟](https://youtu.be/lg-9aG2ajA0?t=283). 与 "perf sched record" 不同的是, "perf sched schedstat record" 挂接到一组调度程序跟踪点并在跟踪点命中时生成样本, 它在工作负载前后拍摄 / proc/schedstat 文件的快照, 即对工作负载运行没有干扰. 此外, 解析 / proc/schedstat、将其转换为 perf 示例和将这些示例保存到 perf.data 文件中. 结果 perf.data 文件要小得多. 因此, 总体而言, 与 "perf sched record" 相比, "perf sched schedstat record" 要轻得多. 我们在 AMD 内部一直在使用它的一种变体, 称为 [调度记分板 Scheduler Scoreboard](https://github.com/AMDESE/sched-scoreboard), 并发现它对分析任何调度程序代码更改的影响非常有用 [Re: [PATCH] sched/fair: no sync wakeup from interrupt context](https://lore.kernel.org/lkml/c50bdbfe-02ce-c1bc-c761-c95f8e216ca0@amd.com), [Re: [PATCH v3 6/7] sched: Implement shared runqueue in CFS]. 参见 phoronix 报道 [AMD Linux Engineers Introduce New "schedstat" Tool](https://www.phoronix.com/news/AMD-Linux-perf-schedstat-Tool). | v1 ☐☑✓ | [2024/05/08, LORE v1,0/4](https://lore.kernel.org/all/20240508060427.417-1-ravi.bangoria@amd.com)<br>*-*-*-*-*-*-*-* <br>[2024/09/16, LORE 0/5](https://lore.kernel.org/all/20240916164722.1838-1-ravi.bangoria@amd.com)<br>*-*-*-*-*-*-*-* <br>[2024/11/22, LORE v2,0/6](https://lore.kernel.org/all/20241122084452.1064968-1-swapnil.sapkal@amd.com) |
+| 2024/12/20 | Swapnil Sapkal <swapnil.sapkal@amd.com> | [Fixes and improvements in /proc/schedstat](https://lore.kernel.org/all/20241220063224.17767-1-swapnil.sapkal@amd.com) | TODO | v2 ☐☑✓ | [LORE v2,0/6](https://lore.kernel.org/all/20241220063224.17767-1-swapnil.sapkal@amd.com) |
 
 
 ## 12.2 tracepoint
@@ -7350,7 +7410,7 @@ ARM & Linaro 的内核团队针对 Android/linux 等做了大量的调度的优�
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:--:|:----:|:---------:|:----:|
-| 2019/06/04 | Qais Yousef <qais.yousef@arm.com> | [sched: Add new tracepoints required for EAS testing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a056a5bed7fa67706574b00cf1122c38596b2be1) | 增加 PELT 的跟踪点.<br> 新引入了 `trace_pelt_{cfs|rt|dl|irq}_tp` 等 tracepoint 点跟踪 RQ 的负载信息, 以及 `trace_pelt_se_tp` 等 sched_entity 级别的负载跟踪点, 还提供了 `trace_sched_overutilized_tp` 记录 RQ 和 SD 的 overutilized 状态. 主要是为了跟踪 PELT 的内容, 这是 EAS 做出决策时使用的信息. 了解 PELT 的变化, LISA 可以根据模拟不同场景的综合测试来验证 EAS 是否在做正确的事情. 除了 EAS 之外, 新的 tracepoint 点还可以帮助研究 CFS 负载均衡器和 CFS 任务组处理. | v2 ☑ 5.3-rc1 | [LORE v3,0/6](https://lore.kernel.org/lkml/1598605249-72651-1-git-send-email-vincent.donnefort@arm.com) |
+| 2019/06/04 | Qais Yousef <qais.yousef@arm.com> | [sched: Add new tracepoints required for EAS testing](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=a056a5bed7fa67706574b00cf1122c38596b2be1) | 增加 PELT 的跟踪点.<br> 新引入了 ```trace_pelt_{cfs|rt|dl|irq}_tp``` 等 tracepoint 点跟踪 RQ 的负载信息, 以及 `trace_pelt_se_tp` 等 sched_entity 级别的负载跟踪点, 还提供了 `trace_sched_overutilized_tp` 记录 RQ 和 SD 的 overutilized 状态. 主要是为了跟踪 PELT 的内容, 这是 EAS 做出决策时使用的信息. 了解 PELT 的变化, LISA 可以根据模拟不同场景的综合测试来验证 EAS 是否在做正确的事情. 除了 EAS 之外, 新的 tracepoint 点还可以帮助研究 CFS 负载均衡器和 CFS 任务组处理. | v2 ☑ 5.3-rc1 | [LORE v3,0/6](https://lore.kernel.org/lkml/1598605249-72651-1-git-send-email-vincent.donnefort@arm.com) |
 | 2020/06/19 | Phil Auld <pauld@redhat.com> | [Sched: Add a tracepoint to track rq->nr_running](https://lore.kernel.org/patchwork/patch/1258690) | 增加 nr_running 的跟踪点. 通过  | v1 ☑ 5.9-rc1 | [PatchWork](https://lore.kernel.org/patchwork/patch/1258690), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=9d246053a69196c7c27068870e9b4b66ac536f68)<br>*-*-*-*-*-*-*-* <br>[FixPatch](https://lore.kernel.org/patchwork/patch/1284621), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=a1bd06853ee478d37fae9435c5521e301de94c67) |
 | 2020/08/28 | | [sched/debug: Add new tracepoint to track cpu_capacity](https://lore.kernel.org/patchwork/patch/1296761) | 增加 cpu_capacity 的跟踪点 | v2 ☑ 5.10-rc1 |  [PatchWork](https://lore.kernel.org/patchwork/cover/1296761), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=51cf18c90ca1b51d1cb4af3064e85fcf8610b5d2) |
 | 2023/05/09 | Lukasz Luba <lukasz.luba@arm.com> | [Add basic tracing for uclamp and schedutil](https://lore.kernel.org/all/20230509122246.1702397-1-lukasz.luba@arm.com) | TODO | v2 ☐☑✓ | [LORE v2,0/3](https://lore.kernel.org/all/20230509122246.1702397-1-lukasz.luba@arm.com) |
@@ -7358,6 +7418,8 @@ ARM & Linaro 的内核团队针对 Android/linux 等做了大量的调度的优�
 | 2023/10/09 | Jinyu Tang <tangjinyu@tinylab.org> | [Ftrace: make sched_wakeup can focus on the target process](https://lore.kernel.org/all/20231009153714.10743-1-tangjinyu@tinylab.org) | 此 Patch 只能让我们跟踪目标进程 sched-wakeup 时间, 其他进程 sched-wakeup 将被丢弃, 不会更改 tracing_max_latency. 补丁的评论区各路大神给出了已有可行的解决办法. 包括使用 [synthetic_events](https://lore.kernel.org/all/20231009122500.69854f94@gandalf.local.home) 以及 [rtla](https://bristot.me/linux-scheduling-latency-debug-and-analysis). | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20231009153714.10743-1-tangjinyu@tinylab.org) |
 | 2024/04/08 | Marco Elver <elver@google.com> | [tracing: Add new_exec tracepoint](https://lore.kernel.org/all/20240408090205.3714934-1-elver@google.com) | 添加 "new_exec" 跟踪点, 该跟踪点在不返回点之后但在当前任务采用其新的 exec 标识之前运行. 与跟踪点 "sched_process_exec" 不同, "new_exec" 跟踪点在刷新旧的 exec 之前运行, 即当任务仍处于原始状态 (如原始 MM) 时, 但当新的 exec 成功或崩溃时(但永远不会返回到原始 exec). 能够跟踪此事件在许多用例中都会有所帮助:<br>1. 在当前 MM 被替换之前, 允许跟踪 eBPF 程序访问 exec 上的原始 MM;<br>2. 计算原始任务中的 exec(通过 perf 事件);<br>3. 分析刷新时间("new_exec" 到 "sched_process_exec").<br>4. 跟踪输出示例("new_exec" 和 "sched_process_exec"). | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240408090205.3714934-1-elver@google.com) |
 | 2024/02/22 | John Stultz <jstultz@google.com> | [sched: Add trace_sched_waking() tracepoint to sched_ttwu_pending()](https://lore.kernel.org/all/20240222204917.1719153-1-jstultz@google.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20240222204917.1719153-1-jstultz@google.com) |
+| 2025/04/09 | Luis Machado <luis.machado@arm.com> | [sched/events: Improving scheduler debugging/testing tracing interfaces](https://lore.kernel.org/all/20250409151338.1046335-1-luis.machado@arm.com) | 提出了一项改进调度器调试/测试追踪接口的补丁提案, 旨在提升调度器(尤其是能效调度)可观测性, 同时避免引入长期维护的用户空间 ABI. 当前依赖已有 tracepoint 存在局限, 如无法访问内部结构体字段、需手动复制结构定义、无法自动处理内核逻辑( 如 util_est 的位掩码处理) 等. <br>核心是为调度器 tracepoint 新增一个类型为 `struct sched_tp_callbacks` 的参数, 用于提供内核内部数据访问的 "getter()" 回调函数. 这些函数封装内核逻辑, 允许模块安全获取数据, 减少结构复制和维护成本. 补丁中提供了几个示例回调, 如获取 `cfs_rq` 或 `sched_entity` 的 util_est、获取 CPU 当前容量等. <br><br>作者请求社区反馈此方案是否可行, 以及如何改进其可维护性和扩展性. 目前已被 LISA 模块验证可行, 有助于提升自动化测试与性能分析效率.  | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250409151338.1046335-1-luis.machado@arm.com) |
+| 2025/06/03 | Lukasz Luba <lukasz.luba@arm.com> | [sched/tp: Add new tracepoint for tracking uclamp set from user-space](https://lore.kernel.org/all/20250603120755.1028396-1-lukasz.luba@arm.com) | 新增一个 tracepoint 用于追踪用户空间设置任务uclamp 值的变化. uclamp(Utilization Clamping) 机制允许用户空间动态调整任务的 CPU 利用率上下限, 从而影响调度器的任务分配决策. 新增的 tracepoint `uclamp_update_task` 可在任务 uclamp 值被修改时触发, 便于开发者分析系统行为, 优化内核与中间件的协同性能. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250603120755.1028396-1-lukasz.luba@arm.com) |
 
 
 ## 12.3 debug 接口
@@ -7378,7 +7440,7 @@ ARM & Linaro 的内核团队针对 Android/linux 等做了大量的调度的优�
 | 2017/09/29 | Peter Zijlstra | [sched: Rework task state printing](https://lore.kernel.org/patchwork/cover/834387) | 重构进程状态的打印方式 | v1 ☑ 4.14-rc3 |[PatchWork](https://lore.kernel.org/patchwork/cover/834387) |
 | 2021/01/06 | Vincent Guittot | [sched: Remove per rq load array](https://lore.kernel.org/patchwork/cover/1079333) | 自 LB_BIAS 被禁用之后, 调度器只使用 rq->cpu_load[0] 作为 cpu 负载值, 因此 cpu_load 这个数组的其他之其实没意义了, 直接去掉了. 注意这对 load_balance 的调优是有一定影响的, 之前 sched_domain 中可以通过 sysctl 接口修改比较负载使用的 index, 这些 index 对应的 cpu_load 数组的下标. 干掉了这个数组, 那么这些 sysctl 也就没必要了 | v2 ☑ 5.10-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1079333)|
 | 2021/04/12 | Peter Zijlstra | [sched: Clean up SCHED_DEBUG](https://lore.kernel.org/patchwork/cover/1402660) | 目前内核有 sysctl, procfs 和 debugfs SCHED_DEBUG 接口, 比较混乱.<br>1. 将 CONFIG_LATENCYTOP 以及 sched_schedstats 和 NUMA balance 的 sysctl 开关都不再依赖于 CONFIG_SCHED_DEBUG<br>2. 将 [所有接口信息都转移到 debugfs 中](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=d27e9ae2f244805bbdc730d85fba28685d2471e5).<br>3. 添加 ALT_PERIOD 和 BASE_SLICE feature. 考虑 cgroup 的情况, 添加了 ALT_PERIOD 计算__sched_period 实际实际的 h_nr_running, 添加 BASE_SLICE, [保证进程的 sched_slice 要至少达到 `sysctl_sched_min_granularity`]https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=0c2de3f054a59f15e01804b75a04355c48de628c) | v2 ☑ 5.13-rc1 | [PatchWork](https://lore.kernel.org/patchwork/cover/1402660), [LKML](https://lkml.org/lkml/2021/3/26/395), [LORE](https://lore.kernel.org/all/20210412101421.609526370@infradead.org)|
-| 2025/04/02 | Chen Yu <yu.c.chen@intel.com> | [sched/numa: Add statistics of numa balance task migration and swap](https://lore.kernel.org/all/20250402010611.3204674-1-yu.c.chen@intel.com) | 增加对 NUMA Balancing 任务迁移和交换的统计信息.<br>1. 问题: 在启用了 NUMA 平衡的系统中, 任务可能会因为 NUMA 平衡机制而迁移到其他 CPU 或与其他任务交换位置. 然而, 内核目前只提供了 NUMA 页面迁移的统计信息, 而没有提供任务迁移和交换的统计信息.<br>2. 目标: 通过增加任务迁移和交换的统计信息, 帮助系统管理员和开发者更好地理解和优化 NUMA 平衡机制.<br>3. 新增字段: numa_task_migrated: 记录任务迁移的次数, numa_task_swapped: 记录任务交换的次数. 这些统计信息将显示在 `/sys/fs/cgroup/{GROUP}/memory.stat` 和 `/proc/{PID}/sched` 中. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250402010611.3204674-1-yu.c.chen@intel.com) |
+| 2025/04/02 | Chen Yu <yu.c.chen@intel.com> | [sched/numa: Add statistics of numa balance task migration and swap](https://lore.kernel.org/all/20250402010611.3204674-1-yu.c.chen@intel.com) | 增加对 NUMA Balancing 任务迁移和交换的统计信息.<br>1. 问题: 在启用了 NUMA 平衡的系统中, 任务可能会因为 NUMA 平衡机制而迁移到其他 CPU 或与其他任务交换位置. 然而, 内核目前只提供了 NUMA 页面迁移的统计信息, 而没有提供任务迁移和交换的统计信息.<br>2. 目标: 通过增加任务迁移和交换的统计信息, 帮助系统管理员和开发者更好地理解和优化 NUMA 平衡机制.<br>3. 新增字段: numa_task_migrated: 记录任务迁移的次数, numa_task_swapped: 记录任务交换的次数. 这些统计信息将显示在 `/sys/fs/cgroup/{GROUP}/memory.stat` 和 `/proc/{PID}/sched` 中. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250402010611.3204674-1-yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[2025/04/30, LORE v3](https://lore.kernel.org/all/20250430103623.3349842-1-yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[2025/05/07, LORE v4, 0/2](https://lore.kernel.org/all/cover.1746611892.git.yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[2025/05/29, LORE v6, 0/2](https://lore.kernel.org/all/cover.1748493462.git.yu.c.chen@intel.com) |
 
 
 ## 12.4 tools & benchmark
@@ -7400,6 +7462,7 @@ ARM & Linaro 的内核团队针对 Android/linux 等做了大量的调度的优�
 | [os-scheduler-responsiveness-test](https://github.com/hamadmarri/os-scheduler-responsiveness-test) | os 调度程序响应能力测试. 这是一个 Python/Go 脚本, 用于测试操作系统调度程序的响应性或交互性. 交互式线程的睡眠时间多于运行时间 (即用户单击). 该脚本测量与 3 个不同任务的交互性 (对 10000 个数组进行排序, 读取文件并打印到控制台, 读取文件并将其写入另一个文件). 在每个过程中, 它休眠在 1s-3s 之间的随机时间. 同时, 你可以运行素数计算的 CPU 密集型程序, 这对于在繁重的任务运行期间测试交互性很有用. |
 | [jitterdebugger](https://github.com/igaw/jitterdebugger) | [foxhoundsk 的博客 jitterdebugger 介绍](https://hackmd.io/@foxhoundsk/jitterdebugger), 衡量调度器 [切换时延](https://source.android.com/docs/core/audio/latency/contrib?hl=en#schedLatency) 以及操作系统底噪抖动的工具.  |
 | [michaeljclark/cpipe](https://github.com/michaeljclark/cpipe) | [user-space concurrent pipe buffer scheduler interactions](https://lore.kernel.org/all/969ccc0f-d909-4b45-908e-e98279777733@metaparadigm.com), 实现了一个并发管道缓冲区的 benchmark, 设计用于单生产者单使用者或多生产者多使用者模式, 支持并发预写、并发预读和零复制操作, 用于 IO 缓冲区范围内的数组计算. |
+| [masoncl/rsched](https://github.com/masoncl/rsched) |
 
 
 ### 12.4.2 调度器延迟分析

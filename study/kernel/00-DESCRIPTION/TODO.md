@@ -790,7 +790,7 @@ https://lore.kernel.org/all/20240830130309.2141697-1-vincent.guittot@linaro.org/
 
 | 编号 | 调度器 | 语言 | 用途 |
 |:---:|:-----:|:----:|:---:|
-|  1  | scx_lavd | 程序专注于交互性, 具体来说, 就是始终如一地从游戏中获得更高的帧速率. |
+|  1  | scx_lavd | NA | 程序专注于交互性, 具体来说, 就是始终如一地从游戏中获得更高的帧速率. |
 |  2  | scx_rustland | RUST | 将调度事件转发到用户空间, 在那里做出决策. 还包含 scx_rusty 用于复杂 CPU 拓扑上的负载平衡, 以及, 一个 scx_layered 分区计划程序. |
 |  3  |
 
@@ -819,7 +819,7 @@ https://lore.kernel.org/all/20240830130309.2141697-1-vincent.guittot@linaro.org/
 | 2025/01/08 | Honglei Wang <jameshongleiwang@126.com> | [sched_ext: switch class when preempted by higher priority scheduler](https://lore.kernel.org/all/20250108023328.37675-1-jameshongleiwang@126.com) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250108023328.37675-1-jameshongleiwang@126.com) |
 | 2024/12/16 | Michal Koutný <mkoutny@suse.com> | [Add kernel cmdline option for rt_group_sched](https://lore.kernel.org/all/20241216201305.19761-1-mkoutny@suse.com) | TODO | v1 ☐☑✓ | [LORE v1,0/9](https://lore.kernel.org/all/20241216201305.19761-1-mkoutny@suse.com)<br>*-*-*-*-*-*-*-* <br>[LORE v1,0/9](https://lore.kernel.org/all/20250210151239.50055-1-mkoutny@suse.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,00/10](https://lore.kernel.org/all/20250310170442.504716-1-mkoutny@suse.com/) |
 | 2025/01/14 | Florian Schmaus <flo@geekplace.eu> | [sched: provide sched_set_batch()](https://lore.kernel.org/all/20250114130513.498482-3-flo@geekplace.eu) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20250114130513.498482-3-flo@geekplace.eu) |
-| 2024/12/04 | Tobias Huschle <huschle@linux.ibm.com> | [sched/fair: introduce new scheduler group type group_parked](https://lore.kernel.org/all/20241204112149.25872-1-huschle@linux.ibm.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20241204112149.25872-1-huschle@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/all/20250217113252.21796-1-huschle@linux.ibm.com) |
+| 2024/12/04 | Tobias Huschle <huschle@linux.ibm.com> | [sched/fair: introduce new scheduler group type group_parked](https://lore.kernel.org/all/20241204112149.25872-1-huschle@linux.ibm.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20241204112149.25872-1-huschle@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2,0/3](https://lore.kernel.org/all/20250217113252.21796-1-huschle@linux.ibm.com)<br>*-*-*-*-*-*-*-* <br>[LORE v3,0/4](https://lore.kernel.org/all/20250512115325.30022-1-huschle@linux.ibm.com) |
 | 2025/01/13 | I Hsin Cheng <richard120310@gmail.com> | [sched/fair: Refactor can_migrate_task() to elimate looping](https://lore.kernel.org/all/20250113041249.6847-1-richard120310@gmail.com) | TODO | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250113041249.6847-1-richard120310@gmail.com) |
 | 2025/01/16 | Phil Auld <pauld@redhat.com> | [sched: Mention autogroup disabled behavior](https://lore.kernel.org/all/20250116124654.2365691-1-pauld@redhat.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250116124654.2365691-1-pauld@redhat.com) |
 | 2024/11/13 | Juri Lelli <juri.lelli@redhat.com> | [Fix DEADLINE bandwidth accounting in root domain changes and hotplug](https://lore.kernel.org/all/20241113125724.450249-1-juri.lelli@redhat.com) | TODO | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/20241113125724.450249-1-juri.lelli@redhat.com) |
@@ -882,5 +882,19 @@ https://xarjbochz9n.feishu.cn/wiki/WBX8wziSMiVBxFkKNVXcGjEsnqb?from=from_copylin
 
 
 
+https://www.aidenleong.com/lxr/linux-6.14.2/kernel/sched/idle.c
+https://ncnz67vv5cuy.feishu.cn/wiki/IN66w8dW8imkkUkKusMcy2jLnBb
 
-H100 > A100 > A800 > H20danshi1
+
+
+
+
+| 2025/05/28 | Ingo Molnar <mingo@kernel.org> | [sched: Use the SMP scheduler on UP too](https://lore.kernel.org/all/20250528080924.2273858-1-mingo@kernel.org) | Ingo Molnar 提出一组共 43 个补丁, 旨在将 Linux 调度器统一为 SMP( 对称多处理) 版本, 从而大幅减少调度器中 `CONFIG_SMP` 相关的预处理条件编译代码. 当前 `kernel/sched/` 中有 175 处 `CONFIG_SMP` 判断, 导致代码维护困难、易出错, 并影响可读性和可审查性. 该补丁系列将这一数量减少至 28 处, 删除近 1000 行代码, 提升了代码整洁度. <br><br>此改动使 UP( 单处理器) 调度器也使用 SMP 实现, 虽引入少量冗余代码和性能开销( 如上下文切换时间增加约 5%、内核体积增长约 0. 3% 文本段), 但换来更简单的维护模型. 作者强调, 未来若需优化 UP 性能或体积, 应通过合理方式( 如 `IS_ENABLED( ) `) 进行, 而非回归大量 `#ifdef`. 补丁系列已初步测试验证在 UP 系统上可正常启动和运行, 目前存放于指定 Git 仓库中.  | v1 ☐☑✓ | [2025/05/28, LORE v1, 0/43](https://lore.kernel.org/all/20250528080924.2273858-1-mingo@kernel.org) |
+| 2025/06/11 | Cheng-Yang Chou <yphbchou0911@gmail.com> | [sched_ext: Standardize preprocessor comment markers](https://lore.kernel.org/all/20250611135404.13851-1-yphbchou0911@gmail.com) | 旨在对 `sched/ext*. {c, h}` 文件中的 `#if/#else/#endif` 预处理注释标记进行标准化, 以提升代码一致性与可读性. 该工作遵循 Ingo Molnar 近期调度器清理工作的方向, 旨在减少 `CONFIG_SMP` 相关复杂性并删除冗余的 `#ifdef` 代码块. 此次修改不涉及任何功能变更. 补丁共修改 4 个文件, 删除 60 行、新增 3 行代码.  | v1 ☐☑✓ | [2025/06/11, LORE v1, 0/4](https://lore.kernel.org/all/20250611135404.13851-1-yphbchou0911@gmail.com) |
+
+
+
+
+
+
+
