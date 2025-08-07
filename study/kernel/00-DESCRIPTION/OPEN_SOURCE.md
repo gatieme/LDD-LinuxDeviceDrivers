@@ -85,6 +85,8 @@
 | [L4Linux](https://www.l4linux.org) | L4Linux 是[基于 Fiasco 微内核的跟普通 Linux 二进制完全兼容的 Linux 内核](https://blog.csdn.net/gracioushe/article/details/6023340). L4Linux 是运行 Fiasco 用户空间的一个进程, 由很多线程组成, 而 Native Linux 则是运行在内核空间, 如果不考虑 kernel thread 的话, 那么 Native Linux 就相当于一个运行在内核空间的大进程, 它实现了从处理器调度、内存管理到设备管理等所有一个操作系统的必备的功能. 参见 [Adam 的 diploma thesis](https://os.inf.tu-dresden.de/papers_ps/adam-diplom.pdf) | NA |
 | [darwin-xnu](https://github.com/apple/darwin-xnu) | 苹果的微内核 | [opensource](https://opensource.apple.com/source/xnu), [cbowser/xnu](https://fergofrog.com/code/cbowser/xnu) |
 | HongMeng kernel (HM) | HUAWEI 自研的 HM 微内核 | 由一个最小核心内核和一组最低特权操作系统服务组成, 它可以运行 AOSP 和 OpenHarmony 等复杂框架. HM 已在新兴场景(包括智能路由器、智能汽车和智能手机)的数千万台设备上部署在生产中, 通常比 Linux 同类产品具有更高的性能和安全性. 参见 OSDI-2024 的论文 [Microkernel Goes General: Performance and Compatibility in the HongMeng Production Microkernel](https://www.usenix.org/conference/osdi24/presentation/chen-haibo). |
+| [BlueOS](https://blueos.vivo.com/kernel) | [vivo自研蓝河操作系统内核开源！Rust开发新机遇来了](https://qbitai.com/2025/07/312268.html) | vivo 自研蓝河操作系统内核, 是适用于嵌入式和移动设备的开源 Rust 内核, 它完全由 Rust 语言编写, 从根本上解决了传统 C 语言在内存安全、维护成本上的长期难点. 而且更加轻量化对硬件资源要求低; 兼顾通用性, 支持 ARM、RISC-V 架构. | [蓝河内核官方网站](https://blueos.vivo.com/kernel)<br>[GitHub/vivoblueos](https://github.com/vivoblueos/kernel) |
+
 
 
 # 5 Linux Version

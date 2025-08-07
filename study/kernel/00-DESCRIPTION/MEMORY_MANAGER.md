@@ -2119,7 +2119,7 @@ vmalloc_to_page 则提供了通过 vmalloc 地址查找到对应 page 的操作.
 | 2020/10/02 | Christoph Hellwig <hch@lst.de> | [mm: remove alloc_vm_area and add a vmap_pfn function](https://lore.kernel.org/patchwork/patch/1316291) | NA | ☑ 5.10-rc1 | [PatchWork 0/11](https://lore.kernel.org/patchwork/patch/1316291) |
 
 
-#### 2.4.1.6 huge vmap
+#### 2.4.1.6 Huge Mapping
 -------
 
 

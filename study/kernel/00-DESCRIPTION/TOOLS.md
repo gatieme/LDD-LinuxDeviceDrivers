@@ -111,10 +111,15 @@ Intel 发布的 ControlFlag 用机器学习来发现代码中的错误, 支持 C
 
 [phoronix, 2024/10/23, Gentoo Linux Touts DTrace 2.0 Support](https://www.phoronix.com/news/Gentoo-Linux-DTrace-2.0), [DTrace 2.0 for Gentoo](https://www.gentoo.org/news/2024/10/23/DTrace-for-Gentoo.html), [DTrace-WIKI](https://wiki.gentoo.org/wiki/DTrace)
 
-
 * kLLDB
 
 [djolertrk/kLLDB](https://github.com/djolertrk/kLLDB)
+
+* LTTng
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2025/07/14 | Mathieu Desnoyers <mathieu.desnoyers@efficios.com> | [[RFC] LTTng upstreaming next steps](https://lore.kernel.org/lkml/b554bfa3-d710-4671-945b-5d6ec49e52cd@efficios.com) | phoronix 报道 [phoronix, 2025/07/14, New Effort To Upstream LTTng In The Linux Kernel Draws Criticism From Torvalds](https://www.phoronix.com/news/LTTng-Kernel-Modules-2025). | v7 ☐☑✓ | [2025/07/14, LORE RFC](https://lore.kernel.org/lkml/b554bfa3-d710-4671-945b-5d6ec49e52cd@efficios.com) |
 
 ## 2.2 call kernel func from userspace
 -------

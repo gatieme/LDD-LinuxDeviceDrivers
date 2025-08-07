@@ -38,6 +38,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 1995 年 [Proceedings of the 22rd Annual International Symposium on Computer Architecture, Santa Margherita Ligure, Italy, June 1995.](https://dada.cs.washington.edu/smt/papers/isca95abstract.html) 的论文 [Simultaneous Multithreading: Maximizing On-Chip Parallelism](https://dada.cs.washington.edu/smt/papers/isca95abstract.html) 首次提出同步多线程 SMT 的设计.
 
+[NO COMPROMISE: DRIVING SERVER PERFORMANCE AND EFFICIENCY WITH AMD EPYC™ AND SMT](https://www.amd.com/content/dam/amd/en/documents/epyc-business-docs/white-papers/amd-epyc-smt-technology-brief.pdf)
 
 # 2 Rentable Units
 -------

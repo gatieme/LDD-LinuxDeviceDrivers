@@ -55,7 +55,6 @@ blogexcerpt: 虚拟化 & KVM 子系统
 # 1 场景
 -------
 
-
 ## 1.1 AI4OS
 -------
 
@@ -71,6 +70,7 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 论文 | 描述 |
 |:---:|:----:|
 | [LLM as OS, Agents as Apps: Envisioning AIOS, Agents and the AIOS-Agent Ecosystem](https://arxiv.org/abs/2312.03815) | 本文设想了一个革命性的 AIOS-Agent 生态系统, 其中大型语言模型 (LLM) 充当 (人工) 智能操作系统 (IOS, 或 AIOS)——一个 "有灵魂" 的操作系统. 在此基础上, 开发了各种 LLM 基于 AI 代理的应用程序 (Agents, 或 AAP), 丰富了 AIOS-Agent 生态系统, 标志着传统 OS-APP 生态系统的范式转变. 作者设想 LLM 其影响将不仅限于人工智能应用层面, 相反, 它将彻底改变计算机系统、架构、软件和编程语言的设计和实现, 其特点是几个主要概念: LLM 操作系统 (系统级)、代理即应用程序 (应用程序级)、自然语言作为编程接口 (用户级) 和工具即设备 / 库 (硬件 / 中间件级). 我们首先介绍传统操作系统的架构. 然后, 我们通过 "LLMas OS(LLMOS)" 正式化 AIOS 的概念框架, 将 AIOS 与传统操作系统进行类比: LLM 将上下文窗口比作操作系统内核, 将上下文窗口比作内存, 将外部存储比作文件系统, 将硬件工具比作外围设备, 将软件工具比作编程库, 将用户提示比作用户命令. 随后, 我们引入了新的 AIOS-Agent 生态系统, 用户可以使用自然语言轻松编程 Agent 应用程序 (AAP), 使软件开发民主化, 这与传统的 OS-APP 生态系统不同. 在此之后, 我们将探索代理应用程序的多样化范围. 我们深入研究了单智能体和多智能体系统, 以及人机交互. 最后, 借鉴传统 OS-APP 生态的洞察, 提出了 AIOS-Agent 生态演进的路线图.  该路线图旨在指导未来的研究和开发, 建议 AIOS 及其代理应用程序的系统性进展. |
+| [Expert Kit: A Distributed, Expert-Centric Framework for MoE LLM Inference](https://gitee.com/openeuler/expert-kit) | openEuler 提供的 专家工具包(EK) 是一个用于可扩展的 MoE(混合专家)LLM 推理的高性能框架. EK 的愿景是在商用网络(例如 PCIe、TCP、RDMA)上的异构硬件(例如 CPU 和 GPU)上提供专家并行性 (EP)的高效基础, 从而实现轻松部署和细粒度的专家级扩展.  |
 
 
 
@@ -85,6 +85,8 @@ blogexcerpt: 虚拟化 & KVM 子系统
 [2025 年大模型与 Transformer 架构：重塑 AI 未来的科技革命](https://blog.csdn.net/lifetragedy/article/details/146948744)
 
 [Mamba详细介绍和RNN、Transformer的架构可视化对比](https://blog.csdn.net/deephub/article/details/136250003)
+
+[机器之心-盘一盘，2017年Transformer之后，LLM领域的重要论文](https://www.jiqizhixin.com/articles/2025-06-29-4)
 
 
 | 编号 | 结构 | 描述 |
@@ -156,17 +158,19 @@ blogexcerpt: 虚拟化 & KVM 子系统
 -------
 
 
-[Diffusion LLMs (dLLMs): Introducing a New Generation of LLMs](https://markovate.com/diffusion-llms/)
+[Diffusion LLMs (dLLMs): Introducing a New Generation of LLMs](https://markovate.com/diffusion-llms)
 
 | 编号 | 日期 | 模型 | 团队 | 详情 |
 |:---:|:---:|:----:|:---:|:--:|
 |  1  | 2025/02/14 | [LLaDA-8B](https://ml-gsai.github.io/LLaDA-demo) | ml-gsai | 参见论文 [Large Language Diffusion Models](Large Language Diffusion Models](https://arxiv.org/abs/2502.09992), [论文 | 2025 | 论文综述：大型语言扩散模型(LLDM)](https://mp.weixin.qq.com/s/W8lLo6BI1xKkj_1HfiH5pg) |
-|  2  | 2025/03/02 | [Mercury](https://www.inceptionlabs.ai/introducing-mercury) | Inception Labs | NA |
+|  2  | 2025/03/02 | [Mercury](https://www.inceptionlabs.ai/introducing-mercury) | Inception Labs | [扩散模型驱动的下一代LM范式：Diffusion LLM - Mercury，“飞一般的生成速度”](https://zhuanlan.zhihu.com/p/26844666590) |
 |  3  | 2025/03/06 | GIDD | NA | [Generalized Interpolating Discrete Diffusion](https://arxiv.org/abs/2503.04482), [AI自我纠错，Diffusion超越自回归！质量提升55%，已达理论证据下界](https://mp.weixin.qq.com/s/pu2NmYixfwZq94qFDBZ_YQ) |
 |  4  | 2025/03/12 | [BD3-LMs](https://m-arriola.com/bd3lms/) | Cornell Tech | 论文 [Block Diffusion: Interpolating Between Autoregressive and Diffusion Language Models](https://arxiv.org/abs/2503.09573), [爆火Block Diffusion引发LLM架构变革？自回归+扩散模型完美结合 | ICLR 2025](https://zhuanlan.zhihu.com/p/32576344984) |
 |  5  | 2025/04/02 | [Dream-7B](https://hkunlp.github.io/blog/2025/dream/) | University of Hong Kong<br>Huawei Noah’s Ark Lab | 参见 GitHub [HKUNLP/Dream](https://github.com/HKUNLP/Dream) |
 |  6  | 2025/04/12 | [D1](https://dllm-reasoning.github.io) | UCLA<BR>Meta AI | [dllm-reasoning/d1](https://github.com/dllm-reasoning/d1), 参见论文 [d1: Scaling Reasoning in Diffusion Large Language Models via Reinforcement Learning](https://arxiv.org/abs/2504.12216) |
 |  7  | 2024/10/24 | [SMDM](https://github.com/ML-GSAI/SMDM) | ML-GSAI | [Scaling up Masked Diffusion Models on Text](https://arxiv.org/abs/2410.18514) |
+|  8  | 2024/10/24 | [Seed Diffusion](https://seed.bytedance.com/seed_diffusion) | ML-GSAI | [技术报告](https://lf3-static.bytednsdoc.com/obj/eden-cn/hyvsmeh7uhobf/sdiff_updated.pdf)<br>[项目地址](https://seed.bytedance.com/seed_diffusion)<br>[体验链接](https://studio.seed.ai/exp/seed_diffusion)<br>[量子位-字节Seed发布扩散语言模型，推理速度达2146 tokens/s，比同规模自回归快5.4倍](https://qbitai.com/2025/08/316722.html) |
+
 
 
 ## 2.2 稠密模型与稀疏模型
@@ -198,8 +202,8 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 | 编号 | 技术 | 团队 | 介绍 |
 |:---:|:----:|:---:|:---:|
-|  1  | [D-LLM: A Token Adaptive Computing Resource Allocation Strategy for Large Language Models](https://blog.csdn.net/paixiaoxin/article/details/145521305) | NA | 本文提出了一种名为 D-LLM 的新型动态推理机制, 旨在为大型语言模型 (LLMs) 自适应地分配计算资源. 当前, LLMs 对每个词元的处理是等同的, 但作者认为并非所有词语都同等重要, 某些词语在简单问题中并不需要过多的计算资源. D-LLM 通过为每个 Transformer 层设计动态决策模块, 决定是否执行或跳过该层, 从而提高推理速度. 此外, 本文还提出了一种有效的驱逐策略, 以解决跳过层时 KV 缓存缺失的问题. 实验结果表明, D-LLM 在问答、摘要和数学解题任务中可减少高达 45% 的计算成本和 KV 存储, 在常识推理任务中可减少 50%, 且性能未受影响. |
-
+|  1  | [D-LLM: A Token Adaptive Computing Resource Allocation Strategy for Large Language Models](https://blog.csdn.net/paixiaoxin/article/details/145521305) | Huawei | 本文提出了一种名为 D-LLM 的新型动态推理机制, 旨在为大型语言模型 (LLMs) 自适应地分配计算资源. 当前, LLMs 对每个词元的处理是等同的, 但作者认为并非所有词语都同等重要, 某些词语在简单问题中并不需要过多的计算资源. D-LLM 通过为每个 Transformer 层设计动态决策模块, 决定是否执行或跳过该层, 从而提高推理速度. 此外, 本文还提出了一种有效的驱逐策略, 以解决跳过层时 KV 缓存缺失的问题. 实验结果表明, D-LLM 在问答、摘要和数学解题任务中可减少高达 45% 的计算成本和 KV 存储, 在常识推理任务中可减少 50%, 且性能未受影响. |
+|  2  | [Mixture-of-Recursions: Learning Dynamic Recursive Depths for Adaptive Token-Level Computation](https://arxiv.org/abs/2507.10524) | KAIST、谷歌 DeepMind 等 | 提出了一种在统一的架构中, MoR同时实现了三种效率优化<br>1. 参数共享: 通过共享权重压缩参数量, 减小模型体积, 如同让模型学会"一法通、万法通";<br>2. 自适应计算: 不对所有token一视同仁, 让模型根据任务的难易度动态调整计算量(推理时递归的深度)，好比"好钢用在刀刃上", 通过小型路由器, 会为每个 token 的隐藏状态打分, 仅高分 token 的会继续循环, 其余的则提前退出. 简单 Token(比如标点, 常见字"的", "在"等)仅需单次递归即可推出, 复杂 Token(比如数学符号, 专业术语等)会递归多层进行计算, 通过动态路由机制, MoR 让模型真正实现了「千人千面」的计算: 每个 Token 都能根据自己的实际需求, 获得恰到好处的「思考」深度, 从而大幅削减了不必要的计算开销.<br>3. 通过智能缓存减少内存开销: KV 缓存是 Transformer 推理时的内存大户, 尤其是在处理长序列和进行大批量推理时. 在动态深度模型中, 由于 Token 可能在不同深度退出, 如何确保缓存的一致性和效率, MoR 设计了两种针对性的 KV 缓存策略, 为不同的部署场景提供了灵活的选择. 无论是追求极致精度与批处理量, 还是追求极致内存节省与预填充速度, MoR 都能提供相应的优化方案.<br>[知乎-新智元-Transformer终结者！谷歌DeepMind全新MoR架构问世，新一代魔王来了](https://zhuanlan.zhihu.com/p/1929192855898951941)<br>[知乎-tomsheep-MoR：共享 + 路由 + 缓存，递归混合模型为LLM瘦身](https://zhuanlan.zhihu.com/p/1929159784982086816)<br>[知乎-北方的郎-混合递归（MoR）：让大模型“量体裁衣”，为每个词元智能分配思考深度](https://zhuanlan.zhihu.com/p/1929175581800506290)<br>[github/mixture_of_recursions](https://github.com/raymin0223/mixture_of_recursions) |
 
 ## 2.3 模型压缩和量化
 -------
@@ -319,7 +323,11 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 [[Prefill 优化][万字]🔥原理 & 图解 vLLM Automatic Prefix Cache(RadixAttention): 首 Token 时延优化](https://zhuanlan.zhihu.com/p/693556044)
 
-### 3.2.4 投机执行
+### 3.2.4 投机解码
+-------
+
+
+#### 3.2.4.1 投机解码算法分析
 -------
 
 [论文导读 | 投机解码加速模型推理](https://zhuanlan.zhihu.com/p/698333087)
@@ -338,15 +346,48 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 [知乎 - hemingkx - 推测解码（Speculative Decoding）哪家强？-- 最新评测基准 Spec-Bench 分享](https://zhuanlan.zhihu.com/p/683995502)
 
-| 编号 | 算法 | 描述 |
-|:---:|:---:|:----:|
-| NA | NA | NA |
+[知乎 - 有没有speculative decoding的综述？](https://www.zhihu.com/question/657854511)
+
+
+
+| 编号 | 时间 | 文章 | 描述 |
+|:---:|:----:|:---:|:----:|
+|  1  | 2025/07/04 | [知乎 - Se7en - Speculative Decoding 推测解码方案详解](https://zhuanlan.zhihu.com/p/1920447613800547342) | 本文是 LLM 推理系列的第 4 篇, 介绍 Speculative Decoding 推测解码方案详解, 详细介绍了 EAGLE、Medusa、Lookahead 等主流的 Speculative Decoding 方案. |
+|  2  | NA | [从EAGLE-3看Tokenizer对投机解码的影响](https://zhuanlan.zhihu.com/p/1916965162755285553) | EAGLE3能带来如此高的加速比，除了它本身优秀的草稿模型和验证机制外，是不是还有其他“玄机”？不同模型对不同语言的 tokenizer 优化程度不同, 导致它们在多语言场景下的表现差异. Vicuna 的 Tokenizer 在不同语言中普遍呈现出较细的粒度; 从“每步接受多少Token”的指标上来看是其他模型的1.5~2倍. |
+|  3  | 2025/05/24 | [大模型推理 & memory bandwidth bound (4) - Speculative Decoding](https://zhuanlan.zhihu.com/p/1899508608909162422) | 本篇讲解了 Speculative Decoding 的原理, 即以近似模型输出建议 tokens, 目标模型对齐进行并行验证的方式对模型推理进行了加速; 同时, 我们也证明了 Speculative Sampling 的采样方式使得其输出分布与目标模型原有的自回归输出分布保持一致. |
+|  4  | 2025/05/05 | [三种投机解码方法对比：Vanilla Speculative Decoding ・ Medusa ・ EAGLE](https://zhuanlan.zhihu.com/p/1902847900742055126) | 作者分析了几个投机算法, 得出总结:<br>1. Vanilla 双模型最易落地, 维护成本在“小模型 + 双 KV Cache”.<br>2. Medusa 把草稿嵌回大模型顶层, 多头+树形一次核验, 无需小模型, 但须改写主模型.<br>3. EAGLE 草稿移至特征空间, 接受率最高, 代价是额外 Draft 训练与中间特征. |
+|  5  | 2025/07/04 | [知乎 - AI算法小喵 - 投机解码之EAGLE：轻量级草稿模型实现3-4倍推理加速](https://zhuanlan.zhihu.com/p/1898466485095098162) | 分享了 Eagle, 一种利用目标模型的 feature, 并在 feature 层面结合 token 信息进行自回归的从而保证生成质量实现加速的草稿模型构建方法, 并在结尾对比了与之非常相似的MTP. |
+|  6  | 2025/06/29 | [大模型推理加速之Speculative Decoding/投机解码(上)](https://zhuanlan.zhihu.com/p/1922687688307377206) | 作者阅读了《Fast Inference from Transformers via Speculative Decoding》，后简单地分析了 speculative decoding 的处理流程以及其中涉及的一些细节 |
+|  7  | [知乎 - - 推测解码-从draft model、Medusa、Recurrent Drafter、EAGLE、 Prompt Lookup到Lookahead Decoding](https://zhuanlan.zhihu.com/p/19701798414) |  按照 tensorRT-llm 支持的文档 Speculative Sampling 我们把推测解码分成四种类型:<br>1. draft model: 利用更小的LLM先快速生成token序列, 使用LLM进行一次性验证;<br>2. additional heads: 利用在原LLM上新增训练的transformers的注意力层来生成tokens;<br>3. Prompt Lookup: 使用prompt tokens as draft tokens<br>4. Lookahead Decoding: 用历史数据构成 tokens, 但一个批次的构造[ABC,BCD,CDE], 提高单批次推理速度的骚操作. |
+|  8  | 2025/05/25 | [知乎 - 笑渐不闻声渐悄 - Speculative Decoding: 总结、分析、展望](https://zhuanlan.zhihu.com/p/1904881828906668879) | Speculative Decoding: 总结、分析、展望 |
+|  9  | 2025/01/25 |[知乎 - CarryPls - 大模型推理加速技术调研-投机采样](https://zhuanlan.zhihu.com/p/20233143567) | 现有的投机采样架构可以分为 drafter-scorer-sampler 3 层, 该观念来自vLLM PR:<nbr>1. drafter 生成draft tokens: 关注draft tokens生成速度, 质量和组织形式.<br>2. scorer 利用target model（大模型）评估生成的draft tokens 的概率分布. 关注显存使用和验证速度.<br>3. sampler 根据前两步的结果选择接受的token. 关注token接受率. |
+|  10 | 2024/09/11 | [知乎 - Sjrrr大蛇 - 最全LLM自投机算法汇总](https://zhuanlan.zhihu.com/p/706111755) | 对业界领先的多个投机算法进行了分析. |
+|  11 | 2025/06/08 | [知乎 - 罗西的思考 - 探秘 Transformer 系列之(30)--- 投机解码](https://zhuanlan.zhihu.com/p/1898466485095098162) | 对 BPD 投机论文的详细分析 |
+
+
+
+| 编号 | 时间 | 文章 | 描述 |
+|:---:|:----:|:---:|:----:|
+|  1  | 2025/04/24 | [OPT-Tree: Speculative Decoding with Adaptive Draft Tree Structure](https://arxiv.org/abs/2406.17276) | [Jikai0Wang/OPT-Tree](https://github.com/Jikai0Wang/OPT-Tree), [微信公众号-机器学习算法与自然语言处理-一步生成超过10个Tokens!! 无损模型解码加速最新工作](https://mp.weixin.qq.com/s?__biz=MzI4MDYzNzg4Mw==&mid=2247563973&idx=2&sn=a4d1f1a7ee39b11af74bdd020cbdd90c&chksm=ea702fbc79a360767cf3bbb1eb4102b1bb22f8e74f5a258cc3cce656cf88f11eb666f3c97917&scene=27) |
+|  2  | 2024/06/25 | [Optimizing Speculative Decoding for Serving Large Language Models Using Goodput](https://arxiv.org/abs/2406.14066) | 对于不同系统负载下的所有工作负载, 没有最佳推测长度工作. 根据观察结果, 作者开发了一个动态框架 SmartSpec. SmartSpec 根据一个名为 goodput 的新指标动态确定每个请求的最佳投机长度(从 0, 即无投机到许多代币)——因此相关的投机执行成本, 该指标表征了整个系统的当前观察负载和投机准确性. |
+|  3  | 2025/03/07 | [SpecServe: Efficient and SLO-Aware Large Language Model Serving with Adaptive Speculative Decoding](https://arxiv.org/abs/2503.05096) | 在本文提出了 SpecServe, 可根据实时请求负载和系统配置动态调整推测策略. SpecServe 提出了一个理论模型来理解和预测不同场景中推测解码的效率. 此外, 它还实现了智能绘图和验证算法, 以保证最佳性能, 同时实现高 SLO 实现. 在实际 LLM 跟踪上的实验结果表明, SpecServe 始终满足 SLO 并实现了实质性的性能改进, 与最先进的推测推理系统相比, 速度提高了 1.14. |
+
+
+#### 3.2.4.2 Multi-Token Prediction(多token预测)
+-------
+
+| 编号 | 时间 | 文章 | 描述 |
+|:---:|:----:|:---:|:----:|
+|  1  | 2025/07/16 | [Your LLM Knows the Future: Uncovering Its Multi-Token Prediction Potential](https://www.alphaxiv.org/abs/2507.11851) | 实现 MTP 框架, 使预训练的自回归大型语言模型能够执行多 token 预测, 在保持生成质量的同时, 为代码和数学任务提供高达 5.35 倍的推理加速, 以及为一般任务提供约 2.5 倍的推理加速.<br>
+研究者们评估了自回归模型在语言模型有监督微调阶段对多 token 预测任务的适应能力. 未来值得探索的一个方向, 是在预训练阶段或下游任务自适应阶段引入该方法, 以进一步检验其适用性与效果. 另一个具有前景的研究方向是将基于扩散的生成方法应用于多 token 预测任务. 研究者们认为, 多 token 预测位于完全自回归生成与完全扩散生成之间, 能够在两者之间取得优势的平衡，兼具效率与质量的潜力. 参见 [机器之心--五倍推理加速，激发自回归潜能，苹果新工作让LLM预测未来](https://www.jiqizhixin.com/articles/2025-07-24-9) |
+|  2  | 2025/06/13 | [Improving Large Language Models with Concept-Aware Fine-Tuning](https://arxiv.org/abs/2506.07833) | 当前主流 LLM 都依赖 next-token prediction 进行训练,, 但它却让 AI 很难真正理解跨越多 token 的完整概念. 于是南洋理工大学最近提出了一项新技术——概念感知微调(CAFT), 首次实现将 multi-token prediction(多 token 预测)引入微调阶段, 让模型能够像人类一样理解和学习完整概念. 原来 LLM 只能碎片化理解每个 token, 现在 CAFT 可以为模型添加额外的辅助头, 在主模型学习下一个词的同时, 帮助学习后续 token, 并通过动态调整权重, 确保模型始终优先优化主要任务的损失. 最终 LLM 可以兼顾多 token 概念学习, 形成更为完整的认知, 在推理和生成能力增强的同时, 既不会影响模型本身, 也不会额外增加多余成本. 参见量子位报道 [知乎-量子位-突破单token预测局限！南洋理工首次将多token预测引入微调](https://zhuanlan.zhihu.com/p/1931778341473616685), [项目地址](https://github.com/michaelchen-lab/caft-llm). |
 
 
 ### 3.2.5 并行解码
 -------
 
 [Accelerating Transformer Inference for Translation via Parallel Decoding](https://arxiv.org/abs/2305.10427)
+
 
 
 
@@ -370,6 +411,17 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 [HeteroLLM: Accelerating Large Language Model Inference on Mobile SoCs platform with Heterogeneous AI Accelerators](https://arxiv.org/abs/2501.14794)
 
 
+### 3.2.7 注意力机制
+-------
+
+[微信公众号-地学AI实验室-可解释AI，在Transformer中可视化注意力（附代码）](https://mp.weixin.qq.com/s/vwJEBXCk6GrwN9-BVucoQA)
+
+
+### 3.2.8
+-------
+
+
+
 ## 3.3 算子库
 -------
 
@@ -384,6 +436,13 @@ dmlc/tvm
 
 ARM-software/ComputeLibrary
 
+
+## 3.4 长上下文
+-------
+
+[[LLM性能优化]聊聊长文本推理性能优化方向](https://zhuanlan.zhihu.com/p/698308542)
+
+
 # 4 分析工具
 -------
 
@@ -391,6 +450,7 @@ ARM-software/ComputeLibrary
 |:---:|:----:|:---:|
 |  1  | [Interactive Tools for machine learning, deep learning, and math](https://github.com/Machine-Learning-Tokyo/Interactive_Tools) | 用于机器学习、深度学习和数学运算的交互式工具. |
 |  2  | [Visual Guides to understand the basics of Large Language Models](https://towardsdatascience.com/visual-guides-to-understand-the-basics-of-large-language-models-0715701bdd20) | 一系列工具与文章的汇编, 直观易懂地解读复杂的 AI 概念. 译文 [深入浅出：大语言模型的视觉解析 [译]](https://baoyu.io/translations/llm/visual-guides-to-understand-the-basics-of-large-language-models). |
+|  3  | [MLVisuals](https://github.com/dair-ai/ml-visuals) | [科研必备——上手 ML Visuals-神经网络画图神器](https://blog.csdn.net/weixin_43499292/article/details/127030792) |
 
 ## 4.1 Tokenizer
 -------
@@ -436,11 +496,18 @@ ARM-software/ComputeLibrary
 |  7  | [hahnyuan/LLM-Viewer](https://github.com/hahnyuan/LLM-Viewer) | hahnyuan | 一个可视化语言与学习模型 LLMs 并分析在不同硬件平台上性能的工具. 可以进行网络级分析, 考虑峰值内存消耗和总推理时间成本等因素. 使用 LLM-Viewer, 可以获取 LLM 推理和性能优化的宝贵见解. 可以在 Web 浏览器或者命令行(CLI) 工具中使用. 在线体验地址 [LLM-Viewer Web](http://llm-viewer.com). 参见论文 [LLM Inference Unveiled: Survey and Roofline Model Insights](https://arxiv.org/abs/2402.16363). |
 |  8  | [A collection of my study notes for learners](https://www.k-a.in/notes.html) | k-a.in | Transformer/MoE Visualized |
 |  9  | [CNN Explainer](https://poloclub.github.io/cnn-explainer) | poloclub | CNN Explainer: 卷积神经网络可视化, 可交互有细节, 卷积激活池化一目了然, 该项目用 TensorFlow.js 加载一个 10 层的预训练模型, 相当于在浏览器上跑一个 CNN 模型, 可以了解 CNN 的处理过程. 这个网页工具还可以实现交互,  只要点击其中任何一个格子—CNN 中的 "神经元", 就能显示它的输入、经过的变化, 甚至连每一次卷积运算都能看得清清楚楚. [poloclub/cnn-explainer](https://github.com/poloclub/cnn-explainer), 参见论文 [CNN Explainer: Learning Convolutional Neural Networks with Interactive Visualization](https://arxiv.org/abs/2004.15004) |
-| 10  | [PyTorch 可视化工具介绍](https://zhuanlan.zhihu.com/p/658596017) | NA | PyTorch 可视化工具介绍. |
-| 11  | [attentionmech/mav](https://github.com/attentionmech/mav) | attentionmech | 一款可视化大模型内部工作原理的工具, 帮助用户更好的理解和分析模型在生成文本时的内部魔偶快, 包括注意力分布, 预测概率等. 参见 [知识图谱 + 知识库 RAG 项目 Yuxi-Know 及大模型推理内部可视化工具 OpenMAV 实现拆解](https://zhuanlan.zhihu.com/p/1893668626810270690) |
-| 12  | Logit Lens | NA | [2023/03/14, Eliciting Latent Predictions from Transformers with the Tuned Lens](https://arxiv.org/abs/2303.08112), [AlignmentResearch/tuned-lens](https://github.com/AlignmentResearch/tuned-lens) 和 [2025/02/24, LogitLens4LLMs: Extending Logit Lens Analysis to Modern Large Language Models](https://arxiv.org/abs/2503.11667), [zhenyu-02/LogitLens4LLMs](https://github.com/zhenyu-02/LogitLens4LLMs), 其他 [SullivanCastro/Logit-Lens](https://github.com/SullivanCastro/Logit-Lens), [arnab-api/Logit-Lens-Interpreting-GPT-2](https://github.com/arnab-api/Logit-Lens-Interpreting-GPT-2), [msakarvadia/Attentionlens](https://github.com/msakarvadia/Attentionlens) |
-| 13  | [ReasonGraph](https://github.com/ZongqianLi/ReasonGraph) | NA | [ReasonGraph: Visualisation of Reasoning Paths](https://arxiv.org/abs/2503.03979) |
-| 14  | [torchvista](https://github.com/sachinhosmani/torchvista) | 可视化交互式工具, 可以直接在 NodeBook 中可视化 PyTroch 模型的前向传播过程. 支持拖拽/缩放等交互, 并且可以在出现错误时进行部分可视化, 用户可直接点击节点查看参数和属性信息. |
+|  10 | [PyTorch 可视化工具介绍](https://zhuanlan.zhihu.com/p/658596017) | NA | PyTorch 可视化工具介绍. |
+|  11 | [attentionmech/mav](https://github.com/attentionmech/mav) | attentionmech | 一款可视化大模型内部工作原理的工具, 帮助用户更好的理解和分析模型在生成文本时的内部魔偶快, 包括注意力分布, 预测概率等. 参见 [知识图谱 + 知识库 RAG 项目 Yuxi-Know 及大模型推理内部可视化工具 OpenMAV 实现拆解](https://zhuanlan.zhihu.com/p/1893668626810270690) |
+|  12 | Logit Lens | NA | [2023/03/14, Eliciting Latent Predictions from Transformers with the Tuned Lens](https://arxiv.org/abs/2303.08112), [AlignmentResearch/tuned-lens](https://github.com/AlignmentResearch/tuned-lens) 和 [2025/02/24, LogitLens4LLMs: Extending Logit Lens Analysis to Modern Large Language Models](https://arxiv.org/abs/2503.11667), [zhenyu-02/LogitLens4LLMs](https://github.com/zhenyu-02/LogitLens4LLMs), 其他 [SullivanCastro/Logit-Lens](https://github.com/SullivanCastro/Logit-Lens), [arnab-api/Logit-Lens-Interpreting-GPT-2](https://github.com/arnab-api/Logit-Lens-Interpreting-GPT-2), [msakarvadia/Attentionlens](https://github.com/msakarvadia/Attentionlens) |
+|  13 | [ReasonGraph](https://github.com/ZongqianLi/ReasonGraph) | NA | [ReasonGraph: Visualisation of Reasoning Paths](https://arxiv.org/abs/2503.03979) |
+|  14 | [torchvista](https://github.com/sachinhosmani/torchvista) | 可视化交互式工具, 可以直接在 NodeBook 中可视化 PyTorch 模型的前向传播过程. 支持拖拽/缩放等交互, 并且可以在出现错误时进行部分可视化, 用户可直接点击节点查看参数和属性信息. |
+|  15 | [NN-SVG/](http://alexlenail.me/NN-SVG) | NA | [介绍两款生成神经网络架构示意图的工具：NN-SVG和PlotNeuralNet](https://blog.csdn.net/weixin_41896770/article/details/132733991) |
+|  16 | [Machine Learning Visualized](https://ml-visualized.com) | NA |
+|  17 | [AttentionViz]() |  |
+|  18 | [DODRIO](https://poloclub.github.io/dodrio) |[DODRIO: Exploring Transformer Models with Interactive Visualization](http://arxiv-download.xixiaoyao.cn/pdf/2103.14625.pdf), [【NLP】可交互的 Attention 可视化工具！我的Transformer可解释性有救了？](https://blog.csdn.net/fengdu78/article/details/116617948) |
+|  19 | [AttentionViz]() | NA | [AttentionViz: A Global View of Transformer Attention](https://arxiv.org/abs/2305.03210), [CSDN-AttentionViz: A Global View of Transformer Attention论文学习，可视化、了解Transformer中的注意力机制](https://blog.csdn.net/weixin_48334973/article/details/137968878), [AttentionViz:一个可视化Transformer注意力机制的强大工具](https://www.dongaigc.com/a/attentionviz-visualizing-transformer-attention)<br>AttentionViz 的核心理念是将 Transformer 模型中用于计算注意力的查询(query)和键(key)向量进行联合嵌入可视化. 与以往的注意力可视化技术不同, AttentionViz能够分析多个输入序列的全局模式, 为研究人员提供了一个前所未有的视角来理解模型的内部运作. |
+|  20 | [nndeploy](https://github.com/nndeploy/nndeploy) | NNDeploy | 基于工作流的多平台 AI 部署工具, 简化 AI 模型的部署流程. [nndeploy: 易用、高性能、支持多端的AI推理部署框架](https://zhuanlan.zhihu.com/p/1913542783903438653). |
+
 
 ## 4.3 评测平台
 -------
@@ -500,6 +567,7 @@ ARM-software/ComputeLibrary
 | 2023/06/23 | 多模态 | [A Survey on Multimodal Large Language Models](https://arxiv.org/abs/2306.13549) | Shukang Yin | [BradyFU](https://github.com/BradyFU/Awesome-Multimodal-Large-Language-Models) | 本综述中主要介绍了多模态幻觉、多模态上下文学习 (Multimodal InContext Learning，M-ICL)、多模态思维链(Multimodal Chain of Thought，M-CoT) 和 LLM 辅助的视觉推理 (LLM-Aided Visual Reasoning，LAVR) 等. |
 | 2024/07/26 | 模型压缩 | [Comprehensive Study on Performance Evaluation and Optimization of Model Compression: Bridging Traditional Deep Learning and Large Language Models](https://arxiv.org/abs/2407.15904) | Aayush Saxena | [Comprehensive](https://arxiv.org/abs/2407.15904) | 近年来, 深度学习模型在大多数行业都取得了巨大成功. 这些模型的发展还导致模型大小和能源需求增加, 使其难以在低计算设备上的生产环境中进行部署. 全球互联设备数量的增加保证了压缩模型可以轻松部署在本地设备上, 但计算容量和电源可访问性较低. 不同的研究人员提出了广泛的解决方案来减小此类模型的大小和复杂性, 其中突出的是权重量化、参数修剪、网络修剪、低秩表示、权重共享、神经架构搜索、知识蒸馏等. 在这项研究工作中, 我们调查了使用量化和修剪技术进行压缩的各种训练有素的深度学习模型的性能影响. 我们在图像分类、对象检测、语言模型和基于生成模型的问题陈述中使用的常用深度学习模型上实施了量化和剪枝压缩技术. 我们还探讨了各种大型语言模型在量化和低秩适应后的性能. 我们对所有相关问题陈述使用了标准评估指标(模型的大小、准确性和推理时间), 并通过讨论挑战和未来的工作来总结本文. |
 | 2024/06/04 | 投机 | [Unlocking Efficiency in Large Language Model Inference:A Comprehensive Survey of Speculative Decoding](https://arxiv.org/abs/2401.07851) | Heming Xia | [hemingkx/SpeculativeDecodingPapers](https://github.com/hemingkx/SpeculativeDecodingPapers) | [COLING 2025 Tutorial:Speculative Decoding for Efficient LLM Inference](https://speculative-decoding.github.io), [知乎 - LLM 推理加速新范式！推测解码（Speculative Decoding）最新综述](https://zhuanlan.zhihu.com/p/678404136) |
+| 2025/06/16 | 离散扩散(Discrete Diffusion) | [Discrete Diffusion in Large Language and Multimodal Models: A Survey](https://arxiv.org/pdf/2506.13759) | xML 团队 | [LiQiiiii/DLLM-Survey](https://github.com/LiQiiiii/DLLM-Survey) | 本文全面综述了基于离散扩散范式的大语言与多模态模型, 揭示其通过并行解码和去噪策略实现加速推理与精细控制的核心机制, 构建了涵盖理论框架、实现技术与应用场景的完整技术体系. 本文系统梳理了基于离散扩散的大语言模型(dLLMs)和多模态语言模型(dMLLMs)的技术发展脉络. 与传统的自回归模型相比, 这类模型通过并行解码机制和去噪生成策略, 实现了高达10倍的推理加速, 同时在细粒度输出控制和动态感知响应方面展现出独特优势. 研究揭示了该领域发展的两大驱动力: 一是自回归模型积累的海量数据和基础设施, 二是吸收状态扩散、转移矩阵优化等数学模型的突破. 论文从历史沿革、数学框架、模型分类三个维度构建技术体系, 特别阐述了全注意力机制与多标记预测的协同优化方法, 以及蛋白质序列生成等跨领域应用的实现路径. 实验分析表明, 当前领先的d(M)LLMs在保持同等生成质量的前提下, 通过并行解码实现了3-10倍的推理加速. 特别是工业级闭源模型与开源学术模型的双轨发展, 验证了该范式的实际部署价值. 研究最后指出硬件适配优化和高效训练策略将成为未来突破的关键方向. |
 
 [Mobile Edge Intelligence for Large Language Models: A Contemporary Survey](https://arxiv.org/abs/2407.18921)
 [Edge Intelligence: Architectures, Challenges, and Applications](https://arxiv.org/abs/2003.12172)
