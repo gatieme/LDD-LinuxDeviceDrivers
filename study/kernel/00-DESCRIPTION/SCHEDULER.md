@@ -2145,7 +2145,7 @@ update_blocked_averages() 在多个场景都被发现成为非常严重的性能
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2025/03/25 | Peter Zijlstra <peterz@infradead.org> | [sched: Cache aware load-balancing](https://lore.kernel.org/all/20250325120952.GJ36322@noisy.programming.kicks-ass.net) | 这个补丁旨在实现调度器中的缓存感知负载均衡功能. 以下是该补丁的主要内容和目标:<br>1. 缓存亲和性建模: 补丁尝试对缓存亲和性进行建模, 特别是针对 LLC(Last Level Cache) 层面. 虽然目前主要关注于 LLC, 但理论上也可以扩展到处理 L2 等其他缓存域的情况.<br>2. 选择最佳 CPU: 它计算在同一个 LLC 内的最近运行时间最长的 CPU, 并在唤醒路径中使用这个 CPU 来引导任务分配, 同时在 task_hot() 函数中限制从这个 CPU 迁移任务, 以保持缓存亲和性.<br>3. 潜在的扩展能力: 补丁中提到一个 XXX 标记, 表明未来可能需要考虑如何在一个节点内找到最佳的 LLC(与 NUMA_BALANCING 的交互), 这意味着该补丁有进一步发展的空间.<br> 这个补丁的目标是通过改进 Linux 内核的调度器, 使其能够更加智能地考虑缓存的影响, 从而提高系统性能。具体来说, 就是通过优化任务到 CPU 的分配策略来减少由于频繁跨缓存域迁移导致的性能损失. | v1 ☐☑✓ | [2025/03/25, LORE](https://lore.kernel.org/all/20250325120952.GJ36322@noisy.programming.kicks-ass.net) |
-| 2025/04/21 | Chen Yu <yu.c.chen@intel.com> | [sched: Introduce Cache aware scheduling](https://lore.kernel.org/all/cover.1745199017.git.yu.c.chen@intel.com) | 该邮件由 Chen Yu 提交, 提出并更新了 "Cache-aware scheduling" (缓存感知调度) 的 RFC 补丁集(共 5 个补丁) , 旨在提升系统性能. 该调度机制通过将资源共享的进程集中调度到同一缓存域中, 提高缓存局部性, 减少缓存缺失. 补丁集修复了前一版本中的问题, 优化了任务迁移逻辑, 避免在缓存域过载时的性能下降, 并新增 ftrace 事件以辅助性能分析. 参见 [phoronix, 2025/04/21, Intel Posts Newest Code For Cache Aware Scheduling On Linux](https://www.phoronix.com/news/Linux-RFC-Cache-Aware-Sched), [lwn, 2025/04/29, Cache awareness for the CPU scheduler](https://lwn.net/Articles/1018334), [phoronix, 2025/06/18, Cache-Aware Scheduling For Linux Refined - Better AMD & Intel CPU Performance](https://www.phoronix.com/news/Linux-Cache-Aware-Sched-v3)  | v1 ☐☑✓ | [2025/04/21, LORE v1, 0/5](https://lore.kernel.org/all/cover.1745199017.git.yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[2025/06/18, LORE v3, 00/20](https://lore.kernel.org/lkml/cover.1750268218.git.tim.c.chen@linux.intel.com) |
+| 2025/04/21 | Chen Yu <yu.c.chen@intel.com> | [sched: Introduce Cache aware scheduling](https://lore.kernel.org/all/cover.1745199017.git.yu.c.chen@intel.com) | 该邮件由 Chen Yu 提交, 提出并更新了 "Cache-aware scheduling" (缓存感知调度) 的 RFC 补丁集(共 5 个补丁) , 旨在提升系统性能. 该调度机制通过将资源共享的进程集中调度到同一缓存域中, 提高缓存局部性, 减少缓存缺失. 补丁集修复了前一版本中的问题, 优化了任务迁移逻辑, 避免在缓存域过载时的性能下降, 并新增 ftrace 事件以辅助性能分析. 参见 [phoronix, 2025/04/21, Intel Posts Newest Code For Cache Aware Scheduling On Linux](https://www.phoronix.com/news/Linux-RFC-Cache-Aware-Sched), [lwn, 2025/04/29, Cache awareness for the CPU scheduler](https://lwn.net/Articles/1018334), [phoronix, 2025/06/18, Cache-Aware Scheduling For Linux Refined - Better AMD & Intel CPU Performance](https://www.phoronix.com/news/Linux-Cache-Aware-Sched-v3)  | v1 ☐☑✓ | [2025/04/21, LORE v1, 0/5](https://lore.kernel.org/all/cover.1745199017.git.yu.c.chen@intel.com)<br>*-*-*-*-*-*-*-* <br>[2025/06/18, LORE v3, 00/20](https://lore.kernel.org/lkml/cover.1750268218.git.tim.c.chen@linux.intel.com)<br>*-*-*-*-*-*-*-* <br>[2025/08/09, LORE v4, 00/28](https://lore.kernel.org/lkml/cover.1754712565.git.tim.c.chen@linux.intel.com) |
 
 ### 4.3.8 Predict load based
 -------
@@ -5974,7 +5974,7 @@ NOHZ 社区测试用例 [frederic/dynticks-testing.git](https://git.kernel.org/p
 | 2007/02/23 | Thomas Gleixner <tglx@linutronix.de> | [dynticks: idle load balancing](hhttps://lkml.org/lkml/2006/12/11/331) | 修复 dynticks 存在时的进程空闲负载平衡. 停止 TICK 后的 CPU 将休眠, 直到下一个事件将其唤醒. 这些休眠可能会持续很长时间, 在这段时间内, 目前没有进行周期性的空闲负载平衡. 此修补程序指定空闲 CPU 中的所有者, 该所有者代表其他空闲 CPU 执行空闲负载平衡. 一旦所有 CPU 都完全空闲, 那么内核也可以停止这种空闲负载平衡. 将最小化在快速路径中添加的检查. 每当系统中有繁忙的 CPU 时, 就会有一个所有者空闲 CPU 来进行系统范围的空闲负载平衡. | v3 ☑ [2.6.22-rc1](https://lore.kernel.org/lkml/20130505110351.GA4768@gmail.com/) | [LKML v1 0/2](https://lkml.org/lkml/2006/12/11/331)<br>*-*-*-*-*-*-*-* <br>[LKML v2,2/2](https://lkml.org/lkml/2007/2/16/465)<br>*-*-*-*-*-*-*-* <br>[LKML v3](https://lkml.org/lkml/2007/2/23/332)<br>*-*-*-*-*-*-*-* <br>[COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=46cb4b7c88fa5517f64b5bee42939ea3614cddcb) |
 
 
-### 8.2.5 housekeeping
+### 8.2.5 Housekeeping/isolcpus
 -------
 
 https://lore.kernel.org/all/1513275507-29200-1-git-send-email-frederic@kernel.org
@@ -5985,6 +5985,8 @@ https://lore.kernel.org/all/1509419914-16179-1-git-send-email-frederic@kernel.or
 | 2017/10/27 | Frederic Weisbecker <frederic@kernel.org> | [Introduce housekeeping subsystem](https://lwn.net/Articles/728539/) | nohz_full 有一个设计问题: 它通过 housing 的函数驱动各个相互独立的隔离特性: kthreads、unpinned timer、watchdog 等等. 因此, 我们需要一个子系统来驱动所有这些隔离特性, 包括在稍后的迭代中使用 nohz full. 因此引入 housekeeping 子系统来完成这个工作, 通过 CONFIG_CPU_ISOLATION 控制, 从 CONFIG_NO_HZ_FULL 中拆出来作为一个单独的控制模块, 通过 isolcpus 启动参数来控制 nohz_full 相关特性的配置. | v1 ☑ 4.15-rc1 | [LKML 0/5](https://lore.kernel.org/all/1509072159-31808-1-git-send-email-frederic@kernel.org) |
 | 2017/10/31 | Frederic Weisbecker <frederic@kernel.org> | [sched/isolation: Document isolcpus= boot parameter flags, mark it deprecated](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0d40d2b22fe48cfcbbfb137fd198be0a1cd8a85) | 完善了 isolcpus 启动参数的文档, 详细描述了当前 nohz 以及 domain 两个配置参数的功能和效果. | v1 ☑ 4.15-rc1 | [LORE v7](https://lore.kernel.org/all/1509419914-16179-1-git-send-email-frederic@kernel.org), [COMMIT](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=b0d40d2b22fe48cfcbbfb137fd198be0a1cd8a85) |
 | 2017/12/14 | Frederic Weisbecker <frederic@kernel.org> | [Nohz and isolation fixes v2](https://lore.kernel.org/all/1513275507-29200-1-git-send-email-frederic@kernel.org) | NO_HZ_FULL 直接 select CPU_ISOLATION | v1 ☑ 4.15-rc6 | [LKML 0/5](https://lore.kernel.org/all/1513275507-29200-1-git-send-email-frederic@kernel.org) |
+| 2025/08/08 | Gabriele Monaco <gmonaco@redhat.com> | [timers: Exclude isolated cpus from timer migration](https://lore.kernel.org/all/20250808160142.103852-1-gmonaco@redhat.com) | 旨在改进 Linux 内核的 timer migration 机制, 将 isolated CPUs 从定时器迁移逻辑中排除, 提升 CPU 隔离性, 防止 timer migration 破坏实时性和性能, 以提升 CPU 隔离效果和减少延迟波动.<br>当前的 timer migration 机制允许空闲 CPU 从其他 CPU 拉取定时器, 以提升整体节能效果. 但在使用 isolcpus 或 cpuset 隔离的 CPU 上运行 CPU 密集型任务时, 这种机制可能将定时器迁移到这些孤立 CPU, 破坏其执行独立性, 导致延迟增加. <br>补丁引入了 unavailable CPU 的新定义: **孤立或下线的 CPU 均被视为不可用**. 修改后: <br>- 孤立 CPU **不再从远程 CPU 拉取全局定时器**; <br>- 孤立 CPU 上启动的定时器仍在其本地执行; <br>- nohz_full CPU 和时间守护( timekeeper) CPU 仍保留在 timer migration 层级中, 以确保系统正常运作; <br><br>实测显示, 在 128 核机器上使用 oslat 进行压力测试时, 最大延迟从 1203 微秒降至 10 微秒, 效果显著. | v11 ☐☑✓ | [2025/08/08, LORE v11, 0/8](https://lore.kernel.org/all/20250808160142.103852-1-gmonaco@redhat.com) |
+
 
 ### 8.3.2 降噪
 -------
@@ -6971,32 +6973,16 @@ ANDROID 8 实现了 BINDER 对实时优先级传递的支持. 但是经过测试
 | 2024/12/10 | Carlos Llamas <cmllamas@google.com> | [binder: faster page installations](https://lore.kernel.org/all/20241210143114.661252-1-cmllamas@google.com) | [phoronix, 2024/12/27, Performance Improvements To Google's Binder Queued Ahead Of Linux 6.14](https://www.phoronix.com/news/Binder-Faster-Page-Installation) | v7 ☐☑✓ | [LORE v7,0/9](https://lore.kernel.org/all/20241210143114.661252-1-cmllamas@google.com) |
 
 
-# 11 其他
--------
-
-## 11.1 CPU HOTPLUG 中的调度处理
+## 11 调度框架
 -------
 
 
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2016/03/10 | Tejun Heo <tj@kernel.org> | [sched: define and use CPU_PRI_* enums for cpu notifier priorities](https://lore.kernel.org/patchwork/cover/201980) | 重构 migration_call 的 通知方式 | v1 ☑ 2.6.36-rc1 | 注意补丁有 UPATE, [UPDATE](https://lore.kernel.org/patchwork/cover/202907) |
-| 2016/03/10 | Thomas Gleixner <tglx@linutronix.de> | [sched: Migrate disable support](https://lore.kernel.org/patchwork/cover/657710) | 将 CPU 下线时 MIGRATE 的操作放到了 sched_cpu_dying() 中进行 | v1 ☑ 4.7-rc1 | [2020/09/11 preparations](https://lore.kernel.org/patchwork/cover/657710) |
-| 2020/10/23 | Peter Zijlstra | [sched: Migrate disable support](https://lkml.org/lkml/2019/9/14/64) | 在启用 PREEMPT_RT 的内核上, 包括 spin/rw 锁持有部分在内的大部分代码都是可抢占的, 也使得任务可以迁移. 这违反了每个 CPU 的约束. 因此, PREEMPT_RT 需要一种独立于抢占的机制来控制迁移. 此特性移除了 sched_cpu_dying(), 改为 balance_push 来完成这个操作 | v4 ☑ 5.11-rc1 | [2020/09/11 preparations](https://lore.kernel.org/all/CAHk-=whej3MMKJBHKWp66djfEP5=kyncX7FoqJacYtmBXB6v9w@mail.gmail.com) |
-
-
-
-## 11.2 调度热升级 & 用户态调度框架
--------
-
-
-### 11.2.1 用户空间调度框架
+## 11.1 用户空间调度框架
 -------
 
 "Google Fibers" 是一个用户空间调度框架, 在谷歌广泛使用并成功地用于改善进程内工作负载隔离和响应延迟. 我们正在开发这个框架, UMCG(用户管理并发组) 内核补丁是这个框架的基础.
 
-#### 11.2.1.1 Directly Switch To
+### 11.1.1 Directly Switch To
 -------
 
 [FUTEX_SWAP 补丁分析 - SwitchTo 如何大幅度提升切换性能？](https://mp.weixin.qq.com/s/dDg5WKb8vqo5WfArAuav9Q)
@@ -7005,7 +6991,7 @@ ANDROID 8 实现了 BINDER 对实时优先级传递的支持. 但是经过测试
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2020/08/03 | Peter Oskolkov <posk@google.com>/<posk@posk.io> | [FUTEX_SWAP](https://lore.kernel.org/patchwork/cover/1433967) | 通过对 futex 的魔改, 使得在用户态使用 switch_to() 指定任务切换的能力. 这就是用户模式线程的用途: 极低的切换开销, 意味着我们操作系统可以支持的数以千计的线程可以提高到 10 倍以上甚至百万级别. | [2020/06/15 PatchWork RFC,0/3](https://lore.kernel.org/patchwork/cover/1256264)<br>*-*-*-*-*-*-*-* <br>[2020/06/16 PatchWork RFC,0/3,v2](https://lore.kernel.org/patchwork/cover/1257233)<br>*-*-*-*-*-*-*-* <br>[2021/07/16 PatchWork RFC,0/3,v3](https://lore.kernel.org/patchwork/cover/1263506)<br>*-*-*-*-*-*-*-* <br>[2020/08/03 PatchWork for,5.9,v2,0/4](https://lore.kernel.org/patchwork/cover/1283798) |
 
-#### 11.2.1.2 ghOSt
+### 11.1.2 ghOSt
 -------
 
 谷歌的 Ghost 作为从用户空间和或 eBPF 程序控制 Linux 内核调度程序的一种手段. Ghost 提供了一个广泛的 API, 因此开发人员可以从用户空间或 eBPF 更改内核的调度程序行为, 并根据系统首选项微调调度行为.
@@ -7022,7 +7008,7 @@ ANDROID 8 实现了 BINDER 对实时优先级传递的支持. 但是经过测试
 |:---:|:----:|
 | [Rhodes: A Next-Generation OS based on Resource Governance Model](https://www.techrxiv.org/articles/preprint/Next_Generation_Operating_System_based_on_Resource_Governance_Model/21371505/5) | 本文提出 Rhodes, 基于资源治理模型, 解耦资源和规则, 构建统一资源治理中心, 支持规则动态修改和扩展, 使资源的组织有序、灵活、可扩展, 非常像大号的 Google ghost:<br>(1) Governance Center: 管理和维护软硬件资源规则. 支持静态规则发现、动态规则发现. 通过规则和资源的分离, 它确保了 GC 规则的可扩展性和灵活性.<br>(2) Agent Process: Agent 进程与资源进程绑定, 资源间的通信被转化为代理间的通信, 允许开发者使用跨语言协议.<br>(3) Static rule discovery: 通过发布 - 订阅模型, 代理可以监听存储在治理中心中的静态规则的变化. 规则变更时, GC 实时推送新规则到代理.<br>(4) Dynamic rule discovery: 允许用户自定义资源之间的通信策略. 参见 [【欧拉多咖 | OS 每周快讯】2022.12.06~2022.12.12](https://www.chaspark.com/#/hotspots/821172234535870464) |
 
-#### 11.2.1.3 Upcalls
+### 11.1.3 Upcalls
 -------
 
 
@@ -7059,19 +7045,19 @@ Google 的 Peter Oskolkov 发布了 [最早的 RFC v0.1 补丁](https://lore.ker
 | 2022/01/20 | Peter Zijlstra <peterz@infradead.org> | [sched: User Managed Concurrency Groups](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=abedf8e2419fb873d919dd74de2e84b510259339) | Peter Zijlstra 对 UMCG 的重新实现. | v9 ☑ 4.6-rc1 | [PatchWork RFC,0/3](https://patchwork.kernel.org/project/linux-mm/cover/20211214204445.665580974@infradead.org)<br>*-*-*-*-*-*-*-* <br>[PatchWork RFC,v2,0/5](https://patchwork.kernel.org/project/linux-mm/cover/20220120155517.066795336@infradead.org) |
 | 2022/10/19 | Andrei Vagin <avagin@gmail.com> | [seccomp: add the synchronous mode for seccomp_unotify](https://lore.kernel.org/all/20221020011048.156415-1-avagin@gmail.com) | seccomp_unotify 允许特权更大的进程代表特权更小的进程执行操作. 在许多情况下, 工作流是完全同步的. 它意味着一个目标进程触发一个系统调用, 并将控制传递给一个主管进程, 后者处理系统调用并将控制返回给目标进程. 在这个上下文中, "同步" 意味着只有一个进程在运行, 另一个正在等待.<br> 新的 WF_CURRENT_CPU 标志建议调度器将唤醒对象移动到当前 CPU. 对于这样的同步工作流, 它使上下文切换速度提高了几倍. 测试发现, 原来每个相互作用需要 12µs, 借助这个补丁这个过程只需要 3µs. | v2 ☐☑✓ | [LORE v2,0/5](https://lore.kernel.org/all/20221020011048.156415-1-avagin@gmail.com)<br>*-*-*-*-*-*-*-* <br>[LORE v4,0/6](https://lore.kernel.org/lkml/20230124234156.211569-1-avagin@google.com)<br>*-*-*-*-*-*-*-* <br>[LORE v5,0/6](https://lore.kernel.org/all/20230308073201.3102738-1-avagin@google.com) |
 
-#### 11.2.1.4 User-Space Scheduling 相关论文
+### 11.1.4 User-Space Scheduling 相关论文
 -------
 
 
 | 来源 | 论文 | 概述 |
 |:----:|:---:|:----:|
-| NSDI '19 | [Shinjuku: preemptive scheduling for µsecond-scale tail latency](https://dl.acm.org/doi/10.5555/3323234.3323264) | 最近提出的用于微秒级应用的数据平面 (如 IX 和 ZygOS) 使用非抢占式策略为内核调度请求. 在现实世界的许多应用场景中, 请求服务时间的分布具有高度分散性或较重的尾部, 它们允许短请求被阻塞在长请求之后, 从而导致较差的尾部延迟. Shinjuku 是一个单地址空间操作系统, 它利用硬件支持虚拟化, 在微秒级实现抢占. 这使得 Shinjuku 可以实施集中式调度策略, 每 5 微秒抢占一次请求, 并能很好地处理轻度和重度尾部请求服务时间分布. 论文中们证明, 与 IX 和 ZygOS 相比, Shinjuku 能在各种工作负载场景下显著改善尾端延迟和吞吐量. 在 RocksDB 服务器同时处理点查询和范围查询的情况下, Shinjuku 的吞吐量提高了 6.6 倍, 尾部延迟降低了 88%. |
+| NSDI '19 | [Shinjuku: preemptive scheduling for µsecond-scale tail latency](https://www.usenix.org/conference/nsdi19/presentation/kaffes) | 最近提出的用于微秒级应用的数据平面 (如 IX 和 ZygOS) 使用非抢占式策略为内核调度请求. 在现实世界的许多应用场景中, 请求服务时间的分布具有高度分散性或较重的尾部, 它们允许短请求被阻塞在长请求之后, 从而导致较差的尾部延迟. Shinjuku 是一个单地址空间操作系统, 它利用硬件支持虚拟化, 在微秒级实现抢占. 这使得 Shinjuku 可以实施集中式调度策略, 每 5 微秒抢占一次请求, 并能很好地处理轻度和重度尾部请求服务时间分布. 论文中们证明, 与 IX 和 ZygOS 相比, Shinjuku 能在各种工作负载场景下显著改善尾端延迟和吞吐量. 在 RocksDB 服务器同时处理点查询和范围查询的情况下, Shinjuku 的吞吐量提高了 6.6 倍, 尾部延迟降低了 88%. 代码 [stanford-mast/shinjuku](https://github.com/stanford-mast/shinjuku) |
 | NA | [LibPreemptible: Enabling Fast, Adaptive, and Hardware-Assisted User-Space Scheduling](https://arxiv.org/abs/2308.02896) | [Towards Fast, Adaptive, and Hardware-Assisted User-Space Scheduling](https://arxiv.org/abs/2308.02896), 现代云应用很容易出现高尾部延迟, 因为它们的请求通常遵循高度分散的分布. 先前的工作提出了操作系统和系统级解决方案, 通过更好的调度来减少微秒级工作负载的尾部延迟. 遗憾的是, 现有的方法 (如定制的数据平面操作系统) 需要对操作系统进行重大修改, 在可扩展性方面受到限制, 或者无法充分发挥硬件提供的性能.<br> 论文提出了 LibPreemptible, 一个灵活、轻量级、可扩展的抢占式用户级线程库. LibPreemptible 基于三项关键技术:<br>1. 快速、轻量级的硬件机制, 用于提供定时中断;<br>2. 通用的用户级调度接口 <br>3. 用户应用程序接口, 用于表达适合其应用需求的自适应调度策略.<br> 与之前最先进的调度系统 Shinjuku 相比, 论文提出的系统无需修改内核即可显著改善各种工作负载的尾部延迟和吞吐量. 还展示了 LibPreemptible 在不同调度策略下的灵活性, 适用于负载水平和特性各不相同的实际应用. |
 | SOSP '21 | [Syrup: User-Defined Scheduling Across the Stack](https://dl.acm.org/doi/10.1145/3477132.3483548) | SOSP '21: Proceedings of the ACM SIGOPS 28th Symposium on Operating Systems Principles 的论文, Syrup 时基于 Ghost 和 eBPF 构建的用户态自定义调度框架, 可使不受信任的应用开发人员在这些系统层之间表达特定于应用的调度策略, 而不必为实现这些策略的底层系统机制所累. 应用程序开发人员使用 Syrup 编写调度策略, 将其作为输入 (线程、网络数据包、网络连接) 和执行器 (内核、网络套接字、网卡队列) 之间的一组匹配函数, 然后将其部署到各系统层, 而无需修改代码. Syrup 支持多租户, 因为多个位于同一地点的应用程序可以各自安全可靠地指定自定义策略. 我们介绍了几个使用 Syrup 的示例, 它们只需几行代码就能定义应用程序和特定工作负载的调度策略, 并将其部署到整个堆栈中, 与默认策略相比, 性能最多可提高 8 倍. 参见 [slides](https://systems-rg.github.io/slides/2022-07-08-syrup.pdf) |
 | NSDI '19  |[Shenango: Achieving High CPU Efficiency for Latency-sensitive Datacenter Workloads](https://www.usenix.org/conference/nsdi19/presentation/ousterhout) | 数据中心应用需要微秒级的尾延迟和操作系统的高请求率, 而且大多数应用处理的负载在多个时间尺度上都有很大差异. 如何以 CPU 效率高的方式实现这些目标是一个尚未解决的问题. 由于当今内核的开销很大, 实现微秒级延迟的最佳解决方案是内核旁路联网, 即把 CPU 内核专门用于应用程序对网卡进行旋转轮询. 但这种方法会浪费 CPU: 即使在平均负荷不大的情况下, 也必须为峰值预期负荷分配足够的内核.<br>Shenango 可实现类似的延迟, 但 CPU 效率却高得多. 它能以非常精细的粒度（每 5 微秒）在各个应用之间重新分配内核, 从而使对延迟敏感的应用未使用的周期能被批处理应用有效利用. 实现如此快的重新分配率, 得益于: (1) 一种高效的算法, 该算法可检测应用程序何时可从更多内核中获益；(2) 一个名为 IOKernel 的特权组件, 该组件在专用内核上运行, 引导来自网卡的数据包, 并协调内核的重新分配. 在处理对延迟敏感的应用（如 memcached）时, 我们发现 Shenango 的尾部延迟和吞吐量可与最先进的内核旁路网络协议栈 ZygOS 相媲美, 但却能以线性方式将对延迟敏感的应用吞吐量换成批处理应用吞吐量, 从而大大提高了 CPU 效率. |
 
 
-### 11.2.2 基于 eBPF 的可编程调度框架
+## 11.2 基于 eBPF 的可编程调度框架
 -------
 
 
@@ -7095,10 +7081,10 @@ CFS 调度器为用户和开发人员提供了非常多的调试接口和参数�
 BPF 钩子 (它已经成功地用于各种内核子系统) 为外部代码 (安全地) 更改一些内核决策提供了一种方法, BPF 工具使这变得非常容易, 部署 BPF 脚本的开发者已经非常习惯于为新的内核版本更新它们.
 
 
-#### 11.2.2.1 sched_ext: Facebook 的尝试
+### 11.2.1 sched_ext: Facebook 的尝试
 -------
 
-##### 11.2.2.1.1 引入 sched_ext
+#### 11.2.1.1 引入 sched_ext
 -------
 
 [当 BPF 邂逅 CPU 调度器](https://www.ebpf.top/post/cfs_scheduler_bpf)
@@ -7169,7 +7155,7 @@ LSFMMBPF 2024 上对 sched_ext 进行了讨论 [LWN, 2024/05/23, LSFMMBPF-2024, 
 | 2025/06/30 | Marcos Garcia <magazo2005@gmail.com> | [sched/ext: Implement cgroup idle state notification](https://lore.kernel.org/all/20250630184709.3831581-1-magazo2005@gmail.com) | 实现 cgroup 空闲状态通知机制. 该补丁新增 `scx_group_set_idle() ` 函数, 通过 RCU 机制安全调用 BPF 调度器的 `cgroup_set_idle` 回调函数, 通知任务组(cgroup) 进入空闲或活动状态. 这使调度器能够优化资源分配、实现节能策略并改善负载均衡决策. 该功能为可选机制, 不依赖此通知的调度器可不实现相关回调. | v2 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250630184709.3831581-1-magazo2005@gmail.com) |
 
 
-##### 11.2.2.1.2 WAKE/LLC/NUMA 感知与支持
+#### 11.2.1.2 WAKE/LLC/NUMA 感知与支持
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -7181,7 +7167,7 @@ LSFMMBPF 2024 上对 sched_ext 进行了讨论 [LWN, 2024/05/23, LSFMMBPF-2024, 
 | 2025/02/26 | Andrea Righi <arighi@nvidia.com> | [selftests/sched_ext: Add NUMA-aware scheduler test](https://lore.kernel.org/all/20250226065057.151976-1-arighi@nvidia.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250226065057.151976-1-arighi@nvidia.com) |
 
 
-##### 11.2.2.1.3 sched_ext per-node 数据拆分
+#### 11.2.1.3 sched_ext per-node 数据拆分
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -7196,7 +7182,7 @@ LSFMMBPF 2024 上对 sched_ext 进行了讨论 [LWN, 2024/05/23, LSFMMBPF-2024, 
 | 2025/06/10 | liuwenfang <liuwenfang@honor.com> | [sched_ext: introduce cpu tick](https://lore.kernel.org/all/2d771c1f293845e09edf73f5db5b2837@honor.com) | 邮件提出了一项针对 Linux 调度器扩展(sched_ext) 的补丁, 新增 `cpu_tick` 回调机制. 其核心目的是在 CPU 非空闲时, 定期通知 BPF 调度器检查本地调度队列(dsq) 中是否存在长时间可运行的 scx 任务, 以便采取策略(如迁移任务) 提升调度性能. 当前场景下, 若某个 CPU 正运行 RT 任务, scx 任务可能被饿死 100ms, 引入 `cpu_tick` 可帮助调度器更及时响应并优化调度决策. 补丁在 `ext. c` 中增加了 15 行代码, 定义并实现了 `cpu_tick` 操作.| v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/2d771c1f293845e09edf73f5db5b2837@honor.com) |
 
 
-##### 11.2.2.1.4 scx_sched
+#### 11.2.1.4 scx_sched
 -------
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -7205,7 +7191,7 @@ LSFMMBPF 2024 上对 sched_ext 进行了讨论 [LWN, 2024/05/23, LSFMMBPF-2024, 
 
 
 
-##### 11.2.2.1.5 sched_ext debug
+#### 11.2.1.5 sched_ext debug
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -7215,7 +7201,7 @@ LSFMMBPF 2024 上对 sched_ext 进行了讨论 [LWN, 2024/05/23, LSFMMBPF-2024, 
 | 2025/04/19 | Andrea Righi <arighi@nvidia.com> | [sched_ext: Introduce rq lock tracking](https://lore.kernel.org/all/20250419123536.154469-1-arighi@nvidia.com) | TODO | v1 ☐☑✓ | [2025/04/19, LORE v1, 0/2](https://lore.kernel.org/all/20250419123536.154469-1-arighi@nvidia.com)<br>*-*-*-*-*-*-*-* <br>[2025/04/20, LORE v2, 0/2](https://lore.kernel.org/lkml/20250420193106.42533-1-arighi@nvidia.com)<br>*-*-*-*-*-*-*-* <br>[2025/04/22, LORE v3,0/2](https://lore.kernel.org/all/20250422082907.110167-1-arighi@nvidia.com/) |
 
 
-##### 11.2.2.1.X sched_ext 调度器汇总
+#### 11.2.1.X sched_ext 调度器汇总
 -------
 
 
@@ -7230,7 +7216,7 @@ LSFMMBPF 2024 上对 sched_ext 进行了讨论 [LWN, 2024/05/23, LSFMMBPF-2024, 
 |  4  | [scx_packet](https://free5gc.org/blog/20250509/20250509) | RUST | [Free5GC](https://free5gc.org/) 项目试验的 scx_packet 调度程序. 它使用了一种相对简单的算法: 系统中的一半 CPU 保留给延迟敏感的网络处理任务, 而另一半则交给 CPU 绑定的一般处理. 但这个调度程序对所有网络流量一视同仁——语音通话、网页浏览和流媒体都流向同一个 CPU. 这可能会导致语音数据被阻止在下载流量之后, 并且紧急呼叫与社交媒体活动具有相同的优先级. 随着工作负载的转移, 这种方法还导致一些 CPU 过载, 而另一些 CPU 则处于空闲状态. 最后, 某些数据包需要比其他数据包更多的处理; 应单独安排对 CPU 密集型数据包的处理. |
 |  5  | [scx_rusty](https://github.com/vax-r/scx/tree/scx_rusty_MLLB) | RUST | Ching-Chun("Jim") Huang 展示了其将 (本地) 机器学习应用于在复杂系统上调度器负载均衡的工作成果, [Improve Load Balancing with Machine Learning Techniques based on sched_ext Framework](https://static.sched.com/hosted_files/ossna2025/d2/Improve-Load-Balancing-With-Machine-Learning-Techniques-based-on-sched_ext.pdf). Free5GC 开发人员研究通过机器学习来改进调度器的负载均衡. 在此类系统上进行调度需要考虑许多输入维度; 此外, 调度程序还必须考虑每个任务的优先级、其 CPU 要求、到目前为止的虚拟运行时间以及最近的 CPU 使用模式. 必须考虑每个 CPU 上的负载, 以及 NUMA 距离、缓存共享和工作频率. 当然, 还有特定于工作负载的因素. 基于 scx_rusty 来尝试考虑所有这些参数并决定何时应该将任务从一个 CPU 移动到另一个 CPU. 它最初以数据收集模式运行, 查看迁移决策及其结果; 然后, 这些决策用于训练模型(在用户空间中), 该模型随后存储在 BPF 映射中. 然后, 调度程序可以在内核内使用此模型来做出负载平衡决策. 这些决策的结果会不断被测量并报告回用户空间, 从而随着时间的推移更新模型. 在使用最重要的内核编译基准测试的测试中, 该调度器的编译时间比 EEVDF 调度器缩短了 10%, 任务迁移的数量减少了 77%. Huang 总结了机器学习在这种情况下起作用的原因: 在这种复杂的环境中进行调度是一个模式识别问题, 而神经网络擅长这项任务. 调度程序能够平衡相互竞争的目标, 并自动针对新的架构和工作负载进行自我重新训练. 调度程序能够为每个迁移决策考虑 15 个单独的参数, 并根据结果调整其模型. [2025 Open Source Summit North America](https://events.linuxfoundation.org/open-source-summit-north-america), 参见 LWN 报道 [LWN 2025/07/01, Improved load balancing with machine learning](https://lwn.net/Articles/1027096). |
 
-#### 11.2.2.2 Google 的 ghOSt
+### 11.2.2 Google 的 ghOSt
 -------
 
 于此同时, google 团队的 Hao Luo 和 Barret Rhoden 等也在 eBPF 在  CPU Scheduler 领域的应用进行了探索, 并在 LPC-2021 上做了分享. 当前的工作集中在几个方向:
@@ -7243,7 +7229,7 @@ LSFMMBPF 2024 上对 sched_ext 进行了讨论 [LWN, 2024/05/23, LSFMMBPF-2024, 
 
 这与谷歌的 ghOSt 非常类似, 但是 ghOSt 比 BPF 的方式要激进很多, ghOSt 的目标是将调度代码转移到用户空间. 它们的核心动机似乎有些相似: 使调度器更改更容易开发、验证和部署. 尽管他们的方法不同, 他们也使用 BPF 来加速一些热点路径. 但是作者认为使用 BPF 的方式也可以达到他们的目的. 参见 [eBPF in CPU Scheduler](https://linuxplumbersconf.org/event/11/contributions/954/attachments/776/1463/eBPF%20in%20CPU%20Scheduler.pdf)
 
-#### 11.2.2.3 Paravirt Scheduling (Dynamic vcpu priority management)
+### 11.2.3 Paravirt Scheduling (Dynamic vcpu priority management)
 -------
 
 
@@ -7251,21 +7237,21 @@ LSFMMBPF 2024 上对 sched_ext 进行了讨论 [LWN, 2024/05/23, LSFMMBPF-2024, 
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2024/04/03 | Vineeth Pillai (Google) <vineeth@bitbyteword.org> | [Paravirt Scheduling (Dynamic vcpu priority management)](https://lore.kernel.org/all/20240403140116.3002809-1-vineeth@bitbyteword.org) | 双重调度是虚拟化主机的一个问题, 在这种情况下, 主机调度 VCPU 时不知道 VCPU 运行的是什么, 而客户机调度任务时不知道 VCPU 实际运行在哪里. 任务却不知道 VCPU 实际运行在哪里. 这会导致延迟、功耗、资源利用率等相关问题. 理想的解决方案是建立一个合作调度框架, 让客户机和主机共享调度相关信息, 并做出明智的调度决策, 以最佳方式处理工作负载. 作为第一步, 我们正在努力减少延迟 的延迟. 这一系列补丁旨在实施一个框架, 根据在 VCPU 上运行的工作负载的需求, 动态管理 VCPU 线程的优先级. 对延迟敏感的工作负载 (nmi、irq、softirq、critical section、RT 任务等) 将从主机获得提升, 以尽量减少延迟. 当主机掌握有关 VCPU 上将要运行的内容的足够信息时, 它可以主动提升 VCPU 线程, 例如: 注入中断. 在其他情况下, 如果 VCPU 尚未提升, 客户机可以请求提升. 在对延迟敏感的工作负载完成后, 客户机可随后请求取消提升. 如果需要, 客户机也可以请求提升. 共享内存区域用于交流调度信息, 客户机共享其对优先级提升的需求, 主机共享 VCPU 的提升状态. 客户机在需要提升时设置一个标志, 然后继续运行. 主机在下一次 VMEXIT 时读取该标志, 并提升 VCPU 线程. 取消提升是同步进行的, 这样当客户机不运行任何对延迟敏感的工作负载时, 主机工作负载就能与客户机公平竞争.  [v1 RFC](https://lore.kernel.org/all/20231214024727.3503870-1-vineeth@bitbyteword.org) 于 2023 年 12 月发布. 主要分歧在于实施过程中, 补丁会在 kvm 和 kvm 中做出调度策略决定. 而 kvm 并不适合这样做. 建议将调度策略决策移出 kvm, 让 kvm 只处理调度策略决策所需的通知. 政策决策所需的通知. 本补丁系列是实现分层设计功能的迭代步骤 设计的迭代步骤, 在这种设计中, 策略可以作为内核内置程序、内核模块或 bpf 程序在 kvm 之外实现. 参见 LWN 报道 [LWN, 2024/05/22, LSFMMBPF-2024, Virtual machine scheduling with BPF](https://lwn.net/Articles/974363). | v2 ☐☑✓ | [2023/12/13, LORE v1,0/8](https://lore.kernel.org/all/20231214024727.3503870-1-vineeth@bitbyteword.org)<br>*-*-*-*-*-*-*-*<br>[2024/04/03, LORE v2,0/5](https://lore.kernel.org/all/20240403140116.3002809-1-vineeth@bitbyteword.org) |
 
-#### 11.2.2.4 openEuler 可编程调度(programmable base on bpf for scheduler)
+### 11.2.4 openEuler 可编程调度(programmable base on bpf for scheduler)
 -------
 
 openEuler 5.10 内核集成了基于 eBPF 的可编程调度的功能, [issue: introduce scheduler BPF](https://gitee.com/openeuler/kernel/issues/I5F6X6), [Introduce programmable base on bpf for scheduler](https://gitee.com/openeuler/kernel/issues/I8OIT1), [pulls/4053, sched: basic infrastructure for scheduler bpf](https://gitee.com/openeuler/kernel/pulls/4053)
 
-#### 11.2.2.5 OPPO 可编程内核技术
+### 11.2.5 OPPO 可编程内核技术
 -------
 
 [OPPO 在 CLK 大会上公布可编程内核技术，引领安卓流畅体验升级](https://blog.csdn.net/feelabclihu/article/details/134194329)
 
 
-### 11.2.3 Pluggable Scheduler Framework
+## 11.3 Pluggable Scheduler Framework
 -------
 
-#### 11.2.3.1 Pluggable CPU Scheduler Framework
+### 11.3.1 Pluggable CPU Scheduler Framework
 -------
 
 
@@ -7284,26 +7270,35 @@ William Lee Irwin III 最早提出了调度器模块化框架, 支持启动时�
 | 2004/10/31 | Con Kolivas <kernel@kolivas.org> | [Pluggable cpu scheduler framework](https://lore.kernel.org/all/4183A602.7090403@kolivas.org) | TODO | v1 ☐☑✓ | [LORE v1,00/28](https://lore.kernel.org/all/4183A602.7090403@kolivas.org) |
 
 
-#### 11.2.3.2 dynsched: scheduler switch at runtime
+### 11.3.2 dynsched: scheduler switch at runtime
 -------
 
 [dynsched](https://sourceforge.net/projects/dynsched) 项目的目标是在运行时切换 CPU 调度程序, 它基于 Peter Williams 的 [plugsched](http://cpuse.sourceforge.net). 通过控制 procfs 节点 `/proc/dynsched` 来完成不同调度器之间切换, 当前支持以下调度程序实现: ingosched, nicksched, staircase, 暂不支持基于 spa 的调度器(如 spa_no_folds、zaphod 等), 我希望它们能很快完成, 就像 SMP 的支持一样. dynsched 项目是作者在康  Konstanz 计算机科学研究的一部分. 参见 [scheduler switch at runtime](https://lore.kernel.org/all/1141335697.4419.15.camel@linux.site) 和 [dynsched - different cpu schedulers per cpuset](https://lwn.net/Articles/211141)
 
-#### 11.2.3.3 Runtime CPU scheduler customization framework
+### 11.3.3 Runtime CPU scheduler customization framework
 -------
 
 接着在 2009 年, IEEE Student Conference on Research and Development (SCOReD) 上发表的一篇 [Runtime CPU scheduler customization framework for a flexible mobile operating system](https://ieeexplore.ieee.org/document/5443304) 介绍了基于 Linux 内核的运行时 CPU 调度程序自定义 (RCSC) 框架, 该框架考虑了不同的应用程序要求, RCSC 框架允许开发人员自定义 CPU 调度程序以使用特定的调度策略运行, 并在运行时从用户空间评估新开发的调度策略. 因此, 可以手动或自动调整移动操作系统, 以适应特定应用程序的要求. 可同步参考作者 2010 年的毕业论文 [Runtime pluggable CPU scheduler for linux operating system](http://myto.upm.edu.my/find/Record/my-upm-ir.40934/Description#tabnav).
 
 
-### 11.2.4 调度器热升级
+### 11.3.4 论文研究
 -------
 
-#### 11.2.4.1 Patching of scheduler functions
+| 论文 | 描述 | 实现 |
+|:---:|:----:|:---:|
+| [Agile Development of Linux Schedulers with Ekiben](https://arxiv.org/abs/2306.15076) | 内核任务调度对于应用程序性能、对新硬件的适应性和复杂的用户需求非常重要. 然而, 在使用最广泛的云作系统 Linux 中开发、测试和调试新的调度算法既缓慢又困难. 我们开发了 Ekiben, 这是一个用于 Linux 内核调度器的高速开发框架. Ekiben 调度器是用安全的 Rust 编写的, 系统支持将新的调度策略实时升级到内核中, 用户空间调试, 以及与应用程序的双向通信. 在各种基准测试中, 使用 Ekiben 实现的调度器与默认 Linux 调度器 CFS 几乎相同的性能（平均在 1% 以内）. Ekiben 还能够支持一系列研究调度器, 特别是 Shinjuku 调度器、局部感知调度器和 Arachne 核心仲裁器, 具有良好的性能. | NA |
+| [Fast, Flexible, and Practical Kernel Extensions](https://rs3lab.github.io/KFlex) | 一种新的内核可扩展性方法, 它在内核扩展的表达性和性能之间取得了改进的平衡. 为此, KFlex 将内核拥有的资源(例如内核内存)的安全性与特定于扩展的资源(例如扩展内存)的安全性分开. 这种分离使 KFlex 能够使用不同的定制机制来强制执行每个安全属性(分别是自动验证和轻量级运行时检查), 从而可以卸载各种功能, 同时产生较低的运行时开销. [论文](https://rs3lab.github.io/assets/papers/2024/dwivedi:kflex.pdf) | [KFlex](https://github.com/rs3lab/KFlex) |
+
+
+## 11.4 调度器热升级
+-------
+
+### 11.4.1 Patching of scheduler functions
 -------
 
 LPC-2016 的议题 [Patching of scheduler functions](http://blog.linuxplumbersconf.org/2016/ocw/proposals/3567.html) 讲述了当前对调度路径下进行热补丁存在的问题, 并给出了一个解决方案.
 
-#### 11.2.4.2 PlugSched
+### 11.4.2 PlugSched
 -------
 
 [Plugsched](https://gitee.com/anolis/plugsched) 是 OpenAnolos Linux 内核调度器子系统热升级的 SDK, 它可以实现在不重启系统、应用的情况下动态替换调度器子系统, 毫秒级 downtime. Plugsched 可以对生产环境中的内核调度特性动态地进行增、删、改, 以满足不同场景或应用的需求, 且支持回滚.
@@ -7321,10 +7316,10 @@ YouTuBe 上 ASPLOS'23 关于 Plugsched 的介绍 [ASPLOS'23 - Session 7C - Effic
 基于 Plugsched 实现的调度器热升级, 不修改现有内核代码, 就能获得较好的可修改能力, 天然支持线上的老内核版本. 如果提前在内核调度器代码的关键数据结构中加入 Reserve 字段, 可以额外获得修改数据结构的能力, 进一步提升可修改能力.
 
 
-### 11.2.5 Task Hinting
+## 11.5 Task Hinting
 -------
 
-#### 11.2.5.1 Automatic Task Type(TT)
+### 11.5.1 Automatic Task Type(TT)
 -------
 
 
@@ -7341,8 +7336,7 @@ YouTuBe 上 ASPLOS'23 关于 Plugsched 的介绍 [ASPLOS'23 - Session 7C - Effic
 
 
 
-
-#### 11.2.5.2 User Sensitive Factors for Scheduler
+### 11.5.2 User Sensitive Factors for Scheduler
 -------
 
 小米于 2020 年提供了 USF(用户敏感反馈因子) 辅助 cpufreq 的工作, 同时支持高级 scheduler sysfs 参数的动态调整, 以便在手机上根据用户使用场景动态地调整 utils. 因为便携式设备用户更关心功耗和 UI 响应.
@@ -7357,7 +7351,7 @@ YouTuBe 上 ASPLOS'23 关于 Plugsched 的介绍 [ASPLOS'23 - Session 7C - Effic
 
 
 
-#### 11.2.5.2 User-Space Hinting For Tasks
+### 11.5.3 User-Space Hinting For Tasks
 -------
 
 [AMD Aims To Squeeze More EPYC Performance Out Of Linux With User-Space Hinting For Tasks](https://www.phoronix.com/news/AMD-User-Space-Hiting-Linux)
@@ -7367,41 +7361,6 @@ YouTuBe 上 ASPLOS'23 关于 Plugsched 的介绍 [ASPLOS'23 - Session 7C - Effic
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/09/10 | K Prateek Nayak <kprateek.nayak@amd.com> | [sched: Userspace Hinting for Task Placement](https://lore.kernel.org/all/20220910105326.1797-1-kprateek.nayak@amd.com) | 参见 phoronix 报道 [phoronix, 2022/09/10, AMD Aims To Squeeze More EPYC Performance Out Of Linux With User-Space Hinting For Tasks](https://www.phoronix.com/news/AMD-User-Space-Hiting-Linux). | v1 ☐☑✓ | [LORE v1,0/5](https://lore.kernel.org/all/20220910105326.1797-1-kprateek.nayak@amd.com) |
-
-
-
-## 11.3 协程 (Coroutine)
--------
-
-[关于 Coroutine(协程)、Continuation(接续) 的参考资料](https://blog.csdn.net/zoomdy/article/details/89704634)
-
-[微信公众号 - 极客重生 -- 深入理解协程 | 业界设计和实现的决策分析](https://mp.weixin.qq.com/s/JZUSQk-FnO1WVc85H3CqVQ)
-
-[有栈协程与无栈协程](https://mthli.xyz/stackful-stackless)
-
-
-| 项目 | 描述 |
-|:---:|:----:|
-| [Codesire-Deng/co_context](https://github.com/Codesire-Deng/co_context) | NA |
-| [Tencent/libco](https://github.com/Tencent/libco) | 广泛应用于微信后端服务的 C/C++ 协程库. |
-
-
-## 11.4 CPU AFFINITY
--------
-
-| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:---:|:----:|:---:|:----:|:---------:|:----:|
-| 2022/09/08 | Waiman Long <longman@redhat.com> | [sched: Persistent user requested affinity](https://lore.kernel.org/all/20220908194121.858462-1-longman@redhat.com) | COMMIT b90ca8badbd1 ("sched: Introduce task_struct::user_cpus_ptr to track requested affinity") 引入了 user_cpus_ptr (狭义地) 来保持 CPU 的亲和性不受非对称 CPU 设置的影响.<br> 该补丁集扩展了 user_cpus_ptr, 通过 sched_setaffinity() API 存储用户请求的 CPU 亲和性. 有了这些可用的信息, 它将使 cpuset 和 set_cpus_allowed_ptr() 的其他调用者 (如 HOTPLUG) 能够在当前 cpuset 的 CPUs 约束内保持 CPU 的亲和性尽可能接近用户想要的. 否则, CPU 层次结构的更改或热插拔事件可能会将受影响 CPU 集中的任务的 cpumask 重置为默认的 cpuset cpus 值, 即使这些任务具有用户之前显式设置的 CPU 亲和性.<br> 这还意味着, 成功调用 sched_setaffinity() 之后, user_cpus_ptr 将继续分配, 直到任务退出, 除非在一些罕见的情况下. | v8 ☐☑✓ | [LORE v8,0/7](https://lore.kernel.org/all/20220908194121.858462-1-longman@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v9,0/7](https://lore.kernel.org/all/20220916183217.1172225-1-longman@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v10,0/5](https://lore.kernel.org/all/20220922180041.1768141-1-longman@redhat.com) |
-
-
-## 11.5 其他
--------
-
-| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
-|:----:|:----:|:---:|:----:|:---------:|:----:|
-| 2021/08/03 | Peter Oskolkov <posk@google.com> | [thread_info: use helpers to snapshot thread flags](https://lwn.net/Articles/722293) | 引入 read_ti_thread_flags() 规范对 thread_info 中 flag 的访问. 其中默认使用了 READ_ONCE. 防止开发者忘记了这样做. | v4 ☐ | [PatchWork v4,00/10](https://lore.kernel.org/patchwork/cover/1471548) |
-| 2023/03/30 | Mathieu Desnoyers <mathieu.desnoyers@efficios.com> | [sched: Introduce per-mm/cpu concurrency id state](https://lore.kernel.org/all/20230330230911.228720-1-mathieu.desnoyers@efficios.com) | 跟踪每个 mm/cpu 当前分配的 mm_cid, 而不是立即释放它们. 这消除了在多线程场景 (多个进程, 每个进程有多个线程) 中, 在属于不同内存空间的线程之间来回切换上下文时的大多数原子操作. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230330230911.228720-1-mathieu.desnoyers@efficios.com) |
-| 2024/10/09 | Mathieu Desnoyers <mathieu.desnoyers@efficios.com> | [sched: Improve cache locality of RSEQ concurrency IDs for intermittent workloads](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7e019dcc470f27066c98697e43d930df8d54bd9c) | 参见 phoronix 报道 [phoronix, 2024/10/10, Restartable Sequences"RSEQ"Seeing Up To 16.7x Speedup With Newest Linux Patch](https://www.phoronix.com/news/RSEQ-Cache-Local-Speedup) | v2 ☐☑✓ v6.13-rc1 | [LORE v2,0/1](https://lore.kernel.org/all/20241009135007.2084357-1-mathieu.desnoyers@efficios.com) |
 
 
 
@@ -7587,6 +7546,55 @@ ECRTS 2020(32nd Euromicro Conference on Real-Time Systems) 上 Daniel 等人发�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2024/12/07 | Zhang Rui <rui.zhang@intel.com> | [tools/power turbostat: 2024.11.30](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=86d237734091201d2ab2c1d2e1063893621c770f)| 参见 phoronix 报道 [phoronix, 2024/12/01, Turbostat Utility Lands New Features With Linux 6.13](https://www.phoronix.com/news/Linux-6.13-Turbostat), [phoronix, 2025/06/09, Linux's Turbostat Updated For Intel Diamond Rapids & Bartlett Lake](https://www.phoronix.com/news/Linux-6.16-Turbostat) | v1 ☐☑✓ v6.13-rc1 | [LORE](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=03109e2f0d18dcb84218bd91c4fbf864193ca934)|
+
+
+# 13 其他
+-------
+
+## 13.1 CPU HOTPLUG 中的调度处理
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2016/03/10 | Tejun Heo <tj@kernel.org> | [sched: define and use CPU_PRI_* enums for cpu notifier priorities](https://lore.kernel.org/patchwork/cover/201980) | 重构 migration_call 的 通知方式 | v1 ☑ 2.6.36-rc1 | 注意补丁有 UPATE, [UPDATE](https://lore.kernel.org/patchwork/cover/202907) |
+| 2016/03/10 | Thomas Gleixner <tglx@linutronix.de> | [sched: Migrate disable support](https://lore.kernel.org/patchwork/cover/657710) | 将 CPU 下线时 MIGRATE 的操作放到了 sched_cpu_dying() 中进行 | v1 ☑ 4.7-rc1 | [2020/09/11 preparations](https://lore.kernel.org/patchwork/cover/657710) |
+| 2020/10/23 | Peter Zijlstra | [sched: Migrate disable support](https://lkml.org/lkml/2019/9/14/64) | 在启用 PREEMPT_RT 的内核上, 包括 spin/rw 锁持有部分在内的大部分代码都是可抢占的, 也使得任务可以迁移. 这违反了每个 CPU 的约束. 因此, PREEMPT_RT 需要一种独立于抢占的机制来控制迁移. 此特性移除了 sched_cpu_dying(), 改为 balance_push 来完成这个操作 | v4 ☑ 5.11-rc1 | [2020/09/11 preparations](https://lore.kernel.org/all/CAHk-=whej3MMKJBHKWp66djfEP5=kyncX7FoqJacYtmBXB6v9w@mail.gmail.com) |
+
+
+## 13.3 协程 (Coroutine)
+-------
+
+[关于 Coroutine(协程)、Continuation(接续) 的参考资料](https://blog.csdn.net/zoomdy/article/details/89704634)
+
+[微信公众号 - 极客重生 -- 深入理解协程 | 业界设计和实现的决策分析](https://mp.weixin.qq.com/s/JZUSQk-FnO1WVc85H3CqVQ)
+
+[有栈协程与无栈协程](https://mthli.xyz/stackful-stackless)
+
+
+| 项目 | 描述 |
+|:---:|:----:|
+| [Codesire-Deng/co_context](https://github.com/Codesire-Deng/co_context) | NA |
+| [Tencent/libco](https://github.com/Tencent/libco) | 广泛应用于微信后端服务的 C/C++ 协程库. |
+
+
+## 13.4 CPU AFFINITY
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2022/09/08 | Waiman Long <longman@redhat.com> | [sched: Persistent user requested affinity](https://lore.kernel.org/all/20220908194121.858462-1-longman@redhat.com) | COMMIT b90ca8badbd1 ("sched: Introduce task_struct::user_cpus_ptr to track requested affinity") 引入了 user_cpus_ptr (狭义地) 来保持 CPU 的亲和性不受非对称 CPU 设置的影响.<br> 该补丁集扩展了 user_cpus_ptr, 通过 sched_setaffinity() API 存储用户请求的 CPU 亲和性. 有了这些可用的信息, 它将使 cpuset 和 set_cpus_allowed_ptr() 的其他调用者 (如 HOTPLUG) 能够在当前 cpuset 的 CPUs 约束内保持 CPU 的亲和性尽可能接近用户想要的. 否则, CPU 层次结构的更改或热插拔事件可能会将受影响 CPU 集中的任务的 cpumask 重置为默认的 cpuset cpus 值, 即使这些任务具有用户之前显式设置的 CPU 亲和性.<br> 这还意味着, 成功调用 sched_setaffinity() 之后, user_cpus_ptr 将继续分配, 直到任务退出, 除非在一些罕见的情况下. | v8 ☐☑✓ | [LORE v8,0/7](https://lore.kernel.org/all/20220908194121.858462-1-longman@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v9,0/7](https://lore.kernel.org/all/20220916183217.1172225-1-longman@redhat.com)<br>*-*-*-*-*-*-*-* <br>[LORE v10,0/5](https://lore.kernel.org/all/20220922180041.1768141-1-longman@redhat.com) |
+
+
+## 13.5 其他
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:----:|:---------:|:----:|
+| 2021/08/03 | Peter Oskolkov <posk@google.com> | [thread_info: use helpers to snapshot thread flags](https://lwn.net/Articles/722293) | 引入 read_ti_thread_flags() 规范对 thread_info 中 flag 的访问. 其中默认使用了 READ_ONCE. 防止开发者忘记了这样做. | v4 ☐ | [PatchWork v4,00/10](https://lore.kernel.org/patchwork/cover/1471548) |
+| 2023/03/30 | Mathieu Desnoyers <mathieu.desnoyers@efficios.com> | [sched: Introduce per-mm/cpu concurrency id state](https://lore.kernel.org/all/20230330230911.228720-1-mathieu.desnoyers@efficios.com) | 跟踪每个 mm/cpu 当前分配的 mm_cid, 而不是立即释放它们. 这消除了在多线程场景 (多个进程, 每个进程有多个线程) 中, 在属于不同内存空间的线程之间来回切换上下文时的大多数原子操作. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20230330230911.228720-1-mathieu.desnoyers@efficios.com) |
+| 2024/10/09 | Mathieu Desnoyers <mathieu.desnoyers@efficios.com> | [sched: Improve cache locality of RSEQ concurrency IDs for intermittent workloads](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=7e019dcc470f27066c98697e43d930df8d54bd9c) | 参见 phoronix 报道 [phoronix, 2024/10/10, Restartable Sequences"RSEQ"Seeing Up To 16.7x Speedup With Newest Linux Patch](https://www.phoronix.com/news/RSEQ-Cache-Local-Speedup) | v2 ☐☑✓ v6.13-rc1 | [LORE v2,0/1](https://lore.kernel.org/all/20241009135007.2084357-1-mathieu.desnoyers@efficios.com) |
+
+
 
 
 
