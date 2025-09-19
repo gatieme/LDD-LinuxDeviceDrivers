@@ -28,11 +28,11 @@
 
 此调度策略包含除上述实时进程之外的其他进程, 亦称普通进程. 采用分时策略, 根据动态优
 
-先级 (可用 **nice()** API 设置), 分配 CPU 运算资源.  ** 注意: 这类进程比上述两类实时进程优先级低, 换言之, 在有实时进程存在时, 实时进程优先调度 **.
+先级 (可用 **nice()** API 设置), 分配 CPU 运算资源.  **注意: 这类进程比上述两类实时进程优先级低, 换言之, 在有实时进程存在时, 实时进程优先调度**.
 
 Linux 除了实现上述策略, 还额外支持以下策略:
 
-- **SCHED\_IDLE** 优先级最低, ** 在系统空闲时才跑这类进程 **(如利用闲散计算机资源跑地外文明搜索, 蛋白质结构分析等任务, 是此调度策略的适用者)
+- **SCHED\_IDLE** 优先级最低, **在系统空闲时才跑这类进程**(如利用闲散计算机资源跑地外文明搜索, 蛋白质结构分析等任务, 是此调度策略的适用者)
 
 - **SCHED\_BATCH** 是 SCHED\_OTHER 策略的分化, 与 SCHED\_OTHER 策略一样, 但针对吞吐量优化
 
@@ -862,7 +862,7 @@ Chang 的 patch set 采用了与之前不同的方法: 允许 cgroup 将一些�
 | 2022/12/12 | Peng Zhang <zhangpeng.00@bytedance.com> | [sched: Throttling through task work for cfs bandwidth](https://lore.kernel.org/all/20221212061321.36422-1-zhangpeng.00@bytedance.com) | 若任务占用资源并在内核空间中被限制, 则可能会导致阻塞, 从而造成或者加剧优先级翻转的问题. 这组补丁试图通过在任务返回到用户模式时使用 task_work 来限制任务来解决此问题.<br> 这个补丁使用 task_work 在任务返回到用户空间时将 throttle 的任务出队, 然后在 unthrottle 时再将其入列. 当前能正常工作, 但目前的实现并没有考虑到所有的细节, 比如竞争条件、负载跟踪等. 作者认为这种解决方案的最大缺点是, 在解锁过程中可能有太多的任务需要排队, 从而导致巨大的开销和延迟. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20221212061321.36422-1-zhangpeng.00@bytedance.com) |
 | 2024/02/02 | Valentin Schneider <vschneid@redhat.com> | [sched/fair: Defer CFS throttle to user entry](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com) | Peter 之前再 [Re: [PATCH] sched/fair: Make the BW replenish timer expire in hardirq context for PREEMPT_RT](https://lore.kernel.org/all/20231031160120.GE15024@noisy.programming.kicks-ass.net) 提到 , 对 CFS 任务进行 BW throttle 的时候, 并不在更新运行时统计信息发现 cfs_rq 已经耗尽其配额时, 立即执行 throttle, 而是等待任务即将返回到用户空间时再进行 throttle, 这是非常安全的, 在 PREEMPT_RT 的内核上可以有效地防止内核态优先级翻转, 因为如果它在用户空间中, 则无法持有任何内核内锁. | v1 ☐☑✓ | [2023/11/30, LORE v1,0/2](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2024/02/02, LORE v2,0/5](https://lore.kernel.org/all/20240202080920.3337862-1-vschneid@redhat.com)[2024/07/11, LORE V3,00/10](https://lore.kernel.org/all/20240711130004.2157737-1-vschneid@redhat.com/) |
 | 2025/02/20 | K Prateek Nayak <kprateek.nayak@amd.com> | [sched/fair: Defer CFS throttling to exit to user mode](https://lore.kernel.org/all/20250220093257.9380-1-kprateek.nayak@amd.com) | TODO | v1 ☐☑✓ | [LORE v1,0/22](https://lore.kernel.org/all/20250220093257.9380-1-kprateek.nayak@amd.com) |
-| 2025/03/17 | Aaron Lu <ziqianlu@bytedance.com> | [Defer throttle when task exits to user](https://lore.kernel.org/all/20250313072030.1032893-1-ziqianlu@bytedance.com) | [Valentin Schneider 工作"sched/fair: Defer CFS throttle to user entry"](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com) 的续作. <br>1. 核心思想: 当一个任务的 CFS 配额耗尽时, 不是立即将其节流, 而是延迟到任务退出到用户空间时再进行节流. 这样可以避免任务在内核空间中被阻塞, 从而减少任务挂起的风险.<br> 实现方式: 在 CFS 节流路径中, 为每个任务添加一个任务工作(task work), 以便在任务返回用户空间时执行节流操作.<nr> 在任务返回用户空间时, 任务工作会将任务从运行队列中移除, 并将其添加到 CFS 运行队列的 limbo 列表中, 以便后续恢复.<br> 在 CFS 解除节流路径中, 将 limbo 列表中的任务重新加入运行队列. | v1 ☐☑✓ | [2025/03/17, LORE v1,0/7](https://lore.kernel.org/all/20250313072030.1032893-1-ziqianlu@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2025/04/09, LORE v2,0/7](https://lore.kernel.org/lkml/20250409120746.635476-1-ziqianlu@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2025/05/20, LORE v3, 0/7](https://lore.kernel.org/all/20250520104110.3673059-1-ziqianlu@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2025/07/15, LORE v3, 0/5](https://lore.kernel.org/all/20250715071658.267-1-ziqianlu@bytedance.com) |
+| 2025/03/17 | Aaron Lu <ziqianlu@bytedance.com> | [Defer throttle when task exits to user](https://lore.kernel.org/all/20250313072030.1032893-1-ziqianlu@bytedance.com) | [Valentin Schneider 工作"sched/fair: Defer CFS throttle to user entry"](https://lore.kernel.org/all/20231130161245.3894682-1-vschneid@redhat.com) 的续作. <br>1. 核心思想: 当一个任务的 CFS 配额耗尽时, 不是立即将其节流, 而是延迟到任务退出到用户空间时再进行节流. 这样可以避免任务在内核空间中被阻塞, 从而减少任务挂起的风险.<br> 实现方式: 在 CFS 节流路径中, 为每个任务添加一个任务工作(task work), 以便在任务返回用户空间时执行节流操作.<nr> 在任务返回用户空间时, 任务工作会将任务从运行队列中移除, 并将其添加到 CFS 运行队列的 limbo 列表中, 以便后续恢复.<br> 在 CFS 解除节流路径中, 将 limbo 列表中的任务重新加入运行队列. 参见 phoronix 报道 [phoronix, 2025/09/03, Linux Scheduler Adapted For A Latency Win & Avoiding An RT Deadlock](https://www.phoronix.com/news/Linux-CFS-Defer-Throttle) | v1 ☐☑✓ | [2025/03/17, LORE v1,0/7](https://lore.kernel.org/all/20250313072030.1032893-1-ziqianlu@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2025/04/09, LORE v2,0/7](https://lore.kernel.org/lkml/20250409120746.635476-1-ziqianlu@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2025/05/20, LORE v3, 0/7](https://lore.kernel.org/all/20250520104110.3673059-1-ziqianlu@bytedance.com)<br>*-*-*-*-*-*-*-* <br>[2025/07/15, LORE v3, 0/5](https://lore.kernel.org/all/20250715071658.267-1-ziqianlu@bytedance.com) |
 
 
 ### 2.1.4 leaf_cfs_rq
@@ -2729,6 +2729,15 @@ void nohz_run_idle_balance(int cpu)
 | 2020/05/26 | Peter Zijlstra <peterz@infradead.org> | [Fix the scheduler-IPI mess.](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=19a1f5ec699954d21be10f74ff71c2a7079e99ad) | TODO | v1 ☐☑✓ | [LORE v1,0/7](https://lore.kernel.org/all/20200526161057.531933155@infradead.org) |
 
 
+#### 4.5.7.3 Distributed nohz idle CPU tracking
+-------
+
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2025/09/04 | K Prateek Nayak <kprateek.nayak@amd.com> | [sched/fair: Distributed nohz idle CPU tracking for idle load balancing](https://lore.kernel.org/all/20250904041516.3046-1-kprateek.nayak@amd.com) | 旨在改进 Linux 调度器中 nohz idle CPU 的跟踪机制, 以支持更高效的空闲负载均衡. 目前的全局 cpumask 和 idle 状态跟踪机制在频繁访问时存在性能瓶颈, 补丁将跟踪机制分布化, 基于 sd_llc_shared 拓扑结构维护每个 LLC 的 idle 状态和 cpumask.<br>主要改进包括: <br>- 实现 per-LLC 的 nohz 跟踪和全局" nohz_shared_list" 管理;<br>- 减少原子操作, 仅在 idle 状态边界变化时更新全局计数;<br>- 支持热插拔和 cpuset 的状态修正;<br>- 逐步替代现有全局变量 "nohz. idle_cpus_mask"  和 "nohz. nr_cpus".<br> 性能测试显示, 在部分场景下调度性能有所提升, 但部分测试中也出现延迟上升等回归问题, 作者指出这可能与运行环境噪声有关. <br><br>总结: 本 RFC 提出了一种分布式 nohz idle 跟踪机制, 旨在减少全局竞争, 提升调度性能, 适用于未来基于 push 的负载均衡机制.  | v1 ☐☑✓ | [2025/09/04, LORE v1, 0/19](https://lore.kernel.org/all/20250904041516.3046-1-kprateek.nayak@amd.com) |
+
 
 ## 4.6 自动 NUMA 均衡 (Automatic NUMA balancing)
 -------
@@ -3854,7 +3863,7 @@ v3.0 [commit 317f394160e9 ("sched: Move the second half of ttwu() to the remote 
 | 2022/05/13 | Tianchen Ding <dtcccc@linux.alibaba.com> | [sched: Queue task on wakelist in the same llc if the wakee cpu is idle](https://lore.kernel.org/all/20220513062427.2375743-1-dtcccc@linux.alibaba.com) | TODO | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20220513062427.2375743-1-dtcccc@linux.alibaba.com)<br>*-*-*-*-*-*-*-* <br>[LORE v2](https://lore.kernel.org/lkml/20220527090544.527411-1-dtcccc@linux.alibaba.com) |
 | 2021/08/15 | Thomas Gleixner <tglx@linutronix.de> | [sched: Split out the wakeup state check](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=43295d73adc8d3780e9f34206663e336678aaff8) | [locking, sched: The PREEMPT-RT locking infrastructure](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/log/?id=026659b9774e4c586baeb457557fcfc4e0ad144b) 的其中一个补丁. | v5 ☑✓ 5.15-rc1 | [LORE v5,03/72](https://lore.kernel.org/all/20210815211302.088945085@linutronix.de) |
 
-### 4.7.1.3 lockless wake-queues
+#### 4.7.1.3 lockless wake-queues
 -------
 
 [commit 7675104990ed ("sched: Implement lockless wake-queues")](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=7675104990ed255b9315a82ae827ff312a2a88a2) 实现了一个轻量级的 lockless wake-queues(WAKE_Q) 机制. [Linux 中的 wake_q_add () 函数](https://coderatwork.cn/posts/linux-wake_q_add)
@@ -3957,6 +3966,12 @@ Mike Galbraith 调试发现, 触发这个问题的原因是因为 wake_affine_we
 | 慢路径 find_idlest_cpu() | 通过搜索 SD_BALANCE_FORK 或 SD_BALANCE_EXEC 标记的最高 sched_domain 来唤醒处于最空闲状态的空闲 CPU 上的任务. |
 
 
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2025/08/12 | yaozhenguo <yaozhenguo1@gmail.com> | [sched/fair: Introduce WAKEUP_SELECT_IDLE sched feature](https://lore.kernel.org/all/20250812101650.44110-1-yaozhenguo@jd.com) | 邮件提出了一项新的调度特性 `WAKEUP_SELECT_IDLE`, 用于控制是否将唤醒任务调度到仅运行 `SCHED_IDLE` 任务的 CPU 上. 当前在云主机环境中, 管理监控软件通常设为 `SCHED_IDLE` 优先级, 但若 vCPU 唤醒持续选择此类 CPU, 可能导致监控服务无法及时执行, 即使系统中存在真正空闲的 CPU. 作者通过新增配置开关, 允许用户通过 debugfs 控制调度行为, 从而避免低优先级任务过度延迟关键服务. | v1 ☐☑✓ | [LORE](https://lore.kernel.org/all/20250812101650.44110-1-yaozhenguo@jd.com) |
+
+
+
 ### 4.7.4 Cache-to-Cache Latency
 -------
 
@@ -3986,15 +4001,22 @@ wojiush| 2023/03/27 | Aaron Lu <aaron.lu@intel.com> | [sched/fair: Make tg->load
 | 2023/09/11 | Chen Yu <yu.c.chen@intel.com> | [Makes it easier for the wakee to choose previous CPU](https://lore.kernel.org/all/cover.1694397335.git.yu.c.chen@intel.com) | 当任务 P 被唤醒时, 调度程序会利用 select_idle_sibling() 为其寻找空闲的 CPU. 因为它可以提高缓存的本地性. 但在很多情况下前一个 CPU 已被其他唤醒器占用, 因此 P 必须寻找另一个空闲的 CPU. 在保持调度器工作保护的同时, 引入任务迁移可以使许多工作负载受益. 受 Mathieu 关于限制任务迁移率 [sched/eevdf: Rate limit task migration](https://lore.kernel.org/lkml/20230905171105.1005672-1-mathieu.desnoyers@efficios.com) 的启发，本补丁考虑了任务的平均睡眠时间. 如果任务的睡眠时间较短, 则会将其上一个 CPU 标记为缓存热区, 并持续一小段时间. 在标记期间, 其他唤醒者不得使用该空闲 CPU, 直到超时为止. 之后, 如果该任务再次被唤醒, 它就会发现之前的 CPU 仍处于空闲状态, 并在 select_idle_sibling() 中选择它. | v1 ☐☑✓ | [LORE v1,0/2](https://lore.kernel.org/all/cover.1694397335.git.yu.c.chen@intel.com) |
 
 
-### 4.7.5 sync wakeup
+### 4.7.5 特殊情况
 -------
 
-### 4.7.5 child runs first
+#### 4.7.5.1 child runs first
 -------
 
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:---:|:----------:|:----:|
 | 2021/09/12 | Yang Yang <yang.yang29@zte.com.cn>/<cgel.zte@gmail.com> | [sched: Add a new version sysctl to control child runs first](https://lkml.org/lkml/2021/9/12/4) | 旧版本的 sysctl_sched_child_runs_first 有一些问题. 首先, 它允许设置值大于 1, 这是不必要的. 其次, 它没有遵循能力法则. 第三, 它没有使用 static key. 这个新版本修复了所有问题. | v1 ☐ | [LKML](https://lkml.org/lkml/2021/9/12/4) |
+
+#### 4.7.5.2 yield
+-------
+
+| 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:----:|:----:|:---:|:---:|:----------:|:----:|
+| 2025/08/08 | Kuba Piecuch <jpiecuch@google.com> | [sched: add ability to throttle sched_yield() calls to reduce contention](https://lore.kernel.org/all/20250808200250.2016584-1-jpiecuch@google.com) | 该邮件由 Kuba Piecuch 提出, 旨在解决多线程程序中频繁调用 `sched_yield() ` 引发的性能争用问题. 问题源于 `sched_yield() ` 会触发 `update_curr() `, 进而导致多个线程对共享变量 `cputime_atomic. sum_exec_runtime` 进行频繁原子操作, 引发 cacheline 争用, Google 曾因此出现整机锁死情况. <br><br> 为此, 作者提出通过新增 `yield_interval_ns` 调试接口, 限制线程在指定时间间隔内最多执行一次 `sched_yield() `, 以缓解争用. 默认值为 0, 关闭限流功能. 性能测试表明, 开启限流后, 原子操作引发的 CPU 占比从 80% 降至 1-2%, 但 `sched_yield() ` 调用次数减少约 60%. <br><br> 作者还对比了其他方案, 最终认为当前补丁改动最小、收益最高. 补丁集中包含 3 项修改, 主要涉及调度类接口调整与限流功能实现.  | v1 ☐☑✓ | [2025/08/08, LORE v1, 0/3](https://lore.kernel.org/all/20250808200250.2016584-1-jpiecuch@google.com) |
 
 
 

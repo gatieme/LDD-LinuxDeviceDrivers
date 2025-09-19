@@ -83,6 +83,9 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 [eBPF - Unleash the Linux kernel](https://aymanace2049.hashnode.dev/ebpf-unleash-the-linux-kernel)
 
+
+[eBPF 进阶: 内核新特性进展一览](https://ebpf.top/post/ebpf_and_kernel_feature/)
+
 # 2 工作流程
 -------
 

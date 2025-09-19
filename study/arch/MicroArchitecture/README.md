@@ -98,6 +98,9 @@ Apple [专利号-WO2021US19353-Apple-ON-DEMAND MEMORY ALLOCATION](https://xueshu
 ## 5.1 竞赛
 -------
 
+
+[亦安的数字小站--CBP2025分支预测器冠军](https://mp.weixin.qq.com/s/AK69HoXs4Xhr9ILxKjcOew?poc_token=HAhUnWij9lMWeaJK7C3mUZFNXE0x3Yu1xKSuEc-l)
+
 | 竞赛 | 描述 |
 |:---:|:----:|
 | [Data Prefetching Championship](https://dpc3.compas.cs.stonybrook.edu) | 数据预取锦标赛, 目标是在一个通用框架中比较不同的数据预取算法. L1、L2 和 L3 数据缓存的预取器必须在竞争规则中指定的固定存储预算内实施. 参赛作品将根据组委会提供的框架在一系列基准上的表现进行评估. [3rd 属于](https://dpc3.compas.cs.stonybrook.edu) |

@@ -871,7 +871,7 @@ https://www.github-zh.com/
 https://xarjbochz9n.feishu.cn/wiki/I03BwQQMDi5fMSkLRc0cW5iJnAf?open_in_browser=true
 
 
-整理好的所有 164 条测试样例。
+整理好的所有 164 条测试样例.
 https://xarjbochz9n.feishu.cn/wiki/WBX8wziSMiVBxFkKNVXcGjEsnqb?from=from_copylink
 
 
@@ -884,9 +884,11 @@ https://ncnz67vv5cuy.feishu.cn/wiki/IN66w8dW8imkkUkKusMcy2jLnBb
 [phoronix, 2025/05/28, Linux 6.16 Will Be Able To Exit User Mode Faster: 2~11% Improvement](https://www.phoronix.com/news/Linux-616-Faster-Exit-User-Mode)
 
 
-| 2025/05/28 | Ingo Molnar <mingo@kernel.org> | [sched: Use the SMP scheduler on UP too](https://lore.kernel.org/all/20250528080924.2273858-1-mingo@kernel.org) | Ingo Molnar 提出一组共 43 个补丁, 旨在将 Linux 调度器统一为 SMP( 对称多处理) 版本, 从而大幅减少调度器中 `CONFIG_SMP` 相关的预处理条件编译代码. 当前 `kernel/sched/` 中有 175 处 `CONFIG_SMP` 判断, 导致代码维护困难、易出错, 并影响可读性和可审查性. 该补丁系列将这一数量减少至 28 处, 删除近 1000 行代码, 提升了代码整洁度. <br><br>此改动使 UP( 单处理器) 调度器也使用 SMP 实现, 虽引入少量冗余代码和性能开销( 如上下文切换时间增加约 5%、内核体积增长约 0. 3% 文本段), 但换来更简单的维护模型. 作者强调, 未来若需优化 UP 性能或体积, 应通过合理方式( 如 `IS_ENABLED( ) `) 进行, 而非回归大量 `#ifdef`. 补丁系列已初步测试验证在 UP 系统上可正常启动和运行, 目前存放于指定 Git 仓库中. 参见 [phoronix, 2025/05/28, Big Linux Patch Series Shakes Up The Scheduler Code For Anyone With Only One CPU Core](https://www.phoronix.com/news/Linux-UP-SMP-Scheduler-2025)  | v1 ☐☑✓ | [2025/05/28, LORE v1, 0/43](https://lore.kernel.org/all/20250528080924.2273858-1-mingo@kernel.org) |
-| 2025/06/11 | Cheng-Yang Chou <yphbchou0911@gmail.com> | [sched_ext: Standardize preprocessor comment markers](https://lore.kernel.org/all/20250611135404.13851-1-yphbchou0911@gmail.com) | 旨在对 `sched/ext*. {c, h}` 文件中的 `#if/#else/#endif` 预处理注释标记进行标准化, 以提升代码一致性与可读性. 该工作遵循 Ingo Molnar 近期调度器清理工作的方向, 旨在减少 `CONFIG_SMP` 相关复杂性并删除冗余的 `#ifdef` 代码块. 此次修改不涉及任何功能变更. 补丁^共修改 4 个文件, 删除 60 行、新增 3 行代码.  | v1 ☐☑✓ | [2025/06/11, LORE v1, 0/4](https://lore.kernel.org/all/20250611135404.13851-1-yphbchou0911@gmail.com) |
-| 2025/07/27 | Sasha Levin <sashal@kernel.org> | [Add agent coding assistant configuration to Linux kernel](https://lore.kernel.org/all/20250727195802.2222764-1-sashal@kernel.org) | 邮件提出了一项为 Linux 内核引入" Agent 编码助手" 统一配置和文档规范的补丁集, 旨在规范 AI 编码工具在内核开发中的使用. 共包含四个补丁: 1) 为多个编码助手( 如 Claude、GitHub Copilot 等) 添加统一配置文件并实现一致性管理; 2) 引入核心开发参考文档, 引导助手遵循内核开发流程; 3) 明确编码风格规范, 如 80 字符行限制、无尾随空格等; 4) 制定法律要求与署名规范, 要求所有助手在提交中通过 Co-developed-by标识自身参与. 补丁从 RFC 版本起已转为 RST 格式, 拆分为多个文件, 并简化了说明. 此系列为内核引入 AI 辅助开发提供了制度化基础.  | v1 ☐☑✓ | [2025/07/27, LORE v1, 0/4](https://lore.kernel.org/all/20250727195802.2222764-1-sashal@kernel.org) |
+| 2025/05/28 | Ingo Molnar <mingo@kernel.org> | [sched: Use the SMP scheduler on UP too](https://lore.kernel.org/all/20250528080924.2273858-1-mingo@kernel.org) | Ingo Molnar 提出一组共 43 个补丁, 旨在将 Linux 调度器统一为 SMP(对称多处理) 版本, 从而大幅减少调度器中 `CONFIG_SMP` 相关的预处理条件编译代码. 当前 `kernel/sched/` 中有 175 处 `CONFIG_SMP` 判断, 导致代码维护困难、易出错, 并影响可读性和可审查性. 该补丁系列将这一数量减少至 28 处, 删除近 1000 行代码, 提升了代码整洁度. <br><br> 此改动使 UP(单处理器) 调度器也使用 SMP 实现, 虽引入少量冗余代码和性能开销(如上下文切换时间增加约 5%、内核体积增长约 0. 3% 文本段), 但换来更简单的维护模型. 作者强调, 未来若需优化 UP 性能或体积, 应通过合理方式(如 `IS_ENABLED() `) 进行, 而非回归大量 `#ifdef`. 补丁系列已初步测试验证在 UP 系统上可正常启动和运行, 目前存放于指定 Git 仓库中. 参见 [phoronix, 2025/05/28, Big Linux Patch Series Shakes Up The Scheduler Code For Anyone With Only One CPU Core](https://www.phoronix.com/news/Linux-UP-SMP-Scheduler-2025)  | v1 ☐☑✓ | [2025/05/28, LORE v1, 0/43](https://lore.kernel.org/all/20250528080924.2273858-1-mingo@kernel.org) |
+| 2025/06/11 | Cheng-Yang Chou <yphbchou0911@gmail.com> | [sched_ext: Standardize preprocessor comment markers](https://lore.kernel.org/all/20250611135404.13851-1-yphbchou0911@gmail.com) | 旨在对 `sched/ext*. {c, h}` 文件中的 `#if/#else/#endif` 预处理注释标记进行标准化, 以提升代码一致性与可读性. 该工作遵循 Ingo Molnar 近期调度器清理工作的方向, 旨在减少 `CONFIG_SMP` 相关复杂性并删除冗余的 `#ifdef` 代码块. 此次修改不涉及任何功能变更. 补丁 ^ 共修改 4 个文件, 删除 60 行、新增 3 行代码.  | v1 ☐☑✓ | [2025/06/11, LORE v1, 0/4](https://lore.kernel.org/all/20250611135404.13851-1-yphbchou0911@gmail.com) |
+| 2025/07/27 | Sasha Levin <sashal@kernel.org> | [Add agent coding assistant configuration to Linux kernel](https://lore.kernel.org/all/20250727195802.2222764-1-sashal@kernel.org) | 邮件提出了一项为 Linux 内核引入 "Agent 编码助手" 统一配置和文档规范的补丁集, 旨在规范 AI 编码工具在内核开发中的使用. 共包含四个补丁: 1) 为多个编码助手(如 Claude、GitHub Copilot 等) 添加统一配置文件并实现一致性管理; 2) 引入核心开发参考文档, 引导助手遵循内核开发流程; 3) 明确编码风格规范, 如 80 字符行限制、无尾随空格等; 4) 制定法律要求与署名规范, 要求所有助手在提交中通过 Co-developed-by 标识自身参与. 补丁从 RFC 版本起已转为 RST 格式, 拆分为多个文件, 并简化了说明. 此系列为内核引入 AI 辅助开发提供了制度化基础.  | v1 ☐☑✓ | [2025/07/27, LORE v1, 0/4](https://lore.kernel.org/all/20250727195802.2222764-1-sashal@kernel.org) |
+
+
 
 
 
@@ -914,3 +916,19 @@ sudo docker cp Qwen2.5-0.5B-Instruct ubuntu22.04:/root/Model/QWEN/QWEN2.5/0.5B/Q
 python3 convert_llama.py ~/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct/Qwen2.5-0.5B-Instruct ~/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct/Qwen2.5-0.5B-Instruct-Q4N0-HEADER --qwen2 --gen_model_header --qtype Q4_0
 python3 convert_llama.py ~/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct/Qwen2.5-0.5B-Instruct ~/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct/Qwen2.5-0.5B-Instruct-Q40-HEADER-VERSION --qwen2 --qtype Q4_0 --gen_model_header --model_version "6.0.0.1"
 sudo docker cp ubuntu22.04:/root/Model/QWEN/~/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct/Qwen2.5-0.5B-Instruct-Q40-HEADER-VERSION ./Qwen2.5-0.5B-Instruct-Q40-HEADER-VERSION
+
+
+
+[Tintin: A Unified Hardware Performance Profiling
+Infrastructure to Uncover and Manage Uncertainty](https://zhuanlan.zhihu.com/p/1925925001460160336)
+
+
+[BayesPerf: minimizing performance monitoring errors using Bayesian statistics](https://dl.acm.org/doi/10.1145/3445814.3446739)
+
+
+
+[HeMem: Scalable Tiered Memory Management for Big Data Applications and Real NVM](https://zhuanlan.zhihu.com/p/461022129)
+
+
+
+提出 Memtis, 一种利用 informed decision-making 机制来制定页大小和页放置策略的分层内存系统. Memtis 利用已分配页的访问分布, 以最优的方式逼近热数据集的fast tier capacity. Memtis 主要解决三个问题:<br>1. 如何使用基于硬件的内存访问采样, 以细粒度和轻量级的方式跟踪内存访问;<br>2. 如何根据整体内存访问频率分布, 动态准确地确定热页和冷页;<br>3. 如何动态确定页大小(大页与普通页), 以在不浪费 fast tier 内存的情况下降低转换成本. 具体来说:<br>1. Memtis 使用 Processor Event-Based Sampling (PEBS) 对内存访问进行采样. 由于 PEBS 样本包含精确的内存地址, 使得 Memtis 可以支持细粒度的访问跟踪. 在 Memtis 维护一个内核后台线程(ksampled)来处理采样的地址, Memtis 可以动态调整访存采样频率, 确保 CPU 开销在阈值(< 3%)以下.<br>2. Memtis 使用 page access counts 来维护所有已分配页面的热度分布(下图中的 page access histogram), 并且利用该数据做出最佳的 memory tiering 决策, 将最热的页放置在 fast tier 以最小化访问延迟.<br>3. Memtis 在 Linux 中默认使用 Transparent Huge Pages(THP) 来减少地址翻译的开销. 然而, 单一页大小并不适用于所有工作负载. 例如, 如果一个大页中只有一小部分子页被频繁访问(即, 大页的利用率很低时), 那么应该只将热点子页迁移到 fast tier. Memtis 通过 split benefit estimation 来检测这种情况. Memtis 使用 ksampled 维护的 emulated base page histogram 来估计仅使用普通页时的最大命中率, 并将估计的最大命中率与从 PEBS 的采样记录中获得的实际命中率进行比较, 以此来估计拆分大页的潜在收益(下图中绿色的部分), 如果潜在的好处很大, Memtis 会选择子页面中访存模式最不均匀的大页作为拆分候选页. 然后, 在后台对大页进行拆分, 并根据大页中维护的子页访问信息将每个分片后的子页放置到相应的内存层.
