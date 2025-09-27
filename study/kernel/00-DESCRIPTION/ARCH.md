@@ -1417,11 +1417,13 @@ AMD-pstate 驱动程序利用 ITMT 体系结构提供的功能和数据结构, �
 | 2023/07/10 | Mina Almasry <almasrymina@google.com> | [Device Memory TCP](https://lore.kernel.org/all/20230710223304.1174642-1-almasrymina@google.com) | 通过该方案, 我们能够通过直接从设备存储器发送和接收数据, 达到约 96.6% 的线路速率. 参见 [Google Posts Experimental Linux Code For"Device Memory TCP"- Network To/From Accelerator RAM](https://www.phoronix.com/news/Linux-Device-Memory-TCP). | v1 ☐☑✓ | [LORE v1,0/10](https://lore.kernel.org/all/20230710223304.1174642-1-almasrymina@google.com) |
 
 
-## 6.14 Cache 带宽管控
+## 6.14 Cache
 -------
 
+### 6.14.1 Cache 带宽管控
+-------
 
-### 6.14.1 Intel RDT
+#### 6.14.1.1 Intel RDT
 -------
 
 [`intel-cmt-cat`](https://github.com/intel/intel-cmt-cat)
@@ -1435,8 +1437,17 @@ AMD-pstate 驱动程序利用 ITMT 体系结构提供的功能和数据结构, �
 | 2024/12/06 | Tony Luck <tony.luck@intel.com> | [x86/resctrl: mba_MBps enhancement](https://lore.kernel.org/all/20241206163148.83828-1-tony.luck@intel.com) | [phoronix, 2025/01/21, Linux 6.14 Resource Control To Allow Total Memory Bandwidth Monitoring](https://www.phoronix.com/news/Linux-6.14-resctrl-Total-RAM-BW) | v11 ☐☑✓ | [LORE v11,0/8](https://lore.kernel.org/all/20241206163148.83828-1-tony.luck@intel.com) |
 
 
-### 6.14.2 ARM MPAM
+#### 6.14.1.2 ARM MPAM
 -------
+
+
+### 6.14.2 Cache coherency management
+-------
+
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2025/08/20 | Jonathan Cameron <Jonathan.Cameron@huawei.com> | [Cache coherency management subsystem](https://lore.kernel.org/all/20250820102950.175065-1-Jonathan.Cameron@huawei.com) | 针对 ARM64 等架构的**系统级缓存一致性管理子系统**(Cache Coherency Management Subsystem), 旨在支持如 CXL 内存热插拔等场景下的缓存维护操作. 当前系统通过 MMIO 或固件接口实现缓存刷新, 该机制需支持 PA 范围过滤、异步操作及多控制单元协调.<br>主要改进点包括: <br>1. 将缓存管理代码统一至 `lib/cache_maint. c`, 通过 `GENERIC_CPU_CACHE_MAINTENANCE` 供各架构选用; <br>2. 移除无实际作用的 `IORES_DESC_*` 参数; <br>3. 增加 ACPI 缓存控制驱动示例与 HiSilicon HHA 驱动;<br>4. 支持细粒度的缓存无效化操作. | v3 ☐☑✓ | [2025/08/20, LORE v3, 0/8](https://lore.kernel.org/all/20250820102950.175065-1-Jonathan.Cameron@huawei.com) |
 
 
 
