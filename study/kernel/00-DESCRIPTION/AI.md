@@ -55,6 +55,8 @@ blogexcerpt: 虚拟化 & KVM 子系统
 # 1 场景
 -------
 
+华擎的 AI QuickSet WSL 旨在通过 WSL 下的自动 ROCm 设置以及安装/配置流行的 AI 软件包以在 WSL+ROCm 下加速执行, 从而轻松"在 Windows 上运行 Linux AI 应用程序". 参见 [phoronix, 2025/09/15, ASRock AI Quickset WSL Aims To Make It Easier Running ROCm + AI Linux Apps On Windows](https://www.phoronix.com/news/ASRock-AI-QuickSet-WSL)
+
 ## 1.1 AI4OS
 -------
 
@@ -208,6 +210,12 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 [OLMoE](https://github.com/allenai/OLMoE)
 
 [Mixture of Lookup Experts](https://arxiv.org/abs/2503.15798) 由于 MoE 会动态选择 experts, 因此所有 EA 都需要加载到 VRAM 中. 它们的大参数大小仍然限制了部署, 而卸载 (仅在需要时将专家加载到 VRAM) 会显著增加推理延迟. 为了解决这个问题, 我们提出了 Mix of Lookup Experts(MoLE), 这是一种新的 MoE 架构, 在通信和 VRAM 使用方面都非常高效. 在 MoLE 中, 专家在训练期间是前馈网络(FFN), 将嵌入层的输出作为输入. 在推理之前, 这些专家可以重新参数化为查找表(LUT), 该查找表根据输入 ID 检索专家输出, 并卸载到存储设备. 因此, 我们不需要在推理过程中执行专家计算. 相反, 我们根据输入 ID 直接检索 EA 的计算结果并将其加载到 VRAM 中, 因此由此产生的通信开销可以忽略不计. 实验表明, 在相同的 FLOPs 和 VRAM 使用量下, MoLE 实现了与密集模型相当的推理速度, 并且在专家卸载的情况下明显快于 MoE, 同时保持与 MoE 相当的性能.
+
+
+| 编号 | 日期 | 模型 | 团队 | 详情 |
+|:---:|:---:|:----:|:---:|:----:|
+|  1  | 2025/09 | [Qwen3-Next](https://huggingface.co/collections/Qwen/qwen3-next-68c25fd6838e585db8eeea9d) | 阿里 | [全新MoE架构！阿里开源Qwen3-Next，训练成本直降9成](https://www.jiqizhixin.com/articles/2025-09-12-2), 其模型结构相较 4 月底推出的 Qwen3 的 MoE 模型新增了多种技术并进行了核心改进, 包括混合注意力机制、高稀疏度 MoE 结构、一系列提升训练稳定性的优化, 以及提升推理效率的多 token 预测(MTP)机制等. |
+
 
 ### 2.2.2 稀疏化
 -------
@@ -370,6 +378,7 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 [知乎 - 有没有 speculative decoding 的综述？](https://www.zhihu.com/question/657854511)
 
+[公众号 - AI闲谈 - 万字综述 10+ 种 LLM 投机采样推理加速方案](https://mp.weixin.qq.com/s/PyAKiFzbQNq6w7HmaTnSEw)
 
 
 | 编号 | 时间 | 文章 | 描述 |
@@ -395,7 +404,7 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 |  3  | 2025/03/07 | [SpecServe: Efficient and SLO-Aware Large Language Model Serving with Adaptive Speculative Decoding](https://arxiv.org/abs/2503.05096) | 在本文提出了 SpecServe, 可根据实时请求负载和系统配置动态调整推测策略. SpecServe 提出了一个理论模型来理解和预测不同场景中推测解码的效率. 此外, 它还实现了智能绘图和验证算法, 以保证最佳性能, 同时实现高 SLO 实现. 在实际 LLM 跟踪上的实验结果表明, SpecServe 始终满足 SLO 并实现了实质性的性能改进, 与最先进的推测推理系统相比, 速度提高了 1.14. |
 |  4  | 2024/05/26 | [Kangaroo: Lossless Self-Speculative Decoding via Double Early Exiting](https://arxiv.org/abs/2404.18911) | [华为诺亚 | 提出自推测解码框架：Kangaroo，降低成本，提升大模型推理效率！](https://cloud.tencent.com/developer/article/2415194)
 
-#### 3.2.4.2 Multi-Token Prediction(多 token 预测)
+#### 3.2.4.2 MTP/Multi-Token Prediction(多 token 预测)
 -------
 
 | 编号 | 时间 | 论文 | 描述 |
@@ -403,6 +412,7 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 |  1  | 2025/07/16 | [Your LLM Knows the Future: Uncovering Its Multi-Token Prediction Potential](https://www.alphaxiv.org/abs/2507.11851) | 实现 MTP 框架, 使预训练的自回归大型语言模型能够执行多 token 预测, 在保持生成质量的同时, 为代码和数学任务提供高达 5.35 倍的推理加速, 以及为一般任务提供约 2.5 倍的推理加速.<br>
 研究者们评估了自回归模型在语言模型有监督微调阶段对多 token 预测任务的适应能力. 未来值得探索的一个方向, 是在预训练阶段或下游任务自适应阶段引入该方法, 以进一步检验其适用性与效果. 另一个具有前景的研究方向是将基于扩散的生成方法应用于多 token 预测任务. 研究者们认为, 多 token 预测位于完全自回归生成与完全扩散生成之间, 能够在两者之间取得优势的平衡，兼具效率与质量的潜力. 参见 [机器之心 -- 五倍推理加速，激发自回归潜能，苹果新工作让 LLM 预测未来](https://www.jiqizhixin.com/articles/2025-07-24-9) |
 |  2  | 2025/06/13 | [Improving Large Language Models with Concept-Aware Fine-Tuning](https://arxiv.org/abs/2506.07833) | 当前主流 LLM 都依赖 next-token prediction 进行训练,, 但它却让 AI 很难真正理解跨越多 token 的完整概念. 于是南洋理工大学最近提出了一项新技术——概念感知微调 (CAFT), 首次实现将 multi-token prediction(多 token 预测) 引入微调阶段, 让模型能够像人类一样理解和学习完整概念. 原来 LLM 只能碎片化理解每个 token, 现在 CAFT 可以为模型添加额外的辅助头, 在主模型学习下一个词的同时, 帮助学习后续 token, 并通过动态调整权重, 确保模型始终优先优化主要任务的损失. 最终 LLM 可以兼顾多 token 概念学习, 形成更为完整的认知, 在推理和生成能力增强的同时, 既不会影响模型本身, 也不会额外增加多余成本. 参见量子位报道 [知乎 - 量子位 - 突破单 token 预测局限！南洋理工首次将多 token 预测引入微调](https://zhuanlan.zhihu.com/p/1931778341473616685), [项目地址](https://github.com/michaelchen-lab/caft-llm). |
+|  3  | 2025/09/13 | [FastMTP: Accelerating LLM Inference with Enhanced Multi-Token Prediction](https://github.com/Tencent-BAC/FastMTP/blob/main/FastMTP_technical_report.pdf) | 腾讯开源 LLM 推理加速项目: FastMTP, 主要在推理阶段通过增强多词元预测来改进投机解码, 比传统的逐词生成方式, 在保持输出质量无损的同时，实现平均2.03倍的加速. 其核心是微调一个共享权重的单 MTP 头, 使其在多个因果草稿步中复用, 从而捕捉更长距离的依赖关系, 提高投机解码的接受率. 同时, 在 MTP 头内引入语言感知的词表压缩, 来进一步降低草稿生成的计算开销.<br>1. 投机解码(Speculative Decoding): 借鉴"草稿+验证"的策略, 由一个快速的草稿模型生成多个候选标记, 用主模型进行批量验证, 实现并行处理, 提高推理效率.<br>2. 共享权重的单 MTP 头: 摒弃传统 MTP 的多独立模块设计, 改用共享权重的 MTP 头递归生成多个标记, 减少内存占用, 迫使模型学习更长距离的依赖关系, 提高草稿质量.<br>3. 自蒸馏训练: 使用主模型生成的数据对 MTP 头进行训练, 通过指数衰减的加权交叉熵损失函数, 让 MTP 头优先学习生成与主模型风格和逻辑一致的草稿, 提高草稿的接受率.<br>4. 语言感知词汇压缩: 在草稿生成阶段, 根据输入语境判断语言, 仅计算高频词汇的 logits, 减少计算量, 验证阶段用全量词汇, 确保输出质量不受影响. 参见 [FastMTP – 腾讯开源的大语言模型推理加速技术](https://ai-bot.cn/fastmtp) 和 [【LLM】大模型投机采样Speculative Sampling推理加速](https://blog.csdn.net/qq_35812205/article/details/149914702) |
 
 
 ### 3.2.5 并行解码

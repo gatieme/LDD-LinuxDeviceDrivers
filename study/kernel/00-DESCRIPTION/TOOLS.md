@@ -231,7 +231,7 @@ Arch Linux 在 2022 年 5 月份开始了也提供了他们的 [debuginfod 调�
 [GitHub](https://github.com/vusec/kasper)
 [Paper](https://download.vusec.net/papers/kasper_ndss22.pdf)
 
-
+[phoronix, 2025/09/05, Linux Kernel Runtime Guard 1.0 Released For Security Vulnerability Exploit Detection](https://www.phoronix.com/news/LKRG-1.0-Released)
 
 
 
