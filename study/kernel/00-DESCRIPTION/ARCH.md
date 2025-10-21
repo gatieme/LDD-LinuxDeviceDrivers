@@ -1450,7 +1450,15 @@ AMD-pstate 驱动程序利用 ITMT 体系结构提供的功能和数据结构, �
 | 2025/08/20 | Jonathan Cameron <Jonathan.Cameron@huawei.com> | [Cache coherency management subsystem](https://lore.kernel.org/all/20250820102950.175065-1-Jonathan.Cameron@huawei.com) | 针对 ARM64 等架构的**系统级缓存一致性管理子系统**(Cache Coherency Management Subsystem), 旨在支持如 CXL 内存热插拔等场景下的缓存维护操作. 当前系统通过 MMIO 或固件接口实现缓存刷新, 该机制需支持 PA 范围过滤、异步操作及多控制单元协调.<br>主要改进点包括: <br>1. 将缓存管理代码统一至 `lib/cache_maint. c`, 通过 `GENERIC_CPU_CACHE_MAINTENANCE` 供各架构选用; <br>2. 移除无实际作用的 `IORES_DESC_*` 参数; <br>3. 增加 ACPI 缓存控制驱动示例与 HiSilicon HHA 驱动;<br>4. 支持细粒度的缓存无效化操作. | v3 ☐☑✓ | [2025/08/20, LORE v3, 0/8](https://lore.kernel.org/all/20250820102950.175065-1-Jonathan.Cameron@huawei.com) |
 
 
+### 6.14.3 硬件辅助 Cache 管理
+------
 
+
+| 日期 | 概要 | 论文 / 链接 | 团队 | 描述 |
+|:---:|:----:|----------:|:----:|:----:|
+| 2025/09 | 基于 CPI 的动态反馈, 来动态调整每个容器的独占 cache 和共享 cache 容量, 达到每个容器都可以得到很好的性能 | [dCat – Dynamic Cache Management for Efficient Performance-sensitive Infrastructure-as-a-Service]() | 核心前提: 只要独占 cache size 足够大, 业务的性能是可以得到保证的.<br>思路: 基于CPI的动态反馈，来动态调整每个容器的独占 cache 和共享 cache 容量，达到每个容器都可以得到很好的性能.<br>难点: 预测 wss(业务真正需要的 cache size). 这里面有一个容量失效和冲突失效的问题, 冲突失效和容量失效是 有一定的 overlap 的, 冲突失效是因为多条cache数据映射到同一个 cache line 上, 导致的 miss, 这个问题会导致 wss 难以预估. 这个问题没有什么太好的思路, 所以 dCat 的思路是基于 feedback 来动态扩大 cache size. 参见 [论文阅读-dCat](http://0fd.org/2021/11/05/dcat-dynamic-cache-management-for-efficient-performance-sensitive-infrastructure-as-a-service) |
+| 2019 | NA | [Make the Most out of Last Level Cache in Intel Processors, EuroSys '19](https://dl.acm.org/doi/10.1145/3302424.3303977) | NA | 在现代(Intel)处理器中, 最后一级缓存(LLC)被划分为多个切片, 并且未记录的哈希算法(又名复杂寻址)在这些切片之间映射内存地址空间的不同部分, 以增加有效内存带宽. 在仔细研究了英特尔的复杂寻址后, 我们引入了一种切片感知内存管理方案, 可以通过 LLC 更快地访问常用数据. 使用我们提出的方案, 我们表明, 对于 100% 和 95% 的 GET 工作负载, 键值存储可以分别将其平均性能提高 ~12.2% 和 ~11.4%. 此外, 我们提出了 CacheDirector, 这是一种网络 I/O 解决方案, 它扩展了直接数据 I/O(DDIO), 并将数据包的标头放置在最接近相关处理核心的 LLC 切片中. 我们将 CacheDirector 作为 DPDK 的扩展实施, 并评估了我们针对网络功能虚拟化(NFV)系统中延迟关键型应用程序提出的解决方案. 评估结果表明, CacheDirector 通过将以 100 Gbps 运行的优化 NFV 服务链的尾部延迟(90-99 个百分位数)减少多达 119 μs(~21.5%) 来加快数据包处理速度. 最后, 分析了切片感知内存管理实现缓存隔离的有效性. |
+| 2019 | NA | [CoPart: Coordinated Partitioning of Last-Level Cache and Memory Bandwidth for Fairness-Aware Workload Consolidation on Commodity Servers](https://dl.acm.org/doi/10.1145/3302424.3303963) | NA | 工作负载整合是一种广泛使用的技术, 用于最大限度地提高云和数据中心计算中的服务器资源利用率. 最近的商用 CPU 支持最后一级缓存(LLC) 和内存带宽分区功能, 可用于确保整合工作负载的公平性. 虽然先前的工作已经提出了多种资源分区技术, 但表征 LLC 和内存带宽分区对整合工作负载公平性的影响以及研究系统软件支持以协调方式动态控制 LLC 和内存带宽分区仍然没有探索. 为了弥合这一差距, 我们提出了 LLC 和内存带宽分区的深入性能和公平性表征. 在表征结果的指导下, 我们提出了 CoPart, 即 LLC 和内存带宽的协调分区, 用于商用服务器上的公平感知工作负载整合. CoPart 动态分析整合应用程序的特性, 并以协调的方式在应用程序之间分配 LLC 和内存带宽, 以提高整体公平性. 我们的定量评估表明, CoPart 显着提高了整合应用程序的公平性(例如, 公平性平均比将资源平均分配给合并应用程序的资源分配策略高 57.3%), 在各种应用程序和系统配置中稳健地提供了高公平性, 并且产生了较小的性能开销. |
 
 # 7 GPU
 -------

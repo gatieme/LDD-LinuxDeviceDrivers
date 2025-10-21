@@ -917,10 +917,15 @@ python3 convert_llama.py ~/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct/Qwen2.5
 python3 convert_llama.py ~/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct/Qwen2.5-0.5B-Instruct ~/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct/Qwen2.5-0.5B-Instruct-Q40-HEADER-VERSION --qwen2 --qtype Q4_0 --gen_model_header --model_version "6.0.0.1"
 sudo docker cp ubuntu22.04:/root/Model/QWEN/~/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct/Qwen2.5-0.5B-Instruct-Q40-HEADER-VERSION ./Qwen2.5-0.5B-Instruct-Q40-HEADER-VERSION
 
+XAMPP
+git fetch --depth=100  # 拉取最近 100 次提交
+git fetch --depth=1000 # 继续拉取更多
+git fetch --unshallow
 
 
-[Tintin: A Unified Hardware Performance Profiling
-Infrastructure to Uncover and Manage Uncertainty](https://zhuanlan.zhihu.com/p/1925925001460160336)
+[](https://mp.weixin.qq.com/s/QZNb1IZMN8M-X3VW7ZCndQ)
+
+[Tintin: A Unified Hardware Performance Profiling Infrastructure to Uncover and Manage Uncertainty](https://zhuanlan.zhihu.com/p/1925925001460160336)
 
 
 [BayesPerf: minimizing performance monitoring errors using Bayesian statistics](https://dl.acm.org/doi/10.1145/3445814.3446739)
@@ -933,5 +938,4 @@ Infrastructure to Uncover and Manage Uncertainty](https://zhuanlan.zhihu.com/p/1
 [Practical guide to fuzzing the Binder kernel driver using the Linux Kernel Library (LKL)](https://androidoffsec.withgoogle.com/posts/binder-fuzzing)
 
 
-| 2025/08/20 | Jonathan Cameron <Jonathan.Cameron@huawei.com> | [Cache coherency management subsystem](https://lore.kernel.org/all/20250820102950.175065-1-Jonathan.Cameron@huawei.com) | 针对 ARM64 等架构的**系统级缓存一致性管理子系统**(Cache Coherency Management Subsystem), 旨在支持如 CXL 内存热插拔等场景下的缓存维护操作. 当前系统通过 MMIO 或固件接口实现缓存刷新, 该机制需支持 PA 范围过滤、异步操作及多控制单元协调.<br>主要改进点包括: <br>1. 将缓存管理代码统一至 `lib/cache_maint. c`, 通过 `GENERIC_CPU_CACHE_MAINTENANCE` 供各架构选用; <br>2. 移除无实际作用的 `IORES_DESC_*` 参数; <br>3. 增加 ACPI 缓存控制驱动示例与 HiSilicon HHA 驱动;<br>4. 支持细粒度的缓存无效化操作. | v3 ☐☑✓ | [2025/08/20, LORE v3, 0/8](https://lore.kernel.org/all/20250820102950.175065-1-Jonathan.Cameron@huawei.com) |
-
+[NeoMem: Hardware/Software Co-Design for CXL-Native Memory Tiering](https://arxiv.org/abs/2403.18702)

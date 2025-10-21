@@ -68,8 +68,8 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 2025/07 |  AI 辅助调度 Load Balancing  | [LWN 2025/07/01, Improved load balancing with machine learning](https://lwn.net/Articles/1027096 | Free5GC | Ching-Chun("Jim") Huang 展示了其将 (本地) 机器学习应用于在复杂系统上调度器负载均衡的工作成果, [Improve Load Balancing with Machine Learning Techniques based on sched_ext Framework](https://static.sched.com/hosted_files/ossna2025/d2/Improve-Load-Balancing-With-Machine-Learning-Techniques-based-on-sched_ext.pdf). Free5GC 开发人员研究通过机器学习来改进调度器的负载均衡. 在此类系统上进行调度需要考虑许多输入维度; 此外, 调度程序还必须考虑每个任务的优先级、其 CPU 要求、到目前为止的虚拟运行时间以及最近的 CPU 使用模式. 必须考虑每个 CPU 上的负载, 以及 NUMA 距离、缓存共享和工作频率. 当然, 还有特定于工作负载的因素. 基于 scx_rusty 来尝试考虑所有这些参数并决定何时应该将任务从一个 CPU 移动到另一个 CPU. 它最初以数据收集模式运行, 查看迁移决策及其结果; 然后, 这些决策用于训练模型(在用户空间中), 该模型随后存储在 BPF 映射中. 然后, 调度程序可以在内核内使用此模型来做出负载平衡决策. 这些决策的结果会不断被测量并报告回用户空间, 从而随着时间的推移更新模型. 在使用最重要的内核编译基准测试的测试中, 该调度器的编译时间比 EEVDF 调度器缩短了 10%, 任务迁移的数量减少了 77%. Huang 总结了机器学习在这种情况下起作用的原因: 在这种复杂的环境中进行调度是一个模式识别问题, 而神经网络擅长这项任务. 调度程序能够平衡相互竞争的目标, 并自动针对新的架构和工作负载进行自我重新训练. 调度程序能够为每个迁移决策考虑 15 个单独的参数, 并根据结果调整其模型. [2025 Open Source Summit North America](https://events.linuxfoundation.org/open-source-summit-north-america), 参见 LWN 报道 [LWN 2025/07/01, Improved load balancing with machine learning](https://lwn.net/Articles/1027096), 代码 [scx_rusty](https://github.com/vax-r/scx/tree/scx_rusty_MLLB). |
 | 2025/03 | AI 辅助 CPU/GPU 调频 | [An Intelligent Scheduling Approach on Mobile OS for Optimizing UI Smoothness and Power](https://dl.acm.org/doi/full/10.1145/3674910) | 提出了 MobiRL 一种基于强化学习的调度器, 用于智能地调整移动系统中的 CPU/GPU 频率, 以准确满足用户需求. MobiRL监测移动系统状态, 并通过执行 CPU/GPU 频率调整操作自主学习以优化用户界面的流畅度和功耗. 在最新交付的智能手机上的实验结果表明, MobiRL 在真实设备上的表现优于广泛使用的商业调度器——分别降低了 4.1% 的掉帧率和 42.8% 的功耗. 此外, 与使用 Q 学习进行 CPU 频率调度的研究相比, MobiRL 实现了最高 2.5% 的掉帧率降低, 并分别减少了 32.6% 的功耗. |
 | 2025/03/25 | AI 辅助 CPU/GPU/DDR 调频 | [CRAVE: Analyzing Cross-Resource Interaction to Improve Energy Efficiency in Systems-on-Chip](https://dl.acm.org/doi/10.1145/3689031.3717498) | 提出了 CRAVE, 它利用学习到的设计特性来控制动态电压和频率调节. 在设计阶段, CRAVE 通过在三个主要移动系统组件(CPU内核、GPU和内存)的频率设置多元空间中采样, 为系统级芯片(SoC)确定最优的 DVFS 设置. 在运行时, CRAVE 以类似于当今操作系统内核中内置的现有简单调速器的方式监控资源利用率, 然后应用之前学习到的最优设置. 在两个真实的移动平台上实现了CRAVE: ODROID-XU4 和 NVIDIA Jetson TX2. 与最佳的内置 Linux 调速器相比, CRAVE 在 TX2 上将性能提高了20%, 同时能耗降低了 16%, 在 XU4 上也取得了类似的提升. 此外, 与最先进的应用驱动调速器相比, CRAVE 也表现出了一定的优势, 性能提高了 16%, 能耗节省了10%. |
-
-
+| 2025/07/11 | AI 生成操作系统交互界面 | | [NeuralOS: Towards Simulating Operating Systems via Neural Generative Models](https://arxiv.org/abs/2507.08800) | 滑铁卢大学 | 名为 NeuralOS 的创新性神经框架. 其核心目标是利用深度生成模型, 完全模拟一个操作系统的图形用户界面(GUI). 不同于传统依赖预编程内核和应用程序的操作系统, NeuralOS 通过一个深度神经网络, 直接根据用户的输入(如鼠标移动、点击和键盘事件)来预测并生成屏幕的下一帧图像.<br>核心贡献可以概括为以下几点:<br>1. 提出新范式: 首次尝试将整个操作系统 GUI 交互过程建模为一个端到端的生成问题, 为实现完全自适应、个性化的未来人机交互界面提供了概念验证(Proof-of-Concept).<br>2. 设计创新架构:  提出了一种受传统操作系统启发的模块化架构, 该架构由一个负责追踪系统状态的循环神经网络(RNN)"内核"和一个负责生成屏幕图像的扩散模型"渲染器"组成, 有效处理了动态交互中的长期依赖和高保真视觉生成.<br>3. 开发有效训练策略:  设计了一套复杂的多阶段训练流程, 包括 RNN 预训练、联合训练、计划采样和课程学习等, 成功解决了直接训练生成式交互模型时遇到的梯度消失、渲染器忽略控制信号和误差累积等关键挑战.<br>4. 构建大规模数据集: 通过结合 AI Agent 的智能探索和随机探索, 建立了一个大规模、多样化的 Ubuntu XFCE 桌面交互数据集, 为训练此类复杂的交互模型奠定了基础. 参见 [知乎--周舒畅--远程桌面蒸馏成RNN+扩散模型：NeuralOS: Towards Simulating Operating Systems via Neural Generative Models](https://zhuanlan.zhihu.com/p/1928592949131863847) |
+| 2025/10/21 | AI 实现补丁管理，实现补丁管理效率倍级提升| openEuler | [基于 openEuler Intelligence打造补丁管理智能体，实现补丁管理效率倍级提升](https://mp.weixin.qq.com/s/SwRTuH6iDISfD3QucNeOzw) | openEuler Intelligence 服务引擎, 实现操作系统级的 Agent 智能体与 MCP 工具管理, 提供全局、高效、低噪的智能服务框架. |
 
 ## 1.2 OS4AI
 -------
@@ -79,8 +79,9 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 2025/09 | AgentOS | [LLM as OS, Agents as Apps: Envisioning AIOS, Agents and the AIOS-Agent Ecosystem](https://arxiv.org/abs/2312.03815) | NA | 本文设想了一个革命性的 AIOS-Agent 生态系统, 其中大型语言模型 (LLM) 充当 (人工) 智能操作系统 (IOS, 或 AIOS)——一个 "有灵魂" 的操作系统. 在此基础上, 开发了各种 LLM 基于 AI 代理的应用程序 (Agents, 或 AAP), 丰富了 AIOS-Agent 生态系统, 标志着传统 OS-APP 生态系统的范式转变. 作者设想 LLM 其影响将不仅限于人工智能应用层面, 相反, 它将彻底改变计算机系统、架构、软件和编程语言的设计和实现, 其特点是几个主要概念: LLM 操作系统 (系统级)、代理即应用程序 (应用程序级)、自然语言作为编程接口 (用户级) 和工具即设备 / 库 (硬件 / 中间件级). 我们首先介绍传统操作系统的架构. 然后, 我们通过 "LLMas OS(LLMOS)" 正式化 AIOS 的概念框架, 将 AIOS 与传统操作系统进行类比: LLM 将上下文窗口比作操作系统内核, 将上下文窗口比作内存, 将外部存储比作文件系统, 将硬件工具比作外围设备, 将软件工具比作编程库, 将用户提示比作用户命令. 随后, 我们引入了新的 AIOS-Agent 生态系统, 用户可以使用自然语言轻松编程 Agent 应用程序 (AAP), 使软件开发民主化, 这与传统的 OS-APP 生态系统不同. 在此之后, 我们将探索代理应用程序的多样化范围. 我们深入研究了单智能体和多智能体系统, 以及人机交互. 最后, 借鉴传统 OS-APP 生态的洞察, 提出了 AIOS-Agent 生态演进的路线图.  该路线图旨在指导未来的研究和开发, 建议 AIOS 及其代理应用程序的系统性进展. |
 | 2025/08 | 用于可扩展的 MoE(混合专家)LLM 推理的高性能框架 | [Expert Kit: A Distributed, Expert-Centric Framework for MoE LLM Inference](https://gitee.com/openeuler/expert-kit) | openEuler | openEuler 提供的 专家工具包 (EK) 是一个用于可扩展的 MoE(混合专家)LLM 推理的高性能框架. EK 的愿景是在商用网络(例如 PCIe、TCP、RDMA) 上的异构硬件 (例如 CPU 和 GPU) 上提供专家并行性 (EP)的高效基础, 从而实现轻松部署和细粒度的专家级扩展.  |
 | 2025/09 | decode 阶段自适应选择 CPU 核 | [MNN-AECS: Energy Optimization for LLM Decoding on Mobile Devices via Adaptive Core Selection](https://arxiv.org/abs/2506.19884) | NA | 分析显示, 受内存限制的 LLM 解码阶段在能耗中占主导地位, 然而, 大多数现有工作都集中在加速预填充阶段, 忽视了能效问题. 引入了自适应能效核心选择(AECS), 并将其集成到 MNN 中, 创建了能效版本 MNN-AECS, 这是首个无需 root 权限或操作系统修改即可实现能效 LLM 解码的引擎级系统解决方案. MNN-AECS 旨在通过动态选择低功耗 CPU 核, 在保持解码速度在可接受的减速阈值内的同时, 降低 LLM 解码的能耗. 作者在 5 款安卓设备和 2 款 iOS 设备上, 对 5 种不同规模的流行 LLM 进行了 MNN-AECS 评估. 与原始 MNN 相比, MNN-AECS 在所有 7 款设备和 4 个数据集上的平均能耗降低了 23%, 且速度没有减慢. 与其他引擎(包括 llama.cpp、executorch、mllm 和 MediaPipe)相比, MNN-AECS 平均能节省 39% 至 78% 的能耗, 并实现 12% 至 363% 的速度提升. |
-
-
+| 2025/10 | Xsched 异构调度 | [支持 NPU 算力切分](https://gitee.com/openeuler/kernel/issues/IC5EHB) | openEuler | 基于 ARM64 + 910B 实现的 NPU 卡支持算力时分抢占特性, 支持 NPU share、带宽管控等特性.<br>算力时分抢占: 通过 AI 任务的算力抽象, 构建异构时分调度机制, 实现异构多任务毫秒级抢占, 多推理单卡调度抢占小于 10 毫秒;<br>
+算力带宽管控: 基于算力带宽标准化语义, 构建任务级的算力管控分配机制, 实现算力隔离与共享, 提升吞吐. |
+| 2025/10 | GPU eBPF profiling | NA | NA | |[知乎--云微--GPU可观测性差距：为什么我们需要GPU上的eBPF](https://zhuanlan.zhihu.com/p/1962141761364301211), [迈向可编程观测：在GPU Kernel中构建类eBPF风格的性能探针](https://developer.aliyun.com/article/1681315), [Neutrino: Fine-grained GPU Kernel Profiling via Programmable Probing, OSDI '25](https://github.com/open-neutrino/neutrino) |
 
 # 2 模型
 -------
@@ -188,6 +189,13 @@ blogexcerpt: 虚拟化 & KVM 子系统
 |  9  | 2025/08/08 | [DAEDAL](https://github.com/Li-Jinsong/DAEDAL) |[Beyond Fixed: Variable-Length Denoising for Diffusion Large Language Models](https://arxiv.org/abs/2508.00819) | 当前 DLLM 存在着在推理时必须采用预设固定长度的限制, 对于不同任务都需要专门调整才能达到最优效果.<br> 为了解决这一本质的问题, 香港中文大学 MMLab, 上海 AI 实验室等提出 DAEDAL, 赋予 DLLM 可以根据问题的具体情况自主调整回答长度的能力, 弥补了 DLLM 与自回归 LLM 的关键差距, 为更灵活、高效、强大的扩散大语言模型打下了基石.<br>DAEDAL 作为一种 Training Free 的去噪策略, 从一个统一且很短的初始长度开始, 让模型根据自己的需求在生成中调节长度, 动态扩展, 达到了和现有去噪策略在每个评测基准上精心调整生成长度得到的最佳性能相当的表现, 有时甚至更胜一筹. 参见 [机器之心 -- 扩散 LLM 推理新范式：打破生成长度限制，实现动态自适应调节](https://www.jiqizhixin.com/articles/2025-08-08-5). |
 |  10 | 2025/08/14 | [Discrete Diffusion Forcing(D2F)](https://arxiv.org/abs/2508.09192) | 上海交通大学 DENG Lab 联合 UCSD | [D2F：首个推理速度超过自回归的开源扩散语言模型](https://zhuanlan.zhihu.com/p/1939283118306604733) |
 |  11 | 2025/09/14 | [LLaDA-MoE-7B](https://huggingface.co/inclusionAI/LLaDA-MoE-7B-A1B-Base) | 蚂蚁&人大 | [扩散语言模型也有 MoE 版本了！蚂蚁&人大从头训练 LLaDA-MoE，即将完全开源 ｜ 机器之心](https://www.bestblogs.dev/article/e6ee1e), LLaDA-MoE 有两个版本: 基础模型版 LLaDA-MoE-7B-A1B-Base 和指令微调版 LLaDA-MoE-7B-A1B-Instruct. |
+|  12 | 2025/10/12 | [RND1-Base](https://github.com/RadicalNumerics/RND1) | Radical Numerics | RND1-Base 是 Radical Numerics 团队开发的 30B 参数扩散语言模型, 通过预训练的AR 模型转换生成扩散模型, 突破了传统扩散模型需要从零训练的局限. 采用稀疏混合专家模型架构, 由 3B 激活参数组成, 通过预训练的 AR 模型转换而来, 并在持续训练中累积了 500B 个 token 数据. 该模型在生成效果上实现了完整的扩散行为, 并同步开源了训练配方、推理代码及样例输出. |
+
+| 编号 | 日期 | 框架 | 团队 | 详情 |
+|:---:|:---:|:----:|:---:|:----:|
+|  1  | 2025/10/09 | [dInfer: An Efficient Inference Framework for Diffusion Language Models](https://arxiv.org/abs/2510.08666) | 蚂蚁集团 | dInfer 是一个用于 dLLM 推理的高效且可扩展的框架.  将推理管道分解为四个模块化组件--模型、扩散迭代管理器、解码策略和 KV 缓存管理器--并为每个组件集成了新颖的算法以及系统级优化. 通过算法创新和系统增强的结合, dInfer 在不影响 LLaDA-MoE 输出质量的情况下实现了显着的效率提升. 与以前的系统相比，dInfer 比  Fast-dLLM 更快, 同时保持相似的模型性能. 即使与采用最新 vLLM 推理引擎高度优化的自回归(Autoregressive, AR)模型(激活参数和性能相当) QWen2.5-3B 相比, dInfer 仍然能加速. 代码开源 [inclusionAI/dInfer](https://github.com/inclusionAI/dInfer). |
+|  2  | 2025/07/03 | [Fast-dLLM: Training-free Acceleration of Diffusion LLM by Enabling KV Cache and Parallel Decoding](https://arxiv.org/abs/2505.22618) | NVIDIA 联合香港大学、MIT | 通过创新的分块KV缓存和置信度感知并行解码技术, 无需训练即可实现扩散模型 27.6 倍推理加速, 同时保持生成质量损失小于 2%, 为实时交互和长文本生成场景带来突破性解决方案.<br>1. 分块 KV 缓存(Block-Wise KV Cache): 激活重用率超 90% 的双向加速.<br>2. 置信度感知并行解码(Confidence-Aware Parallel Decoding). [博客](https://nvlabs.github.io/Fast-dLLM), [代码](https://github.com/NVlabs/Fast-dLLM) |
+
 
 ## 2.2 稠密模型与稀疏模型
 -------
@@ -209,13 +217,13 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 [OLMoE](https://github.com/allenai/OLMoE)
 
-[Mixture of Lookup Experts](https://arxiv.org/abs/2503.15798) 由于 MoE 会动态选择 experts, 因此所有 EA 都需要加载到 VRAM 中. 它们的大参数大小仍然限制了部署, 而卸载 (仅在需要时将专家加载到 VRAM) 会显著增加推理延迟. 为了解决这个问题, 我们提出了 Mix of Lookup Experts(MoLE), 这是一种新的 MoE 架构, 在通信和 VRAM 使用方面都非常高效. 在 MoLE 中, 专家在训练期间是前馈网络(FFN), 将嵌入层的输出作为输入. 在推理之前, 这些专家可以重新参数化为查找表(LUT), 该查找表根据输入 ID 检索专家输出, 并卸载到存储设备. 因此, 我们不需要在推理过程中执行专家计算. 相反, 我们根据输入 ID 直接检索 EA 的计算结果并将其加载到 VRAM 中, 因此由此产生的通信开销可以忽略不计. 实验表明, 在相同的 FLOPs 和 VRAM 使用量下, MoLE 实现了与密集模型相当的推理速度, 并且在专家卸载的情况下明显快于 MoE, 同时保持与 MoE 相当的性能.
+[Awesome MoE LLM Inference System and Algorithm](https://github.com/MoE-Inf/awesome-moe-inference/)
 
-
-| 编号 | 日期 | 模型 | 团队 | 详情 |
-|:---:|:---:|:----:|:---:|:----:|
-|  1  | 2025/09 | [Qwen3-Next](https://huggingface.co/collections/Qwen/qwen3-next-68c25fd6838e585db8eeea9d) | 阿里 | [全新MoE架构！阿里开源Qwen3-Next，训练成本直降9成](https://www.jiqizhixin.com/articles/2025-09-12-2), 其模型结构相较 4 月底推出的 Qwen3 的 MoE 模型新增了多种技术并进行了核心改进, 包括混合注意力机制、高稀疏度 MoE 结构、一系列提升训练稳定性的优化, 以及提升推理效率的多 token 预测(MTP)机制等. |
-
+| 编号 | 日期 | 模型/论文 | 团队 | 详情 |
+|:---:|:---:|:---------:|:---:|:----:|
+|  1  | 2025/03 | [Mixture of Lookup Experts](https://arxiv.org/abs/2503.15798) | NA | 由于 MoE 会动态选择 experts, 因此所有 EA 都需要加载到 VRAM 中. 它们的大参数大小仍然限制了部署, 而卸载 (仅在需要时将专家加载到 VRAM) 会显著增加推理延迟. 为了解决这个问题, 我们提出了 Mix of Lookup Experts(MoLE), 这是一种新的 MoE 架构, 在通信和 VRAM 使用方面都非常高效. 在 MoLE 中, 专家在训练期间是前馈网络(FFN), 将嵌入层的输出作为输入. 在推理之前, 这些专家可以重新参数化为查找表(LUT), 该查找表根据输入 ID 检索专家输出, 并卸载到存储设备. 因此, 我们不需要在推理过程中执行专家计算. 相反, 我们根据输入 ID 直接检索 EA 的计算结果并将其加载到 VRAM 中, 因此由此产生的通信开销可以忽略不计. 实验表明, 在相同的 FLOPs 和 VRAM 使用量下, MoLE 实现了与密集模型相当的推理速度, 并且在专家卸载的情况下明显快于 MoE, 同时保持与 MoE 相当的性能. |
+|  2  | 2025/09 | [Qwen3-Next](https://huggingface.co/collections/Qwen/qwen3-next-68c25fd6838e585db8eeea9d) | 阿里 | [全新MoE架构！阿里开源Qwen3-Next，训练成本直降9成](https://www.jiqizhixin.com/articles/2025-09-12-2), 其模型结构相较 4 月底推出的 Qwen3 的 MoE 模型新增了多种技术并进行了核心改进, 包括混合注意力机制、高稀疏度 MoE 结构、一系列提升训练稳定性的优化, 以及提升推理效率的多 token 预测(MTP)机制等. |
+|  3  | 2025/10 | [Expert-as-a-Service: Towards Efficient, Scalable, and Robust Large-scale MoE Serving](https://arxiv.org/abs/2509.17863) | NA | MoE 中的专家调用是动态稀疏的, 哪个专家被激活取决于输入内容, 在不同的工作负载下被激活的分布有很大区别. 固定的专家映射和资源分配策略难以适应这种波动. 某些专家所在 GPU 因频繁命中而过载, 而其他专家节点长期闲置, 造成资源利用低下. 通过观察, 作者发现这些问题其实有共同的根本原因: 整个系统被当作一个庞大的 "有状态整体" 去管理. 事实上, 专家层本质上是无状态的, 它对输入执行纯函数计算, 不依赖历史上下文. 作者利用这一特性, 将专家层的计算抽象为独立的无状态服务, 与维护 KV 缓存的 Attention 前端解耦部署. 尽管近期也有研究尝试解耦 Attention 层与专家层、按不同组件拆分部署, 但仍未根本解决伸缩僵化、大规模容错等问题. 为此, 本文作者提出了一种全新的 MoE 模型推理系统——Expert-as-a-Service(EaaS), 旨在通过架构层面的创新来提升大规模 MoE 推理的效率、扩展性和鲁棒性. 参见 [知乎--机器之心--为MoE解绑：全新「专家即服务」推理架构发布，超细粒度扩展锐减37.5%成本](https://zhuanlan.zhihu.com/p/1961085349108364663) |
 
 ### 2.2.2 稀疏化
 -------
@@ -293,7 +301,8 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 | 17 | [Paddle-Lite](https://github.com/PaddlePaddle/Paddle-Lite) | [PaddlePaddle](https://www.paddlepaddle.org.cn/lite) | Paddle Lite 面向端侧场景的轻量化推理引擎 Paddle Lite, 可以实现飞桨模型在 x86/ARM 平台下多种 OS 内的高效部署, 同时支持在 10 种以上的 GPU/NPU 异构后端上进行推理加速和混合调度. 是一个高性能、轻量级、灵活性强且易于扩展的深度学习推理框架, 定位于支持包括移动端、嵌入式以及边缘端在内的多种硬件平台. 它提供了简单易用的部署流程, 支持多种硬件平台和多种编程语言, 并且具有优秀的加速、优化策略及实现. |
 | 18 | [uTensor]() | NA | NA |
 | 19 | Core ML | Apple | NA |
-| 20 | MediaPipe | Google |
+| 20 | MediaPipe | Google | NA |
+| 21 | ByteNN | 字节跳动 | [字节跳动ByteNN端智能业务落地背后的技术挑战.pdf](https://max.book118.com/html/2022/0725/5202242220004312.shtm), [QCon 上海 2021](https://time.geekbang.org/course/detail/100822501-811440)
 
 ### 3.1.2 推理加速库
 -------
@@ -432,20 +441,22 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 | 编号 | 加速框架 | 团队 | 介绍 |
 |:---:|:-------:|:---:|:---:|
-| 1 | [b4rtaz/distributed-llama](https://github.com/b4rtaz/distributed-llama) | Bart Tadych(b4rtaz) | Distributed Llama 是一个开源项目, 旨在通过张量并行化技术在多台设备上分布式运行大型语言模型 (LLM). 它可以在普通的 CPU 设备上运行 LLM, 通过分布工作负载来提高推理速度, 并将 RAM 使用量分散到多个节点上, 以加速大型语言模型(LLM) 的推理. 该项目支持 Linux、macOS 和 Windows 操作系统, 并针对 ARM 和 x86_64 AVX2 CPU 进行了优化.<br> 主要功能点:<br>1. 支持多个设备组成集群, 利用张量并行和高速以太网同步, 提高推理性能 <br>2. 支持多种 Llama 模型, 包括 Llama 3.1 405B、Llama 3.3 70B 等 <br>3. 提供简单的命令行工具, 可以快速启动根节点和工作节点 <br>4. 支持 API 服务器, 方便集成到其他应用程序中 |
-| 2 | [exo-explore/exo](https://github.com/exo-explore/exo) | exo 实验室 | exo 是一个可以在家中使用普通设备运行自己的 AI 集群的项目 <br> 主要功能点:<br>1. 支持多种模型, 包括 LLaMA、Mistral、LlaVA、Qwen 和 Deepseek 等 <br>2. 动态模型分区, 可根据当前网络拓扑和设备资源自动优化模型分布 <br>3. 自动发现设备, 无需手动配置 <br>4. 提供与 ChatGPT 兼容的 API<br>5. 采用对等连接架构, 设备之间地位平等. |
-| 3 | [NVIDIA Dynamo](https://developer.nvidia.cn/dynamo) | NVIDIA | NVIDIA Dynamo 是一个开源、低延迟的模块化推理框架, 用于在分布式环境中服务生成式 AI 模型. 它通过智能资源调度和请求路由、优化的内存管理和无缝的数据传输, 实现跨大型 GPU 集群的推理工作负载无缝扩展. NVIDIA Dynamo 支持所有主要的 AI 推理后端, 并提供专门针对大语言模型 (LLM) 的优化, 例如分解服务. |
-| 4 | [prima.cpp](https://github.com/Lizonghang/prima.cpp) | NA | `prima.cpp` 是 `llama.cpp`(一个性能优异的大模型推理框架)的分布式实现, 它允许您在日常设备上运行 70B 级 LLM--💻 笔记本电脑，🖥️ 台式机，📱 手机和平板电脑(GPU 或没有 GPU), 都很好. 参见论文 [PRIMA.CPP: Speeding Up 70B-Scale LLM Inference on Low-Resource Everyday Home Clusters](https://arxiv.org/pdf/2504.08791) |
+|  1  | [b4rtaz/distributed-llama](https://github.com/b4rtaz/distributed-llama) | Bart Tadych(b4rtaz) | Distributed Llama 是一个开源项目, 旨在通过张量并行化技术在多台设备上分布式运行大型语言模型 (LLM). 它可以在普通的 CPU 设备上运行 LLM, 通过分布工作负载来提高推理速度, 并将 RAM 使用量分散到多个节点上, 以加速大型语言模型(LLM) 的推理. 该项目支持 Linux、macOS 和 Windows 操作系统, 并针对 ARM 和 x86_64 AVX2 CPU 进行了优化.<br> 主要功能点:<br>1. 支持多个设备组成集群, 利用张量并行和高速以太网同步, 提高推理性能 <br>2. 支持多种 Llama 模型, 包括 Llama 3.1 405B、Llama 3.3 70B 等 <br>3. 提供简单的命令行工具, 可以快速启动根节点和工作节点 <br>4. 支持 API 服务器, 方便集成到其他应用程序中 |
+|  2  | [exo-explore/exo](https://github.com/exo-explore/exo) | exo 实验室 | exo 是一个可以在家中使用普通设备运行自己的 AI 集群的项目 <br> 主要功能点:<br>1. 支持多种模型, 包括 LLaMA、Mistral、LlaVA、Qwen 和 Deepseek 等 <br>2. 动态模型分区, 可根据当前网络拓扑和设备资源自动优化模型分布 <br>3. 自动发现设备, 无需手动配置 <br>4. 提供与 ChatGPT 兼容的 API<br>5. 采用对等连接架构, 设备之间地位平等. |
+|  3  | [NVIDIA Dynamo](https://developer.nvidia.cn/dynamo) | NVIDIA | NVIDIA Dynamo 是一个开源、低延迟的模块化推理框架, 用于在分布式环境中服务生成式 AI 模型. 它通过智能资源调度和请求路由、优化的内存管理和无缝的数据传输, 实现跨大型 GPU 集群的推理工作负载无缝扩展. NVIDIA Dynamo 支持所有主要的 AI 推理后端, 并提供专门针对大语言模型 (LLM) 的优化, 例如分解服务. |
+|  4  | [prima.cpp](https://github.com/Lizonghang/prima.cpp) | NA | `prima.cpp` 是 `llama.cpp`(一个性能优异的大模型推理框架)的分布式实现, 它允许您在日常设备上运行 70B 级 LLM--💻 笔记本电脑，🖥️ 台式机，📱 手机和平板电脑(GPU 或没有 GPU), 都很好. 参见论文 [PRIMA.CPP: Speeding Up 70B-Scale LLM Inference on Low-Resource Everyday Home Clusters](https://arxiv.org/pdf/2504.08791) |
+|  5  | [cake](https://github.com/evilsocket/cake) | evilsocket | 旨在将消费级硬件组合成异构集群, 其中消费级硬件采用多种操作系统, 包括: iOS、Android、macOS、Linux 和 Windows, 从而使 AI 更易于访问. 主要思路是将 transformer 块分片到多个设备, 以便能够让通常不适合单个设备 GPU 内存的模型运行推理. 对同一工作线程上的连续 transformer 块的推理是分批进行的, 以便最大限度地减少数据传输造成的延迟. |
+
 
 #### 3.2.6.2 异构推理
 -------
 
-[HeteroLLM: Accelerating Large Language Model Inference on Mobile SoCs platform with Heterogeneous AI Accelerators](https://arxiv.org/abs/2501.14794)
 
 
 | 日期 | 概要 | 论文 / 链接 | 团队 | 描述 |
 |:---:|:----:|----------:|:----:|:----:|
 | 2024/07 | 异构计算资源混合调度的大模型推理系统 llm.npu | [Fast On-device LLM Inference with NPUs, ASPLOS'2025](https://arxiv.org/abs/2407.05858v2) | 北京大学计算机学院 | 在端设备侧进行高性能的模型推理成为泛在计算环境下一个重要的应用场景. 然而, 即使是专为端侧设备设计的大语言模型(LLM), 如 Gemma-2B 在处理屏幕 UI 理解等任务时, 仍面临预填充阶段的高延迟瓶颈.<br>为了解决这一问题, 团队提出了 llm.npu 系统, llm.npu 是首个基于端侧设备的神经网络处理芯片(NPU) 来进行任务分载, 以降低预填充阶段的延迟/能耗以提升推理任务整体性能的系统, 通过 NPU(整数计算)和 CPU/GPU 上(浮点运算)的内存共享和乱序执行来确保计算精度.<br>1. 在 Prompt 层面, Chunk-sharing graph, 将可变长度的提示词分割为多个固定大小的块, 以保持数据依赖性;<br>2. 在 Tensor 层面, Shadow outlier execution, llm.npu 识别并提取重要的异常值在 CPU/GPU 上处理, 以保证推理的准确性;<br>3. 在 Block 层面, Out-of-order subgraph execution, 根据 Transformer 块的硬件适应性和对精度的敏感性, 将它们灵活调度到 CPU/GPU/NPU上. 实验显示, 在保持精度的同时, 相比 5 个主流的同期主流工作(llama.cpp、TFLite、MNN、MLC-LLM 和 PowerInfer-v2), llm.npu 在可以提升 7.3 到 43.6 倍, 并降低了 1.9 到 59.5 倍的能耗. 该工作为利用端侧异构计算资源来优化 LLM 推理性能探索了全新路径, 也为泛在计算环境下的 LLM 规模化应用提供了有效系统支撑. |
+| 2024/07 | HeteroLLM 异构推理框架, CPU 用于调度 GPU 和 NPU, GPU 和 NPU 用于推理 | [HeteroLLM: Accelerating Large Language Model Inference on Mobile SoCs platform with Heterogeneous AI Accelerators](https://arxiv.org/abs/2501.14794) | 论文深入分析了 GPU 和 NPU 的硬件架构, 强调了 NPU 对张量形状敏感的性能特征. 遗憾的是, 现代 LLM 中的某些层(如 FFN-down 层)无法被 NPU 高效处理, 形成显著瓶颈. HeteroLLM 通过利用 GPU 弥补 NPU 的计算限制, 缓解了这些效率问题, 同时解决了 SoC 内存带宽未充分利用和静态图约束等挑战.<br>论文的核心设计理念是 CPU 用于调度 GPU 和 NPU, GPU 和 NPU 用于推理, 具体优化策略如下:<br>1. 计算资源调度: 设计了合理的张量分区求解器. 比如 prefill 和 decode 阶段执行不同的张量划分策略, prefill 阶段, 更多使用 NPU. decode 阶段更多使用 GPU, 根据硬件特性来进行张量的分配. 对于不同异构设备的利用也可以平衡渲染任务和推理任务的 GPU 资源调度. GPU 支持动态 shape 张量的计算优化, NPU 不支持, 所以 NPU 更适合使用固定大小张量的计算. 譬如将 300 的输入序列拆分为 256(NPU) + 44(GPU)来计算. 根据算子特性分配到不同设备进行计算.<br>2. 通过共享内存减少数据拷贝的开销. 苹果 M/A 系列、高通骁龙系列等支持 CPU、GPU 和 NPU 的统一地址空间, 可以通过 OpenCL 在 CPU 和 GPU 之间建立共享内存, 并使用 QNN API 在 CPU 和 NPU 之间建立共享内存, 通过采用 "CL_MEM_USE_HOST_PTR" 标志, 还可以将 NPU 的共享内存映射到 GPU; 另一方面, 通过 CPU 轮询机制实现微妙级别的同步, 在异构设备完成计算后快速通知其他异构设备进行后续执行. 参见 [微信公众号--NerualTalk--HeteroLLM：利用移动端 SoC 实现 NPU-GPU 并行异构 LLM 推理！以 高通8 Gen 3的NPU GPU为例](https://mp.weixin.qq.com/s/E3yQZZPZwGTYvTiKh0efIQ) |
 
 ### 3.2.7 注意力机制
 -------
@@ -486,6 +497,11 @@ Tencent/FeatherCNN
 dmlc/tvm
 
 ARM-software/ComputeLibrary
+
+
+| 日期 | 概要 | 论文 / 链接 | 团队 | 描述 |
+|:---:|:----:|----------:|:----:|:----:|
+| 2025/10 | 通过分块量化和查找表等技术, 动态分配推理计算资源, 提升推理性能 |[Scaling LLM Test-Time Compute with Mobile NPU on Smartphones](https://arxiv.org/abs/2509.23324) | NA | 本文指出, NPU 在典型的 LLM 推理过程中, 其计算资源(尤其是矩阵乘法单元)未被充分利用. 为了利用这部分被浪费的计算能力, 论文提出在移动 NPU 上应用并行测试时计算扩展(指在模型推理阶段通过增加计算量来提升性能的技术)技术, 以提升小模型的性能. 然而, 该方法面临着 NPU 固有的挑战, 包括对细粒度量化(分组更小、更精细)的硬件支持不足, 以及通用计算(指不针对特定 AI 任务的常规计算, 如 Softmax 激活函数计算, NPU 在这类计算上效率通常低于专用矩阵计算）效率低下. 为解决这些问题, 论文引入了两项关键技术: 一是硬件感知的分块量化方案, 该方案将分组量化与 NPU 的内存访问模式对齐;<br>二是基于查找表的高效替代方案, 用于处理 Softmax 和反量化等复杂操作. [微信公众号--NerualTalk--端侧 NPU 的 LLM 测试时计算扩展：硬件感知块量化与 LUT 优化实现 19.0×GEMM与 2.2×Softmax 加速](https://mp.weixin.qq.com/s/QZNb1IZMN8M-X3VW7ZCndQ), [主仓库](https://github.com/haozixu/llama.cpp-npu), [算子库](https://github.com/haozixu/htp-ops-lib) |
 
 
 ## 3.4 长上下文
