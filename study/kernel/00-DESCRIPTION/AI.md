@@ -57,8 +57,16 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 华擎的 AI QuickSet WSL 旨在通过 WSL 下的自动 ROCm 设置以及安装/配置流行的 AI 软件包以在 WSL+ROCm 下加速执行, 从而轻松"在 Windows 上运行 Linux AI 应用程序". 参见 [phoronix, 2025/09/15, ASRock AI Quickset WSL Aims To Make It Easier Running ROCm + AI Linux Apps On Windows](https://www.phoronix.com/news/ASRock-AI-QuickSet-WSL)
 
+
+[知乎--机器之心--跟不上、读不完？上万篇顶会论文，这个工具一键分析](https://zhuanlan.zhihu.com/p/1968619277394346770)
+
 ## 1.1 AI4OS
 -------
+
+
+[Learning-directed operating system (LDOS)](https://ldos.utexas.edu) 是德克萨斯大学奥斯汀分校的一个研究项目, 专注于开发基于机器学习的下一代作系统, 以提高效率和性能. 该项目旨在通过将机器学习驱动的方法集成到核心系统组件中, 通过"从头开始的范式"彻底改变作系统设计. 这包括优化资源分配、调度和拥塞控制机制，以动态适应不同的工作负载.
+2025 年, LDOS 团队发表了两篇论文: "Canopy: Property-Driven Learning for Congestion Control" 探索了使用机器学习根据网络属性动态调整拥塞控制策略, "Large Language Models as Realistic Microservice Trace Generators" 应用 LLM 生成用于测试微服务的真实流量跟踪, 提高模拟模型的准确性.
+
 
 | 日期 | 概要 | 论文 / 链接 | 团队 | 描述 |
 |:---:|:----:|----------:|:----:|:----:|
@@ -176,6 +184,8 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 [Diffusion LLMs (dLLMs): Introducing a New Generation of LLMs](https://markovate.com/diffusion-llms)
 
+[近500页史上最全扩散模型修炼宝典，宋飏等人一书覆盖三大主流视角](https://mp.weixin.qq.com/s?__biz=MzA3MzI4MjgzMw==&mid=2650998605&idx=2&sn=84f6cb3603ca32053d0e2d84027bdf2c&poc_token=HD-2BWmje61whwOTJBJqElN1O1DNsNJpYNxbUqu3)
+
 | 编号 | 日期 | 模型 | 团队 | 详情 |
 |:---:|:---:|:----:|:---:|:----:|
 |  1  | 2025/02/14 | [LLaDA-8B](https://ml-gsai.github.io/LLaDA-demo) | ml-gsai | 参见论文 [Large Language Diffusion Models](Large Language Diffusion Models](https://arxiv.org/abs/2502.09992), [论文 | 2025 | 论文综述：大型语言扩散模型(LLDM)](https://mp.weixin.qq.com/s/W8lLo6BI1xKkj_1HfiH5pg) |
@@ -241,7 +251,14 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 |  3  | [CLONE: Customizing LLMs for Efficient Latency-Aware Inference at the Edge](https://arxiv.org/abs/2506.02847) | 澳门大学 | 边缘设备通常存在存储空间有限、计算能力弱等问题, 导致无法直接运行复杂语言模型. CLONE (Customizing LLMs for Efficient Latency-Aware Inference at the Edge) 是 澳门大学 团队开发的一种算法 - 硬件协同设计系统, 旨在解决在边缘设备上部署大型语言模型 (LLMs) 时面临的存储、计算资源限制问题. 该系统通过优化模型结构和硬件加速器设计, 平衡了延迟、能耗与模型精度, 并已在两种通用边缘平台上进行验证. 技术方案包括:<br>1. 硬件感知的模型剪枝优化: 通过剪枝、量化等技术减少模型体积和计算复杂度, 同时保持模型性能.<br>2. 硬件加速: 采用 28nm 工艺的专用硬件加速器, 进一步提升运算效率.<br>3. 在线延迟感知推理: 在算法层面融入实时优化和能量管理机制, 确保在低延迟场景中稳定运行. 使用基于请求的 MoE 路由器动态配置 Lora, 通过层间 DVFS 有效优化能效.
 
 
+#### 2.2.2.2 弹性推理
+-------
 
+| 编号 | 技术 | 团队 | 介绍 |
+|:---:|:----:|:---:|:---:|
+|  1  | [Matryoshka Representation Learning](https://arxiv.org/abs/2205.13147) | RAIVNLab | 取 embedding 的前 n 维作为降维后的 embedding, 并分别计算 loss 最后累加, 从而让模型把重要特征集中在 embedding 的头部. 代码 [RAIVNLab/MRL](https://github.com/RAIVNLab/MRL), 参见 [CSDN--爱编程真是太好了--揭秘2025 OpenAI LLM的黑科技](https://blog.csdn.net/u012526436/article/details/148720737). |
+|  2  | [MatFormer: Nested Transformer for Elastic Inference](https://www.yiyibooks.cn/arxiv/2310.07707v1/index.html) | Google | MatFormer是一种新颖的"嵌套式" Transformer 架构, 其核心目标是实现极致的推理弹性. 它通过一次性的训练, 生成一个通用的"母体"模型, 并能从中免费、即时地提取出成百上千个规模更小、性能卓越且功能完整的子模型, 彻底改变了传统"为每个场景单独训练一个模型"的低效模式. 采用了 Matryoshka Representation Learning 的类似思想, MatFormer 思路类似, 实现 PLE(Per-Layer Embeddings) 技术, 把 FFN 层的激活值采用类似的思路进行训练, 该模型采用学习残差连接(LAuReL), FFN 层从 2048 维投射到 16384 维(GeGLU激活), 比例异常宽, 可能部分参数可选择性开关以实现 Matformer. 每层嵌入被用于 FFN 后的操作, 作为低秩投影的门控. 这样推理阶段, 就可以根据当前的请求量确认模型需要激活多少参数, 这种设计实现了 "一次部署，多档可用" 的灵活部署方案. 参见 [知乎--北方的郎--揭秘Gemma3n背后的引擎：MatFormer弹性架构深度解析](https://zhuanlan.zhihu.com/p/1930197318738633011) |
+|  3  | [Chain-of-Model Learning for Language Model](https://arxiv.org/abs/2505.11820) | NA | 把权重分成了 N 个 Chain, 每一个位置的值只激活当前与其前面的 Chain 的值, 在 MHA 阶段, 则是把 Chain 的大小和 head 的大小统一, 这样就能直接复用 Multi Query Attention 的思路. |
 
 ## 2.3 模型压缩和量化
 -------
@@ -451,6 +468,7 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 #### 3.2.6.2 异构推理
 -------
 
+[Accelerating Hybrid Inference in SGLang with KTransformers CPU Kernels](https://lmsys.org/blog/2025-10-22-KTransformers/)
 
 
 | 日期 | 概要 | 论文 / 链接 | 团队 | 描述 |

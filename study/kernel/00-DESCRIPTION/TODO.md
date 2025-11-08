@@ -939,3 +939,10 @@ git fetch --unshallow
 
 
 [NeoMem: Hardware/Software Co-Design for CXL-Native Memory Tiering](https://arxiv.org/abs/2403.18702)
+
+
+
+[知乎--SOSP 2025 论文评述 Day 3 Session 13: OS Memory Management and Scalability](https://zhuanlan.zhihu.com/p/1962852227333990287)
+
+
+作者的博客 [Sanidhya Kashyap](https://sanidhya.github.io) 和 [Jean-Pierre Lozi](https://jean-pierre.lozi.org)

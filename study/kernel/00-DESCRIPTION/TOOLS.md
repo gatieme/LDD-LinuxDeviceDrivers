@@ -117,6 +117,9 @@ Intel 发布的 ControlFlag 用机器学习来发现代码中的错误, 支持 C
 
 * LTTng
 
+
+[使用 PerfCollect 跟踪 .NET 应用程序](https://learn.microsoft.com/zh-cn/dotnet/core/diagnostics/trace-perfcollect-lttng)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2025/07/14 | Mathieu Desnoyers <mathieu.desnoyers@efficios.com> | [[RFC] LTTng upstreaming next steps](https://lore.kernel.org/lkml/b554bfa3-d710-4671-945b-5d6ec49e52cd@efficios.com) | phoronix 报道 [phoronix, 2025/07/14, New Effort To Upstream LTTng In The Linux Kernel Draws Criticism From Torvalds](https://www.phoronix.com/news/LTTng-Kernel-Modules-2025). | v7 ☐☑✓ | [2025/07/14, LORE RFC](https://lore.kernel.org/lkml/b554bfa3-d710-4671-945b-5d6ec49e52cd@efficios.com) |

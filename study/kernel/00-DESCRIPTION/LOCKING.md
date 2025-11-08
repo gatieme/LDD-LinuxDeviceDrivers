@@ -566,11 +566,12 @@ SCaLE 21x 上 Alison Chaiken 关于 WorkQueue 的讨论, 参见 [Diagnosing work
 ### 12.3.2 自适应锁
 -------
 
-
 | 编号 | 时间 | 论文 | 团队 | 描述 | 链接 |
 |:---:|:----:|:---:|:---:|:----:|:----:|
-|  1  | 2025/09/02 | [FlexGuard: Fast mutual exclusion independent of subscription, SOSP '25]() | INRIA (Paris) 的 Whisper 团队 | NA | NA |
-|  2  |
+|  1  | 2025/09/02 | [FlexGuard: Fast Mutual Exclusion Independent of Subscription, SOSP '25]() | INRIA (Paris) 的 Whisper 团队 | 为了解决自旋锁超额使用的问题, 可以在超额使用时从自旋锁切换为阻塞锁. 现有工作在阻塞锁和自旋锁之间切换严重依赖启发式方法, 比如设置一个忙等待的超时, 并在超时后转为阻塞. 然而, 这一类启发式方法不够稳定, 在有些负载下性能不如 POSIX 锁. eBPF 的出现为锁切换带来了新的机会. 通过对上下文切换插桩, 可以判断线程被抢占时是否处在临界区. 当出现临界区抢占则切换为阻塞式锁, 彻底摆脱锁切换对启发式的依赖. 为了能够在出现临界区抢占时切换为阻塞式锁, FlexGuard 需要准确判断线程是否处于临界区, 并且设计一套能够在忙等待模式和阻塞模式切换的高效锁算法. 参见 [知乎--SOSP 2025 论文评述 Day 3 Session 13: OS Memory Management and Scalability](https://zhuanlan.zhihu.com/p/1962852227333990287). 作者的博客 [Sanidhya Kashyap](https://sanidhya.github.io) 和 [Jean-Pierre Lozi](https://jean-pierre.lozi.org). | NA |
+
+
+
 
 
 <br>
