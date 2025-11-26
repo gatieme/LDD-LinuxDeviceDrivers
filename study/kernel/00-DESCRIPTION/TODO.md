@@ -942,7 +942,16 @@ git fetch --unshallow
 
 
 
-[知乎--SOSP 2025 论文评述 Day 3 Session 13: OS Memory Management and Scalability](https://zhuanlan.zhihu.com/p/1962852227333990287)
+
+| 2025/09/18 | Marco Elver <elver@google.com> | [Compiler-Based Capability- and Locking-Analysis](https://lore.kernel.org/all/20250918140451.1289454-1-elver@google.com) | 一项基于编译器的"能力分析" (Capability Analysis) 与"锁分析" (Locking Analysis) 功能, 旨在通过 Clang 的静态分析能力, 在编译期检测 Linux 内核中同步机制(如锁、RCU、信号量等) 使用的合规性. 关键点包括: <br>采用 Clang 的 Capability System 特性, 扩展 C 语言以支持能力注解, 确保锁等资源的获取与释放符合预期. <br>分析机制独立于运行时工具(如 Lockdep、KCSAN), 无性能开销, 提前发现潜在并发问题.<br>支持多种同步原语, 包括 spinlock、mutex、rwlock、seqlock、RCU 等.<br>目标是提升内核并发安全性, 同时降低静态分析误报与维护成本. | v3 ☐☑✓ | [2025/09/18, LORE v3, 0/35](https://lore.kernel.org/all/20250918140451.1289454-1-elver@google.com) |
 
 
-作者的博客 [Sanidhya Kashyap](https://sanidhya.github.io) 和 [Jean-Pierre Lozi](https://jean-pierre.lozi.org)
+
+使用 `schbench` 工具进行测试, 每秒请求数(RPS)从 5.4M 下降到 3.4M, 问题表现为 `newidle balance` 操作次数增加了约 100 倍, 这些操作大多失败, 未能找到负载可迁移的 CPU. 工作线程约 20% 的时间花在 `newidle balance` 上. 因此本补丁尝试在 newidle balance 失败时增大其成本(`domain_cost`), 从而抑制其频繁触发. 同时对成本的上限进行限制, 防止其无限增长. sched_balance_newidle()` 函数中, 原逻辑: 无论 newidle balance 是否成功，均使用实际耗时更新 `max_newidle_lb_cost`. 新逻辑: 如果没有拉取到任务(`pulled_task == false`), 则将该次 balance 的 cost 提升为当前最大 cost 的 1.5 倍. 这样做的目的是: 提升失败操作的成本感知, 使得调度器在未来更谨慎地触发 newidle balance. `update_newidle_cost()` 函数中, 原逻辑: 直接更新 `sd->max_newidle_lb_cost = cost;`, 新逻辑: 增加上限限制, 使用 `sysctl_sched_migration_cost + 200` 作为最大值. 避免成本无限增长
+
+
+
+
+
+
+
