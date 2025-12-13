@@ -200,6 +200,8 @@ blogexcerpt: 虚拟化 & KVM 子系统
 |  10 | 2025/08/14 | [Discrete Diffusion Forcing(D2F)](https://arxiv.org/abs/2508.09192) | 上海交通大学 DENG Lab 联合 UCSD | [D2F：首个推理速度超过自回归的开源扩散语言模型](https://zhuanlan.zhihu.com/p/1939283118306604733) |
 |  11 | 2025/09/14 | [LLaDA-MoE-7B](https://huggingface.co/inclusionAI/LLaDA-MoE-7B-A1B-Base) | 蚂蚁&人大 | [扩散语言模型也有 MoE 版本了！蚂蚁&人大从头训练 LLaDA-MoE，即将完全开源 ｜ 机器之心](https://www.bestblogs.dev/article/e6ee1e), LLaDA-MoE 有两个版本: 基础模型版 LLaDA-MoE-7B-A1B-Base 和指令微调版 LLaDA-MoE-7B-A1B-Instruct. |
 |  12 | 2025/10/12 | [RND1-Base](https://github.com/RadicalNumerics/RND1) | Radical Numerics | RND1-Base 是 Radical Numerics 团队开发的 30B 参数扩散语言模型, 通过预训练的AR 模型转换生成扩散模型, 突破了传统扩散模型需要从零训练的局限. 采用稀疏混合专家模型架构, 由 3B 激活参数组成, 通过预训练的 AR 模型转换而来, 并在持续训练中累积了 500B 个 token 数据. 该模型在生成效果上实现了完整的扩散行为, 并同步开源了训练配方、推理代码及样例输出. |
+| 13  | 2025/11/23 | [dLLM: Simple Diffusion Language Modeling](https://github.com/ZHZisZZ/dllm) | 伯克利与 UIUC 团队基于自研的扩散语言模型工具 dLLM, 做了一个简单的实验: 让 BERT 通过离散扩散学会对话. 结果远超预期 —— 无需生成式预训练, 仅约 50 GPU 小时的监督微调, ModernBERT-large-chat-v0(0.4B 参数)在多项任务中的表现已逼近 Qwen1.5-0.5B, 证明「离散扩散 + 轻量级指令微调」即可赋予经典 BERT 强生成能力, 为社区提供了真正高效、低成本的方案. [项目报告](https://wandb.ai/asap-zzhou/dllm/reports/dLLM-BERT-Chat--VmlldzoxNDg0MzExNg), [项目模型](https://huggingface.co/collections/dllm-collection/bert-chat). 参见 [微信公众号-机器之心-通用的 dLLM 开发框架, 让 BERT 掌握扩散式对话](https://mp.weixin.qq.com/s?__biz=MzA3MzI4MjgzMw==&mid=2651003281&idx=3&sn=96891b328d3f36ae61a94cc85af6bf84&poc_token=HLT_Jmmjho01GZClV-kVzqxtwq5txGcA1IF8hj23) |
+
 
 | 编号 | 日期 | 框架 | 团队 | 详情 |
 |:---:|:---:|:----:|:---:|:----:|
