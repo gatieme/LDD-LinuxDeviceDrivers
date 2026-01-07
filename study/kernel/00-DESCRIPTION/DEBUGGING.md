@@ -1360,6 +1360,14 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 | 2025/03/13 | Rahul Rameshbabu <sergeantsagara@protonmail.com> | [Initial work for Rust abstraction for HID device driver development](https://lore.kernel.org/all/20250313160220.6410-2-sergeantsagara@protonmail.com) | [phoronix, 2025/03/16, Linux Kernel's Rust Support Being Expanded To HID Drivers](https://www.phoronix.com/news/Linux-Rust-HID-Drivers-Patches) | v1 ☐☑✓ | [LORE v1,0/3](https://lore.kernel.org/all/20250313160220.6410-2-sergeantsagara@protonmail.com)|
 | 2025/09/21 | [rust_binder: add Rust Binder driver](https://git.kernel.org/pub/scm/linux/kernel/git/gregkh/char-misc.git/commit/?h=char-misc-next&id=eafedbc7c050c44744fbdf80bdf3315e860b7513) | [phoronix, 2023/12/02, Google Rewriting Android's Binder In Rust With Promising Results](https://www.phoronix.com/news/Google-Linux-Binder-In-Rust), [phoronix, 2025/09/21, Linux 6.18 Expected To Land Google's Rust Binder Driver](https://www.phoronix.com/news/Rust-Binder-For-Linux-6.18) |
 
+
+### 21.1.2 Rex
+-------
+
+
+弗吉尼亚理工大学和伊利诺伊大学厄巴纳-香槟分校的研究人员在 2025 年 12 月于东京举办的 Linux Plumbers Conference 2025 上介绍了 Rex [LPC-2025, Rex and its integration with Rust-for-Linux](https://lpc.events/event/19/contributions/2190/). Rex 旨在为"安全且可用"的基于 Rust 的内核扩展而设计, 这些扩展可以替代 eBPF 程序, 用于扩展 Linux 内核功能. 参见 [phoronix, 2025/12/22, Rex: Proposed Safe Rust Kernel Extensions For The Linux Kernel, In Place Of eBPF](https://www.phoronix.com/news/Linux-Kernel-Rust-Rex), 代码可以参见 [github, RES](https://github.com/rex-rs/rex).
+
+
 ## 22.2 C++
 -------
 
