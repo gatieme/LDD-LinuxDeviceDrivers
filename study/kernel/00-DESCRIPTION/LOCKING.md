@@ -220,12 +220,15 @@ PV_SPINLOCKS 的合入引起了[性能问题 Performance overhead of paravirt_op
 
 [NUMA-aware qspinlocks](https://lwn.net/Articles/852138)
 
+[CLoF: A Compositional Lock Framework for Multi-level NUMA Systems](https://zhuanlan.zhihu.com/p/468599817)
+
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2019/08/24 | H.J. Lu  | [numa-spinlock](https://sanidhya.github.io/pubs/2019/shfllock.pdf) | 阿里实现的用户态 numa aware spinlock. | ☐ |[GitLab](https://gitlab.com/numa-spinlock/numa-spinlock) |
 | 2019/08/24 | sanidhya | [Scalable and Practical Locking with Shuffling](https://sanidhya.github.io/pubs/2019/shfllock.pdf) | Shuffling 锁实现了洗牌技术. 将等待锁的线程更指定的策略进行重新排序. 类似于通过定义的比较功能对 waiter 进行排序. 实现 NUMA 感知的唤醒和阻塞策略. 洗牌的动作通常不会在关键路径上执行. | ☐ | [GitHub](https://github.com/sslab-gatech/shfllock) |
 | 2019/08/08 | dozenow | ShortCut: Accelerating Mostly-Deterministic Code Regions | NA | ☐ | [GitHub](hhttps://github.com/shortcut-sosp19/shortcut) |
-| 2021/05/14 | Alex Kogan <alex.kogan@oracle.com> | [Add NUMA-awareness to qspinlock](https://lwn.net/Articles/856387) | NUMA 感知的 spinlock, 基于 [CNA-compact-numa-aware-locks](https://deepai.org/publication/compact-numa-aware-locks). | v15 ☐ | [PatchWork v15](https://lore.kernel.org/patchwork/cover/1428910), [PatchWork v15,0/6 ARM](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210514200743.3026725-1-alex.kogan@oracle.com) |
+| 2021/05/14 | Alex Kogan <alex.kogan@oracle.com> | [Add NUMA-awareness to qspinlock](https://lwn.net/Articles/856387) | NUMA 感知的 spinlock, 基于 CNA-Lock [CNA-compact-numa-aware-locks](https://deepai.org/publication/compact-numa-aware-locks). | v15 ☐ | [PatchWork v15](https://lore.kernel.org/patchwork/cover/1428910), [PatchWork v15,0/6 ARM](https://patchwork.kernel.org/project/linux-arm-kernel/cover/20210514200743.3026725-1-alex.kogan@oracle.com) |
+| 2025/12/06 | Anatoly Stepanov <stepanov.anatoly@huawei.com> | [Introduce Hierarchical Queued NUMA-aware spinlock](https://lore.kernel.org/all/20251206062106.2109014-1-stepanov.anatoly@huawei.com) | 一种新的 NUMA 体系结构感知的自旋锁机制——分层队列自旋锁(HQ/Hierarchical Queued-spinlock) , 旨在解决当前 Linux 内核在高竞争场景下因跨 NUMA 节点缓存行传输导致的性能下降问题. 在高争议情况下, 现有的 Linux 内核自旋锁实现由于频繁且昂贵的跨 NUMA 缓存行传输. 这可能由以下原因引起:<br>1. 在"竞争者队列"中, 每个锁竞争者更新共享锁结构.<br>2. 在"MCS 切换"中, 当两个竞争者来自不同的 NUMA 节点时, 会发生跨 NUMA 缓存行传输.<br>作者引入了分层队列旋转锁(HQ spinlock), 旨在减少跨 NUMA 缓存行的流量, 从而提升高争用情况下的锁/解锁吞吐量. 这个想法可以看作是 Dave Dice 的队列锁定 cohort-locking [Lock Cohorting: A General Technique for Designing NUMA Locks](https://dl.acm.org/doi/10.1145/2686884) 和 Linux 内核 queued spinlock 的结合. 适应 HQspinlock 可以非常简单, 只需将初始化调用从 spin_lock_init() 切换到 spin_lock_init_hq().<br>与现有方案 CNA-lock 相比, HQ-spinlock 采用队列与协作锁结合的设计, 减少共享变量的频繁修改, 从而显著提升性能.<br>测试数据显示, 在 96 核 Kunpeng 920 平台上, HQ-lock 在多线程场景下性能提升达 26%~35%. 该 RFC 包含五个补丁, 涉及核心实现、调试支持、架构适配等内容, 并新增对 lockref 和 futex 的支持. [phoronix, 2025/11/28, HQspinlock Proposal For Linux Shows Very Nice Performance Benefits For Large Servers](https://www.phoronix.com/news/HQspinlock-RFC-Patches) | v2 ☐☑✓ | [2025/11/28, LORE v1, 0/1](https://lore.kernel.org/lkml/20251128032618.811617-1-stepanov.anatoly@huawei.com)<br>*-*-*-*-*-*-*-* <br>[2025/12/06, LORE v2, 0/5](https://lore.kernel.org/all/20251206062106.2109014-1-stepanov.anatoly@huawei.com) |
 
 
 
@@ -433,6 +436,14 @@ Lockdep 跟踪锁的获取顺序, 以检测死锁, 以及 IRQ 和 IRQ 启用/禁
 | 2022/09/15 | 刘顺 | [OSPP 2022: Add lite-lockdep as a lightweight lock validator](https://gitee.com/openeuler/kernel/issues/I5R8DS) | openEuler 开源之夏轻量级死锁检测特性. 参考了 [Low-overhead deadlock prediction](https://dl.acm.org/doi/10.1145/3377811.3380367), [PDF](https://web.cs.ucla.edu/~palsberg/paper/icse20.pdf) | ☐☑✓ | [gitee, PR](https://gitee.com/openeuler/kernel/pulls/112) |
 
 
+## 10.4 Compiler-Based Context & Locking Analysis
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2025/12/19 | Marco Elver <elver@google.com> | [Compiler-Based Context-and Locking-Analysis](https://lore.kernel.org/all/20251219154418.3592607-1-elver@google.com) | 提出了一项基于 Clang 编译器的"上下文与锁分析"功能(Context Analysis), 用于在编译时静态检查内核中同步原语的使用是否符合上下文约束, 如加锁/解锁规则. 该功能依赖 Clang 22 或更高版本, 原名为"Thread Safety Analysis" , 后为避免与内核已有术语冲突, 改称"上下文分析(Context Analysis)".<br>内容包括:<br>1. 引入上下文分析基础设施;<br>2. 支持多种同步机制, 如 spinlock、mutex、RCU、seqlock、ww_mutex 等;<br>3. 提供文档说明与测试代码; <br>4. 引入 cleanup.h 支持自动释放上下文锁;<br>5. 支持子系统选择性启用分析(通过 Makefile 配置) , 如 kcov、kcsan、sched、crypto 等; <br>6. 放弃与 Sparse 的兼容性, 采用更灵活的注解方式;<br>7. 提供注解宏(如 `__acquires`、 `__releases`、 `__guarded_by`)用于标注函数与变量的上下文约束;<br>8. 支持能力别名分析与多参数属性;<br>9. 提供警告抑制机制, 避免误报;<br>10. 数据竞争宏 data_race 自动禁用上下文分析.<br>11. 该功能为编译时静态分析工具, 无运行时开销, 可与 Lockdep、KCSAN 等动态分析工具互补, 提升内核锁安全与上下文约束的静态检测能力. 启用方式采用渐进式、子系统可选的策略, 以减少代码改动与维护成本. [phoronix, 2026/01/07, Compiler-Based Context & Locking Analysis On Deck For Linux 7.0 Paired With Clang 22+](https://www.phoronix.com/news/Linux-Compiler-Locking-Analysis) | v5 ☐☑✓ | [2025/12/19, LORE v5, 0/36](https://lore.kernel.org/all/20251219154418.3592607-1-elver@google.com) |
+
+
 # 11 优先级翻转
 -------
 
@@ -569,6 +580,7 @@ SCaLE 21x 上 Alison Chaiken 关于 WorkQueue 的讨论, 参见 [Diagnosing work
 | 编号 | 时间 | 论文 | 团队 | 描述 | 链接 |
 |:---:|:----:|:---:|:---:|:----:|:----:|
 |  1  | 2025/09/02 | [FlexGuard: Fast Mutual Exclusion Independent of Subscription, SOSP '25]() | INRIA (Paris) 的 Whisper 团队 | 为了解决自旋锁超额使用的问题, 可以在超额使用时从自旋锁切换为阻塞锁. 现有工作在阻塞锁和自旋锁之间切换严重依赖启发式方法, 比如设置一个忙等待的超时, 并在超时后转为阻塞. 然而, 这一类启发式方法不够稳定, 在有些负载下性能不如 POSIX 锁. eBPF 的出现为锁切换带来了新的机会. 通过对上下文切换插桩, 可以判断线程被抢占时是否处在临界区. 当出现临界区抢占则切换为阻塞式锁, 彻底摆脱锁切换对启发式的依赖. 为了能够在出现临界区抢占时切换为阻塞式锁, FlexGuard 需要准确判断线程是否处于临界区, 并且设计一套能够在忙等待模式和阻塞模式切换的高效锁算法. 参见 [知乎--SOSP 2025 论文评述 Day 3 Session 13: OS Memory Management and Scalability](https://zhuanlan.zhihu.com/p/1962852227333990287). 作者的博客 [Sanidhya Kashyap](https://sanidhya.github.io) 和 [Jean-Pierre Lozi](https://jean-pierre.lozi.org). | NA |
+|  2  | 2022/07/16 | [CLoF: A Compositional Lock Framework for Multi-level NUMA Systems, SOSP '21](https://ipads.se.sjtu.edu.cn/_media/publications/clof-sosp21.pdf)_ | HUAWEI | 在 NUMA(Non-Uniform Memory Access) 架构上实现高效且正确的锁十分重要. 本工作提出了 CLoF 框架, CLoF 能充分利用了系统内存结构多层次 (Multi-level) 的特点, 为每个层次选取最合适的锁 (Heterogeneity), 并借助形式化验证技术保证锁在弱内存模型下的正确性. CLoF 能为目标系统构造 NUMA-aware 的锁实现, 并从中挑选出性能最好的锁，以此来同时保证锁的正确性和高性能. 这篇工作有两个更深入的发现: 一是 NUMA 系统中往往有着更深的层次结构, 例如在 x86 服务器上，即使在同一个 NUMA 节点下, 也存在着若干个 cache group, cache group 里面的核共享着 L3 cache, 使得同一个 cache group 的核相互访问速度更快, 在同一个 cache group 中也会存在着多个超线程组, 一个超线程组中的两个线程之间共享着 L1 cache, 其相互访问速度进一步提高, 若能充分利用这一层次结构, 每个层次由一把锁管理, 整个系统的锁将由多层次的锁共同组成, 这样一个线程释放锁之后, 与其相互访问速度最快的节点将优先获得锁, 从而提升锁的性能. 二是不同层次具有不同的锁竞争程度, 因而各个层次都有其最适合的锁的选择, 通过锁的不同组合情况可以挑选出最适合整个系统的多层次锁. 基于这两点发现, 明确目标系统的层次结构后, 使用 CLoF 组合出多种锁, 这个组合过程通过模型检验(Model checking) 保证在弱内存上的正确性, 接着通过性能测试挑选出最适合这个 NUMA 系统的锁. 测试表明, CLoF 选取的锁在多数场景下比已有最好的锁性能更好, 例如在高度竞争的 LevelDB 基准测试中, CLoF 选取的锁比已有的锁 (CNA lock 和 ShfLock) 能取得两倍的吞吐. | [论文](https://ipads.se.sjtu.edu.cn/_media/publications/clof-sosp21.pdf), [SOSP 2021 小镇奇闻连载（九）](https://zhuanlan.zhihu.com/p/468599817) |
 
 
 

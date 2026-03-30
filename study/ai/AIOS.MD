@@ -78,6 +78,10 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 2025/03/25 | AI 辅助 CPU/GPU/DDR 调频 | [CRAVE: Analyzing Cross-Resource Interaction to Improve Energy Efficiency in Systems-on-Chip](https://dl.acm.org/doi/10.1145/3689031.3717498) | 提出了 CRAVE, 它利用学习到的设计特性来控制动态电压和频率调节. 在设计阶段, CRAVE 通过在三个主要移动系统组件(CPU内核、GPU和内存)的频率设置多元空间中采样, 为系统级芯片(SoC)确定最优的 DVFS 设置. 在运行时, CRAVE 以类似于当今操作系统内核中内置的现有简单调速器的方式监控资源利用率, 然后应用之前学习到的最优设置. 在两个真实的移动平台上实现了CRAVE: ODROID-XU4 和 NVIDIA Jetson TX2. 与最佳的内置 Linux 调速器相比, CRAVE 在 TX2 上将性能提高了20%, 同时能耗降低了 16%, 在 XU4 上也取得了类似的提升. 此外, 与最先进的应用驱动调速器相比, CRAVE 也表现出了一定的优势, 性能提高了 16%, 能耗节省了10%. |
 | 2025/07/11 | AI 生成操作系统交互界面 | | [NeuralOS: Towards Simulating Operating Systems via Neural Generative Models](https://arxiv.org/abs/2507.08800) | 滑铁卢大学 | 名为 NeuralOS 的创新性神经框架. 其核心目标是利用深度生成模型, 完全模拟一个操作系统的图形用户界面(GUI). 不同于传统依赖预编程内核和应用程序的操作系统, NeuralOS 通过一个深度神经网络, 直接根据用户的输入(如鼠标移动、点击和键盘事件)来预测并生成屏幕的下一帧图像.<br>核心贡献可以概括为以下几点:<br>1. 提出新范式: 首次尝试将整个操作系统 GUI 交互过程建模为一个端到端的生成问题, 为实现完全自适应、个性化的未来人机交互界面提供了概念验证(Proof-of-Concept).<br>2. 设计创新架构:  提出了一种受传统操作系统启发的模块化架构, 该架构由一个负责追踪系统状态的循环神经网络(RNN)"内核"和一个负责生成屏幕图像的扩散模型"渲染器"组成, 有效处理了动态交互中的长期依赖和高保真视觉生成.<br>3. 开发有效训练策略:  设计了一套复杂的多阶段训练流程, 包括 RNN 预训练、联合训练、计划采样和课程学习等, 成功解决了直接训练生成式交互模型时遇到的梯度消失、渲染器忽略控制信号和误差累积等关键挑战.<br>4. 构建大规模数据集: 通过结合 AI Agent 的智能探索和随机探索, 建立了一个大规模、多样化的 Ubuntu XFCE 桌面交互数据集, 为训练此类复杂的交互模型奠定了基础. 参见 [知乎--周舒畅--远程桌面蒸馏成RNN+扩散模型：NeuralOS: Towards Simulating Operating Systems via Neural Generative Models](https://zhuanlan.zhihu.com/p/1928592949131863847) |
 | 2025/10/21 | AI 实现补丁管理，实现补丁管理效率倍级提升| openEuler | [基于 openEuler Intelligence打造补丁管理智能体，实现补丁管理效率倍级提升](https://mp.weixin.qq.com/s/SwRTuH6iDISfD3QucNeOzw) | openEuler Intelligence 服务引擎, 实现操作系统级的 Agent 智能体与 MCP 工具管理, 提供全局、高效、低噪的智能服务框架. |
+| 2026/01/11 | 利用大语言模型(LLM) 辅助解决 Linux 内核中的 Git 合并冲突 | [LLMinus: LLM-Assisted Merge Conflict Resolution](https://lore.kernel.org/all/20260111212915.195056-1-sashal@kernel.org) | Sasha Levin <sashal@kernel.org> | 引入名为 **LLMinus** 的工具, 利用大语言模型( LLM) 辅助解决 Linux 内核中的 Git 合并冲突. LLMinus 通过构建历史冲突解决案例的数据库, 使用语义嵌入( 基于 BGE-small 模型) 查找相似冲突, 并为 LLM 构建包含上下文的提示以辅助解决当前冲突.<br>工具支持 `learn`、`vectorize`、`find`、`resolve`、`pull` 等命令, 可与任意支持标准输入的 LLM 配合使用. 新版本改进包括: 支持自适应 RAG 缩减的 token 限制、通过构建测试检测语义冲突, 以及更新 HTTP 客户端.<br>LLMinus 正在通过子系统集成分支进行实际测试, 相关仓库可供参考.该工具旨在辅助而非替代现有合并流程.  | v2 ☐☑✓ | [2026/01/11, LORE v2, 0/7](https://lore.kernel.org/all/20260111212915.195056-1-sashal@kernel.org) |
+| 2025/02/25 | 通过 AI 生成 eBPF 程序 | [Kgent: Kernel Extensions Large Language Model Agent](https://dl.acm.org/doi/10.1145/3672197.3673434) | NA  | Kgent 简化了传统上复杂的 eBPF 程序编写过程. 通过将用户提示语翻译成 eBPF 代码, 消除了对深厚作系统内核知识的需求. 该工具结合了程序理解、符号执行和反馈循环, 确保合成程序准确且符合用户意ds图. 参见 [Simplifying Kernel Programming: The LLM-Powered eBPF Tool](https://eunomia.dev/blog/2024/07/11/simplifying-kernel-programming-the-llm-powered-ebpf-tool) |
+| [](https://github.com/xlang-ai/OSWorld-G) |
+
 
 ## 1.2 OS4AI
 -------
@@ -90,6 +94,15 @@ blogexcerpt: 虚拟化 & KVM 子系统
 | 2025/10 | Xsched 异构调度 | [支持 NPU 算力切分](https://gitee.com/openeuler/kernel/issues/IC5EHB) | openEuler | 基于 ARM64 + 910B 实现的 NPU 卡支持算力时分抢占特性, 支持 NPU share、带宽管控等特性.<br>算力时分抢占: 通过 AI 任务的算力抽象, 构建异构时分调度机制, 实现异构多任务毫秒级抢占, 多推理单卡调度抢占小于 10 毫秒;<br>
 算力带宽管控: 基于算力带宽标准化语义, 构建任务级的算力管控分配机制, 实现算力隔离与共享, 提升吞吐. |
 | 2025/10 | GPU eBPF profiling | NA | NA | |[知乎--云微--GPU可观测性差距：为什么我们需要GPU上的eBPF](https://zhuanlan.zhihu.com/p/1962141761364301211), [迈向可编程观测：在GPU Kernel中构建类eBPF风格的性能探针](https://developer.aliyun.com/article/1681315), [Neutrino: Fine-grained GPU Kernel Profiling via Programmable Probing, OSDI '25](https://github.com/open-neutrino/neutrino) |
+
+
+## 1.3 AI Tools
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2026/01/11 | Sasha Levin <sashal@kernel.org> | [LLMinus: LLM-Assisted Merge Conflict Resolution](https://lore.kernel.org/all/20260111212915.195056-1-sashal@kernel.org) | 提出了一项名为 **LLMinus** 的新工具, 旨在利用大语言模型(LLM) 辅助解决 Linux 内核中的 Git 合并冲突. LLMinus 通过分析 Git 历史中的冲突解决案例, 构建可搜索的语义数据库, 并在当前冲突发生时生成带有上下文的提示, 引导 LLM 进行冲突解决.<br>主要功能包括: 冲突学习、语义向量化、相似冲突查找、LLM 辅助解决及自动拉取请求合并. 新版本改进包括: 支持最大 token 限制以避免提示溢出、通过构建测试检测语义冲突、使用新版 HTTP 客户端.<br>该工具已在多个内核子系统集成分支中进行实际测试, 但目前仍为实验性质, 不替代现有流程. 代码已以补丁形式提交,供社区审阅. [phoronix, 2026/01/12, LLMinus Working On AI/LLM-Powered Merge Conflict Resolution For The Linux Kernel](https://www.phoronix.com/news/LLMinus-RFC-v2) | v2 ☐☑✓ | [2026/01/11, LORE v2, 0/7](https://lore.kernel.org/all/20260111212915.195056-1-sashal@kernel.org) |
+| 2021 | SBU-FSL | [kernel-ml](https://github.com/sbu-fsl/kernel-ml) | 由纽约州立大学石溪分校(SBU)文件系统与存储实验室(FSL)开发的机器学习框架, 用于优化操作系统和存储系统的性能, 该项目通过 ML 技术自适应地调整存储系统的参数(如预读值), 识别工作负载模式, 使系统能够动态适应复杂多变的应用场景. 相比较手动调优, KML 内存占用小, 开销低. |
 
 
 <br>

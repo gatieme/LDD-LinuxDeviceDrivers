@@ -32,10 +32,6 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 <br>
 
-2   ** AI OS **
-=====================
-
-
 
 
 **-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*　重要功能和时间点　-*-*-*-*-*-*-*-*-*-*-*-*-*-*-***
@@ -60,36 +56,6 @@ blogexcerpt: 虚拟化 & KVM 子系统
 
 [知乎--机器之心--跟不上、读不完？上万篇顶会论文，这个工具一键分析](https://zhuanlan.zhihu.com/p/1968619277394346770)
 
-## 1.1 AI4OS
--------
-
-
-[Learning-directed operating system (LDOS)](https://ldos.utexas.edu) 是德克萨斯大学奥斯汀分校的一个研究项目, 专注于开发基于机器学习的下一代作系统, 以提高效率和性能. 该项目旨在通过将机器学习驱动的方法集成到核心系统组件中, 通过"从头开始的范式"彻底改变作系统设计. 这包括优化资源分配、调度和拥塞控制机制，以动态适应不同的工作负载.
-2025 年, LDOS 团队发表了两篇论文: "Canopy: Property-Driven Learning for Congestion Control" 探索了使用机器学习根据网络属性动态调整拥塞控制策略, "Large Language Models as Realistic Microservice Trace Generators" 应用 LLM 生成用于测试微服务的真实流量跟踪, 提高模拟模型的准确性.
-
-
-| 日期 | 概要 | 论文 / 链接 | 团队 | 描述 |
-|:---:|:----:|----------:|:----:|:----:|
-|  2024/07  | 自动化故障定位、修复和分析 | [A Unified Debugging Approach via LLM-Based Multi-Agent Synergy](https://arxiv.org/abs/2404.17153) | NA | 大型语言模型 (LLM) 在自动调试方面显示出了巨大潜力. 然而, 我们发现传统和基于 LLM 的调试工具面临着三个挑战: 1) 故障定位的上游不完美会影响下游的修复; 2) 处理复杂逻辑错误的不足; 3) 忽略程序上下文. 作者提出了第一个自动化的、统一的调试框架——FixAgent, 通过 LLM 代理协同作用. FixAgent 可以执行端到端的故障定位、修复和分析. LLM 可以从人类开发人员在调试中认可的通用软件工程原则中受益, 如 rubber duck debugging, 从而更好地理解程序功能和逻辑错误. 因此, 我们创建了三个受 rubber duck debugging 启发的设计来解决这些挑战. 它们是代理专业化和协同作用、关键变量跟踪和程序上下文理解, 这些要求 LLM 提供明确的解释, 并迫使它们关注关键的程序逻辑信息. 在广泛使用的 QuixBugs 数据集上的实验表明, FixAgent 正确修复了 80 个中的 79 个错误, 其中有 9 个以前从未被修复过. 即使没有故障位置信息和少于 0.6% 的采样时间, 它也比 CodeFlaws 上表现最佳的修复工具更可信地修补了 1.9 倍的缺陷. 平均而言, FixAgent 相对于使用不同 LLM 的基础模型平均增加了约 20% 的可信和正确的修复, 显示出我们设计的有效性. 此外, FixAgent 的正确率达到了惊人的 97.26%, 表明 FixAgent 有可能克服现有方法的过度拟合问题. |
-| 2024/07 | AI 辅助 Linux 补丁测试  | [Testing AI-enhanced reviews for Linux patches](https://lwn.net/Articles/987319) | NA | 在 2024 年 7 月的 Netdev 0x18 大会上的一次演讲中, Brandeburg 概述了一个使用机器学习来审查包含发送到 netdev 邮件列表的补丁的电子邮件的实验. 大型语言模型(LLMs) 不会很快取代人工审阅者, 但它们可能是一个有用的补充, 可以帮助人类专注于更深入的审阅, 而不是简单的规则违规行为. 参见 [AI Enhanced Reviews for Linux Networking](https://netdevconf.info/0x18/docs/netdev-0x18-paper26-talk-slides/netdev_0x18_AI_Reviews.pdf) |
-| 2025/09 || AI 辅助调度器 | [Towards Agentic OS: An LLM Agent Framework for Linux Schedulers](https://arxiv.org/abs/2509.01245) | 加州大学圣塔克鲁兹分校、上海科技大学等 | 内核的调度策略无法理解特定于应用程序的需求, 从而导致性能不佳. 实现介绍了 SchedCP 框架, 它使完全自主的 LLM 代理能够在没有人工参与的情况下安全高效地优化 Linux 调度器. 核心思想是, 挑战不仅在于应用更好的 LLM, 还在于构建一个解耦的控制平面, 将 AI 的语义推理角色("优化什么")与系统的执行角色("如何观察和行动")分开. SchedCP 作为模型上下文协议(MCP) 服务器实现, 提供了一个稳定的接口, 其中包含三个关键服务: 工作负载分析引擎、不断发展的调度器策略存储库和执行验证器, 用于验证所有 AI 生成的代码, 并在部署前通过静态和动态分析进行配置. sched-agent 是一个多 AGENT 系统, 可以自主分析工作负载, 合成自定义 eBPF 调度策略, 并通过 `sched_ext` 部署它们. 实现评估, 与朴素的代理方法相比, SchedCP 实现了高达 1.79 倍的性能提升和 13 倍的成本降低, 同时保持了较高的成功率. 通过弥合语义差距, SchedCP 使专家级系统优化民主化, 并代表着朝着创建真正自我优化、应用程序感知的作系统迈出的一步. 开源代码 [eunomia-bpf/schedcp](https://github.com/eunomia-bpf/schedCP). |
-| 2025/07 |  AI 辅助调度 Load Balancing  | [LWN 2025/07/01, Improved load balancing with machine learning](https://lwn.net/Articles/1027096 | Free5GC | Ching-Chun("Jim") Huang 展示了其将 (本地) 机器学习应用于在复杂系统上调度器负载均衡的工作成果, [Improve Load Balancing with Machine Learning Techniques based on sched_ext Framework](https://static.sched.com/hosted_files/ossna2025/d2/Improve-Load-Balancing-With-Machine-Learning-Techniques-based-on-sched_ext.pdf). Free5GC 开发人员研究通过机器学习来改进调度器的负载均衡. 在此类系统上进行调度需要考虑许多输入维度; 此外, 调度程序还必须考虑每个任务的优先级、其 CPU 要求、到目前为止的虚拟运行时间以及最近的 CPU 使用模式. 必须考虑每个 CPU 上的负载, 以及 NUMA 距离、缓存共享和工作频率. 当然, 还有特定于工作负载的因素. 基于 scx_rusty 来尝试考虑所有这些参数并决定何时应该将任务从一个 CPU 移动到另一个 CPU. 它最初以数据收集模式运行, 查看迁移决策及其结果; 然后, 这些决策用于训练模型(在用户空间中), 该模型随后存储在 BPF 映射中. 然后, 调度程序可以在内核内使用此模型来做出负载平衡决策. 这些决策的结果会不断被测量并报告回用户空间, 从而随着时间的推移更新模型. 在使用最重要的内核编译基准测试的测试中, 该调度器的编译时间比 EEVDF 调度器缩短了 10%, 任务迁移的数量减少了 77%. Huang 总结了机器学习在这种情况下起作用的原因: 在这种复杂的环境中进行调度是一个模式识别问题, 而神经网络擅长这项任务. 调度程序能够平衡相互竞争的目标, 并自动针对新的架构和工作负载进行自我重新训练. 调度程序能够为每个迁移决策考虑 15 个单独的参数, 并根据结果调整其模型. [2025 Open Source Summit North America](https://events.linuxfoundation.org/open-source-summit-north-america), 参见 LWN 报道 [LWN 2025/07/01, Improved load balancing with machine learning](https://lwn.net/Articles/1027096), 代码 [scx_rusty](https://github.com/vax-r/scx/tree/scx_rusty_MLLB). |
-| 2025/03 | AI 辅助 CPU/GPU 调频 | [An Intelligent Scheduling Approach on Mobile OS for Optimizing UI Smoothness and Power](https://dl.acm.org/doi/full/10.1145/3674910) | 提出了 MobiRL 一种基于强化学习的调度器, 用于智能地调整移动系统中的 CPU/GPU 频率, 以准确满足用户需求. MobiRL监测移动系统状态, 并通过执行 CPU/GPU 频率调整操作自主学习以优化用户界面的流畅度和功耗. 在最新交付的智能手机上的实验结果表明, MobiRL 在真实设备上的表现优于广泛使用的商业调度器——分别降低了 4.1% 的掉帧率和 42.8% 的功耗. 此外, 与使用 Q 学习进行 CPU 频率调度的研究相比, MobiRL 实现了最高 2.5% 的掉帧率降低, 并分别减少了 32.6% 的功耗. |
-| 2025/03/25 | AI 辅助 CPU/GPU/DDR 调频 | [CRAVE: Analyzing Cross-Resource Interaction to Improve Energy Efficiency in Systems-on-Chip](https://dl.acm.org/doi/10.1145/3689031.3717498) | 提出了 CRAVE, 它利用学习到的设计特性来控制动态电压和频率调节. 在设计阶段, CRAVE 通过在三个主要移动系统组件(CPU内核、GPU和内存)的频率设置多元空间中采样, 为系统级芯片(SoC)确定最优的 DVFS 设置. 在运行时, CRAVE 以类似于当今操作系统内核中内置的现有简单调速器的方式监控资源利用率, 然后应用之前学习到的最优设置. 在两个真实的移动平台上实现了CRAVE: ODROID-XU4 和 NVIDIA Jetson TX2. 与最佳的内置 Linux 调速器相比, CRAVE 在 TX2 上将性能提高了20%, 同时能耗降低了 16%, 在 XU4 上也取得了类似的提升. 此外, 与最先进的应用驱动调速器相比, CRAVE 也表现出了一定的优势, 性能提高了 16%, 能耗节省了10%. |
-| 2025/07/11 | AI 生成操作系统交互界面 | | [NeuralOS: Towards Simulating Operating Systems via Neural Generative Models](https://arxiv.org/abs/2507.08800) | 滑铁卢大学 | 名为 NeuralOS 的创新性神经框架. 其核心目标是利用深度生成模型, 完全模拟一个操作系统的图形用户界面(GUI). 不同于传统依赖预编程内核和应用程序的操作系统, NeuralOS 通过一个深度神经网络, 直接根据用户的输入(如鼠标移动、点击和键盘事件)来预测并生成屏幕的下一帧图像.<br>核心贡献可以概括为以下几点:<br>1. 提出新范式: 首次尝试将整个操作系统 GUI 交互过程建模为一个端到端的生成问题, 为实现完全自适应、个性化的未来人机交互界面提供了概念验证(Proof-of-Concept).<br>2. 设计创新架构:  提出了一种受传统操作系统启发的模块化架构, 该架构由一个负责追踪系统状态的循环神经网络(RNN)"内核"和一个负责生成屏幕图像的扩散模型"渲染器"组成, 有效处理了动态交互中的长期依赖和高保真视觉生成.<br>3. 开发有效训练策略:  设计了一套复杂的多阶段训练流程, 包括 RNN 预训练、联合训练、计划采样和课程学习等, 成功解决了直接训练生成式交互模型时遇到的梯度消失、渲染器忽略控制信号和误差累积等关键挑战.<br>4. 构建大规模数据集: 通过结合 AI Agent 的智能探索和随机探索, 建立了一个大规模、多样化的 Ubuntu XFCE 桌面交互数据集, 为训练此类复杂的交互模型奠定了基础. 参见 [知乎--周舒畅--远程桌面蒸馏成RNN+扩散模型：NeuralOS: Towards Simulating Operating Systems via Neural Generative Models](https://zhuanlan.zhihu.com/p/1928592949131863847) |
-| 2025/10/21 | AI 实现补丁管理，实现补丁管理效率倍级提升| openEuler | [基于 openEuler Intelligence打造补丁管理智能体，实现补丁管理效率倍级提升](https://mp.weixin.qq.com/s/SwRTuH6iDISfD3QucNeOzw) | openEuler Intelligence 服务引擎, 实现操作系统级的 Agent 智能体与 MCP 工具管理, 提供全局、高效、低噪的智能服务框架. |
-
-## 1.2 OS4AI
--------
-
-| 日期 | 概要 | 论文 / 链接 | 团队 | 描述 |
-|:---:|:----:|----------:|:----:|:----:|
-| 2025/09 | AgentOS | [LLM as OS, Agents as Apps: Envisioning AIOS, Agents and the AIOS-Agent Ecosystem](https://arxiv.org/abs/2312.03815) | NA | 本文设想了一个革命性的 AIOS-Agent 生态系统, 其中大型语言模型 (LLM) 充当 (人工) 智能操作系统 (IOS, 或 AIOS)——一个 "有灵魂" 的操作系统. 在此基础上, 开发了各种 LLM 基于 AI 代理的应用程序 (Agents, 或 AAP), 丰富了 AIOS-Agent 生态系统, 标志着传统 OS-APP 生态系统的范式转变. 作者设想 LLM 其影响将不仅限于人工智能应用层面, 相反, 它将彻底改变计算机系统、架构、软件和编程语言的设计和实现, 其特点是几个主要概念: LLM 操作系统 (系统级)、代理即应用程序 (应用程序级)、自然语言作为编程接口 (用户级) 和工具即设备 / 库 (硬件 / 中间件级). 我们首先介绍传统操作系统的架构. 然后, 我们通过 "LLMas OS(LLMOS)" 正式化 AIOS 的概念框架, 将 AIOS 与传统操作系统进行类比: LLM 将上下文窗口比作操作系统内核, 将上下文窗口比作内存, 将外部存储比作文件系统, 将硬件工具比作外围设备, 将软件工具比作编程库, 将用户提示比作用户命令. 随后, 我们引入了新的 AIOS-Agent 生态系统, 用户可以使用自然语言轻松编程 Agent 应用程序 (AAP), 使软件开发民主化, 这与传统的 OS-APP 生态系统不同. 在此之后, 我们将探索代理应用程序的多样化范围. 我们深入研究了单智能体和多智能体系统, 以及人机交互. 最后, 借鉴传统 OS-APP 生态的洞察, 提出了 AIOS-Agent 生态演进的路线图.  该路线图旨在指导未来的研究和开发, 建议 AIOS 及其代理应用程序的系统性进展. |
-| 2025/08 | 用于可扩展的 MoE(混合专家)LLM 推理的高性能框架 | [Expert Kit: A Distributed, Expert-Centric Framework for MoE LLM Inference](https://gitee.com/openeuler/expert-kit) | openEuler | openEuler 提供的 专家工具包 (EK) 是一个用于可扩展的 MoE(混合专家)LLM 推理的高性能框架. EK 的愿景是在商用网络(例如 PCIe、TCP、RDMA) 上的异构硬件 (例如 CPU 和 GPU) 上提供专家并行性 (EP)的高效基础, 从而实现轻松部署和细粒度的专家级扩展.  |
-| 2025/09 | decode 阶段自适应选择 CPU 核 | [MNN-AECS: Energy Optimization for LLM Decoding on Mobile Devices via Adaptive Core Selection](https://arxiv.org/abs/2506.19884) | NA | 分析显示, 受内存限制的 LLM 解码阶段在能耗中占主导地位, 然而, 大多数现有工作都集中在加速预填充阶段, 忽视了能效问题. 引入了自适应能效核心选择(AECS), 并将其集成到 MNN 中, 创建了能效版本 MNN-AECS, 这是首个无需 root 权限或操作系统修改即可实现能效 LLM 解码的引擎级系统解决方案. MNN-AECS 旨在通过动态选择低功耗 CPU 核, 在保持解码速度在可接受的减速阈值内的同时, 降低 LLM 解码的能耗. 作者在 5 款安卓设备和 2 款 iOS 设备上, 对 5 种不同规模的流行 LLM 进行了 MNN-AECS 评估. 与原始 MNN 相比, MNN-AECS 在所有 7 款设备和 4 个数据集上的平均能耗降低了 23%, 且速度没有减慢. 与其他引擎(包括 llama.cpp、executorch、mllm 和 MediaPipe)相比, MNN-AECS 平均能节省 39% 至 78% 的能耗, 并实现 12% 至 363% 的速度提升. |
-| 2025/10 | Xsched 异构调度 | [支持 NPU 算力切分](https://gitee.com/openeuler/kernel/issues/IC5EHB) | openEuler | 基于 ARM64 + 910B 实现的 NPU 卡支持算力时分抢占特性, 支持 NPU share、带宽管控等特性.<br>算力时分抢占: 通过 AI 任务的算力抽象, 构建异构时分调度机制, 实现异构多任务毫秒级抢占, 多推理单卡调度抢占小于 10 毫秒;<br>
-算力带宽管控: 基于算力带宽标准化语义, 构建任务级的算力管控分配机制, 实现算力隔离与共享, 提升吞吐. |
-| 2025/10 | GPU eBPF profiling | NA | NA | |[知乎--云微--GPU可观测性差距：为什么我们需要GPU上的eBPF](https://zhuanlan.zhihu.com/p/1962141761364301211), [迈向可编程观测：在GPU Kernel中构建类eBPF风格的性能探针](https://developer.aliyun.com/article/1681315), [Neutrino: Fine-grained GPU Kernel Profiling via Programmable Probing, OSDI '25](https://github.com/open-neutrino/neutrino) |
 
 # 2 模型
 -------
@@ -200,7 +166,8 @@ blogexcerpt: 虚拟化 & KVM 子系统
 |  10 | 2025/08/14 | [Discrete Diffusion Forcing(D2F)](https://arxiv.org/abs/2508.09192) | 上海交通大学 DENG Lab 联合 UCSD | [D2F：首个推理速度超过自回归的开源扩散语言模型](https://zhuanlan.zhihu.com/p/1939283118306604733) |
 |  11 | 2025/09/14 | [LLaDA-MoE-7B](https://huggingface.co/inclusionAI/LLaDA-MoE-7B-A1B-Base) | 蚂蚁&人大 | [扩散语言模型也有 MoE 版本了！蚂蚁&人大从头训练 LLaDA-MoE，即将完全开源 ｜ 机器之心](https://www.bestblogs.dev/article/e6ee1e), LLaDA-MoE 有两个版本: 基础模型版 LLaDA-MoE-7B-A1B-Base 和指令微调版 LLaDA-MoE-7B-A1B-Instruct. |
 |  12 | 2025/10/12 | [RND1-Base](https://github.com/RadicalNumerics/RND1) | Radical Numerics | RND1-Base 是 Radical Numerics 团队开发的 30B 参数扩散语言模型, 通过预训练的AR 模型转换生成扩散模型, 突破了传统扩散模型需要从零训练的局限. 采用稀疏混合专家模型架构, 由 3B 激活参数组成, 通过预训练的 AR 模型转换而来, 并在持续训练中累积了 500B 个 token 数据. 该模型在生成效果上实现了完整的扩散行为, 并同步开源了训练配方、推理代码及样例输出. |
-| 13  | 2025/11/23 | [dLLM: Simple Diffusion Language Modeling](https://github.com/ZHZisZZ/dllm) | 伯克利与 UIUC 团队基于自研的扩散语言模型工具 dLLM, 做了一个简单的实验: 让 BERT 通过离散扩散学会对话. 结果远超预期 —— 无需生成式预训练, 仅约 50 GPU 小时的监督微调, ModernBERT-large-chat-v0(0.4B 参数)在多项任务中的表现已逼近 Qwen1.5-0.5B, 证明「离散扩散 + 轻量级指令微调」即可赋予经典 BERT 强生成能力, 为社区提供了真正高效、低成本的方案. [项目报告](https://wandb.ai/asap-zzhou/dllm/reports/dLLM-BERT-Chat--VmlldzoxNDg0MzExNg), [项目模型](https://huggingface.co/collections/dllm-collection/bert-chat). 参见 [微信公众号-机器之心-通用的 dLLM 开发框架, 让 BERT 掌握扩散式对话](https://mp.weixin.qq.com/s?__biz=MzA3MzI4MjgzMw==&mid=2651003281&idx=3&sn=96891b328d3f36ae61a94cc85af6bf84&poc_token=HLT_Jmmjho01GZClV-kVzqxtwq5txGcA1IF8hj23) |
+|  13 | 2025/11/23 | [dLLM: Simple Diffusion Language Modeling](https://github.com/ZHZisZZ/dllm) | 伯克利与 UIUC 团队基于自研的扩散语言模型工具 dLLM, 做了一个简单的实验: 让 BERT 通过离散扩散学会对话. 结果远超预期 —— 无需生成式预训练, 仅约 50 GPU 小时的监督微调, ModernBERT-large-chat-v0(0.4B 参数)在多项任务中的表现已逼近 Qwen1.5-0.5B, 证明「离散扩散 + 轻量级指令微调」即可赋予经典 BERT 强生成能力, 为社区提供了真正高效、低成本的方案. [项目报告](https://wandb.ai/asap-zzhou/dllm/reports/dLLM-BERT-Chat--VmlldzoxNDg0MzExNg), [项目模型](https://huggingface.co/collections/dllm-collection/bert-chat). 参见 [微信公众号-机器之心-通用的 dLLM 开发框架, 让 BERT 掌握扩散式对话](https://mp.weixin.qq.com/s?__biz=MzA3MzI4MjgzMw==&mid=2651003281&idx=3&sn=96891b328d3f36ae61a94cc85af6bf84&poc_token=HLT_Jmmjho01GZClV-kVzqxtwq5txGcA1IF8hj23) |
+|  14 | 2026/01/15 | DLCM | 字节 Seed | [Dynamic Large Concept Models: Latent Reasoning in an Adaptive Semantic Space](https://arxiv.org/abs/2512.24617) 将大模型的推理单位从 token(词) 动态且自适应地推到了 concept(概念) 层级. [字节Seed：大概念模型来了，推理的何必是下一个token](https://www.qbitai.com/2026/01/366544.html). |
 
 
 | 编号 | 日期 | 框架 | 团队 | 详情 |
@@ -301,27 +268,29 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 | 编号 | 推理框架 | 团队 | 介绍 |
 |:---:|:-------:|:---:|:---:|
-| 1 | [vLLM](https://github.com/vllm-project/vllm) | UC Berkeley | vLLM 是一个开源的大模型推理加速框架, 通过 PagedAttention 高效地管理 attention 中缓存的张量, 实现了比 HuggingFace Transformers 高 14-24 倍的吞吐量. PagedAttention 是 vLLM 的核心技术, 它解决了 LLM 服务中内存的瓶颈问题. 传统的注意力算法在自回归解码过程中, 需要将所有输入 Token 的注意力键和值张量存储在 GPU 内存中, 以生成下一个 Token. 这些缓存的键和值张量通常被称为 KV 缓存. [vLLM(二) 架构概览](https://zhuanlan.zhihu.com/p/681716326) |
-| 2 | [Text Generation Inference(TGI)](https://github.com/huggingface/text-generation-inference) | HuggingFace | Text Generation Inference(TGI) 是 HuggingFace 推出的一个项目, 作为支持 HuggingFace Inference API 和 Hugging Chat 上的 LLM 推理的工具, 旨在支持大型语言模型的优化推理.  |
-| 3 | [FasterTransformer](https://github.com/NVIDIA/FasterTransformer) | NVIDIA | NVIDIA FasterTransformer (FT) 是一个用于实现基于 Transformer 的神经网络推理的加速引擎. 它包含 Transformer 块的高度优化版本的实现, 其中包含编码器和解码器部分. 使用此模块, 您可以运行编码器 - 解码器架构模型 (如：T5)、仅编码器架构模型 (如：BERT) 和仅解码器架构模型 (如: GPT) 的推理. FT 框架是用 C++/CUDA 编写的, 依赖于高度优化的 cuBLAS、cuBLASLt 和 cuSPARSELt 库, 这使您可以在 GPU 上进行快速的 Transformer 推理.  |
-| 4 | [DeepSpeed-Mll](https://github.com/microsoft/DeepSpeed-MII) | MicroSoft | DeepSpeed-MII 是 DeepSpeed 的一个新的开源 Python 库, 旨在使模型不仅低延迟和低成本推理, 而且还易于访问.  |
-| 5 | [FlexFlow Server](https://github.com/flexflow/FlexFlow) | Leland Stanford Junior University | 一个开源编译器和分布式系统, 用于低延迟、高性能 LLM 服务.  |
-| 6 | [LMDeploy](https://github.com/InternLM/lmdeploy) |  [MMDeploy](https://github.com/open-mmlab/mmdeploy) 和 [MMRazor](https://github.com/open-mmlab/mmrazor) 团队联合开发 | 一个 C++ 和 Python 库, 用于使用 Transformer 模型进行高效推理. |
-| 7 | [CTranslate2](https://github.com/OpenNMT/CTranslate2) | OpenNMT | 一个快速推理引擎, 适用于 Transformer 模型, 提供高效的推理能力和性能优化技术. 在本文中, 我们将探索与 CTranslate2 相关的关键功能、模型类型、安装过程、基准测试以及其他资源. |
-| 8 | OpenLLM | OpenLLM | 用于在生产中操作大型语言模型 (LLM) 的开放平台. 为核心模型添加 adapter 并使用 HuggingFace Agents, 尤其是不完全依赖 PyTorch |
-| 9 | Ray Serve | NA | 一个可扩展的模型服务库, 用于构建在线推理 API. Serve 与框架无关, 因此你可以使用单个工具包来服务深度学习模型中的所有内容. 稳定的 Pipeline 和灵活的部署, 它最适合更成熟的项目 |
+|  1 | [vLLM](https://github.com/vllm-project/vllm) | UC Berkeley | vLLM 是一个开源的大模型推理加速框架, 通过 PagedAttention 高效地管理 attention 中缓存的张量, 实现了比 HuggingFace Transformers 高 14-24 倍的吞吐量. PagedAttention 是 vLLM 的核心技术, 它解决了 LLM 服务中内存的瓶颈问题. 传统的注意力算法在自回归解码过程中, 需要将所有输入 Token 的注意力键和值张量存储在 GPU 内存中, 以生成下一个 Token. 这些缓存的键和值张量通常被称为 KV 缓存. [vLLM(二) 架构概览](https://zhuanlan.zhihu.com/p/681716326) |
+|  2 | [Text Generation Inference(TGI)](https://github.com/huggingface/text-generation-inference) | HuggingFace | Text Generation Inference(TGI) 是 HuggingFace 推出的一个项目, 作为支持 HuggingFace Inference API 和 Hugging Chat 上的 LLM 推理的工具, 旨在支持大型语言模型的优化推理.  |
+|  3 | [FasterTransformer](https://github.com/NVIDIA/FasterTransformer) | NVIDIA | NVIDIA FasterTransformer (FT) 是一个用于实现基于 Transformer 的神经网络推理的加速引擎. 它包含 Transformer 块的高度优化版本的实现, 其中包含编码器和解码器部分. 使用此模块, 您可以运行编码器 - 解码器架构模型 (如：T5)、仅编码器架构模型 (如：BERT) 和仅解码器架构模型 (如: GPT) 的推理. FT 框架是用 C++/CUDA 编写的, 依赖于高度优化的 cuBLAS、cuBLASLt 和 cuSPARSELt 库, 这使您可以在 GPU 上进行快速的 Transformer 推理.  |
+|  4 | [DeepSpeed-Mll](https://github.com/microsoft/DeepSpeed-MII) | MicroSoft | DeepSpeed-MII 是 DeepSpeed 的一个新的开源 Python 库, 旨在使模型不仅低延迟和低成本推理, 而且还易于访问.  |
+|  5 | [FlexFlow Server](https://github.com/flexflow/FlexFlow) | Leland Stanford Junior University | 一个开源编译器和分布式系统, 用于低延迟、高性能 LLM 服务.  |
+|  6 | [LMDeploy](https://github.com/InternLM/lmdeploy) |  [MMDeploy](https://github.com/open-mmlab/mmdeploy) 和 [MMRazor](https://github.com/open-mmlab/mmrazor) 团队联合开发 | 一个 C++ 和 Python 库, 用于使用 Transformer 模型进行高效推理. |
+|  7 | [CTranslate2](https://github.com/OpenNMT/CTranslate2) | OpenNMT | 一个快速推理引擎, 适用于 Transformer 模型, 提供高效的推理能力和性能优化技术. 在本文中, 我们将探索与 CTranslate2 相关的关键功能、模型类型、安装过程、基准测试以及其他资源. |
+|  8 | OpenLLM | OpenLLM | 用于在生产中操作大型语言模型 (LLM) 的开放平台. 为核心模型添加 adapter 并使用 HuggingFace Agents, 尤其是不完全依赖 PyTorch |
+|  9 | Ray Serve | NA | 一个可扩展的模型服务库, 用于构建在线推理 API. Serve 与框架无关, 因此你可以使用单个工具包来服务深度学习模型中的所有内容. 稳定的 Pipeline 和灵活的部署, 它最适合更成熟的项目 |
 | 10 | MLC LLM | NA | MLC LLM 是一种通用部署解决方案. 可在客户端 (边缘计算), 例如 Android 或 iPhone 平台上, 本地部署 LLM. [MLC LLM：将 LLMs 部署到消费类硬件的优势、挑战以及解决方案](https://blog.csdn.net/FrenzyTechAI/article/details/132340135) |
 | 11 | [PaddlePaddle/Anakin](https://github.com/PaddlePaddle/Anakin) | BaiDu | 一个高性能的跨平台推理引擎, 可以在 x86 CPU, ARM, NVIDIA GPU, AMD GPU, 比特大陆以及寒武纪等设备上运行. |
 | 12 | [mllm](https://github.com/UbiquitousLearning/mllm) | [UbiquitousLearning](https://ubiquitouslearning.github.io/mllm_website) | 一个快速轻量级的多模态 LLM 推理引擎, 适用于移动和边缘设备, C/C++ 实现, 无任何其他依赖, 并针对多模态比如 fuyu-8B 进行了优化, 支持 ARM NEON 和 x86 AVX2 加速, 以及 4BIT 和 8BIT 整数量化. |
 | 13 | [XiaoMi/Mace](https://github.com/XiaoMi/mace) | 小米 | MACE (Mobile AI Compute Engine) 是一个针对移动异构计算平台优化的深度学习推理框架. 它专注于以下目标: 性能、功耗、响应性、内存使用和库体积、模型保护以及平台覆盖. MACE 支持 TensorFlow、Caffe 和 ONNX 等多种模型格式, 并提供了丰富的示例和文档. |
 | 14 | [Google-AI-Edge/litert](https://github.com/google-ai-edge/LiteRT) | Google Ai Edge | LiteRT(原名 TensorFlow-Lite) 是 Google 开源的高性能端侧 AI 运行时 |
-| 15 | [AliBaBa/MNN](https://github.com/alibaba/MNN) | AliBaBa | MNN 是一个高效轻量级的深度学习框架, 在阿里巴巴的关键业务场景中得到广泛应用. 它支持深度学习模型的推理和训练, 在设备上具有业界领先的性能. MNN 还提供了一系列工具, 包括模型转换、压缩、表达式计算等功能. |
+| 15 | [AliBaBa/MNN](https://github.com/alibaba/MNN) | AliBaBa | MNN 是一个高效轻量级的深度学习框架, 在阿里巴巴的关键业务场景中得到广泛应用. 它支持深度学习模型的推理和训练, 在设备上具有业界领先的性能. MNN 还提供了一系列工具, 包括模型转换、压缩、表达式计算等功能. 参见 [语雀-MNN-中文文档](https://www.yuque.com/mnn/cn). |
 | 16 | [Tencent/TNN](https://github.com/Tencent/TNN) | Tencent | TNN 是由腾讯优图实验室和广影实验室开发的一个跨平台、高性能的深度学习推理框架. 它具有跨平台能力、高性能、模型压缩和代码裁剪等多项优秀特性. TNN 在原有的 ncnn 和 Rapidnet 框架基础上, 进一步加强了对移动设备的支持和性能优化, 同时也借鉴了业界主流开源框架的高性能和良好扩展性特点, 扩展了对 X86 和 NV GPU 的支持. TNN 已经被应用于腾讯移动 QQ、微视、Pitu 等多个应用中. |
 | 17 | [Paddle-Lite](https://github.com/PaddlePaddle/Paddle-Lite) | [PaddlePaddle](https://www.paddlepaddle.org.cn/lite) | Paddle Lite 面向端侧场景的轻量化推理引擎 Paddle Lite, 可以实现飞桨模型在 x86/ARM 平台下多种 OS 内的高效部署, 同时支持在 10 种以上的 GPU/NPU 异构后端上进行推理加速和混合调度. 是一个高性能、轻量级、灵活性强且易于扩展的深度学习推理框架, 定位于支持包括移动端、嵌入式以及边缘端在内的多种硬件平台. 它提供了简单易用的部署流程, 支持多种硬件平台和多种编程语言, 并且具有优秀的加速、优化策略及实现. |
 | 18 | [uTensor]() | NA | NA |
 | 19 | Core ML | Apple | NA |
 | 20 | MediaPipe | Google | NA |
 | 21 | ByteNN | 字节跳动 | [字节跳动ByteNN端智能业务落地背后的技术挑战.pdf](https://max.book118.com/html/2022/0725/5202242220004312.shtm), [QCon 上海 2021](https://time.geekbang.org/course/detail/100822501-811440)
+| 22 | [JD/xllm](https://github.com/jd-opensource/xllm) | 京东 | [京东 xllm 功能介绍](https://xllm.readthedocs.io/zh-cn/latest/features/overview) |
+
 
 ### 3.1.2 推理加速库
 -------
@@ -635,7 +604,6 @@ ARM-software/ComputeLibrary
 | [DefTruth/Awesome-LLM-Inference](https://github.com/DefTruth/Awesome-LLM-Inference) | 收集了大量 LLM 推理相关的论文和仓库, 涵盖了并行计算, 量化压缩, 注意力机制优化, 上下文管理等. |
 | [SylphAI-Inc/llm-engineer-handbook](https://github.com/SylphAI-Inc/llm-engineer-handbook) | NA |
 
-
 ## 5.2 Survey
 -------
 
@@ -690,10 +658,14 @@ ARM-software/ComputeLibrary
 | 2024/11/25 | 日常论文速递 | NA | NA | [叶子的技术碎碎念 - 每周 AI 论文速递](http://leafw.cn) | NA |
 
 
+## 5.4 blog
+-------
 
-
-
-
+| 文章 | 描述 |
+|:---:|:---:|
+| [零基础入门深度学习(8) - Transformer (1/3)](https://zybuluo.com/hanbingtao/note/2600518) | 详细介绍了全连接神经网络、卷积神经网络、循环神经网络等, 并继续从模型结构这个角度出发, 介绍 Transformer. 第一部分是基础知识的介绍; 第二部分重点讲述 transformer 的注意力机制, 这也是它的核心部分; 第三部分讲述模型的整体结构, 以及训练和推理. |
+| [2026年AI学习路线图：AI硬核玩家必看！附100多篇经典论文免费下载](https://mp.weixin.qq.com/s/aM4Ma8NFobp8iBXNOSSv4g) | 对 [The 2025 AI Engineer Readling List](https://www.latent.space/p/2025-papers) 的解读, 对 Latent Space 推荐的的 2025 年必读论 50 篇论文以及提到的论文, 共计 123 篇. 涵盖了 AI 领域方方面技术, 从文本、生图、视频模型, 到 RAG、Prompt 等技术. |
+| [The State Of LLMs 2025: Progress, Problems, and Predictions](https://magazine.sebastianraschka.com/p/state-of-llms-2025) | Ahead of AI 的 2025 总结. |
 
 
 

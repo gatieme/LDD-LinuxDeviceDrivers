@@ -884,9 +884,44 @@ https://ncnz67vv5cuy.feishu.cn/wiki/IN66w8dW8imkkUkKusMcy2jLnBb
 [phoronix, 2025/05/28, Linux 6.16 Will Be Able To Exit User Mode Faster: 2~11% Improvement](https://www.phoronix.com/news/Linux-616-Faster-Exit-User-Mode)
 
 
-| 2025/05/28 | Ingo Molnar <mingo@kernel.org> | [sched: Use the SMP scheduler on UP too](https://lore.kernel.org/all/20250528080924.2273858-1-mingo@kernel.org) | Ingo Molnar 提出一组共 43 个补丁, 旨在将 Linux 调度器统一为 SMP(对称多处理) 版本, 从而大幅减少调度器中 `CONFIG_SMP` 相关的预处理条件编译代码. 当前 `kernel/sched/` 中有 175 处 `CONFIG_SMP` 判断, 导致代码维护困难、易出错, 并影响可读性和可审查性. 该补丁系列将这一数量减少至 28 处, 删除近 1000 行代码, 提升了代码整洁度. <br><br> 此改动使 UP(单处理器) 调度器也使用 SMP 实现, 虽引入少量冗余代码和性能开销(如上下文切换时间增加约 5%、内核体积增长约 0. 3% 文本段), 但换来更简单的维护模型. 作者强调, 未来若需优化 UP 性能或体积, 应通过合理方式(如 `IS_ENABLED() `) 进行, 而非回归大量 `#ifdef`. 补丁系列已初步测试验证在 UP 系统上可正常启动和运行, 目前存放于指定 Git 仓库中. 参见 [phoronix, 2025/05/28, Big Linux Patch Series Shakes Up The Scheduler Code For Anyone With Only One CPU Core](https://www.phoronix.com/news/Linux-UP-SMP-Scheduler-2025)  | v1 ☐☑✓ | [2025/05/28, LORE v1, 0/43](https://lore.kernel.org/all/20250528080924.2273858-1-mingo@kernel.org) |
+| 2025/05/28 | Ingo Molnar <mingo@kernel.org> | [sched: Use the SMP scheduler on UP too](https://lore.kernel.org/all/20250528080924.2273858-1-mingo@kernel.org) | Ingo Molnar 提出一组共 43 个补丁, 旨在将 Linux 调度器统一为 SMP(对称多处理) 版本, 从而大幅减少调度器中 `CONFIG_SMP` 相关的预处理条件编译代码. 当前 `kernel/sched/` 中有 175 处 `CONFIG_SMP` 判断, 导致代码维护困难、易出错, 并影响可读性和可审查性. 该补丁系列将这一数量减少至 28 处, 删除近 1000 行代码, 提升了代码整洁度. <br><br> 此改动使 UP(单处理器) 调度器也使用 SMP 实现, 虽引入少量冗余代码和性能开销 (如上下文切换时间增加约 5%、内核体积增长约 0. 3% 文本段), 但换来更简单的维护模型. 作者强调, 未来若需优化 UP 性能或体积, 应通过合理方式 (如 `IS_ENABLED() `) 进行, 而非回归大量 `#ifdef`. 补丁系列已初步测试验证在 UP 系统上可正常启动和运行, 目前存放于指定 Git 仓库中. 参见 [phoronix, 2025/05/28, Big Linux Patch Series Shakes Up The Scheduler Code For Anyone With Only One CPU Core](https://www.phoronix.com/news/Linux-UP-SMP-Scheduler-2025)  | v1 ☐☑✓ | [2025/05/28, LORE v1, 0/43](https://lore.kernel.org/all/20250528080924.2273858-1-mingo@kernel.org) |
 | 2025/06/11 | Cheng-Yang Chou <yphbchou0911@gmail.com> | [sched_ext: Standardize preprocessor comment markers](https://lore.kernel.org/all/20250611135404.13851-1-yphbchou0911@gmail.com) | 旨在对 `sched/ext*. {c, h}` 文件中的 `#if/#else/#endif` 预处理注释标记进行标准化, 以提升代码一致性与可读性. 该工作遵循 Ingo Molnar 近期调度器清理工作的方向, 旨在减少 `CONFIG_SMP` 相关复杂性并删除冗余的 `#ifdef` 代码块. 此次修改不涉及任何功能变更. 补丁 ^ 共修改 4 个文件, 删除 60 行、新增 3 行代码.  | v1 ☐☑✓ | [2025/06/11, LORE v1, 0/4](https://lore.kernel.org/all/20250611135404.13851-1-yphbchou0911@gmail.com) |
-| 2025/07/27 | Sasha Levin <sashal@kernel.org> | [Add agent coding assistant configuration to Linux kernel](https://lore.kernel.org/all/20250727195802.2222764-1-sashal@kernel.org) | 邮件提出了一项为 Linux 内核引入 "Agent 编码助手" 统一配置和文档规范的补丁集, 旨在规范 AI 编码工具在内核开发中的使用. 共包含四个补丁: 1) 为多个编码助手(如 Claude、GitHub Copilot 等) 添加统一配置文件并实现一致性管理; 2) 引入核心开发参考文档, 引导助手遵循内核开发流程; 3) 明确编码风格规范, 如 80 字符行限制、无尾随空格等; 4) 制定法律要求与署名规范, 要求所有助手在提交中通过 Co-developed-by 标识自身参与. 补丁从 RFC 版本起已转为 RST 格式, 拆分为多个文件, 并简化了说明. 此系列为内核引入 AI 辅助开发提供了制度化基础.  | v1 ☐☑✓ | [2025/07/27, LORE v1, 0/4](https://lore.kernel.org/all/20250727195802.2222764-1-sashal@kernel.org) |
+| 2025/07/27 | Sasha Levin <sashal@kernel.org> | [Add agent coding assistant configuration to Linux kernel](https://lore.kernel.org/all/20250727195802.2222764-1-sashal@kernel.org) | 邮件提出了一项为 Linux 内核引入 "Agent 编码助手" 统一配置和文档规范的补丁集, 旨在规范 AI 编码工具在内核开发中的使用. 共包含四个补丁: 1) 为多个编码助手 (如 Claude、GitHub Copilot 等) 添加统一配置文件并实现一致性管理; 2) 引入核心开发参考文档, 引导助手遵循内核开发流程; 3) 明确编码风格规范, 如 80 字符行限制、无尾随空格等; 4) 制定法律要求与署名规范, 要求所有助手在提交中通过 Co-developed-by 标识自身参与. 补丁从 RFC 版本起已转为 RST 格式, 拆分为多个文件, 并简化了说明. 此系列为内核引入 AI 辅助开发提供了制度化基础.  | v1 ☐☑✓ | [2025/07/27, LORE v1, 0/4](https://lore.kernel.org/all/20250727195802.2222764-1-sashal@kernel.org) |
+
+
+
+
+
+
+
+
+[](https://mp.weixin.qq.com/s/QZNb1IZMN8M-X3VW7ZCndQ)
+
+[Tintin: A Unified Hardware Performance Profiling Infrastructure to Uncover and Manage Uncertainty](https://zhuanlan.zhihu.com/p/1925925001460160336)
+
+
+[BayesPerf: minimizing performance monitoring errors using Bayesian statistics](https://dl.acm.org/doi/10.1145/3445814.3446739)
+
+
+
+[HeMem: Scalable Tiered Memory Management for Big Data Applications and Real NVM](https://zhuanlan.zhihu.com/p/461022129)
+
+
+[Practical guide to fuzzing the Binder kernel driver using the Linux Kernel Library (LKL)](https://androidoffsec.withgoogle.com/posts/binder-fuzzing)
+
+
+[NeoMem: Hardware/Software Co-Design for CXL-Native Memory Tiering](https://arxiv.org/abs/2403.18702)
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -923,36 +958,275 @@ git fetch --depth=1000 # 继续拉取更多
 git fetch --unshallow
 
 
-[](https://mp.weixin.qq.com/s/QZNb1IZMN8M-X3VW7ZCndQ)
 
-[Tintin: A Unified Hardware Performance Profiling Infrastructure to Uncover and Manage Uncertainty](https://zhuanlan.zhihu.com/p/1925925001460160336)
-
-
-[BayesPerf: minimizing performance monitoring errors using Bayesian statistics](https://dl.acm.org/doi/10.1145/3445814.3446739)
+=======推荐插件======
+superpowers
+oh-my-opencode
 
 
-
-[HeMem: Scalable Tiered Memory Management for Big Data Applications and Real NVM](https://zhuanlan.zhihu.com/p/461022129)
-
-
-[Practical guide to fuzzing the Binder kernel driver using the Linux Kernel Library (LKL)](https://androidoffsec.withgoogle.com/posts/binder-fuzzing)
-
-
-[NeoMem: Hardware/Software Co-Design for CXL-Native Memory Tiering](https://arxiv.org/abs/2403.18702)
-
+=======推荐 SKILL=======
+1. patchwork agent, 可以后续调用
+2. blog agent, 作为 rss_agent 的后续调用者
+3. SKILL 描述改成中文
+4. SKILL 调用要显示
+https://github.com/ViffyGwaanl/papertok-reader
+https://github.com/linshenkx/prompt-optimizer
 
 
+cartography: Repository understanding and hierarchical codemap generation
 
-| 2025/09/18 | Marco Elver <elver@google.com> | [Compiler-Based Capability- and Locking-Analysis](https://lore.kernel.org/all/20250918140451.1289454-1-elver@google.com) | 一项基于编译器的"能力分析" (Capability Analysis) 与"锁分析" (Locking Analysis) 功能, 旨在通过 Clang 的静态分析能力, 在编译期检测 Linux 内核中同步机制(如锁、RCU、信号量等) 使用的合规性. 关键点包括: <br>采用 Clang 的 Capability System 特性, 扩展 C 语言以支持能力注解, 确保锁等资源的获取与释放符合预期. <br>分析机制独立于运行时工具(如 Lockdep、KCSAN), 无性能开销, 提前发现潜在并发问题.<br>支持多种同步原语, 包括 spinlock、mutex、rwlock、seqlock、RCU 等.<br>目标是提升内核并发安全性, 同时降低静态分析误报与维护成本. | v3 ☐☑✓ | [2025/09/18, LORE v3, 0/35](https://lore.kernel.org/all/20250918140451.1289454-1-elver@google.com) |
-| 2025/12/04 | Srikar Dronamraju <srikar@linux.ibm.com> | [Steal time based dynamic CPU resource management](https://lore.kernel.org/all/20251204175405.1511340-1-srikar@linux.ibm.com) | 邮件提出了一种基于 steal time( 虚拟化中被其他虚拟机占用的时间) 的动态 CPU 资源管理机制, 旨在优化 PowerVM Shared LPARs 环境下的调度效率. 通过监控 steal time 来判断系统是否过载或欠载, 并据此动态调整 CPU 容量和可用性, 引导调度器减少资源争用,提升整体性能. <br><br>实验数据显示, 在非竞争( nonoise) 和竞争( noise) 场景下, 使用该补丁集后使用的 CPU 核心数减少, 同时缓存缺失、上下文切换、指令执行等指标平均降低约 3 倍, 性能有所提升. 尽管在某些线程数下存在性能回归, 但整体资源利用更高效. <br><br>补丁集共 17 个, 涉及调度器、PowerPC 架构及 pseries 平台的多处修改, 支持软下线/上线 CPU、动态调整拓扑和容量、调试接口等功能. 作者欢迎社区反馈, 并指出未来可扩展支持其他架构或其他提示机制.  | v1 ☐☑✓ | [2025/12/04, LORE v1, 0/17](https://lore.kernel.org/all/20251204175405.1511340-1-srikar@linux.ibm.com) |
+代码检视
 
-
-
-
-
+[Mieluoxxx/code-review](https://github.com/Mieluoxxx/opcd/tree/opencode/.opencode/skill/code-review)
+[sanyuan0704/sanyuan-skills](https://github.com/sanyuan0704/sanyuan-skills/tree/main/skills/code-review-expert)
 
 
+PPTX
+npx skills add https://github.com/anthropics/skills --skill pptx
 
+
+论文阅读
+
+
+[](https://github.com/code-yeongyu/oh-my-opencode/issues/917)
+
+
+
+
+请根据当前最新代码和架构更新 REAMDE，包括整个项目的 README 以及各个 agent 以及子目录的 README；README 需要包括各个项目的项目介绍, 软件架构, 主要功能,
+1. 架构图 - 所有模块都添加了清晰的 ASCII art 架构图
+2. 工作流程 - 详细说明了每个 Agent 的工作流程和步骤
+3. 技术细节 - 添加了状态类定义、API 说明、配置参数等
+4. 使用示例 - 包含了完整的使用方法和示例命令
+5. 代码规范 - 统一了命名约定和注释风格说明
+6. 扩展计划 - 为每个模块添加了未来发展方向
+
+/ralph-loop:ralph-loop "这个仓库的代码包含了如下功能
+1. lkml 目录实现了一个分析指定 LKML 社区补丁的 agent。
+2. rss 目录是用 TRAE 生成的代码，它是用 langgraph 实现的一个 phoronix 和 lwn 解析的 AGENT。
+3. patchwork 目录是用 shell 实现的解析 patchwork 工程的脚本。
+4. cgit 目录是用分析内核 commit 的 agent
+5. kde.py 计划是整个工程的入口。
+6. test 目录下是整个项目的测试用例
+项目根目录以及每个子目录的 README 中有对相关代码架构以及功能的解析。
+
+请完成如下两个功能
+
+功能一：
+请根据当前最新代码和架构更新 REAMDE，包括整个项目的 README 以及各个 agent 以及子目录的 README；README 需要包括各个项目的项目介绍, 软件架构, 主要功能,
+1. 架构图 - 所有模块都添加了清晰的 ASCII art 架构图
+2. 工作流程 - 详细说明了每个 Agent 的工作流程和步骤
+3. 技术细节 - 添加了状态类定义、API 说明、配置参数等
+4. 使用示例 - 包含了完整的使用方法和示例命令
+5. 代码规范 - 统一了命名约定和注释风格说明
+6. 扩展计划 - 为每个模块添加了未来发展方向
+
+功能二：
+整个项目的 README 以及各个 agent 以及子目录的 README 中，包含了整个项目和各个 AGENT 的软件架构，
+diagrams 目录下有 mermaid 和 excalidraw 架构图，但是并不美观。
+请参考 README 中的架构图, 重新生成更美观的 mermaid 和 excalidraw 架构图，更新到 diagrams 目录下，并将 excalidraw 架构图更到到 README 中.
+
+1. 请将生成的架构图保存在 diagrams 目录下. 包括 mermaid 代码, ASCII, svg, excalidraw 格式. 我发现之前的架构图中有 <br> 字样，这些无法正常显示为换行，请换种方式呈现。
+2. 请通过 @beautiful-mermaid  @pretty-mermaid 生成 mermaid 代码, ASCII, svg 格式的架构图(要求保留 mermaid 代码到对应的 mmd 文件中, SVG 配色使用浅色)
+3. 请通过 @excalidraw-diagram-generator 和 @excalidraw-diagram，以及 @excalidraw 几个 SKILLS 生成【手绘风格的架构图+Excalidraw动画】，保存原始 JSON 格式和 SVG 格式。要求手绘风格：Excalifont字体、roughness:手绘线条、轻配色；动画顺序：标题→XX层→XX层→连接线，每步时长500ms；画布0-1200x0-800，元素间距≥30px。若为复杂架构图，请通过 excalidraw 子代理委托规则执行。
+4. 将最后生成的 excalidraw 手绘风格 SVG 架构图，更新到各个 README 中。
+
+
+每个功能使用 @git-commit 提交这个提交一个 COMMIT，要求 COMMIT 描述为纯英文"  --completion-promise "DONE" --max-iterations 5
+
+
+/plugin install skill-creator@claude-plugins-official
+
+/plugin install clangd-lsp@claude-plugins-official
+
+
+/ralph-loop:ralph-loop  "当前仓库存在未提交代码，使用 @git-commit 提交这个提交一个 COMMIT，要求 COMMIT 描述为纯英文，全部完成后输出 <promise>COMPLETE</promise>" --completion-promise "COMPLETE" --max-iterations 10
+
+/ralph-loop:ralph-loop "当前 claude 的 statusline 使用了 claude-hud 插件。如果我想继续补充 ccstatusline 插件。
+让两个插件的信息都显示，需要怎么做。ccstatusline 可以使用 npx -y ccstatusline@latest 在 command 字段中配置。请帮我配置" --completion-promise "DONE" --max-iterations 10
+
+
+整个项目的 README 以及各个 agent 以及子目录的 README 中，包含了整个项目和各个 AGENT 的软件架构，
+diagrams 目录下有 mermaid 和 excalidraw 架构图，但是并不美观。
+请参考 README 中的架构图, 重新生成更美观的 mermaid 和 excalidraw 架构图，更新到 diagrams 目录下，并将 excalidraw 架构图更到到 README 中.
+
+当前 diagrams 目录下生成的架构图非常乱，而且不美观，都不如生成的 ASCII 图标，给了你那么多 skills，你干活这么垃圾还能不能行了，重新生成下
+1. 每个架构图都按照 ASCII 的图标重新生成，ASCII 如果不美观或者不完整的也需要重新生成一次。
+2. 保留 mermaid 源代码(保存到 xxx.mmd), 以及生成的对应的 SVG(保存到 xxx.svg).
+3. 保留 excalidraw 源代码(保存到 xxx.excalidraw.json), 以及生成的对应的 SVG(保存到 xxx.excalidraw.svg)，且文字要用手写体。
+4. 之前多次生成架构图，每次重新生成的都保留了旧的，新的被命名为 xxx_new，不要这样子，每个架构图的每个格式，只保留最美观的那个文件。
+5. 最后使用 @git-commit 提交这个提交一个 COMMIT，要求 COMMIT 描述为纯英文
+
+整个项目的 README 以及各个 agent 以及子目录的 README 中，包含了整个项目和各个 AGENT 的软件架构，
+diagrams 下存储了架构图的素材信息，其中
+1. mermaid 源代码以及 SVG 文件， mermaid 源代码保存在 xxx.mmd, 对应的 SVG 保存在 xxx.svg.
+2. excalidraw 源代码以及 SVG 文件， excalidraw 源代码保存在 xxx.excalidraw.json, 对应的 SVG 保存在 xxx.excalidraw.svg.
+
+
+
+整个项目的 README 以及各个 agent 以及子目录的 README 中，包含了整个项目和各个 AGENT 的软件架构，
+diagrams 下存储了架构图的素材信息
+1. mermaid 源代码以及 SVG 文件， mermaid 源代码保存在 xxx.mmd, 对应的 SVG 保存在 xxx.svg.
+2. excalidraw 源代码以及 SVG 文件， excalidraw 源代码保存在 xxx.excalidraw.json, 对应的 SVG 保存在 xxx.excalidraw.svg.
+
+其中当前 diagrams 目录下生成的 excalidraw 架构图非常乱，而且不美观，都不如生成的 ASCII 图标，给了你那么多 skills，你干活这么垃圾还能不能行了，重新生成下。
+
+1. 请自行选择 @excalidraw-diagram-generator 和 @excalidraw-diagram，@excalidraw-diagram-skill 以及 @excalidraw 几个 SKILLS 生成【手绘风格的架构图+Excalidraw动画】，保存原始 JSON 格式和 SVG 格式。要求手绘风格：Excalifont字体、roughness:手绘线条、轻配色；动画顺序：标题→XX层→XX层→连接线，每步时长500ms；画布0-1200x0-800，元素间距≥30px。若为复杂架构图，请通过 excalidraw 子代理委托规则执行。
+2. 最后使用 @git-commit 提交这个提交一个 COMMIT，要求 COMMIT 描述为纯英文
+
+
+
+当前仓库还有未提交的代码，最后使用 @git-commit 提交这个提交一个 COMMIT，要求 COMMIT 描述为纯英文
+
+当前仓库有未 COMMIT 的提交，使用 @git-commit 提交这个提交一个 COMMIT，要求 COMMIT 描述为纯英文
+
+
+
+当前配置下 opencode 可以结合 oh-my-opencode 和 superpowers 进行协同工作。
+但是有一些问题，想进一步让 superpowers 和 Sisyphus 和 Sisyphus (Ultraworker) 模式联动起来
+1 Sisyphus (Ultraworker) 模式下，按照 superpowers 的规范和工作流程，自动化工作，不用每个步骤询问用户。
+1.2 Sisyphus 模式，按照 superpowers 的规范和工作流程，每个工作完成后询问用户，允许用户变更流程，变更计划，调整任务。
+
+1. 可否在进行任务之前询问用户使用 Ultra 模式， Normal 模式
+1.1 Ultraworker 按照 superpowers 的规范和工作流程，自动化工作，不用每个步骤询问用户。
+1.2 Normal 模式，按照 superpowers 的规范和工作流程，每个工作完成后询问用户，允许用户变更流程，变更计划，调整任务。
+1.3 Simple 模式下，则不跟 superpowers 协作，按照 Ultraworker 原有的流程工作。
+2. 使用 Sisyphus agent 工作时，Sisyphus (Ultraworker) 模式下，自动进入 Ultra 模式，否则默认进入 Normal 模式工作。
+
+
+
+
+
+
+
+
+
+[Superpowers插件完整使用指南（一文搞懂）](https://blog.csdn.net/bojinyuan00/article/details/158420712)
+[AI开发】—— OpenCode双插件协同开发指南](https://blog.csdn.net/Lvyizhuo/article/details/157686197)
+[[Question]: How to get the status of background agents? #917](https://github.com/code-yeongyu/oh-my-opencode/issues/917)
+
+
+
+
+
+[everything-claude-code](https://github.com/affaan-m/everything-claude-code#)
+
+压缩 Token
+[使用 rtk 压缩 token](https://github.com/rtk-ai/rtk/blob/master/INSTALL.md)
+
+记忆功能
+[supermemory](https://github.com/supermemoryai/supermemory)
+
+[](https://github.com/eunomia-bpf/agentsight)
+[](https://github.com/aaupov/ebpf-bolt)
+[](https://github.com/solatis/claude-config/tree/main)
+
+
+[next-ai-draw-io](https://github.com/DayuanJiang/next-ai-draw-io)
+
+README.md 中每个 skills 的描述建议进一步细化, 要求包括 skills.sh 地址以及 github 地址，安装方式提供 git 方式和 npx 方式
+
+"
+
+请实现 script 脚本 sync.py，提供参数允许将本仓库配置文件更新到实际的安装目录，也支持将实际安装目录的文件备份回当前仓库
+要求
+1. 提交 tui 交互界面，允许用户通过 tab 选择
+~/.config/opencode 下的配置文件有多个副本时，提交 tui 交互界面，允许用户通过 tab 选择要更新或者备份的配置文件
+比如更新时，通过 tab 选择 oh-my-opencode-interactive.jsonc, oh-my-opencode-ultraworker.jsonc
+oh-my-opencode.jsonc 具体哪个文件更新到 oh-my-opencode.jsonc, 单选
+比如备份时，通过 tab 选择 ~/.config/opencode 下的 oh-my-opencode-interactive.jsonc, oh-my-opencode-ultraworker.jsonc, oh-my-opencode.jsonc 等配置文件具体哪些到当前仓库的 opencode, .gitignore
+目录下，多选
+2. 更新或者分备份请先diff 下两边目录的差异，并提示用户进行检视，请注意更新和备份时，diff 的顺序，并提示用户 Y/N
+进行安装或者取消。                                                          script/README.md
+
+3. 脚本请生成到 script 目录下。
+
+
+sync.py backup 的时候，用户 tab 选中需要 backup 的配置文件之后，
+请允许用户手动选择备份的文件名字，同时允许用户自定义文件名字
+比如 oh-my-opencode-interactive.json 其实是想备份到 oh-my-opencode-interactive.json(已经存在，覆盖安装), 也可能想备份到新的文件 oh-my-opencode-xxxx.json
+opencode.json 文件类似
+
+
+
+
+
+
+
+1. 介绍下 这个 skills
+https://skills.sh/jimliu/baoyu-skills/baoyu-slide-deck
+
+2. 最后按照如下 MARKDOWN 格式输出分析
+| 技能名称 | 开源地址 | 简要描述 | 安装方式 |
+|:-------:|:------:|:-------:|:-------:|
+
+/plugin uninstall everything-claude-code@everything-claude-code
+
+
+对比下如下几个仓库的功能，用途，优势和缺点
+[wshobson/agents](https://github.com/wshobson/agents)
+[sangrokjung/claude-forge](https://github.com/sangrokjung/claude-forge)
+[ruvnet/ruflo](https://github.com/ruvnet/ruflo) | Ruflo(Claude-Flow)
+[Yeachan-Heo/oh-my-claudecode](https://github.com/Yeachan-Heo/oh-my-claudecode)
+[langchain-ai/deepagents](https://github.com/langchain-ai/deepagents)
+
+
+plugin/README.md 中详细整列个各个插件的相关信息。
+但是部分 markdown 中字段未填写，请帮忙填写
+
+补全此内容，请继续进行解析，请访问对应的 github 简要分析其仓库的 README 等信息，获取其详细的信息。并对仓库进行推荐评级
+
+Cliamp
+kanban
+
+补全此内容, 请访问对应的网站简要分析其仓库，分析其详细信息，然后总结出这个仓库的目标，技术和使用场景。
+请注意，一定要访问这个仓库，然后去分析，不要瞎编. 分析要尽可能详细
+要求只修改这几行，不要全量生成整个 README.md
+
+
+我只是简单测试了下，你怎么消耗了那么多 token，当前目录下有 shell 脚本统计分析下 claude 消耗的上下文 token 的来源和量
+但是统计的不太对。请继续优化下
+Ctx: 30.1k
+Total:62.0k Cached:0  In:31.2k Out: 151
+另外使用 claude --bare 消耗只有 4k
+我已经确认了 skills 和 ruls 压根没消耗多少，因为我把 skills 和 rules 放到了 skills.bak 和 rules.bak 目录下，消耗的 token 还是 非常多
+
+
+分析下这个仓库，请注意，一定要访问这个仓库，然后去分析，不要瞎编. 分析要尽可能详细
+https://github.com/dontbesilent2025/dbskill
+https://github.com/hamelsmu/evals-skills
+
+
+
+https://github.com/sstklen/trump-code
+
+
+https://github.com/Lum1104/Understand-Anything
+| [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) |
+https://github.com/haris-musa/excel-mcp-server
+
+[OpenCode Day11：5个让OpenCode记住一切的Memory插件](https://mp.weixin.qq.com/s?__biz=MzY4NDAwNDk0Ng==&mid=2247484210&idx=2&sn=9b83f311941fe23c05467f6bb1a4af25&chksm=f28b3ec43e284bf709d8503ff300c5de81a20ec2ee77dab269fc7092e7df5be8431ba7a79c17&mpshare=1&scene=1&srcid=0310TbDbuWzrVO2cHZCS9BzE&sharer_shareinfo=e8294db882b0a67f0d95a923d7d055ef&sharer_shareinfo_first=0b91e4e5cdcfe20d8de52fc7659e4407#rd)
+
+[Claude Code 600倍加速隐藏神器！LSP一键开启，代码查找50ms精准定位](https://mp.weixin.qq.com/s?__biz=MzcwNjA1ODkxOQ==&mid=2247484867&idx=3&sn=9eabafb46c8dca13d2ffb24eb282183d&chksm=f5f631981b2ed1136c4ef9d0ca16d5af9b365817ea7c9de1fafa888aeab077d1b474336c2ee8&mpshare=1&scene=1&srcid=0310iaugLaelp9RbOr2DMtpi&sharer_shareinfo=61f85b69f7978c63cb73cc7fd7617ffd&sharer_shareinfo_first=2d40e269eba4cdcdd264941dba56df3a#rd)
+
+
+https://github.com/hesreallyhim/awesome-claude-code
+
+https://github.com/mikewarrior/sdd-orchestrator-skill
+
+
+
+| [A-mem](https://github.com/agiresearch/A-mem) | 基于 Zettelkasten 原理的代理式内存系统，通过 ChromaDB 实现智能索引和链接，支持动态内存组织、互连知识网络和持续内存演变，适用于 LLM 代理的内存管理和知识组织 | 多模型支持 | ⭐⭐ |
+| [Clawith](https://github.com/dydy-94/clawith) | 开源多智能体协作平台，为每个 AI 智能体提供持久身份、长期记忆和独立工作空间，支持智能体间协作和团队级管理。主要特点包括：数字员工身份系统、组织知识共享平台（Plaza）、任务监督机制、组织级控制、自进化能力、持久身份与记忆、私人工作空间等。技术栈：后端（FastAPI、SQLAlchemy、PostgreSQL/SQLite、Redis）、前端（React 19、TypeScript、Vite）、Docker 部署。适用于团队协作、企业级应用、多智能体协同工作、知识管理等场景 | 多模型支持 | ⭐⭐ |
+| [Forge](https://github.com/antinomyhq/forge) | AI 增强的终端开发环境，是一个综合编码代理，将 AI 能力与开发环境集成。主要功能包括：代码理解、新功能实现、调试辅助、代码审查、学习新技术、数据库架构设计、重构遗留代码、Git 操作等。支持多提供商（OpenAI、Anthropic 等），具有零配置、无缝集成、安全设计（受限 shell 模式）等特点。技术栈：命令行工具，支持多种配置选项和 MCP 协议集成。适用于开发人员日常编码、问题解决、学习新技术等场景 | 多模型支持 | ⭐⭐⭐⭐⭐
+| [graph-memory](https://github.com/adoresever/graph-memory) | OpenClaw 的知识图谱上下文引擎，解决了三个核心问题：上下文爆炸（通过结构化知识图谱压缩）、跨会话失忆（通过 FTS5/向量搜索 + 图遍历自动召回相关知识）、技能孤岛（通过连接相关技能）。主要功能包括：知识图谱构建（3 种节点类型、5 种边类型）、个性化 PageRank 排序、社区检测、向量去重等。技术栈：SQLite 数据库、TypeScript、OpenAI 兼容 API。适用于长对话场景、跨会话知识管理、技能学习与应用等场景 | 多模型支持 | ⭐⭐⭐⭐⭐
+| [AutoResearchClaw](https://github.com/aiming-lab/AutoResearchClaw) | 完全自主的研究管道，将单个研究想法转化为会议级论文。主要功能包括：23 个阶段的完整研究流程、多源文献搜索（OpenAlex、Semantic Scholar、arXiv）、4 层引用验证、硬件感知执行、OpenCode 野兽模式、沙盒实验、会议级写作、质量门控等。技术栈：Python、Docker、LaTeX、OpenAI 兼容 API、MetaClaw 集成。适用于学术研究、论文写作、实验自动化、研究思路验证等场景 | 多模型支持 | ⭐⭐⭐⭐⭐
+| [Notchi](https://notchi.app/) | Claude Code 的 macOS 伴侣应用，居住在设备的 notch 区域，实时响应每个想法、工具调用和错误。适用于 macOS Sequoia 系统，目前处于 beta v1.0.0 版本。适用于 Claude Code 用户在 macOS 上的实时辅助场景 | Claude Code | ⭐⭐⭐⭐
+| [memory-lancedb-pro](https://github.com/CortexReach/memory-lancedb-pro) | OpenClaw 智能体的 AI 记忆助手，为智能体提供跨会话、跨智能体、跨时间的持久记忆。主要功能包括：自动捕获、智能提取（6 类分类）、智能遗忘（Weibull 衰减模型）、混合检索（向量 + BM25 全文搜索 + 交叉编码器重排序）、上下文注入、多范围隔离、多提供商支持、完整工具包等。技术栈：LanceDB、OpenAI 兼容 API、TypeScript。适用于智能体记忆管理、跨会话知识保持、个性化偏好学习等场景 | 多模型支持 | ⭐⭐⭐⭐⭐
+| [bozhou-skills](https://github.com/bozhouDev/bozhou-skills) | 私有仓库，无法获取详细信息 | 未知 | ⭐⭐⭐⭐
+https://github.com/tickflow-org/tickflow
+https://github.com/x1xhlol/system-prompts-and-models-of-ai-tools
+https://github.com/IsHexx/system-prompts-and-models-of-ai-tools-chinese
 
 
 
