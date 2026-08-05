@@ -618,6 +618,24 @@ glcc 则实现了 eBPF 驱动和 libbpf 的支持, 允许 eBPF 程序无需修�
 | [grafana/phlare](https://github.com/grafana/phlare) | 一个水平可扩展, 高可用, 多租户的持续性能分析聚合系统. 它已被 Grafana LAB 收购, 未来的 |
 | [maxgio92/yap](https://github.com/maxgio92/yap) | 一个基于 Go 和 eBPF 的低开销的采样 CPU Profiler, 它不需要在被分析的二进制文件中进行任何插装. [Unleashing the power of frame pointers pt.1 - The execution environment](https://blog.maxgio.me/posts/unleashing-power-frame-pointers-execution-environment), [Unleashing the power of frame pointers for profiling pt.2 - Writing a simple profiler](https://blog.maxgio.me/posts/unleashing-power-frame-pointers-writing-simple-continuous-profiler) |
 
+
+## 8.8 bpftrace
+-------
+
+
+| 项目 | 描述 | 支持 | 推荐星级 | Star 数量 |
+|:---:|:----:|:---:|:-------:|:--------:|
+| [multikernel/kernelscript](https://github.com/multikernel/kernelscript) | [2026/05/24, phoronix, KernelScript: A Programming Language For Kernel Customization & App Optimizations](https://www.phoronix.com/news/KernelScript) | NA | ⭐ | 479 |
+
+## 8.9 OTHER
+-------
+
+
+| 项目 | 描述 | 支持 | 推荐星级 | Star 数量 |
+|:---:|:----:|:---:|:-------:|:--------:|
+| [pandaadir05/snoop](https://github.com/pandaadir05/snoop) | 基于 eBPF 的现代系统调用跟踪工具, 类似 strace 但具有实时 TUI 界面、智能过滤器、TLS 解密和可读输出。支持多种输出格式(raw、json、explain)、60+ 系统调用参数解码、容器支持、TLS 捕获、堆跟踪、记录回放和火焰图生成. 使用 Rust 和 aya 编写 eBPF 程序, 无需内核模块和 C 工具链. | 系统调用跟踪、性能分析 | ⭐ | 150 |
+| [pktz](https://github.com/immanuwell/pktz) | 基于 eBPF 的网络流量监控工具, 提供进程级和连接级的实时流量监控. 核心功能包括: 实时 RX/TX 速率显示、连接详情查看、Unicode 图表、GeoIP 标记 + ASN 信息、DNS 解析. 支持三种模式: TUI 交互模式、Log 模式(NDJSON 输出)、Prometheus metrics 模式. 技术上基于 Go 语言 + eBPF 技术, 直接挂钩内核, 无需轮询 /proc, 无采样, 每个字节每个进程都不放过. 适用于网络流量监控、调试、安全审计等场景. | Linux | ⭐ | 83 |
+
 # 9 WASM(WebAssembly)
 -------
 

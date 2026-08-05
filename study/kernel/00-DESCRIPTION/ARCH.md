@@ -1460,7 +1460,10 @@ AMD-pstate 驱动程序利用 ITMT 体系结构提供的功能和数据结构, �
 | 2019 | NA | [Make the Most out of Last Level Cache in Intel Processors, EuroSys '19](https://dl.acm.org/doi/10.1145/3302424.3303977) | NA | 在现代(Intel)处理器中, 最后一级缓存(LLC)被划分为多个切片, 并且未记录的哈希算法(又名复杂寻址)在这些切片之间映射内存地址空间的不同部分, 以增加有效内存带宽. 在仔细研究了英特尔的复杂寻址后, 我们引入了一种切片感知内存管理方案, 可以通过 LLC 更快地访问常用数据. 使用我们提出的方案, 我们表明, 对于 100% 和 95% 的 GET 工作负载, 键值存储可以分别将其平均性能提高 ~12.2% 和 ~11.4%. 此外, 我们提出了 CacheDirector, 这是一种网络 I/O 解决方案, 它扩展了直接数据 I/O(DDIO), 并将数据包的标头放置在最接近相关处理核心的 LLC 切片中. 我们将 CacheDirector 作为 DPDK 的扩展实施, 并评估了我们针对网络功能虚拟化(NFV)系统中延迟关键型应用程序提出的解决方案. 评估结果表明, CacheDirector 通过将以 100 Gbps 运行的优化 NFV 服务链的尾部延迟(90-99 个百分位数)减少多达 119 μs(~21.5%) 来加快数据包处理速度. 最后, 分析了切片感知内存管理实现缓存隔离的有效性. |
 | 2019 | NA | [CoPart: Coordinated Partitioning of Last-Level Cache and Memory Bandwidth for Fairness-Aware Workload Consolidation on Commodity Servers](https://dl.acm.org/doi/10.1145/3302424.3303963) | NA | 工作负载整合是一种广泛使用的技术, 用于最大限度地提高云和数据中心计算中的服务器资源利用率. 最近的商用 CPU 支持最后一级缓存(LLC) 和内存带宽分区功能, 可用于确保整合工作负载的公平性. 虽然先前的工作已经提出了多种资源分区技术, 但表征 LLC 和内存带宽分区对整合工作负载公平性的影响以及研究系统软件支持以协调方式动态控制 LLC 和内存带宽分区仍然没有探索. 为了弥合这一差距, 我们提出了 LLC 和内存带宽分区的深入性能和公平性表征. 在表征结果的指导下, 我们提出了 CoPart, 即 LLC 和内存带宽的协调分区, 用于商用服务器上的公平感知工作负载整合. CoPart 动态分析整合应用程序的特性, 并以协调的方式在应用程序之间分配 LLC 和内存带宽, 以提高整体公平性. 我们的定量评估表明, CoPart 显着提高了整合应用程序的公平性(例如, 公平性平均比将资源平均分配给合并应用程序的资源分配策略高 57.3%), 在各种应用程序和系统配置中稳健地提供了高公平性, 并且产生了较小的性能开销. |
 
-# 7 GPU
+# 7 GPU/NPU
+-------
+
+## 7.1 GPU
 -------
 
 [phoronix, 2024/12/11, How AMD Is Taking Standard C/C++ Code To Run Directly On GPUs](https://www.phoronix.com/news/AMD-Standard-C-Code-GPUs)
@@ -1473,6 +1476,14 @@ AMD-pstate 驱动程序利用 ITMT 体系结构提供的功能和数据结构, �
 | 2024/11/28 | Raag Jadav <raag.jadav@intel.com> | [Introduce DRM device wedged event](https://lore.kernel.org/all/20241128153707.1294347-1-raag.jadav@intel.com) | [phoronix, 2025/02/20, Linux Finally Introducing A Standardized Way Of Informing User-Space Over Hung GPUs](https://www.phoronix.com/news/Linux-6.14-Wedged-GPUs-User), [phoronix, 2025/03/01, Linux's New Way Of Informing User-Space Over Hung GPUs May Become More Useful](https://www.phoronix.com/news/Extending-Linux-GPU-Wedge-Event). | v10 ☐☑✓ | [LORE v10,0/4](https://lore.kernel.org/all/20241128153707.1294347-1-raag.jadav@intel.com) |
 | 2025/03/07 | Matthew Auld | [drm/xe/uapi: Use hint for guc to set GT frequency](https://lists.freedesktop.org/archives/intel-xe/2025-January/066028.html) | [phoronix, 2025/03/07, Intel Xe Driver Introducing SVM, EU Stall Sampling & Other New Features For Linux 6.15](https://www.phoronix.com/news/Intel-Xe-SVM-For-Linux-6.15). | v5 ☐☑✓ | [LORE v5](https://lists.freedesktop.org/archives/intel-xe/2025-January/066028.html) |
 | 2026/01/04 | HongleiHuang-amd | [New AMD Linux Driver Patches Posted For Batch Userptr Allocation Support](https://www.phoronix.com/news/AMDKFD-Batch-Userptr-Allocation) | AMDKFD 内核计算驱动最近正在开发的一项新功能是支持批处理用户指针"userptr"分配. 有了这个新的用户空间 API, 将可以支持分配多个非连续的 CPU 虚拟地址范围, 这些地址映射到一个连续的 GPU 虚拟地址. 参加 [phoronix, 2026/01/04, New AMD Linux Driver Patches Posted For Batch Userptr Allocation Support](https://www.phoronix.com/news/AMDKFD-Batch-Userptr-Allocation) | NA | [libhsakmt: Add batch userptr range registration API](https://github.com/ROCm/rocm-systems/commit/ac21716e5d6f68ec524e50eeef10d1d6ad7eae86) |
+
+
+## 7.2 NPU
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2026/04/15 | Lizhi Hou <lizhi.hou@amd.com> | [accel/amdxdna: Add hardware scheduler time quantum support](https://lore.kernel.org/all/20260415171139.904947-1-lizhi.hou@amd.com) | 邮件主题为新增 AMD XDNA 驱动的硬件调度时间片支持. 主要由 Max Zhen 开发, Lizhi Hou 代提交. 该补丁为硬件调度器添加时间片( time quantum) 配置功能, 以提升多上下文并发执行时的公平性. 调度器通过限制每个上下文的执行时间, 防止长时间任务独占设备, 确保其他任务也能及时执行. 默认时间片设为 30 毫秒, 可通过模块参数 `time_quantum_ms` 调整.<br> 补丁修改了多个文件, 新增 `MSG_OP_UPDATE_PROPERTY` 消息操作码及对应处理逻辑, 用于更新上下文执行时间配额. 在驱动初始化时调用 `aie2_update_prop_time_quota() ` 设置默认时间片. 此外, 更新固件特性表以支持该功能.<br> 目标收件人包括 Oded Gabbay、Jorge Hugo 等相关维护者, 抄送 Linux 内核邮件列表.  | v2 ☐☑✓ | [2026/04/15, LORE](https://lore.kernel.org/all/20260415171139.904947-1-lizhi.hou@amd.com) |
 
 
 <br>

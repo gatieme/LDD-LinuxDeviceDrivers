@@ -147,6 +147,8 @@ https://lwn.net/Articles/422487/
 | 2009/08/05 | Arjan van de Ven <arjan@infradead.org> | [Implement crashkernel=auto](https://lore.kernel.org/patchwork/cover/166256) | 实现 crashkernel=auto . | v1 ☐ | [PatchWork](https://lore.kernel.org/patchwork/cover/166256) |
 | 2022/08/28 | Baoquan He <bhe@redhat.com> | [arm64, kdump: enforce to take 4G as the crashkernel low memory end](https://patchwork.kernel.org/project/linux-mm/cover/20220828005545.94389-1-bhe@redhat.com/) | 671768 | v1 ☐☑ | [LORE v1,0/2](https://lore.kernel.org/r/20220828005545.94389-1-bhe@redhat.com) |
 | 2024/03/05 | Steven Rostedt <rostedt@goodmis.org> | [tracing: Persistent traces across a reboot or crash](https://lore.kernel.org/all/20240306015910.766510873@goodmis.org) | [Experimental Linux Patches Allow Kernel Tracing To Work Past Reboots/Crashes](https://www.phoronix.com/news/Linux-Tracing-Post-Reboots). | v1 ☐☑✓ | [LORE v1,0/8](https://lore.kernel.org/all/20240306015910.766510873@goodmis.org) |
+| 2025/11/19 | Eugen Hristev <eugen.hristev@linaro.org> | [Introduce meminspect](https://lore.kernel.org/all/20251119154427.1033475-1-eugen.hristev@linaro.org) | Eugen Hristev 提出了一项名为 **meminspect** 的新机制, 用于在 Linux 内核中标记特定内存区域以进行调试、统计和内存转储. 该机制不依赖于 panic handler 或运行中的内核, 适用于 pstore、kdump 等机制无法使用的设备. meminspect 可生成类似 `/proc/vmcore` 的核心镜像, 供 crash 工具或 GDB 分析.<br> 该补丁系列基于此前的 kmemdump 和 minidump 实现, 已重命名为 meminspect 并移至 `kernel/` 目录. 它引入了两个驱动: **Qualcomm Minidump** 和 **Debug Kinfo**( 用于 Android) . meminspect 利用 memblock 标志和 vmcoreinfo 注册内存区域, 并在系统运行时维护内存区域表.<br> 补丁已基于社区反馈多次迭代, 包括移除 . section、整合进 vmcoreinfo、调整 API 和文档等. 作者将在 Plumbers 会议中进一步讨论该方案.<br> 使用时需启用 `CONFIG_MEMINSPECT`、`CONFIG_CRASH_DUMP` 和相关驱动, 并通过工具( 如 qdl 或 edl) 提取内存区域后合并分析.  | v1 ☐☑✓ | [2025/11/19, LORE v1, 0/26](https://lore.kernel.org/all/20251119154427.1033475-1-eugen.hristev@linaro.org) |
+
 
 [crash extension modules](https://crash-utility.github.io/extensions.html)
 
@@ -438,7 +440,7 @@ $reclaim = current\_mem \times reclaim\_ratio \times max(0,1 – \frac{psi_some}
 
 
 
-## 11.3 Userspace counter access
+## 11.3 Userspace Counter Access
 -------
 
 x86 和 arm64 都支持直接访问用户空间中的事件计数器. 访问序列并不简单, 目前存在于 perf 测试代码 (tools/perf/arch/x86/tests/rdpmc.c) 中, 在 PAPI 和 libpfm4 等项目中有类似的用例程序.
@@ -468,14 +470,14 @@ x86 和 arm64 都支持直接访问用户空间中的事件计数器. 访问序�
 | 2022/03/22 | Stephane Eranian <eranian@google.com> | [perf/x86/amd: Add AMD Fam19h Branch Sampling support](https://lore.kernel.org/all/20220322221517.2510440-1-eranian@google.com) | 引入 CONFIG_PERF_EVENTS_AMD_BRS. perf 支持 BRS. AMD 系列 19h "Zen 3" 处理器新增了分支采样功能 BRS, 用于收集代码执行期间所采用分支的详细信息. 该功能可用于 AMD 处理器上的 AutoFDO 样式优化, 编译器利用收集的硬件数据来做出更明智和准确的优化决策. | v7 ☑✓ 5.19-rc1 | [LORE v7,0/13](https://lore.kernel.org/all/20220322221517.2510440-1-eranian@google.com) |
 
 
-## 11.5 perf-KWork
+## 11.5 perf kwork
 -------
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:---:|:----:|:---:|:----:|:---------:|:----:|
 | 2022/07/09 | Yang Jihong <yangjihong1@huawei.com> | [perf: Add perf kwork](https://lore.kernel.org/all/20220709015033.38326-1-yangjihong1@huawei.com) | 开发者经常需要分析内核工作的时间属性, 例如 irq、softirq 和工作队列, 包括特定中断的延迟和运行时间. 目前, 这些事件具有内核跟踪点, 但 perf 工具不直接分析这些事件的延迟. perf kwork 工具用于跟踪内核工作的时间属性(如 irq、softirq 和 workqueue), 包括运行时、延迟和时间历史, 使用 perf 工具中的基础设施来允许跟踪额外的目标, 我们还使用 bpf 跟踪来收集和过滤内核中的数据, 以解决大 perf 数据量和额外文件系统中断的问题. | v3 ☐☑✓ | [LORE v3,0/17](https://lore.kernel.org/all/20220709015033.38326-1-yangjihong1@huawei.com) |
 
-## 11.6 perf-lock
+## 11.6 perf lock
 -------
 
 | 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
@@ -1305,7 +1307,7 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 | 2025/05/12 | Nam Cao <namcao@linutronix.de> | [RV: Linear temporal logic monitors for RT application](https://lore.kernel.org/all/cover.1747046848.git.namcao@linutronix.de) |旨在为实时( RT) 应用引入基于线性时序逻辑( LTL)的运行时验证( RV) 监控机制. 补丁系列包括以下关键内容: <br>1. LTL监控支持: 新增 LTL 监控模块, 相比原先的确定性自动机, LTL 更简洁直观,适合表达实时规则;<br>2. RT 应用监控器(rtapp): 作为容器封装子监控模块;<br>3.  页错误监控( rtapp_pagefault): 用于检测实时任务中的页错误; <br>4. 睡眠监控( rtapp_sleep): 检测实时线程中可能引起延迟的睡眠行为;<br>5. 配置支持: 允许配置每任务监控器数量, 以同时启用多个监控; <br>6. 文档更新: 补充 LTL 和监控器相关文档; <br>7. 代码结构优化: 整合 dot2k 和 rvgen 工具, 重构模板与类结构, 提升代码可维护性.<br>各版本更新主要修复脚本问题、优化检测逻辑、处理边缘情况, 并调整部分架构的跟踪点. 补丁已覆盖 x86、ARM64 和 RISC-V 架构. 参见 [LWN, 2025/07/30, Extending run-time verification for the kernel](https://lwn.net/Articles/1030685). | v8 ☐☑✓ | [2025/05/12, LORE v8, 0/22](https://lore.kernel.org/all/cover.1747046848.git.namcao@linutronix.de) |
 | 2025/07/30 | Nam Cao <namcao@linutronix.de> | [rv: LTL per-cpu monitor type and real-time scheduling monitor](https://lore.kernel.org/all/cover.1753879295.git.namcao@linutronix.de) | 邮件提出了一组 5 个补丁, 旨在为 Linux 内核的 Roving( rv) 子系统添加对线性时序逻辑(LTL) 的 per-cpu 监控类型支持, 并新增一个用于验证实时调度(real-time scheduling) 的监控模块. 该系列补丁首先对现有 LTL 监控代码进行重构, 以支持多种监控类型; 随后实现 per-cpu 监控机制, 类似于现有的确定性自动机监控. 此外, 补丁还引入了新的 trace point 用于实时任务的入队与出队事件, 并通过 rvgen 工具生成LTL 监控代码. 最终新增的 rts 监控模块可检测实时调度行为是否符合预期. | v1 ☐☑✓ | [2025/07/30, LORE v1, 0/5](https://lore.kernel.org/all/cover.1753879295.git.namcao@linutronix.de) |
 | 2025/07/23 | Gabriele Monaco <gmonaco@redhat.com> | [tools/verification: Improvements to rv and rvgen](https://lore.kernel.org/all/20250723161240.194860-1-gmonaco@redhat.com) | 改进 Linux 内核中的 rv 和 rvgen 验证工具. 主要内容包括: <br>1. 修复 rv 工具在使用 -s 选项时跳过 idle 任务的问题;<br>2. 增加 rv 对 SIGTERM 信号的优雅终止处理; <br>3. 修改 dot2c 脚本避免生成超过 100 列的代码行; <br>4. 调整 RV Kconfig 文件中嵌套监控模块的顺序; <br>5. 在 DA 监控初始化失败时返回正确错误码, 而非 0. | v1 ☐☑✓ | [2025/07/23, LORE v1, 0/5](https://lore.kernel.org/all/20250723161240.194860-1-gmonaco@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2025/08/06, LORE v2, 0/5](https://lore.kernel.org/all/cover.1754466623.git.namcao@linutronix.de)<br>*-*-*-*-*-*-*-* <br>[2025/08/11, LORE v3, 0/5](https://lore.kernel.org/all/cover.1754900299.git.namcao@linutronix.de) |
-| 2025/08/14 | Gabriele Monaco <gmonaco@redhat.com> | [rv: Add Hybrid Automata monitor type, per-object and deadline monitors](https://lore.kernel.org/all/20250814150809.140739-1-gmonaco@redhat.com) | 改进 Linux 内核中的 RV( Runtime Verification) 监控功能, 目标是增强内核运行时验证能力, 提升调度与实时性监控的准确性. 核心内容包括: <br>1. 混合自动机(Hybrid Automata) 监控类型: 扩展确定性自动机, 支持环境变量约束判断, 适用于定时自动机场景. <br>2. 对象级监控(Per-object Monitors): 支持为任意对象(如任务) 创建监控实例, 通过 ID 索引存储监控数据. <br>3. 期限(Deadline)监控集合: 新增 throttle 和 nomiss 监控模块, 用于验证 deadline 调度器的时间行为. <br>4.  对 da_monitor 进行宏清理与重构, 提升代码可维护性. <br>5.  多处文档更新与 rvgen 工具链改进, 支持新监控类型的生成与集成. | v1 ☐☑✓ | [2025/08/14, LORE v1, 0/17](https://lore.kernel.org/all/20250814150809.140739-1-gmonaco@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2025/09/19, LORE v2, 0/20](https://lore.kernel.org/all/20250919140954.104920-1-gmonaco@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2025/12/05, LORE v3, 0/20](https://lore.kernel.org/all/20251205131621.135513-1-gmonaco@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2026/01/22, LORE v3, 0/20](https://lore.kernel.org/all/20260122155500.362683-1-gmonaco@redhat.com) |
+| 2025/08/14 | Gabriele Monaco <gmonaco@redhat.com> | [rv: Add Hybrid Automata monitor type, per-object and deadline monitors](https://lore.kernel.org/all/20250814150809.140739-1-gmonaco@redhat.com) | 改进 Linux 内核中的 RV( Runtime Verification) 监控功能, 目标是增强内核运行时验证能力, 提升调度与实时性监控的准确性. 核心内容包括: <br>1. 混合自动机(Hybrid Automata) 监控类型: 扩展确定性自动机, 支持环境变量约束判断, 适用于定时自动机场景. <br>2. 对象级监控(Per-object Monitors): 支持为任意对象(如任务) 创建监控实例, 通过 ID 索引存储监控数据. <br>3. 期限(Deadline)监控集合: 新增 throttle 和 nomiss 监控模块, 用于验证 deadline 调度器的时间行为. <br>4.  对 da_monitor 进行宏清理与重构, 提升代码可维护性. <br>5.  多处文档更新与 rvgen 工具链改进, 支持新监控类型的生成与集成. | v1 ☐☑✓ | [2025/08/14, LORE v1, 0/17](https://lore.kernel.org/all/20250814150809.140739-1-gmonaco@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2025/09/19, LORE v2, 00/20](https://lore.kernel.org/all/20250919140954.104920-1-gmonaco@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2025/12/05, LORE v3, 00/20](https://lore.kernel.org/all/20251205131621.135513-1-gmonaco@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2026/01/22, LORE v3, 00/20](https://lore.kernel.org/all/20260122155500.362683-1-gmonaco@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2026/03/10, LORE v7, 00/15](https://lore.kernel.org/all/20260310105627.332044-1-gmonaco@redhat.com)<br>*-*-*-*-*-*-*-* <br>[2026/03/30, LORE v8, 00/12](https://lore.kernel.org/all/20260330111010.153663-1-gmonaco@redhat.com) |
 
 
 # 21 新语言支持
@@ -1409,6 +1411,13 @@ Fedora 尝试优化 systemd 开机以及重启的时间, 参见 phoronix 报道 
 [When ELF notes reveal too much](https://lwn.net/Articles/962782)
 
 [A look at dynamic linking](https://lwn.net/Articles/961117/)
+
+# 25 API
+-------
+
+| 时间 | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
+|:---:|:----:|:---:|:----:|:---------:|:----:|
+| 2026/05/29 | Sasha Levin <sashal@kernel.org> | [Kernel API Specification Framework](https://lore.kernel.org/all/20260529233311.1901670-1-sashal@kernel.org) | 旨在为内核 API 提供形式化规范机制, 解决长期存在的用户空间接口稳定性问题. 该框架支持参数类型、取值范围、执行上下文、错误码等接口行为的描述, 并可嵌入代码中, 兼具可读性和可解析性.<br> 该框架支持运行时检查( CONFIG_KAPI_RUNTIME_CHECKS) 、debugfs 导出、ftrace 跟踪、静态分析、自动化测试和文档生成. 实现包括 ELF 段存储、kerneldoc 集成、Rust 提取工具( 支持 JSON/RST/文本输出) 及 KUnit 和 TAP 测试套件. 已为 sys_open、sys_close、sys_read、sys_write 和 sys_madvise 添加示例规范.<br> 此版本修复了构建问题、优化了内存布局、改进了 DSL 语法, 并更新了工具链. 补丁集已通过 LTP 测试验证.  | v4 ☐☑✓ | [2026/05/29, LORE v4, 0/11](https://lore.kernel.org/all/20260529233311.1901670-1-sashal@kernel.org) |
 
 
 # X 学习参考

@@ -7388,6 +7388,7 @@ KFENCE 的灵感来自于 [GWP-ASan](http://llvm.org/docs/GwpAsan.html), 这是�
 | 时间  | 作者 | 特性 | 描述 | 是否合入主线 | 链接 |
 |:----:|:----:|:---:|:----:|:---------:|:----:|
 | 2016/02/03 | Christian Borntraeger <borntraeger@de.ibm.com> | [Optimize CONFIG_DEBUG_PAGEALLOC (x86 and s390)](https://damonitor.github.io) | 优化 CONFIG_DEBUG_PAGEALLOC, 提供了 debug_pagealloc_enabled(), 可以动态的开启 DEBUG_PAGEALLOC. | v4 ☑ 4.6-rc1 | [PatchWork v4,0/4](https://lore.kernel.org/patchwork/patch/642851) |
+| 2025/11/19 | Eugen Hristev <eugen.hristev@linaro.org> | [Introduce meminspect](https://lore.kernel.org/all/20251119154427.1033475-1-eugen.hristev@linaro.org) | Eugen Hristev 提出了一项名为 **meminspect** 的新机制, 用于在 Linux 内核中标记特定内存区域以进行调试、统计和内存转储. 该机制不依赖于 panic handler 或运行中的内核, 适用于 pstore、kdump 等机制无法使用的设备. meminspect 可生成类似 `/proc/vmcore` 的核心镜像, 供 crash 工具或 GDB 分析. < br> < br> 该补丁系列基于此前的 kmemdump 和 minidump 实现, 已重命名为 meminspect 并移至 `kernel/` 目录. 它引入了两个驱动: **Qualcomm Minidump** 和 **Debug Kinfo**( 用于 Android) . meminspect 利用 memblock 标志和 vmcoreinfo 注册内存区域, 并在系统运行时维护内存区域表. < br> < br> 补丁已基于社区反馈多次迭代, 包括移除 . section、整合进 vmcoreinfo、调整 API 和文档等. 作者将在 Plumbers 会议中进一步讨论该方案. < br> < br> 使用时需启用 `CONFIG_MEMINSPECT`、`CONFIG_CRASH_DUMP` 和相关驱动, 并通过工具( 如 qdl 或 edl) 提取内存区域后合并分析.  | v1 ☐☑✓ | [2025/11/19, LORE v1, 0/26](https://lore.kernel.org/all/20251119154427.1033475-1-eugen.hristev@linaro.org) |
 
 
 ## 13.5 tracepoint

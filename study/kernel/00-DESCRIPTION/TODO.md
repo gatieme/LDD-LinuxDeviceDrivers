@@ -862,7 +862,7 @@ https://www.phoronix.com/news/cpufreq_ext-RFC#google_vignette
 
 https://www.github-zh.com/
 [A new type of spinlock for the BPF subsystem](https://mp.weixin.qq.com/s/6pEk4PBnf6WXNdj4zmIeBA)
-[LWN：GCC BPF 支持的进展！](https://mp.weixin.qq.com/s/hlXtGhkIhIhpgPQTnolVXg)
+[LWN: GCC BPF 支持的进展！](https://mp.weixin.qq.com/s/hlXtGhkIhIhpgPQTnolVXg)
 
 
 
@@ -930,21 +930,27 @@ https://ncnz67vv5cuy.feishu.cn/wiki/IN66w8dW8imkkUkKusMcy2jLnBb
 
 https://support.huaweicloud.com/bestpractice-ecs/zh-cn_topic_0141067581.html
 
+
+1. 开启 DOCKER
+
 sudo docker run -it --name ubuntu22.04 ubuntu:22.04 bash
 sudo docker ps -a
 sudo docker start 665e1247f4c8
 sudo docker exec -it ubuntu22.04 bash
+
+2. 处理 Qwen2.5-Coder-7B-Instruct-AWQ
+
 sudo docker cp /home/chengjian/Work/Package/Miniconda/py310 ubuntu22.04:/root/Model
 sudo docker cp Qwen2.5-Coder-7B-Instruct-AWQ ubuntu22.04:/root/Model/QWEN/QWEN2.5
-sudo docker cp ubuntu22.04:/root/Model/QWEN/QWEN2.5/Qwen2.5-Coder-7B-Instruct-AWQ-PARAMS ./Qwen2.5-Coder-7B-Instruct-AWQ-PARAMS
-sudo docker exec -it ubuntu22.04 bash
-
-
 
 mkdir -p /root/Model/QWEN/QWEN2.5/Qwen2.5-Coder-7B-Instruct-AWQ-HEADER
 python3 convert_awq.py /root/Model/QWEN/QWEN2.5/Qwen2.5-Coder-7B-Instruct-AWQ /root/Model/QWEN/QWEN2.5/Qwen2.5-Coder-7B-Instruct-AWQ-HEADER --group_size 128 --gen_model_header
+sudo docker cp ubuntu22.04:/root/Model/QWEN/QWEN2.5/Qwen2.5-Coder-7B-Instruct-AWQ-PARAMS ./Qwen2.5-Coder-7B-Instruct-AWQ-PARAMS
+
 
 mkdir -p /root/Model/QWEN/QWEN2.5/Qwen2.5-Coder-7B-Instruct-AWQ-HEADER-VERSION
+
+3. 处理 Qwen2.5-Coder-7B-Instruct-AWQ
 
 sudo docker cp Qwen2.5-0.5B-Instruct ubuntu22.04:/root/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct
 
@@ -952,8 +958,27 @@ python3 convert_llama.py ~/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct/Qwen2.5
 python3 convert_llama.py ~/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct/Qwen2.5-0.5B-Instruct ~/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct/Qwen2.5-0.5B-Instruct-Q40-HEADER-VERSION --qwen2 --qtype Q4_0 --gen_model_header --model_version "6.0.0.1"
 sudo docker cp ubuntu22.04:/root/Model/QWEN/~/Model/QWEN/QWEN2.5/0.5B/Qwen2.5-0.5B-Instruct/Qwen2.5-0.5B-Instruct-Q40-HEADER-VERSION ./Qwen2.5-0.5B-Instruct-Q40-HEADER-VERSION
 
+
+4. 2026/07/01 转 AWQ 模型 SDLLM-AWQ-ChatExcel_v2-20260701
+
+cd /home/chengjian/Work/GitHub/AI/Model/QWEN/QWEN2.5/7B/Qwen2.5-Coder-7B-Instruct-SDLLMv2/sdllmv2
+sudo docker cp SDLLM-AWQ-ChatExcel_v2-20260701 ubuntu22.04:/root/Model/QWEN/QWEN2.5/7B/Qwen2.5-Coder-7B-Instruct-SDLLMv2
+
+mkdir -p ~/Model/QWEN/QWEN2.5/7B/Qwen2.5-Coder-7B-Instruct-SDLLMv2/Qwen2.5-Coder-7B-Instruct-AWQ-SDLLMv2-HEADER-VERSION
+
+cd /root/Model/py310/test
+python3 convert_awq.py /root/Model/QWEN/QWEN2.5/7B/Qwen2.5-Coder-7B-Instruct-SDLLMv2/SDLLM-AWQ-ChatExcel_v2-20260701 ~/Model/QWEN/QWEN2.5/7B/Qwen2.5-Coder-7B-Instruct-SDLLMv2/Qwen2.5-Coder-7B-Instruct-AWQ-SDLLMv2-HEADER-VERSION --group_size 128 --gen_model_header --model_version "6.0.0.1"
+参见 cat config.json  | grep "transformers_version", tranformers 需要 v4.56.2, 由于标准 transformer 不支持加载 SDLLM 的模型, 模型路径下需要 register_sdllm.py, configuration_sdllm.py, convert_to_hf_sdllm.py, modeling_qwen2_sdllm.py 这几个文件来支撑.
+
+sudo docker cp ubuntu22.04:/root/Model/QWEN/QWEN2.5/7B/Qwen2.5-Coder-7B-Instruct-SDLLMv2/Qwen2.5-Coder-7B-Instruct-AWQ-SDLLMv2-HEADER-VERSION ./
+
+
+python3 convert_awq.py /root/Model/QWEN/QWEN2.5/7B/Qwen2.5-Coder-7B-Instruct-SDLLMv2/SDLLM-AWQ-ChatExcel_v2-20260701 ~/Model/QWEN/QWEN2.5/7B/Qwen2.5-Coder-7B-Instruct-SDLLMv2/Qwen2.5-Coder-7B-Instruct-AWQ-SDLLMv2-Embed_Token_FP16_HEADER-VERSION --group_size 128 --gen_model_header --model_version "6.0.0.2"
+sudo docker cp ubuntu22.04:~/Model/QWEN/QWEN2.5/7B/Qwen2.5-Coder-7B-Instruct-SDLLMv2/Qwen2.5-Coder-7B-Instruct-AWQ-SDLLMv2-Embed_Token_FP16_HEADER-VERSION ./
+
+
 XAMPP
-git fetch --depth=100  # 拉取最近 100 次提交
+git fetch --depth=100  # 拉取最近 100 次提交出
 git fetch --depth=1000 # 继续拉取更多
 git fetch --unshallow
 
@@ -971,6 +996,7 @@ oh-my-opencode
 4. SKILL 调用要显示
 https://github.com/ViffyGwaanl/papertok-reader
 https://github.com/linshenkx/prompt-optimizer
+
 
 
 cartography: Repository understanding and hierarchical codemap generation
@@ -992,28 +1018,28 @@ npx skills add https://github.com/anthropics/skills --skill pptx
 
 
 
-
-请根据当前最新代码和架构更新 REAMDE，包括整个项目的 README 以及各个 agent 以及子目录的 README；README 需要包括各个项目的项目介绍, 软件架构, 主要功能,
-1. 架构图 - 所有模块都添加了清晰的 ASCII art 架构图
-2. 工作流程 - 详细说明了每个 Agent 的工作流程和步骤
-3. 技术细节 - 添加了状态类定义、API 说明、配置参数等
-4. 使用示例 - 包含了完整的使用方法和示例命令
-5. 代码规范 - 统一了命名约定和注释风格说明
-6. 扩展计划 - 为每个模块添加了未来发展方向
-
-/ralph-loop:ralph-loop "这个仓库的代码包含了如下功能
-1. lkml 目录实现了一个分析指定 LKML 社区补丁的 agent。
-2. rss 目录是用 TRAE 生成的代码，它是用 langgraph 实现的一个 phoronix 和 lwn 解析的 AGENT。
-3. patchwork 目录是用 shell 实现的解析 patchwork 工程的脚本。
+这个仓库的代码包含了如下功能
+1. lkml 目录实现了一个分析指定 LKML 社区补丁的 agent.
+2. rss 目录是用 TRAE 生成的代码, 它是用 langgraph 实现的一个 phoronix 和 lwn 解析的 AGENT.
+3. patchwork 目录是用 shell 实现的解析 patchwork 工程的脚本.
 4. cgit 目录是用分析内核 commit 的 agent
-5. kde.py 计划是整个工程的入口。
+5. kde.py 计划是整个工程的入口.
 6. test 目录下是整个项目的测试用例
-项目根目录以及每个子目录的 README 中有对相关代码架构以及功能的解析。
+项目根目录以及每个子目录的 README 中有对相关代码架构以及功能的解析.
 
-请完成如下两个功能
+请完成如下个功能
+请根据已有的 agent 和脚本(主要是 @src/patchwork/get_patchwork_series.sh), 在 patchwork 目录下基于 langgraph 实现一个 patchwork 的 AGENT.
+1. 支持获取指定日期, 指定 projects 的 id , 所有的补丁列表, 并通过 lkml agent 对其进行分析.
+2. 格式保持原来的输出格式, 并参考 lkml_agent 的输出格式.
+3. 在 test 用力补齐对应的测试用例, 要求测试用例全部通过, 功能才算完成.
+参见 projects id 和邮件列表的索引参考 @src/patchwork/project/projects_list.md
+请使用 superpowers brainstorm skill 对该任务进行 brainstorm, 将 brainstorm 生成到 .task/20260512-patchwork_agent/01-brainstorm.md
 
-功能一：
-请根据当前最新代码和架构更新 REAMDE，包括整个项目的 README 以及各个 agent 以及子目录的 README；README 需要包括各个项目的项目介绍, 软件架构, 主要功能,
+
+/ralph 将 .task/20260512-patchwork_agent/02-plan.md 转换为 .task/20260512-patchwork_agent/03-plan.json
+
+功能一:
+请根据当前最新代码和架构更新 REAMDE, 包括整个项目的 README 以及各个 agent 以及子目录的 README; README 需要包括各个项目的项目介绍, 软件架构, 主要功能,
 1. 架构图 - 所有模块都添加了清晰的 ASCII art 架构图
 2. 工作流程 - 详细说明了每个 Agent 的工作流程和步骤
 3. 技术细节 - 添加了状态类定义、API 说明、配置参数等
@@ -1021,87 +1047,57 @@ npx skills add https://github.com/anthropics/skills --skill pptx
 5. 代码规范 - 统一了命名约定和注释风格说明
 6. 扩展计划 - 为每个模块添加了未来发展方向
 
-功能二：
-整个项目的 README 以及各个 agent 以及子目录的 README 中，包含了整个项目和各个 AGENT 的软件架构，
-diagrams 目录下有 mermaid 和 excalidraw 架构图，但是并不美观。
-请参考 README 中的架构图, 重新生成更美观的 mermaid 和 excalidraw 架构图，更新到 diagrams 目录下，并将 excalidraw 架构图更到到 README 中.
+功能二:
+整个项目的 README 以及各个 agent 以及子目录的 README 中, 包含了整个项目和各个 AGENT 的软件架构,
+diagrams 目录下有 mermaid 和 excalidraw 架构图, 但是并不美观.
+请参考 README 中的架构图, 重新生成更美观的 mermaid 和 excalidraw 架构图, 更新到 diagrams 目录下, 并将 excalidraw 架构图更到到 README 中.
 
-1. 请将生成的架构图保存在 diagrams 目录下. 包括 mermaid 代码, ASCII, svg, excalidraw 格式. 我发现之前的架构图中有 <br> 字样，这些无法正常显示为换行，请换种方式呈现。
+1. 请将生成的架构图保存在 diagrams 目录下. 包括 mermaid 代码, ASCII, svg, excalidraw 格式. 我发现之前的架构图中有 <br> 字样, 这些无法正常显示为换行, 请换种方式呈现.
 2. 请通过 @beautiful-mermaid  @pretty-mermaid 生成 mermaid 代码, ASCII, svg 格式的架构图(要求保留 mermaid 代码到对应的 mmd 文件中, SVG 配色使用浅色)
-3. 请通过 @excalidraw-diagram-generator 和 @excalidraw-diagram，以及 @excalidraw 几个 SKILLS 生成【手绘风格的架构图+Excalidraw动画】，保存原始 JSON 格式和 SVG 格式。要求手绘风格：Excalifont字体、roughness:手绘线条、轻配色；动画顺序：标题→XX层→XX层→连接线，每步时长500ms；画布0-1200x0-800，元素间距≥30px。若为复杂架构图，请通过 excalidraw 子代理委托规则执行。
-4. 将最后生成的 excalidraw 手绘风格 SVG 架构图，更新到各个 README 中。
+3. 请通过 @excalidraw-diagram-generator 和 @excalidraw-diagram, 以及 @excalidraw 几个 SKILLS 生成【手绘风格的架构图+Excalidraw动画】, 保存原始 JSON 格式和 SVG 格式. 要求手绘风格: Excalifont字体、roughness:手绘线条、轻配色; 动画顺序: 标题→XX层→XX层→连接线, 每步时长500ms; 画布0-1200x0-800, 元素间距≥30px. 若为复杂架构图, 请通过 excalidraw 子代理委托规则执行.
+4. 将最后生成的 excalidraw 手绘风格 SVG 架构图, 更新到各个 README 中.
 
 
-每个功能使用 @git-commit 提交这个提交一个 COMMIT，要求 COMMIT 描述为纯英文"  --completion-promise "DONE" --max-iterations 5
+/ralph-loop:ralph-loop  "	, 全部完成后输出 <promise>COMPLETE</promise>" --completion-promise "COMPLETE" --max-iterations 10
+
+/ralph-loop:ralph-loop "当前 claude 的 statusline 使用了 claude-hud 插件. 如果我想继续补充 ccstatusline 插件.
+让两个插件的信息都显示, 需要怎么做. ccstatusline 可以使用 npx -y ccstatusline@latest 在 command 字段中配置. 请帮我配置" --completion-promise "DONE" --max-iterations 10
 
 
-/plugin install skill-creator@claude-plugins-official
+整个项目的 README 以及各个 agent 以及子目录的 README 中, 包含了整个项目和各个 AGENT 的软件架构,
+diagrams 目录下有 mermaid 和 excalidraw 架构图, 但是并不美观.
+请参考 README 中的架构图, 重新生成更美观的 mermaid 和 excalidraw 架构图, 更新到 diagrams 目录下, 并将 excalidraw 架构图更到到 README 中.
 
-/plugin install clangd-lsp@claude-plugins-official
-
-
-/ralph-loop:ralph-loop  "当前仓库存在未提交代码，使用 @git-commit 提交这个提交一个 COMMIT，要求 COMMIT 描述为纯英文，全部完成后输出 <promise>COMPLETE</promise>" --completion-promise "COMPLETE" --max-iterations 10
-
-/ralph-loop:ralph-loop "当前 claude 的 statusline 使用了 claude-hud 插件。如果我想继续补充 ccstatusline 插件。
-让两个插件的信息都显示，需要怎么做。ccstatusline 可以使用 npx -y ccstatusline@latest 在 command 字段中配置。请帮我配置" --completion-promise "DONE" --max-iterations 10
-
-
-整个项目的 README 以及各个 agent 以及子目录的 README 中，包含了整个项目和各个 AGENT 的软件架构，
-diagrams 目录下有 mermaid 和 excalidraw 架构图，但是并不美观。
-请参考 README 中的架构图, 重新生成更美观的 mermaid 和 excalidraw 架构图，更新到 diagrams 目录下，并将 excalidraw 架构图更到到 README 中.
-
-当前 diagrams 目录下生成的架构图非常乱，而且不美观，都不如生成的 ASCII 图标，给了你那么多 skills，你干活这么垃圾还能不能行了，重新生成下
-1. 每个架构图都按照 ASCII 的图标重新生成，ASCII 如果不美观或者不完整的也需要重新生成一次。
+当前 diagrams 目录下生成的架构图非常乱, 而且不美观, 都不如生成的 ASCII 图标, 给了你那么多 skills, 你干活这么垃圾还能不能行了, 重新生成下
+1. 每个架构图都按照 ASCII 的图标重新生成, ASCII 如果不美观或者不完整的也需要重新生成一次.
 2. 保留 mermaid 源代码(保存到 xxx.mmd), 以及生成的对应的 SVG(保存到 xxx.svg).
-3. 保留 excalidraw 源代码(保存到 xxx.excalidraw.json), 以及生成的对应的 SVG(保存到 xxx.excalidraw.svg)，且文字要用手写体。
-4. 之前多次生成架构图，每次重新生成的都保留了旧的，新的被命名为 xxx_new，不要这样子，每个架构图的每个格式，只保留最美观的那个文件。
-5. 最后使用 @git-commit 提交这个提交一个 COMMIT，要求 COMMIT 描述为纯英文
+3. 保留 excalidraw 源代码(保存到 xxx.excalidraw.json), 以及生成的对应的 SVG(保存到 xxx.excalidraw.svg), 且文字要用手写体.
+4. 之前多次生成架构图, 每次重新生成的都保留了旧的, 新的被命名为 xxx_new, 不要这样子, 每个架构图的每个格式, 只保留最美观的那个文件.
+5. 最后使用 @git-commit 提交这个提交一个 COMMIT, 要求 COMMIT 描述为纯英文
 
-整个项目的 README 以及各个 agent 以及子目录的 README 中，包含了整个项目和各个 AGENT 的软件架构，
-diagrams 下存储了架构图的素材信息，其中
-1. mermaid 源代码以及 SVG 文件， mermaid 源代码保存在 xxx.mmd, 对应的 SVG 保存在 xxx.svg.
-2. excalidraw 源代码以及 SVG 文件， excalidraw 源代码保存在 xxx.excalidraw.json, 对应的 SVG 保存在 xxx.excalidraw.svg.
+整个项目的 README 以及各个 agent 以及子目录的 README 中, 包含了整个项目和各个 AGENT 的软件架构,
+diagrams 下存储了架构图的素材信息, 其中
+1. mermaid 源代码以及 SVG 文件,  mermaid 源代码保存在 xxx.mmd, 对应的 SVG 保存在 xxx.svg.
+2. excalidraw 源代码以及 SVG 文件,  excalidraw 源代码保存在 xxx.excalidraw.json, 对应的 SVG 保存在 xxx.excalidraw.svg.
 
 
 
-整个项目的 README 以及各个 agent 以及子目录的 README 中，包含了整个项目和各个 AGENT 的软件架构，
+整个项目的 README 以及各个 agent 以及子目录的 README 中, 包含了整个项目和各个 AGENT 的软件架构,
 diagrams 下存储了架构图的素材信息
-1. mermaid 源代码以及 SVG 文件， mermaid 源代码保存在 xxx.mmd, 对应的 SVG 保存在 xxx.svg.
-2. excalidraw 源代码以及 SVG 文件， excalidraw 源代码保存在 xxx.excalidraw.json, 对应的 SVG 保存在 xxx.excalidraw.svg.
+1. mermaid 源代码以及 SVG 文件,  mermaid 源代码保存在 xxx.mmd, 对应的 SVG 保存在 xxx.svg.
+2. excalidraw 源代码以及 SVG 文件,  excalidraw 源代码保存在 xxx.excalidraw.json, 对应的 SVG 保存在 xxx.excalidraw.svg.
 
-其中当前 diagrams 目录下生成的 excalidraw 架构图非常乱，而且不美观，都不如生成的 ASCII 图标，给了你那么多 skills，你干活这么垃圾还能不能行了，重新生成下。
+其中当前 diagrams 目录下生成的 excalidraw 架构图非常乱, 而且不美观, 都不如生成的 ASCII 图标, 给了你那么多 skills, 你干活这么垃圾还能不能行了, 重新生成下.
 
-1. 请自行选择 @excalidraw-diagram-generator 和 @excalidraw-diagram，@excalidraw-diagram-skill 以及 @excalidraw 几个 SKILLS 生成【手绘风格的架构图+Excalidraw动画】，保存原始 JSON 格式和 SVG 格式。要求手绘风格：Excalifont字体、roughness:手绘线条、轻配色；动画顺序：标题→XX层→XX层→连接线，每步时长500ms；画布0-1200x0-800，元素间距≥30px。若为复杂架构图，请通过 excalidraw 子代理委托规则执行。
-2. 最后使用 @git-commit 提交这个提交一个 COMMIT，要求 COMMIT 描述为纯英文
+1. 请自行选择 @excalidraw-diagram-generator 和 @excalidraw-diagram, @excalidraw-diagram-skill 以及 @excalidraw 几个 SKILLS 生成【手绘风格的架构图+Excalidraw动画】, 保存原始 JSON 格式和 SVG 格式. 要求手绘风格: Excalifont字体、roughness:手绘线条、轻配色; 动画顺序: 标题→XX层→XX层→连接线, 每步时长500ms; 画布0-1200x0-800, 元素间距≥30px. 若为复杂架构图, 请通过 excalidraw 子代理委托规则执行.
+2. 最后使用 @git-commit 提交这个提交一个 COMMIT, 要求 COMMIT 描述为纯英文
 
+我使用 architecture-diagram skill 生成了仓库的架构图
 
-
-当前仓库还有未提交的代码，最后使用 @git-commit 提交这个提交一个 COMMIT，要求 COMMIT 描述为纯英文
-
-当前仓库有未 COMMIT 的提交，使用 @git-commit 提交这个提交一个 COMMIT，要求 COMMIT 描述为纯英文
-
+当前仓库还有未提交的代码, 最后使用 @git-commit 提交这个提交一个 COMMIT, 要求 COMMIT 描述为纯英文
+1. 注意请将我 git add 的代码提交, 没有 add 的请不要 COMMIT
 
 
-当前配置下 opencode 可以结合 oh-my-opencode 和 superpowers 进行协同工作。
-但是有一些问题，想进一步让 superpowers 和 Sisyphus 和 Sisyphus (Ultraworker) 模式联动起来
-1 Sisyphus (Ultraworker) 模式下，按照 superpowers 的规范和工作流程，自动化工作，不用每个步骤询问用户。
-1.2 Sisyphus 模式，按照 superpowers 的规范和工作流程，每个工作完成后询问用户，允许用户变更流程，变更计划，调整任务。
-
-1. 可否在进行任务之前询问用户使用 Ultra 模式， Normal 模式
-1.1 Ultraworker 按照 superpowers 的规范和工作流程，自动化工作，不用每个步骤询问用户。
-1.2 Normal 模式，按照 superpowers 的规范和工作流程，每个工作完成后询问用户，允许用户变更流程，变更计划，调整任务。
-1.3 Simple 模式下，则不跟 superpowers 协作，按照 Ultraworker 原有的流程工作。
-2. 使用 Sisyphus agent 工作时，Sisyphus (Ultraworker) 模式下，自动进入 Ultra 模式，否则默认进入 Normal 模式工作。
-
-
-
-
-
-
-
-
-
-[Superpowers插件完整使用指南（一文搞懂）](https://blog.csdn.net/bojinyuan00/article/details/158420712)
 [AI开发】—— OpenCode双插件协同开发指南](https://blog.csdn.net/Lvyizhuo/article/details/157686197)
 [[Question]: How to get the status of background agents? #917](https://github.com/code-yeongyu/oh-my-opencode/issues/917)
 
@@ -1109,46 +1105,9 @@ diagrams 下存储了架构图的素材信息
 
 
 
-[everything-claude-code](https://github.com/affaan-m/everything-claude-code#)
-
-压缩 Token
-[使用 rtk 压缩 token](https://github.com/rtk-ai/rtk/blob/master/INSTALL.md)
-
-记忆功能
-[supermemory](https://github.com/supermemoryai/supermemory)
-
 [](https://github.com/eunomia-bpf/agentsight)
 [](https://github.com/aaupov/ebpf-bolt)
 [](https://github.com/solatis/claude-config/tree/main)
-
-
-[next-ai-draw-io](https://github.com/DayuanJiang/next-ai-draw-io)
-
-README.md 中每个 skills 的描述建议进一步细化, 要求包括 skills.sh 地址以及 github 地址，安装方式提供 git 方式和 npx 方式
-
-"
-
-请实现 script 脚本 sync.py，提供参数允许将本仓库配置文件更新到实际的安装目录，也支持将实际安装目录的文件备份回当前仓库
-要求
-1. 提交 tui 交互界面，允许用户通过 tab 选择
-~/.config/opencode 下的配置文件有多个副本时，提交 tui 交互界面，允许用户通过 tab 选择要更新或者备份的配置文件
-比如更新时，通过 tab 选择 oh-my-opencode-interactive.jsonc, oh-my-opencode-ultraworker.jsonc
-oh-my-opencode.jsonc 具体哪个文件更新到 oh-my-opencode.jsonc, 单选
-比如备份时，通过 tab 选择 ~/.config/opencode 下的 oh-my-opencode-interactive.jsonc, oh-my-opencode-ultraworker.jsonc, oh-my-opencode.jsonc 等配置文件具体哪些到当前仓库的 opencode, .gitignore
-目录下，多选
-2. 更新或者分备份请先diff 下两边目录的差异，并提示用户进行检视，请注意更新和备份时，diff 的顺序，并提示用户 Y/N
-进行安装或者取消。                                                          script/README.md
-
-3. 脚本请生成到 script 目录下。
-
-
-sync.py backup 的时候，用户 tab 选中需要 backup 的配置文件之后，
-请允许用户手动选择备份的文件名字，同时允许用户自定义文件名字
-比如 oh-my-opencode-interactive.json 其实是想备份到 oh-my-opencode-interactive.json(已经存在，覆盖安装), 也可能想备份到新的文件 oh-my-opencode-xxxx.json
-opencode.json 文件类似
-
-
-
 
 
 
@@ -1163,7 +1122,7 @@ https://skills.sh/jimliu/baoyu-skills/baoyu-slide-deck
 /plugin uninstall everything-claude-code@everything-claude-code
 
 
-对比下如下几个仓库的功能，用途，优势和缺点
+对比下如下几个仓库的功能, 用途, 优势和缺点
 [wshobson/agents](https://github.com/wshobson/agents)
 [sangrokjung/claude-forge](https://github.com/sangrokjung/claude-forge)
 [ruvnet/ruflo](https://github.com/ruvnet/ruflo) | Ruflo(Claude-Flow)
@@ -1171,43 +1130,94 @@ https://skills.sh/jimliu/baoyu-skills/baoyu-slide-deck
 [langchain-ai/deepagents](https://github.com/langchain-ai/deepagents)
 
 
-plugin/README.md 中详细整列个各个插件的相关信息。
-但是部分 markdown 中字段未填写，请帮忙填写
 
-补全此内容，请继续进行解析，请访问对应的 github 简要分析其仓库的 README 等信息，获取其详细的信息。并对仓库进行推荐评级
+https://x.com/Voxyz_ai/status/2038237755654783107
 
 Cliamp
 kanban
-
-补全此内容, 请访问对应的网站简要分析其仓库，分析其详细信息，然后总结出这个仓库的目标，技术和使用场景。
-请注意，一定要访问这个仓库，然后去分析，不要瞎编. 分析要尽可能详细
-要求只修改这几行，不要全量生成整个 README.md
+everything-claude-code/skills/autonomous-loops/SKILL.md
 
 
-我只是简单测试了下，你怎么消耗了那么多 token，当前目录下有 shell 脚本统计分析下 claude 消耗的上下文 token 的来源和量
-但是统计的不太对。请继续优化下
-Ctx: 30.1k
-Total:62.0k Cached:0  In:31.2k Out: 151
-另外使用 claude --bare 消耗只有 4k
-我已经确认了 skills 和 ruls 压根没消耗多少，因为我把 skills 和 rules 放到了 skills.bak 和 rules.bak 目录下，消耗的 token 还是 非常多
+plugin/README.md 中庸 markdown 表格的格式, 分析和记录了每个仓库的用户, 星级.
+
+1. ## 未补全内容
+
+但是部分内容未补全. 比如如下内容就是未补全的.
+
+| [xyz](https://github.com/xxxx) | 260 |
+| [xyz](https://github.com/xxxx) |
+| [xyz](https://xxxx) | 260 |
+| [xyz](https://xxxx) |
+| [](https://github.com/xxxx) | 260 |
+| [](https://github.com/xxxx) |
+| [](https://xxxx) | 260 |
+| [](https://xxxx) |
 
 
-分析下这个仓库，请注意，一定要访问这个仓库，然后去分析，不要瞎编. 分析要尽可能详细
+这些行往往只表格中只有 URL (可能追加了 star 数量)但没有描述的行
+
+2. ## 评分规则
+
+### 阈值评分系统
+
+本工具使用阈值评分算法, 根据仓库的多项指标计算综合评分:
+
+| 指标 | 权重 | 阈值(1星-5星) |
+|------|------|-------------------|
+| Stars | 60% | ≤5K, ≤10K, ≤50K, ≤100K, >100K |
+| Forks | 15% | ≤100, ≤200, ≤1K, ≤5K, >5K |
+| Watchers | 10% | ≤100, ≤300, ≤1K, ≤5K, >5K |
+| Issues | 15% | ≤100, ≤200, ≤500, ≤1K, >1K |
+
+- ⭐⭐⭐⭐⭐ (5星): 综合得分 ≥ 4.5
+- ⭐⭐⭐⭐ (4星): 综合得分 ≥ 3.5
+- ⭐⭐⭐ (3星): 综合得分 ≥ 2.5
+- ⭐⭐ (2星): 综合得分 ≥ 1.5
+- ⭐ (1星): 综合得分 < 1.5
+
+请遍历所有未补全的内容
+补全这部分内容, 请访问对应的网站简要分析其仓库, 分析其详细信息, 然后总结出这个仓库的目标, 技术和使用场景.
+请注意
+1. 一定要访问这个仓库, 然后去分析, 不要瞎编. 分析要尽可能详细
+2. 要求只修改未补全的这几行, 不要全量生成整个 README.md
+3. 访问 github 可能会失败, 如果访问失败, 请重试几次
+4. 输出中文
+
+
+领导要求每个项目绘制甘特图, 附件为2个合同及一个甘特图模板, 帮我按照模板分别绘制2个合同对应项目的甘特图, 时间未知的可以写时间待定.
+1. 请使用 /pdf skills 来解析 PDF 文件
+2. 生成 HTML 格式的甘特图, 同时保存成 SVG/PNG 格式
+
+
+
+下周计划: <br/>1、天谷项目: 对接天谷下周正式评价准备工作(周一-周二); <br/>2、部门规划: 根据领导要求进一步修改知识产权部26年年度规划(周一-周四); <br/>3、价值评估: 进一步修改价值评估方案, 搜集2-3家专利价值评估机构(周二-周四); <br/>4、对接西子航空29490项目并进行下一步动作(周二-周五); <br/>5、对接杭州市局56005项目拜访工作并进行下一步动作(周二-周四); <br/>6、对接钱塘区产业专利导航工作并进行下一步动作(周二-周四)
+
+
+要求按照上述计划生成 HTML + CSS 格式的甘特图.
+
+
+
+★
+
+歸藏(guizang.ai)
+@op7418
+·
+6小时
+最近有两个非常出圈、非常牛逼的短剧:
+
+一个是《Enemy》, 一个是《吉时已到》, 可以看看
+
 https://github.com/dontbesilent2025/dbskill
 https://github.com/hamelsmu/evals-skills
-
-
-
 https://github.com/sstklen/trump-code
 
 
-https://github.com/Lum1104/Understand-Anything
 | [DeusData/codebase-memory-mcp](https://github.com/DeusData/codebase-memory-mcp) |
 https://github.com/haris-musa/excel-mcp-server
 
-[OpenCode Day11：5个让OpenCode记住一切的Memory插件](https://mp.weixin.qq.com/s?__biz=MzY4NDAwNDk0Ng==&mid=2247484210&idx=2&sn=9b83f311941fe23c05467f6bb1a4af25&chksm=f28b3ec43e284bf709d8503ff300c5de81a20ec2ee77dab269fc7092e7df5be8431ba7a79c17&mpshare=1&scene=1&srcid=0310TbDbuWzrVO2cHZCS9BzE&sharer_shareinfo=e8294db882b0a67f0d95a923d7d055ef&sharer_shareinfo_first=0b91e4e5cdcfe20d8de52fc7659e4407#rd)
+[OpenCode Day11: 5个让OpenCode记住一切的Memory插件](https://mp.weixin.qq.com/s?__biz=MzY4NDAwNDk0Ng==&mid=2247484210&idx=2&sn=9b83f311941fe23c05467f6bb1a4af25&chksm=f28b3ec43e284bf709d8503ff300c5de81a20ec2ee77dab269fc7092e7df5be8431ba7a79c17&mpshare=1&scene=1&srcid=0310TbDbuWzrVO2cHZCS9BzE&sharer_shareinfo=e8294db882b0a67f0d95a923d7d055ef&sharer_shareinfo_first=0b91e4e5cdcfe20d8de52fc7659e4407#rd)
 
-[Claude Code 600倍加速隐藏神器！LSP一键开启，代码查找50ms精准定位](https://mp.weixin.qq.com/s?__biz=MzcwNjA1ODkxOQ==&mid=2247484867&idx=3&sn=9eabafb46c8dca13d2ffb24eb282183d&chksm=f5f631981b2ed1136c4ef9d0ca16d5af9b365817ea7c9de1fafa888aeab077d1b474336c2ee8&mpshare=1&scene=1&srcid=0310iaugLaelp9RbOr2DMtpi&sharer_shareinfo=61f85b69f7978c63cb73cc7fd7617ffd&sharer_shareinfo_first=2d40e269eba4cdcdd264941dba56df3a#rd)
+[Claude Code 600倍加速隐藏神器！LSP一键开启, 代码查找50ms精准定位](https://mp.weixin.qq.com/s?__biz=MzcwNjA1ODkxOQ==&mid=2247484867&idx=3&sn=9eabafb46c8dca13d2ffb24eb282183d&chksm=f5f631981b2ed1136c4ef9d0ca16d5af9b365817ea7c9de1fafa888aeab077d1b474336c2ee8&mpshare=1&scene=1&srcid=0310iaugLaelp9RbOr2DMtpi&sharer_shareinfo=61f85b69f7978c63cb73cc7fd7617ffd&sharer_shareinfo_first=2d40e269eba4cdcdd264941dba56df3a#rd)
 
 
 https://github.com/hesreallyhim/awesome-claude-code
@@ -1216,18 +1226,632 @@ https://github.com/mikewarrior/sdd-orchestrator-skill
 
 
 
-| [A-mem](https://github.com/agiresearch/A-mem) | 基于 Zettelkasten 原理的代理式内存系统，通过 ChromaDB 实现智能索引和链接，支持动态内存组织、互连知识网络和持续内存演变，适用于 LLM 代理的内存管理和知识组织 | 多模型支持 | ⭐⭐ |
-| [Clawith](https://github.com/dydy-94/clawith) | 开源多智能体协作平台，为每个 AI 智能体提供持久身份、长期记忆和独立工作空间，支持智能体间协作和团队级管理。主要特点包括：数字员工身份系统、组织知识共享平台（Plaza）、任务监督机制、组织级控制、自进化能力、持久身份与记忆、私人工作空间等。技术栈：后端（FastAPI、SQLAlchemy、PostgreSQL/SQLite、Redis）、前端（React 19、TypeScript、Vite）、Docker 部署。适用于团队协作、企业级应用、多智能体协同工作、知识管理等场景 | 多模型支持 | ⭐⭐ |
-| [Forge](https://github.com/antinomyhq/forge) | AI 增强的终端开发环境，是一个综合编码代理，将 AI 能力与开发环境集成。主要功能包括：代码理解、新功能实现、调试辅助、代码审查、学习新技术、数据库架构设计、重构遗留代码、Git 操作等。支持多提供商（OpenAI、Anthropic 等），具有零配置、无缝集成、安全设计（受限 shell 模式）等特点。技术栈：命令行工具，支持多种配置选项和 MCP 协议集成。适用于开发人员日常编码、问题解决、学习新技术等场景 | 多模型支持 | ⭐⭐⭐⭐⭐
-| [graph-memory](https://github.com/adoresever/graph-memory) | OpenClaw 的知识图谱上下文引擎，解决了三个核心问题：上下文爆炸（通过结构化知识图谱压缩）、跨会话失忆（通过 FTS5/向量搜索 + 图遍历自动召回相关知识）、技能孤岛（通过连接相关技能）。主要功能包括：知识图谱构建（3 种节点类型、5 种边类型）、个性化 PageRank 排序、社区检测、向量去重等。技术栈：SQLite 数据库、TypeScript、OpenAI 兼容 API。适用于长对话场景、跨会话知识管理、技能学习与应用等场景 | 多模型支持 | ⭐⭐⭐⭐⭐
-| [AutoResearchClaw](https://github.com/aiming-lab/AutoResearchClaw) | 完全自主的研究管道，将单个研究想法转化为会议级论文。主要功能包括：23 个阶段的完整研究流程、多源文献搜索（OpenAlex、Semantic Scholar、arXiv）、4 层引用验证、硬件感知执行、OpenCode 野兽模式、沙盒实验、会议级写作、质量门控等。技术栈：Python、Docker、LaTeX、OpenAI 兼容 API、MetaClaw 集成。适用于学术研究、论文写作、实验自动化、研究思路验证等场景 | 多模型支持 | ⭐⭐⭐⭐⭐
-| [Notchi](https://notchi.app/) | Claude Code 的 macOS 伴侣应用，居住在设备的 notch 区域，实时响应每个想法、工具调用和错误。适用于 macOS Sequoia 系统，目前处于 beta v1.0.0 版本。适用于 Claude Code 用户在 macOS 上的实时辅助场景 | Claude Code | ⭐⭐⭐⭐
-| [memory-lancedb-pro](https://github.com/CortexReach/memory-lancedb-pro) | OpenClaw 智能体的 AI 记忆助手，为智能体提供跨会话、跨智能体、跨时间的持久记忆。主要功能包括：自动捕获、智能提取（6 类分类）、智能遗忘（Weibull 衰减模型）、混合检索（向量 + BM25 全文搜索 + 交叉编码器重排序）、上下文注入、多范围隔离、多提供商支持、完整工具包等。技术栈：LanceDB、OpenAI 兼容 API、TypeScript。适用于智能体记忆管理、跨会话知识保持、个性化偏好学习等场景 | 多模型支持 | ⭐⭐⭐⭐⭐
-| [bozhou-skills](https://github.com/bozhouDev/bozhou-skills) | 私有仓库，无法获取详细信息 | 未知 | ⭐⭐⭐⭐
+| [A-mem](https://github.com/agiresearch/A-mem) | 基于 Zettelkasten 原理的代理式内存系统, 通过 ChromaDB 实现智能索引和链接, 支持动态内存组织、互连知识网络和持续内存演变, 适用于 LLM 代理的内存管理和知识组织 | 多模型支持 | ⭐⭐ |
+| [Clawith](https://github.com/dydy-94/clawith) | 开源多智能体协作平台, 为每个 AI 智能体提供持久身份、长期记忆和独立工作空间, 支持智能体间协作和团队级管理. 主要特点包括: 数字员工身份系统、组织知识共享平台(Plaza)、任务监督机制、组织级控制、自进化能力、持久身份与记忆、私人工作空间等. 技术栈: 后端(FastAPI、SQLAlchemy、PostgreSQL/SQLite、Redis)、前端(React 19、TypeScript、Vite)、Docker 部署. 适用于团队协作、企业级应用、多智能体协同工作、知识管理等场景 | 多模型支持 | ⭐⭐ |
+| [Forge](https://github.com/antinomyhq/forge) | AI 增强的终端开发环境, 是一个综合编码代理, 将 AI 能力与开发环境集成. 主要功能包括: 代码理解、新功能实现、调试辅助、代码审查、学习新技术、数据库架构设计、重构遗留代码、Git 操作等. 支持多提供商(OpenAI、Anthropic 等), 具有零配置、无缝集成、安全设计(受限 shell 模式)等特点. 技术栈: 命令行工具, 支持多种配置选项和 MCP 协议集成. 适用于开发人员日常编码、问题解决、学习新技术等场景 | 多模型支持 | ⭐⭐⭐⭐⭐
+| [graph-memory](https://github.com/adoresever/graph-memory) | OpenClaw 的知识图谱上下文引擎, 解决了三个核心问题: 上下文爆炸(通过结构化知识图谱压缩)、跨会话失忆(通过 FTS5/向量搜索 + 图遍历自动召回相关知识)、技能孤岛(通过连接相关技能). 主要功能包括: 知识图谱构建(3 种节点类型、5 种边类型)、个性化 PageRank 排序、社区检测、向量去重等. 技术栈: SQLite 数据库、TypeScript、OpenAI 兼容 API. 适用于长对话场景、跨会话知识管理、技能学习与应用等场景 | 多模型支持 | ⭐⭐⭐⭐⭐
+| [Notchi](https://notchi.app/) | Claude Code 的 macOS 伴侣应用, 居住在设备的 notch 区域, 实时响应每个想法、工具调用和错误. 适用于 macOS Sequoia 系统, 目前处于 beta v1.0.0 版本. 适用于 Claude Code 用户在 macOS 上的实时辅助场景 | Claude Code | ⭐⭐⭐⭐
+| [memory-lancedb-pro](https://github.com/CortexReach/memory-lancedb-pro) | OpenClaw 智能体的 AI 记忆助手, 为智能体提供跨会话、跨智能体、跨时间的持久记忆. 主要功能包括: 自动捕获、智能提取(6 类分类)、智能遗忘(Weibull 衰减模型)、混合检索(向量 + BM25 全文搜索 + 交叉编码器重排序)、上下文注入、多范围隔离、多提供商支持、完整工具包等. 技术栈: LanceDB、OpenAI 兼容 API、TypeScript. 适用于智能体记忆管理、跨会话知识保持、个性化偏好学习等场景 | 多模型支持 | ⭐⭐⭐⭐⭐
+| [bozhou-skills](https://github.com/bozhouDev/bozhou-skills) | 私有仓库, 无法获取详细信息 | 未知 | ⭐⭐⭐⭐
 https://github.com/tickflow-org/tickflow
 https://github.com/x1xhlol/system-prompts-and-models-of-ai-tools
 https://github.com/IsHexx/system-prompts-and-models-of-ai-tools-chinese
+https://github.com/tangshimin/MuJing
+https://github.com/JOYCEQL/magic-resume
+https://github.com/decksters-lab/fastfetch/tree/main
+https://github.com/mayukh4/linux-android
+https://github.com/HKUDS/RAG-Anything
+https://github.com/Lakr233/vphone-cli
+https://github.com/thunderbird/thunderbolt
+https://github.com/outcomeops/context-engineering
+
+askanyai.com
+droidxai.com
+https://github.com/thunderbird/thunderbolt
+
+
+https://github.com/chatgptprojects/clear-code
+https://github.com/aaif-goose/goose
+[](https://x.com/bystander520/status/2042873263379091856)
+
+https://github.com/ninehills/blog/issues/97
+https://github.com/FradSer/dotfiles/blob/main/dot_claude/executable_statusline.sh
+https://github.com/ChrisTitusTech/winutil
+
+===diff 工具===
+https://github.com/wong2/diffx
+https://github.com/agavra/tuicr
+https://madewithvuejs.com/ast-explorer
+https://github.com/dannote/reach
+https://github.com/CarterMcAlister/linear-code-review
+https://github.com/bterwijn/memory_graph
+https://tokennav.cc
+https://github.com/pierrecomputer/pierre
+https://github.com/modem-dev/hunk
+https://docu.md
+https://github.com/rockorager/comview
+https://diffshub.com
+https://github.com/nkzw-tech/codiff
+
+===GIT===
+https://github.com/affromero/gitpane
+https://github.com/kitlangton/ghui
+https://github.com/open-gitagent/gitagent
+https://github.com/unnecessary-special-projects/ghist
+https://github.com/JetpackDuba/Gitnuro
+https://github.com/coffeejones/gitvision
+https://github.com/Chronos778/git-rewind
+https://github.com/abdosorour7/git-commands-cheatsheet
+https://github.com/SSShooter/ebook-to-mindmap
+https://checkmygit.com
+https://github.com/DetachHead/rebased
+https://github.com/github/github-mcp-server
+https://github.com/AmintaCCCP/GithubStarsManager
+[2026/06/08, 陈成 @chenchengpro, AI 写代码比人审代码快太多, 瓶颈早就从「produce diff」挪到了「validate diff」. no-mistakes 这个 Go 工具的思路很巧: 在你的仓库和真实远端之间塞一个本地裸仓库当「闸门」, 你 push 到 no-mistakes 这个 remote 而不是 origin(origin 永不被劫持, 普通 push 照常), 它就在一个一次性 worktree 里跑一条固定九步流水线 intent→rebase→review→test→document→lint→push→pr→ci, 全过了才转发上游并自动开干净 PR. ](https://x.com/chenchengpro/status/2063991395543859443)
+https://github.com/521xueweihan/HelloGitHub
+https://gh.jiayouvibe.com, 阿喵给你推荐这个工具: GitHub Open Data. 它做了一件很反常识的事: 把 GitHub 变成了一个“项目信息流”. 不再是搜索仓库, 而是直接刷开源项目. 
+https://github.com/Younesfdj/gitfut, 有点意思, 只要把 github 改为 gitfut 就可以把你的 GitHub 个人资料统计数据做成 FIFA 球员卡的样子, 谁看了都想点一下. 
+https://gitfut.com/gatieme
+https://zaowujuzhen.com/maker/radar/github
+
+===REPO 分析===
+https://github.com/lirantal/repolyze [2026/04/20, Geek Lite @QingQ77, 在阅读代码之前, 用 git 命令快速摸底一个仓库的健康状况. ](https://x.com/QingQ77/status/2046048707284791322)
+https://mintlify.wiki/ghostty-org/ghostty/introduction
+https://github.com/rahulnyk/knowledge_graph
+https://github.com/potpie-ai/potpie
+https://github.com/trsoliu/mini-wiki
+https://github.com/robert-mcdermott/ai-knowledge-graph
+https://github.com/Done-0/fuck-u-code
+https://github.com/Lum1104/Understand-Anything
+https://github.com/study8677/awesome-architecture
+https://github.com/Sidhant0707/codeautopsy
+https://www.gitreverse.com 挖到一个有点逆天的玩意儿, 专门扒任何GitHub仓库背后的prompt提示词.用法简单到离谱, 压根不用装也不用配: 1️⃣ 把网址里的github直接手动换成gitreverse; 2️⃣ 它立马就把复刻这个项目的prompt甩到你脸上; 几秒钟就能逆向工程任何项目, 还是100%免费不用掏钱.
+
+说白了, 以后刷到别人的开源项目, 不光能抄代码, 连
+
+
+Computer Use
+https://github.com/coasty-ai/open-computer-use
+https://github.com/browser-use/video-use
+https://github.com/remorses/usecomputer
+https://github.com/iFurySt/open-codex-computer-use
+https://github.com/injaneity/pi-computer-use
+https://github.com/onesuper/tui-use
+https://github.com/remorses/usecomputer
+https://github.com/injaneity/pi-computer-use
+https://github.com/trycua/cua
+https://github.com/e2b-dev/surf
+https://github.com/memohai/Autofish
+https://github.com/DearVa/Everywhere
+https://github.com/AmrDab/clawdcursor
+https://github.com/google/agents-cli/
+https://github.com/bytedance/UI-TARS-desktop
+https://github.com/Core-Mate/OpenGUI
+https://github.com/opencyvis/opencyvis-phone
+https://www.kimi.com/features/webbridge
+https://github.com/simular-ai/Agent-S
+https://github.com/agent-sh/computer-use-linux
+Marvis
+https://github.com/browser-use/bux
+https://github.com/yb2460/harness-anything
+[2026/06/03, 车厘子 @0xcherry, 两个 Coding Harness 合并起来, 等于一个 Coding Harness. 这是 Coding 任务的合并律.](https://x.com/0xcherry/status/2062006201928524164)
+
+开盒
+https://github.com/sherlock-project/sherlock
+https://d2lang.com/
+https://github.com/HunxByts/GhostTrack
+https://github.com/Z4nzu/hackingtool
+
+===英语学习===
+https://github.com/cuixueshe/earthworm
+julebu.ai
+https://github.com/UlionTse/translators
+https://github.com/zyronon/TypeWords
+https://github.com/xiaochong/hi-kid
+https://engoo.com/app/materials/en
+https://github.com/byoungd/English-level-up-tips
+https://github.com/nicejade/gpt-wordbook
+https://github.com/mengxi-ream/read-frog
+https://github.com/Cuimao777/cuimao-translator
+https://keybr.com
+graker
+https://github.com/hehonghui/awesome-english-ebooks
+https://github.com/Cookee24/PairTranslate 配对翻译插件
+https://julebu.co/
+https://github.com/fishjar/kiss-translator
+https://en.kyrgk.com
+https://github.com/RealKai42/qwerty-learner
+https://github.com/echo-loop/Echo-Loop
+https://readto.ai/
+@midudev
+从零开始 → http://curso-ingles.com
+口语 → http://sesame.com
+语法 → http://engvid.com
+通过电影 → http://playphrase.me
+剑桥 → http://cambridgeenglish.org
+听力 → http://bbc.co.uk/learningenglish
+https://github.com/HoraceLuBFA/en-zh-translation-polish
+@tinyfool
+https://github.com/forestai123456/hear-me-out, 听我解释
+Chrome / Edge 浏览器扩展 — 为网页视频生成实时 AI 字幕, 支持网页翻译和划词翻译. 
+
+1」Trancy  官网 http://trancy.org
+除了沉浸翻译, 还有 YouTube 双语字幕功能, UI 更好看, 目前搭配DeepSeek 主力在用. 免费, 高级功能付费, 闭源. 
+2」FluentRead 流畅阅读 ,免费开源 https://github.com/Bistutu/FluentRead
+3」KISS Translator 简约翻译 , 免费开源 https://github.com/fishjar/kiss-translator
+4」Read Frog 陪读蛙 免费开源 https://github.com/mengxi-ream/read-frog
+http://github.com/tangshimin/MuJing, GitHub 上的开源工具 MuJing(幕境), 把电影、美剧、字幕和文档里的真实表达变成你的词汇课堂: 在情境中理解, 在反复出现中巩固, 再通过练习把记忆“锁死”. 在线地址: https://mujingx.com
+[2026/07/01, 墓碑科技 @mubeitech, 学外语最省钱、也最粗暴的办法: 边快走, 边像疯子一样自言自语. 这套方法有个正经的名字, 叫“影子跟读法”(Shadowing). ](https://x.com/mubeitech/status/2072007624770424995)
+https://github.com/deusyu/translate-book/tree/main Claude Code Skill, 使用并行 subagent 将整本书(PDF/DOCX/EPUB)翻译成任意语言. 
+[2026/07/08, Rey判断位｜英语自由 @ReynoldDai, 英语接入世界是判断位的第1块积木,  打开人生选项集的起点](https://x.com/ReynoldDai/status/2074814728376135913)
+[2026/07/08, 董币哥 @NextBullReady, 个人认为目前实现全英交流最快的方式之一, 最快7天见效](https://x.com/NextBullReady/status/2074705283570602292)
+[2026/07/07, 孤桜ETH @GYLQ520, 2017年, 有位朋友向他请教“高效学英语的路径”, 他当场梳理了一份实操指南. ](https://x.com/GYLQ520/status/2074487666389991700)
+[Huan @Huanusa, 会英语-能用其实只需要这850个单词！](https://x.com/Huanusa/status/2075222778207162464), 我写了一个iOS的应用: 词骨英语850, http://lei-lei.org/850s, 有对应的单词游戏网站, 大家可以自由学习, 😂 巧了我这也有一个对应的网站: https://ogden-basic-english-7s7.pages.dev
+
+
+===理财===
+https://www.wise-hold.com/
+https://github.com/komako-workshop/digital-oracle
+https://wall-street-skill.com/
+https://github.com/XiaomingX/ai-money-maker-handbook
+https://github.com/brokermr810/QuantDinger
+[2026/04/05, 邦比快跑 @binbinmath, 两天时间, 我把巴菲特70年的股东信变成了知识图谱](https://x.com/binbinmath/status/2040690438122987762)
+https://btcdca.me
+http://tiatleak.com/sol
+https://creao.ai/@Moyu
+https://github.com/pingdj/Web3
+https://invest-nav.com/tools/investment-handbook/ai-optical-interconnect-chain/
+https://github.com/waditu/tushare
+https://www.wise-hold.com/
+https://github.com/Open-Dev-Society/OpenStock
+https://github.com/QuantConnect/Lean
+https://www.slickcharts.com, https://x.com/YaelC_03/status/2060686265734066644
+https://github.com/ArvinLovegood/go-stock
+https://github.com/zgwl/chinese-buy-us-stock-guide
+https://github.com/TNT-Likely/PanWatch, https://x.com/eastweb3eth/status/2068157453251080498
+https://wise-etf.com
+[Finviz](https://x.com/AYi_AInotes/status/2067904860486349263) https://x.com/YaelC_03/status/2067495682093764817
+https://aichainmap.com/serenity, 白毛速报: 有人根据白毛股神的推文做了一个产品. 你看这种产品都是 AI slop, 但没人在乎, 能获取到有用的信息就行. 拿别人的内容包装一下, 还可以做成盈利产品, 需要付费才能解锁全部内容. 
+https://www.ainvest.com/terminal/真诚推荐一个自用的美股交易工具 AInvest terminal mac 版本. 好用在哪里呢？一句话可以建设你自己的交易界面, 你想看什么, 想怎么调整就怎么调整, 很舒服. 最关键的是, 可以直接通过AI对话来帮助你在实时图表上画K线, 这个在其他的大模型上是很难做到的. 
+Machine Learning for Trading
+Vibe-Research
+[研究美股最应该关注的 10 个网站](https://x.com/spicycandy00/status/2074727556511838292)
+[断浪 @waveking1314, 如果你连这 10 个网站都不知道, 真的别急着去炒美股. 美股的信息密度很高, 只靠 X 上几个 KOL 喊票, 很容易被情绪带着跑. ](https://x.com/waveking1314/status/2074512270017896603)
+[鸟哥 | 蓝鸟会🕊️ @NFTCPS, 如果你连这10个网站都不知道就不要去炒美股了！](https://x.com/NFTCPS/status/2074380392195399942)
+https://github.com/LLMQuant/quant-wiki
+https://github.com/xuchonglang/investing-for-beginners  投资入门指南
+https://chatgpt.com/apps?q=longbridge, 长桥 Longbridge 已经在 ChatGPT 发布上线了. 超过 140 个 MCP tools, 涵盖: 全面的股票/期权行情、资讯、财报、分红派息、分析师预测、股东信息、机构持仓变动、经营回顾、完整的历史 K 线, 还有你的持仓订单 -- 你需要的都有. 让它帮你分析持仓、发现投资机会. 
+https://www.starterstory.com, 发现一个网站, 专门收集 starter idea 并公开收入. 里面有不少 idea 还挺有意思的
+https://invest.howlifeusa.com/zh, 美国投资指南, HowLifeUSA推出的《投资百科》
+[华尔街观察 Xtrader @cnfinancewatch, 十个短线客喜欢的A股 APP](https://x.com/cnfinancewatch/status/2074645568492904818)
+stock-sdk
+https://github.com/calesthio/BreakoutAnalysis, 研究股票的朋友多少有这个困扰, 平时不可能一直盯盘, 但又生怕错过突然放量拉升的票. BreakoutAnalysis 干的就是盯盘这个活, 开市期间每 15 分钟扫一遍全美股市场, 揪出放量大涨的股票. 
+
+===可视化===
+https://github.com/drasimwagan/mdv
+https://github.com/amit9838/brewlens
+https://github.com/sqshq/sampler
+https://github.com/neneodonkor/asciigraph-rs
+https://regex-vis.com/
+https://github.com/Domenez-dev/lazy-cron
+https://github.com/SurpriseDog/LazyCron
+https://github.com/unhappychoice/splashboard
+https://docu.md
+https://github.com/pranshuparmar/witr
+https://github.com/HarleyCoops/Math-To-Manim
+https://github.com/HugeCatLab/ChatTutor
+https://langsagne.vercel.app/
+https://visualgo.net/en
+https://seeing-theory.brown.edu/cn.html
+https://www.napkin.ai/  可视化图表
+https://github.com/asciidraw/asciidraw.github.io
+https://github.com/GordenSun/mathVideoMaker
+https://github.com/HugeCatLab/ChatTutor
+https://github.com/andyhuo520/aetherviz-master
+https://github.com/charmbracelet/freeze
+https://github.com/Makisuo/maple
+
+===Office===
+https://github.com/manpoai/AgentOfficeSuite
+https://github.com/iOfficeAI/OfficeCLI
+https://github.com/larksuite/cli
+https://github.com/officecli/officedex
+
+
+===安全===
+https://github.com/Armur-Ai/Pentest-Swarm-AI
+
+===软件===
+https://github.com/stackia/best-windows-apps
+https://youmind.com/zh-CN/skills/x6ux3YCCI2qtaT
+https://github.com/sindresorhus/awesome
+https://github.com/scriptscat/scriptcat
+https://github.com/SuperManito/LinuxMirrors
+https://github.com/kimlimjustin/xplorer
+https://github.com/ricocc/rico-md
+https://github.com/bannedbook/fanqiang
+https://github.com/appergb/openless
+| [](https://github.com/karinushka/paneru) | 1,442 | 窗口管理器
+| [](https://github.com/niri-wm/niri) | 24,028 | 窗口管理器
+韩国某哥们为了戒网瘾, 把1119个"危险网站"全拉黑, 结果这份名单一上GitHub, 直接变成了全网最热宝藏导航—— https://github.com/wpzzz/blocked-sites-in-south-korea
+https://github.com/eduwass/tmux-palette
+https://github.com/jaywcjlove/awesome-mac
+https://appstoreprice.org/zh/apps
+https://github.com/LiuMengxuan04/shushu-internship-tool
+https://github.com/tejas-raskar/noted.md
+https://github.com/wangrongding/clash-kit
+https://github.com/l0ng-ai/papr
+https://github.com/plait-board/drawnix
+https://appark.ai/en/top-charts/app-store
+https://www.paywallpro.app/zh
+https://github.com/clefspear/starcommand
+https://github.com/Ponphil/LitePan
+https://github.com/cccyd2003-qwq/pinkbin
+https://app.liulian.ink/
+https://github.com/zakirullin/files.md
+https://github.com/LOWERTOP/Shadowrocket-First#shadowrocket-%E9%85%8D%E8%89%B2%E6%96%87%E4%BB%B6
+https://github.com/superloglabs/superlog
+https://github.com/hydropix/TranslateBooksWithLLMs
+https://github.com/bannedbook/fanqiang
+https://github.com/mikf/gallery-dl
+https://github.com/ShadowArcanist/netviz
+https://github.com/colinvkim/Radix
+https://github.com/beltromatti/get-it
+https://github.com/vid4l-07/Klip
+https://v.bxkp.org/
+https://mineru.net/
+https://github.com/stardustai/dataset-viewer
+https://github.com/opendataloader-project/opendataloader-pdf
+[2026/06/04, 歸藏(guizang.ai) @op7418, 即览: 手机上看 Markdown 和 HTML, 怎么就这么难？](https://x.com/op7418/status/2062361524367401461)
+https://github.com/MrsEWE44/musicDownload
+https://github.com/code2rich/jpage, 拖入 HTML 或 Markdown 文件即得一个可分享的在线页面, 零配置、无需部署. 即页是个零配置的上传即预览工具. 把 HTML 或 Markdown 文件拖进去, 秒级生成在线页面, 自动给你一个短链接. 支持代码高亮、数学公式、流程图渲染, 还有版本历史、标签分类、多用户权限这些功能.
+https://appstoreprice.org/zh/apps
+https://fmhy.net [2026/06/19, Amto @XAMTO_AI, 听说了没, 闲鱼上那些卖家好多都跑这儿来进货！](https://x.com/XAMTO_AI/status/2067803303791260086)
+https://github.com/rccyx/thyx Linux 登录管理器
+https://github.com/Milktang0128/Dob, 在 macOS 上选中文本后快速用 AI 朗读、解释、翻译、审校并留档的菜单栏工具. 一个安静的 macOS 菜单栏工具. 选中一段文字, 它就弹出工具条——朗读、翻译、解释、提炼、审校, 点一下就好. 支持拿当前页面的上下文一起发给 AI, 也能用多个模型比较结果. 看完觉得有用就留档, 存成本地 Markdown. 兼容 DeepSeek、OpenAI 和各种国产模型. 
+https://search-sharp.com/
+https://github.com/chess99/tab-out
+[2026/06/30, 唐清乐 @tangqingyue, 刷知乎看到知乎开放AI接口了](https://x.com/tangqingyue/status/2071877502189138353)
+https://github.com/ricocc/rico-bookmark-manager,  做了一个书签 SKill 来管理我乱糟糟的 3000 多条浏览器书签
+🔗 https://github.com/ricocc/rico-bookmark-manager, 支持生成一个内置的书签导航站, 可以在导航站上进行书签的管理和修改, 然后导出书签数据. 
+领哥LingGe, @shangdu2005 的个人网站; 卧槽！终于让我搞成了！https://lingge66.pages.dev/
+https://github.com/Ebullioscopic/Atoll, 苹果灵动岛
+最近开发了一个类似slideshare的 PPT共享网站:  https://ppt.qiaomu.ai 大家可以注册上传 keynote、pdf、pptx、html ppt 成为全屏演示PPT, 以后出去分享可以不用带电脑, 哈哈哈. Demo: 动漫解读哲学是什么  https://ppt.qiaomu.ai/decks/zhexue-shishenme
+Typeless
+https://github.com/elebumm/RedditVideoMakerBot
+https://github.com/NanmiCoder/MediaCrawler,  MediaCrawler - 自媒体平台爬虫 🕷️
+[2026/07/08, Ren @Ryrenz, 用好这 6 个工具, 机票、路线、酒店全给你省一大笔](https://x.com/Ryrenz/status/2074705035389456863)
+https://github.com/larlarua/AutoCVE
+https://github.com/lzh-phd/topic-feasibility-screener 手头有个数据集但不知道该往哪个方向做？它直接帮你发散出多个选题. 然后自动去扒文献, 能搜出直接证据还是只有桥接文献——这种区分很实用. 还会拿你的数据跑个初步回归, 验证实证可行性. 最后给每个候选选题打0-100的分, 包含理论支持、证据缺口、创新价值. 等于把“选题–查文献–试回归”这一套前期试错流程自动走了一遍. 
+https://github.com/fmhy/edit GitHub 上的 FMHY 是一份把全网免费资源打包整理好的宝藏合集, 强烈建议直接收藏. 电影、动漫、音乐、书籍、下载、游戏、去广告等常用资源一应俱全, 找资源不再东翻西找. 不止资源, 它还汇总了系统、文件管理、网络、
+https://github.com/wickenico/WailBrew, WailBrew 就是为此而来: 一款开源的 Homebrew 可视化工具, 把 Homebrew 变成“App Store 式”操作——浏览、搜索、安装、管理, 一目了然、上手即用. 
+https://github.com/kalcaddle/kodbox, 直接把浏览器魔改成了一个完整的电脑桌面系统. GitHub 上挖出的 3.2k 星开源神器 kodbox, 名义上是个 Web 文件管理器, 实际上是个随身的云端 OS + 在线 IDE. 不管你人在哪, 用谁的电脑, 只要打开浏览器, 立马接管你的所有云盘和本地文件, 还能直接写代码建网站, 白嫖党狂喜！
+https://sobrief.com, 不再错过任何好书
+https://github.com/nilbuild/developer-roadmap, 一个由社区驱动的交互式开发者成长路线平台, 目前在GitHub上已狂揽360k+星标, 全球排名高居第7位. 
+
+
+===网站复刻===
+https://github.com/uxKero/anydesign
+https://github.com/JCodesMore/ai-website-cloner-template
+
+===CLI===
+https://github.com/iOfficeAI/OfficeCLI
+https://github.com/jackwener/wx-cli
+https://down.mptext.top/dashboard/api
+https://github.com/teng-lin/notebooklm-py
+https://github.com/adithya-s-k/omniparse
+https://github.com/can4hou6joeng4/boss-agent-cli
+https://github.com/521xueweihan/HelloGitHub
+https://github.com/lawrencewzen/imgen
+[2026/06/01, yibie @yibie, 把 AI Agent 当普通 CLI 用——pipe in, pipe out.](https://x.com/yibie/status/2061466323306397956)
+https://github.com/ntrospect0/glint
+https://github.com/microsoft/intelligent-terminal
+https://github.com/ruvnet/agent-harness-generator
+https://github.com/langchain-ai/openwiki OpenWiki —— 让你的 AI Agent 拥有最新代码文档的工具 OpenWiki 是 LangChain 团队出品的 CLI 工具, 专为 AI Agent 设计, 能自动为代码库生成并持续维护高质量的 agent 文档. 
+https://tikhub.io, 面向具身智能的社交推理与情感智能数据集——以及驱动量化交易、政府与国防、营销广告领域 AI 智能体的实时社媒数据 API. 
+
+===WeChat===
+https://github.com/wechat-article/wechat-article-exporter
+微信公众号文章批量下载导出, 终于有了一个相对完整的开源方案:
+wechat-article-exporter, GitHub 1.1 万+ stars.
+在线版可以直接用:
+https://down.mptext.top
+GitHub:
+https://github.com/wechat-article/wechat-article-exporter
+它能通过公众号关键词定位文章, 批量拉取文章列表, 并导出为 html / excel / md / docx / json / txt 六种格式.
+最实用的是 HTML 导出: 图片和样式会一起打包, 离线打开也能尽量保留原文排版. 对于做个人知识库、资料归档、内容研究的人, 这个功能非常直接.
+如果配合抓包拿到 credentials, 还可以进一步导出阅读量、评论、评论回复、转发量等数据. 做公众号内容分析的人, 可以少写很多重复脚本.
+不想依赖第三方服务, 也支持 Docker 或 Cloudflare 私有化部署. 文档在:
+https://docs.mptext.top
+最后提醒一句: 文章版权归原作者. 工具适合归档自己读过、需要研究和整理的内容, 不适合拿去商用侵权.
+对长期做内容、研究、知识管理的人来说, 这类工具值得放进自己的工作流.
+https://github.com/jackwu321/Wechat-Fav-Export
+https://aichuhai.dev/
+https://github.com/Gloridust/WechatOnCloud
+https://github.com/limin112/wechat-publish-template
+https://github.com/extrastu/readneo
+https://down.mptext.top
+https://github.com/zjp1997720/wechat-article-search
+https://github.com/wuchubuzai2018/expert-skills-hub
+https://github.com/wuchubuzai2018/expert-skills-hub/blob/main/skills/wechat-article-search/SKILL.md
+https://www.md2wechat.cn/features 内容表达系统, Agent 公众号创作与发布 CLI, 把 Markdown 排版成公众号草稿. md2wechat 覆盖微信 Markdown 编辑器、公众号排版、主题模块、封面配图、标题建议、API 转换和 md2wechat Skill, 帮助人和 Agent 稳定完成公众号发布流程. 
+https://mpbook.geekeditor.com, 公号书 MPBOOK, 把关注的公众号, 装进一座私人书房.
+
+
+====雷达===
+https://github.com/Thysrael/Horizon
+https://github.com/sansan0/TrendRadar
+https://github.com/ourongxing/newsnow
+https://sopilot.net/zh/hot-tweets
+https://github.com/zarazhangrui/follow-builders
+https://rebang.open2hub.com
+https://ithome.com
+1、今日热榜(类目最全)
+常规平台都有, 更狠的是 GitHub Trending、Product Hunt、Hacker News 全给你聚合了——技术圈和产品圈的风向标, 一个顶十个.
+https://tophub.today/c/tech
+2、AI 今日热榜
+只盯 AI 圈, GitHub Trend、Product Hunt、HuggingFace 热门、OpenAI、Anthropic……做 AI 内容的每天必扫一遍.
+https://aihot.today
+3、SoPilot(X 爆帖专用)
+只看 X 上真正爆了的推文, 抢前排评论、快速捕捉舆论风向全靠它.
+https://sopilot.net/zh/hot-tweets
+国外补充: Reddit / Hacker News 热门内容汉化版
+https://buzzing.cc
+国外多平台聚合, 类似今日热榜的模式, 刷英文信息源用:
+https://techurls.com
+https://devurls.com
+AttentionVC: 同时收录中英文爆火 X 热点和 github 热点, 追上英推的前沿热点
+https://attentionvc.ai
+AI 论文简报: 不看最新的重量级论文怎能了解 AI 近况, AI 论文简报每天三分钟, 跟上学术圈最新突破！
+https://ai-brief.liziran.com/zh/
+中国独立开发产品合集: 一个每天更新的 github 仓库, 将国内独立开发产品一网打尽, 看看大家都在做什么, 模仿是通往成功最高效的路径.
+https://github.com/1c7/chinese-independent-developer?tab=readme-ov-file
+https://github.com/leiting-eric/DailyBrief
+https://www.reddtrends.com/
+https://github.com/Pls-1q43/Dibao
+https://news.mksaas.link
+https://mkdollar.com/news
+https://github.com/YD4223/aihub
+https://aihot.virxact.com/   数字生命卡兹克 @Khazix0918 的作品
+https://news.stormzhang.ai/
+https://liziran.com/zh/column/ 博客标题鼠标悬浮上去, 有封面, 挺好玩的. 
+https://best.xiaohu.ai/ AI 圈最新的东西, 用大白话讲透
+https://github.com/JaredYe04/news-bot
+https://youtube.qiaomu.ai/
+
+===论坛===
+https://x.com/wsl8297/status/2061001992752034140
+https://x.com/cxjwin/status/2056028025721090538
+[2026/06/16, Ren @FakeMaidenMaker, AI 内容创作的地基: 信息源(以 AI、投资、设计三个领域为例)](https://x.com/Ryrenz/status/2066724310929088601)
+https://startup-radar-site.vercel.app/ 分享一个创业阅读网站, 是我做来消耗碎片时间的. 本来也没期望自己会常看, 一阵子后我发现自己还挺爱读的, 经常会打开看一看. 挺有助于创业者随机地去了解一下新的或热门的创业方向, 或了解下现在市场上有什么有意思的初创公司. 它选的文章也挺经典的. 
+
+===科研===
+https://github.com/dw-dengwei/daily-arXiv-ai-enhanced
+https://github.com/JOYCEQL/magic-resume
+Palantir
+https://github.com/hxdflying/paperbanana
+https://totoro-jam.github.io/battle-tested-patterns/zh/
+[2026/06/14, paperpaper @paperpaper886, 最近在带入组的本科实习生, 发现怎么读论文其实是科研训练里最容易被忽略的一步. ](https://x.com/paperpaper886/status/2066148829439861016)
+https://web.stanford.edu/class/ee384m/Handouts/HowtoReadPaper.pdf
+[2026/06/19, 黄小木 @ai_xiaomu, 写论文用这个工具: zgpaper, 省掉80%的废话时间: ](https://x.com/ai_xiaomu/status/2067926365412774011)
+arXiv 生态系统里有一批非常好用的第三方工具, 每个解决一个特定痛点. 
+Semantic Scholar, 地址: http://semanticscholar.org, Semantic Scholar 对 arXiv 论文做了语义索引, 它的"Related Papers"功能比 arXiv 原生的好用得多. 输入一篇你觉得重要的论文, 它能找到内容真正相关(而不只是关键词匹配)的其他论文. 它还提供影响力指标——"Highly Influential Citations"只统计那些实质性引用了这篇论文的后续工作, 过滤掉了"Related Work 里随手一提"的水引用. 
+Connected Papers, 地址: http://connectedpapers.com, 输入一篇论文, 它会生成一张可视化的关联图谱. 节点是论文, 边表示相似度. 你能一眼看出一个研究方向的脉络——哪些是开创性工作, 哪些是最新进展, 哪些是连接不同方向的桥梁论文. 最适合的场景:  你刚进入一个新领域, 需要快速建立全景认知. 
+Papers With Code, 地址: http://paperswithcode.com, 这个工具的核心价值是把论文和代码实现对应起来. 看到一篇论文, 直接跳到它的 GitHub 仓库看实现. 它还维护了各个 benchmark 的排行榜(State-of-the-Art), 你能看到每个任务上当前最好的方法是什么. 
+ar5iv, 地址: http://ar5iv.labs.arxiv.org, 把 arXiv 论文的 LaTeX 源码渲染成 HTML 页面. 阅读体验比 PDF 好很多, 尤其在手机上. 用法很简单——把论文 URL 里的 http://arxiv.org 换成 http://ar5iv.labs.arxiv.org 就行. 
+Hugging Face Daily Papers, 地址: http://huggingface.co/papers, Hugging Face 社区每天投票选出最值得关注的 AI 论文. 如果你不想自己筛选, 这是一个高质量的"人肉过滤器". 
+
+
+===配色===
+https://github.com/nevertoday/zhongguo-traditional-colors
+https://colorhunt.co
+https://javii.tools, 它的功能很简单: 上传一张图片或一段视频, 输出由ASCII字符组成的画面. 每个像素点被替换成一个字符, 字符的密度和形状模拟原图的明暗和轮廓. 
+
+
+===求职===
+https://github.com/yuanzhongqiao/ai-interview-platform
+https://github.com/vasu-devs/JustHireMe
+
+
+===内核===
+https://github.com/tamnd/kernel-index
+https://github.com/withesse/linux-kernel-analysis
+
+
+https://www.llm-book.com/
+https://github.com/handsOnLLM/Hands-On-Large-Language-Models
+https://github.com/Feather-2/Burner-X
+
+[无颜 @WY_mask, 突然注意到还分享了100多个开源的aiAgent项目](https://x.com/WY_mask/status/2053428837015343286)
+
+
+obsidian
+notebook navigator 插件
+https://docs.ollama.com/integrations/claude-desktop
+https://github.com/danielrosehill/Awesome-Obsidian-AI-Tools
+阅迹 Pro
+bijitongbu.site
+
+===浏览器插件===
+https://x.com/Jolyne_AI/status/2071820285645586718
+https://github.com/027xiguapi/code-box 免登录复制代码: 不用扫码, 不用登录, 看到代码直接一键拿走. 强解关注限制: 什么“关注博主阅读全文”, 统统强制解锁, 懂的都懂. 一键文章扒站: 直接把整篇文章下载成 Markdown 或 HTML, 本地囤货爽翻. 流氓弹窗杀手: 恶心的登录弹窗、强制跳转 APP 提示, 全部干碎. 
+https://github.com/scriptscat/scriptcat, 在 GitHub 挖到一款比油猴(Tampermonkey)更狠的浏览器脚本插件: ScriptCat. 油猴脚本完全兼容不说, 最大杀手锏是支持后台脚本: 网页关了也照跑. 再加上云同步和脚本订阅, 从安装到管理一条龙, 脚本控直接省心. 
+
+===爬虫===
+https://github.com/D4Vinci/Scrapling
+https://github.com/withoneai/cli
+https://github.com/jackwener/wx-cli
+https://github.com/machinepulse-ai/world2agent
+https://github.com/unclecode/crawl4ai
+jina.ai/reader/
+markdowndown.vercel.app
+https://youmind.com/zh-CN/landing/markdown-to-x-article
+https://github.com/NanmiCoder/MediaCrawler 深度优化的爬虫工具  ||  省时省心; 一个功能强大的多平台自媒体数据采集工具, 支持小红书、音、快手、B站、抖音微博、贴吧、知乎等主流平台的公开信息抓取. 
+https://github.com/miantiao-me/ssh-ai-chat, 813
+https://github.com/raiyanyahya/kit
+https://github.com/1broseidon/ketch,  ketch, 一个命令行工具, 集成了网页搜索、代码搜索、文档查询和网页抓取等功能. 
+
+
+电子书
+https://github.com/jbiaojerry/ebook-treasure-chest
+https://github.com/bookorbit/bookorbit
+https://github.com/LiuMengxuan04/shushu-internship-tool
+https://lizabethli.github.io/markdown-to-wechat-converter/
+https://md.doocs.org/
+https://github.com/freeCodeCamp/freeCodeCamp 我的天神爷, 发现一个全球最硬核的免费编程大学, 新手转行找工作必备……😮
+https://github.com/TapXWorld/ChinaTextbook
+https://github.com/jbiaojerry/ebook-treasure-chest
+https://github.com/BryanHoo/FeedFuse
+
+bun update -g opencode-ai
+opencode models --refresh
+cd ~/.config/opencode && bun update oh-my-openagent
 
 
 
 
+
+
+当前 opencode 有如下模型可用
+opencode models --refresh
+opencode/big-pickle
+opencode/gpt-5-nano
+opencode/minimax-m2.5-free
+opencode/nemotron-3-super-free
+ZhiPuGLM-CGS/GLM-5
+ZhiPuGLM-CJ/GLM-5
+
+帮我配置下 oh-my-openagent
+配置文件在 ~/.config/opencode/oh-my-openagent.jsonc
+
+
+解析当前仓库的整体架构, 输出"系统架构图 — Claude 官方风格" 输出路径: diagrams/v4/architecture.png 和 diagrams/v4/architecture.svg
+
+
+
+
+阅读 plugin/TODO_PROMPT.md, 完成对应的工作
+
+
+
+opencode 有如下模型可用, 帮我配置 oh-my-opencode-slim 插件中 OpenCode-Free preset
+配置文件在  ~/.config/opencode/oh-my-opencode-slim.jsonc
+OpenCode-Free preset 可用模型如下:
+
+opencode/big-pickle
+opencode/deepseek-v4-flash-free
+opencode/laguna-s-2.1-free
+opencode/ling-3.0-flash-free
+opencode/mimo-v2.5-free
+opencode/nemotron-3-ultra-free
+opencode/north-mini-code-free
+
+1. 配置 oh-my-opencode-slim 的各个 agent 为合适的模型
+2. 其中 opencode/big-pickle 模型是大概率不会失效的，将其加入到 fallback 序列
+
+各模型的能力优先级
+
+deepseek-v4-flash-free > laguna-s-2.1-free > ling-3.0-flash-free > big-pickle > mimo-v2.5-free > nemotron-3-ultra-free > north-mini-code-free
+
+
+
+
+
+
+生成整个仓库的整体架构图, 以及各个子 AGENT 的架构图. 
+
+
+
+1. 你已经实现了好多次, 但是我都不满意, 请参考 diagrams/kde-overview.html 的样式, 这个是我最满意的样式和架构
+2. HTML 格式即可. 保存在 diagrams 目录下. 
+
+
+
+
+
+
+参考 diagrams/kde-overview.html 生成整个仓库的动态架构图. 输出 GIF、PNG 和 Excalidraw. 放到 diagrams 目录下
+我 diagrams 目录下的各个图标有点乱, 请帮我创建子目录, 按照各 agent 划分子目录
+
+
+
+
+
+
+
+《AI 时代的编码新范式》. 全系列共 9 篇, 基于 43 篇行业文献、学术论文与一线实践报告, 探讨 Spec-Driven Development 如何在 AI Agent 时代从边缘实践变为工程的基础设施. 每篇可独立阅读. 
+[2026/07/02, SagaSu @sujingshen, #01-Vibe Coding 的尽头是规划先行](https://www.sagasu.art/p/vibe-coding-end-is-planning-first)
+
+
+
+
+
+
+
+
+
+1. 详细分析下论文 https://arxiv.org/abs/2607.25076
+2. 论文下载到 ./arxiv/2607.25076/paper
+2. 将分析结果保存在 ./arxiv/2607.25076/paper-analyzer
+3. 按照 storytelling, academic, concise风格分别输出
+4. 需要配图, 建议优先使用论文中的图, 并结合配图进行分析讲解
+
+
+
+1. 详细分析下论文 https://dl.acm.org/doi/10.1145/3636534.3649391
+2. 论文下载到 ./doi/10.1145_3636534.3649391/paper
+2. 将分析结果保存在 ./arxiv/10.1145_3636534.3649391/paper-analyzer
+3. 按照 storytelling 和 academic 风格分别输出
+4. 需要配图, 建议优先使用论文中的图, 并结合配图进行分解
+
+
+
+公众号中有很多 [Understanding LLMs from Scratch Using Middle School Math](https://towardsdatascience.com/understanding-llms-from-scratch-using-middle-school-math-e602d27ec876) 的分析和翻译。
+1. 查找下所有相关相关的文章和技术分享，将文章保存到 wechat/Understanding-LLMs。标题不限于：初中数学/中学数学 理解 LLM 之类的。
+2. 我自己也列了一些文章，这些文档如果没在搜索的列表中的话，帮我加进去
+
+3. 分析下这些文章，看下哪个文章讲的最好。
+
+
+当前目录下有 omlx 和 mlx 的源代码。
+1. 帮忙分析下 omlx 在 KVCache 以及长序列下有没有什么优化
+2. 将分析结果保存到 docs 目录下
+
+
+
+分别生成 MLX 和 oMLX 格式
+
+
+
+[`yizhiyanhua-ai/fireworks-tech-graph`](https://github.com/yizhiyanhua-ai/fireworks-tech-graph)
+[`architecture-diagram`](https://skills.sh/cocoon-ai/architecture-diagram-generator/architecture-diagram)
+
+当前目录下有 omlx 和 mlx 的源代码。
+1. 整体架构分析
+1.1. 分析 mlx 和 oMLX  的源代码，分别输出 mlx 和 oMLX 的设计架构，保存到 docs 目录下
+1.2 使用 architecture-diagram skills 分别生成 mlx 和 oMLX 的架构图，保存成 html 格式，保存到 diagrams  目录下即可
+2. 再重点分析下两个框架在量化/KVCache/长序列等方向有没有什么优化
+2.1 针对两个框架分别输出详细的分析报告，保存到 docs 目录下。
+2.2 再分析下两个模块在这些方向上如何协作，结合前面的几份报告和架构图，输出一份整体的分析报告，保存到 docs 目录下
+
+
+当前目录下有 omlx 和 mlx 的源代码。
+docs 目录下有 omlx 和 mlx 的架构文档和相关技术的分析文档，请生成一个 PPT
+1. 详细介绍下 omlx 和 mlx 的整体架构，以及之间的协作关系
+2. 针对两个框架量化/KVCache/长序列等方向的优化，详细展开下
+
+
+[2025/11/12, 微信公众号--林间有风, 白话Transformer（上）](https://mp.weixin.qq.com/s/vqvr-1YVn9mIW2ZOdvfTDQ)
+
+
+[2026/01/08, 微信公众号--戴戴向前冲, 如何只用初中数学讲清楚大语言的原理](https://mp.weixin.qq.com/s/o30u71WGGgLvVIOvs-9hIw)
+[2024/11/30, 微信公众号--中国指挥与控制学会, CICC科普栏目｜用初中数学理解LLM工作原理](https://mp.weixin.qq.com/s/8BkNM2F0SYDJ4HPyk-ulHA)
+[2025/03/20, 微信公众号--数科纵横, 《使用中学数学从头开始理解LLM》](https://mp.weixin.qq.com/s/HjgOPRkbVFVBHJ4YKHzB9A)
+[2024/01/01, 微信公众号--AINLPer, 揭秘 Transformer 的数学原理](https://mp.weixin.qq.com/s/qVZqwpD7ngdSX-UzIj68hw)
+[2025/01/05, 微信公众号--林锵锵, 使用初中数学从零开始理解 LLMs](https://mp.weixin.qq.com/s/OEfhumiSYgLP5Tlmni-Rfw)
+[2025/09/05, 微信公众号--Ai学习的老章, 用初中数学从零理解大模型](https://mp.weixin.qq.com/s/PMJX7w_4-EPAjPUo9h0wHQ)
+[2026/05/04, 微信公众号--AI大模型应用实践, 中学生就能看懂：从零开始理解LLM内部原理【十四，大结局】｜理解 Transformer 架构](https://mp.weixin.qq.com/s/ixtL65L50QPmtaxRQ57drA)
+[2025/09/24, 微信公众号--IRR 实验室, 如何用中学知识理解大模型技术原理](https://mp.weixin.qq.com/s/QyotH4Fw3Ybl72-eGSBnfA)
+[2024/11/30, 微信公众号--数学中国, 用初中数学理解LLM工作原理](https://mp.weixin.qq.com/s/vofXHc5UsM2izj_J9CJ16g)
+[2025/01/08, 微信公众号--丁师兄大模型, LLM工作原理，很直观很好懂!](https://mp.weixin.qq.com/s/iIZF58iFHXqU15n8_4nEOg)
+[2024/12/20, 微信公众号--数据派THU, 独家 | 用初中数学从零开始理解大语言模型(下)](https://mp.weixin.qq.com/s/Jf9TkeXgc5JpVelmvvNZTg)
