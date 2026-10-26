@@ -1273,6 +1273,7 @@ https://github.com/rockorager/comview
 https://diffshub.com
 https://github.com/nkzw-tech/codiff
 
+
 ===GIT===
 https://github.com/affromero/gitpane
 https://github.com/kitlangton/ghui
@@ -1346,7 +1347,8 @@ https://github.com/Z4nzu/hackingtool
 https://github.com/cuixueshe/earthworm
 julebu.ai
 https://github.com/UlionTse/translators
-https://github.com/zyronon/TypeWords
+https://github.com/zyronon/TypeWords, 结合背单词 + 打字练习📘 内置20+词库（CET4/6、雅思、托福…）🧾 自动生成生词本和错词本👨‍💻 程序员专属API词库
+🎧 支持英美音发音 + 音标显示
 https://github.com/xiaochong/hi-kid
 https://engoo.com/app/materials/en
 https://github.com/byoungd/English-level-up-tips
@@ -1360,7 +1362,7 @@ https://github.com/Cookee24/PairTranslate 配对翻译插件
 https://julebu.co/
 https://github.com/fishjar/kiss-translator
 https://en.kyrgk.com
-https://github.com/RealKai42/qwerty-learner
+https://github.com/RealKai42/qwerty-learner, 一个练英语的硬核工具：Qwerty Learner。把背单词直接塞进打字练习里，一边敲一边记，效率拉满。
 https://github.com/echo-loop/Echo-Loop
 https://readto.ai/
 @midudev
@@ -1374,6 +1376,9 @@ https://github.com/HoraceLuBFA/en-zh-translation-polish
 @tinyfool
 https://github.com/forestai123456/hear-me-out, 听我解释
 Chrome / Edge 浏览器扩展 — 为网页视频生成实时 AI 字幕, 支持网页翻译和划词翻译. 
+https://engoo.com/app/materials/en
+https://github.com/tangshimin/MuJing, 幕境是一款通过电影、美剧或文档中的真实语境学习英语单词的应用，让您在原汁原味的情境中记忆词汇，提升学习效率。
+https://github.com/byoungd/up, 这篇爆火的英语学习指南，核心只有一句话：你以前学英语的方式，从根本上就错了。传统的死记硬背路线，几乎全踩雷。真正高效的路径完全不同
 
 1」Trancy  官网 http://trancy.org
 除了沉浸翻译, 还有 YouTube 双语字幕功能, UI 更好看, 目前搭配DeepSeek 主力在用. 免费, 高级功能付费, 闭源. 
@@ -1387,6 +1392,32 @@ https://github.com/deusyu/translate-book/tree/main Claude Code Skill, 使用并�
 [2026/07/08, 董币哥 @NextBullReady, 个人认为目前实现全英交流最快的方式之一, 最快7天见效](https://x.com/NextBullReady/status/2074705283570602292)
 [2026/07/07, 孤桜ETH @GYLQ520, 2017年, 有位朋友向他请教“高效学英语的路径”, 他当场梳理了一份实操指南. ](https://x.com/GYLQ520/status/2074487666389991700)
 [Huan @Huanusa, 会英语-能用其实只需要这850个单词！](https://x.com/Huanusa/status/2075222778207162464), 我写了一个iOS的应用: 词骨英语850, http://lei-lei.org/850s, 有对应的单词游戏网站, 大家可以自由学习, 😂 巧了我这也有一个对应的网站: https://ogden-basic-english-7s7.pages.dev
+ENGSENCE, 韩国人学英语
+https://english.modengsir.com, 英语点读
+learn.kugua.cn, 这个我做的儿童英语口语学习的，可以交流下，免费的，需要注册，因为需要token
+https://github.com/RealKai42/qwerty-learner, 这软件qwerty-learner专治键盘工作者：一边背单词一边练打字，打错必须重来，把正确拼写焊进肌肉记忆。四六级、考研、GRE、程序员词库全有，还有 VSCode 摸鱼插件。
+https://waiyuka.cc/zh-CN, 轻松背单词, AI 配图 + 标准发音 + 英语音素级发音分析，让单词学习更高效. 覆盖西班牙语、法语、德语、英语、日语，共 3 万+ 词库.
+《床头灯英语》1到5级打包，号称用3000词读遍世界名著，文本、音频、PDF都齐。
+https://parroto.app/id#google_vignette, 怎么可能功能这么齐全——有英语短视频、词汇游戏、听写练习、跟读练习，甚至还有 TOEIC 和 IELTS 模拟测试。而且大部分功能都是免费的
+https://fluentdictation.com/zh, 发现一个挺好用的免费英语听写在线网站：FluentDictation。
+Book Dash, 是一个提供英文绘本的公益网站：词汇量较小、句子结构简单、配图丰富，适合英语入门，也适合家长陪孩子共读。部分绘本还配有真人朗读和视频，能同时练阅读与听力。
+我觉得 CapWords 挺好的啊
+火遍海淀妈妈圈的清华附小英语动画片，1-6年级覆盖小学全部英语知
+免费英语听力网站：ELLLO。
+https://www.bbc.co.uk/learningenglish/, BC Learning English
+有简单，普通和难度的分级，可以根据自己的水平选择，甚至从基础学起都可以。视频可以看，音频可以听，视频和音频的台本-对话台词-都可以免费下载。非常适合学习。
+每天分享一个宝藏网站第三十七期
+今天要讲的是http://ameponline.homeaffairs.gov.au
+跟着迪士尼电影学习英语
+https://simple.wikipedia.org/wiki/Main_Page, 它是维基百科的「简单英语版」，把复杂词汇和长句改写成更易懂的表达。读百科的同时，把英语阅读也练起来。
+练习英语口语的app，名字是Unscript （脱稿）， https://x.com/wulianwen1/status/2100065447785935253
+开口鸭, https://apps.apple.com/cn/app/%E5%BC%80%E5%8F%A3%E9%B8%AD-%E4%BB%8E%E4%B8%8D%E6%95%A2%E8%AF%B4%E5%88%B0%E4%BC%9A%E8%A1%A8%E8%BE%BE/id6761402209
+https://github.com/knowledgefxg/learning-english, 精选优质英语学习资源合集，专注于听说读写等核心技能的提升。包含语法、词汇和媒体资源，助您更好地学习英语。
+https://github.com/kkkoaoa/biscuit-studio, 小饼干英语视频工坊：从英语知识点到 30 秒竖屏教学视频的一站式 AI 创作工具。 已上线，网址可见：
+https://github.com/gtiipoi/ielts-practice, 备考雅思听力，这个开源项目可以直接上手刷题。IELTS Listening Practice 把雅思听力题搬到网页上：不用装软件，打开就能练。适合用电脑做精听、熟题型：音频、题目、答案一页搞定，做完立刻对照解析，不用再到处找音频和 PDF、来回切换。
+https://github.com/lilinji/English,  全网最全英语单词词库 (Anki/Quizlet 等背词工具兼容)
+https://www.ncego.com, 发现一个适合系统学英语的网站：夸克英语笔记. 从《新概念英语》第一册到第四册，再到《走遍美国》，按难度整理了完整的教材、课文、语法、词汇和听力口语材料，适合从零基础一路学到中高级。
+[2026/10/08, VIVI @VIVISTAYGOLD, 我是如何在2个月内自学考到雅思7.5，口语7分的？](https://x.com/VIVISTAYGOLD/status/2108186854214471888)
 
 
 ===理财===
@@ -1426,6 +1457,14 @@ https://invest.howlifeusa.com/zh, 美国投资指南, HowLifeUSA推出的《投�
 [华尔街观察 Xtrader @cnfinancewatch, 十个短线客喜欢的A股 APP](https://x.com/cnfinancewatch/status/2074645568492904818)
 stock-sdk
 https://github.com/calesthio/BreakoutAnalysis, 研究股票的朋友多少有这个困扰, 平时不可能一直盯盘, 但又生怕错过突然放量拉升的票. BreakoutAnalysis 干的就是盯盘这个活, 开市期间每 15 分钟扫一遍全美股市场, 揪出放量大涨的股票. 
+https://www.quiverquant.com, 它可以追踪：1、美国国会议员股票交易 2、特朗普相关持仓 3、Jim Cramer 股票观点 4、公司高管内幕交易; 还有机构持仓、政府合同、游说数据等。
+https://touzid.com, 炒股与投资过程中到底去哪里查看各类数据？
+https://www.languagereactor.com, 别再死背单词了. Language Reactor 能把你本来就在看的东西，变成英语输入. 看剧、刷 YouTube、听播客，顺手把英语学了装个 Chrome 插件，Netflix  YouTube 直接出双语字幕. 鼠标点单词：释义、语境、用法都出来，还能存进笔记. 站点上还有 TED、BBC、播客、公版书. 不止英语，日语韩语法语等 40 多种语言都能用. 免费功能已经够用
+https://learnenglish.britishcouncil.org, 学语言不用瞎找，这几个网站真该收好！英语
+https://github.com/wquguru/dasheng, 英语流利说那一套，已经能够被 Jev + 网易有道的实时 ASR 模型 Confucius4-R2T2 平替了，更关键的是，R2T2 和项目仓库都是开源的！！
+https://github.com/wenyuanw/a-share-heatmap, A 股热力图
+https://suoha888.github.io/Trader-Archives, Trader-Archives, 推特上 90% 的内容都是噪音，但剩下的 10% 绝对是无价的干货。我用CodeX+X的API+JEV 把二级、宏观、链上的全能高手麦总 @Michael_Liu93  的推文全收录了！现在Trader-Archives 已经收录两位实战交易员: 第一期，套利/LP 高手 CJ 老师 
+@gch_enbsbxbs 第二期，全能交易员/麦总 @Michael_Liu93
 
 ===可视化===
 https://github.com/drasimwagan/mdv
@@ -1509,7 +1548,7 @@ https://appstoreprice.org/zh/apps
 https://fmhy.net [2026/06/19, Amto @XAMTO_AI, 听说了没, 闲鱼上那些卖家好多都跑这儿来进货！](https://x.com/XAMTO_AI/status/2067803303791260086)
 https://github.com/rccyx/thyx Linux 登录管理器
 https://github.com/Milktang0128/Dob, 在 macOS 上选中文本后快速用 AI 朗读、解释、翻译、审校并留档的菜单栏工具. 一个安静的 macOS 菜单栏工具. 选中一段文字, 它就弹出工具条——朗读、翻译、解释、提炼、审校, 点一下就好. 支持拿当前页面的上下文一起发给 AI, 也能用多个模型比较结果. 看完觉得有用就留档, 存成本地 Markdown. 兼容 DeepSeek、OpenAI 和各种国产模型. 
-https://search-sharp.com/
+https://search-sharp.com, 闲鱼搜不到某件东西，很多时候不是没有货，而是搜索词没对上卖家的表达。Search Sharp 可以把“想找的物品”转换成更适合闲鱼检索的关键词。输入目标，它会给出可用的搜索说法，淘二手、小众物件和冷门商品时尤其方便。换一个词，可能就能打开完全不同的结果页。
 https://github.com/chess99/tab-out
 [2026/06/30, 唐清乐 @tangqingyue, 刷知乎看到知乎开放AI接口了](https://x.com/tangqingyue/status/2071877502189138353)
 https://github.com/ricocc/rico-bookmark-manager,  做了一个书签 SKill 来管理我乱糟糟的 3000 多条浏览器书签
@@ -1528,11 +1567,23 @@ https://github.com/wickenico/WailBrew, WailBrew 就是为此而来: 一款开源
 https://github.com/kalcaddle/kodbox, 直接把浏览器魔改成了一个完整的电脑桌面系统. GitHub 上挖出的 3.2k 星开源神器 kodbox, 名义上是个 Web 文件管理器, 实际上是个随身的云端 OS + 在线 IDE. 不管你人在哪, 用谁的电脑, 只要打开浏览器, 立马接管你的所有云盘和本地文件, 还能直接写代码建网站, 白嫖党狂喜！
 https://sobrief.com, 不再错过任何好书
 https://github.com/nilbuild/developer-roadmap, 一个由社区驱动的交互式开发者成长路线平台, 目前在GitHub上已狂揽360k+星标, 全球排名高居第7位. 
-
-
+https://web.archive.org, 给网页留个永久备份，页面被删、网站倒闭，你手里还攥着底牌。
+https://github.com/siknet/FreePEP
+https://github.com/ikevss/wechat-ai-memory
+https://12306.cjh0613.com/zh/free-refund, 12306免费退票助手; 一个用于避免火车票退票手续费的网站。通过提供晚点列车实时监控信息和详细的免费退票操作指南，帮助用户在列车晚点时顺利退票，从而节省费用。无需输入12306账号密码，所有购票和退票操作仍在官方APP内完成。功能完全免费，无需付费或登录任何账号，只需完成人机验证即可查看晚点列车信息。
+https://t.urongda.com, 高考真题大全. 历年全国高考真题与答案解析，一键下载，助力备考。
+https://github.com/SteveSuv/remix-words-funny, WordsFunny 是一个简单、免费、开源的英语单词学习网站，围绕单词书、单词详情、学习进度和评论互动组织学习流程。
+https://huarun.win, 想查科学上网工具底细，以前得在 GitHub 里翻到手指发酸，现在一个站就给你兜住了，它叫华润赢。
+https://zoo.ink/tvbox.html, 有位大佬把 TvBox 全家桶归置妥了，一条龙摆齐，白嫖党看了直呼过瘾
+https://bjarneo.github.io/ferroprint, 蓝图绘制工具Bjarne Øverli @iamdothash, 这将取代我的 Excalidraw。Ferroprint。Ferroprint，源自制造首批蓝图的铁氰化铁工艺
+https://github.com/KingKongRobotics/jumper, Jumper — an crab robot.
+https://github.com/qingjian-team/qingjian, 青简 Qingjian：用 Rust 写的拼音输入法，候选词旁多一条正在学的语言的译词
 ===网站复刻===
 https://github.com/uxKero/anydesign
 https://github.com/JCodesMore/ai-website-cloner-template
+
+
+ourse-marketing.html)
 
 ===CLI===
 https://github.com/iOfficeAI/OfficeCLI
@@ -1576,9 +1627,15 @@ https://github.com/wuchubuzai2018/expert-skills-hub
 https://github.com/wuchubuzai2018/expert-skills-hub/blob/main/skills/wechat-article-search/SKILL.md
 https://www.md2wechat.cn/features 内容表达系统, Agent 公众号创作与发布 CLI, 把 Markdown 排版成公众号草稿. md2wechat 覆盖微信 Markdown 编辑器、公众号排版、主题模块、封面配图、标题建议、API 转换和 md2wechat Skill, 帮助人和 Agent 稳定完成公众号发布流程. 
 https://mpbook.geekeditor.com, 公号书 MPBOOK, 把关注的公众号, 装进一座私人书房.
+https://studio.yituohub.com, 给各位安利一个自用的公众号排版工具
+叭哥说官方网站：https://bug.youdao.com
+https://github.com/sennkuwu/wechat-style-extractor, 从公众号文章中统计颜色、字号、行高、间距和内容组件，预览并复制文章排版。样式统计是启发式识别；未识别项不显示，预览使用默认值。内联样式不能保证公众号编辑器完整保留原始排版。
+https://github.com/freestylefly/WeChatBridge, 微信聊天记录一键转发到 AI Agent 与 Obsidian 的原生 macOS 工具
+https://github.com/yqxie1991/WxCleaner, WxCleaner - 微信重复文件清理工具. WxCleaner 是一款专为清理微信接收文件而设计的轻量级、跨平台桌面工具. 它能够高效扫描指定目录, 通过智能哈希算法快速识别重复文件, 并提供可视化的清理界面, 帮助用户安全释放磁盘空间.
 
 
 ====雷达===
+https://x.com/Jason23818126/status/2099110080268615912
 https://github.com/Thysrael/Horizon
 https://github.com/sansan0/TrendRadar
 https://github.com/ourongxing/newsnow
@@ -1591,7 +1648,8 @@ https://ithome.com
 https://tophub.today/c/tech
 2、AI 今日热榜
 只盯 AI 圈, GitHub Trend、Product Hunt、HuggingFace 热门、OpenAI、Anthropic……做 AI 内容的每天必扫一遍.
-https://aihot.today
+https://aihot.today, https://github.com/KKKKhazix/AIHOT
+https://contexi.shadowlaws.com/ai-products/pricing
 3、SoPilot(X 爆帖专用)
 只看 X 上真正爆了的推文, 抢前排评论、快速捕捉舆论风向全靠它.
 https://sopilot.net/zh/hot-tweets
@@ -1618,6 +1676,10 @@ https://liziran.com/zh/column/ 博客标题鼠标悬浮上去, 有封面, 挺好
 https://best.xiaohu.ai/ AI 圈最新的东西, 用大白话讲透
 https://github.com/JaredYe04/news-bot
 https://youtube.qiaomu.ai/
+https://hype.replicate.dev, [别再刷推特了，这个网站才是真正的 AI 情报站！1. GitHub, 2. Replicate, 3. HuggingFace, 4. Reddit](https://x.com/0xCheshire/status/2097662818455900245)
+https://github.com/ohmyangboy/PaperRss, PaperRss: 现代纸感 RSS 阅读器原生 macOS 应用. 界面简约沉浸，支持双语翻译与克制的 AI 功能, 一切以阅读为先.
+https://qingkeai.online/blog, 
+https://github.com/fuxiaoai/tidings-rss
 
 ===论坛===
 https://x.com/wsl8297/status/2061001992752034140
@@ -1651,7 +1713,7 @@ https://javii.tools, 它的功能很简单: 上传一张图片或一段视频, �
 ===求职===
 https://github.com/yuanzhongqiao/ai-interview-platform
 https://github.com/vasu-devs/JustHireMe
-
+https://github.com/goodseafly/how-to-make-work-pay, 教你把工资、加班费和没休完的年假一分不少地要回来，社保断了怎么接、工伤生育怎么办；被针对、被调岗、被裁时知道怎么走、怎么不留尾巴。576 条建议，每条写明花掉什么、换回什么、证据有多硬，来源只引官方文件原文和研究文献。
 
 ===内核===
 https://github.com/tamnd/kernel-index
@@ -1676,7 +1738,7 @@ bijitongbu.site
 https://x.com/Jolyne_AI/status/2071820285645586718
 https://github.com/027xiguapi/code-box 免登录复制代码: 不用扫码, 不用登录, 看到代码直接一键拿走. 强解关注限制: 什么“关注博主阅读全文”, 统统强制解锁, 懂的都懂. 一键文章扒站: 直接把整篇文章下载成 Markdown 或 HTML, 本地囤货爽翻. 流氓弹窗杀手: 恶心的登录弹窗、强制跳转 APP 提示, 全部干碎. 
 https://github.com/scriptscat/scriptcat, 在 GitHub 挖到一款比油猴(Tampermonkey)更狠的浏览器脚本插件: ScriptCat. 油猴脚本完全兼容不说, 最大杀手锏是支持后台脚本: 网页关了也照跑. 再加上云同步和脚本订阅, 从安装到管理一条龙, 脚本控直接省心. 
-
+https://github.com/qufei1993/skills-hub, X 赛博清洁工：高置信垃圾账号黄框标注，一键原生拉黑，全端同步消失
 ===爬虫===
 https://github.com/D4Vinci/Scrapling
 https://github.com/withoneai/cli
@@ -1690,6 +1752,9 @@ https://github.com/NanmiCoder/MediaCrawler 深度优化的爬虫工具  ||  省�
 https://github.com/miantiao-me/ssh-ai-chat, 813
 https://github.com/raiyanyahya/kit
 https://github.com/1broseidon/ketch,  ketch, 一个命令行工具, 集成了网页搜索、代码搜索、文档查询和网页抓取等功能. 
+https://feedsieve.win/lists/keywords, 福滤娃把屏蔽关键词已经全部开源公开到官网了 
+https://github.com/aizhimou/javranking-extension, 这是真牛逼，一键展示 JAV 封面与排行榜数据的浏览器扩展，省去逐个翻页的麻烦，快速浏览热门排名。
+
 
 
 电子书
@@ -1702,6 +1767,13 @@ https://github.com/freeCodeCamp/freeCodeCamp 我的天神爷, 发现一个全球
 https://github.com/TapXWorld/ChinaTextbook
 https://github.com/jbiaojerry/ebook-treasure-chest
 https://github.com/BryanHoo/FeedFuse
+https://tstrs.me/#google_vignette, 里面包含了200多万本书，种类更是多达上百种. 最舒服的还是不用登录  不用积分等等条件，搜完直接跳资源页。以前找书像在用腿跑论坛，现在基本是输入完就结束。
+
+
+信用卡
+card.lengziyu.cn 的 PC 版来了：http://card-fi.com, 把查卡、选卡、对比和办卡前需要了解的信息，整理到一个更适合电脑使用的网站里。
+https://haiwaibiaoju.com/hot
+
 
 bun update -g opencode-ai
 opencode models --refresh
@@ -1790,21 +1862,24 @@ deepseek-v4-flash-free > laguna-s-2.1-free > ling-3.0-flash-free > big-pickle > 
 
 
 
-1. 详细分析下论文 https://arxiv.org/abs/2607.25076
-2. 论文下载到 ./arxiv/2607.25076/paper
-2. 将分析结果保存在 ./arxiv/2607.25076/paper-analyzer
+1. 详细分析下论文 https://arxiv.org/abs/2601.17063
+2. 论文下载到 ./arxiv/2601.17063/paper
+2. 将分析结果保存在 ./arxiv/2601.17063/paper-analyzer
 3. 按照 storytelling, academic, concise风格分别输出
 4. 需要配图, 建议优先使用论文中的图, 并结合配图进行分析讲解
 
 
 
-1. 详细分析下论文 https://dl.acm.org/doi/10.1145/3636534.3649391
-2. 论文下载到 ./doi/10.1145_3636534.3649391/paper
-2. 将分析结果保存在 ./arxiv/10.1145_3636534.3649391/paper-analyzer
-3. 按照 storytelling 和 academic 风格分别输出
+1. 详细分析下论文 https://www.computer.org/csdl/proceedings-article/isca/2026/506500a936/2iG0TBZ0Yh2
+2. 论文下载到 ./doi/10.1109_ISCA66397.2026.00075/paper
+2. 将分析结果保存在 ./doi/10.1109_ISCA66397.2026.00075/paper-analyzer
+3. 按照 storytelling, academic, concise风格分别输出
 4. 需要配图, 建议优先使用论文中的图, 并结合配图进行分解
 
 
+当前仓库 Flash-MoE: Running a 397B Parameter Model on a Laptop 支持在端侧运行 397B 的大模型。
+其中有代码实现和相关论文，以及文档。
+阅读 docs 下的文档和 paper 下的论文，结合代码详细分析下，Flash-MoE 是怎么搞定大 397B 的大模型入端的
 
 公众号中有很多 [Understanding LLMs from Scratch Using Middle School Math](https://towardsdatascience.com/understanding-llms-from-scratch-using-middle-school-math-e602d27ec876) 的分析和翻译。
 1. 查找下所有相关相关的文章和技术分享，将文章保存到 wechat/Understanding-LLMs。标题不限于：初中数学/中学数学 理解 LLM 之类的。
@@ -1835,10 +1910,10 @@ deepseek-v4-flash-free > laguna-s-2.1-free > ling-3.0-flash-free > big-pickle > 
 2.2 再分析下两个模块在这些方向上如何协作，结合前面的几份报告和架构图，输出一份整体的分析报告，保存到 docs 目录下
 
 
-当前目录下有 omlx 和 mlx 的源代码。
-docs 目录下有 omlx 和 mlx 的架构文档和相关技术的分析文档，请生成一个 PPT
-1. 详细介绍下 omlx 和 mlx 的整体架构，以及之间的协作关系
-2. 针对两个框架量化/KVCache/长序列等方向的优化，详细展开下
+当前目录下 colibri 的源代码仓库
+详细分析这个仓库的实现。
+分析下当前仓库怎么支撑大模型入端的
+分析结果保存到 ~/Work/GitHub/Knowledge/wechat/Flash-MoE/JustVugg_colibri.md
 
 
 [2025/11/12, 微信公众号--林间有风, 白话Transformer（上）](https://mp.weixin.qq.com/s/vqvr-1YVn9mIW2ZOdvfTDQ)
@@ -1855,3 +1930,131 @@ docs 目录下有 omlx 和 mlx 的架构文档和相关技术的分析文档，�
 [2024/11/30, 微信公众号--数学中国, 用初中数学理解LLM工作原理](https://mp.weixin.qq.com/s/vofXHc5UsM2izj_J9CJ16g)
 [2025/01/08, 微信公众号--丁师兄大模型, LLM工作原理，很直观很好懂!](https://mp.weixin.qq.com/s/iIZF58iFHXqU15n8_4nEOg)
 [2024/12/20, 微信公众号--数据派THU, 独家 | 用初中数学从零开始理解大语言模型(下)](https://mp.weixin.qq.com/s/Jf9TkeXgc5JpVelmvvNZTg)
+
+
+
+
+
+
+
+
+
+
+[Claude Code橙皮书：AI编程实战](https://leshu8.com/bookDetail/6a553b30256fc04cfd3454ff)
+[全解深度学习——九大核心算法](https://leshu8.com/bookDetail/6a0f756ff0265f5ccb2b614d)
+[CPU自制入门](https://leshu8.com/bookDetail/67c40697c0fd5e1542814e51)
+[x86汇编与逆向工程：软件破解与防护的艺术](https://leshu8.com/bookDetail/67a7b3167048e060f362eea1)
+[图解算法](https://leshu8.com/bookDetail/678638f05ddc0d9d8321d1f2)
+[机器学习算法与实践](https://leshu8.com/bookDetail/6a3ed5ebd27a8a755d052cb9)
+[Happy-LLM：从零开始构建大模型](https://leshu8.com/bookDetail/6a31758ce257020abe55fa35)
+[Transformer模型开发从0到1——原理深入与项目实践, 李瑞涛 著](https://leshu8.com/bookDetail/6a0f748af0265f5ccb2b6141)
+[百面大模型](https://leshu8.com/bookDetail/69bef6daa5e0aa6794cc6dbc)
+[Vibe Coding：AI编程时代的认知重构](https://leshu8.com/bookDetail/69bef5f8a5e0aa6794cc6dae)
+[AI知识库：个人与企业的智慧玩法](https://leshu8.com/bookDetail/69b55b4a2e19dd42a86757db)
+[ChatGPT的基本原理与核心算法](https://leshu8.com/bookDetail/68448cd18c9df63d5479b75c)
+[计算机系统：从应用程序到底层实现](https://leshu8.com/bookDetail/682677e6e5855184fcc82baf)
+[深入浅出人工智能：原理、技术与应用](https://leshu8.com/bookDetail/68239b99a0a9db7b3cd2103b)
+[神探狗狗 12：AI之乱](https://leshu8.com/bookDetail/6822b24d15733ea2d9b8c94b)
+
+[奇思妙想：C++青少年趣味编程100例（视频教学版）](https://leshu8.com/bookDetail/68140731b7370142234e4225)
+[人工智能编程实践（C++编程5级）](https://leshu8.com/bookDetail/67b13053ad79cbc5f79a7c40)
+
+[AI驱动下的量化策略构建（微课视频版）](https://leshu8.com/bookDetail/67c8f7080a61c2c80f1001c2)
+[AI助理：用ChatGPT轻松搞定工作](https://leshu8.com/bookDetail/67caa3cfe16c42fc401527a8)
+[深度学习的数学](https://leshu8.com/bookDetail/67c5066caea13c95690dedf2)
+[大语言模型：基础与前沿](https://leshu8.com/bookDetail/679ff66729ec665fe5b85866)
+[零基础学机器学习](https://leshu8.com/bookDetail/679b25bb79f495b8c731944d)
+[程序员的三门课：技术精进、架构修炼、管理探秘](https://leshu8.com/bookDetail/67925f1cda9e0d9e1ec464c1)
+[漫画图解人工智能](https://leshu8.com/bookDetail/679175b400a38be1f546dfbb)
+[大模型入门：技术原理与实战应用](https://leshu8.com/bookDetail/6790cdd61b457309fb4176dc)
+[如何高效向GPT提问](https://leshu8.com/bookDetail/676dbcd6794bab40a55b8352)
+[大语言模型：原理、应用与优化](https://leshu8.com/bookDetail/6761fe255a0436c4075b59e0)
+[GPT图解：大模型是怎样构建的](https://leshu8.com/bookDetail/674e3afa61a867158db271b8)
+[通识AI：人工智能基础概念与应用](https://leshu8.com/bookDetail/67455ce1b5ae8b5c3e00c163)
+[一本书读懂大模型：技术创新、商业应用与产业变革](https://leshu8.com/bookDetail/673e4a91d46f08b6c2693d38)\
+[大型语言模型实战指南：应用实践与场景落地](https://leshu8.com/bookDetail/67350cfce367121fda7fda83)
+[CPU眼里的C/C++[Plus版]](https://leshu8.com/bookDetail/6a7251bea16f506259f19b33)
+[青少年的AI学习力](https://leshu8.com/bookDetail/69fa2db3f0265f5ccb292a30)
+[动手学AI：孩子的AI魔法书](https://leshu8.com/bookDetail/6a22c5c47374f706c6fdad7c)
+
+
+
+
+
+
+详细对比下 opencode go 和 command goal 两个套餐
+opencode go: https://opencode.ai/docs/zh-cn/go
+command goal: https://commandcode.ai/docs/plans/goat
+
+
+
+
+
+Understanding_Attention_Handbook_01.pdf  Understanding_Attention_Handbook_01_zh-CN.pdf 分别是 Understanding_Attention 的英文版本和中文版本
+1. 帮我做一个中英文对照的版本，最好是一段英文下面配套一段中文的版本，最后保存成 epub 和 pdf 格式
+2. 对照的时候注意下，完整的大块的公式不需要中英文对照。因为这些是不会翻译成中文的，对照之后，公式会显示两遍。
+
+
+
+其中文字中的公式部门没有处理好
+Take query row qi and key row kj. Their dot product is
+取查询行 qi 和键行 kj，它们的点积为：
+The complete matrix multiplication QK
+computes every query-key dot product in parallel:
+完整的矩阵乘法 QKT 会并行计算所有查询与键的点积
+
+q_i 和 k_j i j 都是下标。然后 QKT T 是上标。这些公式格式不对
+
+
+我对中英文带公式的时候的处理依旧不满意
+
+The paper gives a specific motivation. Suppose the components of q and k are independent random
+variables with mean zero and variance one. Then q⊤k = X dk qrkr
+论文给出了一个具体动机。假设 q 和 k 的分量是相互独立、均值为 0、方差为 1 的随机变量，那么：
+has mean zero and variance dk. As dk grows, unscaled dot products can therefore grow in
+magnitude. Large- magnitude logits can push softmax into a saturated regime with very small
+gradients. Dividing by √dk normalizes this illustrative variance from dk to approximately one. [3] A
+short derivation under those assumptions is
+的均值为 0，方差为 dk。因此，随着 dk 增大，未经缩放的点积可能变得更大。绝对值较大的 logits 可能把 softmax
+推入梯度很小的饱和区间。除以
+ √dk，可以将这个示例中的方差从
+在上述假设下，简短的推导为：
+
+
+这里还是公式没处理好，这里明明是一句话但是被你因为 q⊤k = X dk qrkr 这个公式，给阶段成了两句话，然后中文中这个公式直接消失了q⊤k = X dk qrkr
+
+类似这种地方还有很多，好好改下，检查下
+
+
+opencode 配置文件 ~/.config/opencode/opencode.json 中配置 themes 为 tokyonight 为啥没生效。帮我解决下
+
+
+
+https://commandcode.ai/docs/plans/goat
+
+https://opencode.ai/docs/zh-cn/go
+
+
+
+
+
+
+
+
+我想同时安装 workbuddy 和 workbuddy 国际版，分别在如下两个目录下。
+D:\Software\WorkBuddy\WorkBuddyCN
+D:\Software\WorkBuddy\WorkBuddyAI
+但是现在安装完两个软件之后，一打开 workbuddy，他直接开始更新，更新成了 WorkBuddy 国际版，并且感觉上像是在自己安装目录 D:\Software\WorkBuddy\WorkBuddyAI 下安装了  workbuddy 国际版
+帮我确认下怎么回事。我当前已经把两个人软件全部卸载，当前只安装了 workbuddy 国际版，没敢继续去安装 workbuddy
+
+两个安装包位于
+
+
+
+
+我想同时安装 workbuddy，到如下目录下
+D:\Software\WorkBuddy\WorkBuddyCN
+但是现在安装完，一打开 workbuddy，他直接开始更新，更新成了 WorkBuddy 国际版，并且感觉上像是在自己安装目录 D:\Software\WorkBuddy\WorkBuddyCN 下安装了  workbuddy 国际版，两个版本共存，但是只有国际版能正常打开。
+帮我确认下怎么回事。按道理 workbuddy 不应该升级成国际版的
+
+分析下这个仓库的整体架构以及实现，特别是 KIMI K3 是怎么做到 2.78T 的参数量，在端侧 8G 内存的设备上跑起来的，分析结果总结到 docs 目录

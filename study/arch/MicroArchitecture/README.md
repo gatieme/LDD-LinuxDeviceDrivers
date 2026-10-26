@@ -78,6 +78,9 @@ Apple [专利号-WO2021US19353-Apple-ON-DEMAND MEMORY ALLOCATION](https://xueshu
 # 4 一些微架构的探索
 -------
 
+## 4.1 探索
+-------
+
 [The Forward Slice Core Microarchitecture](https://dl.acm.org/doi/10.1145/3410463.3414629)
 
 [RL-CoPref: a reinforcement learning-based coordinated prefetching controller for multiple prefetchers](https://link.springer.com/article/10.1007/s11227-024-05938-9)
@@ -91,6 +94,10 @@ Apple [专利号-WO2021US19353-Apple-ON-DEMAND MEMORY ALLOCATION](https://xueshu
 [知乎 - 降伏其芯 - 解密初创公司 flow computing CPU 架构性能提升 100 倍背后的技术原理](https://zhuanlan.zhihu.com/p/703736037)
 
 
+## 4.2 可视化
+-------
+
+[pipeline visualizer](https://shioyadan.github.io/sonata), 参见 [2026/09/06, CPU 流水线的可视化, 手头做的东西让 Astra 大大地改得花哨了, 结果出来了个相当不错的. x86-64 上在 gem5 上运行 Coremark 时的样子](https://x.com/r_shioya/status/2096624501018816948)
 
 # 5 业界比赛/会议
 -------

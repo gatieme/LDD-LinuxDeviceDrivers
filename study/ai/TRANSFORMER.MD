@@ -178,6 +178,17 @@ blogexcerpt: 虚拟化 & KVM 子系统
 |  2  | 2025/07/03 | [Fast-dLLM: Training-free Acceleration of Diffusion LLM by Enabling KV Cache and Parallel Decoding](https://arxiv.org/abs/2505.22618) | NVIDIA 联合香港大学、MIT | 通过创新的分块KV缓存和置信度感知并行解码技术, 无需训练即可实现扩散模型 27.6 倍推理加速, 同时保持生成质量损失小于 2%, 为实时交互和长文本生成场景带来突破性解决方案.<br>1. 分块 KV 缓存(Block-Wise KV Cache): 激活重用率超 90% 的双向加速.<br>2. 置信度感知并行解码(Confidence-Aware Parallel Decoding). [博客](https://nvlabs.github.io/Fast-dLLM), [代码](https://github.com/NVlabs/Fast-dLLM) |
 
 
+### 2.1.6 JEV
+-------
+
+[2026/09/22, 苏乐 @ai_suxiaole, Jev与你有什么关系？它提供了一套AI工作流拆分法](https://x.com/ai_suxiaole/status/2102337405508616441)
+[2026/09/23, 蓝哥AI @0xlangeai, 用 Jev 管理 X 书签](https://x.com/0xlangeai/status/2102339022043668855)
+[yibie @yibie, 有人把 Jev 开源复刻了, 还给出了「自己微调」的完整闭环](https://x.com/yibie/status/2104523904932831359)
+
+[](https://jevable.com)
+
+[Awesome Jev ZH](https://github.com/yzfly/awesome-jev-zh)
+
 ## 2.2 稠密模型与稀疏模型
 -------
 
@@ -230,7 +241,7 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 | 编号 | 技术 | 团队 | 介绍 |
 |:---:|:----:|:---:|:---:|
-| 1 | [2025/01/03, Instruction-Following Pruning for Large Language Models](https://arxiv.org/abs/2501.02086) | Apple AI/ML(Bairu Hou, UC Santa Barbara) | IFPruning 用一个 302M 的稀疏预测器读用户指令, 为待剪枝 LLM 的每一层 FFN 动态生成可微 top-k 掩码, 在解码开始前一次性选定并缓存为稠密子网络. 把 9B LLM 剪到 3B 激活后, 性能逼近 9B 稠密模型、超过 3B 稠密模型 5–14 个百分点, TTFT 降低 57%、比同等激活量的 MoE 快约 5 倍——专为 on-device 推理设计. |
+| 1 | [2025/01/03, Instruction-Following Pruning for Large Language Models](https://arxiv.org/abs/2501.02086) | Apple AI/ML(Bairu Hou, UC Santa Barbara) | IFPruning 用一个 302M 的稀疏预测器读用户指令, 为待剪枝 LLM 的每一层 FFN 动态生成可微 top-k 掩码, 在解码开始前一次性选定并缓存为稠密子网络. 把 9B LLM 剪到 3B 激活后, 性能逼近 9B 稠密模型、超过 3B 稠密模型 5–14 个百分点, TTFT 降低 57%、比同等激活量的 MoE 快约 5 倍——专为 on-device 推理设计. [IFPruning-Implementation](https://github.com/MiicheYang/IFPruning-Implementation) |
 
 #### 2.2.2.2 弹性推理
 -------
@@ -361,7 +372,6 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 [论文笔记: DejaVu、LLM in Flash、PowerInfer](https://zhuanlan.zhihu.com/p/675585887)
 
-[苹果极致 LLM 端侧方案: LLM in a flash](https://zhuanlan.zhihu.com/p/673775476)
 
 
 | 编号 | 时间 | 论文 | 描述 |
@@ -376,11 +386,19 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 | 编号 | 时间 | 论文 | 描述 |
 |:---:|:----:|:---:|:----:|
 |  1  | 2024/09/09 | [Hermes: Memory-Efficient Pipeline Inference for Large Models on Edge Devices](https://arxiv.org/abs/2409.04249) |  多 Loading Agent 并行加载 + Daemon Agent 动态销毁已推理层, 在纯 CPU 边缘设备上同时缓解大模型推理的内存压力和 pipeline stall. 通过 Profiler + Planner + Execution Engine 协作, 将模型加载与推理进行流水线并行, Profiler 先把模型每一层都"摸一遍底",记录它的加载时间、推理时间、内存大小; Planner 拿着这份"层简历"在不同内存约束下挑出最优 LA 数; Execution Engine 才真正下场干活, 根据当前内存约束调度 LA + IA + DA + 信号机制. 这是一种典型的"先量体裁衣、再下场干活"的工程哲学. 实测对 BERT/ViT 最高 4.24× 加速、86.7% 内存下降,GPT 风格模型最高 2.58× 加速、90.3% 内存下降. |
-|  2  | 2024/12/04 | [FlexNN: Efficient and Adaptive DNN Inference on Memory-Constrained Edge Devices](https://dl.acm.org/doi/10.1145/3636534.3649391) | FlexNN 针对边缘设备 DNN 推理的"内存瓶颈"问题, 提出 **slicing-loading-computing 联合规划**框架: 离线阶段用 bottleneck-aware layer slicing(按层瓶颈类型选 weights slicing 或 input slicing)切小瓶颈层, 用 preload-aware memory planning(2DBP 半固定时间变体)生成无碎片+零 I/O 等待的内存布局; 在线阶段用 dependency-based synchronization + type-based static allocator 把规划落地为多线程并发执行. 基于 NCNN 实现的 prototype 在 Pixel 6 Pro 上把 ResNet-152 峰值内存砍掉 93.81% 仅增 3.64% 延迟, 支持约 1 秒内动态适配内存预算变化, 是首个把"内存"作为第一优先级设计的移动推理框架.  对应专利 [面向内存受限设备的深度学习模型自适应推理方法及系统(CN118349492A, 202410279838.2)](https://patents.google.com/patent/CN118349492A) | 
+|  2  | 2024/12/04 | [FlexNN: Efficient and Adaptive DNN Inference on Memory-Constrained Edge Devices](https://dl.acm.org/doi/10.1145/3636534.3649391) | FlexNN 针对边缘设备 DNN 推理的"内存瓶颈"问题, 提出 **slicing-loading-computing 联合规划**框架: 离线阶段用 bottleneck-aware layer slicing(按层瓶颈类型选 weights slicing 或 input slicing)切小瓶颈层, 用 preload-aware memory planning(2DBP 半固定时间变体)生成无碎片+零 I/O 等待的内存布局; 在线阶段用 dependency-based synchronization + type-based static allocator 把规划落地为多线程并发执行. 基于 NCNN 实现的 prototype 在 Pixel 6 Pro 上把 ResNet-152 峰值内存砍掉 93.81% 仅增 3.64% 延迟, 支持约 1 秒内动态适配内存预算变化, 是首个把"内存"作为第一优先级设计的移动推理框架.  对应专利 [面向内存受限设备的深度学习模型自适应推理方法及系统(CN118349492A, 202410279838.2)](https://patents.google.com/patent/CN118349492A) |
 |  3  | 2025/09/23 | [Scaling Up On-Device LLMs via Active-Weight Swapping Between DRAM and Flash](https://arxiv.org/abs/2504.08378) | ActiveFlow 是首个支持现代非 ReLU 大模型在移动端实现自适应 DRAM 使用的推理框架, 通过跨层激活权重预加载、稀疏感知自蒸馏、DRAM-Flash 交换 Pipeline 三项技术, 在中端 Pixel 6 上首次部署 Mixtral-8x7B 4bit 模型(1.8 tokens/s @ 2.9GB), 相对原始 24.6GB 内存需求压缩 8.5×. |
 |  4  | 2026/04/09 | [DuoServe-MoE: Dual-Phase Expert Prefetch and Caching for LLM Inference QoS Assurance](https://arxiv.org/abs/2509.07379)| DuoServe-MoE 是面向资源受限单 GPU MoE 大模型服务的双阶段专家调度系统. 采用双阶段调度核心思想——承认 prefill 与 decode 是"两种生意", 差异化调度. 系统的核心张力在于: prefill 不需要预测器(多 token 几乎激活所有专家), 却必须严格控制峰值内存; decode 只需 Top-k 个专家, 却必须把传输延迟彻底藏到计算背后.整体流程分三步: 离线 preprocess → prefill 调度 → decode 调度. 系统由离线预处理与在线服务两部分组成: ① 离线部分收集专家激活路径、统计 popularity 与 affinity、训练一个轻量 MLP 预测器; ② 在线部分则在 prefill 与 decode 两个阶段采用不同的专家调度策略——prefill 用双 CUDA 流在算非 MoE 层的同时流水化预取专家, decode 用三 CUDA 流把"预测下一层专家"与"传输权重"、"执行计算"三者并行起来.<br>① prefill 阶段所有专家激活密集, 不需要预测, 以双 CUDA 流水线, 把搬运藏进计算里, 一条 communication 流专门搬专家权重, 一条 computation 流同时跑非 MoE 层的计算. 进 MoE 层前同步一下确保权重到位, gate 算完后按专家分组 token, 每个专家只取一次权重; ② Decode 用三 CUDA 流并行, comp 流算 Layer N、pred 流预测 Layer N+1、comm 流在 Layer N 第一专家. 以轻量 MLP 预测器预取下一层专家隐藏传输延迟. 最终实现 TTFT 最高 5.34×、E2E 延迟最高 7.55× 提升.  |
-|  5  | [TurboFieldfare](https://github.com/drumih/turbo-fieldfare) | 开发者 Andrey Mikhaylov 推出的开源 macOS 专属 MoE 模型推理运行时, 7 月 29 日登顶 Hacker News 榜首. 利用 MoE 稀疏激活的天然特性, 搭配分层 LFU 缓存、Metal 异步 IO、SSD 专家权重流式加载, 仅用 2GB 常驻内存在任意 Apple Silicon Mac 本地跑通 Google Gemma 4 26B-A4B, 是端侧 MoE 推理的里程碑式工程实现; |
-|  6  | 2026/06/05 | [FlashMoE: Fast Distributed MoE in a Single Kernel](https://arxiv.org/abs/2506.04667) | [](https://github.com/osayamenja/FlashMoE)
+|  5  | [TurboFieldfare](https://github.com/drumih/turbo-fieldfare) | 开发者 Andrey Mikhaylov 推出的开源 macOS 专属 MoE 模型推理运行时, 7 月 29 日登顶 Hacker News 榜首. 利用 MoE 稀疏激活的天然特性, 搭配分层 LFU 缓存、Metal 异步 IO、SSD 专家权重流式加载, 仅用 2GB 常驻内存在任意 Apple Silicon Mac 本地跑通 Google Gemma 4 26B-A4B, 是端侧 MoE 推理的里程碑式工程实现; 关键技术: 通过 4-8 Bit 混合量化(权重压缩到 14.3GB), 非 Expert 权重(大概 1.68G)和共享 Expert 常驻, 然后通过共享内存池结合 SSD 实现激活权重动态换入换出. |
+|  6  | 2026/06/05 | [NeurIPS'25, FlashMoE: Fast Distributed MoE in a Single Kernel](https://arxiv.org/abs/2506.04667) | [osayamenja/FlashMoE](https://github.com/osayamenja/FlashMoE) |
+|  7  | [Flash-MoE: Streaming a 397B Parameter Mixture-of-Experts Model from NVMe at 5.7 Tokens/Second on Consumer Hardware](https://github.com/danveloper/flash-moe/blob/main/paper/flash_moe.pdf) | [Hacker News, Flash-MoE: Running a 397B Parameter Model on a Laptop](https://news.ycombinator.com/item?id=47476422), 源代码仓库 [flash-algo/flash-moe](https://github.com/flash-algo/flash-moe). 其外还有其他大佬  FORK 后优化的仓库 [anemll/flash-moe](https://github.com/anemll/flash-moe) 实现了 2-4 BIT 量化. [Anemll/anemll-flash-llama.cpp](https://github.com/Anemll/anemll-flash-llama.cpp) 是基于 Llama.cpp 实现的一套. [Anemll/Flash-iOS](https://github.com/Anemll/Flash-iOS), [Anemll/ds4-ssd](https://github.com/Anemll/ds4-ssd). [2026/03/19, @danveloper, Autoresearching Apple's "LLM in a Flash" to run Qwen 397B locally](https://x.com/danveloper/article/2034353876753592372) |
+|  8  | [LLM in a flash: Efficient Large Language Model Inference with Limited Memory](https://arxiv.org/abs/2312.11514) | 本文放弃"把整个 LLM 装进内存"的传统假设, 改为让模型权重常驻闪存、推理时按需增量加载, 并基于闪存硬件特性提出"低秩预测器 + 滑动窗口 + 行列捆绑"三件套, 在仅有一半 DRAM 的条件下端到端推理加速最高达 CPU 4-5×、GPU 20-25×, 从而可运行比内存大 2 倍的模型. 其中① 低秩预测器: 不知道哪些神经元醒, 只搬预测会醒的, 数据搬运从 13.4GB 降到 0.9GB. ② 滑动窗口: 相邻词重复搬, 保留最近 k 个词, 只搬增量  0.9GB 再降到 0.2GB. ③ 行-列捆绑: 零散读取慢, 把列+行读成一个大块, 吞吐从 1.25 提到 2.25 GB/s. 三招合起来, OPT 6.7B 的单 token I/O 延迟从 2196ms 一路压到 87ms. [苹果极致 LLM 端侧方案: LLM in a flash](https://zhuanlan.zhihu.com/p/673775476), [matt-k-wong/mlx-flash](https://github.com/matt-k-wong/mlx-flash) |
+|  9  | [JustVugg/colibri, Run 744B to 2.8T parameters](https://github.com/JustVugg/colibri)
+| 10  | [FareedKhan-dev/kimi-k3-in-c](https://github.com/FareedKhan-dev/kimi-k3-in-c) |
+| 11  | [MiniCPM-V 4.7]() | [](https://www.qbitai.com/2026/10/503109.html) |
+
+[FlashMoE: Reducing SSD I/O Bottlenecks via ML-Based Cache Replacement for Mixture-of-Experts Inference on Edge Devices](https://arxiv.org/abs/2601.17063)
+
 
 ### 3.2.3 首 Token 时延优化
 -------
@@ -414,6 +432,7 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 
 [公众号 - AI闲谈 - 万字综述 10+ 种 LLM 投机采样推理加速方案](https://mp.weixin.qq.com/s/PyAKiFzbQNq6w7HmaTnSEw)
 
+[LLM 推理手册/推测解码](https://dpthinker-ai.github.io/llm-inference-handbook/inference-optimization/speculative-decoding)
 
 | 编号 | 时间 | 文章 | 描述 |
 |:---:|:----:|:---:|:----:|
@@ -437,6 +456,8 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 |  2  | 2024/06/25 | [Optimizing Speculative Decoding for Serving Large Language Models Using Goodput](https://arxiv.org/abs/2406.14066) | 对于不同系统负载下的所有工作负载, 没有最佳推测长度工作. 根据观察结果, 作者开发了一个动态框架 SmartSpec. SmartSpec 根据一个名为 goodput 的新指标动态确定每个请求的最佳投机长度(从 0, 即无投机到许多代币)——因此相关的投机执行成本, 该指标表征了整个系统的当前观察负载和投机准确性. |
 |  3  | 2025/03/07 | [SpecServe: Efficient and SLO-Aware Large Language Model Serving with Adaptive Speculative Decoding](https://arxiv.org/abs/2503.05096) | 在本文提出了 SpecServe, 可根据实时请求负载和系统配置动态调整推测策略. SpecServe 提出了一个理论模型来理解和预测不同场景中推测解码的效率. 此外, 它还实现了智能绘图和验证算法, 以保证最佳性能, 同时实现高 SLO 实现. 在实际 LLM 跟踪上的实验结果表明, SpecServe 始终满足 SLO 并实现了实质性的性能改进, 与最先进的推测推理系统相比, 速度提高了 1.14. |
 |  4  | 2024/05/26 | [Kangaroo: Lossless Self-Speculative Decoding via Double Early Exiting](https://arxiv.org/abs/2404.18911) | [华为诺亚 | 提出自推测解码框架: Kangaroo, 降低成本, 提升大模型推理效率！](https://cloud.tencent.com/developer/article/2415194)
+|  5  | 2024/10/08 | [](https://github.com/vllm-project/speculators) |
+
 
 #### 3.2.4.2 MTP/Multi-Token Prediction(多 token 预测)
 -------
@@ -507,6 +528,15 @@ MoE(Mixed Expert Models), 即混合专家模型, 首次在 1991 年的论文 [Ad
 |:---:|:----:|----------:|:----:|:----:|
 | 2025/03 | 通过灵活的内存管理和异步预加载技术提升设备端推理性能 | [FlexInfer: Breaking Memory Constraint via Flexible and Efficient Offloading for On-Device LLM Inference, EuroMLSys '25](https://arxiv.org/abs/2503.03777) | NA | FlexInfer 通过灵活的内存管理和异步预加载技术提升设备端推理性能. 其核心优化策略包括异步预取、平衡内存锁定和灵活的张量保存机制, 能在限定资源下显著提升吞吐率. 核心优化技术:<br>1. 异步预取: 通过提前加载模型参数和中间数据, 减少推理过程中的 I/O 延迟.<br>2. 平衡内存锁定: 动态调整内存分配策略, 避免单一任务占用过多内存导致性能瓶颈.<br>3. 灵活的张量保存机制: 根据计算需求动态调整张量存储方式, 平衡计算效率与内存占用.<br>性能表现: FlexInfer 在端侧推理任务中, 相比传统方法可提升 2~4 倍的吞吐率, 适用于分类、语义分割等场景. |
 
+### 3.2.9 端云协同
+-------
+
+两端各有一个互补的瓶颈: prefill 是算力密集, 端侧 NPU 跑 32K prompt 要几十秒, 云侧只需几百毫秒; decode 是带宽密集, 云端 GPU 被一个长回复锁死几十秒, 并发上不去. 云擅长"起头", 端侧单用户 decode 速度其实跟云差不多——所以让云只做 prefill 然后立刻撤退, 是笔划算买卖.
+
+| 日期 | 概要 | 论文 / 链接 | 团队 | 描述 |
+|:---:|:----:|----------:|:----:|:----:|
+| 2025/08 | [P/D-Device: Disaggregated Large Language Model between Cloud and Devices](https://arxiv.org/abs/2508.09035) | 云端大模型只负责 prefill 并立刻把首个 token、一份压缩后的"精简提示"掩码和一小段续写 token 发回, 端侧小模型一边匀速播放这些 token 一边在后台完成自己的 prefill, 随后无缝接管全部 decode——全程不传 KV cache, 就把 TTFT 砍掉 60% 以上、云端吞吐提升最高 15 倍. 传的是首 token + prompt 掩码(bitmask)+ 一小段 token, 刻意绕开 KV cache; 要求端云模型同分布/同家族. 对应 PCT 专利 [WO2026157262A1「Inference method and apparatus」](https://eureka.patsnap.com/patent/WO2026157262A1) |
+| 2026/09 | 模型每生成一个 token, 内部要构建约一百万个数值(~2MB)的隐藏状态, 最后只从 15 万词表里挑一个 token 输出——离开模型的只有约 17 bit, 2MB 被当场丢弃. 而今天所有多模型协作(子智能体、模型委员会、路由调度)全都建立在这 17 bit 上. 做法是训练一个小型"桥"(bridge), 把发送方模型的 hidden states 直接映射到接收方能吃的表示. 关键点: 两端模型权重完全冻结, 桥是系统里唯一被训练的部分. 大模型只做 prefill, 一个 token 都不生成——读完题就停, 全部生成交给小模型. 演示组合: GLM-5.2(753B)→Qwen-3.5(4B). 参见 [2026/09/09, 知乎-绝密伏击, 让 753B 模型闭嘴, 让 4B 模型回答: Mostik 重构大小模型协作](https://zhuanlan.zhihu.com/p/2081085802336072655)
 
 
 ## 3.3 算子库
@@ -529,10 +559,12 @@ ARM-software/ComputeLibrary
 | 2025/10 | 通过分块量化和查找表等技术, 动态分配推理计算资源, 提升推理性能 |[Scaling LLM Test-Time Compute with Mobile NPU on Smartphones](https://arxiv.org/abs/2509.23324) | NA | 本文指出, NPU 在典型的 LLM 推理过程中, 其计算资源(尤其是矩阵乘法单元)未被充分利用. 为了利用这部分被浪费的计算能力, 论文提出在移动 NPU 上应用并行测试时计算扩展(指在模型推理阶段通过增加计算量来提升性能的技术)技术, 以提升小模型的性能. 然而, 该方法面临着 NPU 固有的挑战, 包括对细粒度量化(分组更小、更精细)的硬件支持不足, 以及通用计算(指不针对特定 AI 任务的常规计算, 如 Softmax 激活函数计算, NPU 在这类计算上效率通常低于专用矩阵计算)效率低下. 为解决这些问题, 论文引入了两项关键技术: 一是硬件感知的分块量化方案, 该方案将分组量化与 NPU 的内存访问模式对齐;<br>二是基于查找表的高效替代方案, 用于处理 Softmax 和反量化等复杂操作. [微信公众号--NerualTalk--端侧 NPU 的 LLM 测试时计算扩展: 硬件感知块量化与 LUT 优化实现 19.0×GEMM与 2.2×Softmax 加速](https://mp.weixin.qq.com/s/QZNb1IZMN8M-X3VW7ZCndQ), [主仓库](https://github.com/haozixu/llama.cpp-npu), [算子库](https://github.com/haozixu/htp-ops-lib) |
 
 
-## 3.4 长上下文
+## 3.4 KVCache 与长上下文
 -------
 
 [[LLM 性能优化]聊聊长文本推理性能优化方向](https://zhuanlan.zhihu.com/p/698308542)
+
+[2026/09/13, Dongxi 东锡 NLP @dongxi_nlp, LLM 为什么缓存 K 和 V, 却通常不缓存 Q？](https://x.com/dongxi_nlp/status/2098945504289669481) 前面从"每层保存自己的 K/V"出发, 通过 6 个问理, 介绍了 KVCache 的原理和计算依赖: ① 每生成一个 token, 都要从头再算吗？ ② 为什么留下 K/V, 却通常不留下 Q？③Context 变长了, 旧计算为什么仍然有效？④新 token 到来时, 究竟计算了什么？⑤ 省下重复计算, 为什么又增加了显存开销？⑥ 同一份文档, 换个问题, 还能接着用吗？ 最后通过第 7 个问题 ⑦如果重新设计 KV 的来源和共享方式呢？解释了 DeepSeek-V4.1-Flash 的几个变化.
 
 
 # 4 分析工具
@@ -577,6 +609,8 @@ ARM-software/ComputeLibrary
 ## 4.2 可视化工具
 -------
 
+[2026/09/12, SCR @SCR01111, 17 visual resources that make AI concepts MUCH easier to understand 📌](https://x.com/SCR01111/status/2098796099980914725)
+
 | 编号 | 工具 | 团队 | 详情 |
 |:---:|:----:|:---:|:---:|
 |  1  | [Gemma Scope](https://www.163.com/dy/article/J8GVD23005566WT8.html) | Google DeepMind | [Google DeepMind 发布大模型可视化工具 Gemma Scope](https://www.163.com/dy/article/J8GVD23005566WT8.html) |
@@ -605,7 +639,28 @@ ARM-software/ComputeLibrary
 |  24 | [](https://github.com/sachinhosmani/torchvista) |
 |  25 | [](https://github.com/ImagineAILab/ai-by-hand-excel) |
 |  26 | [Awesome LLM Interpretability ](https://github.com/JShollaj/awesome-llm-interpretability) | 大语言模型内部是如何工作的, 为什么会产生幻觉, 为什么有时答非所问, 想深入了解这些. Awesome LLM Interpretability 这份资源合集, 提供一整套拆解 AI 黑盒的系统路径. 涵盖从注意力可视化、神经元分析到稀疏自编码器等研究方向, 帮我们了解大语言模型全貌. 还收录了 TransformerLens、LIT 可视化平台、Neuron Viewer 等大量可视化调试工具. 同时整理了可解释性、特征稀疏性、知识编辑等方向的论文, 并附带相关学习讨论入口.  |
-|  27 | [2020/12/17, Jay Alammar, Interfaces for Explaining Transformer Language Models](https://jalammar.github.io/explaining-transformers), [2026/07/09, 微信公众号-精博士小酒馆, 解释 Transformer 语言模型的交互界面](https://mp.weixin.qq.com/s/Ti63Dg3ACtv3W9SUWO1nIA)<br>[2021/01/19, Jay Alammar, Finding the Words to Say: Hidden State Visualizations for Language Models](https://jalammar.github.io/hidden-states). [2026/07/10, 微信公众号-精博士小酒馆, 语言模型的隐藏状态可视化](https://mp.weixin.qq.com/s/5FAO57YCl_MNaJ_9sDTxaw) |
+|  27 | [2020/12/17, Jay Alammar, Interfaces for Explaining Transformer Language Models](https://jalammar.github.io/explaining-transformers), [2026/07/09, 微信公众号-精博士小酒馆, 解释 Transformer 语言模型的交互界面](https://mp.weixin.qq.com/s/Ti63Dg3ACtv3W9SUWO1nIA)<br>[2021/01/19, Jay Alammar, Finding the Words to Say: Hidden State Visualizations for Language Models](https://jalammar.github.io/hidden-states). [2026/07/10, 微信公众号-精博士小酒馆, 语言模型的隐藏状态可视化](https://mp.weixin.qq.com/s/5FAO57YCl_MNaJ_9sDTxaw)<br>[2018/06/27, The Illustrated Transformer](https://jalammar.github.io/illustrated-transformer) |
+|  28 | [Ecco: An Open Source Library for the Explainability of Transformer Language Models](https://aclanthology.org/2021.acl-demo.30.pdf) | [2026/07/09, 微信公众号--精博小酒馆, 解释 Transformer 语言模型的交互界面](https://mp.weixin.qq.com/s/Ti63Dg3ACtv3W9SUWO1nIA)<br>[2026/07/10, 微信公众号--精博小酒馆, 语言模型的隐藏状态可视化](https://mp.weixin.qq.com/s/5FAO57YCl_MNaJ_9sDTxaw)官网地址 [eccox](https://www.eccox.io), 仓库地址 [jalammar/ecco](https://github.com/jalammar/ecco), 手册 [Welcome to Ecco](https://ecco.readthedocs.io/en/main). |
+|  29 | [LM Transparency Tool: Interactive Tool for Analyzing Transformer Language Models](https://arxiv.org/abs/2404.07004) |
+|  30 | [3Blue1Brown](https://www.3blue1brown.com/?topic=neural-networks) |
+|  31 | [TensorFlow Playground](https://playground.tensorflow.org) | 更改数据集、层、神经元、激活函数、学习率和正则化, 然后观看网络训练时决策边界的变化. 它使欠拟合、过拟合和模型容量变得可见. |
+|  32 | [Google PAIR - AI Explorables](https://pair.withgoogle.com/explorables) |
+|  33 | [Distill](https://distill.pub) |
+|  34 | [Transformers & LLMs](https://www.abhik.ai/concepts/category/transformers) |
+|  35 | [A Visual Guide to Attention Variants in Modern LLMs](https://magazine.sebastianraschka.com/p/visual-attention-variants) |
+|  36 | [A Visual Guide to Mixture of Experts (MoE)](https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-mixture-of-experts) |
+|  37 | [modular/LLM Inference Handbook](https://handbook.modular.com/llm-inference-basics/what-is-llm-inference) |
+|  38 | [Apple Embedding Atlas/Embedding Atlas Scalable, Interactive Visualization](https://apple.github.io/embedding-atlas) |
+|  39 | [Diffusion Explainer](https://poloclub.github.io/diffusion-explainer) |
+|  40 | [Neuronpedia](https://www.neuronpedia.org) |
+|  41 | [Seeing Theory](https://seeing-theory.brown.edu/basic-probability/index.html) |
+|  43 | [GAN Lab](https://poloclub.github.io/ganlab) |
+|  44 | [Abhik Sarkar's Transformer Visualizations](https://www.abhik.ai/concepts/category/transformers) |
+|  45 | [A Visual Guide to Mixture of Experts (MoE)](https://www.maartengrootendorst.com/blog/moe) |
+|  46 | [Embedding Atlas: Low-Friction, Interactive Embedding Visualization](https://machinelearning.apple.com/research/embedding-atlas) |
+|  47 | [Diffusion Explainer](https://poloclub.github.io/diffusion-explainer) |
+|  48 | [Neuronpedia](https://www.neuronpedia.org) | 探索模型内部结构、特征、激活函数和可解释性. |
+|  50 | []()
 
 ## 4.3 评测平台
 -------
@@ -626,7 +681,7 @@ ARM-software/ComputeLibrary
 
 | 项目 | 描述 |
 |:---:|:---:|
-| [Hannibal046/Awesome-LLM](https://github.com/Hannibal046/Awesome-LLM) | 一份关于大型语言模型的精选论文列表, 尤其是与 ChatGPT 相关的论文. 它还包含用于 LLM 培训的框架、要部署 LLM 的工具、有关所有公开可用的 LLM 检查点和 API 的 LLM 课程和教程. |
+| [Hannibal046/Awesome-LLM](https://github.com/Hannibal046/Awesome-LLM) | 一份关于大型语言模型的精选论文列表, 尤其是与 ChatGPT 相关的论文. 它还包含用于 LLM 培训的框架、要部署 LLM 的工具、有关所有公开可用的 LLM 检查点和 API 的 LLM 课程和教程. 其他类似的 [WangRongsheng/awesome-LLM-resources](https://github.com/WangRongsheng/awesome-LLM-resources), [AiHubCN/Awesome-Chinese-LLM](https://github.com/AiHubCN/Awesome-Chinese-LLM) |
 | [dair-ai/ML-Papers-of-the-Week](https://github.com/dair-ai/ML-Papers-of-the-Week) | 每周 AI 热点论文. |
 | [Lightning-AI/litgpt](https://github.com/Lightning-AI/litgpt) | LitGPT 是一个强大的工具, 使开发人员能够利用 LLM 的最新进展. 其全面的功能、用户友好性以及不断发展的社区使其成为构建和部署 LLM 应用程序的理想选择. |
 | [aishwaryanr/awesome-generative-ai-guide](https://github.com/aishwaryanr/awesome-generative-ai-guide) | 关于人工智能的开源综合站点, 汇总了相关的论文以及课程, 以及业界前沿资讯. |
@@ -641,7 +696,7 @@ ARM-software/ComputeLibrary
 | [km1994/nlp_paper_study](https://github.com/km1994/nlp_paper_study) | 该仓库主要记录 NLP 算法工程师相关的顶会论文研读笔记. |
 | [NexaAI/Awesome-LLMs-on-device](https://github.com/NexaAI/Awesome-LLMs-on-device) | 汇总了端侧 AI 的相关架构和优化技术, 包括前言的论文研究. |
 | [wdndev/llm_interview_note](https://github.com/wdndev/llm_interview_note) | 主要记录大语言大模型 (LLMs) 算法(应用) 工程师相关的知识及面试题. |
-| [冬于的博客 - Transformer/BERT / 实战](https://ifwind.github.io/2021/08/31/Transformer-BERT - 实战) | 通过大量图讲述 Transformer 架构 |
+| [冬于的博客 - Transformer/BERT / 实战](https://ifwind.github.io/2021/08/31/Transformer-BERT-%E5%AE%9E%E6%88%98) | 通过大量图讲述 Transformer 架构 |
 | [浅显易懂地介绍 llm.c [译]](https://baoyu.io/translations/llm/explaining-llm-c-in-layman-terms) | [Explainable Language Models: Existing and Novel Approaches](https://twitter.com/karpathy/status/1778153659106533806) 的译文, 参见 [karpathy/llm.c](https://github.com/karpathy/llm.c). |
 | [DefTruth/Awesome-LLM-Inference](https://github.com/DefTruth/Awesome-LLM-Inference) | 收集了大量 LLM 推理相关的论文和仓库, 涵盖了并行计算, 量化压缩, 注意力机制优化, 上下文管理等. |
 | [SylphAI-Inc/llm-engineer-handbook](https://github.com/SylphAI-Inc/llm-engineer-handbook) | NA |
@@ -667,7 +722,7 @@ ARM-software/ComputeLibrary
 | [21 Lessons teaching everything you need to know to start building Generative AI applications](https://microsoft.github.io/generative-ai-for-beginners) | 微软的 《Generative AI for Beginners: 面向初学者的生成式人工智能课程》 |
 | [AI Infrastructure Engineer - Learning Path](https://github.com/ai-infra-curriculum/ai-infra-engineer-learning) | 通过实践项目和实践学习, 掌握人工智能基础设施工程 |
 | [强化学习的数学基础](https://github.com/MathFoundationRL/Book-Mathematical-Foundation-of-Reinforcement-Learning) | 开源书《强化学习的数学基础》 给你画出一条清清楚楚的路线: 从数学入手, 把 RL 的核心逻辑掰开揉碎了喂给你. 全书从头到尾就用一个经典的"网格世界"案例做示范, 每个算法的推导都一步步拆开来讲, 不跳步、不绕弯子. 数学深度的分寸拿捏得特别到位——该严格的地方绝不糊弄, 该简化的地方也不硬撑, 目标就是让你真正吃透每个知识点. |
-| [AI 通识课 · AI Essentials](https://github.com/buynao/aipath) | [为中文学习者设计的 AI 入门课](https://aipath.buynao.com) 
+| [AI 通识课 · AI Essentials](https://github.com/buynao/aipath) | [为中文学习者设计的 AI 入门课](https://aipath.buynao.com)
 用可视化和交互演示, 把 AI 的核心原理装进你的直觉 —— 从"神经网络是什么"到亲手搭出 AI 应用, 每课 20 分钟. |
 | [Learn AI/ML Interactively](http://github.com/genieincodebottle/generative-ai) | 想系统学习生成式 AI, 网上找到资料过于零散, 或者只讲理论没有实战, 学习效率很低. 在寻找的众多资料中, generative-ai 脱颖而出, 提供了一份全景式的 AI 学习与实战指南. 涵盖大语言模型基础、向量嵌入、提示词工程等核心概念, 每个知识点都配有文档和代码. 收录了 20 多个项目案例, 包括多种高级检索增强生成(RAG)模式、多智能体系统搭建、自然语言转 SQL 查询、情感分析等, 都能直接跑起来. 还整理了 AWS、Azure、Google Cloud 三大云平台的部署指南, 以及面试题库和职业路径建议. |
 | [LLM Notes](https://github.com/Fyrgo8/llm-notes) | 大模型学习笔记仓库, 涵盖八股面试、Agent 工程、RL 训练、算法方向选择等主题. |
@@ -678,8 +733,20 @@ ARM-software/ComputeLibrary
 | [Advanced NLP Spring 2026 Code](https://github.com/cmu-l3/anlp-spring2026-code) | CMU 这门 NLP 课最硬核的地方: 第一份作业就让你从零手搓一个 LLaMA. 卡内基梅隆大学公开了 [2026 春季《Advanced NLP》课程](https://cmu-l3.github.io/anlp-spring2026), 教授是 Sean Welleck. 整套资源包括完整课程主页、课件、视频和配套代码, 内容从 Tokenizer、Transformer、语言模型基础, 一路讲到 RAG、多模态、RLHF、MoE、长上下文和 test-time scaling. 这门课最有价值的地方, 不仅是教你怎么调用大模型 API, 而且把大模型能力背后的工程路径也拆开给你看. 从「Build Your Own LLaMA」这种手搓模型作业, 到后面的推理、效率、评测和 Agent, 它训练的其实是一种更底层的能力: 你能不能理解模型为什么能工作, 为什么会变强, 为什么有时会失败. 这也很符合现在 AI 的技术拐点. 过去大家更关心参数规模, 谁的模型更大; 现在越来越多关键进展, 开始发生在推理侧、效率侧和系统侧: 怎么让模型更会思考, 怎么调度专家, 怎么检索外部知识, 怎么在有限算力下获得更好的输出. 所以这门课不只是 NLP 进阶课, 更像一份 2026 年大模型研究者的训练路线图. AI 时代真正的分水岭, 可能不只是会不会使用模型. [YouTube-CMU Advanced NLP Spring 2026](https://www.youtube.com/playlist?list=PLqC25OT8ZpD15emhQhNjRLym77-sp2kAx) |
 | [大模型基础](https://github.com/ZJU-LLMs/Foundations-of-LLMs) | 分享一本通俗好读的开源书《大模型基础》. 从大语言模型入门到架构演化, 再到 Prompt 工程、参数高效微调、模型编辑、检索增强生成(RAG)等关键技术, 一本串起来. 全书 6 章, 每章以一种动物为线索, 配合案例讲透核心方法, 读起来更直观、更容易上手. |
 | [Unpacking ChatGPT(拆开 GPT)](https://github.com/aa1143/unpacking-chatgpt) | 本仓库统一管理系列的公众号文章、视频脚本、白板与分镜、封面、社交平台文案、参考资料和发布记录. 用后端工程师的视角, 把 ChatGPT 从模型原理到工程应用讲明白. 《拆开 GPT》是一套面向非专业读者的中文科普系列. 每一期从一个具体问题出发, 只解释一个核心概念, 并把模型原理连接到真实的产品现象和工程实践.<br>1. 第一阶段: ChatGPT 怎么回答问题——Token、Embedding、位置、Attention、Transformer、生成.<br>2. 第二阶段: ChatGPT 怎么获得能力——预训练、损失函数、反向传播、指令微调、RLHF、DPO.<br>3. 第三阶段: ChatGPT 如何成为产品——幻觉、上下文、RAG、工具调用、Agent、AI 编程. |
-| [2024/10/19, Rohit Patel, Understanding LLMs from Scratch Using Middle School Math](https://towardsdatascience.com/understanding-llms-from-scratch-using-middle-school-math-e602d27ec876/) | 本文来自于Rohit Patel，作者是Meta 数据科学总监兼 GenAI。用尽可能简单的描述，解释了LLMs的构建和工作原理. 经典长文, 内部有很多译文. 推荐阅读 [2026/05/04, 微信公众号--AI大模型应用实践, 中学生就能看懂：从零开始理解LLM内部原理【十四，大结局】｜理解 Transformer 架构](https://mp.weixin.qq.com/s/ixtL65L50QPmtaxRQ57drA), [2024/12/20, 微信公众号--数据派THU, 独家 | 用初中数学从零开始理解大语言模型(下)](https://mp.weixin.qq.com/s/Jf9TkeXgc5JpVelmvvNZTg), [2025/01/08, 微信公众号--丁师兄大模型, LLM工作原理，很直观很好懂!](https://mp.weixin.qq.com/s/iIZF58iFHXqU15n8_4nEOg)<br>其他类似的还有很多,  [2024/11/30, 微信公众号--中国指挥与控制学会, CICC科普栏目｜用初中数学理解LLM工作原理](https://mp.weixin.qq.com/s/8BkNM2F0SYDJ4HPyk-ulHA), [2025/03/20, 微信公众号--数科纵横, 《使用中学数学从头开始理解LLM》](https://mp.weixin.qq.com/s/HjgOPRkbVFVBHJ4YKHzB9A), [2025/01/05, 微信公众号--林锵锵, 使用初中数学从零开始理解 LLMs](https://mp.weixin.qq.com/s/OEfhumiSYgLP5Tlmni-Rfw), [2025/09/05, 微信公众号--Ai学习的老章, 用初中数学从零理解大模型](https://mp.weixin.qq.com/s/PMJX7w_4-EPAjPUo9h0wHQ), [2024/11/30, 微信公众号--数学中国, 用初中数学理解LLM工作原理](https://mp.weixin.qq.com/s/vofXHc5UsM2izj_J9CJ16g). |
-| [2026/07/02, 「用初中数学讲明白AI」连载系列](https://mp.weixin.qq.com/s/p5pKX9HRQATs8cpQXG_xEg) | 微信公众号--AI Native 启示录的连载博文, 从另外一个维度讲解 LLM 的原理, 其他类似文章 [2025/11/12, 微信公众号--林间有风, 白话Transformer（上](https://mp.weixin.qq.com/s/vqvr-1YVn9mIW2ZOdvfTDQ), [2026/01/08, 微信公众号--戴戴向前冲, 如何只用初中数学讲清楚大语言的原理](https://mp.weixin.qq.com/s/o30u71WGGgLvVIOvs-9hIw), [2024/01/01, 微信公众号--AINLPer, 揭秘 Transformer 的数学原理](https://mp.weixin.qq.com/s/qVZqwpD7ngdSX-UzIj68hw), [2025/09/24, 微信公众号--IRR 实验室, 如何用中学知识理解大模型技术原理](https://mp.weixin.qq.com/s/QyotH4Fw3Ybl72-eGSBnfA) |
+| [2024/10/19, Rohit Patel, Understanding LLMs from Scratch Using Middle School Math](https://towardsdatascience.com/understanding-llms-from-scratch-using-middle-school-math-e602d27ec876/) | 本文来自于Rohit Patel, 作者是Meta 数据科学总监兼 GenAI. 用尽可能简单的描述, 解释了LLMs的构建和工作原理. 经典长文, 内部有很多译文. 推荐阅读 [2026/05/04, 微信公众号--AI大模型应用实践, 中学生就能看懂: 从零开始理解LLM内部原理【十四, 大结局】｜理解 Transformer 架构](https://mp.weixin.qq.com/s/ixtL65L50QPmtaxRQ57drA), [2024/12/20, 微信公众号--数据派THU, 独家 | 用初中数学从零开始理解大语言模型(下)](https://mp.weixin.qq.com/s/Jf9TkeXgc5JpVelmvvNZTg), [2025/01/08, 微信公众号--丁师兄大模型, LLM工作原理, 很直观很好懂!](https://mp.weixin.qq.com/s/iIZF58iFHXqU15n8_4nEOg)<br>其他类似的还有很多,  [2024/11/30, 微信公众号--中国指挥与控制学会, CICC科普栏目｜用初中数学理解LLM工作原理](https://mp.weixin.qq.com/s/8BkNM2F0SYDJ4HPyk-ulHA), [2025/03/20, 微信公众号--数科纵横, 《使用中学数学从头开始理解LLM》](https://mp.weixin.qq.com/s/HjgOPRkbVFVBHJ4YKHzB9A), [2025/01/05, 微信公众号--林锵锵, 使用初中数学从零开始理解 LLMs](https://mp.weixin.qq.com/s/OEfhumiSYgLP5Tlmni-Rfw), [2025/09/05, 微信公众号--Ai学习的老章, 用初中数学从零理解大模型](https://mp.weixin.qq.com/s/PMJX7w_4-EPAjPUo9h0wHQ), [2024/11/30, 微信公众号--数学中国, 用初中数学理解LLM工作原理](https://mp.weixin.qq.com/s/vofXHc5UsM2izj_J9CJ16g). |
+| [2026/07/02, 「用初中数学讲明白AI」连载系列](https://mp.weixin.qq.com/s/p5pKX9HRQATs8cpQXG_xEg) | 微信公众号--AI Native 启示录的连载博文, 从另外一个维度讲解 LLM 的原理, 其他类似文章 [2025/11/12, 微信公众号--林间有风, 白话Transformer(上](https://mp.weixin.qq.com/s/vqvr-1YVn9mIW2ZOdvfTDQ), [2026/01/08, 微信公众号--戴戴向前冲, 如何只用初中数学讲清楚大语言的原理](https://mp.weixin.qq.com/s/o30u71WGGgLvVIOvs-9hIw), [2024/01/01, 微信公众号--AINLPer, 揭秘 Transformer 的数学原理](https://mp.weixin.qq.com/s/qVZqwpD7ngdSX-UzIj68hw), [2025/09/24, 微信公众号--IRR 实验室, 如何用中学知识理解大模型技术原理](https://mp.weixin.qq.com/s/QyotH4Fw3Ybl72-eGSBnfA) |
+| [Tech with Mak @techNmak, Understanding_Attention_Handbook](https://drive.google.com/file/d/1fCHQ5xCQJ6jZszAYf-qP3VIySbzFIEDv/view)<>[理解注意力](https://drive.google.com/file/d/1vmngmpSAJJg408Hy9NjwLiKPhWUpz4VZ/view) | [Tech with Mak, 我整理了一本关于注意力机制如何运作的手册, 从 Q/K/V 方程一直到它在现代大语言模型中实际的运行方式. 自注意力与交叉注意力, 因果掩码, 多头注意力, RoPE, KV 缓存, MHA/MQA/GQA/MLA, FlashAttention, 手动推导, 附有对原始论文的引用. (https://x.com/techNmak/status/2096004794192404728), [轩辕之风, @xuanyuanzhifeng, 《理解注意力》的中文版, 我用GPT-6-Astra翻译了, 分享地址在这里. ](https://x.com/xuanyuanzhifeng/status/2096772376856084824)<>[https://drive.google.com/file/d/13PucjYSadngh5kPAzSN5PlWIf9nkdN_A/view](https://drive.google.com/file/d/13PucjYSadngh5kPAzSN5PlWIf9nkdN_A/view)<br>[Understanding RoPE](https://drive.google.com/file/d/1wk-zbPrnYqqViex4MklXLtbiaeWItI-I/view)<br>[RAG & Context Engineering](https://drive.google.com/file/d/1-hwxsU1U0ghO4938kcTdnRQwl5CCtB6L/view)<br>[Embeddings, Vector Search & Retrieval](https://drive.google.com/file/d/1Us2AKJAfkqKusKBg6sA1-CFEg3PIUxg3/view)<br>[Training & Post-Training LLMs](https://drive.google.com/file/d/1svj2ff2KiR_DZ1lZPI7_W-tSlZGJLvMx/view)<br>[LLM Inference and Serving Interview_Questions 30Q](https://drive.google.com/file/d/1b74KeMblGt8wkbFEMW-HE1uFw90urYaY/view)<br>[Transformers & Model Architecture Interview Questions](https://drive.google.com/file/d/1xcI_FzVWw3FT1u8vNtcAlhvFSqlSeYYw/view)<br>[LLM Foundations 25 Interview Questions](https://drive.google.com/file/d/1a10mmWsvBsds77AUTAnXKDqqGqrIrYv2/view)<br>[Top 50 Large Language Model (LLM) Interview Questions](https://drive.google.com/file/d/1cUxKspEXgQ64s4OFEw0kabf_qNauOPiH/view)<br>[Understanding KV Cache](https://drive.google.com/file/d/12KlRm0YLYrfpLF2q3_tBDNMMkJ7_bYNF/view), [理解 KV 缓存](https://drive.google.com/file/d/1NLWUo0L7pJ4Ui9G4_-tKaWnIgwyfbvsq/view) |
+| [Transformer 全景图](https://www.xuanyuancode.com/ai-llm/lessons/appendix-transformer-3d) | [轩辕之风 @xuanyuanzhifeng, Transformer那期视频在Youtube播放12W+了, 在X也帮助我粉丝破千了. 为了帮助大家有一个更整体全局的视野理解Transformer, 我做了一个Transformer全景图动画. 可以很直观的看到一个Token是怎么一步步进行词嵌入、位置编码、QKV生成、注意力计算、多头注意力、FFN提取特征、多层BLOCK堆叠、最后算出下一个token的](https://x.com/xuanyuanzhifeng/status/2097159597127847950) |
+| [2026/09/09, 南晚Nanwan @snwiki238337, 把Transformer底裤扒光, 从Transformer到大模型](https://x.com/snwiki238337/status/2097583827661296023) |
+| [2026/09/10, 小互-AI解读站, 爱丁堡大学发布 20 页免费论文: 教你用最简单的方法看懂 ChatGPT 背后的数学](https://best.xiaohu.ai/article/math-of-llms) |
+| [2026/09/07, How did we go from GPT-2 to Kimi3?](https://programmerftw.github.io/llm-breakdown-/)
+| [2026/09/16, DeepSeek v4.1 Flash 架构分析](https://www.k-a.in/deepseek-v4-1-flash.html), [DeepSelect: 把 TopK 推向内存带宽的天花板](https://talks.superalign.cn/deepselect/), [2026/09/13, Wei @wei_wang, 有人把 DeepSeek V4.1 Flash 的 Causal Encoder-Decoder 思路, 移植到了现有的 Qwen3-8B 上. ](https://x.com/wei_wang/status/2098962121715302542), [用 3D 演示的方式对比 Transformer 和 DeepSeel v4.1 Flash](https://github.com/petergpt/transformer-architecture), [You Only Cache Once: Decoder-Decoder Architectures for Language Models](https://arxiv.org/abs/2405.05254) |
+| [鱼皮的 AI 知识库](https://github.com/liyupi/ai-guide) | 完全免费开放的 AI 知识共享平台 | 减少信息差, 让每个人都能享受技术红利 |
+| [《AI Infra 大话西游之水滴石穿》——从基础设施到智能未来的工程哲学与实战指南](https://github.com/lilinji/ai-infra-odyssey) | 本专栏历时沉淀, 构建了从底层物理硅基、编译算子到万卡超算调度中枢的完整 8 层工业级技术栈. |
+| [2026/05/22, LLMs 101: A Practical Guide (2026 Edition)](https://x.com/TheAhmadOsman/status/2057590224729911346) |
+| [NVIDIA Model Optimizer](https://github.com/NVIDIA/Model-Optimizer)
+| [](https://github.com/chiphuyen/aie-book) | Chip Huyen 的 AI 工程伴侣仓库. |
+| [大模型学习路线图](https://nano-ai.tech) | [纳米 AI](https://x.com/antiAIvo) 搭建的 Transformer/agent 的理解和学习的网站, [2026/09/04, 纳米 AI, 以"我 跑"→"I run"为例,完整流程是这样的:](https://x.com/antiAIvo/status/2095740082032636215), [2026/09/04, 用"猫吃鱼"这个例子, 理解Transformer-Attention: 注意力机制](https://x.com/antiAIvo/status/2095840337831121183), 注意这里更好理解, [但是有一些错误的认识](https://x.com/gatieme1024/status/2096167289154593084), [通过 GPT2 来学习 Transformer 的注意力机制, 有一些新的感悟, 感觉理解了"注意力"背后的设计思路](https://x.com/antiAIvo/status/2096079171000979581)
 
 
 ## 5.2 Survey
